@@ -61,3 +61,19 @@ target/
 
 # Notebook Checkpoints
 .ipynb_checkpoints/
+
+# Visibilities
+visibilities.ms
+visibilities_profile.html
+visibilities_task_stream.html
+*.fits
+*.hdf
+
+# PyCharm
+.idea
+
+# Dask
+dask-worker-space
+
+# telescope
+telescope.tm
