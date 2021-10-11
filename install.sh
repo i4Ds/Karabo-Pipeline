@@ -20,15 +20,13 @@
 #done
 #fi
 
-#mkdir workbench
-#cd workbench
+mkdir workbench
+cd workbench
 
 apt update
 apt install -y cmake git git-lfs libboost-all-dev
 
 #setup python environment
-#conda create --name SRC_pipeline_env
-#conda activate SRC_pipeline_env
 pip install numpy
 
 #install oskar
