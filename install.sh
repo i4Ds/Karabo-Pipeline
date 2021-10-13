@@ -24,7 +24,7 @@ mkdir workbench
 cd workbench
 
 apt update
-apt install -y cmake git git-lfs libboost-all-dev
+apt install -y cmake git git-lfs python3 python3-pip libboost-all-dev casacore-dev
 
 #setup python environment
 pip install numpy
@@ -51,6 +51,11 @@ pip install -r requirements.txt
 python3 setup.py install
 git lfs install
 git-lfs pull
+
+#workaround copying the data folder into site packages
+#TODO replace python version values
+mkdir /usr/local/lib/python3.8/dist-packages/rascil-0.3.0-py3.8.egg/data
+cp -r "data/"* /usr/local/lib/python3.8/dist-packages/rascil-0.3.0-py3.8.egg/data
 cd ..
 
 #clean up directories
