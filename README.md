@@ -28,12 +28,24 @@ apt install cmake git git-lfs libboost-all-dev casacore-dev
 
 Install [Anaconda or Miniconda](https://docs.anaconda.com/anaconda/install/index.html)
 
+Before installing all further depencies, make sure that the correct python and pip executables are selected in the current shell session.
+If you do `conda activate <env>`, you will have the correct executables in your terminal.
+
+It is advisable to first create a seperate environmen, so run these.:
+
+```
+conda create -n pipeline_env python=3.8
+conda activate pipeline_env
+```
+
 The Pipeline uses the [OSKAR](https://github.com/OxfordSKA/OSKAR) and [RASCIL](https://ska-telescope.gitlab.io/external/rascil/index.html) packages.
 The Installation procedure of the packages is not straight forward, therefore an installation scripts exist.
 
 ```shell
-#run the installation script
-#do not run in sudo, this will install the pip packages as root which be problematic.
+# run the installation script
+# DO NOT RUN IN SUDO, this will install the pip packages as root (unless you want that)
+# The installation script will use the in variables set in your current session.
+# Meaning check which pip and python are used to execute the commands, so that the dependencies are installed correctly.
 ./install.sh
 ```
 
@@ -49,9 +61,13 @@ For easier use of the package, there are two docker files in the repository
 ```shell
 # This dockerfile starts a jupyter server inside a docker file with all needed dependencies installed.
 # When the container is running 
-docker build -f jupyter.Dockerfile .
-docker run <image:id>
+docker run -it $(docker build -f jupyter.Dockerfile .)
 ```
 
-Or use the second docker file, which installs all dependencies and runs the `pipeline.py` (same code outside of notebook) file.
+Or use the other docker file, which installs all dependencies and runs the `pipeline.py` (same code outside of notebook) file.
 
+```shell
+docker build -f pipeline.Dockerfile .
+```
+
+Then run the built image

@@ -1,13 +1,18 @@
 FROM jupyter/base-notebook
 
 ARG DEBIAN_FRONTEND="noninteractive"
+ARG PYTHON_VERSION="3.8"
 
 USER root
 
 RUN apt-get update #takes a while re-fetching everything
-RUN apt-get install -y cmake git git-lfs libboost-all-dev casacore-dev
+RUN apt-get install -y build-essential cmake git git-lfs libboost-all-dev casacore-dev
 
 USER ${NB_UID}
+
+RUN conda create -n pipeline_env python=3.8
+SHELL ["conda", "run", "-n", "pipeline_env", "/bin/bash", "-c"]
+RUN which pip
 
 #setup python environment
 RUN pip install numpy
@@ -18,7 +23,10 @@ RUN git clone https://github.com/OxfordSKA/OSKAR.git oskar/.
 RUN mkdir oskar/build
 RUN cmake -B oskar/build -S oskar/. #maybe add some more options here, via arguments?
 RUN make -C oskar/build -j4
+#install with eleveted priviliges
+USER root
 RUN make -C oskar/build install
+USER ${NB_UID}
 RUN pip install oskar/python/.
 
 #install rascil
@@ -32,8 +40,8 @@ RUN git-lfs pull
 
 #workaround copying the data folder into site packages
 #TODO replace python version values
-RUN mkdir /usr/local/lib/python3.8/dist-packages/rascil-0.3.0-py3.8.egg/data
-RUN cp -r "data/"* /usr/local/lib/python3.8/dist-packages/rascil-0.3.0-py3.8.egg/data
+RUN mkdir /usr/local/lib/python${PYTHON_VERSION}/dist-packages/rascil-0.3.0-py${PYTHON_VERSION}.egg/data
+RUN cp -r "data/"* /usr/local/lib/python${PYTHON_VERSION}/dist-packages/rascil-0.3.0-py${PYTHON_VERSION}.egg/data
 
 #clean up directories
 RUN rm -rf oskar
