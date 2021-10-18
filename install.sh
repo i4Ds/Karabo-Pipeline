@@ -1,30 +1,9 @@
 #!/bin/bash
 
-#conda_env=$1
-#conda_dir="/home//anaconda3/envs/$conda_env"
-
-#echo $conda_dir
-
-#if [ -d "$conda_dir" ]; 
-#then
-    #echo "conda has been found at $conda_dir"
-#else 
-    #echo "Conda has not been found at $conda_dir. You can continue the installation and the python packages to the python and pip in path" >/dev/stderr
-    #while true; do
-    #read -p "Do you wish to continue?" yn
-    #case $yn in
-        #[Yy]* ) break;;
-        #[Nn]* ) exit;;
-        #* ) echo "Please answer yes or no.";;
-    #esac
-#done
-#fi
-
 mkdir workbench
 cd workbench
 
-apt update
-apt install -y cmake git git-lfs python3 python3-pip libboost-all-dev casacore-dev
+
 
 #setup python environment
 pip install numpy
@@ -38,6 +17,7 @@ cd build
 cmake .. #maybe add some more options here, via arguments?
 make -j4
 make install
+#sudo make install #depending on your system you might need sudo to install the OSKAR applications
 cd ..
 pip install python/.
 cd ..
