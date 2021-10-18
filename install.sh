@@ -14,7 +14,7 @@ mkdir build
 cd build
 cmake .. #maybe add some more options here, via arguments?
 make -j4
-sudo make install
+make install
 #sudo make install #depending on your system you might need sudo to install the OSKAR applications
 cd ..
 pip install python/.
