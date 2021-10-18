@@ -3,8 +3,6 @@
 mkdir workbench
 cd workbench
 
-
-
 #setup python environment
 pip install numpy
 
@@ -16,7 +14,7 @@ mkdir build
 cd build
 cmake .. #maybe add some more options here, via arguments?
 make -j4
-make install
+sudo make install
 #sudo make install #depending on your system you might need sudo to install the OSKAR applications
 cd ..
 pip install python/.
@@ -34,8 +32,8 @@ git-lfs pull
 
 #workaround copying the data folder into site packages
 #TODO replace python version values
-mkdir /usr/local/lib/python3.8/dist-packages/rascil-0.3.0-py3.8.egg/data
-cp -r "data/"* /usr/local/lib/python3.8/dist-packages/rascil-0.3.0-py3.8.egg/data
+mkdir $HOME/anaconda3/lib/python3.8/site-packages/rascil-0.3.0-py3.8.egg/data
+cp -r "data/"* $HOME/anaconda3/lib/python3.8/site-packages/rascil-0.3.0-py3.8.egg/data
 cd ..
 
 #clean up directories
