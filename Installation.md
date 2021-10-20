@@ -27,7 +27,7 @@ Install [Anaconda or Miniconda](https://docs.anaconda.com/anaconda/install/index
 Before installing all further depencies, make sure that the correct python and pip executables are selected in the current shell session.
 If you do `conda activate <env>`, you will have the correct executables in your terminal.
 
-It is advisable to first create a seperate environmen, so run these.:
+It is advisable to first create a seperate environment, so run these.:
 
 ```
 conda create -n pipeline_env python=3.8
@@ -45,7 +45,7 @@ The Installation procedure of the packages is not straight forward, therefore an
 ./install.sh
 ```
 
-Or if you do not trust the script  would like to manually installe the different depencies, you can do so by following the installation instructions in the links below.
+If you do not trust the script and would like to manually install the different depencies, you can do so by following the installation instructions in the links below.
 Details about the installations are given in the documentation of the packages.
 
 1. OSKAR installation: https://github.com/OxfordSKA/OSKAR & https://github.com/OxfordSKA/OSKAR/blob/master/python/README.md

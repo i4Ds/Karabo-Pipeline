@@ -23,3 +23,6 @@ docker build -f pipeline.Dockerfile .
 ```
 
 Then run the built image
+```shell
+docker run -it -p 8888:8888 <image-id>
+```
