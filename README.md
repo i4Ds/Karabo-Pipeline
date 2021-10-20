@@ -26,3 +26,8 @@ Then run the built image
 ```shell
 docker run -it -p 8888:8888 <image-id>
 ```
+
+Get access to the contrainer in a bash shell
+```shell
+docker exec -it <container-id> bash
+```

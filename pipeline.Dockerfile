@@ -1,7 +1,12 @@
 FROM ubuntu:latest
 
-ENV PATH="/root/miniconda3/bin:${PATH}"
-ARG PATH="/root/miniconda3/bin:${PATH}"
+ARG USER=dtwin
+ENV HOME=/home/${USER}
+RUN mkdir ${HOME}
+WORKDIR ${HOME}
+
+ENV PATH="${HOME}/miniconda3/bin:${PATH}"
+ARG PATH="${HOME}/miniconda3/bin:${PATH}"
 ARG DEBIAN_FRONTEND="noninteractive"
 
 RUN apt-get update && \
@@ -11,7 +16,8 @@ RUN apt-get update && \
     git \
     git-lfs \
     libboost-all-dev \
-    casacore-dev wget
+    casacore-dev \
+    wget
 
 
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
