@@ -25,6 +25,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh &
     bash Miniconda3-latest-Linux-x86_64.sh -b && \
     rm -f Miniconda3-latest-Linux-x86_64.sh 
 RUN conda update -y conda
+RUN conda install -c anaconda pip
 RUN conda install -c conda-forge jupyterlab
 RUN conda install -c conda-forge matplotlib 
 RUN conda install -c anaconda astropy
