@@ -26,7 +26,9 @@ USER ${NB_UID}
 
 RUN conda update -y conda && \
     conda install -c anaconda pip astropy && \
-     conda install -c conda-forge jupyterlab matplotlib
+    conda install -c conda-forge jupyterlab matplotlib nodejs
+
+RUN pip install dask-labextension
 
 #install oskar
 
