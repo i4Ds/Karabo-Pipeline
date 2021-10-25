@@ -1,0 +1,13 @@
+version: '3'
+services:
+  jupyter-lab-docker:
+    build:
+      dockerfile: ./jupyter.Dockerfile
+      context: .
+    volumes:
+      - pipeline:/home/jovyan/pipeline
+    ports:
+      - "8888:8888" #jupyter lab port
+      - "8787:8787" #dask port
+volumes:
+  pipeline:

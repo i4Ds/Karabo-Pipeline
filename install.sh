@@ -1,5 +1,12 @@
 #!/bin/bash
 
+while getopts o: flag
+do
+    case "${flag}" in
+        o) oskar_install_directory=${OPTARG};;
+    esac
+done
+
 mkdir workbench
 cd workbench
 
@@ -12,11 +19,13 @@ cd oskar
 git clone https://github.com/OxfordSKA/OSKAR.git . 
 mkdir build
 cd build
-cmake .. #maybe add some more options here, via arguments?
+cmake .. -DCMAKE_INSTALL_PREFIX=$oskar_install_directory #maybe add some more options here, via arguments?
 make -j4
 make install
 #sudo make install #depending on your system you might need sudo to install the OSKAR applications
 cd ..
+export OSKAR_INC_DIR="$oskar_install_directory/include"
+export OSKAR_LIB_DIR="$oskar_install_directory/lib"
 pip install python/.
 cd ..
 

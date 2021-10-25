@@ -6,8 +6,12 @@ This pipeline serves as the starting point for the SKA Digial Twin Pipeline, whi
 	- OSKAR telescope files telescope.tm are from https://github.com/OxfordSKA/OSKAR/releases -> Example Data
 - RASCIL: Responsible for imaging https://gitlab.com/ska-telescope/external/rascil
 
+# Installation
 
-#Docker
+To install the pipeline on your local machine follow the [Instructions](Installation.md). 
+Note.: It might be easier to just use the docker file for fast testing.
+
+# Docker
 
 For easier use of the package, there are two docker files in the repository
 ```shell

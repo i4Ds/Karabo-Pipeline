@@ -7,12 +7,14 @@ The installation has been tested on Ubuntu 20.04 (x86_x64) and MacOS (Intel).
 
 Your system should have the following packages dependencies met
 
-- C and C++ compiler (package build-essential on linux; on mac os installed via xcode)
+- C and C++ compiler (package build-essential on linux; on mac os installed via xcode command line tools)
 - git
-- git-lfs (for rascil)
+- git-lfs
 - cmake
 - python3 and pip3 (satisfied via anaconda)
-- boost library (boost-python, boost numpy)
+- c++ boost libraries 
+  - boost-python
+  - boost numpy
 - casacore
 
 Requirements can easily be installed on any debian based system with the apt package manager
@@ -21,6 +23,12 @@ Requirements can easily be installed on any debian based system with the apt pac
 apt update
 apt install build-essential git git-lfs cmake libboost-all-dev casacore-dev libboost-numpy-dev libboost-python-dev
 ````
+
+```shell
+brew tap ska-ska/tap #tap into repository where casacore is
+brew update
+brew install cmake git-lfs casacore 
+```
 
 Install [Anaconda or Miniconda](https://docs.anaconda.com/anaconda/install/index.html)
 
@@ -45,7 +53,7 @@ The Installation procedure of the packages is not straight forward, therefore an
 ./install.sh
 ```
 
-If you do not trust the script and would like to manually install the different depencies, you can do so by following the installation instructions in the links below.
+If you do not trust the script and would like to manually install the different dependencies, you can do so by following the installation instructions in the links below.
 Details about the installations are given in the documentation of the packages.
 
 1. OSKAR installation: https://github.com/OxfordSKA/OSKAR & https://github.com/OxfordSKA/OSKAR/blob/master/python/README.md
