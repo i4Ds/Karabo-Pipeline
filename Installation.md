@@ -3,26 +3,50 @@
 To Install the package on your local system, follow the steps below.
 The installation has been tested on Ubuntu 20.04 (x86_x64) and MacOS (Intel).
 
-## 1. System prerequisites
+### Dependencies
 
-Your system should have the following packages dependencies met
+Your system should have the following packages dependencies installed
 
-- C and C++ compiler (package build-essential on linux; on mac os installed via xcode command line tools)
+- C and C++ compiler
 - git
 - git-lfs
 - cmake
-- python3 and pip3 (satisfied via anaconda)
-- c++ boost libraries 
-  - boost-python
-  - boost numpy
+- python3 and pip3 (via anaconda or other python installation)
+- boost-python
 - casacore
 
-Requirements can easily be installed on any debian based system with the apt package manager
+The Pipeline uses the [OSKAR](https://github.com/OxfordSKA/OSKAR) and [RASCIL](https://ska-telescope.gitlab.io/external/rascil/index.html) packages.
+The Installation procedure of the packages is not straight forward, therefore an installation scripts exist. See below.
+
+### Instructions Linux (Ubuntu)
+
+1. Install package dependencies
 
 ````shell
 apt update
-apt install build-essential git git-lfs cmake libboost-all-dev casacore-dev libboost-numpy-dev libboost-python-dev
+apt install build-essential git git-lfs cmake libboost-all-dev casacore-dev libboost-python-dev casacore-dev
 ````
+
+2. Install [Anaconda or Miniconda](https://docs.anaconda.com/anaconda/install/index.html)
+
+3. Create dedicated environment (environments can be python 3.7 up to python 3.9)
+
+```
+conda create -n pipeline_env python=3.8
+conda activate pipeline_env
+```
+
+4. Install OSKAR and RASCIL
+
+```shell
+# do not run in sudo, this will install the pip packages as root (unless you want that)
+./install.sh
+```
+
+### Instructions MacOS (Intel)
+
+On MacOS the installation of the dependencies can be installed most easily with [Homebrew](https://brew.sh/).
+The C and C++ compilers and git are installed via the XCode Command Line Tools.
 
 ```shell
 brew tap ska-ska/tap #tap into repository where casacore is
@@ -30,31 +54,9 @@ brew update
 brew install cmake git-lfs casacore 
 ```
 
-Install [Anaconda or Miniconda](https://docs.anaconda.com/anaconda/install/index.html)
+Then follow the same instructions as for Linux.
 
-Before installing all further depencies, make sure that the correct python and pip executables are selected in the current shell session.
-If you do `conda activate <env>`, you will have the correct executables in your terminal.
+#### Some Remarks
 
-It is advisable to first create a seperate environment, so run these.:
-
-```
-conda create -n pipeline_env python=3.8
-conda activate pipeline_env
-```
-
-The Pipeline uses the [OSKAR](https://github.com/OxfordSKA/OSKAR) and [RASCIL](https://ska-telescope.gitlab.io/external/rascil/index.html) packages.
-The Installation procedure of the packages is not straight forward, therefore an installation scripts exist.
-
-```shell
-# run the installation script
-# DO NOT RUN IN SUDO, this will install the pip packages as root (unless you want that)
-# The installation script will use the in variables set in your current session.
-# Meaning check which pip and python are used to execute the commands, so that the dependencies are installed correctly.
-./install.sh
-```
-
-If you do not trust the script and would like to manually install the different dependencies, you can do so by following the installation instructions in the links below.
-Details about the installations are given in the documentation of the packages.
-
-1. OSKAR installation: https://github.com/OxfordSKA/OSKAR & https://github.com/OxfordSKA/OSKAR/blob/master/python/README.md
-2. RASCIL installation: https://ska-telescope.gitlab.io/external/rascil/RASCIL_install.html & copy the "data" directory from the pulled repository to the site-packages of the installation
+Running under the new Apple Silicon is possible, however requires modification of the OSKAR Source Code.
+If somebody wants to actually do that, please contact.
