@@ -67,8 +67,10 @@ git-lfs pull
 #workaround copying the data folder into site packages
 #TODO replace python version values
 ENV_DIR="$(which pip)"
-mkdir "${ENV_DIR%/*/*}/lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
-cp -r "data/"* "${ENV_DIR%/*/*}/lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
+PAK_PATH="${ENV_DIR%/*/*}/lib/python3.8/site-packages/"
+RASC_PATH="$(find ${PAK_PATH} -type d | grep 'rascil-' | head -n 1)"
+mkdir "${RASC_PATH}/data"
+cp -r "data/"* "${RASC_PATH}/data"
 cd ..
 
 #clean up directories
