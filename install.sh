@@ -66,9 +66,9 @@ git-lfs pull
 
 #workaround copying the data folder into site packages
 #TODO replace python version values
-CONDA_DIR=$(which anaconda)
-mkdir "${CONDA_DIR%/*}/../lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
-cp -r "data/"* "${CONDA_DIR%/*}/../lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
+ENV_DIR="$(which pip)"
+mkdir "${ENV_DIR%/*/*}/lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
+cp -r "data/"* "${ENV_DIR%/*/*}/lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
 cd ..
 
 #clean up directories
