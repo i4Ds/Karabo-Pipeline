@@ -2,7 +2,7 @@ version: '3'
 services:
   jupyter-lab-docker:
     build:
-      dockerfile: ./jupyter.Dockerfile
+      dockerfile: ./Dockerfile
       context: .
     volumes:
       - pipeline:/home/jovyan/pipeline

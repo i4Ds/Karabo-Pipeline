@@ -1,33 +1,57 @@
 #!/bin/bash
 
-while getopts o: flag
+# Options:
+#
+# Specify OSKAR Installation path:
+#     -o /path/to/oskar/installation
+#
+#
+
+#defaults
+oskar_install_directory="/usr/local"
+
+for ARGUMENT in "$@"
 do
-    case "${flag}" in
-        o) oskar_install_directory=${OPTARG};;
+
+    KEY=$(echo $ARGUMENT | cut -f1 -d=)
+    VALUE=$(echo $ARGUMENT | cut -f2 -d=)
+
+    case "$KEY" in
+            oskar_install_dir)  oskar_install_directory=${VALUE} ;;
+            *)
     esac
 done
 
 mkdir workbench
 cd workbench
 
-#setup python environment
-pip install numpy
-
 #install oskar
-mkdir oskar 
-cd oskar 
-git clone https://github.com/OxfordSKA/OSKAR.git . 
+mkdir oskar
+cd oskar
+git clone https://github.com/OxfordSKA/OSKAR.git .
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=$oskar_install_directory #maybe add some more options here, via arguments?
+cmake .. -DCMAKE_INSTALL_PREFIX="$oskar_install_directory" # -DCMAKE_PREFIX_PATH="/usr/local/opt/qt5/" #maybe add some more options here, via arguments?
 make -j4
-make install
-#sudo make install #depending on your system you might need sudo to install the OSKAR applications
+
+if [ -w $oskar_install_directory ]; then
+  make install
+else
+  #if you want to install the OSKAR in a non user folder like /usr/local/ you have to sudo during installation
+  sudo make install
+fi
+
 cd ..
 export OSKAR_INC_DIR="$oskar_install_directory/include"
 export OSKAR_LIB_DIR="$oskar_install_directory/lib"
 pip install python/.
 cd ..
+
+git clone https://github.com/lofar-astron/PyBDSF.git
+cd PyBDSF
+python setup.py install
+cd ..
+rm -rf PyBDSF
 
 #install rascil
 mkdir rascil
@@ -39,10 +63,12 @@ python3 setup.py install
 git lfs install
 git-lfs pull
 
+
 #workaround copying the data folder into site packages
 #TODO replace python version values
-mkdir $HOME/anaconda3/lib/python3.8/site-packages/rascil-0.3.0-py3.8.egg/data
-cp -r "data/"* $HOME/anaconda3/lib/python3.8/site-packages/rascil-0.3.0-py3.8.egg/data
+CONDA_DIR=$(which anaconda)
+mkdir "${CONDA_DIR%/*}/../lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
+cp -r "data/"* "${CONDA_DIR%/*}/../lib/python3.8/site-packages/rascil-0.4.0-py3.8.egg/data"
 cd ..
 
 #clean up directories
