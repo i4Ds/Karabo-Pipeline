@@ -22,6 +22,6 @@ Now you can edit the code, run it and work with it without installing any depend
 
 # Installation
 
-To install the pipeline on your local machine follow the [Instructions](Installation.md). 
+To install the pipeline on your local machine follow the [Instructions](doc/Installation.md). 
 It might be easier to just use the docker file for fast testing.
 
