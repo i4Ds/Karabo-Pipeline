@@ -29,9 +29,9 @@ apt install build-essential git git-lfs cmake libboost-all-dev casacore-dev libb
 
 2. Install [Anaconda or Miniconda](https://docs.anaconda.com/anaconda/install/index.html)
 
-3. Create dedicated environment (environments can be python 3.7 up to python 3.9)
+(Optional) 3. Create dedicated environment (environments can be python 3.7 up to python 3.9)
 
-```
+```shell
 conda create -n pipeline_env python=3.8
 conda activate pipeline_env
 ```
@@ -41,6 +41,13 @@ conda activate pipeline_env
 ```shell
 # do not run in sudo, this will install the pip packages as root (unless you want that)
 ./install.sh
+```
+
+(Optional if 3.) 5. Activate Environment as Kernel in Jupyter Lab
+
+```shell
+conda install -c anaconda ipykernel
+python -m ipykernel install --user --name=pipeline_env
 ```
 
 ### Instructions MacOS (Intel)
