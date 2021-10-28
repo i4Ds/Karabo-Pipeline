@@ -22,11 +22,11 @@ RUN apt-get update && \
     software-properties-common && \
     apt-get clean
 
-USER ${NB_UID}
+USER $NB_UID
 
 RUN conda update -y conda && \
     conda install -c anaconda pip astropy && \
-    conda install -c conda-forge jupyterlab matplotlib nodejs
+    conda install -c conda-forge matplotlib nodejs
 
 RUN pip install dask-labextension
 
@@ -75,10 +75,18 @@ RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-0.4.0-py3.
 
 RUN rm -rf rascil
 
+RUN mkdir /home/jovyan/ska_pipeline
+COPY docker-start.sh docker-start.sh
+RUN  chmod +x docker-start.sh
+
+RUN fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+ENV JUPYTER_ENABLE_LAB=yes
+
+ENTRYPOINT ["tini", "-g", "--"]
+CMD ["./docker-start.sh"]
+
 USER $NB_UID
+WORKDIR $HOME
 
-RUN mkdir /home/jovyan/pipeline
-COPY . /home/jovyan/pipeline/.
-
-EXPOSE 8787
-ENTRYPOINT [ "jupyter" , "lab", "--ip=0.0.0.0", "--port=8888" , "--notebook-dir=pipeline" ]

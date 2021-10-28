@@ -7,7 +7,8 @@ services:
     volumes:
       - pipeline:/home/jovyan/pipeline
     ports:
-      - "8888:8888" #jupyter lab port
+      - "65335:65335" #jupyter lab port
       - "8787:8787" #dask port
+    user
 volumes:
   pipeline:
