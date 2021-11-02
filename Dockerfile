@@ -38,12 +38,12 @@ RUN mkdir oskar && \
     mkdir oskar/build && \
     cmake -B oskar/build -S oskar/. -DCMAKE_INSTALL_PREFIX=${OSKAR_INSTALL} && \
     make -C oskar/build -j4 && \
-    make -C oskar/build install && \
-    rm -rf oskar
+    make -C oskar/build install
 
 ENV OSKAR_INC_DIR "${OSKAR_INSTALL}/include"
 ENV OSKAR_LIB_DIR "${OSKAR_INSTALL}/lib"
-RUN pip install --user oskar/python/.
+RUN pip install --user oskar_/python/. && \
+    rm -rf oskar
 
 USER root
 
