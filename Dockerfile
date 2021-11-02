@@ -1,4 +1,4 @@
-FROM jupyter/base-notebook
+FROM --platform=amd64 jupyter/base-notebook
 
 USER root
 
@@ -31,16 +31,18 @@ RUN conda update -y conda && \
 RUN pip install dask-labextension
 
 #install oskar
+ENV OSKAR_INSTALL=${HOME}/oskar_
 
 RUN mkdir oskar && \
     git clone https://github.com/OxfordSKA/OSKAR.git oskar/. && \
     mkdir oskar/build && \
-    cmake -B oskar/build -S oskar/. -DCMAKE_INSTALL_PREFIX=${HOME}/oskar && \
+    cmake -B oskar/build -S oskar/. -DCMAKE_INSTALL_PREFIX=${OSKAR_INSTALL} && \
     make -C oskar/build -j4 && \
-    make -C oskar/build install
+    make -C oskar/build install && \
+    rm -rf oskar
 
-ENV OSKAR_INC_DIR "${HOME}/oskar/include"
-ENV OSKAR_LIB_DIR "${HOME}/oskar/lib"
+ENV OSKAR_INC_DIR "${OSKAR_INSTALL}/include"
+ENV OSKAR_LIB_DIR "${OSKAR_INSTALL}/lib"
 RUN pip install --user oskar/python/.
 
 USER root
@@ -75,7 +77,7 @@ RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-0.4.0-py3.
 
 RUN rm -rf rascil
 
-RUN mkdir /home/jovyan/ska_pipeline
+RUN mkdir /home/jovyan/work/persistent/
 COPY docker-start.sh docker-start.sh
 RUN  chmod +x docker-start.sh
 
