@@ -5,7 +5,7 @@ services:
       dockerfile: ./Dockerfile
       context: .
     volumes:
-      - pipeline:/home/jovyan/pipeline
+      - pipeline:/home/jovyan/work/persistent
     ports:
       - "65335:65335" #jupyter lab port
       - "8787:8787" #dask port

@@ -2,7 +2,7 @@
 
 # Sample Pipeline
 
-This pipeline serves as the starting point for the SKA Digial Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment. Two specific radio telescope packages are used:
+This pipeline serves as the starting point for the SKA Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment. Two specific radio telescope packages are used:
 
 - OSKAR: Responsible for the simulation of the sky and the telescope https://github.com/OxfordSKA/OSKAR
 	- OSKAR telescope files telescope.tm are from https://github.com/OxfordSKA/OSKAR/releases -> Example Data
@@ -21,9 +21,8 @@ docker run -p 8888:8888 ghcr.io/i4ds/ska:main
 Run this command to start a Jupyter Lab server where your changes in the Code are persistent between runs of the container.
 ```shell
 docker run -p 8888:8888 \
- 		--user `id -u $USER` --group-add users \ #enable write on volume
- 		-v ska_pipeline:/home/jovyan/ska_pipeline \ #bind local volume to persist changes
- 		ghcr.io/i4ds/ska:main
+ 		--user `id -u $USER` --group-add users \
+ 		-v ska_pipeline:/home/jovyan/ska_pipeline ghcr.io/i4ds/ska:main
 ```
 
 Now you can edit the code, run it and work with it, without installing any dependencies on your system.
