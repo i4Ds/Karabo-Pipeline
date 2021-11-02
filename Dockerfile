@@ -82,7 +82,8 @@ COPY docker-start.sh docker-start.sh
 RUN  chmod +x docker-start.sh
 
 RUN fix-permissions "${CONDA_DIR}" && \
-    fix-permissions "/home/${NB_USER}"
+    fix-permissions "/home/${NB_USER}" && \
+    fix-permissions "${HOME}/work/persistent"
 
 ENV JUPYTER_ENABLE_LAB=yes
 
