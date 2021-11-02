@@ -42,7 +42,7 @@ RUN mkdir oskar && \
 
 ENV OSKAR_INC_DIR "${OSKAR_INSTALL}/include"
 ENV OSKAR_LIB_DIR "${OSKAR_INSTALL}/lib"
-RUN pip install --user oskar_/python/. && \
+RUN pip install --user oskar/python/. && \
     rm -rf oskar
 
 USER root
