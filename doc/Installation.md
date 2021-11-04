@@ -58,7 +58,7 @@ The C and C++ compilers and git are installed via the XCode Command Line Tools.
 ```shell
 brew tap ska-ska/tap #tap into repository where casacore is
 brew update
-brew install cmake git-lfs casacore 
+brew install cmake git-lfs casacore boost
 ```
 
 Then follow the same instructions as for Linux.
