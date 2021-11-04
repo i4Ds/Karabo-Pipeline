@@ -58,14 +58,6 @@ RUN wget 'https://deac-ams.dl.sourceforge.net/project/boost/boost/1.77.0/boost_1
      rm -rf boost_1_77_0 && \
      rm boost_1_77_0.tar.bz2
 
-# RUN mkdir /usr/local/lib/x86_64-linux-gnu/
-# RUN ln -s /usr/local/lib/libboost_python39.so /usr/local/lib/x86_64-linux-gnu/libboost-python.so
-
-    # 
-RUN apt-get install -y apt-file
-RUN export LD_LIBRARY_PATH="/usr/local/boost" && ld --verbose -lboost_python39
-RUN ld --verbose -lboost_python39
-
 RUN apt-get install -y python3 && apt-get clean 
 RUN pip install --verbose https://github.com/lofar-astron/PyBDSF/archive/v1.9.2.tar.gz
 RUN git clone https://github.com/lofar-astron/PyBDSF.git && \
