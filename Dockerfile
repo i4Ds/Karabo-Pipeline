@@ -19,7 +19,8 @@ RUN apt-get update && \
     libbz2-dev \
     libboost-numpy-dev  \
     libboost-python-dev  \
-    software-properties-common && \
+    software-properties-common \
+    nano && \
     apt-get clean
 
 USER $NB_UID
