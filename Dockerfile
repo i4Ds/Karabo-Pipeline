@@ -25,9 +25,9 @@ RUN apt-get update && \
 
 USER $NB_UID
 
-RUN conda install -c anaconda pip astropy && \
-    conda install -c conda-forge matplotlib nodejs && \
-    pip install setuptools==58.4.0
+RUN conda update -y conda && \ 
+    conda install -c anaconda pip astropy && \
+    conda install -c conda-forge matplotlib nodejs
 
 RUN pip install dask-labextension   
 
@@ -58,11 +58,10 @@ RUN wget 'https://deac-ams.dl.sourceforge.net/project/boost/boost/1.77.0/boost_1
      rm -rf boost_1_77_0 && \
      rm boost_1_77_0.tar.bz2
 
-RUN apt-get install -y python3 && apt-get clean 
-RUN pip install --verbose https://github.com/lofar-astron/PyBDSF/archive/v1.9.2.tar.gz
+
 RUN git clone https://github.com/lofar-astron/PyBDSF.git && \
     cd PyBDSF && \
-    pip install . && \
+    python setup.py install && \
     cd .. && \
     rm -rf PyBDSF
 
