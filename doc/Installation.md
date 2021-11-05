@@ -14,6 +14,7 @@ Your system should have the following packages dependencies installed
 - python3 and pip3 (via anaconda or other python installation)
 - boost-python
 - casacore
+- gfortran
 
 The Pipeline uses the [OSKAR](https://github.com/OxfordSKA/OSKAR) and [RASCIL](https://ska-telescope.gitlab.io/external/rascil/index.html) packages.
 The Installation procedure of the packages is not straight forward, therefore an installation scripts exist. See below.
@@ -24,7 +25,7 @@ The Installation procedure of the packages is not straight forward, therefore an
 
 ````shell
 apt update
-apt install build-essential git git-lfs cmake libboost-all-dev casacore-dev libboost-python-dev casacore-dev
+apt install build-essential git git-lfs cmake libboost-all-dev casacore-dev libboost-python-dev casacore-dev gfortran
 ````
 
 2. Install [Anaconda or Miniconda](https://docs.anaconda.com/anaconda/install/index.html)
@@ -41,7 +42,7 @@ conda activate pipeline_env
 ```shell
 #do not run in sudo, this will install the pip packages as root (unless you want that)
 #you can set the oskar installation to something in your userspace if you do not have sudo rights.
-./install.sh  #oskar_install_dir=<path>
+./install.sh  #oskar_install_dir=<path> #cuda_on=OFF|ON
 ```
 
 (Optional if 3.) 5. Activate Environment as Kernel in Jupyter Lab

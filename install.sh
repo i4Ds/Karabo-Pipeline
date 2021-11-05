@@ -9,6 +9,7 @@
 
 #defaults
 oskar_install_directory="/usr/local"
+oskar_cuda_on=OFF
 
 for ARGUMENT in "$@"
 do
@@ -18,6 +19,7 @@ do
 
     case "$KEY" in
             oskar_install_dir)  oskar_install_directory=${VALUE} ;;
+            cuda_on) oskar_cuda_on=${VALUE} ;;
             *)
     esac
 done
@@ -31,7 +33,7 @@ cd oskar
 git clone https://github.com/OxfordSKA/OSKAR.git .
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX="$oskar_install_directory" # -DCMAKE_PREFIX_PATH="/usr/local/opt/qt5/" #maybe add some more options here, via arguments?
+cmake .. -DCMAKE_INSTALL_PREFIX="$oskar_install_directory" -DFIND_CUDA=$oskar_cuda_on # -DCMAKE_PREFIX_PATH="/usr/local/opt/qt5/" #maybe add some more options here, via arguments?
 make -j4
 
 if [ -w $oskar_install_directory ]; then
