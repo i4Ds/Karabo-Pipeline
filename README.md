@@ -20,8 +20,7 @@ docker run -p 8888:8888 ghcr.io/i4ds/ska:main
 
 Run this command to start a Jupyter Lab server where your changes in the Code are persistent between runs of the container.
 ```shell
-docker run -p 8888:8888 \
- 		-v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/ska:main
+docker run -p 8888:8888 -p 8787:8787 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/ska:main
 ```
 
 Now you can edit the code, run it and work with it, without installing any dependencies on your system.
