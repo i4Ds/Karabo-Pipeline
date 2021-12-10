@@ -33,7 +33,7 @@ RUN pip install dask-labextension
 ENV OSKAR_INSTALL=${HOME}/oskar_
 
 RUN mkdir oskar && \
-    git clone https://github.com/OxfordSKA/OSKAR.git oskar/. && \
+    git clone --depth 1 --branch 2.7.7 https://github.com/OxfordSKA/OSKAR.git oskar/. && \
     mkdir oskar/build && \
     cmake -B oskar/build -S oskar/. -DCMAKE_INSTALL_PREFIX=${OSKAR_INSTALL} && \
     make -C oskar/build -j4 && \
@@ -65,8 +65,8 @@ RUN git clone https://gitlab.com/ska-telescope/external/rascil.git && \
     && git lfs install \
     && git-lfs pull
 
-RUN mkdir /opt/conda/lib/python3.9/site-packages/rascil-0.4.0-py3.9.egg/data
-RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-0.4.0-py3.9.egg/data
+#RUN mkdir /opt/conda/lib/python3.9/site-packages/rascil-0.4.0-py3.9.egg/data
+#RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-0.4.0-py3.9.egg/data
 
 RUN rm -rf rascil
 
