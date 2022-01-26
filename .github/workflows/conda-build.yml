@@ -1,11 +1,11 @@
 name: Conda Build
 
-on: [ push ]
-#  push:
-#    branches:
-#      [ main ]
-#    tags:
-#      - v*.**
+on:
+  push:
+    branches:
+      [ main ]
+    tags:
+      - v*.**
 
 jobs:
   conda-build:
