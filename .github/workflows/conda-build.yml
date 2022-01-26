@@ -4,10 +4,7 @@ on: [ push ]
 
 jobs:
   conda-build:
-    strategy:
-      matrix:
-        os: [ macos-10.15, ubuntu-20.04 ]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Install Conda
@@ -25,15 +22,8 @@ jobs:
         run: |
           cd conda
           conda build .
-      - name: Publish to Conda MacOS
-        if: matrix.os == 'macOS-10.15'
+      - name: Publish to Conda
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/local/miniconda/conda-bld/osx-64/karabo-pipeline-*.tar.bz2 --force
-      - name: Publish to Conda Linux
-        if: matrix.os == 'ubuntu-20.04'
-        shell: bash -l {0}
-        run: |
-          conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline*.tar.bz2 --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/local/miniconda/conda-bld/noarch/karabo-pipeline-*.tar.bz2 --force
