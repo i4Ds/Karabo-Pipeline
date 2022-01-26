@@ -17,6 +17,8 @@ jobs:
       - name: Install conda build
         run: |
           conda install conda-build anaconda
+          conda config --append channels conda-forge
+          conda config --append channels i4ds
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Build Conda
@@ -28,7 +30,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/local/miniconda/conda-bld/osx-64/karao-pipeline-*.tar.bz2 --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/local/miniconda/conda-bld/osx-64/karabo-pipeline-*.tar.bz2 --force
       - name: Publish to Conda Linux
         if: matrix.os == 'ubuntu-20.04'
         shell: bash -l {0}
