@@ -1,0 +1,39 @@
+name: Create and publish a Docker image
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  conda-build:
+    strategy:
+      matrix:
+        os: [ macos-10.15, ubuntu-20.04 ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Install Conda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+      - name: Install conda build
+        run: |
+          conda install conda-build anaconda
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Build Conda
+        run: |
+          cd conda
+          conda build .
+      - name: Publish to Conda MacOS
+        if: matrix.os == 'macOS-10.15'
+        shell: bash -l {0}
+        run: |
+          conda activate base
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/local/miniconda/conda-bld/osx-64/karao-pipeline-*.tar.bz2 --force
+      - name: Publish to Conda Linux
+        if: matrix.os == 'ubuntu-20.04'
+        shell: bash -l {0}
+        run: |
+          conda activate base
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline*.tar.bz2 --force
