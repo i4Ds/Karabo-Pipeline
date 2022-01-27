@@ -1,4 +1,4 @@
-# SKA
+# Karabo Pipeline
 
 # Sample Pipeline
 
