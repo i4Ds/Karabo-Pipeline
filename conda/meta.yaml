@@ -1,0 +1,44 @@
+{% set name = "Karabo-Pipeline" %}
+{% set version = "0.0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ../
+
+build:
+  noarch: python
+  number: 0
+
+requirements:
+  build:
+    - python
+    - pip
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - numpy
+    - oskar=2.7.6
+
+test:
+  imports:
+    - karabo
+
+about:
+  home: https://github.com/i4Ds/SKA
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'Astronomy data centric pipeline built for SKA (Square Kilometer Array) and beyond.'
+  description: |
+   Astronomy data centric pipeline built for SKA (Square Kilometer Array) and beyond.
+  doc_url: https://github.com/i4Ds/SKA/wiki
+  dev_url: https://github.com/i4Ds/SKA
+
+extra:
+  recipe-maintainers:
+    - Christoph Vögele
