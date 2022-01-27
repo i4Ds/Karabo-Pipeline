@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='Karabo-Pipeline',
-    version='0.0.1',
+    version='0.1.0',
     packages=['karabo', 'karabo.data'],
     url='https://github.com/i4Ds/SKA',
     license='',
