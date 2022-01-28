@@ -28,38 +28,41 @@ USER $NB_UID
 
 RUN conda update -y conda && \
     conda install -c anaconda pip astropy && \
-    conda install -c conda-forge matplotlib nodejs
+    conda install -c conda-forge matplotlib nodejs && \
+    conda install -c i4ds -c conda-forge karabo-pipeline
 
 RUN pip install dask-labextension
 
-#install oskar
-ENV OSKAR_INSTALL=${HOME}/oskar_
-
-RUN mkdir oskar && \
-    git clone --depth 1 --branch $oskar_version https://github.com/OxfordSKA/OSKAR.git oskar/. && \
-    mkdir oskar/build && \
-    cmake -B oskar/build -S oskar/. -DCMAKE_INSTALL_PREFIX=${OSKAR_INSTALL} && \
-    make -C oskar/build -j4 && \
-    make -C oskar/build install
-
-ENV OSKAR_INC_DIR "${OSKAR_INSTALL}/include"
-ENV OSKAR_LIB_DIR "${OSKAR_INSTALL}/lib"
-RUN pip install --user oskar/python/. && \
-    rm -rf oskar
+##install oskar
+#ENV OSKAR_INSTALL=${HOME}/oskar_
+#
+#RUN mkdir oskar && \
+#    git clone --depth 1 --branch $oskar_version https://github.com/OxfordSKA/OSKAR.git oskar/. && \
+#    mkdir oskar/build && \
+#    cmake -B oskar/build -S oskar/. -DCMAKE_INSTALL_PREFIX=${OSKAR_INSTALL} && \
+#    make -C oskar/build -j4 && \
+#    make -C oskar/build install
+#
+#ENV OSKAR_INC_DIR "${OSKAR_INSTALL}/include"
+#ENV OSKAR_LIB_DIR "${OSKAR_INSTALL}/lib"
+#RUN pip install --user oskar/python/. && \
+#    rm -rf oskar
 
 USER root
 
-RUN wget 'https://deac-ams.dl.sourceforge.net/project/boost/boost/1.77.0/boost_1_77_0.tar.bz2' && \
-    tar --bzip2 -xf boost_1_77_0.tar.bz2 -C . &&\
-     cd boost_1_77_0 && \
-    ./bootstrap.sh --prefix=/usr/local  --with-libraries=python && \
-    ./b2 && \
-    ./b2 install -d0 && \
-    cd .. && \
-    rm -rf boost_1_77_0 && \
-    rm boost_1_77_0.tar.bz2
+#RUN wget 'https://deac-ams.dl.sourceforge.net/project/boost/boost/1.77.0/boost_1_77_0.tar.bz2' && \
+#    tar --bzip2 -xf boost_1_77_0.tar.bz2 -C . &&\
+#     cd boost_1_77_0 && \
+#    ./bootstrap.sh --prefix=/usr/local  --with-libraries=python && \
+#    ./b2 && \
+#    ./b2 install -d0 && \
+#    cd .. && \
+#    rm -rf boost_1_77_0 && \
+#    rm boost_1_77_0.tar.bz2
 
 #install rascil
+RUN conda install -c i4ds -c conda-forge bdsf
+#RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
 
 RUN git clone --depth 1 --branch $rascil_version https://gitlab.com/ska-telescope/external/rascil.git && \
     cd rascil && \
@@ -69,11 +72,10 @@ RUN git clone --depth 1 --branch $rascil_version https://gitlab.com/ska-telescop
     && git lfs install \
     && git-lfs pull
 
-RUN mkdir /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
-RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
-
-RUN rm -rf rascil
-
+#RUN mkdir /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
+#RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
+#
+#RUN rm -rf rascil
 
 RUN mkdir /home/jovyan/work/persistent/
 COPY docker-start.sh docker-start.sh
