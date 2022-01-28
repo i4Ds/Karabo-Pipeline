@@ -23,7 +23,6 @@ requirements:
     - python
     - numpy
     - oskar=2.7.6
-    - argparse
 
 test:
   imports:

@@ -14,6 +14,7 @@ However, to use the imaging portion of it, you need to install rascil via pip as
 
 ```shell
 # rascil
+conda install -c conda-forge python-casacore=3.4.0
 pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
 
 # install data directory

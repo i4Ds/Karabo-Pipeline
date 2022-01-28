@@ -1,4 +1,4 @@
-FROM --platform=amd64 jupyter/base-notebook
+FROM --platform=amd64 jupyter/base-notebook:python-3.7.6
 
 ENV rascil_version=0.5.0
 ENV oskar_version=2.7.7
@@ -26,9 +26,8 @@ RUN apt-get update && \
 
 USER $NB_UID
 
-RUN conda update -y conda && \
-    conda install -c anaconda pip astropy && \
-    conda install -c conda-forge matplotlib nodejs && \
+RUN conda install -c anaconda pip astropy && \
+    conda install -c conda-forge matplotlib && \
     conda install -c i4ds -c conda-forge karabo-pipeline
 
 RUN pip install dask-labextension
@@ -47,9 +46,6 @@ RUN pip install dask-labextension
 #ENV OSKAR_LIB_DIR "${OSKAR_INSTALL}/lib"
 #RUN pip install --user oskar/python/. && \
 #    rm -rf oskar
-
-USER root
-
 #RUN wget 'https://deac-ams.dl.sourceforge.net/project/boost/boost/1.77.0/boost_1_77_0.tar.bz2' && \
 #    tar --bzip2 -xf boost_1_77_0.tar.bz2 -C . &&\
 #     cd boost_1_77_0 && \
@@ -61,25 +57,25 @@ USER root
 #    rm boost_1_77_0.tar.bz2
 
 #install rascil
-RUN conda install -c i4ds -c conda-forge bdsf
+RUN conda install -c i4ds -c conda-forge python-casacore=3.4.0
 #RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
 
-RUN git clone --depth 1 --branch $rascil_version https://gitlab.com/ska-telescope/external/rascil.git && \
-    cd rascil && \
-    pip install pip --upgrade \
-    && pip install -r requirements.txt \
-    && python3 setup.py install \
-    && git lfs install \
-    && git-lfs pull
+RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
+RUN mkdir rascil_data && \
+    cd rascil_data && \
+    curl https://ska-telescope.gitlab.io/external/rascil/rascil_data.tgz -o rascil_data.tgz && \
+    tar zxf rascil_data.tgz && \
+    cd data && \
+    export RASCIL_DATA=`pwd`
 
 #RUN mkdir /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
 #RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
 #
 #RUN rm -rf rascil
 
+USER root
+
 RUN mkdir /home/jovyan/work/persistent/
-COPY docker-start.sh docker-start.sh
-RUN  chmod +x docker-start.sh
 
 RUN fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}" && \
@@ -88,9 +84,6 @@ RUN fix-permissions "${CONDA_DIR}" && \
 ENV JUPYTER_ENABLE_LAB=yes
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-
-ENTRYPOINT ["tini", "-g", "--"]
-CMD ["./docker-start.sh"]
 
 USER $NB_UID
 WORKDIR $HOME
