@@ -1,18 +1,7 @@
-def run():
+def run(telescope_config):
     import oskar
     import numpy as np
-
-    from rascil.workflows import \
-        invert_list_rsexecute_workflow, \
-        deconvolve_list_rsexecute_workflow, \
-        create_blockvisibility_from_ms_rsexecute, rsexecute, \
-        weight_list_rsexecute_workflow, \
-        continuum_imaging_skymodel_list_rsexecute_workflow
-
-    from rascil.workflows.rsexecute.execution_support import rsexecute
-    from rascil.processing_components import create_image_from_visibility
-    from rascil.processing_components.visibility.operations import convert_blockvisibility_to_stokesI
-    from rascil.data_models import PolarisationFrame
+    from rascil.apps import rascil_imager
 
     # Set the numerical precision to use.
     precision = "single"
@@ -26,95 +15,60 @@ def run():
 
     params = {
         "simulator": {
-            "use_gpus": False
+            "use_gpus": "False"
         },
         "observation": {
-            "num_channels": 64,
-            "start_frequency_hz": 100e6,
-            "frequency_inc_hz": 20e6,
-            "phase_centre_ra_deg": 20,
-            "phase_centre_dec_deg": -30,
-            "num_time_steps": 24,
+            "num_channels": "64",
+            "start_frequency_hz": "100e6",
+            "frequency_inc_hz": "20e6",
+            "phase_centre_ra_deg": "20",
+            "phase_centre_dec_deg": "-30",
+            "num_time_steps": "24",
             "start_time_utc": "01-01-2000 12:00:00.000",
             "length": "12:00:00.000"
         },
         "telescope": {
-            "input_directory": "../data/telescope.tm"
+            "input_directory": telescope_config
         },
         "interferometer": {
             "ms_filename": "visibilities.ms",
-            "channel_bandwidth_hz": 1e6,
-            "time_average_sec": 10
+            "channel_bandwidth_hz": "1e6",
+            "time_average_sec": "10"
         }
     }
     settings = oskar.SettingsTree("oskar_sim_interferometer")
     settings.from_dict(params)
 
     if precision == "single":
-        settings["simulator/double_precision"] = False
+        settings["simulator/double_precision"] = "False"
 
     # Set the sky model and run the simulation.
     sim = oskar.Interferometer(settings=settings)
     sim.set_sky_model(sky)
     sim.run()
 
-    dds = [0]
-    channels_per_dd = 64
-    nchan_per_blockvis = 4
-    nout = channels_per_dd // nchan_per_blockvis
+    def start_imager(rawargs):
+        parser = rascil_imager.cli_parser()
+        args = parser.parse_args(rawargs)
+        rascil_imager.performance_environment(args.performance_file, mode="w")
+        rascil_imager.performance_store_dict(args.performance_file, "cli_args", vars(args), mode="a")
+        image_name = rascil_imager.imager(args)
 
-    # Create a list of blockvisibilities
-    bvis_list = create_blockvisibility_from_ms_rsexecute('visibilities.ms/',
-                                                         nchan_per_blockvis=nchan_per_blockvis,
-                                                         dds=dds,
-                                                         nout=nout,
-                                                         average_channels=True)
-
-    bvis_list = [rsexecute.execute(convert_blockvisibility_to_stokesI)(vis) for vis in bvis_list]
-
-    # create model images from all visibilites
-    modelimage_list = [rsexecute.execute(create_image_from_visibility)(vis,
-                                                                       npixel=2048,
-                                                                       nchan=1,
-                                                                       cellsize=3.878509448876288e-05,
-                                                                       polarisationFrame=PolarisationFrame('stokesI'))
-                       for vis in bvis_list]
-
-    # weight visibilities
-    bvis_list = weight_list_rsexecute_workflow(bvis_list,
-                                               modelimage_list,
-                                               weigthing='robust',
-                                               robustness=-0.5)
-
-    result = continuum_imaging_skymodel_list_rsexecute_workflow(
-        bvis_list,
-        modelimage_list,
-        context='ng',
-        threads=4,
-        wstacking=True,
-        niter=1000,
-        nmajor=5,
-        algorithm='mmclean',
-        gain=0.1,
-        scales=[0, 6, 10, 30, 60],
-        fractional_threshold=0.3,
-        threshold=0.00012,
-        nmoment=5,
-        psf_support=640,
-        restored_output='integrated',
-        deconvolve_facets=1,
-        deconvolve_overlap=32,
-        deconvolve_taper='tukey',
-        restore_facets=1,
-        restore_overlap=32,
-        restore_taper='tukey',
-        dft_compute_kernel=None,
-        component_threshold=None,
-        component_method='fit',
-        flat_sky=False,
-        clean_beam=None,
-    )
-
-    # start computation on dask cluster
-    result = rsexecute.compute(result, sync=True)
-
+    start_imager([
+        '--ingest_msname', 'visibilities.ms',
+        '--ingest_dd', '0',
+        '--ingest_vis_nchan', '64',
+        '--ingest_chan_per_blockvis', '4',
+        '--ingest_average_blockvis', 'True',
+        '--imaging_npixel', '2048',
+        '--imaging_cellsize', '3.878509448876288e-05',
+        '--imaging_weighting', 'robust',
+        '--imaging_robustness', '-0.5',
+        '--clean_nmajor', '5',
+        '--clean_algorithm', 'mmclean',
+        '--clean_scales', '0', '6', '10', '30', '60',
+        '--clean_fractional_threshold', '0.3',
+        '--clean_threshold', '0.12e-3',
+        '--clean_nmoment', '5',
+        '--clean_psf_support', '640',
+        '--clean_restored_output', 'integrated'])

@@ -1,4 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (SKA)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7 (Karabo-Pipeline)" project-jdk-type="Python SDK" />
+  <component name="UnattendedHostPersistenceState">
+    <option name="openedFilesInfos">
+      <list>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="486" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/doc/Installation.md" />
+        </OpenedFileInfo>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="0" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/doc/Installation_no_conda.md" />
+        </OpenedFileInfo>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="13859" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/karabo/examples/pipeline_example.ipynb" />
+        </OpenedFileInfo>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="324" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/conda/meta.yaml" />
+        </OpenedFileInfo>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="2180" />
+          <option name="fileUrl" value="file://$USER_HOME$/miniconda3/envs/Karabo-Pipeline/lib/python3.7/site-packages/rascil/apps/rascil_imager.py" />
+        </OpenedFileInfo>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="1642" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/karabo/scripts/sample_pipeline.py" />
+        </OpenedFileInfo>
+      </list>
+    </option>
+  </component>
 </project>
