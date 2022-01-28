@@ -50,9 +50,5 @@ cd ../..
 Sometimes the installation of rascil fails due to the installation of pybdsf. If you have trouble with installing the pybdsf dependency, we recommend to check out their issue page for solutions.: https://github.com/lofar-astron/PyBDSF/issues
 
 
-#### Planned improvements of the installation procedure
-
-
-
 [Other installation methods](Installation_no_conda.md)
 
