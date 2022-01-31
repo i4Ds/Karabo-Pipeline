@@ -1,9 +1,7 @@
 name: Conda Build
 
 on:
-  push:
-    branches:
-      [ main ]
+  create:
     tags:
       - v*.**
 
