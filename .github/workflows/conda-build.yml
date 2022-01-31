@@ -2,11 +2,10 @@ name: Conda Build
 
 on:
   create:
-    tags:
-      - v*.**
 
 jobs:
   conda-build:
+    if: ${{ startsWith(github.ref) == 'refs/tag/v' }}
     runs-on: ubuntu-20.04
 
     steps:
