@@ -1,7 +1,6 @@
-FROM --platform=amd64 jupyter/base-notebook:python-3.7.6
+FROM --platform=amd64 jupyter/base-notebook
 
 ENV rascil_version=0.5.0
-ENV oskar_version=2.7.7
 
 USER root
 
@@ -21,43 +20,20 @@ RUN apt-get update && \
     libbz2-dev \
     gfortran \
     software-properties-common \
-    libboost-all-dev && \
+    libboost-all-dev \
+    curl && \
     apt-get clean
 
 USER $NB_UID
 
-RUN conda install -c anaconda pip && \
-    conda install -c i4ds -c conda-forge karabo-pipeline
-
+RUN conda update conda && \
+    conda install -c anaconda pip
 RUN pip install dask-labextension
 
-##install oskar
-#ENV OSKAR_INSTALL=${HOME}/oskar_
-#
-#RUN mkdir oskar && \
-#    git clone --depth 1 --branch $oskar_version https://github.com/OxfordSKA/OSKAR.git oskar/. && \
-#    mkdir oskar/build && \
-#    cmake -B oskar/build -S oskar/. -DCMAKE_INSTALL_PREFIX=${OSKAR_INSTALL} && \
-#    make -C oskar/build -j4 && \
-#    make -C oskar/build install
-#
-#ENV OSKAR_INC_DIR "${OSKAR_INSTALL}/include"
-#ENV OSKAR_LIB_DIR "${OSKAR_INSTALL}/lib"
-#RUN pip install --user oskar/python/. && \
-#    rm -rf oskar
-#RUN wget 'https://deac-ams.dl.sourceforge.net/project/boost/boost/1.77.0/boost_1_77_0.tar.bz2' && \
-#    tar --bzip2 -xf boost_1_77_0.tar.bz2 -C . &&\
-#     cd boost_1_77_0 && \
-#    ./bootstrap.sh --prefix=/usr/local  --with-libraries=python && \
-#    ./b2 && \
-#    ./b2 install -d0 && \
-#    cd .. && \
-#    rm -rf boost_1_77_0 && \
-#    rm boost_1_77_0.tar.bz2
-
-#install rascil
-RUN conda install -c i4ds -c conda-forge python-casacore=3.4.0
-#RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
+RUN conda create -n karabo python=3.7
+SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
+RUN conda install -c i4ds -c conda-forge karabo-pipeline
+RUN conda install -c conda-forge python-casacore=3.4.0
 
 RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
 RUN mkdir rascil_data && \
@@ -67,10 +43,8 @@ RUN mkdir rascil_data && \
     cd data && \
     export RASCIL_DATA=`pwd`
 
-#RUN mkdir /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
-#RUN cp -r rascil/data/* /opt/conda/lib/python3.9/site-packages/rascil-${rascil_version}-py3.9.egg/data
-#
-#RUN rm -rf rascil
+RUN conda install ipykernel
+RUN ipython kernel install --user --name=karabo
 
 USER root
 
