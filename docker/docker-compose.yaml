@@ -2,8 +2,8 @@ version: '3'
 services:
   jupyter-lab-docker:
     build:
-      dockerfile: ./Dockerfile
-      context: .
+      dockerfile: Dockerfile-Jupyter
+      context: ..
     volumes:
       - src:/home/jovyan/work/persistent
     ports:
