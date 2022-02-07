@@ -1,9 +1,9 @@
 {% set name = "Karabo-Pipeline" %}
-{% set version = "0.1.0" %}
+{% set data = load_setup_py_data() %}
 
 package:
   name: {{ name|lower }}
-  version: {{ version }}
+  version: {{ data.get('version') }}
 
 source:
   path: ../
@@ -29,15 +29,15 @@ test:
     - karabo
 
 about:
-  home: https://github.com/i4Ds/SKA
+  home: https://github.com/i4Ds/Karabo-Pipeline
   license: MIT
   license_family: MIT
   license_file: LICENSE
   summary: 'Astronomy data centric pipeline built for SKA (Square Kilometer Array) and beyond.'
   description: |
    Astronomy data centric pipeline built for SKA (Square Kilometer Array) and beyond.
-  doc_url: https://github.com/i4Ds/SKA/wiki
-  dev_url: https://github.com/i4Ds/SKA
+  doc_url: https://github.com/i4Ds/Karabo-Pipeline/wiki
+  dev_url: https://github.com/i4Ds/Karabo-Pipeline
 
 extra:
   recipe-maintainers:

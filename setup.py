@@ -1,13 +1,3 @@
-from setuptools import setup
-
-setup(
-    name='Karabo-Pipeline',
-    version='0.1.0',
-    packages=['karabo', 'karabo.data'],
-    url='https://github.com/i4Ds/SKA',
-    license='',
-    author='Simon Felix',
-    author_email='simon.felix@fhnw.ch',
-    description='A data-driven pipeline for Radio Astronomy from i4ds for the SKA Telescope',
-    include_package_data=True
-)
+from distutils.core import setup
+# implicitly takes config from setup.cfg (used by conda build load_setup_py_data())
+setup()

@@ -1,2 +1,3 @@
-recursive-include data/* *.txt
-recursive-include examples/* *.ipynb
+include karabo/_version.txt
+recursive-include karabo/data/telescope.tm *.txt
+recursive-include karabo/data/examples *.ipynb

@@ -26,8 +26,7 @@ RUN apt-get update && \
 
 USER $NB_UID
 
-RUN conda install -c anaconda pip astropy && \
-    conda install -c conda-forge matplotlib && \
+RUN conda install -c anaconda pip && \
     conda install -c i4ds -c conda-forge karabo-pipeline
 
 RUN pip install dask-labextension
