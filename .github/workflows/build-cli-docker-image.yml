@@ -1,12 +1,12 @@
-name: Create and publish a Docker image
+name: Build and Publish CLI Docker Image
 
 on:
   push:
-    branches: ['main', 'fix_docker' ]
+    branches: ['main' ]
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: karabo-jupyter
+  IMAGE_NAME: karabo-cli
 
 jobs:
   build-and-push-image:
@@ -35,7 +35,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v2.9.0
         with:
-          file: docker/Dockerfile-Jupyter
+          file: docker/Dockerfile-CLI
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
