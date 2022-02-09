@@ -1,33 +1,22 @@
 FROM --platform=amd64 jupyter/base-notebook
 
-ENV rascil_version=0.5.0
-
 USER root
 
 RUN apt-get update && \
     apt-get install -y \
     build-essential \
-    libc6-dev \
-    cmake \
     git \
-    git-lfs \
-    casacore-dev \
-    wget \
-    qt5-default \
-    g++ \
-    autotools-dev \
-    libicu-dev \
-    libbz2-dev \
-    gfortran \
-    software-properties-common \
-    libboost-all-dev \
-    curl && \
-    apt-get clean
+    gfortran  \
+    build-essential  \
+    wget && \
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/* /var/log/dpkg.log
 
 USER $NB_UID
 
 RUN conda update conda && \
-    conda install -c anaconda pip
+    conda install -c anaconda pip && \
+    conda clean --all --yes
 RUN pip install dask-labextension
 
 RUN conda create -n karabo python=3.7
@@ -38,10 +27,10 @@ RUN conda install -c conda-forge python-casacore=3.4.0
 RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
 RUN mkdir rascil_data && \
     cd rascil_data && \
-    curl https://ska-telescope.gitlab.io/external/rascil/rascil_data.tgz -o rascil_data.tgz && \
+    wget https://ska-telescope.gitlab.io/external/rascil/rascil_data.tgz -O rascil_data.tgz && \
     tar zxf rascil_data.tgz && \
-    cd data && \
-    export RASCIL_DATA=`pwd`
+    rm rascil_data.tgz && \
+    cp -r ./data/ /opt/conda/envs/karabo/lib/python3.7/site-packages/rascil/data_models/../../data/
 
 RUN conda install ipykernel
 RUN ipython kernel install --user --name=karabo
