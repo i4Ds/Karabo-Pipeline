@@ -1,21 +1,25 @@
-FROM --platform=amd64 conda/miniconda3
+FROM --platform=amd64 continuumio/miniconda3
+
+RUN apt-get update &&  \
+    apt-get install -y git gfortran build-essential wget && apt-get clean
 
 RUN conda update conda && \
     conda install -c anaconda pip
-RUN pip install dask-labextension
 
 RUN conda create -n karabo python=3.7
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN conda install -c i4ds -c conda-forge karabo-pipeline
-RUN conda install -c i4ds -c conda-forge rascil
 RUN conda install -c conda-forge python-casacore=3.4.0
 
 RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
 RUN mkdir rascil_data && \
     cd rascil_data && \
-    curl https://ska-telescope.gitlab.io/external/rascil/rascil_data.tgz -o rascil_data.tgz && \
+    wget https://ska-telescope.gitlab.io/external/rascil/rascil_data.tgz -O rascil_data.tgz && \
     tar zxf rascil_data.tgz && \
+    rm rascil_data.tgz && \
     cd data && \
-    export RASCIL_DATA=`pwd`
+    export RASCIL_DATA=`pwd` && \
+    echo "export RASCIL_DATA=`pwd`" >> ~/.bashrc
 
-ENTRYPOINT ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
+RUN echo "conda activate karabo" >> ~/.bashrc
+SHELL [ "/bin/bash" ]
