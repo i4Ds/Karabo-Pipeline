@@ -10,19 +10,6 @@ This pipeline serves as the starting point for the SKA Digital Twin Pipeline, wh
 
 [Installation](doc/Installation.md)
 
-# Docker
+# Containers
 
-For easy usage use the docker already build docker image.
-The image will start a Jupyter Lab server that you can then open in any browser on your host machine on [localhost:8888](localhost:8888).
-
-Run this command to start a Jupyter Lab Server where your changes are NOT persistent between runs.
-```shell
-docker run -p 8888:8888 ghcr.io/i4ds/ska:main
-```
-
-Run this command to start a Jupyter Lab server where your changes in the Code are persistent between runs of the container.
-```shell
-docker run -p 8888:8888 -p 8787:8787 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/ska:main
-```
-
-Now you can edit the code, run it and work with it, without installing any dependencies on your system.
+[Containers](doc/Docker.md)
