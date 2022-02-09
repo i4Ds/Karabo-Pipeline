@@ -2,7 +2,9 @@ name: Build and Publish CLI Docker Image
 
 on:
   push:
-    branches: ['main' ]
+    branches: [ 'main' ]
+
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
