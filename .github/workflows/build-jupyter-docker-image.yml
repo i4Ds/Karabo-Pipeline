@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: karabo-jupyter
+  IMAGE_NAME: karabo_jupyter
 
 jobs:
   build-and-push-image:

@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: karabo-cli
+  IMAGE_NAME: karabo_cli
 
 jobs:
   build-and-push-image:
