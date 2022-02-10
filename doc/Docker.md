@@ -8,7 +8,7 @@ There are two docker images available for using the karabo-pipeline without any 
 - karabo-cli: Use only the CLI portion of the pipeline with this image. Useful for running on HPC Machines, where you can only use SSH to control it.
 
 
-## Singularty Images
+## Singularity Images
 
 ! Coming Soon
 
@@ -18,13 +18,13 @@ There are two docker images available for using the karabo-pipeline without any 
 
 
 ```shell
-docker pull ghcr.io/i4ds/karabo-jupyter:main
+docker pull ghcr.io/i4ds/karabo-pipeline:jupyter
 ```
 
 Run the image, with the ``-p 8888:8888`` to expose Jupyter lab to your computer, so you can use it in your browser. And add `-v` to mount a volume so the code you create inside the container is saved on your host.
 
 ```shell
-docker run -p 8888:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/karabo-jupyter:main
+docker run -p 8888:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/karabo-pipeline:jupyter
 ```
 
 #### Compose
@@ -46,10 +46,12 @@ volumes:
   pipeline:
 ```
 
-
-
 ### CLI (Command Line Interface) Image
 
 ```shell
-docker pull ghcr.io/i4ds/karabo-cli:main
+docker pull ghcr.io/i4ds/karabo-pipeline:cli
+```
+
+```shell
+docker run -it ghcr.io/i4ds/karabo-pipeline:cli
 ```

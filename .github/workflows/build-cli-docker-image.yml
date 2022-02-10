@@ -1,8 +1,7 @@
 name: Build and Publish CLI Docker Image
 
 on:
-  push:
-    branches: [ 'main' ]
+  create:
 
   workflow_dispatch:
 
