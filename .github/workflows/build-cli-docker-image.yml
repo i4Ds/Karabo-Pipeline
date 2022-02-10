@@ -40,5 +40,5 @@ jobs:
           file: docker/Dockerfile-CLI
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: "cli"
           labels: ${{ steps.meta.outputs.labels }}
