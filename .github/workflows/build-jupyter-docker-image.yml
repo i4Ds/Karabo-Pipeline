@@ -40,5 +40,5 @@ jobs:
           file: docker/Dockerfile-Jupyter
           context: .
           push: true
-          tags: "jupyter"
+          tags: "$REGISTRY/$IMAGE_NAME:jupyter"
           labels: ${{ steps.meta.outputs.labels }}
