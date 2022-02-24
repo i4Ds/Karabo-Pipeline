@@ -9,9 +9,11 @@ Welcome to Karabo-Pipeline's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   :reversed:
 
+   Installation
+   Container
    modules
+   examples/Examples.md
 
 
 Indices and tables

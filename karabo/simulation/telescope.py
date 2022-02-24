@@ -13,7 +13,7 @@ from karabo.simulation.station import Station
 class Telescope:
     def __init__(self, longitude: float, latitude: float, altitude: float = 0):
         """
-        WGS84 longitude and latitude and altitude in metres centre of the telescope centre
+        WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
 
         self.centre_longitude: float = longitude
@@ -52,6 +52,18 @@ class Telescope:
                                horizontal_z: float = 0,
                                horizontal_x_coordinate_error: float = 0, horizontal_y_coordinate_error: float = 0,
                                horizontal_z_coordinate_error: float = 0) -> None:
+        """
+        Add a new antenna to an existing station
+
+        :param station_index: Index of station to add antenna to
+        :param horizontal_x: east coordinate relative to the station center in metres
+        :param horizontal_y: north coordinate relative to the station center in metres
+        :param horizontal_z: altitude of antenna
+        :param horizontal_x_coordinate_error: east coordinate error relative to the station center in metres
+        :param horizontal_y_coordinate_error: north coordinate error relative to the station center in metres
+        :param horizontal_z_coordinate_error: altitude of antenna error
+        :return:
+        """
         if station_index < len(self.stations):
             station = self.stations[station_index]
             station.add_station_antenna(
@@ -59,6 +71,9 @@ class Telescope:
                                     horizontal_y_coordinate_error, horizontal_z_coordinate_error))
 
     def plot_telescope(self) -> None:
+        """
+        Plot the telescope and all its stations and antennas with longitude altitude
+        """
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots()
         antenna_x = []
@@ -89,6 +104,10 @@ class Telescope:
         plt.show()
 
     def get_OSKAR_telescope(self) -> os_telescope:
+        """
+        Retrieve the OSKAR Telescope object from the karabo.Telescope object.
+        :return: OSKAR Telescope object
+        """
         with tempfile.TemporaryDirectory() as temp_dir:
             self.__create_telescope_tm_file(temp_dir)
             tel = os_telescope.Telescope()
@@ -96,7 +115,10 @@ class Telescope:
             return tel
 
     def __create_telescope_tm_file(self, path: str) -> None:
-
+        """
+        Create .tm telescope configuration at the specified path
+        :param path: directory in which the configuration will be saved in.
+        """
         self.__write_position_txt(f"{path}/position.txt")
         self.__write_layout_txt(f"{path}/layout.txt", [station.position for station in self.stations])
         i = 0
