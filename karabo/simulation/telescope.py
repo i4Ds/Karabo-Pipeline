@@ -118,16 +118,20 @@ class Telescope:
                 f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n")
         layout_file.close()
 
-    @staticmethod
-    def get_OSKAR_Example_Telescope():
-        path_elements = os.path.abspath(karabo.__file__).split('/')
-        path_elements.pop()
-        path = f"{'/'.join(path_elements)}/data/telescope.tm"
-        return read_OSKAR_tm_file(path)
+    # def get_SKA_LOW(self):
+    #
+    # def get_SKA_MID(self):
 
     # @staticmethod
     # def get_MEERKAT_Array():
     #     return Telescope(0, 0)
+
+
+def get_OSKAR_Example_Telescope():
+    path_elements = os.path.abspath(karabo.__file__).split('/')
+    path_elements.pop()
+    path = f"{'/'.join(path_elements)}/data/telescope.tm"
+    return read_OSKAR_tm_file(path)
 
 
 def read_OSKAR_tm_file(path: str) -> Telescope:

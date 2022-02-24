@@ -9,6 +9,9 @@ from karabo.simulation.telescope import Telescope
 
 
 class CorrelationType(enum.Enum):
+    """
+
+    """
     Cross_Correlations = "Cross-Correlations"
     Auto_Correlations = "Auto-Correlations"
     Both = "Both"
@@ -46,10 +49,9 @@ class InterferometerSimulation:
         simulation.set_telescope_model(telescope.get_OSKAR_telescope())
         simulation.set_sky_model(os_sky)
         simulation.set_output_measurement_set(self.output_path)
-        # simulation.set_output_vis_file("./result.vis")
         simulation.run()
 
-    def __get_OSKAR_settings_tree(self) -> dict[str, dict[str, Union[Union[int, float, str], Any]]]:
+    def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
                 "channel_bandwidth_hz": self.channel_bandwidth_hz,
