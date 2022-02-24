@@ -1,7 +1,5 @@
-from karabo.simulation.CoordinateHelpers import east_north_to_long_lat
-from karabo.simulation.EastNorthCoordinate import EastNorthCoordinate
-import numpy as np
-
+from karabo.simulation.coordinate_helper import east_north_to_long_lat
+from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 
 class Station:
 

@@ -1,5 +1,5 @@
 import unittest
-import karabo.simulation.Telescope as telescope
+import karabo.simulation.telescope as telescope
 
 
 class TestTelescope(unittest.TestCase):
@@ -11,3 +11,8 @@ class TestTelescope(unittest.TestCase):
     def test_read_tm_file(self):
         tel = telescope.Telescope.read_OSKAR_tm_file("../karabo/data/telescope.tm")
         tel.plot_telescope()
+
+    def test_convert_to_oskar(self):
+        tel = telescope.Telescope.read_OSKAR_tm_file("../karabo/data/telescope.tm")
+        oskar_tel = tel.get_OSKAR_telescope()
+        print(oskar_tel)

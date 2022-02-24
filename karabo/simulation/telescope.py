@@ -1,12 +1,13 @@
 import os
+import tempfile
 
 import numpy as np
 import oskar.telescope as os_telescope
 
 import karabo.error
-from karabo.simulation.CoordinateHelpers import east_north_to_long_lat
-from karabo.simulation.EastNorthCoordinate import EastNorthCoordinate
-from karabo.simulation.Station import Station
+from karabo.simulation.coordinate_helper import east_north_to_long_lat
+from karabo.simulation.east_north_coordinate import EastNorthCoordinate
+from karabo.simulation.station import Station
 
 
 class Telescope:
@@ -88,22 +89,45 @@ class Telescope:
         plt.show()
 
     def get_OSKAR_telescope(self) -> os_telescope:
-        tel = os_telescope.Telescope()
-        tel.set_position(self.centre_longitude, self.centre_latitude, self.centre_altitude)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.__create_telescope_tm_file(temp_dir)
+            tel = os_telescope.Telescope()
+            tel.load(temp_dir)
+            return tel
+
+    def __create_telescope_tm_file(self, path: str) -> None:
+
+        self.__write_position_txt(f"{path}/position.txt")
+        self.__write_layout_txt(f"{path}/layout.txt", [station.position for station in self.stations])
+        i = 0
         for station in self.stations:
-            long, lat = east_north_to_long_lat(station.position.x,
-                                               station.position.y,
-                                               self.centre_longitude,
-                                               self.centre_latitude)
-            tel.set_station_coords_enu(long, lat, station.position.y, )
+            station_path = f"{path}/station{'{:03d}'.format(i)}"
+            os.mkdir(station_path)
+            self.__write_layout_txt(f"{station_path}/layout.txt", station.antennas)
+            i += 1
+
+    def __write_position_txt(self, position_file_path: str) -> None:
+        position_file = open(position_file_path, "a")
+        position_file.write(f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude} \n")
+        position_file.close()
+
+    def __write_layout_txt(self, layout_path: str, elements: [EastNorthCoordinate]):
+        layout_file = open(layout_path, "a")
+        for element in elements:
+            layout_file.write(
+                f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n")
+        layout_file.close()
 
     @staticmethod
     def get_OSKAR_Example_Telescope():
-        return Telescope.read_OSKAR_tm_file("../data/telescope.tm")
+        path_elements = os.path.abspath(karabo.__file__).split('/')
+        path_elements.pop()
+        path = f"{'/'.join(path_elements)}/data/telescope.tm"
+        return Telescope.read_OSKAR_tm_file(path)
 
-    @staticmethod
-    def get_MEERKAT_Array():
-        return Telescope(0, 0)
+    # @staticmethod
+    # def get_MEERKAT_Array():
+    #     return Telescope(0, 0)
 
     @staticmethod
     def read_OSKAR_tm_file(path: str):
@@ -159,7 +183,7 @@ class Telescope:
                                                                 antenna_pos[2],
                                                                 antenna_pos[3],
                                                                 antenna_pos[4],
-                                                                antenna_pos[5], ))
+                                                                antenna_pos[5]))
 
         return telescope
 
