@@ -123,82 +123,82 @@ class Telescope:
         path_elements = os.path.abspath(karabo.__file__).split('/')
         path_elements.pop()
         path = f"{'/'.join(path_elements)}/data/telescope.tm"
-        return Telescope.read_OSKAR_tm_file(path)
+        return read_OSKAR_tm_file(path)
 
     # @staticmethod
     # def get_MEERKAT_Array():
     #     return Telescope(0, 0)
 
-    @staticmethod
-    def read_OSKAR_tm_file(path: str):
-        files = []
-        dirs = []
-        for (dirpath, dirnames, filenames) in os.walk(path):
-            files.append(filenames)
-            dirs.append(dirnames)
 
-        if "position.txt" not in files[0]:
-            raise karabo.error.KaraboException("Missing crucial position.txt file")
+def read_OSKAR_tm_file(path: str) -> Telescope:
+    files = []
+    dirs = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+        files.append(filenames)
+        dirs.append(dirnames)
 
-        if "layout.txt" not in files[0]:
-            raise karabo.error.KaraboException(
-                "Only Layout.txt is support. layout_ecef.txt and layout_wgs84.txt support is on its way.")
+    if "position.txt" not in files[0]:
+        raise karabo.error.KaraboException("Missing crucial position.txt file")
 
-        telescope = None
+    if "layout.txt" not in files[0]:
+        raise karabo.error.KaraboException(
+            "Only Layout.txt is support. layout_ecef.txt and layout_wgs84.txt support is on its way.")
 
-        position_file = open(path + "/position.txt")
-        lines = position_file.readlines()
-        for line in lines:
-            long_lat = line.split(" ")
-            if len(long_lat) > 3:
-                raise karabo.error.KaraboException("Too many values in position.txt")
-            long = float(long_lat[0])
-            lat = float(long_lat[1])
-            alt = 0
-            if len(long_lat) == 3:
-                alt = float(long_lat[2])
-            telescope = Telescope(long, lat, alt)
+    telescope = None
 
-        if Telescope is None:
-            raise karabo.error.KaraboException("Could not create Telescope from position.txt file.")
+    position_file = open(path + "/position.txt")
+    lines = position_file.readlines()
+    for line in lines:
+        long_lat = line.split(" ")
+        if len(long_lat) > 3:
+            raise karabo.error.KaraboException("Too many values in position.txt")
+        long = float(long_lat[0])
+        lat = float(long_lat[1])
+        alt = 0
+        if len(long_lat) == 3:
+            alt = float(long_lat[2])
+        telescope = Telescope(long, lat, alt)
 
-        position_file.close()
+    if Telescope is None:
+        raise karabo.error.KaraboException("Could not create Telescope from position.txt file.")
 
-        station_positions = Telescope.__read_layout_txt(f"{path}/layout.txt")
-        for station_position in station_positions:
-            telescope.add_station(station_position[0], station_position[1],
-                                  station_position[2], station_position[3],
-                                  station_position[4], station_position[5])
+    position_file.close()
 
-        station_dirs = list(filter(lambda directory: "station" in directory, dirs[0]))
+    station_positions = __read_layout_txt(f"{path}/layout.txt")
+    for station_position in station_positions:
+        telescope.add_station(station_position[0], station_position[1],
+                              station_position[2], station_position[3],
+                              station_position[4], station_position[5])
 
-        if len(station_dirs) != len(telescope.stations):
-            raise karabo.error.KaraboException(f"Not all {len(telescope.stations)} stations have a station directory.")
+    station_dirs = list(filter(lambda directory: "station" in directory, dirs[0]))
 
-        for station_dir, station in zip(station_dirs, telescope.stations):
-            antenna_positions = Telescope.__read_layout_txt(f"{path}/{station_dir}/layout.txt")
-            for antenna_pos in antenna_positions:
-                station.add_station_antenna(EastNorthCoordinate(antenna_pos[0],
-                                                                antenna_pos[1],
-                                                                antenna_pos[2],
-                                                                antenna_pos[3],
-                                                                antenna_pos[4],
-                                                                antenna_pos[5]))
+    if len(station_dirs) != len(telescope.stations):
+        raise karabo.error.KaraboException(f"Not all {len(telescope.stations)} stations have a station directory.")
 
-        return telescope
+    for station_dir, station in zip(station_dirs, telescope.stations):
+        antenna_positions = __read_layout_txt(f"{path}/{station_dir}/layout.txt")
+        for antenna_pos in antenna_positions:
+            station.add_station_antenna(EastNorthCoordinate(antenna_pos[0],
+                                                            antenna_pos[1],
+                                                            antenna_pos[2],
+                                                            antenna_pos[3],
+                                                            antenna_pos[4],
+                                                            antenna_pos[5]))
 
-    @staticmethod
-    def __read_layout_txt(path) -> [[float]]:
-        positions: [[float]] = []
-        layout_file = open(path)
-        lines = layout_file.readlines()
-        for line in lines:
-            station_position = line.split(",")
-            values = np.zeros(6)
-            i = 0
-            for pos in station_position:
-                values[i] = float(pos)
-                i += 1
-            positions.append([values[0], values[1], values[2], values[3], values[4], values[5]])
-        layout_file.close()
-        return positions
+    return telescope
+
+
+def __read_layout_txt(path) -> [[float]]:
+    positions: [[float]] = []
+    layout_file = open(path)
+    lines = layout_file.readlines()
+    for line in lines:
+        station_position = line.split(",")
+        values = np.zeros(6)
+        i = 0
+        for pos in station_position:
+            values[i] = float(pos)
+            i += 1
+        positions.append([values[0], values[1], values[2], values[3], values[4], values[5]])
+    layout_file.close()
+    return positions
