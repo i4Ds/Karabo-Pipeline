@@ -6,7 +6,7 @@ We support the installation via the conda package manager.
 Currently, python 3.7 is fully supported.
 
 ```shell
-conda install -c i4ds -c conda-forge karabo-pipeline
+conda install -c i4ds -c conda-forge karabo-pipeline=0.2.0
 ```
 
 Full command sequence for installation may look like this.
