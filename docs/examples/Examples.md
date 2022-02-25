@@ -3,13 +3,14 @@
 # Running an interferometer simulation
 
 Running an interferometer simulation is really easy.
-Please look at the karabo.package documentation for specifics on the 
+Please look at the karabo.package documentation for specifics on the individual functions.
 
 ```python
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import get_OSKAR_Example_Telescope
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
+import numpy as np
 
 # create a simple sky model with three point sources
 sky = SkyModel()
