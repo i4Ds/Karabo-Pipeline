@@ -16,3 +16,11 @@ class TestTelescope(unittest.TestCase):
         tel = telescope.read_OSKAR_tm_file("../karabo/data/telescope.tm")
         oskar_tel = tel.get_OSKAR_telescope()
         print(oskar_tel)
+
+    def test_read_alma_file(self):
+        tel = telescope.get_ALMA_Telescope()
+        tel.plot_telescope()
+
+    def test_read_meerkat_file(self):
+        tel = telescope.get_MEERKAT_Telescope()
+        tel.plot_telescope()

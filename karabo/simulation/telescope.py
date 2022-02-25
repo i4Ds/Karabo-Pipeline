@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 
 import numpy as np
@@ -140,20 +141,26 @@ class Telescope:
                 f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n")
         layout_file.close()
 
-    # def get_SKA_LOW(self):
-    #
-    # def get_SKA_MID(self):
 
-    # @staticmethod
-    # def get_MEERKAT_Array():
-    #     return Telescope(0, 0)
+def get_MEERKAT_Telescope():
+    path = f"{__get_module_absolute_path()}/data/meerkat.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_ALMA_Telescope():
+    path = f"{__get_module_absolute_path()}/data/alma.tm"
+    return read_OSKAR_tm_file(path)
 
 
 def get_OSKAR_Example_Telescope():
+    path = f"{__get_module_absolute_path()}/data/telescope.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def __get_module_absolute_path() -> str:
     path_elements = os.path.abspath(karabo.__file__).split('/')
     path_elements.pop()
-    path = f"{'/'.join(path_elements)}/data/telescope.tm"
-    return read_OSKAR_tm_file(path)
+    return '/'.join(path_elements)
 
 
 def read_OSKAR_tm_file(path: str) -> Telescope:
@@ -219,12 +226,19 @@ def __read_layout_txt(path) -> [[float]]:
     layout_file = open(path)
     lines = layout_file.readlines()
     for line in lines:
-        station_position = line.split(",")
+        station_position = re.split("[\\s,]+", line)
         values = np.zeros(6)
         i = 0
         for pos in station_position:
-            values[i] = float(pos)
+            values[i] = __float_try_parse(pos)
             i += 1
         positions.append([values[0], values[1], values[2], values[3], values[4], values[5]])
     layout_file.close()
     return positions
+
+
+def __float_try_parse(value):
+    try:
+        return float(value)
+    except ValueError:
+        return 0.0
