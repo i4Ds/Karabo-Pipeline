@@ -1,7 +1,7 @@
 name: Build and Publish CLI Docker Image
 
 on:
-  create:
+  release:
 
   workflow_dispatch:
 

@@ -1,0 +1,8 @@
+numpy~=1.20.3
+astropy~=4.3.1
+docker-py~=5.0.3
+conda~=4.11.0
+pyproj~=3.3.0
+matplotlib~=3.4.3
+dask~=2021.11.1
+oskar~=2.7.6
