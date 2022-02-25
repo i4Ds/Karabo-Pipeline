@@ -60,7 +60,7 @@ class Observation:
         """
         settings = {
             "observation": {
-                "start_frequency_hz": self.start_frequency_hz,
+                "start_frequency_hz": str(self.start_frequency_hz),
                 # remove last three digits from milliseconds
                 "start_time_utc": self.start_date_and_time.strftime("%d-%m-%Y %H:%M:%S.%f")[:-3],
                 "length": str(self.length)

@@ -82,13 +82,13 @@ class InterferometerSimulation:
     def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
-                "channel_bandwidth_hz": self.channel_bandwidth_hz,
-                "time_average_sec": self.time_average_sec,
-                "max_time_samples_per_block": self.max_time_per_samples,
-                "correlation_type": self.correlation_type.value,
-                "uv_filter_min": self.__interpret_uv_filter(self.uv_filter_min),
-                "uv_filter_max": self.__interpret_uv_filter(self.uv_filter_max),
-                "uv_filter_units": self.uv_filter_units.value
+                "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
+                "time_average_sec": str(self.time_average_sec),
+                "max_time_samples_per_block": str(self.max_time_per_samples),
+                "correlation_type": str(self.correlation_type.value),
+                "uv_filter_min": str(self.__interpret_uv_filter(self.uv_filter_min)),
+                "uv_filter_max": str(self.__interpret_uv_filter(self.uv_filter_max)),
+                "uv_filter_units": str(self.uv_filter_units.value)
             }
         }
         return settings
