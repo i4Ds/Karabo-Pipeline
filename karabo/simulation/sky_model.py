@@ -1,5 +1,8 @@
+from os import stat
 import numpy as np
+import pandas as pd
 import oskar
+from astropy.table import Table
 
 
 class SkyModel:
@@ -25,8 +28,9 @@ class SkyModel:
     """
     def __init__(self):
         self.sources = None
+        self.num_sources = 0
 
-    def add_points_sources(self, sources: np.array):
+    def add_points_sources(self, sources: np.ndarray):
         """
         Add new point sources to the sky model.
 
@@ -60,6 +64,7 @@ class SkyModel:
                 self.sources = np.vstack((self.sources, sources))
             else:
                 self.sources = sources
+            self.num_sources += sources.shape[0]
 
     def add_point_source(self, right_ascension: float, declination: float, stokes_I_flux: float = 0,
                          stokes_Q_flux: float = 0,
@@ -91,6 +96,53 @@ class SkyModel:
             self.sources = np.vstack(self.sources, new_sources)
         else:
             self.sources = new_sources
+        self.num_sources += 1
+
+    def to_array(self) -> np.ndarray:
+        """
+        Gets the sources as np.ndarray
+
+        :return: self.sources
+        """
+        return self.sources
+
+    def filter_by_radius(self, inner_radius_deg: float, outer_radius_deg: float, ra0_deg: float, dec0_deg: float):
+        """
+        Filters the sky according the an inner and outer circle from the phase center
+
+        :param inner_radius_deg: Inner radius in degrees
+        :param outer_radius_deg: Outer raidus in degrees
+        :param ra0_deg: Phase center right ascention
+        :param dec0_deg: Phase center declination
+        """
+        OSKAR_sky = self.get_OSKAR_sky()
+        OSKAR_sky.filter_by_radius(inner_radius_deg, outer_radius_deg, ra0_deg, dec0_deg)
+        self.sources = OSKAR_sky.to_array()
+        self.num_sources = self.sources.shape[0]
+
+    def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
+        """
+        Filters the sky using the Stokes-I-flux
+        Values outside the range are removed
+
+        :param min_flux_jy: Minimum flux in Jy
+        :param max_flux_jy: Maximum flux in Jy
+        """
+        stokes_I_flux = self.sources[:,2]
+        idxs = np.where(np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy))[0]
+        self.sources = self.sources[idxs]
+        self.num_sources = self.sources.shape[0]
+
+    @staticmethod
+    def get_fits_catalog(path: str) -> Table:
+        """
+        Gets astropy.table.table.Table from a .fits catalog
+
+        :param path: Location of the .fits file
+
+        :return: fits catalog
+        """
+        return Table.read(path)
 
     def get_OSKAR_sky(self) -> oskar.Sky:
         """
@@ -98,4 +150,5 @@ class SkyModel:
 
         :return: oskar sky model
         """
+        # what about precision = "single"?
         return oskar.Sky.from_array(self.sources)
