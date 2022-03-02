@@ -1,10 +1,13 @@
 from os import stat
+from re import A
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import oskar
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy import units as u
+from astropy import wcs as awcs
 from karabo.simulation.utils import intersect2D
 
 
@@ -30,14 +33,16 @@ class SkyModel:
                     - source id (object): defaults to None
 
     """
-    def __init__(self, sources: np.ndarray = None):
+    def __init__(self, sources: np.ndarray = None, wcs: awcs = None):
         """
         Initialization of a new SkyModel
 
         :param sources: Adds sources using self.add_point_sources if set
         """
         self.num_sources = 0
+        self.shape = (0,0)
         self.sources = None
+        self.wcs = wcs
         if sources is not None:
             self.add_point_sources(sources)
 
@@ -149,6 +154,32 @@ class SkyModel:
         self.sources = self.sources[idxs]
         self.__update_sources()
 
+    def get_wcs(self) -> awcs:
+        """
+        Gets the currently active world coordinate system astropy.wcs
+        For details see https://docs.astropy.org/en/stable/wcs/index.html
+        """
+        return self.wcs
+
+    def set_wcs(self, wcs: awcs):
+        """
+        Sets a new world coordinate system astropy.wcs
+        For details see https://docs.astropy.org/en/stable/wcs/index.html
+        """
+        self.wcs = wcs
+
+    def __setup_default_wcs(self, phase_center: list = [0,0]):
+        """
+        Defines a default world coordinate system astropy.wcs
+        For more details see https://docs.astropy.org/en/stable/wcs/index.html
+        """
+        w = awcs.wcs.WCS(naxis=2)
+        w.wcs.crpix = [0, 0] # coordinate reference pixel per axis
+        w.wcs.cdelt = [-1, 1] # coordinate increments on sphere per axis
+        w.wcs.crval = phase_center
+        w.wcs.ctype = ["RA---AIR", "DEC--AIR"] # coordinate axis type
+        self.wcs = w
+
     @staticmethod
     def get_fits_catalog(path: str) -> Table:
         """
@@ -160,6 +191,34 @@ class SkyModel:
         """
         return Table.read(path)
 
+    def explore_sky(self, phase_center: np.ndarray = np.array([0,0]), xlim: tuple = (-1,1), ylim: tuple = (-1,1), 
+                 figsize: tuple = (6,5),title: str = '', xlabel: str = '', ylabel: str = '', wcs: awcs = None, 
+                 sc_s: float = 20, sc_cfun = np.log10, sc_cmap: str = 'plasma', sc_cbar_label: str = ''):
+        """
+        Description toDo
+        """
+        if wcs is None:
+            if self.wcs is None:
+                self.__setup_default_wcs(phase_center)
+            wcs = self.wcs
+
+        px, py = self.wcs.wcs_world2pix(self[:,0], self[:,1], 1) # ra-dec transformation
+        flux, vmin, vmax = None, None, None
+        if (sc_cfun is not None) and (sc_cmap is not None):
+            flux = sc_cfun(self[:,2]) # stokes_I_flux transformation
+            vmin, vmax = np.min(flux), np.max(flux)
+        
+        plt.figure(figsize=(figsize))
+        sc = plt.scatter(px, py, s=sc_s, c=flux, cmap=sc_cmap, vmin=vmin, vmax=vmax)
+        plt.axis('equal')
+        plt.colorbar(sc, label=sc_cbar_label)
+        plt.title(title)
+        plt.xlim(xlim)
+        plt.ylim(ylim)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.show()
+
     def get_OSKAR_sky(self) -> oskar.Sky:
         """
         Get OSKAR sky model object from the defined Sky Model
@@ -170,6 +229,9 @@ class SkyModel:
         return oskar.Sky.from_array(self.sources)
 
     def __update_sources(self):
+        """
+        Updates instance variables after self.sources has changed
+        """
         self.num_sources = self.sources.shape[0]
         self.shape = self.sources.shape
 
