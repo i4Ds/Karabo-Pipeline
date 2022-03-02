@@ -5,6 +5,7 @@ import oskar
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy import units as u
+from karabo.simulation.utils import intersect2D
 
 
 class SkyModel:
@@ -26,13 +27,14 @@ class SkyModel:
                     - major axis FWHM (arcsec): defaults to 0
                     - minor axis FWHM (arcsec): defaults to 0
                     - position angle (deg): defaults to 0
+                    - source id (object): defaults to None
 
     """
     def __init__(self, sources: np.ndarray = None):
         """
         Initialization of a new SkyModel
 
-        :param sources: Calls self.add_point
+        :param sources: Adds sources using self.add_point_sources if set
         """
         self.num_sources = 0
         self.sources = None
@@ -58,15 +60,16 @@ class SkyModel:
                         - [9] major axis FWHM (arcsec): defaults to 0
                         - [10] minor axis FWHM (arcsec): defaults to 0
                         - [11] position angle (deg): defaults to 0
+                        - [12] source id (object): defaults to None
 
         """
         if len(sources.shape) > 2:
             return
-        if 2 < sources.shape[1] < 13:
-            if sources.shape[1] < 12:
-                # if some elements are missing fill them up with zeros
-                missing_shape = 12 - sources.shape[1]
-                fill = np.zeros((sources.shape[0], 12))
+        if 2 < sources.shape[1] < 14:
+            if sources.shape[1] < 13:
+                # if some elements are missing fill them up with zeros except `source_id`
+                missing_shape = 13 - sources.shape[1]
+                fill = np.hstack((np.zeros((sources.shape[0], 12)), np.array([[None]*sources.shape[0]]).reshape(-1,1)))
                 fill[:, :-missing_shape] = sources
                 sources = fill
             if self.sources is not None:
@@ -75,12 +78,11 @@ class SkyModel:
                 self.sources = sources
             self.num_sources += sources.shape[0]
 
-    def add_point_source(self, right_ascension: float, declination: float, stokes_I_flux: float = 0,
-                         stokes_Q_flux: float = 0,
-                         stokes_U_flux: float = 0, stokes_V_flux: float = 0, reference_frequency: float = 0,
-                         spectral_index: float = 0, rotation_measure: float = 0, major_axis_FWHM: float = 0,
-                         minor_axis_FWHM: float = 0,
-                         position_angle: float = 0):
+    def add_point_source(self, right_ascension: float, declination: float, stokes_I_flux: float,
+                         stokes_Q_flux: float = 0, stokes_U_flux: float = 0, stokes_V_flux: float = 0,
+                         reference_frequency: float = 0, spectral_index: float = 0, rotation_measure: float = 0,
+                         major_axis_FWHM: float = 0, minor_axis_FWHM: float = 0, position_angle: float = 0,
+                         source_id: object = None):
         """
         Add a single new point source to the sky model.
 
@@ -96,16 +98,26 @@ class SkyModel:
         :param major_axis_FWHM:
         :param minor_axis_FWHM:
         :param position_angle:
+        :param source_id:
         """
         new_sources = np.array(
             [[right_ascension, declination, stokes_I_flux, stokes_Q_flux, stokes_U_flux,
               stokes_V_flux, reference_frequency, spectral_index, rotation_measure,
-              major_axis_FWHM, minor_axis_FWHM, position_angle]])
+              major_axis_FWHM, minor_axis_FWHM, position_angle, source_id]])
         if self.sources is not None:
             self.sources = np.vstack(self.sources, new_sources)
         else:
             self.sources = new_sources
         self.num_sources += 1
+
+    def set_source_ids(self, source_ids: np.ndarray):
+        """
+        Sets the source_ids
+        The length of source_ids must match self.sources.shape[0]
+
+        :param source_ids: Array of source identifiers
+        """
+        self.sources[:,-1] = source_ids
 
     def to_array(self) -> np.ndarray:
         """
@@ -132,11 +144,6 @@ class SkyModel:
         filtered_sources_idxs = np.where(filtered_sources == True)[0]
         self.sources = self.sources[filtered_sources_idxs]
         self.num_sources = self.sources.shape[0]
-
-        #OSKAR_sky = self.get_OSKAR_sky()
-        #OSKAR_sky.filter_by_radius(inner_radius_deg, outer_radius_deg, ra0_deg, dec0_deg)
-        #self.sources = OSKAR_sky.to_array()
-        #self.num_sources = self.sources.shape[0]
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """
