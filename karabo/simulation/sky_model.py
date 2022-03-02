@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import oskar
 from astropy.table import Table
+from astropy.visualization.wcsaxes import SphericalCircle
+from astropy import units as u
 
 
 class SkyModel:
@@ -26,11 +28,18 @@ class SkyModel:
                     - position angle (deg): defaults to 0
 
     """
-    def __init__(self):
-        self.sources = None
-        self.num_sources = 0
+    def __init__(self, sources: np.ndarray = None):
+        """
+        Initialization of a new SkyModel
 
-    def add_points_sources(self, sources: np.ndarray):
+        :param sources: Calls self.add_point
+        """
+        self.num_sources = 0
+        self.sources = None
+        if sources is not None:
+            self.add_point_sources(sources)
+
+    def add_point_sources(self, sources: np.ndarray):
         """
         Add new point sources to the sky model.
 
@@ -73,7 +82,7 @@ class SkyModel:
                          minor_axis_FWHM: float = 0,
                          position_angle: float = 0):
         """
-        Add a new point source to the sky model.
+        Add a single new point source to the sky model.
 
         :param right_ascension:
         :param declination:
@@ -115,10 +124,19 @@ class SkyModel:
         :param ra0_deg: Phase center right ascention
         :param dec0_deg: Phase center declination
         """
-        OSKAR_sky = self.get_OSKAR_sky()
-        OSKAR_sky.filter_by_radius(inner_radius_deg, outer_radius_deg, ra0_deg, dec0_deg)
-        self.sources = OSKAR_sky.to_array()
+        inner_circle = SphericalCircle((ra0_deg*u.deg, dec0_deg*u.deg), inner_radius_deg*u.deg)
+        outer_circle = SphericalCircle((ra0_deg*u.deg, dec0_deg*u.deg), outer_radius_deg*u.deg)
+        outer_sources = outer_circle.contains_points(self.sources[:,0:2]).astype('int')
+        inner_sources = inner_circle.contains_points(self.sources[:,0:2]).astype('int')
+        filtered_sources = np.array(outer_sources - inner_sources, dtype='bool')
+        filtered_sources_idxs = np.where(filtered_sources == True)[0]
+        self.sources = self.sources[filtered_sources_idxs]
         self.num_sources = self.sources.shape[0]
+
+        #OSKAR_sky = self.get_OSKAR_sky()
+        #OSKAR_sky.filter_by_radius(inner_radius_deg, outer_radius_deg, ra0_deg, dec0_deg)
+        #self.sources = OSKAR_sky.to_array()
+        #self.num_sources = self.sources.shape[0]
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """
