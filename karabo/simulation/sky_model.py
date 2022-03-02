@@ -177,3 +177,32 @@ class SkyModel:
         """
         # what about precision = "single"?
         return oskar.Sky.from_array(self.sources)
+
+    def __getitem__(self, key):
+        """
+        Allows to get access to self.sources in an np.ndarray like manner
+        If casts the selected array/scalar to float64 if possible (usually if source_id is not selected)
+
+        :param key: slice key
+
+        :return: sliced self.sources
+        """
+        sources = self.sources[key]
+        if np.isscalar(sources):
+            sources = np.float64(sources)
+        elif len(sources.shape) == 1:
+            if sources.shape[0] < self.sources.shape[1]:
+                sources = sources.astype('float64')
+        elif len(sources.shape) == 2:
+            if sources.shape[1] < self.sources.shape[1]:
+                sources = sources.astype('float64')
+        return sources
+
+    def __setitem__(self, key, value):
+        """
+        Allows to set values in an np.ndarray like manner
+
+        :param key: slice key
+        :param value: values to store
+        """
+        self.sources[key] = value
