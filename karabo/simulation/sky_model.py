@@ -76,7 +76,7 @@ class SkyModel:
                 self.sources = np.vstack((self.sources, sources))
             else:
                 self.sources = sources
-            self.num_sources += sources.shape[0]
+            self.__update_sources()
 
     def add_point_source(self, right_ascension: float, declination: float, stokes_I_flux: float,
                          stokes_Q_flux: float = 0, stokes_U_flux: float = 0, stokes_V_flux: float = 0,
@@ -108,16 +108,7 @@ class SkyModel:
             self.sources = np.vstack(self.sources, new_sources)
         else:
             self.sources = new_sources
-        self.num_sources += 1
-
-    def set_source_ids(self, source_ids: np.ndarray):
-        """
-        Sets the source_ids
-        The length of source_ids must match self.sources.shape[0]
-
-        :param source_ids: Array of source identifiers
-        """
-        self.sources[:,-1] = source_ids
+        self.__update_sources()
 
     def to_array(self) -> np.ndarray:
         """
@@ -143,7 +134,7 @@ class SkyModel:
         filtered_sources = np.array(outer_sources - inner_sources, dtype='bool')
         filtered_sources_idxs = np.where(filtered_sources == True)[0]
         self.sources = self.sources[filtered_sources_idxs]
-        self.num_sources = self.sources.shape[0]
+        self.__update_sources()
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """
@@ -156,7 +147,7 @@ class SkyModel:
         stokes_I_flux = self.sources[:,2]
         idxs = np.where(np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy))[0]
         self.sources = self.sources[idxs]
-        self.num_sources = self.sources.shape[0]
+        self.__update_sources()
 
     @staticmethod
     def get_fits_catalog(path: str) -> Table:
@@ -178,6 +169,10 @@ class SkyModel:
         # what about precision = "single"?
         return oskar.Sky.from_array(self.sources)
 
+    def __update_sources(self):
+        self.num_sources = self.sources.shape[0]
+        self.shape = self.sources.shape
+
     def __getitem__(self, key):
         """
         Allows to get access to self.sources in an np.ndarray like manner
@@ -188,14 +183,10 @@ class SkyModel:
         :return: sliced self.sources
         """
         sources = self.sources[key]
-        if np.isscalar(sources):
+        try:
             sources = np.float64(sources)
-        elif len(sources.shape) == 1:
-            if sources.shape[0] < self.sources.shape[1]:
-                sources = sources.astype('float64')
-        elif len(sources.shape) == 2:
-            if sources.shape[1] < self.sources.shape[1]:
-                sources = sources.astype('float64')
+        except ValueError:
+            pass # nothing toDo here
         return sources
 
     def __setitem__(self, key, value):
