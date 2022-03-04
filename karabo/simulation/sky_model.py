@@ -81,7 +81,7 @@ class SkyModel:
                 self.sources = np.vstack((self.sources, sources))
             else:
                 self.sources = sources
-            self.__update_sources()
+            self.__update_sky_model()
 
     def add_point_source(self, right_ascension: float, declination: float, stokes_I_flux: float,
                          stokes_Q_flux: float = 0, stokes_U_flux: float = 0, stokes_V_flux: float = 0,
@@ -113,15 +113,20 @@ class SkyModel:
             self.sources = np.vstack(self.sources, new_sources)
         else:
             self.sources = new_sources
-        self.__update_sources()
+        self.__update_sky_model()
 
-    def to_array(self) -> np.ndarray:
+    def to_array(self, with_obj_ids: bool = False) -> np.ndarray:
         """
         Gets the sources as np.ndarray
 
+        :param with_obj_ids: Option whether object ids should be included or not
+
         :return: self.sources
         """
-        return self.sources
+        if with_obj_ids:
+            return self[:]
+        else:
+            return self[:,:-1]
 
     def filter_by_radius(self, inner_radius_deg: float, outer_radius_deg: float, ra0_deg: float, dec0_deg: float):
         """
@@ -134,12 +139,12 @@ class SkyModel:
         """
         inner_circle = SphericalCircle((ra0_deg*u.deg, dec0_deg*u.deg), inner_radius_deg*u.deg)
         outer_circle = SphericalCircle((ra0_deg*u.deg, dec0_deg*u.deg), outer_radius_deg*u.deg)
-        outer_sources = outer_circle.contains_points(self.sources[:,0:2]).astype('int')
-        inner_sources = inner_circle.contains_points(self.sources[:,0:2]).astype('int')
+        outer_sources = outer_circle.contains_points(self[:,0:2]).astype('int')
+        inner_sources = inner_circle.contains_points(self[:,0:2]).astype('int')
         filtered_sources = np.array(outer_sources - inner_sources, dtype='bool')
         filtered_sources_idxs = np.where(filtered_sources == True)[0]
         self.sources = self.sources[filtered_sources_idxs]
-        self.__update_sources()
+        self.__update_sky_model()
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """
@@ -149,10 +154,10 @@ class SkyModel:
         :param min_flux_jy: Minimum flux in Jy
         :param max_flux_jy: Maximum flux in Jy
         """
-        stokes_I_flux = self.sources[:,2]
+        stokes_I_flux = self[:,2]
         idxs = np.where(np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy))[0]
         self.sources = self.sources[idxs]
-        self.__update_sources()
+        self.__update_sky_model()
 
     def get_wcs(self) -> awcs:
         """
@@ -192,26 +197,48 @@ class SkyModel:
         return Table.read(path)
 
     def explore_sky(self, phase_center: np.ndarray = np.array([0,0]), xlim: tuple = (-1,1), ylim: tuple = (-1,1), 
-                 figsize: tuple = (6,5),title: str = '', xlabel: str = '', ylabel: str = '', wcs: awcs = None, 
-                 sc_s: float = 20, sc_cfun = np.log10, sc_cmap: str = 'plasma', sc_cbar_label: str = ''):
+                 figsize: tuple = (6,6), title: str = '', xlabel: str = '', ylabel: str = '', wcs: awcs = None, 
+                 s: float = 20, cfun = np.log10, cmap: str = 'plasma', cbar_label: str = '',
+                 with_labels: bool = False):
         """
-        Description toDo
+        A scatter plot of y vs. x of the point sources of the SkyModel
+
+        :param phase_center:
+        :param xlim:
+        :param ylim:
+        :param figsize:
+        :param title:
+        :param xlabel:
+        :param ylabel:
+        :param wcs:
+        :param s:
+        :param cfun:
+        :param cmap:
+        :param cbar_label:
+        :param with_labels:
         """
         if wcs is None:
             if self.wcs is None:
                 self.__setup_default_wcs(phase_center)
             wcs = self.wcs
-
         px, py = self.wcs.wcs_world2pix(self[:,0], self[:,1], 1) # ra-dec transformation
+
         flux, vmin, vmax = None, None, None
-        if (sc_cfun is not None) and (sc_cmap is not None):
-            flux = sc_cfun(self[:,2]) # stokes_I_flux transformation
+        if cmap is not None:
+            flux = self[:,2]
+            if cfun is not None:
+                flux = cfun(flux)
             vmin, vmax = np.min(flux), np.max(flux)
         
-        plt.figure(figsize=(figsize))
-        sc = plt.scatter(px, py, s=sc_s, c=flux, cmap=sc_cmap, vmin=vmin, vmax=vmax)
+        fig, ax = plt.subplots(figsize=figsize)
+        sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, vmin=vmin, vmax=vmax)
+
+        if with_labels:
+            for i, txt in enumerate(self[:,-1]):
+                ax.annotate(txt, (px[i], py[i]))
+
         plt.axis('equal')
-        plt.colorbar(sc, label=sc_cbar_label)
+        plt.colorbar(sc, label=cbar_label)
         plt.title(title)
         plt.xlim(xlim)
         plt.ylim(ylim)
@@ -228,7 +255,7 @@ class SkyModel:
         # what about precision = "single"?
         return oskar.Sky.from_array(self.sources)
 
-    def __update_sources(self):
+    def __update_sky_model(self):
         """
         Updates instance variables after self.sources has changed
         """
