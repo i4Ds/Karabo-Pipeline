@@ -1,5 +1,6 @@
 from os import stat
 from re import A
+from typing import Callable
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -39,10 +40,10 @@ class SkyModel:
 
         :param sources: Adds sources using self.add_point_sources if set
         """
-        self.num_sources = 0
-        self.shape = (0,0)
-        self.sources = None
-        self.wcs = wcs
+        self.num_sources: int = 0
+        self.shape: tuple = (0,0)
+        self.sources: np.ndarray = None
+        self.wcs: awcs = wcs
         if sources is not None:
             self.add_point_sources(sources)
 
@@ -159,6 +160,18 @@ class SkyModel:
         self.sources = self.sources[filtered_sources_idxs]
         self.__update_sky_model()
 
+    def filter_by_frequency(self, min_freq: float, max_freq: float):
+        """
+        Filters the sky using the referency frequency in Hz
+
+        :param min_freq: Minimum frequency in Hz
+        :param max_freq: Maximum frequency in Hz
+        """
+        freq = self[:,6]
+        filtered_sources_idxs = np.where(np.logical_and(freq <= max_freq, freq >= min_freq))[0]
+        self.sources = self.sources[filtered_sources_idxs]
+        self.__update_sky_model()
+
     def get_wcs(self) -> awcs:
         """
         Gets the currently active world coordinate system astropy.wcs
@@ -198,7 +211,7 @@ class SkyModel:
 
     def explore_sky(self, phase_center: np.ndarray = np.array([0,0]), xlim: tuple = (-1,1), ylim: tuple = (-1,1), 
                  figsize: tuple = (6,6), title: str = '', xlabel: str = '', ylabel: str = '', wcs: awcs = None, 
-                 s: float = 20, cfun = np.log10, cmap: str = 'plasma', cbar_label: str = '',
+                 s: float = 20, cfun: Callable = np.log10, cmap: str = 'plasma', cbar_label: str = '',
                  with_labels: bool = False):
         """
         A scatter plot of y vs. x of the point sources of the SkyModel
