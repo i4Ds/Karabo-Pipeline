@@ -121,7 +121,7 @@ class SkyModel:
 
         :param with_obj_ids: Option whether object ids should be included or not
 
-        :return: self.sources
+        :return: the sources of the SkyModel as np.ndarray
         """
         if with_obj_ids:
             return self[:]
@@ -155,8 +155,8 @@ class SkyModel:
         :param max_flux_jy: Maximum flux in Jy
         """
         stokes_I_flux = self[:,2]
-        idxs = np.where(np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy))[0]
-        self.sources = self.sources[idxs]
+        filtered_sources_idxs = np.where(np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy))[0]
+        self.sources = self.sources[filtered_sources_idxs]
         self.__update_sky_model()
 
     def get_wcs(self) -> awcs:
@@ -252,12 +252,11 @@ class SkyModel:
 
         :return: oskar sky model
         """
-        # what about precision = "single"?
-        return oskar.Sky.from_array(self.sources)
+        return oskar.Sky.from_array(self[:,:-1])
 
     def __update_sky_model(self):
         """
-        Updates instance variables after self.sources has changed
+        Updates instance variables of the SkyModel
         """
         self.num_sources = self.sources.shape[0]
         self.shape = self.sources.shape
