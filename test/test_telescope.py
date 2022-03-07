@@ -15,12 +15,12 @@ class TestTelescope(unittest.TestCase):
         tel.plot_telescope('result/tel/simple_tel.png')
 
     def test_read_tm_file(self):
-        tel = telescope.read_OSKAR_tm_file("../karabo/data/telescope.tm")
+        tel = telescope.read_OSKAR_tm_file("./karabo/data/telescope.tm")
         tel.plot_telescope('result/tel/oskar_tel.png')
         self.assertEqual(len(tel.stations), 30)
 
     def test_convert_to_oskar(self):
-        tel = telescope.read_OSKAR_tm_file("../karabo/data/telescope.tm")
+        tel = telescope.read_OSKAR_tm_file("./karabo/data/telescope.tm")
         oskar_tel = tel.get_OSKAR_telescope()
         self.assertEqual(oskar_tel.get_num_stations(), 30)
 

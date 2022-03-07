@@ -24,4 +24,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Test-Results
-          path: test/result/
+          path: result/
