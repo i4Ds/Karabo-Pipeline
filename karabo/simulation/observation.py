@@ -82,15 +82,15 @@ class Observation:
             }
         }
         if self.number_of_channels:
-            settings["observation"]["number_of_channels"] = str(self.number_of_channels)
+            settings["observation"]["num_channels"] = str(self.number_of_channels)
         if self.frequency_increment_hz:
-            settings["observation"]["frequency_increment_hz"] = str(self.frequency_increment_hz)
+            settings["observation"]["frequency_inc_hz"] = str(self.frequency_increment_hz)
         if self.phase_centre_ra_deg:
             settings["observation"]["phase_centre_ra_deg"] = str(self.phase_centre_ra_deg)
         if self.phase_centre_dec_deg:
             settings["observation"]["phase_centre_dec_deg"] = str(self.phase_centre_dec_deg)
         if self.number_of_time_steps:
-            settings["observation"]["number_of_time_steps"] = str(self.number_of_time_steps)
+            settings["observation"]["num_time_steps"] = str(self.number_of_time_steps)
         if self.mode:
             settings["observation"]["mode"] = self.mode.value
 
