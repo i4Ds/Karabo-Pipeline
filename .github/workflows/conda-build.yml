@@ -1,7 +1,7 @@
 name: Conda Build
 
 on:
-  create:
+  release:
   workflow_dispatch:
 
 

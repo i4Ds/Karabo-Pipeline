@@ -2,7 +2,11 @@ name: karabo_env
 channels:
   - i4ds
   - conda-forge
-  - default
+  - defaults
 dependencies:
   - oskar=2.7.6
   - rascil=0.5.0
+  - astropy
+  - numpy
+  - dask
+  - matplotlib
