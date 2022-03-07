@@ -2,14 +2,6 @@ import datetime, enum
 from datetime import timedelta, datetime
 from typing import Union
 
-class ObservationMode(enum.Enum):
-    """
-    Enum for selecting between observation mode, either Tracking or Drift_Scan
-    """
-
-    Tracking = "Tracking"
-    Drift_Scan = "Drift scan"
-
 class Observation:
     """
     The Observation class acts as an object to hold all important information about an Observation.
@@ -29,18 +21,16 @@ class Observation:
     :ivar number_of_time_steps: Number of time steps in the output data during the observation length.
                                 This corresponds to the number of correlator dumps for interferometer simulations,
                                 and the number of beam pattern snapshots for beam pattern simulations.
-    :ivar mode: ObservationMode, either Tracking (default) or Drift_Scan
     """
 
     def __init__(self, start_frequency_hz: float,
                  start_date_and_time: datetime = datetime.utcnow(),
                  length: timedelta = timedelta(hours=12),
-                 number_of_channels: float = None,
-                 frequency_increment_hz: float = None,
-                 phase_centre_ra_deg: float = None,
-                 phase_centre_dec_deg: float = None,
-                 number_of_time_steps: float = None,
-                 mode: ObservationMode = None):
+                 number_of_channels: float = 1,
+                 frequency_increment_hz: float = 0,
+                 phase_centre_ra_deg: float = 0,
+                 phase_centre_dec_deg: float = 0,
+                 number_of_time_steps: float = 1):
         # required
         self.start_frequency_hz: float = start_frequency_hz
         self.start_date_and_time: datetime = start_date_and_time
@@ -52,7 +42,6 @@ class Observation:
         self.phase_centre_ra_deg: float = phase_centre_ra_deg
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
-        self.mode: ObservationMode = mode
 
     def set_length_of_observation(self, hours: float, minutes: float, seconds: float, milliseconds: float):
         """
@@ -78,22 +67,14 @@ class Observation:
                 "start_frequency_hz": str(self.start_frequency_hz),
                 # remove last three digits from milliseconds
                 "start_time_utc": self.start_date_and_time.strftime("%d-%m-%Y %H:%M:%S.%f")[:-3],
-                "length": self.__strfdelta(self.length)
+                "length": self.__strfdelta(self.length),
+                "num_channels": str(self.number_of_channels),
+                "frequency_inc_hz": str(self.frequency_increment_hz),
+                "phase_centre_ra_deg": str(self.phase_centre_ra_deg),
+                "phase_centre_dec_deg": str(self.phase_centre_dec_deg),
+                "num_time_steps": str(self.number_of_time_steps)
             }
         }
-        if self.number_of_channels:
-            settings["observation"]["num_channels"] = str(self.number_of_channels)
-        if self.frequency_increment_hz:
-            settings["observation"]["frequency_inc_hz"] = str(self.frequency_increment_hz)
-        if self.phase_centre_ra_deg:
-            settings["observation"]["phase_centre_ra_deg"] = str(self.phase_centre_ra_deg)
-        if self.phase_centre_dec_deg:
-            settings["observation"]["phase_centre_dec_deg"] = str(self.phase_centre_dec_deg)
-        if self.number_of_time_steps:
-            settings["observation"]["num_time_steps"] = str(self.number_of_time_steps)
-        if self.mode:
-            settings["observation"]["mode"] = self.mode.value
-
         return settings
 
     def __strfdelta(self, tdelta):
