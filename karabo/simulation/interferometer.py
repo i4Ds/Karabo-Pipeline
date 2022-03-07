@@ -48,15 +48,29 @@ class InterferometerSimulation:
     :ivar uv_filter_units: The units of the baseline UV length filter values. Any value of Enum FilterUnits
     """
 
-    def __init__(self, output_path: str = "."):
+    def __init__(self, output_path: str = ".",
+                 channel_bandwidth_hz: float = None,
+                 time_average_sec: float = None,
+                 max_time_per_samples: int = None,
+                 max_channels_per_block: Union[str, int] = None,
+                 correlation_type: CorrelationType = None,
+                 uv_filter_min: float = None,
+                 uv_filter_max: float = None,
+                 uv_filter_units: FilterUnits = None,
+                 force_polarised_ms: bool = None,
+                 ignore_w_components: bool = None):
+
         self.output_path = output_path
         self.channel_bandwidth_hz: float = 0
         self.time_average_sec: float = 0
         self.max_time_per_samples: int = 8
+        self.max_channels_per_block = 'auto'
         self.correlation_type: CorrelationType = CorrelationType.Cross_Correlations
-        self.uv_filter_min: float = float('-inf')
+        self.uv_filter_min: float = float(0)
         self.uv_filter_max: float = float('inf')
         self.uv_filter_units: FilterUnits = FilterUnits.WaveLengths
+        self.force_polarised_ms: bool = False
+        self.ignore_w_components: bool = False
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation):
         """
