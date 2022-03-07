@@ -1,7 +1,14 @@
-import datetime
+import datetime, enum
 from datetime import timedelta, datetime
 from typing import Union
 
+class ObservationMode(enum.Enum):
+    """
+    Enum for selecting between observation mode, either Tracking or Drift_Scan
+    """
+
+    Tracking = "Tracking"
+    Drift_Scan = "Drift scan"
 
 class Observation:
     """
@@ -22,7 +29,7 @@ class Observation:
     :ivar number_of_time_steps: Number of time steps in the output data during the observation length.
                                 This corresponds to the number of correlator dumps for interferometer simulations,
                                 and the number of beam pattern snapshots for beam pattern simulations.
-    :ivar mode: Observation mode, either tracking (default) or drift scan
+    :ivar mode: ObservationMode, either Tracking (default) or Drift_Scan
     """
 
     def __init__(self, start_frequency_hz: float,
@@ -33,7 +40,7 @@ class Observation:
                  phase_centre_ra_deg: float = None,
                  phase_centre_dec_deg: float = None,
                  number_of_time_steps: float = None,
-                 mode: str = None):
+                 mode: ObservationMode = None):
         # required
         self.start_frequency_hz: float = start_frequency_hz
         self.start_date_and_time: datetime = start_date_and_time
@@ -45,7 +52,7 @@ class Observation:
         self.phase_centre_ra_deg: float = phase_centre_ra_deg
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
-        self.mode: str = mode
+        self.mode: ObservationMode = mode
 
     def set_length_of_observation(self, hours: float, minutes: float, seconds: float, milliseconds: float):
         """
@@ -85,7 +92,7 @@ class Observation:
         if self.number_of_time_steps:
             settings["observation"]["number_of_time_steps"] = str(self.number_of_time_steps)
         if self.mode:
-            settings["observation"]["mode"] = self.mode
+            settings["observation"]["mode"] = self.mode.value
 
         return settings
 
