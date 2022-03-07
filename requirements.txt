@@ -1,6 +1,6 @@
-numpy~=1.20.3
-astropy~=4.3.1
-matplotlib~=3.4.3
-dask~=2021.11.1
-oskar~=2.7.6
-rascil~=0.5.0
+numpy=1.20.3
+astropy=4.3.1
+matplotlib=3.4.3
+dask=2021.11.1
+oskar=2.7.6
+rascil=0.5.0

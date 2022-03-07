@@ -3,7 +3,7 @@ name: Test Software
 on: [ push ]
 
 jobs:
-  test:
+  TestKarabo:
     runs-on: ubuntu-20.04
     steps:
       - name: Install Conda
