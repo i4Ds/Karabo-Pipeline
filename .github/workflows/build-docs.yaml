@@ -1,0 +1,29 @@
+name: Build Docs
+
+on:
+  release:
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Create Enviornment
+        run: |
+          conda env create -f docs/environment.yaml
+      - name: Activate Conda
+        shell: bash -l {0}
+        run: |
+          conda activate karabo_doc_env
+          make html
+      - name: Archive doc build
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs_built
+          path: build/
