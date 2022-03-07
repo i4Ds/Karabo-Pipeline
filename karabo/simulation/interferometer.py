@@ -46,31 +46,34 @@ class InterferometerSimulation:
     :ivar uv_filter_max: The maximum value of the baseline UV length allowed by the filter.
                          Values outside this range are not evaluated.
     :ivar uv_filter_units: The units of the baseline UV length filter values. Any value of Enum FilterUnits
+    :ivar force_polarised_ms: If True, always write the Measurment Set in polarised format even if the simulation
+                              was run in the single polarisation ‘Scalar’ (or Stokes-I) mode. If False, the size of
+                              the polarisation dimension in the the Measurement Set will be determined by the simulation mode.
+    :ivar ignore_w_components: If enabled, baseline W-coordinate component values will be set to 0. This will disable
+                               W-smearing. Use only if you know what you’re doing!
     """
 
     def __init__(self, output_path: str = ".",
-                 channel_bandwidth_hz: float = None,
-                 time_average_sec: float = None,
-                 max_time_per_samples: int = None,
-                 max_channels_per_block: Union[str, int] = None,
-                 correlation_type: CorrelationType = None,
-                 uv_filter_min: float = None,
-                 uv_filter_max: float = None,
-                 uv_filter_units: FilterUnits = None,
+                 channel_bandwidth_hz: float = 0,
+                 time_average_sec: float = 0,
+                 max_time_per_samples: int = 8,
+                 correlation_type: CorrelationType = CorrelationType.Cross_Correlations,
+                 uv_filter_min: float = .0,
+                 uv_filter_max: float = float('inf'),
+                 uv_filter_units: FilterUnits = FilterUnits.WaveLengths,
                  force_polarised_ms: bool = None,
                  ignore_w_components: bool = None):
 
         self.output_path = output_path
-        self.channel_bandwidth_hz: float = 0
-        self.time_average_sec: float = 0
-        self.max_time_per_samples: int = 8
-        self.max_channels_per_block = 'auto'
-        self.correlation_type: CorrelationType = CorrelationType.Cross_Correlations
-        self.uv_filter_min: float = float(0)
-        self.uv_filter_max: float = float('inf')
-        self.uv_filter_units: FilterUnits = FilterUnits.WaveLengths
-        self.force_polarised_ms: bool = False
-        self.ignore_w_components: bool = False
+        self.channel_bandwidth_hz: float = channel_bandwidth_hz
+        self.time_average_sec: float = time_average_sec
+        self.max_time_per_samples: int = max_time_per_samples
+        self.correlation_type: CorrelationType = correlation_type
+        self.uv_filter_min: float = uv_filter_min
+        self.uv_filter_max: float = uv_filter_max
+        self.uv_filter_units: FilterUnits = uv_filter_units
+        self.force_polarised_ms: bool = force_polarised_ms
+        self.ignore_w_components: bool = ignore_w_components
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation):
         """
@@ -102,7 +105,9 @@ class InterferometerSimulation:
                 "correlation_type": str(self.correlation_type.value),
                 "uv_filter_min": str(self.__interpret_uv_filter(self.uv_filter_min)),
                 "uv_filter_max": str(self.__interpret_uv_filter(self.uv_filter_max)),
-                "uv_filter_units": str(self.uv_filter_units.value)
+                "uv_filter_units": str(self.uv_filter_units.value),
+                "force_polarised_ms": str(self.force_polarised_ms),
+                "ignore_w_components": str(self.ignore_w_components)
             }
         }
         return settings
@@ -111,7 +116,7 @@ class InterferometerSimulation:
     def __interpret_uv_filter(uv_filter: float) -> str:
         if uv_filter == float('inf'):
             return "max"
-        elif uv_filter == float('-inf'):
+        elif uv_filter <= 0:
             return "min"
         else:
             return str(uv_filter)
