@@ -7,8 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   karabo.Container
-   karabo.pipeline
    karabo.scripts
    karabo.simulation
 
