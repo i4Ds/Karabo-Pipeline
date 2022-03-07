@@ -19,9 +19,10 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate karabo_env
-          python -m unittest discover -s test -p 'test_*.py'
+          conda install -c conda-forge unittest-xml-reporting
+          python -m xmlrunner discover -t ./test -o ./test-reports/junit
       - name: Upload Test Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: Test-Results
-          path: result/
+          path: ./test-reports/junit
