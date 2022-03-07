@@ -1,6 +1,7 @@
 name: Build Docs
 
 on:
+  push:
   release:
   workflow_dispatch:
 
