@@ -14,8 +14,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Install Dependencies
         run: |
-          conda create -n test_env python=3.7
-          conda install --file requirements.txt
+          conda env create -f environment.yaml
       - name: Test Code
+        shell: bash -l {0}
         run: | 
+          conda activate karabo_env
           python -m unittest test
