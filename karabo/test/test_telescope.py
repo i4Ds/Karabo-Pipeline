@@ -1,5 +1,4 @@
 import os
-import shutil
 import unittest
 import karabo.simulation.telescope as telescope
 
@@ -9,9 +8,8 @@ class TestTelescope(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         # make dir for result files
-        if os.path.exists('result/tel'):
-            shutil.rmtree('result/tel')
-        os.makedirs('result/tel')
+        if not os.path.exists('result/tel'):
+            os.makedirs('result/tel')
 
     def test_plot(self):
         tel = telescope.Telescope(0, -50)

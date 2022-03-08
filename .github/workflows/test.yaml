@@ -20,10 +20,14 @@ jobs:
         run: |
           conda activate karabo_env
           conda install -c conda-forge unittest-xml-reporting
-          echo "print"
           python -m xmlrunner -o ./test-reports/junit
       - name: Upload Test Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: Test-Results
-          path: ./test-reports/junit
+          path: result
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: test-reports/**/*.xml
