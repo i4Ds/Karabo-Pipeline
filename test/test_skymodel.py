@@ -26,6 +26,6 @@ class TestSkyModel(unittest.TestCase):
             [20.5, -30.5, 3]])
         sky.add_points_sources(sky_data)
         print(sky.sources)
-        # test if docs shape were expanded
+        # test if doc shape were expanded
         self.assertEqual(sky.sources.shape, (3, 12))
 
