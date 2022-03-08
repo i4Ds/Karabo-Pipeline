@@ -1,4 +1,4 @@
-name: Build and Publish CLI Docker Image
+name: CLI Docker
 
 on:
   release:
