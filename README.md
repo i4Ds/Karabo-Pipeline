@@ -1,3 +1,4 @@
+![example workflow](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yaml/badge.svg)
 # Karabo Pipeline
 
 This pipeline serves as the starting point for the SKA Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment. Two specific radio telescope packages are used:
