@@ -8,7 +8,8 @@ class TestTelescope(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         # make dir for result files
-        os.makedirs('result/tel')
+        if not os.path.exists('result/tel'):
+            os.makedirs('result/tel')
 
     def test_plot(self):
         tel = telescope.Telescope(0, -50)
