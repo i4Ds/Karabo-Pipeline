@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   karabo.scripts
    karabo.simulation
 
 Submodules
