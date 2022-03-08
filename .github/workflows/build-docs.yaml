@@ -35,6 +35,7 @@ jobs:
           git fetch origin
           git switch github_pages
           
+          mkdir docs_old
           mv docs/* docs_old/*
           mv build/* docs/*
           mv docs_old/.nojekyll docs/.nojekyll
