@@ -1,4 +1,4 @@
-name: Build and Publish Jupyter Docker Image
+name: Jupyter Docker
 
 on:
   release:

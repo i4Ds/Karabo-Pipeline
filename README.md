@@ -18,7 +18,7 @@ This pipeline serves as the starting point for the SKA Digital Twin Pipeline, wh
 conda install -c i4ds -c conda-forge karabo-pipeline=0.2.0
 ```
 
-[Installation](docs/Installation.md)
+[Installation](doc/src/Installation.md)
 
 ## Containers
 
@@ -28,4 +28,4 @@ Complete Jupyter Environment in a Docker container
 docker run -p 8888:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/karabo-pipeline:jupyter
 ```
 
-[Containers](docs/Container.md)
+[Containers](doc/src/Container.md)

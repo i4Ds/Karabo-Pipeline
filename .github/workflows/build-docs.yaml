@@ -1,0 +1,40 @@
+name: Build Docs
+
+on:
+  release:
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Create Enviornment
+        run: |
+          conda env create -f doc/environment.yaml
+      - name: Switch branch
+        run: |
+          git fetch origin
+          git switch github_pages
+      - name: Activate Conda
+        shell: bash -l {0}
+        run: |
+          conda activate karabo_doc_env
+          make html
+      - name: Archive doc build
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs_built
+          path: docs/
+      - name: Commit built-doc
+        run: | 
+          git config --global user.name 'PaperBot'
+          git config --global user.email 'actions@github.com'
+          git add docs/.
+          git commit -m "update docs"
+          git push
