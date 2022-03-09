@@ -43,6 +43,6 @@ jobs:
           rm -rf build/
           touch .nojekyll
           
-          git add docs/.
+          git add .
           git commit -m "update docs"
           git push
