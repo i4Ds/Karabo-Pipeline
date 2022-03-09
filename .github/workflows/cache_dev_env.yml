@@ -2,6 +2,10 @@ name: Build Dev Env
 
 on: [ push ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   CacheDevEnvironment:
     runs-on: ubuntu-20.04
