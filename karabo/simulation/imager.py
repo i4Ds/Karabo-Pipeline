@@ -163,30 +163,7 @@ class Imager:
         else:
             return value
     
-def start_imager(rawargs):
-    parser = rascil_imager.cli_parser()
-    args = parser.parse_args(rawargs)
-    performance_environment(args.performance_file, mode="w")
-    performance_store_dict(args.performance_file, "cli_args", vars(args), mode="a")
-    image_name = rascil_imager.imager(args)
-
-start_imager(
-    [
-        '--ingest_msname','visibilities_gleam.ms',
-        '--ingest_dd', '0', 
-        '--ingest_vis_nchan', '16',
-        '--ingest_chan_per_blockvis', '1' ,
-        '--ingest_average_blockvis', 'True',
-        '--imaging_npixel', '2048', 
-        '--imaging_cellsize', '3.878509448876288e-05',
-        '--imaging_weighting', 'robust',
-        '--imaging_robustness', '-0.5',
-        '--clean_nmajor', '2' ,
-        '--clean_algorithm', 'mmclean',
-        '--clean_scales', '0', '6', '10', '30', '60',
-        '--clean_fractional_threshold', '0.3',
-        '--clean_threshold', '0.12e-3',
-        '--clean_nmoment' ,'5',
-        '--clean_psf_support', '640',
-        '--clean_restored_output', 'integrated'
-    ])
+    def imaging_rascil(self):
+        performance_environment(self.performance_file, mode='w')
+        performance_store_dict(self.performance_file, 'imgaging_args', vars(self), mode='a')
+        _ = rascil_imager.imager(self) # _ is image_name
