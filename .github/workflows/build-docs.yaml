@@ -35,10 +35,10 @@ jobs:
           git fetch origin
           git switch pages_source
           
-          mkdir docs_old
-          mv docs/* docs_old/
-          mv build/* docs/
-          rm -rf docs_old
+          rm *
+          
+          mv build/html/* .
+          touch .nojekyll
           
           git add docs/.
           git commit -m "update docs"
