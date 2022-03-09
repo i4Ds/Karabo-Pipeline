@@ -1,6 +1,8 @@
 name: Build Dev Env
 
-on: [ push ]
+on:
+  schedule:
+    - cron: '0 3 * * *'
 
 env:
   REGISTRY: ghcr.io
