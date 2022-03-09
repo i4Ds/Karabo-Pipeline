@@ -35,9 +35,12 @@ jobs:
           git fetch origin
           git switch pages_source
           
-          rm *
+          echo "remove old files"
+          find . -maxdepth 1 -type f -delete
           
+          echo "add new files"
           mv build/html/* .
+          rm -rf build/
           touch .nojekyll
           
           git add docs/.
