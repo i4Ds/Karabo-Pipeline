@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual Installation (no Conda) &mdash; Karabo-Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Karabo-Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">karabo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#running-an-interferometer-simulation">Running an interferometer simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#show-telescope-config">Show telescope config</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Manual Installation (no Conda)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Installation_no_conda.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="manual-installation-no-conda">
+<h1>Manual Installation (no Conda)<a class="headerlink" href="#manual-installation-no-conda" title="Permalink to this headline"></a></h1>
+<p>To Install the package on your local system, follow the steps below.
+The installation has been tested on Ubuntu 20.04 (x86_x64) and MacOS (Intel).</p>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline"></a></h2>
+<p>Your system should have the following packages dependencies installed</p>
+<ul class="simple">
+<li><p>C and C++ compiler</p></li>
+<li><p>git</p></li>
+<li><p>git-lfs</p></li>
+<li><p>cmake</p></li>
+<li><p>python3 and pip3 (via anaconda or other python installation)</p></li>
+<li><p>boost-python</p></li>
+<li><p>casacore</p></li>
+<li><p>gfortran</p></li>
+</ul>
+<p>The Pipeline uses the <a class="reference external" href="https://github.com/OxfordSKA/OSKAR">OSKAR</a> and <a class="reference external" href="https://ska-telescope.gitlab.io/external/rascil/index.html">RASCIL</a> packages.
+The Installation procedure of the packages is not straight forward, therefore an installation scripts exist. See below.</p>
+</section>
+<section id="instructions-linux-ubuntu">
+<h2>Instructions Linux (Ubuntu)<a class="headerlink" href="#instructions-linux-ubuntu" title="Permalink to this headline"></a></h2>
+<ol class="arabic simple">
+<li><p>Install package dependencies</p></li>
+</ol>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>apt update
+apt install build-essential git git-lfs cmake libboost-all-dev casacore-dev libboost-python-dev casacore-dev gfortran
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Install <a class="reference external" href="https://docs.anaconda.com/anaconda/install/index.html">Anaconda or Miniconda</a></p></li>
+</ol>
+<p>(Optional) 3. Create dedicated environment (environments can be python 3.7 up to python 3.9)</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda create -n pipeline_env <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.8
+conda activate pipeline_env
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Install OSKAR and RASCIL</p></li>
+</ol>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1">#do not run in sudo, this will install the pip packages as root (unless you want that)</span>
+<span class="c1">#you can set the oskar installation to something in your userspace if you do not have sudo rights.</span>
+./install.sh  <span class="c1">#oskar_install_dir=&lt;path&gt; #cuda_on=OFF|ON</span>
+</pre></div>
+</div>
+<p>(Optional if 3.) 5. Activate Environment as Kernel in Jupyter Lab</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda install -c anaconda ipykernel
+python -m ipykernel install --user --name<span class="o">=</span>pipeline_env
+</pre></div>
+</div>
+</section>
+<section id="instructions-macos-intel">
+<h2>Instructions MacOS (Intel)<a class="headerlink" href="#instructions-macos-intel" title="Permalink to this headline"></a></h2>
+<p>On MacOS the installation of the dependencies can be installed most easily with <a class="reference external" href="https://brew.sh/">Homebrew</a>.
+The C and C++ compilers and git are installed via the XCode Command Line Tools.</p>
+<ol class="arabic simple">
+<li><p>Install package dependencies</p></li>
+</ol>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>brew tap ska-ska/tap <span class="c1">#tap into repository where casacore is</span>
+brew update
+brew install cmake git-lfs casacore boost
+</pre></div>
+</div>
+<p>Then either run the install.sh script and follow as on linux or proceed below.</p>
+<ol class="arabic simple" start="2">
+<li><p>Install OSKAR</p></li>
+</ol>
+<p>There are prebuilt OSKAR <a class="reference external" href="https://github.com/OxfordSKA/OSKAR/releases/download/2.7.6/OSKAR-2.7.6-Darwin.dmg">binaries</a> for mas os. It is the easiest to install OSKAR with those.
+Then install the python interface.:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip install <span class="s1">&#39;git+https://github.com/OxfordSKA/OSKAR.git@master#egg=oskarpy&amp;subdirectory=python&#39;</span>
+</pre></div>
+</div>
+<p><a class="reference external" href="https://github.com/OxfordSKA/OSKAR/blob/master/python/README.md">Reference</a></p>
+<ol class="arabic simple" start="3">
+<li><p>Install Rascil</p></li>
+</ol>
+<p>Follow the Mac OS specific <a class="reference external" href="https://ska-telescope.gitlab.io/external/rascil/installation/RASCIL_macos_install.html">instructions</a>.</p>
+</section>
+<section id="some-remarks">
+<h2>Some Remarks<a class="headerlink" href="#some-remarks" title="Permalink to this headline"></a></h2>
+<p>Running under the new Apple Silicon is possible, however requires modification of the OSKAR Source Code or running the x86 binaries emulated.
+If somebody wants to do that, please contact.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, i4ds.
+      <span class="lastupdated">Last updated on Mar 09, 2022.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

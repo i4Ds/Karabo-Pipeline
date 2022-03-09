@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to Karabo-Pipeline’s documentation! &mdash; Karabo-Pipeline 0.1.0 documentation</title>
+  <title>Installation &mdash; Karabo-Pipeline 0.1.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -18,7 +18,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Installation" href="Installation.html" /> 
+    <link rel="next" title="Containers" href="Container.html" />
+    <link rel="prev" title="Welcome to Karabo-Pipeline’s documentation!" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -26,7 +27,7 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="#" class="icon icon-home"> Karabo-Pipeline
+            <a href="index.html" class="icon icon-home"> Karabo-Pipeline
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -37,8 +38,14 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#conda">Conda</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#known-issues">Known Issues</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="Container.html">Containers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">karabo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/Examples.html">Examples</a></li>
@@ -52,17 +59,17 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="#">Karabo-Pipeline</a>
+          <a href="index.html">Karabo-Pipeline</a>
       </nav>
 
       <div class="wy-nav-content">
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-      <li>Welcome to Karabo-Pipeline’s documentation!</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Installation</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/Installation.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -70,45 +77,36 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="welcome-to-karabo-pipeline-s-documentation">
-<h1>Welcome to Karabo-Pipeline’s documentation!<a class="headerlink" href="#welcome-to-karabo-pipeline-s-documentation" title="Permalink to this headline"></a></h1>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Installation.html#conda">Conda</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="Container.html">Containers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Container.html#images">Images</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Container.html#singularity-images">Singularity Images</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Container.html#docker-images">Docker Images</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">karabo</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="karabo.html">karabo package</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html">Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#running-an-interferometer-simulation">Running an interferometer simulation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#show-telescope-config">Show telescope config</a></li>
-</ul>
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h1>
+<section id="conda">
+<h2>Conda<a class="headerlink" href="#conda" title="Permalink to this headline"></a></h2>
+<p>We support the installation via the conda package manager.
+Currently, python 3.7 is fully supported.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda install -c i4ds -c conda-forge karabo-pipeline<span class="o">=</span><span class="m">0</span>.2.0
+</pre></div>
 </div>
+<p>Full command sequence for installation may look like this.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda create -n karabo-env <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.7
+conda activate karabo-env
+<span class="c1"># karabo-pipeline</span>
+conda install -c i4ds -c conda-forge karabo-pipeline
+</pre></div>
+</div>
+<section id="known-issues">
+<h3>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this headline"></a></h3>
+<p>Sometimes the installation of rascil fails due to the installation of pybdsf. If you have trouble with installing the pybdsf dependency, we recommend to check out their issue page for solutions.: https://github.com/lofar-astron/PyBDSF/issues</p>
+<p><a class="reference internal" href="Installation_no_conda.html"><span class="doc std std-doc">Other installation methods</span></a></p>
 </section>
-<section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline"></a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Karabo-Pipeline’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Container.html" class="btn btn-neutral float-right" title="Containers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

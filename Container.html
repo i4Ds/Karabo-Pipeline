@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Containers &mdash; Karabo-Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="karabo" href="modules.html" />
+    <link rel="prev" title="Installation" href="Installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Karabo-Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Containers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#images">Images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#singularity-images">Singularity Images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#docker-images">Docker Images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#jupyter-image">Jupyter Image</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compose">Compose</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cli-command-line-interface-image">CLI (Command Line Interface) Image</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">karabo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#running-an-interferometer-simulation">Running an interferometer simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#show-telescope-config">Show telescope config</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Containers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Container.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="containers">
+<h1>Containers<a class="headerlink" href="#containers" title="Permalink to this headline"></a></h1>
+<section id="images">
+<h2>Images<a class="headerlink" href="#images" title="Permalink to this headline"></a></h2>
+<p>There are two docker images available for using the karabo-pipeline without any installation inside a safe environment</p>
+<ul class="simple">
+<li><p>karabo-jupyter: Starting this image provides a full jupyter lab environment with the pipeline pre-installed. Useful for playing around with the pipeline with no commitment and hassle on your own machine.</p></li>
+<li><p>karabo-cli: Use only the CLI portion of the pipeline with this image. Useful for running on HPC Machines, where you can only use SSH to control it.</p></li>
+</ul>
+</section>
+<section id="singularity-images">
+<h2>Singularity Images<a class="headerlink" href="#singularity-images" title="Permalink to this headline"></a></h2>
+<p>! Coming Soon</p>
+</section>
+<section id="docker-images">
+<h2>Docker Images<a class="headerlink" href="#docker-images" title="Permalink to this headline"></a></h2>
+<section id="jupyter-image">
+<h3>Jupyter Image<a class="headerlink" href="#jupyter-image" title="Permalink to this headline"></a></h3>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker pull ghcr.io/i4ds/karabo-pipeline:jupyter
+</pre></div>
+</div>
+<p>Run the image, with the <code class="docutils literal notranslate"><span class="pre">-p</span> <span class="pre">8888:8888</span></code> to expose Jupyter lab to your computer, so you can use it in your browser. And add <code class="docutils literal notranslate"><span class="pre">-v</span></code> to mount a volume so the code you create inside the container is saved on your host.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker run -p <span class="m">8888</span>:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/karabo-pipeline:jupyter
+</pre></div>
+</div>
+<section id="compose">
+<h4>Compose<a class="headerlink" href="#compose" title="Permalink to this headline"></a></h4>
+<p>If you are familiar with docker-compose, you can also start run it with this compose file. Save this into a file called <code class="docutils literal notranslate"><span class="pre">compose.yaml</span></code> and start the Jupyter Lab Server with <code class="docutils literal notranslate"><span class="pre">docker-compose</span> <span class="pre">-f</span> <span class="pre">compose.yaml</span> <span class="pre">up</span></code></p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;3&#39;</span><span class="w"></span>
+<span class="nt">services</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">jupyter-lab-docker</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/i4ds/karabo-jupyter:main</span><span class="w"></span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">src:/home/jovyan/work/persistent</span><span class="w"></span>
+<span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;8888:8888&quot;</span><span class="w"> </span><span class="c1">#jupyter lab port</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;8787:8787&quot;</span><span class="w"> </span><span class="c1">#dask port</span><span class="w"></span>
+<span class="nt">volumes</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">pipeline</span><span class="p">:</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="cli-command-line-interface-image">
+<h3>CLI (Command Line Interface) Image<a class="headerlink" href="#cli-command-line-interface-image" title="Permalink to this headline"></a></h3>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker pull ghcr.io/i4ds/karabo-pipeline:cli
+</pre></div>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker run -it ghcr.io/i4ds/karabo-pipeline:cli
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="karabo" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, i4ds.
+      <span class="lastupdated">Last updated on Mar 09, 2022.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
