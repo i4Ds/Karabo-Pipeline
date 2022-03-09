@@ -11,6 +11,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Test Code
         run: |
+          conda activate karabo_env_test
           python -m xmlrunner -o ./test-reports/junit
       - name: Upload Test Artifacts
         uses: actions/upload-artifact@v3
