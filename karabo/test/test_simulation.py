@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import numpy as np
@@ -10,6 +11,12 @@ from karabo.simulation.interferometer import InterferometerSimulation
 
 class TestSimulation(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        # make dir for result files
+        if not os.path.exists('result/sim'):
+            os.makedirs('result/sim')
+
     def test_basic(self):
         sky = SkyModel()
         sky_data = np.array([
@@ -21,7 +28,7 @@ class TestSimulation(unittest.TestCase):
         telescope = get_OSKAR_Example_Telescope()
         telescope.centre_longitude = 3
 
-        simulation = InterferometerSimulation("./test_result.ms")
+        simulation = InterferometerSimulation("./result/sim/test_result.ms")
         observation = Observation(1e6)
 
         simulation.run_simulation(telescope, sky, observation)

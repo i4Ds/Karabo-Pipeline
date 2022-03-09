@@ -72,7 +72,7 @@ class Telescope:
                 EastNorthCoordinate(horizontal_x, horizontal_y, horizontal_z, horizontal_x_coordinate_error,
                                     horizontal_y_coordinate_error, horizontal_z_coordinate_error))
 
-    def plot_telescope(self) -> None:
+    def plot_telescope(self, file: str = None) -> None:
         """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
@@ -103,7 +103,11 @@ class Telescope:
         ax.scatter(x, y, label="Centre")
         ax.ticklabel_format(useOffset=False)
         ax.legend(loc='upper left', shadow=False, fontsize='medium')
-        plt.show()
+
+        if file is not None:
+            plt.savefig(file)
+        else:
+            plt.show()
 
     def get_OSKAR_telescope(self) -> os_telescope:
         """

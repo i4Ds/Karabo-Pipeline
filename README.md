@@ -1,3 +1,9 @@
+![Test Software](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yaml/badge.svg)
+![Build Docs](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yaml/badge.svg)
+![Build Conda](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml/badge.svg)
+![Build Docker CLI](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-cli-docker-image.yml/badge.svg)
+![Build Docker Jupyter](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-jupyter-docker-image.yml/badge.svg)
+
 # Karabo Pipeline
 
 This pipeline serves as the starting point for the SKA Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment. Two specific radio telescope packages are used:
@@ -9,10 +15,10 @@ This pipeline serves as the starting point for the SKA Digital Twin Pipeline, wh
 ## Local Installation
 #### Conda
 ```shell
-conda install -c i4ds -c conda-forge karabo-pipeline
+conda install -c i4ds -c conda-forge karabo-pipeline=0.2.0
 ```
 
-[Installation](docs/Installation.md)
+[Installation](doc/src/Installation.md)
 
 ## Containers
 
@@ -22,4 +28,4 @@ Complete Jupyter Environment in a Docker container
 docker run -p 8888:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/karabo-pipeline:jupyter
 ```
 
-[Containers](docs/Container.md)
+[Containers](doc/src/Container.md)
