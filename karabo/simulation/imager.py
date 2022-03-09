@@ -1,9 +1,13 @@
+from astropy.io import fits
+from astropy import wcs
+import numpy as np
+from karabo.simulation.sky_model import SkyModel
 from rascil.apps import rascil_imager
 from rascil.processing_components.util.performance import (
     performance_store_dict,
     performance_environment,
 )
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 
 class Imager:
     """
@@ -164,6 +168,27 @@ class Imager:
             return value
     
     def imaging_rascil(self):
+        """
+        Starts imagimg process using RASCIL
+        """
         performance_environment(self.performance_file, mode='w')
         performance_store_dict(self.performance_file, 'imgaging_args', vars(self), mode='a')
         _ = rascil_imager.imager(self) # _ is image_name
+
+    @staticmethod
+    def get_pixel_coord(fits_path: str, sky: SkyModel) -> Tuple[np.ndarray,np.ndarray]:
+        """
+        Calculates the pixel coordinates of the produced .fits file
+        
+        :param fits_path: path to the .fits image
+        :param sky: SkyModel which was used to produce the .fits image
+
+        :return: pixel-coordinates x-axis, pixel-coordinates y-axis
+        """
+        hdulist = fits.open(fits_path)
+        wcs_fits = wcs.WCS(hdulist[0].header)
+        wcs = sky.wcs.copy()
+        wcs.wcs.crpix = wcs_fits.wcs.crpix[0:2]
+        wcs.wcs.cdelt = wcs_fits.wcs.cdelt[0:2]
+        px, py = wcs.wcs_world2pix(sky[:,0], sky[:,1], 1)
+        return px, py
