@@ -33,13 +33,11 @@ jobs:
           git config --global user.name 'PaperBot'
           git config --global user.email 'actions@github.com'
           git fetch origin
-          git switch github_pages
+          git switch pages_source
           
           mkdir docs_old
           mv docs/* docs_old/
           mv build/* docs/
-          mv docs_old/.nojekyll docs/.nojekyll
-          mv docs_old/index.html docs/index.html
           rm -rf docs_old
           
           git add docs/.
