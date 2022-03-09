@@ -37,7 +37,7 @@ jobs:
           
           mkdir docs_old
           mv docs/* docs_old/
-          mv build/* docs/*
+          mv build/* docs/
           mv docs_old/.nojekyll docs/.nojekyll
           mv docs_old/index.html docs/index.html
           rm -rf docs_old
