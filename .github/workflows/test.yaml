@@ -5,16 +5,10 @@ on: [ push ]
 jobs:
   Test_Karabo:
     runs-on: ubuntu-20.04
+    container: ghcr.io/i4ds/karabo-pipeline:development
     steps:
-      - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
       - name: Checkout Code
         uses: actions/checkout@v2
-      - name: Install Dependencies
-        run: |
-          conda env create -f environment-test.yaml
       - name: Test Code
         shell: bash -l {0}
         run: |

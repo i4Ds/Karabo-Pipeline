@@ -1,4 +1,4 @@
-name: karabo_env
+name: karabo_dev_env
 channels:
   - i4ds
   - conda-forge
