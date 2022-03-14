@@ -13,8 +13,8 @@ class CorrelationType(enum.Enum):
     Enum for selecting between the different Correlation Types for the Simulator.
     """
 
-    Cross_Correlations = "Cross-Correlations"
-    Auto_Correlations = "Auto-Correlations"
+    Cross_Correlations = "Cross-correlations"
+    Auto_Correlations = "Auto-correlations"
     Both = "Both"
 
 
@@ -35,7 +35,8 @@ class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
 
-    :ivar output_path: Path where the resulting measurement set will be stored.
+    :ivar ms_path: Path where the resulting measurement set will be stored.
+    :ivar vis_path: Path of the visibility output file containing results of the simulation.
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth smearing.
                                 (Note that this can be different to the frequency increment if channels do not cover a contiguous frequency range.)
     :ivar time_average_sec: The correlator time-average duration, in seconds, used to simulate time averaging smearing.
@@ -53,7 +54,8 @@ class InterferometerSimulation:
                                W-smearing. Use only if you know what you’re doing!
     """
 
-    def __init__(self, output_path: str = ".",
+    def __init__(self, ms_path: str = "./result.ms",
+                 vis_path: str = None,
                  channel_bandwidth_hz: float = 0,
                  time_average_sec: float = 0,
                  max_time_per_samples: int = 8,
@@ -61,10 +63,11 @@ class InterferometerSimulation:
                  uv_filter_min: float = .0,
                  uv_filter_max: float = float('inf'),
                  uv_filter_units: FilterUnits = FilterUnits.WaveLengths,
-                 force_polarised_ms: bool = None,
-                 ignore_w_components: bool = None):
+                 force_polarised_ms: bool = False,
+                 ignore_w_components: bool = False):
 
-        self.output_path = output_path
+        self.ms_path: str = ms_path
+        self.vis_path: str = vis_path
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
         self.time_average_sec: float = time_average_sec
         self.max_time_per_samples: int = max_time_per_samples
@@ -87,18 +90,25 @@ class InterferometerSimulation:
         observation_settings = observation.get_OSKAR_settings_tree()
         interferometer_settings = self.__get_OSKAR_settings_tree()
         settings = {**interferometer_settings, **observation_settings}
+        
+        # manually addition of telescope because setup with telescope module doesn't work atm
+        settings['telescope'] = {}
+        settings['telescope']['input_directory'] = '../data/telescope.tm'
+
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)
-        simulation = oskar.Interferometer(None, setting_tree)
-        simulation.set_telescope_model(telescope.get_OSKAR_telescope())
+        simulation = oskar.Interferometer(settings=setting_tree)
+
+        # set telescope using set_telescope_model doesn't work as intended, even the telescope directory setup is done correctly
+        #simulation.set_telescope_model(telescope.get_OSKAR_telescope())
+
         simulation.set_sky_model(os_sky)
-        simulation.set_output_measurement_set(self.output_path)
-        simulation.set_output_vis_file("./result.vis")
         simulation.run()
 
     def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
+                "ms_filename": self.ms_path,
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
                 "time_average_sec": str(self.time_average_sec),
                 "max_time_samples_per_block": str(self.max_time_per_samples),
@@ -110,6 +120,8 @@ class InterferometerSimulation:
                 "ignore_w_components": str(self.ignore_w_components)
             }
         }
+        if self.vis_path:
+            settings["interferometer"]["oskar_vis_filename"] = self.vis_path
         return settings
 
     @staticmethod
