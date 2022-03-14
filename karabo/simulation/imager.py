@@ -176,7 +176,7 @@ class Imager:
         _ = rascil_imager.imager(self) # _ is image_name
 
     @staticmethod
-    def get_pixel_coord(fits_path: str, sky: SkyModel) -> Tuple[np.ndarray,np.ndarray]:
+    def get_pixel_coord(imaging_cellsize: float, imaging_npixel: int, sky: SkyModel) -> Tuple[np.ndarray,np.ndarray]:
         """
         Calculates the pixel coordinates of the produced .fits file
         
@@ -185,10 +185,11 @@ class Imager:
 
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis
         """
-        hdulist = fits.open(fits_path)
-        wcs_fits = wcs.WCS(hdulist[0].header)
+        radian_degree = lambda rad: rad * (180/np.pi)
+        cdelt = radian_degree(imaging_cellsize)
+        crpix = np.floor((imaging_npixel/2))+1
         wcs = sky.wcs.copy()
-        wcs.wcs.crpix = wcs_fits.wcs.crpix[0:2]
-        wcs.wcs.cdelt = wcs_fits.wcs.cdelt[0:2]
+        wcs.wcs.crpix = np.array([crpix,crpix])
+        wcs.wcs.cdelt = np.array([-cdelt,cdelt])
         px, py = wcs.wcs_world2pix(sky[:,0], sky[:,1], 1)
         return px, py
