@@ -38,7 +38,8 @@ class SkyModel:
         """
         Initialization of a new SkyModel
 
-        :param sources: Adds sources using self.add_point_sources if set
+        :param sources: Adds point sources
+        :param wcs: world coordinate system
         """
         self.num_sources: int = 0
         self.shape: tuple = (0,0)
@@ -237,11 +238,13 @@ class SkyModel:
         px, py = self.wcs.wcs_world2pix(self[:,0], self[:,1], 1) # ra-dec transformation
 
         flux, vmin, vmax = None, None, None
-        if cmap is not None:
+        if cmap is not None and cfun is not None:
             flux = self[:,2]
-            if cfun is not None:
-                flux = cfun(flux)
+            flux = cfun(flux)
             vmin, vmax = np.min(flux), np.max(flux)
+        else: # set both to None if one of them is None
+            cfun = None
+            cmap = None
         
         fig, ax = plt.subplots(figsize=figsize)
         sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, vmin=vmin, vmax=vmax)
