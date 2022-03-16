@@ -12,6 +12,7 @@ from typing import List, Union, Dict, Tuple
 class Imager:
     """
     The Imager class provides imaging functionality using the visibilities of an observation.
+    In addition, it provides the calculation of the pixel coordinates of point sources.
     """
     def __init__(self, mode: str = 'cip', # Processing  cip | ical | invert | load
                  logfile: str = None, # Name of logfile (default is to construct one from msname)
@@ -176,15 +177,16 @@ class Imager:
         _ = rascil_imager.imager(self) # _ is image_name
 
     @staticmethod
-    def get_pixel_coord(imaging_cellsize: float, imaging_npixel: int, sky: SkyModel) -> Tuple[np.ndarray,np.ndarray]:
+    def get_pixel_coord(imaging_cellsize: float, imaging_npixel: int, sky: SkyModel, filter_outlier: bool = True) -> Tuple[np.ndarray,np.ndarray,np.ndarray]:
         """
         Calculates the pixel coordinates of the produced .fits file
         
         :param imaging_cellsize: Image cellsize in radian (pixel coverage)
         :param imaging_npixel: Number of pixels of the image
         :param sky: SkyModel with the sources at catalog
+        :param filter_outlier: Exclude source
 
-        :return: pixel-coordinates x-axis, pixel-coordinates y-axis
+        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
         radian_degree = lambda rad: rad * (180/np.pi)
         cdelt = radian_degree(imaging_cellsize)
@@ -193,4 +195,12 @@ class Imager:
         wcs.wcs.crpix = np.array([crpix,crpix])
         wcs.wcs.cdelt = np.array([-cdelt,cdelt])
         px, py = wcs.wcs_world2pix(sky[:,0], sky[:,1], 1)
-        return px, py
+        
+        if filter_outlier: # pre filtering before calling wcs.wcs_world2pix would be more efficient, however this has to be done in the ra-dec space. maybe for future work
+            px_idxs = np.where(np.logical_and(px <= imaging_npixel, px >= 0))[0]
+            py_idxs = np.where(np.logical_and(py <= imaging_npixel, py >= 0))[0]
+            idxs = np.intersect1d(px_idxs, py_idxs)
+            px, py = px[idxs], py[idxs]
+        else:
+            idxs = np.arange(sky.num_sources)
+        return px, py, idxs
