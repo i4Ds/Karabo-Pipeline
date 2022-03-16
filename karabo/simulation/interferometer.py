@@ -92,8 +92,7 @@ class InterferometerSimulation:
         settings = {**interferometer_settings, **observation_settings}
         
         # manually addition of telescope because setup with telescope module doesn't work atm
-        settings['telescope'] = {}
-        settings['telescope']['input_directory'] = '../data/telescope.tm'
+        settings["telescope"] = {"input_directory":"../data/telescope.tm"}
 
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)

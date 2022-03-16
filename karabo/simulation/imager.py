@@ -180,8 +180,9 @@ class Imager:
         """
         Calculates the pixel coordinates of the produced .fits file
         
-        :param fits_path: path to the .fits image
-        :param sky: SkyModel which was used to produce the .fits image
+        :param imaging_cellsize: Image cellsize in radian (pixel coverage)
+        :param imaging_npixel: Number of pixels of the image
+        :param sky: SkyModel with the sources at catalog
 
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis
         """
