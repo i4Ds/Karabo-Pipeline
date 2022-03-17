@@ -15,6 +15,8 @@ This pipeline serves as the starting point for the SKA Digital Twin Pipeline, wh
 ## Local Installation
 #### Conda
 ```shell
+conda create -n karabo python=3.8
+conda activate karabo
 conda install -c i4ds -c conda-forge karabo-pipeline=0.2.0
 ```
 
