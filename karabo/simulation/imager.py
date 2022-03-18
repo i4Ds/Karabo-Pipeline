@@ -176,8 +176,7 @@ class Imager:
         performance_store_dict(self.performance_file, 'imgaging_args', vars(self), mode='a')
         _ = rascil_imager.imager(self) # _ is image_name
 
-    @staticmethod
-    def get_pixel_coord(imaging_cellsize: float, imaging_npixel: int, sky: SkyModel, filter_outlier: bool = True) -> Tuple[np.ndarray,np.ndarray,np.ndarray]:
+    def get_pixel_coord(self, sky: SkyModel, filter_outlier: bool = True) -> Tuple[np.ndarray,np.ndarray,np.ndarray]:
         """
         Calculates the pixel coordinates of the produced .fits file
         
@@ -189,16 +188,16 @@ class Imager:
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
         radian_degree = lambda rad: rad * (180/np.pi)
-        cdelt = radian_degree(imaging_cellsize)
-        crpix = np.floor((imaging_npixel/2))+1
+        cdelt = radian_degree(self.imaging_cellsize)
+        crpix = np.floor((self.imaging_npixel/2))+1
         wcs = sky.wcs.copy()
         wcs.wcs.crpix = np.array([crpix,crpix])
         wcs.wcs.cdelt = np.array([-cdelt,cdelt])
         px, py = wcs.wcs_world2pix(sky[:,0], sky[:,1], 1)
         
         if filter_outlier: # pre filtering before calling wcs.wcs_world2pix would be more efficient, however this has to be done in the ra-dec space. maybe for future work
-            px_idxs = np.where(np.logical_and(px <= imaging_npixel, px >= 0))[0]
-            py_idxs = np.where(np.logical_and(py <= imaging_npixel, py >= 0))[0]
+            px_idxs = np.where(np.logical_and(px <= self.imaging_npixel, px >= 0))[0]
+            py_idxs = np.where(np.logical_and(py <= self.imaging_npixel, py >= 0))[0]
             idxs = np.intersect1d(px_idxs, py_idxs)
             px, py = px[idxs], py[idxs]
         else:
