@@ -27,6 +27,17 @@ Run the image, with the ``-p 8888:8888`` to expose Jupyter lab to your computer,
 docker run -p 8888:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/karabo-pipeline:jupyter
 ```
 
+Inside the Image:
+
+Choose the Karabo Kernel to run your Karabo pipeline.
+Also use the function `setup_jupyter_env()` at the start of your .ipynb file. It sets a crucial environment variable for our imaging. This is only needed when running karabo in a jupyter environment. When running the pipeline from the Command line this variable is already set.
+
+```python
+# run this at the top of your .ipynb
+from karabo.util.jupyter import setup_jupyter_env
+setup_jupyter_env()
+```
+
 #### Compose
 
 If you are familiar with docker-compose, you can also start run it with this compose file. Save this into a file called ``compose.yaml`` and start the Jupyter Lab Server with ``docker-compose -f compose.yaml up``

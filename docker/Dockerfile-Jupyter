@@ -8,7 +8,7 @@ RUN apt-get update && \
     git \
     gfortran  \
     build-essential  \
-    wget && \
+    curl && \
     apt-get autoclean && \
     rm -rf /var/lib/apt/lists/* /var/log/dpkg.log
 
@@ -19,18 +19,9 @@ RUN conda update conda && \
     conda clean --all --yes
 RUN pip install dask-labextension
 
-RUN conda create -n karabo python=3.7
+RUN conda create -n karabo python=3.8
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN conda install -c i4ds -c conda-forge karabo-pipeline=0.2.0
-RUN conda install -c conda-forge python-casacore=3.4.0
-
-RUN pip install --index-url=https://artefact.skao.int/repository/pypi-all/simple rascil
-RUN mkdir rascil_data && \
-    cd rascil_data && \
-    wget https://ska-telescope.gitlab.io/external/rascil/rascil_data.tgz -O rascil_data.tgz && \
-    tar zxf rascil_data.tgz && \
-    rm rascil_data.tgz && \
-    cp -r ./data/ /opt/conda/envs/karabo/lib/python3.7/site-packages/rascil/data_models/../../data/
 
 RUN conda install ipykernel
 RUN ipython kernel install --user --name=karabo
