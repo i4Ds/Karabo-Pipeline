@@ -45,14 +45,19 @@ class SkyModel:
         self.shape: tuple = (0,0)
         self.sources: np.ndarray = None
         self.wcs: awcs = wcs
+        self.sources_m = 13
         if sources is not None:
             self.add_point_sources(sources)
+
+    def __get_empty_sources(self, n_sources):
+        empty_sources = np.hstack((np.zeros((n_sources, self.sources_m-1)), np.array([[None]*n_sources]).reshape(-1,1)))
+        return empty_sources
 
     def add_point_sources(self, sources: np.ndarray):
         """
         Add new point sources to the sky model.
 
-        :param sources: Array-like with shape (number of sources, 12). Each row representing one source.
+        :param sources: Array-like with shape (number of sources, 13). Each row representing one source.
                         The indices in the second dimension of the array correspond to:
 
                         - [0] right ascension (deg)-
@@ -72,11 +77,11 @@ class SkyModel:
         """
         if len(sources.shape) > 2:
             return
-        if 2 < sources.shape[1] < 14:
-            if sources.shape[1] < 13:
+        if 2 < sources.shape[1] < self.sources_m+1:
+            if sources.shape[1] < self.sources_m:
                 # if some elements are missing fill them up with zeros except `source_id`
-                missing_shape = 13 - sources.shape[1]
-                fill = np.hstack((np.zeros((sources.shape[0], 12)), np.array([[None]*sources.shape[0]]).reshape(-1,1)))
+                missing_shape = self.sources_m - sources.shape[1]
+                fill = self.__get_empty_sources(sources.shape[0])
                 fill[:, :-missing_shape] = sources
                 sources = fill
             if self.sources is not None:
@@ -300,4 +305,6 @@ class SkyModel:
         :param key: slice key
         :param value: values to store
         """
+        if self.sources is None:
+            self.sources = self.__get_empty_sources(len(value))
         self.sources[key] = value
