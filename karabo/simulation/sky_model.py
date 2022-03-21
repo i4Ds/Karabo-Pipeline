@@ -182,6 +182,8 @@ class SkyModel:
         """
         Gets the currently active world coordinate system astropy.wcs
         For details see https://docs.astropy.org/en/stable/wcs/index.html
+
+        :return: world coordinate system
         """
         return self.wcs
 
@@ -189,20 +191,29 @@ class SkyModel:
         """
         Sets a new world coordinate system astropy.wcs
         For details see https://docs.astropy.org/en/stable/wcs/index.html
+
+        :param wcs: world coordinate system
         """
         self.wcs = wcs
 
-    def __setup_default_wcs(self, phase_center: list = [0,0]):
+    def setup_default_wcs(self, phase_center: list = [0,0], set_as_instance: bool = False) -> awcs:
         """
         Defines a default world coordinate system astropy.wcs
         For more details see https://docs.astropy.org/en/stable/wcs/index.html
+
+        :param phase_center: ra-dec location
+        :param set_as_instance: Do you want to bound the wcs to SkyModel instance?
+
+        :return: wcs
         """
         w = awcs.wcs.WCS(naxis=2)
         w.wcs.crpix = [0, 0] # coordinate reference pixel per axis
         w.wcs.cdelt = [-1, 1] # coordinate increments on sphere per axis
         w.wcs.crval = phase_center
         w.wcs.ctype = ["RA---AIR", "DEC--AIR"] # coordinate axis type
-        self.wcs = w
+        if set_as_instance:
+            self.wcs = w
+        return w
 
     @staticmethod
     def get_fits_catalog(path: str) -> Table:
@@ -216,9 +227,9 @@ class SkyModel:
         return Table.read(path)
 
     def explore_sky(self, phase_center: np.ndarray = np.array([0,0]), xlim: tuple = (-1,1), ylim: tuple = (-1,1), 
-                 figsize: tuple = (6,6), title: str = '', xlabel: str = '', ylabel: str = '', wcs: awcs = None, 
+                 figsize: tuple = (6,6), title: str = '', xlabel: str = '', ylabel: str = '', 
                  s: float = 20, cfun: Callable = np.log10, cmap: str = 'plasma', cbar_label: str = '',
-                 with_labels: bool = False):
+                 with_labels: bool = False, wcs: awcs = None):
         """
         A scatter plot of y vs. x of the point sources of the SkyModel
 
@@ -229,18 +240,16 @@ class SkyModel:
         :param title:
         :param xlabel:
         :param ylabel:
-        :param wcs:
-        :param s:
-        :param cfun:
-        :param cmap:
-        :param cbar_label:
-        :param with_labels:
+        :param s: size of scatter points
+        :param cfun: color function
+        :param cmap: color map
+        :param cbar_label: color bar label
+        :param with_labels: Plots object ID's if set
+        :param wcs: If you want to use a custom astropy.wcs, ignores phase_center if set
         """
         if wcs is None:
-            if self.wcs is None:
-                self.__setup_default_wcs(phase_center)
-            wcs = self.wcs
-        px, py = self.wcs.wcs_world2pix(self[:,0], self[:,1], 1) # ra-dec transformation
+            wcs = self.setup_default_wcs(phase_center)
+        px, py = wcs.wcs_world2pix(self[:,0], self[:,1], 1) # ra-dec transformation
 
         flux, vmin, vmax = None, None, None
         if cmap is not None and cfun is not None:
