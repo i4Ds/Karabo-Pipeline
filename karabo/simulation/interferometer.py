@@ -1,8 +1,9 @@
-import enum
+import enum, os
 from typing import Dict, Union, Any
 
 import oskar
 
+import karabo.error
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
@@ -90,10 +91,11 @@ class InterferometerSimulation:
         observation_settings = observation.get_OSKAR_settings_tree()
         interferometer_settings = self.__get_OSKAR_settings_tree()
         settings = {**interferometer_settings, **observation_settings}
+        settings["telescope"] = {"input_directory":telescope.config_path} # hotfix #59
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)
         simulation = oskar.Interferometer(settings=setting_tree)
-        simulation.set_telescope_model(telescope.get_OSKAR_telescope())
+        #simulation.set_telescope_model(telescope.get_OSKAR_telescope()) # outcommented by hotfix #59
         simulation.set_sky_model(os_sky)
         simulation.run()
 

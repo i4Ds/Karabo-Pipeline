@@ -17,7 +17,7 @@ class Telescope:
         """
         WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
-
+        self.config_path = None # hotfix #59
         self.centre_longitude: float = longitude
         self.centre_latitude: float = latitude
         self.centre_altitude: float = altitude
@@ -223,6 +223,7 @@ def read_OSKAR_tm_file(path: str) -> Telescope:
                                                             antenna_pos[4],
                                                             antenna_pos[5]))
 
+    telescope.config_path = path # hotfix #59
     return telescope
 
 
