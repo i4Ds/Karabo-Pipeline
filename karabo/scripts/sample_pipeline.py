@@ -27,7 +27,7 @@ def run(telescope_config):
             "start_time_utc": "01-01-2000 12:00:00.000",
             "length": "12:00:00.000"
         },
-        "telescope": {
+        "telescope.png": {
             "input_directory": telescope_config
         },
         "interferometer": {

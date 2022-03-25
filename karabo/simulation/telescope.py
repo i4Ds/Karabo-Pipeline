@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 
 import numpy as np
@@ -13,7 +14,7 @@ from karabo.simulation.station import Station
 class Telescope:
     def __init__(self, longitude: float, latitude: float, altitude: float = 0):
         """
-        WGS84 longitude and latitude and altitude in metres centre of the telescope centre
+        WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
 
         self.centre_longitude: float = longitude
@@ -52,13 +53,28 @@ class Telescope:
                                horizontal_z: float = 0,
                                horizontal_x_coordinate_error: float = 0, horizontal_y_coordinate_error: float = 0,
                                horizontal_z_coordinate_error: float = 0) -> None:
+        """
+        Add a new antenna to an existing station
+
+        :param station_index: Index of station to add antenna to
+        :param horizontal_x: east coordinate relative to the station center in metres
+        :param horizontal_y: north coordinate relative to the station center in metres
+        :param horizontal_z: altitude of antenna
+        :param horizontal_x_coordinate_error: east coordinate error relative to the station center in metres
+        :param horizontal_y_coordinate_error: north coordinate error relative to the station center in metres
+        :param horizontal_z_coordinate_error: altitude of antenna error
+        :return:
+        """
         if station_index < len(self.stations):
             station = self.stations[station_index]
             station.add_station_antenna(
                 EastNorthCoordinate(horizontal_x, horizontal_y, horizontal_z, horizontal_x_coordinate_error,
                                     horizontal_y_coordinate_error, horizontal_z_coordinate_error))
 
-    def plot_telescope(self) -> None:
+    def plot_telescope(self, file: str = None) -> None:
+        """
+        Plot the telescope and all its stations and antennas with longitude altitude
+        """
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots()
         antenna_x = []
@@ -86,9 +102,17 @@ class Telescope:
         ax.scatter(x, y, label="Centre")
         ax.ticklabel_format(useOffset=False)
         ax.legend(loc='upper left', shadow=False, fontsize='medium')
-        plt.show()
+
+        if file is not None:
+            plt.savefig(file)
+        else:
+            plt.show()
 
     def get_OSKAR_telescope(self) -> os_telescope:
+        """
+        Retrieve the OSKAR Telescope object from the karabo.Telescope object.
+        :return: OSKAR Telescope object
+        """
         with tempfile.TemporaryDirectory() as temp_dir:
             self.__create_telescope_tm_file(temp_dir)
             tel = os_telescope.Telescope()
@@ -96,7 +120,10 @@ class Telescope:
             return tel
 
     def __create_telescope_tm_file(self, path: str) -> None:
-
+        """
+        Create .tm telescope configuration at the specified path
+        :param path: directory in which the configuration will be saved in.
+        """
         self.__write_position_txt(f"{path}/position.txt")
         self.__write_layout_txt(f"{path}/layout.txt", [station.position for station in self.stations])
         i = 0
@@ -118,16 +145,26 @@ class Telescope:
                 f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n")
         layout_file.close()
 
-    @staticmethod
-    def get_OSKAR_Example_Telescope():
-        path_elements = os.path.abspath(karabo.__file__).split('/')
-        path_elements.pop()
-        path = f"{'/'.join(path_elements)}/data/telescope.tm"
-        return read_OSKAR_tm_file(path)
 
-    # @staticmethod
-    # def get_MEERKAT_Array():
-    #     return Telescope(0, 0)
+def get_MEERKAT_Telescope():
+    path = f"{__get_module_absolute_path()}/data/meerkat.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_ALMA_Telescope():
+    path = f"{__get_module_absolute_path()}/data/alma.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_OSKAR_Example_Telescope():
+    path = f"{__get_module_absolute_path()}/data/telescope.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def __get_module_absolute_path() -> str:
+    path_elements = os.path.abspath(karabo.__file__).split('/')
+    path_elements.pop()
+    return '/'.join(path_elements)
 
 
 def read_OSKAR_tm_file(path: str) -> Telescope:
@@ -193,12 +230,19 @@ def __read_layout_txt(path) -> [[float]]:
     layout_file = open(path)
     lines = layout_file.readlines()
     for line in lines:
-        station_position = line.split(",")
+        station_position = re.split("[\\s,]+", line)
         values = np.zeros(6)
         i = 0
         for pos in station_position:
-            values[i] = float(pos)
+            values[i] = __float_try_parse(pos)
             i += 1
         positions.append([values[0], values[1], values[2], values[3], values[4], values[5]])
     layout_file.close()
     return positions
+
+
+def __float_try_parse(value):
+    try:
+        return float(value)
+    except ValueError:
+        return 0.0
