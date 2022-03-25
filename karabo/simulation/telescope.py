@@ -1,6 +1,7 @@
 import os
 import re
 import tempfile
+from typing import List
 
 import numpy as np
 import oskar.telescope as os_telescope
@@ -16,7 +17,7 @@ class Telescope:
         """
         WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
-
+        self.config_path = None # hotfix #59
         self.centre_longitude: float = longitude
         self.centre_latitude: float = latitude
         self.centre_altitude: float = altitude
@@ -27,7 +28,7 @@ class Telescope:
             horizontal y (east) error = 0, horizontal y (north) error = 0, horizontal z (up) error ],
          [ ... ]]
         """
-        self.stations: [Station] = []
+        self.stations: List[Station] = []
 
     def add_station(self, horizontal_x: float, horizontal_y: float, horizontal_z: float = 0,
                     horizontal_x_coordinate_error: float = 0, horizontal_y_coordinate_error: float = 0,
@@ -138,7 +139,7 @@ class Telescope:
         position_file.write(f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude} \n")
         position_file.close()
 
-    def __write_layout_txt(self, layout_path: str, elements: [EastNorthCoordinate]):
+    def __write_layout_txt(self, layout_path: str, elements: List[EastNorthCoordinate]):
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
@@ -222,11 +223,12 @@ def read_OSKAR_tm_file(path: str) -> Telescope:
                                                             antenna_pos[4],
                                                             antenna_pos[5]))
 
+    telescope.config_path = path # hotfix #59
     return telescope
 
 
-def __read_layout_txt(path) -> [[float]]:
-    positions: [[float]] = []
+def __read_layout_txt(path) -> List[List[float]]:
+    positions: List[List[float]] = []
     layout_file = open(path)
     lines = layout_file.readlines()
     for line in lines:

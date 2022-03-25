@@ -8,24 +8,25 @@ from karabo.simulation.sky_model import SkyModel
 class TestSkyModel(unittest.TestCase):
 
     def test_init(self):
-        sky = SkyModel()
+        sky1 = SkyModel()
         sky_data = np.array([
-            [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
-            [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45],
-            [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10]])
-        sky.add_points_sources(sky_data)
-        print(sky.sources)
+            [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, 'source1'],
+            [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, 'source2'],
+            [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, 'source3']])
+        sky1.add_point_sources(sky_data)
+        sky2 = SkyModel(sky_data)
         # test if sources are inside now
-        self.assertEqual(sky_data.shape, sky.sources.shape)
+        self.assertEqual(sky_data.shape, sky1.sources.shape)
+        self.assertEqual(sky_data.shape, sky2.sources.shape)
 
     def test_not_full_array(self):
-        sky = SkyModel()
+        sky1 = SkyModel()
         sky_data = np.array([
             [20.0, -30.0, 1],
             [20.0, -30.5, 3],
             [20.5, -30.5, 3]])
-        sky.add_points_sources(sky_data)
-        print(sky.sources)
+        sky1.add_point_sources(sky_data)
+        sky2 = SkyModel(sky_data)
         # test if doc shape were expanded
-        self.assertEqual(sky.sources.shape, (3, 12))
-
+        self.assertEqual(sky1.sources.shape, (sky_data.shape[0], 13))
+        self.assertEqual(sky2.sources.shape, (sky_data.shape[0], 13))
