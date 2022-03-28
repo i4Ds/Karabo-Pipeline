@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 project = 'Karabo-Pipeline'
 copyright = '2022, i4ds'
-author = 'i4ds'
+author = 'i4ds, ETH'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1.0'
