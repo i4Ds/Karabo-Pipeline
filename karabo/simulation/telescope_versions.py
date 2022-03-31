@@ -113,8 +113,8 @@ class ACAVersions(enum.Enum):
 
     ALL = "all"
     CYCLE_1 = "cycle1"
-    CYCLE_2_i = "cycle2_i"
-    CYCLE_2_ns = "cycle2_ns"
+    CYCLE_2_i = "cycle2.i"
+    CYCLE_2_ns = "cycle2.ns"
     CYCLE_3 = "cycle3"
     CYCLE_4 = "cycle4"
     CYCLE_5 = "cycle5"
@@ -123,9 +123,9 @@ class ACAVersions(enum.Enum):
     CYCLE_7_named = "cycle7.named"
     CYCLE_8 = "cycle8"
     CYCLE_8_named = "cycle8.named"
-    CYCLE_i = "cycle_i"
-    CYCLE_ns = "cycle_ns"
-    CYCLE_tp = "cycle_tp"
+    i = "i"
+    ns = "ns"
+    tp = "tp"
 
 
 class ATCAVersions(enum.Enum):
@@ -170,11 +170,11 @@ class NGVLAVersions(enum.Enum):
     """
 
     CORE_rev_B = "core-revB"
-    CORE_rev_C = "core-rebC"
+    CORE_rev_C = "core-revC"
     gb_vlba_rev_B = "gb-vlba-revB"
     lba_rev_C = "lba-revC"
     main_rev_C = "main-revC"
-    mid_subarray_rev_C = "min-subarray-rev_C"
+    mid_subarray_rev_C = "mid-subarray-revC"
     plains_rev_B = "plains-revB"
     plains_rev_C = "plains-revC"
     rev_B = "revB"

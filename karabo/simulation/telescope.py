@@ -108,6 +108,7 @@ class Telescope:
 
         if file is not None:
             plt.savefig(file)
+            plt.close(fig)
         else:
             plt.show()
 
