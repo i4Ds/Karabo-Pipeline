@@ -169,22 +169,36 @@ def __get_module_absolute_path() -> str:
 
 
 def read_OSKAR_tm_file(path: str) -> Telescope:
-    files = []
-    dirs = []
-    for (dirpath, dirnames, filenames) in os.walk(path):
-        files.append(filenames)
-        dirs.append(dirnames)
+    abs_station_dir_paths = []
+    station_position_file = ""
+    station_layout_file = ""
+    for file_or_dir in os.listdir(path):
+        if file_or_dir.startswith("position"):
+            station_position_file = os.path.abspath(os.path.join(path, file_or_dir))
+        if file_or_dir.startswith("layout"):
+            station_layout_file = os.path.abspath(os.path.join(path, file_or_dir))
+        if file_or_dir.startswith("station"):
+            abs_station_dir_paths.append(os.path.abspath(os.path.join(path, file_or_dir)))
 
-    if "position.txt" not in files[0]:
-        raise karabo.error.KaraboException("Missing crucial position.txt file")
 
-    if "layout.txt" not in files[0]:
-        raise karabo.error.KaraboException(
-            "Only Layout.txt is support. layout_ecef.txt and layout_wgs84.txt support is on its way.")
+    # for (dirpath, dirnames, filenames) in os.walk(path):
+    #     for filename in filenames:
+    #         if filename == "position.txt":
+    #             station_position_file =
+    #     files.append(filenames)
+    #     abs_station_dir_paths.append(dirnames)
+
+    # files0 = files[0]
+    # if "position.txt" not in files0:
+    #     raise karabo.error.KaraboException("Missing crucial position.txt file_or_dir")
+
+    # if "layout.txt" not in files[0]:
+    #     raise karabo.error.KaraboException(
+    #         "Only Layout.txt is support. layout_ecef.txt and layout_wgs84.txt support is on its way.")
 
     telescope = None
 
-    position_file = open(path + "/position.txt")
+    position_file = open(station_position_file)
     lines = position_file.readlines()
     for line in lines:
         long_lat = line.split(" ")
@@ -198,23 +212,23 @@ def read_OSKAR_tm_file(path: str) -> Telescope:
         telescope = Telescope(long, lat, alt)
 
     if Telescope is None:
-        raise karabo.error.KaraboException("Could not create Telescope from position.txt file.")
+        raise karabo.error.KaraboException("Could not create Telescope from position.txt file_or_dir.")
 
     position_file.close()
 
-    station_positions = __read_layout_txt(f"{path}/layout.txt")
+    station_positions = __read_layout_txt(station_layout_file)
     for station_position in station_positions:
         telescope.add_station(station_position[0], station_position[1],
                               station_position[2], station_position[3],
                               station_position[4], station_position[5])
 
-    station_dirs = list(filter(lambda directory: "station" in directory, dirs[0]))
+    if len(abs_station_dir_paths) != len(telescope.stations):
+        raise karabo.error.KaraboException(f"There are {len(telescope.stations)} stations "
+                                           f"but {len(abs_station_dir_paths)} "
+                                           f"station directories.")
 
-    if len(station_dirs) != len(telescope.stations):
-        raise karabo.error.KaraboException(f"Not all {len(telescope.stations)} stations have a station directory.")
-
-    for station_dir, station in zip(station_dirs, telescope.stations):
-        antenna_positions = __read_layout_txt(f"{path}/{station_dir}/layout.txt")
+    for station_dir, station in zip(abs_station_dir_paths, telescope.stations):
+        antenna_positions = __read_layout_txt(os.path.join(station_dir, "layout.txt"))
         for antenna_pos in antenna_positions:
             station.add_station_antenna(EastNorthCoordinate(antenna_pos[0],
                                                             antenna_pos[1],
