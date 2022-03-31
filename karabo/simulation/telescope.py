@@ -10,6 +10,8 @@ import karabo.error
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
+from karabo.simulation.telescope_versions import ALMAVersions, ATCAVersions, CARMAVersions, NGVLAVersions, PDBIVersions, \
+    SMAVersions, VLAVersions, ACAVersions
 
 
 class Telescope:
@@ -152,8 +154,78 @@ def get_MEERKAT_Telescope():
     return read_OSKAR_tm_file(path)
 
 
-def get_ALMA_Telescope():
-    path = f"{__get_module_absolute_path()}/data/alma.tm"
+def get_ACA_Telescope(version: ACAVersions):
+    path = f"{__get_module_absolute_path()}/data/aca.{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_ALMA_Telescope(version: ALMAVersions):
+    path = f"{__get_module_absolute_path()}/data/alma.{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_ASKAP_Telescope():
+    path = f"{__get_module_absolute_path()}/data/askap.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_ATCA_Telescope(version: ATCAVersions):
+    path = f"{__get_module_absolute_path()}/data/atca.{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_CARMA_Telescope(version: CARMAVersions):
+    path = f"{__get_module_absolute_path()}/data/carma.{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_LOFAR_Telescope():
+    path = f"{__get_module_absolute_path()}/data/lofar.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_MKATPLUS_Telescope():
+    path = f"{__get_module_absolute_path()}/data/mkatplus.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_NG_VLA_Telescope(version: NGVLAVersions):
+    path = f"{__get_module_absolute_path()}/data/ngvla-{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_PDBI_Telescope(version: PDBIVersions):
+    path = f"{__get_module_absolute_path()}/data/pdbi-{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_SKA1_LOW_Telescope():
+    path = f"{__get_module_absolute_path()}/data/ska1low.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_SKA1_MID_Telescope():
+    path = f"{__get_module_absolute_path()}/data/ska1mid.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_SMA_Telescope(version: SMAVersions):
+    path = f"{__get_module_absolute_path()}/data/sma.{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_VLA_Telescope(version: VLAVersions):
+    path = f"{__get_module_absolute_path()}/data/vla.{version.value}.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_VLBA_Telescope():
+    path = f"{__get_module_absolute_path()}/data/vlba.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_WSRT_Telescope():
+    path = f"{__get_module_absolute_path()}/data/WSRT.tm"
     return read_OSKAR_tm_file(path)
 
 
