@@ -17,7 +17,7 @@ class Telescope:
         """
         WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
-        self.config_path = None # hotfix #59
+        self.config_path = None  # hotfix #59
         self.centre_longitude: float = longitude
         self.centre_latitude: float = latitude
         self.centre_altitude: float = altitude
@@ -170,8 +170,8 @@ def __get_module_absolute_path() -> str:
 
 def read_OSKAR_tm_file(path: str) -> Telescope:
     abs_station_dir_paths = []
-    station_position_file = ""
-    station_layout_file = ""
+    station_position_file = None
+    station_layout_file = None
     for file_or_dir in os.listdir(path):
         if file_or_dir.startswith("position"):
             station_position_file = os.path.abspath(os.path.join(path, file_or_dir))
@@ -180,21 +180,13 @@ def read_OSKAR_tm_file(path: str) -> Telescope:
         if file_or_dir.startswith("station"):
             abs_station_dir_paths.append(os.path.abspath(os.path.join(path, file_or_dir)))
 
+    if station_position_file is None:
+        raise karabo.error.KaraboException("Missing crucial position.txt file_or_dir")
 
-    # for (dirpath, dirnames, filenames) in os.walk(path):
-    #     for filename in filenames:
-    #         if filename == "position.txt":
-    #             station_position_file =
-    #     files.append(filenames)
-    #     abs_station_dir_paths.append(dirnames)
-
-    # files0 = files[0]
-    # if "position.txt" not in files0:
-    #     raise karabo.error.KaraboException("Missing crucial position.txt file_or_dir")
-
-    # if "layout.txt" not in files[0]:
-    #     raise karabo.error.KaraboException(
-    #         "Only Layout.txt is support. layout_ecef.txt and layout_wgs84.txt support is on its way.")
+    if station_layout_file is None:
+        raise karabo.error.KaraboException(
+            "Missing layout.txt file in station directory. Only Layout.txt is support. "
+            "layout_ecef.txt and layout_wgs84.txt support is on its way.")
 
     telescope = None
 
@@ -237,7 +229,7 @@ def read_OSKAR_tm_file(path: str) -> Telescope:
                                                             antenna_pos[4],
                                                             antenna_pos[5]))
 
-    telescope.config_path = path # hotfix #59
+    telescope.config_path = path  # hotfix #59
     return telescope
 
 
