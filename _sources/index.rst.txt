@@ -14,6 +14,7 @@ Welcome to Karabo-Pipeline's documentation!
    Container
    modules
    examples/Examples.md
+   development.md
 
 
 Indices and tables

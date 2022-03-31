@@ -42,6 +42,10 @@
 <li class="toctree-l1"><a class="reference internal" href="examples/Examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#running-an-interferometer-simulation">Running an interferometer simulation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/Examples.html#show-telescope-config">Show telescope config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html#setup-local-dev-environment">Setup local dev environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html#update-documentation">Update documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html#update-tests">Update Tests</a></li>
 </ul>
 
         </div>
@@ -95,7 +99,7 @@
 </li>
       <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.add_point_source">add_point_source() (SkyModel method)</a>
 </li>
-      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.add_points_sources">add_points_sources() (SkyModel method)</a>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.add_point_sources">add_point_sources() (SkyModel method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -139,12 +143,22 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="karabo.simulation.html#karabo.simulation.east_north_coordinate.EastNorthCoordinate">EastNorthCoordinate (class in karabo.simulation.east_north_coordinate)</a>
 </li>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.explore_sky">explore_sky() (SkyModel method)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.filter_by_flux">filter_by_flux() (SkyModel method)</a>
+</li>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.filter_by_frequency">filter_by_frequency() (SkyModel method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.filter_by_radius">filter_by_radius() (SkyModel method)</a>
+</li>
       <li><a href="karabo.simulation.html#karabo.simulation.interferometer.FilterUnits">FilterUnits (class in karabo.simulation.interferometer)</a>
 </li>
   </ul></td>
@@ -154,6 +168,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="karabo.simulation.html#karabo.simulation.telescope.get_ALMA_Telescope">get_ALMA_Telescope() (in module karabo.simulation.telescope)</a>
+</li>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.get_fits_catalog">get_fits_catalog() (SkyModel static method)</a>
 </li>
       <li><a href="karabo.simulation.html#karabo.simulation.telescope.get_MEERKAT_Telescope">get_MEERKAT_Telescope() (in module karabo.simulation.telescope)</a>
 </li>
@@ -166,6 +182,8 @@
       <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.get_OSKAR_sky">get_OSKAR_sky() (SkyModel method)</a>
 </li>
       <li><a href="karabo.simulation.html#karabo.simulation.telescope.Telescope.get_OSKAR_telescope">get_OSKAR_telescope() (Telescope method)</a>
+</li>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.get_wcs">get_wcs() (SkyModel method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -324,8 +342,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="karabo.simulation.html#karabo.simulation.observation.Observation.set_length_of_observation">set_length_of_observation() (Observation method)</a>
 </li>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.set_wcs">set_wcs() (SkyModel method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.setup_default_wcs">setup_default_wcs() (SkyModel method)</a>
+</li>
       <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel">SkyModel (class in karabo.simulation.sky_model)</a>
 </li>
       <li><a href="karabo.simulation.html#karabo.simulation.station.Station">Station (class in karabo.simulation.station)</a>
@@ -337,6 +359,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="karabo.simulation.html#karabo.simulation.telescope.Telescope">Telescope (class in karabo.simulation.telescope)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="karabo.simulation.html#karabo.simulation.sky_model.SkyModel.to_array">to_array() (SkyModel method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -359,7 +385,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, i4ds.
-      <span class="lastupdated">Last updated on Mar 09, 2022.
+      <span class="lastupdated">Last updated on Mar 31, 2022.
       </span></p>
   </div>
 
