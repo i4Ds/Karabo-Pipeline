@@ -1,3 +1,8 @@
+from karabo.util.jupyter import setup_jupyter_env, isNotebook
+
+if isNotebook():
+    setup_jupyter_env()
+
 from typing import List, Union, Dict, Tuple
 
 import numpy as np
