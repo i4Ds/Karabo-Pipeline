@@ -1,8 +1,8 @@
 import os
 import unittest
 import karabo.simulation.telescope as telescope
-from karabo.simulation.telescope_versions import ALMAVersions, ACAVersions, CARMAVersions, NGVLAVersions, PDBIVersions, \
-    SMAVersions, VLAVersions
+from karabo.simulation.telescope_versions import ALMAVersions, ACAVersions, CARMAVersions, NGVLAVersions, \
+    PDBIVersions, SMAVersions, VLAVersions
 
 
 class TestTelescope(unittest.TestCase):
