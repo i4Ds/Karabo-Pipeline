@@ -7,7 +7,7 @@
       <excludeFolder url="file://$MODULE_DIR$/karabo/test/result/tel" />
       <excludeFolder url="file://$MODULE_DIR$/karabo/test/result" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.9 (karabo_new)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (karabo_dev_env)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

@@ -7,5 +7,5 @@ def setup_jupyter_env():
     from distutils.sysconfig import get_python_lib
     import os
 
-    data_folder = f"{get_python_lib()}/../../../rascil_data/data"
+    data_folder = f"{get_python_lib()}/../../../data"
     os.environ["RASCIL_DATA"] = data_folder
