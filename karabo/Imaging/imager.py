@@ -1,3 +1,7 @@
+from distributed import Client, LocalCluster
+
+from karabo.Imaging.Image import Image
+from karabo.util.dask import get_local_dask_client
 from karabo.util.jupyter import setup_jupyter_env, isNotebook
 
 if isNotebook():
@@ -6,11 +10,13 @@ if isNotebook():
 from typing import List, Union, Dict, Tuple
 
 import numpy as np
-from rascil.apps import rascil_imager
-from rascil.processing_components.util.performance import (
-    performance_store_dict,
-    performance_environment,
-)
+from rascil.processing_components import create_blockvisibility_from_ms, create_image_from_visibility, \
+    invert_blockvisibility, export_image_to_fits, image_gather_channels, remove_sumwt, \
+    convert_blockvisibility_to_stokesI
+from rascil.data_models import PolarisationFrame
+from rascil.workflows import create_blockvisibility_from_ms_rsexecute, \
+    continuum_imaging_skymodel_list_rsexecute_workflow
+from rascil.workflows.rsexecute.execution_support import rsexecute
 
 from karabo.simulation.sky_model import SkyModel
 
@@ -190,13 +196,122 @@ class Imager:
         else:
             return value
 
-    def imaging_rascil(self):
+    def get_dirty_image(self) -> Image:
+        block_visibilities = create_blockvisibility_from_ms(self.ingest_msname)
+        if len(block_visibilities) != 1:
+            raise EnvironmentError("Visibilities are too large")
+        visibility = block_visibilities[0]
+        image = Image()
+        model = create_image_from_visibility(visibility, cellsize=self.imaging_cellsize, npixel=self.imaging_npixel)
+        dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
+        export_image_to_fits(dirty, f"{image.position.name}")
+        return image
+
+    def imaging_rascil(self) -> (Image, Image, Image):
         """
-        Starts imagimg process using RASCIL
+        Starts imaging process using RASCIL
         """
-        performance_environment(self.performance_file, mode='w')
-        performance_store_dict(self.performance_file, 'imgaging_args', vars(self), mode='a')
-        _ = rascil_imager.imager(self)  # _ is image_name
+        # image = Image()
+        # performance_environment(self.performance_file, mode='w')
+        # performance_store_dict(self.performance_file, 'imgaging_args', vars(self), mode='a')
+        # _ = rascil_imager.imager(self)  # _ is image_name
+        client = get_local_dask_client(5)
+        print(client.cluster)
+        rsexecute.set_client(client)
+
+        blockviss = create_blockvisibility_from_ms_rsexecute(
+            msname=self.ingest_msname,
+            nchan_per_blockvis=self.ingest_chan_per_blockvis,
+            nout=self.ingest_vis_nchan // self.ingest_chan_per_blockvis,
+            dds=self.ingest_dd,
+            average_channels=True
+        )
+
+        blockviss = [
+            rsexecute.execute(convert_blockvisibility_to_stokesI)(bv)
+            for bv in blockviss
+        ]
+
+        cellsize = self.imaging_cellsize
+        models = [
+            rsexecute.execute(create_image_from_visibility)(
+                bvis,
+                npixel=self.imaging_npixel,
+                nchan=self.imaging_nchan,
+                cellsize=cellsize,
+                polarisation_frame=PolarisationFrame('stokesI'),
+            )
+            for bvis in blockviss
+        ]
+        result = continuum_imaging_skymodel_list_rsexecute_workflow(
+            blockviss,  # List of BlockVisibilitys
+            models,  # List of model images
+            context=self.imaging_context,  # Use nifty-gridder
+            threads=self.imaging_ng_threads,
+            wstacking=self.imaging_w_stacking == "True",  # Correct for w term in gridding
+            niter=self.clean_niter,  # iterations in minor cycle
+            nmajor=self.clean_nmajor,  # Number of major cycles
+            algorithm=self.clean_algorithm,
+            gain=self.clean_gain,  # CLEAN loop gain
+            scales=self.clean_scales,  # Scales for multi-scale cleaning
+            fractional_threshold=self.clean_fractional_threshold,
+            # Threshold per major cycle
+            threshold=self.clean_threshold,  # Final stopping threshold
+            nmoment=self.clean_nmoment,
+            # Number of frequency moments (1 = no dependence)
+            psf_support=self.clean_psf_support,
+            # Support of PSF used in minor cycles (halfwidth in pixels)
+            restored_output=self.clean_restored_output,  # Type of restored image
+            deconvolve_facets=self.clean_facets,
+            deconvolve_overlap=self.clean_overlap,
+            deconvolve_taper=self.clean_taper,
+            restore_facets=self.clean_restore_facets,
+            restore_overlap=self.clean_restore_overlap,
+            restore_taper=self.clean_restore_taper,
+            dft_compute_kernel=self.imaging_dft_kernel,
+            component_threshold=self.clean_component_threshold,
+            component_method=self.clean_component_method,
+            flat_sky=self.imaging_flat_sky,
+            clean_beam=None,
+        )
+
+        result = rsexecute.compute(result, sync=True)
+
+        residual, restored, skymodel = result
+        deconvolvedname = None
+        residualname = None
+        restoredname = None
+
+        deconvolved = [sm.image for sm in skymodel]
+        # skymodelname = result_name + "_skymodel.hdf"
+        # export_skymodel_to_hdf5(skymodel, skymodelname)
+
+        deconvolved_image = image_gather_channels(deconvolved)
+        # performance_qa_image(
+        #     performance_file, "deconvolved", deconvolved_image, mode="a"
+        # )
+        # log.info(qa_image(deconvolved_image, context="Deconvolved"))
+        deconvoled_image = Image()
+        # deconvolvedname = result_name + "_deconvolved.fits"
+        export_image_to_fits(deconvolved_image, deconvoled_image.position.name)
+        # restored = image_gather_channels(restored)
+        # performance_qa_image(performance_file, "restored", restored, mode="a")
+        # log.info("Writing restored image as spectral cube")
+        # restoredname = result_name + "_restored.fits"
+        restored_image = Image()
+        export_image_to_fits(restored, restored_image.position.name)
+
+        residual = remove_sumwt(residual)
+        residual_image = image_gather_channels(residual)
+        # performance_qa_image(performance_file, "residual", residual_image, mode="a")
+        # log.info("Writing residual image as spectral cube")
+        # log.info(qa_image(residual_image, context="Residual"))
+        # residualname = result_name + "_residual.fits"
+        residual_image_file = Image()
+        export_image_to_fits(residual_image, residual_image_file.position.name)
+
+        return deconvoled_image, restored_image, residual_image_file
+
 
     def get_pixel_coord(self, sky: SkyModel, filter_outlier: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """

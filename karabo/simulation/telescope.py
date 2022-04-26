@@ -19,6 +19,7 @@ class Telescope:
         """
         WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
+        self.temp_dir = None
         self.config_path = None  # hotfix #59
         self.centre_longitude: float = longitude
         self.centre_latitude: float = latitude
@@ -117,11 +118,13 @@ class Telescope:
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-        with tempfile.TemporaryDirectory() as temp_dir:
-            self.__create_telescope_tm_file(temp_dir)
-            tel = os_telescope.Telescope()
-            tel.load(temp_dir)
-            return tel
+        self.temp_dir = "./telescope.tm"
+        os.mkdir(self.temp_dir)
+        self.__create_telescope_tm_file(self.temp_dir)
+        tel = os_telescope.Telescope()
+        tel.load(self.temp_dir)
+        self.config_path = self.temp_dir
+        return tel
 
     def __create_telescope_tm_file(self, path: str) -> None:
         """
