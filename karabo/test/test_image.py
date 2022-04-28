@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from karabo.Imaging.image import open_fits_image
@@ -10,6 +11,13 @@ from karabo.Imaging.imager import Imager
 
 
 class TestImage(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # make dir for result files
+        if not os.path.exists('result/'):
+            os.makedirs('result/')
+
     def testJupyterSetupEnv(self):
         setup_jupyter_env()
         from karabo.Imaging.imager import Imager
