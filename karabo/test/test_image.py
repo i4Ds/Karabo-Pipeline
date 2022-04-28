@@ -54,20 +54,20 @@ class TestImage(unittest.TestCase):
         residual.plot()
         detection_result.detection.show_fit()
 
-    def test_source_detection_on_residual(self):
-        residual = open_fits_image("./data/residual.fits")
-        sources = detect_sources_in_image(residual, beam=(0.06, 0.02, 13.3))
-        print(sources.sources)
+    # def test_source_detection_on_residual(self):
+    #     residual = open_fits_image("./data/residual.fits")
+    #     sources = detect_sources_in_image(residual, beam=(0.06, 0.02, 13.3))
+    #     print(sources.sources)
 
-    def test_source_detection_on_dirty_image(self):
-        dirty = open_fits_image("./data/dirty.fits")
-        dirty.plot()
-        detection = detect_sources_in_image(dirty, beam=(0.06, 0.02, 13.3))
-        detection.get_island_mask().plot()
+    # def test_source_detection_on_dirty_image(self):
+    #     dirty = open_fits_image("./data/dirty.fits")
+    #     dirty.plot()
+    #     detection = detect_sources_in_image(dirty, beam=(0.06, 0.02, 13.3))
+    #     detection.get_island_mask().plot()
 
-    def test_show_deconvolved(self):
-        deconv = open_fits_image("./data/deconvolved.fits")
-        deconv.plot()
+    # def test_show_deconvolved(self):
+    #     deconv = open_fits_image("./data/deconvolved.fits")
+    #     deconv.plot()
 
 
     # def test_try_star_finder(self):
