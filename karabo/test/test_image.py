@@ -17,7 +17,7 @@ class TestImage(unittest.TestCase):
 
     def test_dirty_image(self):
         setup_jupyter_env()
-        imager = Imager(ingest_msname="./result/sim/visibilities_gleam.ms", imaging_npixel=2048,
+        imager = Imager(ingest_msname="karabo/test/data/visibilities_gleam.ms", imaging_npixel=2048,
                         imaging_cellsize=3.878509448876288e-05)
 
         dirty = imager.get_dirty_image()
@@ -26,7 +26,7 @@ class TestImage(unittest.TestCase):
 
     # removed t from tests to force it to not run on test cases, as this test case takes too long
     def tes_clean(self):
-        imager = Imager(ingest_msname='./result/sim/visibilities_gleam.ms',
+        imager = Imager(ingest_msname='karabo/test/data/visibilities_gleam.ms',
                         ingest_dd=[0],
                         ingest_vis_nchan=16,
                         ingest_chan_per_blockvis=1,
@@ -47,7 +47,7 @@ class TestImage(unittest.TestCase):
         print(result)
 
     def test_source_detection(self):
-        restored = open_fits_image("./data/restored.fits")
+        restored = open_fits_image("karabo/test/data/restored.fits")
         detection_result = detect_sources_in_image(restored)
         residual = detection_result.get_gaussian_residual_image()
         residual.save_as_fits("result/gaus_residual.fits")
