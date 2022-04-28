@@ -1,6 +1,6 @@
 from distributed import Client, LocalCluster
 
-from karabo.Imaging.Image import Image
+from karabo.Imaging.image import Image
 from karabo.util.dask import get_local_dask_client
 from karabo.util.jupyter import setup_jupyter_env, isNotebook
 
@@ -100,19 +100,19 @@ class Imager:
                  clean_restore_taper: str = 'tukey',
                  # Type of interpolation between facets in restore step (none or linear or tukey)
                  clean_restored_output: str = 'list',  # Type of restored image output: taylor, list, or integrated
-                 use_dask: Union[bool, str] = True,
+                 # use_dask: Union[bool, str] = True,
                  # Use Dask processing? False means that graphs are executed as they are constructed
-                 dask_nthreads: int = None,  # Number of threads in each Dask worker (None means Dask will choose)
-                 dask_memory: str = None,  # Memory per Dask worker (GB), e.g. 5GB (None means Dask will choose)
-                 dask_memory_usage_file: str = None,  # File in which to track Dask memory use (using dask-memusage)
-                 dask_nodes: str = None,  # Node names for SSHCluster
-                 dask_nworkers: int = None,  # Number of workers (None means Dask will choose)
-                 dask_scheduler: str = None,
-                 # Externally defined Dask scheduler e.g. 127.0.0.1:8786 or ssh for SSHCluster or existing for current scheduler
-                 dask_scheduler_file: str = None,  # Externally defined Dask scheduler file to setup dask cluster
-                 dask_tcp_timeout: str = None,  # Dask TCP timeout
-                 dask_connect_timeout: str = None,  # Dask connect timeout
-                 dask_malloc_trim_threshold: int = 0  # Threshold for trimming memory on release (0 is aggressive)
+                 # dask_nthreads: int = None,  # Number of threads in each Dask worker (None means Dask will choose)
+                 # dask_memory: str = None,  # Memory per Dask worker (GB), e.g. 5GB (None means Dask will choose)
+                 # dask_memory_usage_file: str = None,  # File in which to track Dask memory use (using dask-memusage)
+                 # dask_nodes: str = None,  # Node names for SSHCluster
+                 # dask_nworkers: int = None,  # Number of workers (None means Dask will choose)
+                 # dask_scheduler: str = None,
+                 # # Externally defined Dask scheduler e.g. 127.0.0.1:8786 or ssh for SSHCluster or existing for current scheduler
+                 # dask_scheduler_file: str = None,  # Externally defined Dask scheduler file to setup dask cluster
+                 # dask_tcp_timeout: str = None,  # Dask TCP timeout
+                 # dask_connect_timeout: str = None,  # Dask connect timeout
+                 # dask_malloc_trim_threshold: int = 0  # Threshold for trimming memory on release (0 is aggressive)
                  ):
         self.mode: str = mode
         self.logfile: str = logfile
@@ -154,37 +154,17 @@ class Imager:
         # self.calibration_context: str = calibration_context
         # self.use_initial_skymodel: Union[bool, str] = use_initial_skymodel
         # self.input_skycomponent_file: str = input_skycomponent_file
-        self.num_bright_sources: int = num_bright_sources
-        self.clean_algorithm: str = clean_algorithm
-        self.clean_beam: Dict[str, float] = clean_beam
-        self.clean_scales: List[int] = clean_scales
-        self.clean_nmoment: int = clean_nmoment
-        self.clean_nmajor: int = clean_nmajor
-        self.clean_niter: int = clean_niter
-        self.clean_psf_support: int = clean_psf_support
-        self.clean_gain: float = clean_gain
-        self.clean_threshold: float = clean_threshold
-        self.clean_component_threshold: float = clean_component_threshold
-        self.clean_component_method: str = clean_component_method
-        self.clean_fractional_threshold: float = clean_fractional_threshold
-        self.clean_facets: int = clean_facets
-        self.clean_overlap: int = clean_overlap
-        self.clean_taper: str = clean_taper
-        self.clean_restore_facets: int = clean_restore_facets
-        self.clean_restore_overlap: int = clean_restore_overlap
-        self.clean_restore_taper: str = clean_restore_taper
-        self.clean_restored_output: str = clean_restored_output
-        self.use_dask: Union[bool, str] = use_dask
-        self.dask_nthreads: int = dask_nthreads
-        self.dask_memory: str = dask_memory
-        self.dask_memory_usage_file: str = dask_memory_usage_file
-        self.dask_nodes: str = dask_nodes
-        self.dask_nworkers: int = dask_nworkers
-        self.dask_scheduler: str = dask_scheduler
-        self.dask_scheduler_file: str = dask_scheduler_file
-        self.dask_tcp_timeout: str = dask_tcp_timeout
-        self.dask_connect_timeout: str = dask_connect_timeout
-        self.dask_malloc_trim_threshold: int = dask_malloc_trim_threshold
+        # self.use_dask: Union[bool, str] = use_dask
+        # self.dask_nthreads: int = dask_nthreads
+        # self.dask_memory: str = dask_memory
+        # self.dask_memory_usage_file: str = dask_memory_usage_file
+        # self.dask_nodes: str = dask_nodes
+        # self.dask_nworkers: int = dask_nworkers
+        # self.dask_scheduler: str = dask_scheduler
+        # self.dask_scheduler_file: str = dask_scheduler_file
+        # self.dask_tcp_timeout: str = dask_tcp_timeout
+        # self.dask_connect_timeout: str = dask_connect_timeout
+        # self.dask_malloc_trim_threshold: int = dask_malloc_trim_threshold
 
     def __getattribute__(self, name) -> object:
         """
@@ -197,6 +177,10 @@ class Imager:
             return value
 
     def get_dirty_image(self) -> Image:
+        """
+        Get Dirty Image of visibilities passed to the Imager.
+        :return: dirty image of visibilities.
+        """
         block_visibilities = create_blockvisibility_from_ms(self.ingest_msname)
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
@@ -204,17 +188,46 @@ class Imager:
         image = Image()
         model = create_image_from_visibility(visibility, cellsize=self.imaging_cellsize, npixel=self.imaging_npixel)
         dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
-        export_image_to_fits(dirty, f"{image.position.name}")
+        export_image_to_fits(dirty, f"{image.file.path}")
         return image
 
-    def imaging_rascil(self) -> (Image, Image, Image):
+    def imaging_rascil(self,
+                       num_bright_sources: int = None,
+                       # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
+                       clean_algorithm: str = 'mmclean',
+                       # Type of deconvolution algorithm (hogbom or msclean or mmclean)
+                       clean_beam: Dict[str, float] = None,
+                       # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args. NEEDS TESTING!!
+                       clean_scales: List[int] = [0],  # Scales for multiscale clean (pixels) e.g. [0, 6, 10]
+                       clean_nmoment: int = 4,
+                       # Number of frequency moments in mmclean (1 is a constant, 2 is linear, etc.)
+                       clean_nmajor: int = 5,  # Number of major cycles in cip or ical
+                       clean_niter: int = 1000,  # Number of minor cycles in CLEAN (i.e. clean iterations)
+                       clean_psf_support: int = 256,  # Half-width of psf used in cleaning (pixels)
+                       clean_gain: float = .1,  # Clean loop gain
+                       clean_threshold: float = 1e-4,  # Clean stopping threshold (Jy/beam)
+                       clean_component_threshold: float = None,
+                       # Sources with absolute flux > this level (Jy) are fit or extracted using skycomponents
+                       clean_component_method: str = 'fit',
+                       # Method to convert sources in image to skycomponents: 'fit' in frequency or 'extract' actual values
+                       clean_fractional_threshold: float = .3,  # Fractional stopping threshold for major cycle
+                       clean_facets: int = 1,  # Number of overlapping facets in faceted clean (along each axis)
+                       clean_overlap: int = 32,  # Overlap of facets in clean (pixels)
+                       clean_taper: str = 'tukey',
+                       # Type of interpolation between facets in deconvolution (none or linear or tukey)
+                       clean_restore_facets: int = 1,  # Number of overlapping facets in restore step (along each axis)
+                       clean_restore_overlap: int = 32,  # Overlap of facets in restore step (pixels)
+                       clean_restore_taper: str = 'tukey',
+                       # Type of interpolation between facets in restore step (none or linear or tukey)
+                       clean_restored_output: str = 'list',
+                       # Type of restored image output: taylor, list, or integrated
+                       ) -> (Image, Image, Image):
         """
-        Starts imaging process using RASCIL
+        Starts imaging process using RASCIL, will run a CLEAN algorithm on the passed visibilities to the
+        Imager.
+
+        :returns (Deconvolved Image, Restored Image, Residual Image)
         """
-        # image = Image()
-        # performance_environment(self.performance_file, mode='w')
-        # performance_store_dict(self.performance_file, 'imgaging_args', vars(self), mode='a')
-        # _ = rascil_imager.imager(self)  # _ is image_name
         client = get_local_dask_client(5)
         print(client.cluster)
         rsexecute.set_client(client)
@@ -272,51 +285,34 @@ class Imager:
             component_threshold=self.clean_component_threshold,
             component_method=self.clean_component_method,
             flat_sky=self.imaging_flat_sky,
-            clean_beam=None,
+            clean_beam=clean_beam,
+            clean_algorithm=clean_algorithm,
+
         )
 
         result = rsexecute.compute(result, sync=True)
 
         residual, restored, skymodel = result
-        deconvolvedname = None
-        residualname = None
-        restoredname = None
 
         deconvolved = [sm.image for sm in skymodel]
-        # skymodelname = result_name + "_skymodel.hdf"
-        # export_skymodel_to_hdf5(skymodel, skymodelname)
-
         deconvolved_image = image_gather_channels(deconvolved)
-        # performance_qa_image(
-        #     performance_file, "deconvolved", deconvolved_image, mode="a"
-        # )
-        # log.info(qa_image(deconvolved_image, context="Deconvolved"))
         deconvoled_image = Image()
-        # deconvolvedname = result_name + "_deconvolved.fits"
-        export_image_to_fits(deconvolved_image, deconvoled_image.position.name)
-        # restored = image_gather_channels(restored)
-        # performance_qa_image(performance_file, "restored", restored, mode="a")
-        # log.info("Writing restored image as spectral cube")
-        # restoredname = result_name + "_restored.fits"
+        export_image_to_fits(deconvolved_image, deconvoled_image.file.path)
+
         restored_image = Image()
-        export_image_to_fits(restored, restored_image.position.name)
+        export_image_to_fits(restored, restored_image.file.path)
 
         residual = remove_sumwt(residual)
         residual_image = image_gather_channels(residual)
-        # performance_qa_image(performance_file, "residual", residual_image, mode="a")
-        # log.info("Writing residual image as spectral cube")
-        # log.info(qa_image(residual_image, context="Residual"))
-        # residualname = result_name + "_residual.fits"
         residual_image_file = Image()
-        export_image_to_fits(residual_image, residual_image_file.position.name)
+        export_image_to_fits(residual_image, residual_image_file.file.path)
 
         return deconvoled_image, restored_image, residual_image_file
-
 
     def get_pixel_coord(self, sky: SkyModel, filter_outlier: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Calculates the pixel coordinates of the produced .fits file
-        
+
         :param imaging_cellsize: Image cellsize in radian (pixel coverage)
         :param imaging_npixel: Number of pixels of the image
         :param sky: SkyModel with the sources at catalog

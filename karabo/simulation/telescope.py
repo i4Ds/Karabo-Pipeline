@@ -12,6 +12,7 @@ from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import ALMAVersions, ATCAVersions, CARMAVersions, NGVLAVersions, PDBIVersions, \
     SMAVersions, VLAVersions, ACAVersions
+from karabo.util.FileHandle import FileHandle
 
 
 class Telescope:
@@ -118,12 +119,11 @@ class Telescope:
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-        self.temp_dir = "./telescope.tm"
-        os.mkdir(self.temp_dir)
-        self.__create_telescope_tm_file(self.temp_dir)
+        self.temp_dir = FileHandle(is_dir=True)
+        self.__create_telescope_tm_file(self.temp_dir.path)
         tel = os_telescope.Telescope()
-        tel.load(self.temp_dir)
-        self.config_path = self.temp_dir
+        tel.load(self.temp_dir.path)
+        self.config_path = self.temp_dir.path
         return tel
 
     def __create_telescope_tm_file(self, path: str) -> None:
@@ -153,7 +153,7 @@ class Telescope:
         layout_file.close()
 
 
-def get_MEERKAT_Telescope():
+def get_MEERKAT_Telescope() -> Telescope:
     path = f"{__get_module_absolute_path()}/data/meerkat.tm"
     return read_OSKAR_tm_file(path)
 
