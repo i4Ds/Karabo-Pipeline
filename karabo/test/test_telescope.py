@@ -1,8 +1,8 @@
 import os
 import unittest
 import karabo.simulation.telescope as telescope
-from karabo.simulation.telescope_versions import ALMAVersions, ACAVersions, CARMAVersions, NGVLAVersions, PDBIVersions, \
-    SMAVersions, VLAVersions
+from karabo.simulation.telescope_versions import ALMAVersions, ACAVersions, CARMAVersions, NGVLAVersions, \
+    PDBIVersions, SMAVersions, VLAVersions
 
 
 class TestTelescope(unittest.TestCase):
@@ -99,3 +99,7 @@ class TestTelescope(unittest.TestCase):
     def test_read_ASKAP(self):
         tel = telescope.get_ASKAP_Telescope()
         tel.plot_telescope('result/tel/ASKAP.png')
+
+    def test_tm_file_creation(self):
+        tel = telescope.get_OSKAR_Example_Telescope()
+        tel.get_OSKAR_telescope()
