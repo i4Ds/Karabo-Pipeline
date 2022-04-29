@@ -6,7 +6,7 @@ RUN apt-get update &&  \
 RUN conda update conda && \
     conda install -c anaconda pip
 
-RUN conda create -n karabo python=3.8
+RUN conda create -n karabo python
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN conda install -c i4ds -c conda-forge karabo-pipeline
 
