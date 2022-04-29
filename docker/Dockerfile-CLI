@@ -3,10 +3,9 @@ FROM --platform=amd64 continuumio/miniconda3
 RUN apt-get update &&  \
     apt-get install -y git gfortran build-essential curl && apt-get clean
 
-RUN conda update conda && \
-    conda install -c anaconda pip
+RUN conda update conda
 
-RUN conda create -n karabo python
+RUN conda create -n karabo
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN conda install -c i4ds -c conda-forge karabo-pipeline
 
