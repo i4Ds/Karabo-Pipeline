@@ -51,7 +51,7 @@ coverage.xml
 *.log
 
 # Sphinx documentation
-docs/_build/
+doc/_build/
 
 # PyBuilder
 target/
@@ -77,3 +77,6 @@ dask-worker-space
 
 # Configs
 config.yaml
+
+karabo/test/result/*
+karabo/test/result

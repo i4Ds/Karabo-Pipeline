@@ -8,7 +8,7 @@ class Station:
                  parent_latitude: float = 0,
                  parent_altitude: float = 0):
         """
-        :param position: Position of station in relation to the telescope centre
+        :param position: Position of station in relation to the telescope.png centre
         """
 
         self.position: EastNorthCoordinate = position

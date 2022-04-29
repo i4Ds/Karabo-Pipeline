@@ -3,6 +3,9 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/karabo/test/result/sim" />
+      <excludeFolder url="file://$MODULE_DIR$/karabo/test/result/tel" />
+      <excludeFolder url="file://$MODULE_DIR$/karabo/test/result" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (karabo_new)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
