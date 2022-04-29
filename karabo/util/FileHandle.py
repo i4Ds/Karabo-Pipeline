@@ -11,8 +11,13 @@ class FileHandle:
             self.path = self.file.name
         else:
             if existing_file_path is not None:
-                self.file = open(existing_file_path)
-                self.path = existing_file_path
+                self.auto_clean = False
+                if os.path.isdir(existing_file_path):
+                    self.file = None
+                    self.path = existing_file_path
+                else:
+                    self.file = open(existing_file_path)
+                    self.path = existing_file_path
             else:
                 self.file = tempfile.NamedTemporaryFile()
                 self.path = self.file.name

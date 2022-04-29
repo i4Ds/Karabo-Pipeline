@@ -43,8 +43,6 @@ class Image:
         self.data, self.header = fits.getdata(image_file, ext=0, header=True)
 
 
-
-
 def open_fits_image(fits_path: str) -> Image:
     image = Image()
     image.file = FileHandle(existing_file_path=fits_path, auto_clean=False)

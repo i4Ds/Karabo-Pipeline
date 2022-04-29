@@ -1,13 +1,18 @@
 import shutil
 
+from karabo.util.FileHandle import FileHandle
+
 
 class Visibility:
 
     def __init__(self):
-        self.path = ""
+        self.file = FileHandle(is_dir=True)
+        self.path = self.file.path + ".MS"
 
-    def use_ms_file(self, filepath: str) -> None:
+    def load_ms_file(self, filepath: str) -> None:
         self.path = filepath
+        self.file = FileHandle(self.path)
 
-    def save_to_ms(self, filepath: str) -> None:
-        shutil.copyfile(self.path, filepath)
+    def save_to_ms(self, directory_path: str) -> None:
+        if self.path is not None:
+            shutil.copytree(self.path, directory_path)

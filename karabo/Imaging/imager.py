@@ -1,6 +1,7 @@
 from distributed import Client, LocalCluster
 
 from karabo.Imaging.image import Image
+from karabo.simulation.Visibility import Visibility
 from karabo.util.dask import get_local_dask_client
 from karabo.util.jupyter import setup_jupyter_env, isNotebook
 
@@ -27,10 +28,9 @@ class Imager:
     In addition, it provides the calculation of the pixel coordinates of point sources.
     """
 
-    def __init__(self, mode: str = 'cip',  # Processing  cip | ical | invert | load
+    def __init__(self, visibility: Visibility,
                  logfile: str = None,  # Name of logfile (default is to construct one from msname)
                  performance_file: str = None,  # Name of json file to contain performance information
-                 ingest_msname: str = None,  # MeasurementSet to be read
                  ingest_dd: List[int] = [0],
                  # Data descriptors in MS to read (all must have the same number of channels)
                  ingest_vis_nchan: int = None,  # Number of channels in a single data descriptor in the MS
@@ -51,29 +51,6 @@ class Imager:
                  # Size of Gaussian smoothing, implemented as taper in weights (rad)
                  imaging_dopsf: Union[bool, str] = False,  # Make the PSF instead of the dirty image?
                  imaging_dft_kernel: str = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
-                 # imaging_uvmax: float = None,  # NotImplementedByRASCIL despite it's documented
-                 # imaging_uvmin: float = None,  # NotImplementedByRASCIL despite it's documented
-                 # imaging_rmax: float = None,  # NotImplementedByRASCIL despite it's documented
-                 # imaging_rmin: float = None,  # NotImplementedByRASCIL despite it's documented
-                 # calibration_reset_skymodel: Union[bool, str] = True,
-                 # # Reset the initial skymodel after initial calibration?
-                 # calibration_T_first_selfcal: int = 1,
-                 # # First selfcal for T (complex gain). T is common to both receptors
-                 # calibration_T_phase_only: Union[bool, str] = True,  # Phase only solution
-                 # calibration_T_timeslice: float = None,  # Solution length (s) 0 means minimum
-                 # calibration_G_first_selfcal: int = 3,
-                 # # First selfcal for G (complex gain). G is different for the two receptors
-                 # calibration_G_phase_only: Union[bool, str] = False,  # Phase only solution?
-                 # calibration_G_timeslice: float = None,  # Solution length (s) 0 means minimum
-                 # calibration_B_first_selfcal: int = 4,
-                 # # First selfcal for B (bandpass complex gain). B is complex gain per frequency.
-                 # calibration_B_phase_only: Union[bool, str] = False,  # Phase only solution
-                 # calibration_B_timeslice: float = None,  # Solution length (s)
-                 # calibration_global_solution: Union[bool, str] = True,  # Solve across frequency
-                 # calibration_context: str = 'T',  # Terms to solve (in order e.g. TGB)
-                 # use_initial_skymodel: Union[bool, str] = False,  # Whether to use an initial SkyModel in ICAL or not
-                 # input_skycomponent_file: str = None,
-                 # Input name of skycomponents file (in hdf or txt format) for initial SkyModel in ICAL
                  num_bright_sources: int = None,
                  # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
                  clean_algorithm: str = 'mmclean',  # Type of deconvolution algorithm (hogbom or msclean or mmclean)
@@ -114,10 +91,9 @@ class Imager:
                  # dask_connect_timeout: str = None,  # Dask connect timeout
                  # dask_malloc_trim_threshold: int = 0  # Threshold for trimming memory on release (0 is aggressive)
                  ):
-        self.mode: str = mode
         self.logfile: str = logfile
         self.performance_file: str = performance_file
-        self.ingest_msname: str = ingest_msname
+        self.visibility: Visibility = visibility
         self.ingest_dd: List[int] = ingest_dd
         self.ingest_vis_nchan: int = ingest_vis_nchan
         self.ingest_chan_per_blockvis: int = ingest_chan_per_blockvis
@@ -136,35 +112,6 @@ class Imager:
         self.imaging_gaussian_taper: float = imaging_gaussian_taper
         self.imaging_dopsf: Union[bool, str] = imaging_dopsf
         self.imaging_dft_kernel: str = imaging_dft_kernel
-        # self.imaging_uvmax: float = imaging_uvmax
-        # self.imaging_uvmin: float = imaging_uvmin
-        # self.imaging_rmax: float = imaging_rmax
-        # self.imaging_rmin: float = imaging_rmin
-        # self.calibration_reset_skymodel: Union[bool, str] = calibration_reset_skymodel
-        # self.calibration_T_first_selfcal: int = calibration_T_first_selfcal
-        # self.calibration_T_phase_only: Union[bool, str] = calibration_T_phase_only
-        # self.calibration_T_timeslice: float = calibration_T_timeslice
-        # self.calibration_G_first_selfcal: int = calibration_G_first_selfcal
-        # self.calibration_G_phase_only: Union[bool, str] = calibration_G_phase_only
-        # self.calibration_G_timeslice: float = calibration_G_timeslice
-        # self.calibration_B_first_selfcal: int = calibration_B_first_selfcal
-        # self.calibration_B_phase_only: Union[bool, str] = calibration_B_phase_only
-        # self.calibration_B_timeslice: float = calibration_B_timeslice
-        # self.calibration_global_solution: Union[bool, str] = calibration_global_solution
-        # self.calibration_context: str = calibration_context
-        # self.use_initial_skymodel: Union[bool, str] = use_initial_skymodel
-        # self.input_skycomponent_file: str = input_skycomponent_file
-        # self.use_dask: Union[bool, str] = use_dask
-        # self.dask_nthreads: int = dask_nthreads
-        # self.dask_memory: str = dask_memory
-        # self.dask_memory_usage_file: str = dask_memory_usage_file
-        # self.dask_nodes: str = dask_nodes
-        # self.dask_nworkers: int = dask_nworkers
-        # self.dask_scheduler: str = dask_scheduler
-        # self.dask_scheduler_file: str = dask_scheduler_file
-        # self.dask_tcp_timeout: str = dask_tcp_timeout
-        # self.dask_connect_timeout: str = dask_connect_timeout
-        # self.dask_malloc_trim_threshold: int = dask_malloc_trim_threshold
 
     def __getattribute__(self, name) -> object:
         """
@@ -181,7 +128,7 @@ class Imager:
         Get Dirty Image of visibilities passed to the Imager.
         :return: dirty image of visibilities.
         """
-        block_visibilities = create_blockvisibility_from_ms(self.ingest_msname)
+        block_visibilities = create_blockvisibility_from_ms(self.visibility.path)
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
@@ -233,7 +180,7 @@ class Imager:
         rsexecute.set_client(client)
 
         blockviss = create_blockvisibility_from_ms_rsexecute(
-            msname=self.ingest_msname,
+            msname=self.visibility.path,
             nchan_per_blockvis=self.ingest_chan_per_blockvis,
             nout=self.ingest_vis_nchan // self.ingest_chan_per_blockvis,
             dds=self.ingest_dd,
@@ -262,28 +209,28 @@ class Imager:
             context=self.imaging_context,  # Use nifty-gridder
             threads=self.imaging_ng_threads,
             wstacking=self.imaging_w_stacking == "True",  # Correct for w term in gridding
-            niter=self.clean_niter,  # iterations in minor cycle
-            nmajor=self.clean_nmajor,  # Number of major cycles
-            algorithm=self.clean_algorithm,
-            gain=self.clean_gain,  # CLEAN loop gain
-            scales=self.clean_scales,  # Scales for multi-scale cleaning
-            fractional_threshold=self.clean_fractional_threshold,
+            niter=clean_niter,  # iterations in minor cycle
+            nmajor=clean_nmajor,  # Number of major cycles
+            algorithm=clean_algorithm,
+            gain=clean_gain,  # CLEAN loop gain
+            scales=clean_scales,  # Scales for multi-scale cleaning
+            fractional_threshold=clean_fractional_threshold,
             # Threshold per major cycle
-            threshold=self.clean_threshold,  # Final stopping threshold
-            nmoment=self.clean_nmoment,
+            threshold=clean_threshold,  # Final stopping threshold
+            nmoment=clean_nmoment,
             # Number of frequency moments (1 = no dependence)
-            psf_support=self.clean_psf_support,
+            psf_support=clean_psf_support,
             # Support of PSF used in minor cycles (halfwidth in pixels)
-            restored_output=self.clean_restored_output,  # Type of restored image
-            deconvolve_facets=self.clean_facets,
-            deconvolve_overlap=self.clean_overlap,
-            deconvolve_taper=self.clean_taper,
-            restore_facets=self.clean_restore_facets,
-            restore_overlap=self.clean_restore_overlap,
-            restore_taper=self.clean_restore_taper,
+            restored_output=clean_restored_output,  # Type of restored image
+            deconvolve_facets=clean_facets,
+            deconvolve_overlap=clean_overlap,
+            deconvolve_taper=clean_taper,
+            restore_facets=clean_restore_facets,
+            restore_overlap=clean_restore_overlap,
+            restore_taper=clean_restore_taper,
             dft_compute_kernel=self.imaging_dft_kernel,
-            component_threshold=self.clean_component_threshold,
-            component_method=self.clean_component_method,
+            component_threshold=clean_component_threshold,
+            component_method=clean_component_method,
             flat_sky=self.imaging_flat_sky,
             clean_beam=clean_beam,
             clean_algorithm=clean_algorithm,
