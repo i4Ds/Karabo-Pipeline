@@ -8,7 +8,7 @@ RUN conda update conda && \
 
 RUN conda create -n karabo python=3.8
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
-RUN conda install -c i4ds -c conda-forge karabo-pipeline=0.2.0
+RUN conda install -c i4ds -c conda-forge karabo-pipeline
 
 RUN echo "conda activate karabo" >> ~/.bashrc
 SHELL [ "/bin/bash" ]
