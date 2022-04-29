@@ -27,7 +27,7 @@ class TestImage(unittest.TestCase):
     def test_dirty_image(self):
         setup_jupyter_env()
         vis = Visibility()
-        vis.load_ms_file("karabo/data/visibilities_gleam.ms")
+        vis.load_ms_file("karabo/test/data/visibilities_gleam.ms")
         imager = Imager(vis, imaging_npixel=2048,
                         imaging_cellsize=3.878509448876288e-05)
 
