@@ -10,7 +10,7 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy import units as u
 from astropy import wcs as awcs
-
+import copy
 from karabo.simulation.telescope import __get_module_absolute_path
 from karabo.simulation.utils import intersect2D
 
@@ -148,15 +148,18 @@ class SkyModel:
         :param outer_radius_deg: Outer raidus in degrees
         :param ra0_deg: Phase center right ascention
         :param dec0_deg: Phase center declination
+        :return sky: Filtered copy of the sky
         """
+        copied_sky = copy.deepcopy(self)
         inner_circle = SphericalCircle((ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg)
         outer_circle = SphericalCircle((ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg)
-        outer_sources = outer_circle.contains_points(self[:, 0:2]).astype('int')
-        inner_sources = inner_circle.contains_points(self[:, 0:2]).astype('int')
+        outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype('int')
+        inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype('int')
         filtered_sources = np.array(outer_sources - inner_sources, dtype='bool')
         filtered_sources_idxs = np.where(filtered_sources == True)[0]
-        self.sources = self.sources[filtered_sources_idxs]
-        self.__update_sky_model()
+        copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
+        copied_sky.__update_sky_model()
+        return copied_sky
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """

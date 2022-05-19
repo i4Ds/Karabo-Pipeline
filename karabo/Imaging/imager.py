@@ -247,7 +247,8 @@ class Imager:
         export_image_to_fits(deconvolved_image, deconvoled_image.file.path)
 
         restored_image = Image()
-        export_image_to_fits(restored, restored_image.file.path)
+        restored_gathered = image_gather_channels(restored)
+        export_image_to_fits(restored_gathered, restored_image.file.path)
 
         residual = remove_sumwt(residual)
         residual_image = image_gather_channels(residual)
