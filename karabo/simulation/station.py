@@ -16,7 +16,7 @@ class Station:
         long, lat = east_north_to_long_lat(position.x, position.y, parent_longitude, parent_latitude)
         self.longitude: float = long
         self.latitude: float = lat
-        self.altitude: float = parent_altitude
+        self.altitude: float = position.z
 
     def add_station_antenna(self, antenna: EastNorthCoordinate):
         self.antennas.append(antenna)
