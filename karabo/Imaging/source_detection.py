@@ -1,12 +1,15 @@
-from bdsf import image as bdsfImage
+import numpy as np
+from bdsf import image as bdsf_image
+from scipy.spatial.distance import cdist
 
 from karabo.Imaging.image import Image
+from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
 
 
 class SourceDetectionResult:
-    def __init__(self, detection: bdsfImage):
-        self.sources = []
+    def __init__(self, detection: bdsf_image):
+        self.detected_sources = []
         self.detection = detection
         self.sources_file = FileHandle()
         detection.write_catalog(outfile=self.sources_file.path, catalog_type="srl", format="csv", clobber=True)
@@ -31,7 +34,7 @@ class SourceDetectionResult:
                         except:
                             value = cell
                         n_row.append(value)
-                    self.sources.append(n_row)
+                    self.detected_sources.append(n_row)
 
     def __get_result_image(self, image_type: str) -> Image:
         image = Image()
@@ -94,27 +97,75 @@ def detect_sources_in_image(image: Image, beam=None) -> SourceDetectionResult:
     detection = bdsf.process_image(image.file.path, beam=beam)
     return SourceDetectionResult(detection)
 
-#
-# def use_dao_star_finder(image: Image):
-#     from photutils.detection import DAOStarFinder
-#     from photutils.datasets import load_star_image
-#     data = image.get_data()
-#     from astropy.stats import sigma_clipped_stats
-#     mean, median, std = sigma_clipped_stats(data)
-#     finder = DAOStarFinder(0.1 * std, 3.0)
-#     sources = finder(data)
-#     print(sources)
-#
-#     import numpy as np
-#     import matplotlib.pyplot as plt
-#     from astropy.visualization import SqrtStretch
-#     from astropy.visualization.mpl_normalize import ImageNormalize
-#     from photutils.aperture import CircularAperture
-#     positions = np.transpose((sources['xcentroid'], sources['ycentroid']))
-#     apertures = CircularAperture(positions, r=4.)
-#     norm = ImageNormalize(stretch=SqrtStretch())
-#     plt.imshow(data, cmap='Greys', origin='lower', norm=norm,
-#                interpolation='nearest')
-#     apertures.plot(color='blue', lw=1.5, alpha=0.5)
-#     plt.show()
-#
+
+def map_sky_to_detection(sky: SkyModel, prediction: SourceDetectionResult, max_dist: float) -> np.ndarray:
+    return automatic_assignment_of_ground_truth_and_prediction(sky.sources, np.array(prediction.detected_sources),
+                                                               max_dist)
+
+
+def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray, predicted: np.ndarray,
+                                                        max_dist: float) -> np.ndarray:
+    """
+    Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
+    The strategy is the following
+    (similar to AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61, Marc MASIAS MOYSET, 2014):
+
+    Each distance between the predicted and the ground truth sources is calculated.
+    Any distances > `max_dist` are deleted.
+    Assign the closest distance from the predicted and ground truth.
+    Repeat the assignment, until every source from the gtruth has an assigment if possible,
+        not allowing any double assignments from the predicted sources to the ground truth and vice versa.
+    So each ground truth source should be assigned with a predicted source if at leas one was in range
+        and the predicted source assigned to another ground truth source before.
+
+    :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
+    :param predicted: kx2 np.ndarray with the predicted pixel coordinates of the image
+    :param max_dist: maximal allowed distance for assignment
+
+    :return: jx3 np.ndarray where each row represents an assignment
+                 - first column represents the ground truth index
+                 - second column represents the predicted index
+                 - third column represents the euclidean distance between the assignment
+    """
+    euclidian_distances = cdist(ground_truth, predicted)
+    ground_truth_assignments = np.array([None] * ground_truth.shape[0])
+    # gets the euclidian_distances sorted values indices as (m*n of euclidian_distances) x 2 matrix
+    argsort_2dIndexes = np.array(
+        np.unravel_index(np.argsort(euclidian_distances, axis=None), euclidian_distances.shape)).transpose()
+    max_dist_2dIndexes = np.array(np.where(euclidian_distances <= max_dist)).transpose()
+    # can slice it since argsort_2dIndexes is sorted. it is to ensure to not assign sources outside of max_dist
+    argsort_2dIndexes = argsort_2dIndexes[:max_dist_2dIndexes.shape[0]]
+    # to get the closes assignment it is the task to get the first indices pair which each index in each column
+    # occured just once
+    assigned_ground_truth_indexes, assigned_predicted_idxs, eucl_dist = [], [], []
+    for i in range(argsort_2dIndexes.shape[0]):
+        # could maybe perform better if possible assignments argsort_2dIndexes is very large by filtering the
+        # selected idxs after assignment
+        assignment_idxs = argsort_2dIndexes[i]
+        if (assignment_idxs[0] not in assigned_ground_truth_indexes) and (
+                assignment_idxs[1] not in assigned_predicted_idxs):
+            assigned_ground_truth_indexes.append(assignment_idxs[0])
+            assigned_predicted_idxs.append(assignment_idxs[1])
+            eucl_dist.append(euclidian_distances[assignment_idxs[0], assignment_idxs[1]])
+    assignments = np.array([assigned_ground_truth_indexes, assigned_predicted_idxs, eucl_dist]).transpose()
+    return assignments
+
+
+def calculate_evaluation_measures(ground_truth: np.ndarray, predicted: np.ndarray, max_dist: float) -> tuple:
+    """
+    Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
+    - TP are the detections associated with a source
+    - FP are detections without any associated source
+    - FN are sources with no associations with a detection
+
+    :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
+    :param predicted: kx2 np.ndarray with the predicted pixel coordinates of the image
+    :param max_dist: maximal allowed distance for assignment
+
+    :return: TP, FP, FN
+    """
+    assignments = automatic_assignment_of_ground_truth_and_prediction(ground_truth, predicted, max_dist)
+    tp = assignments.shape[0]
+    fp = predicted.shape[0] - assignments.shape[0]
+    fn = ground_truth.shape[0] - assignments.shape[0]
+    return tp, fp, fn
