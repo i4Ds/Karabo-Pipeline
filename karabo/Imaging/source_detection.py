@@ -223,7 +223,7 @@ def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray
     return assignments
 
 
-def calculate_evaluation_measures(assignments: np.darray, ground_truth: np.ndarray, detected: np.ndarray) -> tuple:
+def calculate_evaluation_measures(assignments: np.ndarray, ground_truth: np.ndarray, detected: np.ndarray) -> tuple:
     """
     Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
     - TP are the detections associated with a source
@@ -250,7 +250,10 @@ class SourceDetectionEvaluation:
                  true_positives, false_negatives, false_positives):
         """
         Class that holds the mapping of a source detection to truth mapping.
-        :param assignment: Assignment of detected sources and ground truth
+        :param assignment: jx3 np.ndarray where each row represents an assignment
+                 - first column represents the ground truth index
+                 - second column represents the predicted index
+                 - third column represents the euclidean distance between the assignment
         :param pixel_coordinates_sky: array that holds the pixel coordinates of the ground truth sources
         :param sky: sky model that is the ground truth
         :param pixel_coordinates_detection: array that holds the pixel coordinates of the detected sources
@@ -278,19 +281,35 @@ class SourceDetectionEvaluation:
             squeezed = numpy.squeeze(image.data[:1, :1, :, :])  # remove any (1) size dimensions
             ax.imshow(squeezed, cmap="jet", origin='lower', extent=[0, 2000, 0, 2000])
 
-            self.plot_truth_and_prediction(ax)
+            self.__plot_truth_and_prediction(ax)
 
             plt.show()
         else:
             fig, ax = plt.subplots(1, 1, subplot_kw=dict())
 
-            self.plot_truth_and_prediction(ax)
+            self.__plot_truth_and_prediction(ax)
             plt.show()
 
-    def plot_truth_and_prediction(self, ax):
+    def __plot_truth_and_prediction(self, ax):
+        truth_and_pred_coords = self.get_truth_to_detection_pixel_coordinate_array().transpose()
+        ax.plot(truth_and_pred_coords[0, :], truth_and_pred_coords[1, :], 'o', linewidth=5, color='firebrick')
+        ax.plot(truth_and_pred_coords[2, :], truth_and_pred_coords[3, :], 'x', linewidth=5, color='green')
+
+    def get_truth_to_detection_pixel_coordinate_array(self) -> np.ndarray:
+        """
+        Get a np.ndarray holding the pixel coordinates of the truth and the detection mapped.
+        Can be used for further analysis.
+        :return: nx4 np.ndarray
+            - 1. column x direction pixel of truth
+            - 2. column y direction pixel of truth
+            - 3. column x direction pixel of detection
+            - 4. column y direction pixel of detection
+        """
         truth_indexes = np.array(self.assignment[:, 0], dtype=int)
         truths = self.pixel_coordinates_sky[:, truth_indexes]
         pred_indexes = np.array(self.assignment[:, 0], dtype=int)
         preds = self.pixel_coordinates_sky[:, pred_indexes]
-        ax.plot(truths[0, :], truths[1, :], 'o', linewidth=5, color='firebrick')
-        ax.plot(preds[0, :], preds[1, :], 'x', linewidth=5, color='green')
+        return np.vstack((truths, preds)).transpose()
+
+
+
