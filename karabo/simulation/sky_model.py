@@ -12,7 +12,7 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from numba.np.arrayobj import np_array
 
-from karabo.simulation.telescope import __get_module_absolute_path
+from karabo.data.external_data import GLEAMSurveyDownloadObject
 
 
 class SkyModel:
@@ -387,7 +387,8 @@ class SkyModel:
 
 
 def get_GLEAM_Sky() -> SkyModel:
-    path = f"{__get_module_absolute_path()}/examples/asu-3.fit"
+    survey = GLEAMSurveyDownloadObject()
+    path = survey.get()
     gleam = SkyModel.get_fits_catalog(path)
     df_gleam = gleam.to_pandas()
     ref_freq = 76e6

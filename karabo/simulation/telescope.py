@@ -13,6 +13,7 @@ from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import ALMAVersions, ATCAVersions, CARMAVersions, NGVLAVersions, PDBIVersions, \
     SMAVersions, VLAVersions, ACAVersions
 from karabo.util.FileHandle import FileHandle
+from karabo.util.data_util import __get_module_absolute_path
 
 
 class Telescope:
@@ -238,10 +239,7 @@ def get_OSKAR_Example_Telescope():
     return read_OSKAR_tm_file(path)
 
 
-def __get_module_absolute_path() -> str:
-    path_elements = os.path.abspath(karabo.__file__).split('/')
-    path_elements.pop()
-    return '/'.join(path_elements)
+
 
 
 def read_OSKAR_tm_file(path: str) -> Telescope:
