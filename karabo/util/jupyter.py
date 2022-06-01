@@ -1,9 +1,8 @@
-import logging
+from IPython import get_ipython
 
 
-def setup_jupyter_env():
+def set_rascil_data_directory_env():
     """
-    Needs to be run, when you want to use the pipeline inside of a jupyter notebok.
     Sets specific environment variables that the jupyter kernel is not loading by default.
 
     This function is idempotent (running it more than once brings no side effects).

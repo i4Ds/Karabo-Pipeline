@@ -1,23 +1,46 @@
+import shutil
+
+import numpy
 import numpy as np
+from astropy.wcs import WCS
 from bdsf import image as bdsf_image
+from matplotlib import pyplot as plt
 from scipy.spatial.distance import cdist
 
-from karabo.Imaging.image import Image
+from karabo.Imaging.image import Image, open_fits_image
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
 
 
 class SourceDetectionResult:
-    def __init__(self, detection: bdsf_image):
-        self.detected_sources = []
-        self.detection = detection
-        self.sources_file = FileHandle()
-        detection.write_catalog(outfile=self.sources_file.path, catalog_type="srl", format="csv", clobber=True)
-        self.__read_CSV_sources()
+    def __init__(self, detection: bdsf_image = None, file_path_csv: str = None, source_image: Image = None):
+        if detection is not None:
+            """Create Source Detection Result from bdsf_image output."""
+            self.detected_sources = np.array([])
+            self.detection = detection
+            self.sources_file = FileHandle()
+            detection.write_catalog(outfile=self.sources_file.path, catalog_type="gaul", format="csv", clobber=True)
+            self.__read_CSV_sources(self.sources_file.path)
+        elif file_path_csv is not None:
+            """Create a SourceDetectionResult object from a CSV list. 
+               If SourceDetectionResult is created like this the get_image_<any> functions cannot be used.
+               Rerun the detection to look at the images.
+               However the map_sky_to_detection()"""
+            self.detected_sources = np.array([])
+            self.__read_CSV_sources(file_path_csv)
+            self.detection = None
+            self.source_image = source_image
 
-    def __read_CSV_sources(self):
+    def save_sources_file_as_csv(self, filepath: str):
+        if not filepath.endswith(".csv"):
+            raise EnvironmentError("The passed path and name of file must end with .fits")
+
+        shutil.copy(self.sources_file.path, filepath)
+
+    def __read_CSV_sources(self, file: str):
         import csv
-        with open(self.sources_file.path, newline='') as sourcefile:
+        sources = []
+        with open(file, newline='') as sourcefile:
             spamreader = csv.reader(sourcefile, delimiter=',', quotechar='|')
             for row in spamreader:
                 if len(row) == 0:
@@ -25,16 +48,20 @@ class SourceDetectionResult:
                 if row[0].startswith("#"):
                     continue
                 else:
-                    print(row)
                     n_row = []
                     for cell in row:
-
                         try:
                             value = float(cell)
                         except:
                             value = cell
                         n_row.append(value)
-                    self.detected_sources.append(n_row)
+                    sources.append(n_row)
+        self.detected_sources = np.array(sources)
+
+    def has_source_image(self) -> bool:
+        if self.detection is not None or self.source_image is not None:
+            return True
+        return False
 
     def __get_result_image(self, image_type: str) -> Image:
         image = Image()
@@ -42,6 +69,8 @@ class SourceDetectionResult:
         return image
 
     def get_source_image(self) -> Image:
+        if self.detection is None and self.source_image is not None:
+            return self.source_image
         return self.__get_result_image('cho0')
 
     def get_RMS_map_image(self) -> Image:
@@ -83,6 +112,38 @@ class SourceDetectionResult:
     def get_island_mask(self) -> Image:
         return self.__get_result_image('island_mask')
 
+    def get_pixel_position_of_sources(self):
+        x_pos = self.detected_sources[:, 12]
+        y_pos = self.detected_sources[:, 14]
+        result = np.vstack((np.array(x_pos), np.array(y_pos)))
+        return result
+
+
+def read_detection_from_sources_file_csv(filepath: str, source_image_path: str = None) -> SourceDetectionResult:
+    """
+    Reads in a CSV table and saves it in the Source Detection Result.
+    The format of the CSV is according to the PyBDSF definition.:
+    https://www.astron.nl/citt/pybdsf/write_catalog.html#definition-of-output-columns
+
+    Karabo creates the output from write_catalog(format='csv', catalogue_type='gaul').
+    We suggest to only read in CSV that are created with Karabo (or with PyBDSF itself with the above configuration).
+
+    This method is mainly for convenience.
+    It allows that one can save the CSV with the SourceDetectionResult.save_sources_as_csv_file("./sources.csv")
+    and then read it back in.
+    This helps save runtime and potential wait time, when working with the output of the source detection
+
+    :param source_image_path: (Optional), you can also read in the source image for the detection.
+            If you read this back in you can use plot() function on the SkyModelToSourceDetectionMapping
+    :param filepath: file of CSV sources in the format that
+    :return: SourceDetectionResult
+    """
+    image = None
+    if source_image_path is not None:
+        image = open_fits_image(source_image_path)
+    detection = SourceDetectionResult(file_path_csv=filepath, source_image=image)
+    return detection
+
 
 def detect_sources_in_image(image: Image, beam=None) -> SourceDetectionResult:
     """
@@ -90,17 +151,25 @@ def detect_sources_in_image(image: Image, beam=None) -> SourceDetectionResult:
     See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
 
     :param image: Image to perform source detection on
-    :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N). None means it will try to be extracted from the Image data.
+    :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N).
+                 None means it will try to be extracted from the Image data. (Might fail)
     :return: Source Detection Result containing the found sources
     """
     import bdsf
-    detection = bdsf.process_image(image.file.path, beam=beam)
+    detection = bdsf.process_image(image.file.path, beam=beam, quiet=True, format='csv')
     return SourceDetectionResult(detection)
 
 
-def map_sky_to_detection(sky: SkyModel, prediction: SourceDetectionResult, max_dist: float) -> np.ndarray:
-    return automatic_assignment_of_ground_truth_and_prediction(sky.sources, np.array(prediction.detected_sources),
-                                                               max_dist)
+def map_sky_to_detection(sky: SkyModel,
+                         sky_projection_cell_size: float,
+                         sky_projection_pixel_per_side: float,
+                         prediction: SourceDetectionResult,
+                         max_dist: float):
+    truth = sky.project_sky_to_2d_image(sky_projection_cell_size, sky_projection_pixel_per_side)[:2].astype('float64')
+    pred = np.array(prediction.get_pixel_position_of_sources()).astype('float64')
+    assignment = automatic_assignment_of_ground_truth_and_prediction(truth, pred, max_dist)
+    result = SkyModelToSourceDetectionMapping(assignment, truth, sky, pred, prediction)
+    return result
 
 
 def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray, predicted: np.ndarray,
@@ -127,6 +196,8 @@ def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray
                  - second column represents the predicted index
                  - third column represents the euclidean distance between the assignment
     """
+    ground_truth = ground_truth.transpose()
+    predicted = predicted.transpose()
     euclidian_distances = cdist(ground_truth, predicted)
     ground_truth_assignments = np.array([None] * ground_truth.shape[0])
     # gets the euclidian_distances sorted values indices as (m*n of euclidian_distances) x 2 matrix
@@ -169,3 +240,49 @@ def calculate_evaluation_measures(ground_truth: np.ndarray, predicted: np.ndarra
     fp = predicted.shape[0] - assignments.shape[0]
     fn = ground_truth.shape[0] - assignments.shape[0]
     return tp, fp, fn
+
+
+class SkyModelToSourceDetectionMapping:
+
+    def __init__(self, assignment: np.array, pixel_coordinates_sky: np.array, sky: SkyModel,
+                 pixel_coordinates_detection: np.array, source_detection: SourceDetectionResult):
+        self.assignment = assignment
+        self.pixel_coordinates_sky = pixel_coordinates_sky
+        self.sky = sky
+        self.pixel_coordinates_detection = pixel_coordinates_detection
+        self.source_detection = source_detection
+
+    def plot(self):
+        """
+        Shows the
+
+        :param image_cellsize:
+        :param source_detection: Result of SourceDetection on Image.
+        :param sky: SkyModel used to create the Image. Serves are ground truth.
+        :param image: image that the source detection was run on.
+        :param max_dist: maximum distance of the automatic assignment
+        """
+
+        if self.source_detection.has_source_image():
+            image = self.source_detection.get_source_image()
+            wcs = WCS(image.header)
+            fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=('y', 'x')))
+            squeezed = numpy.squeeze(image.data[:1, :1, :, :])  # remove any (1) size dimensions
+            ax.imshow(squeezed, cmap="jet", origin='lower', extent=[0, 2000, 0, 2000])
+
+            self.plot_truth_and_prediction(ax)
+
+            plt.show()
+        else:
+            fig, ax = plt.subplots(1, 1, subplot_kw=dict())
+
+            self.plot_truth_and_prediction(ax)
+            plt.show()
+
+    def plot_truth_and_prediction(self, ax):
+        truth_indexes = np.array(self.assignment[:, 0], dtype=int)
+        truths = self.pixel_coordinates_sky[:, truth_indexes]
+        pred_indexes = np.array(self.assignment[:, 0], dtype=int)
+        preds = self.pixel_coordinates_sky[:, pred_indexes]
+        ax.plot(truths[0, :], truths[1, :], 'o', linewidth=5, color='firebrick')
+        ax.plot(preds[0, :], preds[1, :], 'x', linewidth=5, color='green')

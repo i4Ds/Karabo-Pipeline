@@ -2,10 +2,6 @@ import os
 import unittest
 
 import numpy as np
-
-from karabo.util.jupyter import setup_jupyter_env
-
-setup_jupyter_env()
 from karabo.Imaging.imager import Imager
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel

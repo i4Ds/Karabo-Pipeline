@@ -2,6 +2,7 @@ import datetime, enum
 from datetime import timedelta, datetime
 from typing import Union
 
+
 class Observation:
     """
     The Observation class acts as an object to hold all important information about an Observation.
@@ -84,3 +85,8 @@ class Observation:
         seconds = rm % 60
         milliseconds = tdelta.microseconds // 1000
         return "{}:{}:{}:{}".format(hours, minutes, seconds, milliseconds)
+
+
+    def observe(self, telescope, sky):
+        # start once
+        pass

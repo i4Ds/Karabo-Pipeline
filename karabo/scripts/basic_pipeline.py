@@ -1,6 +1,3 @@
-from karabo.util.jupyter import setup_jupyter_env
-
-setup_jupyter_env()
 import numpy as np
 from karabo.Imaging import imager
 from karabo.simulation import sky_model, telescope, observation, interferometer

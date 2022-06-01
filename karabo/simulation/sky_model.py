@@ -1,18 +1,18 @@
+import copy
 import math
-from os import stat
-from re import A
 from typing import Callable
-import numpy as np
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import numpy as np
 import oskar
-from astropy.table import Table
-from astropy.visualization.wcsaxes import SphericalCircle
+import pandas as pd
 from astropy import units as u
 from astropy import wcs as awcs
-import copy
+from astropy.table import Table
+from astropy.visualization.wcsaxes import SphericalCircle
+from numba.np.arrayobj import np_array
+
 from karabo.simulation.telescope import __get_module_absolute_path
-from karabo.simulation.utils import intersect2D
 
 
 class SkyModel:
@@ -204,13 +204,12 @@ class SkyModel:
         """
         self.wcs = wcs
 
-    def setup_default_wcs(self, phase_center: list = [0, 0], set_as_instance: bool = False) -> awcs:
+    def setup_default_wcs(self, phase_center: list = [0, 0]) -> awcs:
         """
         Defines a default world coordinate system astropy.wcs
         For more details see https://docs.astropy.org/en/stable/wcs/index.html
 
         :param phase_center: ra-dec location
-        :param set_as_instance: Do you want to bound the wcs to SkyModel instance?
 
         :return: wcs
         """
@@ -219,8 +218,7 @@ class SkyModel:
         w.wcs.cdelt = [-1, 1]  # coordinate increments on sphere per axis
         w.wcs.crval = phase_center
         w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
-        if set_as_instance:
-            self.wcs = w
+        self.wcs = w
         return w
 
     @staticmethod
@@ -344,6 +342,26 @@ class SkyModel:
             self.sources = self.__get_empty_sources(len(value))
         self.sources[key] = value
 
+    def save_sky_model_as_csv(self, path: str):
+        """
+        Save source array into a csv.
+        :param path: path to save the csv file in.
+        """
+        pd.DataFrame(self.sources).to_csv(path, index=False,
+                                          header=["right ascension (deg)",
+                                                  "declination (deg)",
+                                                  "stokes I Flux (Jy)",
+                                                  "stokes Q Flux (Jy)",
+                                                  "stokes U Flux (Jy)",
+                                                  "stokes V Flux (Jy)",
+                                                  "reference_frequency (Hz)",
+                                                  "spectral index (N/A)",
+                                                  "rotation measure (rad / m^2)",
+                                                  "major axis FWHM (arcsec)",
+                                                  "minor axis FWHM (arcsec)",
+                                                  "position angle (deg)",
+                                                  "source id (object)"])
+
     @staticmethod
     def __convert_ra_dec_to_cartesian(ra, dec):
         x = math.cos(ra) * math.cos(dec)
@@ -355,15 +373,17 @@ class SkyModel:
             return r
         return r / norm
 
-    def __create_cartesian_source_array(self, row):
-
-        pos = self.__convert_ra_dec_to_cartesian()
-
     def get_cartesian_sky(self):
         cartesian_sky = np.squeeze(np.apply_along_axis(
             lambda row: [self.__convert_ra_dec_to_cartesian(float(row[0]), float(row[1]))],
             axis=1, arr=self.sources))
         return cartesian_sky
+
+    def project_sky_to_2d_image(self, cell_size: float, pixel_per_side: int):
+        from karabo.Imaging.imager import Imager
+        imager = Imager(visibility=None, imaging_cellsize=cell_size, imaging_npixel=pixel_per_side)
+        coords = imager.sky_sources_to_pixel_coordinates(cell_size, pixel_per_side, self)
+        return coords
 
 
 def get_GLEAM_Sky() -> SkyModel:
@@ -378,4 +398,33 @@ def get_GLEAM_Sky() -> SkyModel:
     sky = SkyModel(sky_array)
     # major axis FWHM, minor axis FWHM, position angle, object id
     sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
+    return sky
+
+
+def read_sky_model_from_csv(path: str) -> SkyModel:
+    """
+    Read a CSV file in to create a SkyModel.
+    The CSV should have the following columns
+
+    - right ascension (deg)
+    - declination (deg)
+    - stokes I Flux (Jy)
+    - stokes Q Flux (Jy): if no information available, set to 0
+    - stokes U Flux (Jy): if no information available, set to 0
+    - stokes V Flux (Jy): if no information available, set to 0
+    - reference_frequency (Hz): if no information available, set to 0
+    - spectral index (N/A): if no information available, set to 0
+    - rotation measure (rad / m^2): if no information available, set to 0
+    - major axis FWHM (arcsec): if no information available, set to 0
+    - minor axis FWHM (arcsec): if no information available, set to 0
+    - position angle (deg): if no information available, set to 0
+    - source id (object): if no information available, set to None
+
+    :param path: file to read in
+    :return: SkyModel
+    """
+    # TODO: add validation of csv
+    dataframe = pd.read_csv(path)
+    sources = dataframe.to_numpy()
+    sky = SkyModel(sources)
     return sky
