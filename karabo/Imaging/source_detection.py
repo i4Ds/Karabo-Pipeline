@@ -25,7 +25,7 @@ class SourceDetectionResult:
             """Create a SourceDetectionResult object from a CSV list. 
                If SourceDetectionResult is created like this the get_image_<any> functions cannot be used.
                Rerun the detection to look at the images.
-               However the map_sky_to_detection()"""
+               However the map_sky_to_detection() can be used, with this source detection result."""
             self.detected_sources = np.array([])
             self.__read_CSV_sources(file_path_csv)
             self.detection = None
@@ -168,11 +168,12 @@ def map_sky_to_detection(sky: SkyModel,
     truth = sky.project_sky_to_2d_image(sky_projection_cell_size, sky_projection_pixel_per_side)[:2].astype('float64')
     pred = np.array(prediction.get_pixel_position_of_sources()).astype('float64')
     assignment = automatic_assignment_of_ground_truth_and_prediction(truth, pred, max_dist)
-    result = SkyModelToSourceDetectionMapping(assignment, truth, sky, pred, prediction)
+    tp, fp, fn = calculate_evaluation_measures(assignment, truth, pred)
+    result = SourceDetectionEvaluation(assignment, truth, sky, pred, prediction, tp, fp, fn)
     return result
 
 
-def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray, predicted: np.ndarray,
+def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray, detected: np.ndarray,
                                                         max_dist: float) -> np.ndarray:
     """
     Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
@@ -188,7 +189,7 @@ def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray
         and the predicted source assigned to another ground truth source before.
 
     :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
-    :param predicted: kx2 np.ndarray with the predicted pixel coordinates of the image
+    :param detected: kx2 np.ndarray with the predicted pixel coordinates of the image
     :param max_dist: maximal allowed distance for assignment
 
     :return: jx3 np.ndarray where each row represents an assignment
@@ -197,8 +198,8 @@ def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray
                  - third column represents the euclidean distance between the assignment
     """
     ground_truth = ground_truth.transpose()
-    predicted = predicted.transpose()
-    euclidian_distances = cdist(ground_truth, predicted)
+    detected = detected.transpose()
+    euclidian_distances = cdist(ground_truth, detected)
     ground_truth_assignments = np.array([None] * ground_truth.shape[0])
     # gets the euclidian_distances sorted values indices as (m*n of euclidian_distances) x 2 matrix
     argsort_2dIndexes = np.array(
@@ -222,45 +223,52 @@ def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray
     return assignments
 
 
-def calculate_evaluation_measures(ground_truth: np.ndarray, predicted: np.ndarray, max_dist: float) -> tuple:
+def calculate_evaluation_measures(assignments: np.darray, ground_truth: np.ndarray, detected: np.ndarray) -> tuple:
     """
     Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
     - TP are the detections associated with a source
     - FP are detections without any associated source
     - FN are sources with no associations with a detection
 
+    :param assignments:
     :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
-    :param predicted: kx2 np.ndarray with the predicted pixel coordinates of the image
+    :param detected: kx2 np.ndarray with the predicted pixel coordinates of the image
     :param max_dist: maximal allowed distance for assignment
 
     :return: TP, FP, FN
     """
-    assignments = automatic_assignment_of_ground_truth_and_prediction(ground_truth, predicted, max_dist)
     tp = assignments.shape[0]
-    fp = predicted.shape[0] - assignments.shape[0]
+    fp = detected.shape[0] - assignments.shape[0]
     fn = ground_truth.shape[0] - assignments.shape[0]
     return tp, fp, fn
 
 
-class SkyModelToSourceDetectionMapping:
+class SourceDetectionEvaluation:
 
     def __init__(self, assignment: np.array, pixel_coordinates_sky: np.array, sky: SkyModel,
-                 pixel_coordinates_detection: np.array, source_detection: SourceDetectionResult):
+                 pixel_coordinates_detection: np.array, source_detection: SourceDetectionResult,
+                 true_positives, false_negatives, false_positives):
+        """
+        Class that holds the mapping of a source detection to truth mapping.
+        :param assignment: Assignment of detected sources and ground truth
+        :param pixel_coordinates_sky: array that holds the pixel coordinates of the ground truth sources
+        :param sky: sky model that is the ground truth
+        :param pixel_coordinates_detection: array that holds the pixel coordinates of the detected sources
+        :param source_detection: Source Detection Result from a previous source detection.
+        """
         self.assignment = assignment
         self.pixel_coordinates_sky = pixel_coordinates_sky
         self.sky = sky
         self.pixel_coordinates_detection = pixel_coordinates_detection
         self.source_detection = source_detection
+        self.true_positives = true_positives
+        self.false_negatives = false_negatives
+        self.false_positives = false_positives
 
     def plot(self):
         """
-        Shows the
-
-        :param image_cellsize:
-        :param source_detection: Result of SourceDetection on Image.
-        :param sky: SkyModel used to create the Image. Serves are ground truth.
-        :param image: image that the source detection was run on.
-        :param max_dist: maximum distance of the automatic assignment
+        Plot the found sources as green x's and the source truth as red 'o' on the original image,
+         that the source detection was performed on.
         """
 
         if self.source_detection.has_source_image():
