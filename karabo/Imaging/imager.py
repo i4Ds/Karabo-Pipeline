@@ -204,15 +204,17 @@ class Imager:
         export_image_to_fits(deconvolved_image, deconvoled_image.file.path)
 
         restored_image = Image()
-        restored_gathered = image_gather_channels(restored)
-        export_image_to_fits(restored_gathered, restored_image.file.path)
+        if isinstance(restored, list):
+            restored = image_gather_channels(restored)
+        export_image_to_fits(restored, restored_image.file.path)
 
         residual = remove_sumwt(residual)
-        residual_image = image_gather_channels(residual)
-        residual_image_file = Image()
-        export_image_to_fits(residual_image, residual_image_file.file.path)
+        if isinstance(residual, list):
+            residual = image_gather_channels(residual)
+        residual_image = Image()
+        export_image_to_fits(residual, residual_image.file.path)
 
-        return deconvoled_image, restored_image, residual_image_file
+        return deconvoled_image, restored_image, residual_image
 
     @staticmethod
     def sky_sources_to_pixel_coordinates(image_cell_size: float, image_pixel_per_side: float, sky: SkyModel,
@@ -229,8 +231,8 @@ class Imager:
         """
 
         if sky.wcs is None:
-            raise "Sky does not have a WCS (world coordinate system). " \
-                  "Please add one with sky.setup_default_wcs(phase_center) or with sky.add_wcs(wcs)"
+            raise BaseException("Sky does not have a WCS (world coordinate system). "
+                  "Please add one with sky.setup_default_wcs(phase_center) or with sky.add_wcs(wcs)")
 
         radian_degree = lambda rad: rad * (180 / np.pi)
         cdelt = radian_degree(image_cell_size)

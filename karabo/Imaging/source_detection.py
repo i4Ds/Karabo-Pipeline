@@ -21,6 +21,9 @@ class SourceDetectionResult:
             self.sources_file = FileHandle()
             detection.write_catalog(outfile=self.sources_file.path, catalog_type="gaul", format="csv", clobber=True)
             self.__read_CSV_sources(self.sources_file.path)
+            # Explicitly pass the source image
+            if source_image is not None:
+                self.source_image = source_image
         elif file_path_csv is not None:
             """Create a SourceDetectionResult object from a CSV list. 
                If SourceDetectionResult is created like this the get_image_<any> functions cannot be used.
@@ -157,7 +160,7 @@ def detect_sources_in_image(image: Image, beam=None) -> SourceDetectionResult:
     """
     import bdsf
     detection = bdsf.process_image(image.file.path, beam=beam, quiet=True, format='csv')
-    return SourceDetectionResult(detection)
+    return SourceDetectionResult(detection, source_image=image)
 
 
 def map_sky_to_detection(sky: SkyModel,
@@ -310,6 +313,3 @@ class SourceDetectionEvaluation:
         pred_indexes = np.array(self.assignment[:, 0], dtype=int)
         preds = self.pixel_coordinates_sky[:, pred_indexes]
         return np.vstack((truths, preds)).transpose()
-
-
-
