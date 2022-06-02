@@ -36,7 +36,6 @@ def get_healpix_map(hdffile):
     return mapp,imapp,freq
 
 
-
 def intersect2D(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
     Find row intersection indices of the whole set between 2D np.ndarrays, a and b.
@@ -53,10 +52,8 @@ def intersect2D(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     nrows, ncols = a.shape
     dtype={'names':['f{}'.format(i) for i in range(ncols)],
            'formats':ncols * [a.dtype]}
-    c = np.intersect1d(a.view(dtype), b.view(dtype), return_indices=True)
-    
-    a_idxs = c[1] # 0=values, 1=a_idxs, 2=b_idxs
-    
+    c = np.intersect1d(a.view(dtype), b.view(dtype), return_indices=True)    
+    a_idxs = c[1] # 0=values, 1=a_idxs, 2=b_idxs 
     return a_idxs
 
 
