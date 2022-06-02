@@ -25,6 +25,7 @@ def read_hd5(hdffile):
     '''
     with h5.File(hdffile, 'r') as f:
         for (path, dset) in h5_diter(f):
+            print(path,dset)
     return f,f.keys()
 
 def get_healpix_map(hdffile):
