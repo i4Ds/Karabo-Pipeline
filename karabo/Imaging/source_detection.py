@@ -170,6 +170,16 @@ def map_sky_to_detection(sky: SkyModel,
                          sky_projection_pixel_per_side: float,
                          prediction: SourceDetectionResult,
                          max_dist: float):
+    """
+    Map a Sky to a source detection result.
+
+    :param sky: Sky that the detection was performed on.
+    :param sky_projection_cell_size: cell size of the sky projection on the image used in the source detection
+    :param sky_projection_pixel_per_side: pixel per side of the sky projection on the image used in the source detection
+    :param prediction: source detection result computed with any source detection algorithm
+    :param max_dist: maximal allowed distance for assignment (in pixel)
+    :return:
+    """
     truth = sky.project_sky_to_2d_image(sky_projection_cell_size, sky_projection_pixel_per_side)[:2].astype('float64')
     pred = np.array(prediction.get_pixel_position_of_sources()).astype('float64')
     assignment = automatic_assignment_of_ground_truth_and_prediction(truth, pred, max_dist)
@@ -195,7 +205,7 @@ def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray
 
     :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
     :param detected: kx2 np.ndarray with the predicted pixel coordinates of the image
-    :param max_dist: maximal allowed distance for assignment
+    :param max_dist: maximal allowed distance for assignment (in pixel)
 
     :return: jx3 np.ndarray where each row represents an assignment
                  - first column represents the ground truth index

@@ -10,7 +10,6 @@ from astropy import units as u
 from astropy import wcs as awcs
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
-from numba.np.arrayobj import np_array
 
 from karabo.data.external_data import GLEAMSurveyDownloadObject
 
