@@ -1,3 +1,5 @@
+import logging
+
 from distributed import Client, LocalCluster
 import psutil
 
@@ -12,12 +14,12 @@ def get_local_dask_client(min_ram_gb_per_worker: int = 4) -> Client:
     cpus = psutil.cpu_count()
     ram = psutil.virtual_memory().total / 1024 / 1024
     if ram / cpus >= min_ram_gb_per_worker:
-        client = Client(LocalCluster(n_workers=cpus))
+        client = Client(LocalCluster(n_workers=cpus), silence_logs=logging.ERROR)
     else:
         workers = cpus
         while ram / workers < min_ram_gb_per_worker:
             workers -= 1
 
-        client = Client(LocalCluster(n_workers=workers))
+        client = Client(LocalCluster(n_workers=workers), silence_logs=logging.ERROR)
     return client
 
