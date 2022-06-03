@@ -1,7 +1,10 @@
 import shutil
 
 import numpy
+import numpy as np
 from astropy.io import fits
+from astropy.wcs import WCS
+
 from karabo.util.FileHandle import FileHandle
 
 
@@ -11,13 +14,32 @@ class Image:
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
-        self.data = None
         self.header = None
+        self.data = None
         self.file = FileHandle()
 
-    def get_squeezed_data(self):
-        if self.data is None:
+    # overwrite getter to make sure it always contains the data
+    @property
+    def data(self):
+        if self._data is None:
             self.__read_fits_data()
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
+
+    @property
+    def header(self):
+        if self._header is None:
+            self.__read_fits_data()
+        return self._header
+
+    @header.setter
+    def header(self, value):
+        self._header = value
+
+    def get_squeezed_data(self):
         return numpy.squeeze(self.data[:1, :1, :, :])
 
     def save_as_fits(self, path_with_name: str):
@@ -28,19 +50,36 @@ class Image:
 
     def plot(self):
         import matplotlib.pyplot as plt
-        if self.data is None:
-            self.__read_fits_data()
+        wcs = WCS(self.header)
+        print(wcs)
 
-        plt.figure()
-        squeezed = numpy.squeeze(self.data[:1, :1, :, :])  # remove any (1) size dimensions
-        # squeezed = squeezed[:1, :, :]
-        plt.imshow(squeezed, cmap="rainbow", origin='lower')
+        slices = []
+        for i in range(wcs.pixel_n_dim):
+            if i == 0:
+                slices.append('x')
+            elif i == 1:
+                slices.append('y')
+            else:
+                slices.append(0)
+
+        plt.subplot(projection=wcs, slices=slices)
+        plt.imshow(self.data[0][0],  cmap="jet", origin='lower')
         plt.colorbar()
         plt.show()
 
     def __read_fits_data(self):
-        image_file = f"{self.file.path}"
-        self.data, self.header = fits.getdata(image_file, ext=0, header=True)
+        self.data, self.header = fits.getdata(self.file.path, ext=0, header=True)
+
+    def get_dimensions_of_image(self) -> []:
+        """
+        Get the sizes of the dimensions of this Image in an array.
+        :return: list with the dimensions.
+        """
+        result = []
+        dimensions = self.header["NAXIS"]
+        for dim in np.arange(0, dimensions, 1):
+            result.append(f'NAXIS${dim}')
+        return result
 
 
 def open_fits_image(fits_path: str) -> Image:

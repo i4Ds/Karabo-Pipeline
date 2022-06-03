@@ -1,3 +1,5 @@
+import logging
+
 from distributed import Client, LocalCluster
 import psutil
 

@@ -3,10 +3,6 @@ from distributed import Client, LocalCluster
 from karabo.Imaging.image import Image
 from karabo.simulation.Visibility import Visibility
 from karabo.util.dask import get_local_dask_client
-from karabo.util.jupyter import setup_jupyter_env, isNotebook
-
-if isNotebook():
-    setup_jupyter_env()
 
 from typing import List, Union, Dict, Tuple
 
@@ -51,45 +47,6 @@ class Imager:
                  # Size of Gaussian smoothing, implemented as taper in weights (rad)
                  imaging_dopsf: Union[bool, str] = False,  # Make the PSF instead of the dirty image?
                  imaging_dft_kernel: str = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
-                 num_bright_sources: int = None,
-                 # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
-                 clean_algorithm: str = 'mmclean',  # Type of deconvolution algorithm (hogbom or msclean or mmclean)
-                 clean_beam: Dict[str, float] = None,
-                 # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args. NEEDS TESTING!!
-                 clean_scales: List[int] = [0],  # Scales for multiscale clean (pixels) e.g. [0, 6, 10]
-                 clean_nmoment: int = 4,  # Number of frequency moments in mmclean (1 is a constant, 2 is linear, etc.)
-                 clean_nmajor: int = 5,  # Number of major cycles in cip or ical
-                 clean_niter: int = 1000,  # Number of minor cycles in CLEAN (i.e. clean iterations)
-                 clean_psf_support: int = 256,  # Half-width of psf used in cleaning (pixels)
-                 clean_gain: float = .1,  # Clean loop gain
-                 clean_threshold: float = 1e-4,  # Clean stopping threshold (Jy/beam)
-                 clean_component_threshold: float = None,
-                 # Sources with absolute flux > this level (Jy) are fit or extracted using skycomponents
-                 clean_component_method: str = 'fit',
-                 # Method to convert sources in image to skycomponents: 'fit' in frequency or 'extract' actual values
-                 clean_fractional_threshold: float = .3,  # Fractional stopping threshold for major cycle
-                 clean_facets: int = 1,  # Number of overlapping facets in faceted clean (along each axis)
-                 clean_overlap: int = 32,  # Overlap of facets in clean (pixels)
-                 clean_taper: str = 'tukey',
-                 # Type of interpolation between facets in deconvolution (none or linear or tukey)
-                 clean_restore_facets: int = 1,  # Number of overlapping facets in restore step (along each axis)
-                 clean_restore_overlap: int = 32,  # Overlap of facets in restore step (pixels)
-                 clean_restore_taper: str = 'tukey',
-                 # Type of interpolation between facets in restore step (none or linear or tukey)
-                 clean_restored_output: str = 'list',  # Type of restored image output: taylor, list, or integrated
-                 # use_dask: Union[bool, str] = True,
-                 # Use Dask processing? False means that graphs are executed as they are constructed
-                 # dask_nthreads: int = None,  # Number of threads in each Dask worker (None means Dask will choose)
-                 # dask_memory: str = None,  # Memory per Dask worker (GB), e.g. 5GB (None means Dask will choose)
-                 # dask_memory_usage_file: str = None,  # File in which to track Dask memory use (using dask-memusage)
-                 # dask_nodes: str = None,  # Node names for SSHCluster
-                 # dask_nworkers: int = None,  # Number of workers (None means Dask will choose)
-                 # dask_scheduler: str = None,
-                 # # Externally defined Dask scheduler e.g. 127.0.0.1:8786 or ssh for SSHCluster or existing for current scheduler
-                 # dask_scheduler_file: str = None,  # Externally defined Dask scheduler file to setup dask cluster
-                 # dask_tcp_timeout: str = None,  # Dask TCP timeout
-                 # dask_connect_timeout: str = None,  # Dask connect timeout
-                 # dask_malloc_trim_threshold: int = 0  # Threshold for trimming memory on release (0 is aggressive)
                  ):
         self.logfile: str = logfile
         self.performance_file: str = performance_file
@@ -247,39 +204,51 @@ class Imager:
         export_image_to_fits(deconvolved_image, deconvoled_image.file.path)
 
         restored_image = Image()
+        if isinstance(restored, list):
+            restored = image_gather_channels(restored)
         export_image_to_fits(restored, restored_image.file.path)
 
         residual = remove_sumwt(residual)
-        residual_image = image_gather_channels(residual)
-        residual_image_file = Image()
-        export_image_to_fits(residual_image, residual_image_file.file.path)
+        if isinstance(residual, list):
+            residual = image_gather_channels(residual)
+        residual_image = Image()
+        export_image_to_fits(residual, residual_image.file.path)
 
-        return deconvoled_image, restored_image, residual_image_file
+        return deconvoled_image, restored_image, residual_image
 
-    def get_pixel_coord(self, sky: SkyModel, filter_outlier: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    @staticmethod
+    def sky_sources_to_pixel_coordinates(image_cell_size: float, image_pixel_per_side: float, sky: SkyModel,
+                                         filter_outlier: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Calculates the pixel coordinates of the produced .fits file
+        Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image
 
-        :param imaging_cellsize: Image cellsize in radian (pixel coverage)
-        :param imaging_npixel: Number of pixels of the image
+        :param image_pixel_per_side: Image cell-size in radian (pixel coverage)
+        :param image_cell_size: Number of pixels of the image
         :param sky: SkyModel with the sources at catalog
         :param filter_outlier: Exclude source
 
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
+
+        if sky.wcs is None:
+            raise BaseException("Sky does not have a WCS (world coordinate system). "
+                  "Please add one with sky.setup_default_wcs(phase_center) or with sky.add_wcs(wcs)")
+
         radian_degree = lambda rad: rad * (180 / np.pi)
-        cdelt = radian_degree(self.imaging_cellsize)
-        crpix = np.floor((self.imaging_npixel / 2)) + 1
+        cdelt = radian_degree(image_cell_size)
+        crpix = np.floor((image_pixel_per_side / 2)) + 1
         wcs = sky.wcs.copy()
         wcs.wcs.crpix = np.array([crpix, crpix])
         wcs.wcs.cdelt = np.array([-cdelt, cdelt])
         px, py = wcs.wcs_world2pix(sky[:, 0], sky[:, 1], 1)
 
-        if filter_outlier:  # pre filtering before calling wcs.wcs_world2pix would be more efficient, however this has to be done in the ra-dec space. maybe for future work
-            px_idxs = np.where(np.logical_and(px <= self.imaging_npixel, px >= 0))[0]
-            py_idxs = np.where(np.logical_and(py <= self.imaging_npixel, py >= 0))[0]
+        # pre-filtering before calling wcs.wcs_world2pix would be more efficient,
+        # however this has to be done in the ra-dec space. maybe for future work
+        if filter_outlier:
+            px_idxs = np.where(np.logical_and(px <= image_pixel_per_side, px >= 0))[0]
+            py_idxs = np.where(np.logical_and(py <= image_pixel_per_side, py >= 0))[0]
             idxs = np.intersect1d(px_idxs, py_idxs)
             px, py = px[idxs], py[idxs]
         else:
             idxs = np.arange(sky.num_sources)
-        return px, py, idxs
+        return np.vstack((px, py, idxs))

@@ -24,7 +24,10 @@ requirements:
     - numpy
     - oskar=2.7.6
     - rascil=0.5.0
+    - requests
+    - astropy
     - healpy
+
 
 test:
   imports:
