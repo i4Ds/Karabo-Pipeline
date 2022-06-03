@@ -63,7 +63,7 @@ class Image:
                 slices.append(0)
 
         plt.subplot(projection=wcs, slices=slices)
-        plt.imshow(data=self.data[0][0], cmap="jet", origin='lower')
+        plt.imshow(self.data[0][0],  cmap="jet", origin='lower')
         plt.colorbar()
         plt.show()
 
