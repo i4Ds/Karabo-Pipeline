@@ -11,3 +11,4 @@ dependencies:
   - dask
   - matplotlib
   - unittest-xml-reporting
+  - healpy

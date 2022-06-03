@@ -10,3 +10,4 @@ dependencies:
   - numpy>=1.21
   - dask
   - matplotlib
+  - healpy
