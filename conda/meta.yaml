@@ -26,6 +26,8 @@ requirements:
     - rascil=0.5.0
     - requests
     - astropy
+    - healpy
+
 
 test:
   imports:
