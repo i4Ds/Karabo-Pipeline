@@ -240,12 +240,12 @@ class SkyModel:
         A scatter plot of y vs. x of the point sources of the SkyModel
 
         :param phase_center:
-        :param xlim:
-        :param ylim:
-        :param figsize:
-        :param title:
-        :param xlabel:
-        :param ylabel:
+        :param xlim: limit of plot in degrees from phase centre in x direction
+        :param ylim: limit of plot in degrees from phase centre in y direction
+        :param figsize: figure size
+        :param title: plot titble
+        :param xlabel: xlabel override
+        :param ylabel: ylabel override
         :param s: size of scatter points
         :param cfun: color function
         :param cmap: color map
