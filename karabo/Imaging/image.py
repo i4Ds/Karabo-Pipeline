@@ -63,8 +63,7 @@ class Image:
                 slices.append(0)
 
         plt.subplot(projection=wcs, slices=slices)
-        squeezed = numpy.squeeze(self.data[:1, :1, :, :])  # remove any (1) size dimensions
-        plt.imshow(squeezed, cmap="jet", origin='lower')
+        plt.imshow(data=self.data[0][0], cmap="jet", origin='lower')
         plt.colorbar()
         plt.show()
 

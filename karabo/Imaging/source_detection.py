@@ -293,7 +293,6 @@ class SourceDetectionEvaluation:
                     slices.append(0)
 
             fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=slices))
-            squeezed = numpy.squeeze(image.data[:, :, :, :])  # remove any (1) size dimensions
             ax.imshow(image.data[0][0], cmap="jet", origin='lower', interpolation=None)
 
             self.__plot_truth_and_prediction(ax)
