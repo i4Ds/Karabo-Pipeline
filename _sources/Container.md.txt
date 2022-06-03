@@ -34,8 +34,9 @@ Also use the function `setup_jupyter_env()` at the start of your .ipynb file. It
 
 ```python
 # run this at the top of your .ipynb
-from karabo.util.jupyter import setup_jupyter_env
-setup_jupyter_env()
+from karabo.util.jupyter import set_rascil_data_directory_env
+
+set_rascil_data_directory_env()
 ```
 
 #### Compose

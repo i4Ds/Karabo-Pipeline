@@ -223,7 +223,7 @@ W-smearing. Use only if you know what you’re doing!</p></li>
 <span id="karabo-simulation-observation-module"></span><h2>karabo.simulation.observation module<a class="headerlink" href="#module-karabo.simulation.observation" title="Permalink to this headline"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="karabo.simulation.observation.Observation">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Observation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_frequency_hz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date_and_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime.datetime</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">datetime.datetime(2022,</span> <span class="pre">4,</span> <span class="pre">29,</span> <span class="pre">12,</span> <span class="pre">19,</span> <span class="pre">47,</span> <span class="pre">781461)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime.timedelta</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">datetime.timedelta(seconds=43200)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency_increment_hz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_centre_ra_deg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_centre_dec_deg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_time_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.observation.Observation" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Observation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_frequency_hz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date_and_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime.datetime</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">datetime.datetime(2022,</span> <span class="pre">6,</span> <span class="pre">3,</span> <span class="pre">14,</span> <span class="pre">11,</span> <span class="pre">9,</span> <span class="pre">97456)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime.timedelta</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">datetime.timedelta(seconds=43200)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency_increment_hz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_centre_ra_deg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_centre_dec_deg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_time_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.observation.Observation" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>The Observation class acts as an object to hold all important information about an Observation.</p>
 <p>Required parameters for running a simulation with these observational settings.</p>
@@ -262,6 +262,11 @@ This function returns a python dictionary formatted according to the OSKAR docum
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.simulation.observation.Observation.get_phase_centre">
+<span class="sig-name descname"><span class="pre">get_phase_centre</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.observation.Observation.get_phase_centre" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="karabo.simulation.observation.Observation.set_length_of_observation">
@@ -372,12 +377,12 @@ The indices in the second dimension of the array correspond to:</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>phase_center</strong> – </p></li>
-<li><p><strong>xlim</strong> – </p></li>
-<li><p><strong>ylim</strong> – </p></li>
-<li><p><strong>figsize</strong> – </p></li>
-<li><p><strong>title</strong> – </p></li>
-<li><p><strong>xlabel</strong> – </p></li>
-<li><p><strong>ylabel</strong> – </p></li>
+<li><p><strong>xlim</strong> – limit of plot in degrees from phase centre in x direction</p></li>
+<li><p><strong>ylim</strong> – limit of plot in degrees from phase centre in y direction</p></li>
+<li><p><strong>figsize</strong> – figure size</p></li>
+<li><p><strong>title</strong> – plot titble</p></li>
+<li><p><strong>xlabel</strong> – xlabel override</p></li>
+<li><p><strong>ylabel</strong> – ylabel override</p></li>
 <li><p><strong>s</strong> – size of scatter points</p></li>
 <li><p><strong>cfun</strong> – color function</p></li>
 <li><p><strong>cmap</strong> – color map</p></li>
@@ -431,6 +436,9 @@ Values outside the range are removed</p>
 <li><p><strong>dec0_deg</strong> – Phase center declination</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return sky</dt>
+<dd class="field-even"><p>Filtered copy of the sky</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -444,6 +452,11 @@ Values outside the range are removed</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.simulation.sky_model.SkyModel.get_cartesian_sky">
+<span class="sig-name descname"><span class="pre">get_cartesian_sky</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.sky_model.SkyModel.get_cartesian_sky" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="karabo.simulation.sky_model.SkyModel.get_fits_catalog">
@@ -472,6 +485,23 @@ For details see <a class="reference external" href="https://docs.astropy.org/en/
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="karabo.simulation.sky_model.SkyModel.plot_sky">
+<span class="sig-name descname"><span class="pre">plot_sky</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phase_center</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.sky_model.SkyModel.plot_sky" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.simulation.sky_model.SkyModel.project_sky_to_2d_image">
+<span class="sig-name descname"><span class="pre">project_sky_to_2d_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_per_side</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.sky_model.SkyModel.project_sky_to_2d_image" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.simulation.sky_model.SkyModel.save_sky_model_as_csv">
+<span class="sig-name descname"><span class="pre">save_sky_model_as_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.sky_model.SkyModel.save_sky_model_as_csv" title="Permalink to this definition"></a></dt>
+<dd><p>Save source array into a csv.
+:param path: path to save the csv file in.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="karabo.simulation.sky_model.SkyModel.set_wcs">
 <span class="sig-name descname"><span class="pre">set_wcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wcs:</span> <span class="pre">&lt;module</span> <span class="pre">'astropy.wcs'</span> <span class="pre">from</span> <span class="pre">'/usr/share/miniconda/envs/karabo_doc_env/lib/python3.9/site-packages/astropy/wcs/__init__.py'&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.simulation.sky_model.SkyModel.set_wcs" title="Permalink to this definition"></a></dt>
 <dd><p>Sets a new world coordinate system astropy.wcs
@@ -485,15 +515,12 @@ For details see <a class="reference external" href="https://docs.astropy.org/en/
 
 <dl class="py method">
 <dt class="sig sig-object py" id="karabo.simulation.sky_model.SkyModel.setup_default_wcs">
-<span class="sig-name descname"><span class="pre">setup_default_wcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phase_center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_as_instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">&lt;module</span> <span class="pre">'astropy.wcs'</span> <span class="pre">from</span> <span class="pre">'/usr/share/miniconda/envs/karabo_doc_env/lib/python3.9/site-packages/astropy/wcs/__init__.py'&gt;</span></span></span><a class="headerlink" href="#karabo.simulation.sky_model.SkyModel.setup_default_wcs" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">setup_default_wcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phase_center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">&lt;module</span> <span class="pre">'astropy.wcs'</span> <span class="pre">from</span> <span class="pre">'/usr/share/miniconda/envs/karabo_doc_env/lib/python3.9/site-packages/astropy/wcs/__init__.py'&gt;</span></span></span><a class="headerlink" href="#karabo.simulation.sky_model.SkyModel.setup_default_wcs" title="Permalink to this definition"></a></dt>
 <dd><p>Defines a default world coordinate system astropy.wcs
 For more details see <a class="reference external" href="https://docs.astropy.org/en/stable/wcs/index.html">https://docs.astropy.org/en/stable/wcs/index.html</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>phase_center</strong> – ra-dec location</p></li>
-<li><p><strong>set_as_instance</strong> – Do you want to bound the wcs to SkyModel instance?</p></li>
-</ul>
+<dd class="field-odd"><p><strong>phase_center</strong> – ra-dec location</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>wcs</p>
@@ -515,6 +542,41 @@ For more details see <a class="reference external" href="https://docs.astropy.or
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="karabo.simulation.sky_model.get_GLEAM_Sky">
+<span class="sig-name descname"><span class="pre">get_GLEAM_Sky</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#karabo.simulation.sky_model.SkyModel" title="karabo.simulation.sky_model.SkyModel"><span class="pre">karabo.simulation.sky_model.SkyModel</span></a></span></span><a class="headerlink" href="#karabo.simulation.sky_model.get_GLEAM_Sky" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="karabo.simulation.sky_model.read_sky_model_from_csv">
+<span class="sig-name descname"><span class="pre">read_sky_model_from_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#karabo.simulation.sky_model.SkyModel" title="karabo.simulation.sky_model.SkyModel"><span class="pre">karabo.simulation.sky_model.SkyModel</span></a></span></span><a class="headerlink" href="#karabo.simulation.sky_model.read_sky_model_from_csv" title="Permalink to this definition"></a></dt>
+<dd><p>Read a CSV file in to create a SkyModel.
+The CSV should have the following columns</p>
+<ul class="simple">
+<li><p>right ascension (deg)</p></li>
+<li><p>declination (deg)</p></li>
+<li><p>stokes I Flux (Jy)</p></li>
+<li><p>stokes Q Flux (Jy): if no information available, set to 0</p></li>
+<li><p>stokes U Flux (Jy): if no information available, set to 0</p></li>
+<li><p>stokes V Flux (Jy): if no information available, set to 0</p></li>
+<li><p>reference_frequency (Hz): if no information available, set to 0</p></li>
+<li><p>spectral index (N/A): if no information available, set to 0</p></li>
+<li><p>rotation measure (rad / m^2): if no information available, set to 0</p></li>
+<li><p>major axis FWHM (arcsec): if no information available, set to 0</p></li>
+<li><p>minor axis FWHM (arcsec): if no information available, set to 0</p></li>
+<li><p>position angle (deg): if no information available, set to 0</p></li>
+<li><p>source id (object): if no information available, set to None</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – file to read in</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>SkyModel</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -709,7 +771,7 @@ Each row is one station
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, i4ds.
-      <span class="lastupdated">Last updated on Apr 29, 2022.
+      <span class="lastupdated">Last updated on Jun 03, 2022.
       </span></p>
   </div>
 
