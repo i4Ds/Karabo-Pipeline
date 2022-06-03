@@ -6,6 +6,7 @@ from karabo.Imaging.source_detection import detect_sources_in_image
 # from karabo.Imaging.source_detection import  use_dao_star_finder
 from karabo.simulation.Visibility import Visibility
 from karabo.Imaging.imager import Imager
+from karabo.test import data_path
 
 
 class TestImage(unittest.TestCase):
@@ -22,7 +23,7 @@ class TestImage(unittest.TestCase):
 
     def test_dirty_image(self):
         vis = Visibility()
-        vis.load_ms_file("./data/visibilities_gleam.ms")
+        vis.load_ms_file(f"{data_path}/visibilities_gleam.ms")
         imager = Imager(vis, imaging_npixel=2048,
                         imaging_cellsize=3.878509448876288e-05)
 
@@ -32,28 +33,28 @@ class TestImage(unittest.TestCase):
         dirty.plot()
 
     # # removed t from tests to force it to not run on test cases, as this test case takes too long
-    def test_clean(self):
-        visibility = Visibility()
-        visibility.load_ms_file("./data/visibilities_gleam.ms")
-        imager = Imager(visibility,
-                        ingest_dd=[0],
-                        ingest_vis_nchan=16,
-                        ingest_chan_per_blockvis=1,
-                        ingest_average_blockvis=True,
-                        imaging_npixel=2048,
-                        imaging_cellsize=3.878509448876288e-05,
-                        imaging_weighting='robust',
-                        imaging_robustness=-.5)
-        result = imager.imaging_rascil()
-        print(result)
+    # def test_clean(self):
+    #     visibility = Visibility()
+    #     visibility.load_ms_file("./data/visibilities_gleam.ms")
+    #     imager = Imager(visibility,
+    #                     ingest_dd=[0],
+    #                     ingest_vis_nchan=16,
+    #                     ingest_chan_per_blockvis=1,
+    #                     ingest_average_blockvis=True,
+    #                     imaging_npixel=2048,
+    #                     imaging_cellsize=3.878509448876288e-05,
+    #                     imaging_weighting='robust',
+    #                     imaging_robustness=-.5)
+    #     result = imager.imaging_rascil()
+    #     print(result)
 
-    def test_source_detection(self):
-        restored = open_fits_image("karabo/test/data/restored.fits")
-        detection_result = detect_sources_in_image(restored)
-        residual = detection_result.get_gaussian_residual_image()
-        residual.save_as_fits("result/gaus_residual.fits")
-        residual.plot()
-        detection_result.detection.show_fit()
+    # def test_source_detection(self):
+    #     restored = open_fits_image("karabo/test/data/restored.fits")
+    #     detection_result = detect_sources_in_image(restored)
+    #     residual = detection_result.get_gaussian_residual_image()
+    #     residual.save_as_fits("result/gaus_residual.fits")
+    #     residual.plot()
+    #     detection_result.detection.show_fit()
 
     # def test_source_detection_on_residual(self):
     #     residual = open_fits_image("./data/residual.fits")
