@@ -31,6 +31,7 @@ class TestSourceDetection(unittest.TestCase):
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv("./data/detection.csv",
                                                          source_image_path="./data/restored.fits")
+        detection.save_sources_file_as_csv("./detection.csv")
         mapping = source_detection.map_sky_to_detection(sky, 3.878509448876288e-05, 2048, detection, 10)
         mapping.plot()
 

@@ -1,5 +1,6 @@
 import shutil
 
+import matplotlib.colors
 import numpy
 import numpy as np
 from astropy.wcs import WCS
@@ -29,6 +30,7 @@ class SourceDetectionResult:
                If SourceDetectionResult is created like this the get_image_<any> functions cannot be used.
                Rerun the detection to look at the images.
                However the map_sky_to_detection() can be used, with this source detection result."""
+            self.sources_file = FileHandle(existing_file_path=file_path_csv)
             self.detected_sources = np.array([])
             self.__read_CSV_sources(file_path_csv)
             self.detection = None
@@ -36,7 +38,7 @@ class SourceDetectionResult:
 
     def save_sources_file_as_csv(self, filepath: str):
         if not filepath.endswith(".csv"):
-            raise EnvironmentError("The passed path and name of file must end with .fits")
+            raise EnvironmentError("The passed path and name of file must end with .csv")
 
         shutil.copy(self.sources_file.path, filepath)
 
@@ -291,8 +293,8 @@ class SourceDetectionEvaluation:
                     slices.append(0)
 
             fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=slices))
-            squeezed = numpy.squeeze(image.data[:1, :1, :, :])  # remove any (1) size dimensions
-            ax.imshow(squeezed, cmap="jet", origin='lower', extent=[0, 2000, 0, 2000], interpolation=None)
+            squeezed = numpy.squeeze(image.data[:, :, :, :])  # remove any (1) size dimensions
+            ax.imshow(image.data[0][0], cmap="jet", origin='lower', interpolation=None)
 
             self.__plot_truth_and_prediction(ax)
 
@@ -305,7 +307,8 @@ class SourceDetectionEvaluation:
 
     def __plot_truth_and_prediction(self, ax):
         truth_and_pred_coords = self.get_truth_to_detection_pixel_coordinate_array().transpose()
-        ax.plot(truth_and_pred_coords[0, :], truth_and_pred_coords[1, :], 'o', linewidth=5, color='firebrick')
+        ax.plot(truth_and_pred_coords[0, :], truth_and_pred_coords[1, :], 'o', linewidth=5,
+                color="firebrick", alpha=0.5)
         ax.plot(truth_and_pred_coords[2, :], truth_and_pred_coords[3, :], 'x', linewidth=5, color='green')
 
     def get_truth_to_detection_pixel_coordinate_array(self) -> np.ndarray:
@@ -320,6 +323,6 @@ class SourceDetectionEvaluation:
         """
         truth_indexes = np.array(self.assignment[:, 0], dtype=int)
         truths = self.pixel_coordinates_sky[:, truth_indexes]
-        pred_indexes = np.array(self.assignment[:, 0], dtype=int)
+        pred_indexes = np.array(self.assignment[:, 2], dtype=int)
         preds = self.pixel_coordinates_sky[:, pred_indexes]
         return np.vstack((truths, preds)).transpose()
