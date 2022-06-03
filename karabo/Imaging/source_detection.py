@@ -72,7 +72,7 @@ class SourceDetectionResult:
         return image
 
     def get_source_image(self) -> Image:
-        if self.detection is None and self.source_image is not None:
+        if self.source_image is not None:
             return self.source_image
         return self.__get_result_image('cho0')
 
@@ -280,9 +280,19 @@ class SourceDetectionEvaluation:
         if self.source_detection.has_source_image():
             image = self.source_detection.get_source_image()
             wcs = WCS(image.header)
-            fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=('y', 'x')))
+
+            slices = []
+            for i in range(wcs.pixel_n_dim):
+                if i == 0:
+                    slices.append('x')
+                elif i == 1:
+                    slices.append('y')
+                else:
+                    slices.append(0)
+
+            fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=slices))
             squeezed = numpy.squeeze(image.data[:1, :1, :, :])  # remove any (1) size dimensions
-            ax.imshow(squeezed, cmap="jet", origin='lower', extent=[0, 2000, 0, 2000])
+            ax.imshow(squeezed, cmap="jet", origin='lower', extent=[0, 2000, 0, 2000], interpolation=None)
 
             self.__plot_truth_and_prediction(ax)
 

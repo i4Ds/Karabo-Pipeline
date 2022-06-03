@@ -14,8 +14,8 @@ class Image:
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
-        self.data = None
         self.header = None
+        self.data = None
         self.file = FileHandle()
 
     # overwrite getter to make sure it always contains the data
@@ -28,6 +28,16 @@ class Image:
     @data.setter
     def data(self, value):
         self._data = value
+
+    @property
+    def header(self):
+        if self._header is None:
+            self.__read_fits_data()
+        return self._header
+
+    @header.setter
+    def header(self, value):
+        self._header = value
 
     def get_squeezed_data(self):
         return numpy.squeeze(self.data[:1, :1, :, :])
@@ -43,7 +53,16 @@ class Image:
         wcs = WCS(self.header)
         print(wcs)
 
-        plt.subplot(projection=wcs, slices=('y', 'x'))
+        slices = []
+        for i in range(wcs.pixel_n_dim):
+            if i == 0:
+                slices.append('x')
+            elif i == 1:
+                slices.append('y')
+            else:
+                slices.append(0)
+
+        plt.subplot(projection=wcs, slices=slices)
         squeezed = numpy.squeeze(self.data[:1, :1, :, :])  # remove any (1) size dimensions
         plt.imshow(squeezed, cmap="jet", origin='lower')
         plt.colorbar()

@@ -29,6 +29,7 @@ class TestImage(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.save_as_fits("result/dirty.fits")
         dirty.plot()
+        dirty.plot()
 
     # # removed t from tests to force it to not run on test cases, as this test case takes too long
     def test_clean(self):
