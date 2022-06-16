@@ -37,6 +37,7 @@ class TestImage(unittest.TestCase):
         sky = get_GLEAM_Sky()
         sky.explore_sky([250, -80])
 
+    # TODO: move these on to CSCS Test Infrastructure once we have it.
     # # removed t from tests to force it to not run on test cases, as this test case takes too long
     # def test_clean(self):
     #     visibility = Visibility()

@@ -8,6 +8,7 @@ from karabo.test import data_path
 
 class TestSourceDetection(unittest.TestCase):
 
+    # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_detection(self):
     #     image = open_fits_image("./data/restored.fits")
     #     detection = source_detection.detect_sources_in_image(image)
