@@ -265,7 +265,16 @@ class SkyModel:
             cfun = None
             cmap = None
 
-        fig, ax = plt.subplots(figsize=figsize)
+        slices = []
+        for i in range(wcs.pixel_n_dim):
+            if i == 0:
+                slices.append('x')
+            elif i == 1:
+                slices.append('y')
+            else:
+                slices.append(0)
+
+        fig, ax = plt.subplots(figsize=figsize,  subplot_kw=dict(projection=wcs, slices=slices))
         sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, vmin=vmin, vmax=vmax)
 
         if with_labels:
