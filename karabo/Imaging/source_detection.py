@@ -11,6 +11,7 @@ from scipy.spatial.distance import cdist
 from karabo.Imaging.image import Image, open_fits_image
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
+from karabo.util.plotting_util import get_slices
 
 
 class SourceDetectionResult:
@@ -293,14 +294,7 @@ class SourceDetectionEvaluation:
             image = self.source_detection.get_source_image()
             wcs = WCS(image.header)
 
-            slices = []
-            for i in range(wcs.pixel_n_dim):
-                if i == 0:
-                    slices.append('x')
-                elif i == 1:
-                    slices.append('y')
-                else:
-                    slices.append(0)
+            slices = get_slices(wcs)
 
             fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=slices))
             ax.imshow(image.data[0][0], cmap="jet", origin='lower', interpolation=None)

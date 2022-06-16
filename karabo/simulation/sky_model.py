@@ -12,6 +12,7 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 
 from karabo.data.external_data import GLEAMSurveyDownloadObject
+from karabo.util.plotting_util import get_slices
 
 
 class SkyModel:
@@ -265,7 +266,9 @@ class SkyModel:
             cfun = None
             cmap = None
 
-        fig, ax = plt.subplots(figsize=figsize)
+        slices = get_slices(wcs)
+
+        fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
         sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, vmin=vmin, vmax=vmax)
 
         if with_labels:
