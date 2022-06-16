@@ -1,8 +1,6 @@
 import os
 import unittest
 
-from karabo.Imaging.image import open_fits_image
-from karabo.Imaging.source_detection import detect_sources_in_image
 # from karabo.Imaging.source_detection import  use_dao_star_finder
 from karabo.simulation.Visibility import Visibility
 from karabo.Imaging.imager import Imager
