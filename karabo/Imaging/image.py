@@ -63,7 +63,7 @@ class Image:
                 slices.append(0)
 
         plt.subplot(projection=wcs, slices=slices)
-        plt.imshow(self.data[0][0],  cmap="jet", origin='lower')
+        plt.imshow(self.data[0][0], cmap="jet", origin='lower')
         plt.colorbar()
         plt.show()
 
@@ -78,7 +78,7 @@ class Image:
         result = []
         dimensions = self.header["NAXIS"]
         for dim in np.arange(0, dimensions, 1):
-            result.append(f'NAXIS${dim}')
+            result.append(self.header[f'NAXIS{dim + 1}'])
         return result
 
 

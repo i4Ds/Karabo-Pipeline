@@ -9,9 +9,14 @@ from karabo.util.plotting_util import get_slices
 
 class SourceDetectionEvaluation:
 
-    def __init__(self, assignment: np.array, pixel_coordinates_sky: np.array, sky: SkyModel,
-                 pixel_coordinates_detection: np.array, source_detection: SourceDetectionResult,
-                 true_positives, false_negatives, false_positives):
+    def __init__(self, assignment: np.array,
+                 pixel_coordinates_sky: np.array,
+                 sky: SkyModel,
+                 pixel_coordinates_detection: np.array,
+                 source_detection: SourceDetectionResult,
+                 true_positives,
+                 false_negatives,
+                 false_positives):
         """
         Class that holds the mapping of a source detection to truth mapping.
         :param assignment: jx3 np.ndarray where each row represents an assignment
@@ -75,8 +80,16 @@ class SourceDetectionEvaluation:
         truth_indexes = np.array(self.assignment[:, 0], dtype=int)
         truths = self.pixel_coordinates_sky[:, truth_indexes]
         pred_indexes = np.array(self.assignment[:, 2], dtype=int)
-        preds = self.pixel_coordinates_sky[:, pred_indexes]
+        preds = self.pixel_coordinates_detection[:, pred_indexes]
         return np.vstack((truths, preds)).transpose()
+
+    def map_sky_to_detection_array(self) -> np.ndarray:
+        truth_indexes = np.array(self.assignment[:, 0], dtype=int)
+        pred_indexes = np.array(self.assignment[:, 2], dtype=int)
+        truths = self.sky[:, truth_indexes]
+        predictions = self.source_detection.detected_sources[:, pred_indexes]
+        result = np.stack((truths, predictions))
+        return result
 
     def get_confusion_matrix(self):
         return np.array([[self.true_positives, self.false_negatives],

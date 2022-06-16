@@ -1,12 +1,8 @@
-import shutil
-
 import numpy
 import numpy as np
-
-from karabo.Imaging.image import Image
 from bdsf import image as bdsf_image
 
-from karabo.simulation.sky_model import SkyModel
+from karabo.Imaging.image import Image
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import read_CSV_to_ndarray
 
@@ -36,7 +32,7 @@ class SourceDetectionResult:
         :param filepath:
         :return:
         """
-        numpy.savetxt(filepath, self.detected_sources, delimiter=',', fmt="%d")
+        numpy.savetxt(filepath, self.detected_sources, delimiter=',')
 
     def has_source_image(self) -> bool:
         """
@@ -60,9 +56,6 @@ class SourceDetectionResult:
         y_pos = self.detected_sources[:, 4]
         result = np.vstack((np.array(x_pos), np.array(y_pos)))
         return result
-
-    def compare_with_sky(self, sky: SkyModel):
-        pass
 
 
 class PyBDSFSourceDetectionResult(SourceDetectionResult):

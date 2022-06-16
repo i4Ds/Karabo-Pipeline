@@ -29,7 +29,6 @@ class TestImage(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.save_as_fits("result/dirty.fits")
         dirty.plot()
-        dirty.plot()
 
     def test_explore_sky(self):
         sky = get_GLEAM_Sky()

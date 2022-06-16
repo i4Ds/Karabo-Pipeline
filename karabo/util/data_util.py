@@ -26,8 +26,8 @@ def read_CSV_to_ndarray(file: str) -> np.ndarray:
                 for cell in row:
                     try:
                         value = float(cell)
-                    except:
-                        value = cell
-                    n_row.append(value)
+                        n_row.append(value)
+                    except ValueError:
+                        pass
                 sources.append(n_row)
-    return np.array(sources)
+    return np.array(sources, dtype=float)

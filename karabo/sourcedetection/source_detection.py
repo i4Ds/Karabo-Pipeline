@@ -50,26 +50,30 @@ def detect_sources_in_image(image: Image, beam=None) -> SourceDetectionResult:
     return PyBDSFSourceDetectionResult(detection)
 
 
-def map_sky_to_detection(sky: SkyModel,
-                         sky_projection_cell_size: float,
-                         sky_projection_pixel_per_side: float,
-                         prediction: SourceDetectionResult,
-                         max_dist: float):
+def evaluate_result_with_sky(source_detection_result: SourceDetectionResult, sky: SkyModel,
+                             source_image_cell_size: float, distance_threshold: float):
     """
-    Map a Sky to a source detection result.
+    Evaluate Result of a Source Detection Result by comparing it with the original sky (in Pixel space).
+    The mapping uses the automatic_assignment_of_ground_truth_and_prediction() function
+    and calculate_evaluation_measures() to create the evaluation
 
-    :param sky: Sky that the detection was performed on.
-    :param sky_projection_cell_size: cell size of the sky projection on the image used in the source detection
-    :param sky_projection_pixel_per_side: pixel per side of the sky projection on the image used in the source detection
-    :param prediction: source detection result computed with any source detection algorithm
-    :param max_dist: maximal allowed distance for assignment (in pixel)
+    :param source_detection_result: result that was produced with a source detection algorithm
+    :param sky: sky that was used to create the image
+    :param source_image_cell_size: cellsize in the original source image (used for mapping),
+                                   cannot be read out from the fits file (unfortunately)
+    :param distance_threshold: threshold of distance between two sources,
+                               so that they are still considered in mathching (pixel distance).
     :return:
     """
-    truth = sky.project_sky_to_2d_image(sky_projection_cell_size, sky_projection_pixel_per_side)[:2].astype('float64')
-    pred = np.array(prediction.get_pixel_position_of_sources()).astype('float64')
-    assignment = automatic_assignment_of_ground_truth_and_prediction(truth, pred, max_dist)
+    image = source_detection_result.get_source_image()
+    sky_projection_pixel_per_side = image.get_dimensions_of_image()[0]
+
+    truth = sky.project_sky_to_2d_image(source_image_cell_size, sky_projection_pixel_per_side)[:2].astype(
+        'float64')
+    pred = np.array(source_detection_result.get_pixel_position_of_sources()).astype('float64')
+    assignment = automatic_assignment_of_ground_truth_and_prediction(truth, pred, distance_threshold)
     tp, fp, fn = calculate_evaluation_measures(assignment, truth, pred)
-    result = SourceDetectionEvaluation(assignment, truth, sky, pred, prediction, tp, fp, fn)
+    result = SourceDetectionEvaluation(assignment, truth, sky, pred, source_detection_result, tp, fp, fn)
     return result
 
 
@@ -123,7 +127,8 @@ def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray
     return assignments
 
 
-def calculate_evaluation_measures(assignments: np.ndarray, ground_truth: np.ndarray, detected: np.ndarray) -> tuple:
+def calculate_evaluation_measures(assignments: np.ndarray, ground_truth: np.ndarray,
+                                  detected: np.ndarray) -> tuple:
     """
     Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
     - TP are the detections associated with a source
