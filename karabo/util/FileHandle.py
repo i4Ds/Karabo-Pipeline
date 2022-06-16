@@ -21,7 +21,3 @@ class FileHandle:
             else:
                 self.file = tempfile.NamedTemporaryFile()
                 self.path = self.file.name
-
-    def __del__(self):
-        if os.path.exists(self.path) and self.auto_clean:
-            os.remove(self.path)

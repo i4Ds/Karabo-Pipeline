@@ -77,3 +77,21 @@ class SourceDetectionEvaluation:
         pred_indexes = np.array(self.assignment[:, 2], dtype=int)
         preds = self.pixel_coordinates_sky[:, pred_indexes]
         return np.vstack((truths, preds)).transpose()
+
+    def get_confusion_matrix(self):
+        return np.array([[self.true_positives, self.false_negatives],
+                         [self.false_positives, 0.0]])
+
+    def get_accuracy(self):
+        return self.true_positives / (self.true_positives + self.false_positives + self.false_negatives)
+
+    def get_precision(self):
+        return self.true_positives / (self.true_positives + self.false_positives)
+
+    def get_sensitivity(self):
+        return self.true_positives / (self.true_positives + self.false_negatives)
+
+    def get_f_score(self):
+        p = self.get_precision()
+        sn = self.get_sensitivity()
+        return 2 * (p * sn / (p + sn))

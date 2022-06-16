@@ -1,77 +1,97 @@
 import shutil
 
+import numpy
 import numpy as np
 
 from karabo.Imaging.image import Image
 from bdsf import image as bdsf_image
 
+from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
+from karabo.util.data_util import read_CSV_to_ndarray
 
 
 class SourceDetectionResult:
-    def __init__(self, detection: bdsf_image = None, file_path_csv: str = None, source_image: Image = None):
-        if detection is not None:
-            """Create Source Detection Result from bdsf_image output."""
-            self.detected_sources = np.array([])
-            self.detection = detection
-            self.sources_file = FileHandle()
-            detection.write_catalog(outfile=self.sources_file.path, catalog_type="gaul", format="csv", clobber=True)
-            self.__read_CSV_sources(self.sources_file.path)
-            # Explicitly pass the source image
-            if source_image is not None:
-                self.source_image = source_image
-        elif file_path_csv is not None:
-            """Create a SourceDetectionResult object from a CSV list. 
-               If SourceDetectionResult is created like this the get_image_<any> functions cannot be used.
-               Rerun the detection to look at the images.
-               However the map_sky_to_detection() can be used, with this source detection result."""
-            self.sources_file = FileHandle(existing_file_path=file_path_csv)
-            self.detected_sources = np.array([])
-            self.__read_CSV_sources(file_path_csv)
-            self.detection = None
-            self.source_image = source_image
 
-    def save_sources_file_as_csv(self, filepath: str):
-        if not filepath.endswith(".csv"):
-            raise EnvironmentError("The passed path and name of file must end with .csv")
+    def __init__(self, detected_sources: np.ndarray, source_image: Image):
+        """
+        Generic Source Detection Result Class.
+        Inputting your Source Detection Result as an Array with specified shape and rows
 
-        shutil.copy(self.sources_file.path, filepath)
+        index | ra | dec | pos X | pos Y | total_flux | peak_flux |
+        -----------------------------------------------------------
 
-    def __read_CSV_sources(self, file: str):
-        import csv
-        sources = []
-        with open(file, newline='') as sourcefile:
-            spamreader = csv.reader(sourcefile, delimiter=',', quotechar='|')
-            for row in spamreader:
-                if len(row) == 0:
-                    continue
-                if row[0].startswith("#"):
-                    continue
-                else:
-                    n_row = []
-                    for cell in row:
-                        try:
-                            value = float(cell)
-                        except:
-                            value = cell
-                        n_row.append(value)
-                    sources.append(n_row)
-        self.detected_sources = np.array(sources)
+        Rows can also be left empty if the specified value is not found by your source detection algorithm.
+        More rows can also be added at the end. As they are not used for any internal algorithm.
+
+        :param detected_sources: detected sources in array
+        :param source_image: Image, where the source detection was performed on
+        """
+        self.source_image = source_image
+        self.detected_sources = detected_sources
+
+    def save_sources_to_csv(self, filepath: str):
+        """
+        Save detected Sources to CSV
+        :param filepath:
+        :return:
+        """
+        numpy.savetxt(filepath, self.detected_sources, delimiter=',', fmt="%d")
 
     def has_source_image(self) -> bool:
-        if self.detection is not None or self.source_image is not None:
+        """
+        Check if source image is present.
+        :return: True if present, False if not present
+        """
+        if self.source_image is not None:
             return True
         return False
 
+    def get_source_image(self) -> Image:
+        """
+        Return the source image, where the source detection was performed on.
+        :return: Karabo Image or None (if not supplied)
+        """
+        if self.has_source_image():
+            return self.source_image
+
+    def get_pixel_position_of_sources(self):
+        x_pos = self.detected_sources[:, 3]
+        y_pos = self.detected_sources[:, 4]
+        result = np.vstack((np.array(x_pos), np.array(y_pos)))
+        return result
+
+    def compare_with_sky(self, sky: SkyModel):
+        pass
+
+
+class PyBDSFSourceDetectionResult(SourceDetectionResult):
+
+    def __init__(self, bdsf_detection: bdsf_image):
+        """
+        Source Detection Result Wrapper for source detection results from PyBDSF.
+        The Object allows the use of all Karabo-Source Detection functions on PyBDSF results
+        :param bdsf_detection: PyBDSF result image
+        """
+        sources_file = FileHandle()
+        bdsf_detection.write_catalog(outfile=sources_file.path, catalog_type="gaul", format="csv", clobber=True)
+        bdsf_detected_sources = read_CSV_to_ndarray(sources_file.path)
+        self.detected_sources = self.__transform_bdsf_to_reduced_result_array(bdsf_detected_sources)
+        self.bdsf_detected_sources = bdsf_detected_sources
+        self.bdsf_result = bdsf_detection
+        source_image = self.__get_result_image('ch0')
+
+        super().__init__(self.detected_sources, source_image)
+
+    @staticmethod
+    def __transform_bdsf_to_reduced_result_array(bdsf_detected_sources):
+        sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
+        return sources
+
     def __get_result_image(self, image_type: str) -> Image:
         image = Image()
-        self.detection.export_image(outfile=image.file.path, img_format='fits', img_type=image_type, clobber=True)
+        self.bdsf_result.export_image(outfile=image.file.path, img_format='fits', img_type=image_type, clobber=True)
         return image
-
-    def get_source_image(self) -> Image:
-        if self.source_image is not None:
-            return self.source_image
-        return self.__get_result_image('cho0')
 
     def get_RMS_map_image(self) -> Image:
         return self.__get_result_image('rms')
@@ -111,10 +131,3 @@ class SourceDetectionResult:
 
     def get_island_mask(self) -> Image:
         return self.__get_result_image('island_mask')
-
-    def get_pixel_position_of_sources(self):
-        x_pos = self.detected_sources[:, 12]
-        y_pos = self.detected_sources[:, 14]
-        result = np.vstack((np.array(x_pos), np.array(y_pos)))
-        return result
-

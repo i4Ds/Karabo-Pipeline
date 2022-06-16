@@ -3,7 +3,9 @@ from scipy.spatial.distance import cdist
 
 from karabo.Imaging.image import Image, open_fits_image
 from karabo.simulation.sky_model import SkyModel
-from karabo.sourcedetection.result import SourceDetectionResult
+from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
+from karabo.sourcedetection.result import SourceDetectionResult, PyBDSFSourceDetectionResult
+from karabo.util.data_util import read_CSV_to_ndarray
 
 
 def read_detection_from_sources_file_csv(filepath: str, source_image_path: str = None) -> SourceDetectionResult:
@@ -28,7 +30,8 @@ def read_detection_from_sources_file_csv(filepath: str, source_image_path: str =
     image = None
     if source_image_path is not None:
         image = open_fits_image(source_image_path)
-    detection = SourceDetectionResult(file_path_csv=filepath, source_image=image)
+    detected_sources = read_CSV_to_ndarray(filepath)
+    detection = SourceDetectionResult(detected_sources=detected_sources, source_image=image)
     return detection
 
 
@@ -44,7 +47,7 @@ def detect_sources_in_image(image: Image, beam=None) -> SourceDetectionResult:
     """
     import bdsf
     detection = bdsf.process_image(image.file.path, beam=beam, quiet=True, format='csv')
-    return SourceDetectionResult(detection, source_image=image)
+    return PyBDSFSourceDetectionResult(detection)
 
 
 def map_sky_to_detection(sky: SkyModel,
