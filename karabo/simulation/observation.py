@@ -1,6 +1,6 @@
-import datetime, enum
+import datetime
 from datetime import timedelta, datetime
-from typing import Union
+
 
 class Observation:
     """
@@ -84,3 +84,6 @@ class Observation:
         seconds = rm % 60
         milliseconds = tdelta.microseconds // 1000
         return "{}:{}:{}:{}".format(hours, minutes, seconds, milliseconds)
+
+    def get_phase_centre(self):
+        return [self.phase_centre_ra_deg, self.phase_centre_dec_deg]

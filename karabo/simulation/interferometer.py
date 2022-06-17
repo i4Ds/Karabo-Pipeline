@@ -4,9 +4,11 @@ from typing import Dict, Union, Any
 import oskar
 
 import karabo.error
+from karabo.simulation.Visibility import Visibility
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.util.FileHandle import FileHandle
 
 
 class CorrelationType(enum.Enum):
@@ -55,7 +57,7 @@ class InterferometerSimulation:
                                W-smearing. Use only if you know what you’re doing!
     """
 
-    def __init__(self, ms_path: str = "./result.ms",
+    def __init__(self,
                  vis_path: str = None,
                  channel_bandwidth_hz: float = 0,
                  time_average_sec: float = 0,
@@ -67,7 +69,7 @@ class InterferometerSimulation:
                  force_polarised_ms: bool = False,
                  ignore_w_components: bool = False):
 
-        self.ms_path: str = ms_path
+        self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
         self.time_average_sec: float = time_average_sec
@@ -79,7 +81,7 @@ class InterferometerSimulation:
         self.force_polarised_ms: bool = force_polarised_ms
         self.ignore_w_components: bool = ignore_w_components
 
-    def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation):
+    def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
         """
         Run a singel interferometer simulation with the given sky, telescope.png and observation settings.
         :param telescope: telescope.png model defining the telescope.png configuration
@@ -91,18 +93,20 @@ class InterferometerSimulation:
         observation_settings = observation.get_OSKAR_settings_tree()
         interferometer_settings = self.__get_OSKAR_settings_tree()
         settings = {**interferometer_settings, **observation_settings}
+        telescope.get_OSKAR_telescope()
         settings["telescope"] = {"input_directory":telescope.config_path} # hotfix #59
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)
         simulation = oskar.Interferometer(settings=setting_tree)
-        #simulation.set_telescope_model(telescope.get_OSKAR_telescope()) # outcommented by hotfix #59
+        # simulation.set_telescope_model( # outcommented by hotfix #59
         simulation.set_sky_model(os_sky)
         simulation.run()
+        return self.ms_file
 
     def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
-                "ms_filename": self.ms_path,
+                "ms_filename": self.ms_file.path,
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
                 "time_average_sec": str(self.time_average_sec),
                 "max_time_samples_per_block": str(self.max_time_per_samples),

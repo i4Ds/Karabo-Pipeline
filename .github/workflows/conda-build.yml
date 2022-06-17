@@ -2,6 +2,7 @@ name: Conda Build
 
 on:
   release:
+    types: [published]
   workflow_dispatch:
 
 
@@ -25,4 +26,4 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2 --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2

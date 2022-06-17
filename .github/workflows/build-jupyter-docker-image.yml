@@ -2,6 +2,7 @@ name: Jupyter Docker
 
 on:
   release:
+    types: [published]
 
   workflow_dispatch:
 
