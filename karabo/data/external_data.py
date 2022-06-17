@@ -53,6 +53,13 @@ class GLEAMSurveyDownloadObject(DownloadObject):
 
 
 class ExampleHDF5Map(DownloadObject):
-    
+
     def __init__(self):
-        super().__init__("example_map.h5", "https://swiss-ska.fhnw.ch/index.php/s/Pnrm5bi2QPx9mNz/download/exmaple_map.h5")
+        super().__init__("example_map.h5",
+                         "https://swiss-ska.fhnw.ch/index.php/s/Pnrm5bi2QPx9mNz/download/exmaple_map.h5")
+
+
+class MIGHTEE(DownloadObject):
+
+    def __init__(self):
+        super().__init__("MIGHTEE.fits", "add url")
