@@ -1,16 +1,21 @@
-from os import stat
-from re import A
+import copy
+import math
 from typing import Callable
 
+import h5py as h5
+import healpy as hp
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 import pandas as pd
 from astropy import units as u
 from astropy import wcs as awcs
-import h5py as h5
-import healpy as hp
-from karabo.simulation.utils import intersect2D
+from astropy.table import Table
+from astropy.visualization.wcsaxes import SphericalCircle
+
+from karabo.data.external_data import GLEAMSurveyDownloadObject
+from karabo.simulation.utils import h5_diter
+from karabo.util.plotting_util import get_slices
 
 
 class SkyModel:
