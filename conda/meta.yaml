@@ -27,6 +27,7 @@ requirements:
     - requests
     - astropy
     - healpy
+    - pinocchio
 
 
 test:
