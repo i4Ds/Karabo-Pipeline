@@ -3,7 +3,8 @@ import unittest
 
 import numpy as np
 
-from karabo.simulation.sky_model import SkyModel, get_GLEAM_Sky, read_sky_model_from_csv
+from karabo.data.external_data import ExampleHDF5Map
+from karabo.simulation.sky_model import SkyModel, get_GLEAM_Sky, read_sky_model_from_csv, Polarisation
 from karabo.test import data_path
 
 
@@ -67,4 +68,13 @@ class TestSkyModel(unittest.TestCase):
     def test_read_sky_model(self):
         sky = read_sky_model_from_csv(f"{data_path}/filtered_sky.csv")
         sky.explore_sky(phase_center=[250, -80], figsize=(8, 6), s=80,
-                                 xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
+                        xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
+
+    def test_read_healpix_map(self):
+        download = ExampleHDF5Map()
+        path = download.get()
+        source_array, nside = SkyModel.read_healpix_file_to_sky_model_array(f"{path}",
+                                                                            0,
+                                                                            Polarisation.STOKES_I)
+        sky = SkyModel(source_array, nside=nside)
+        sky.plot_sky([250, -80])

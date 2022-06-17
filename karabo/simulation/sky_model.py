@@ -1,9 +1,8 @@
 import copy
+import enum
 import math
 from typing import Callable
 
-import h5py as h5
-import healpy as hp
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
@@ -14,8 +13,15 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 
 from karabo.data.external_data import GLEAMSurveyDownloadObject
-from karabo.simulation.utils import h5_diter
+from karabo.util.hdf5_util import get_healpix_image, convert_healpix_2_radec
 from karabo.util.plotting_util import get_slices
+
+
+class Polarisation(enum.Enum):
+    STOKES_I = 0,
+    STOKES_Q = 1,
+    STOKES_U = 2,
+    STOKES_V = 3
 
 
 class SkyModel:
@@ -41,7 +47,7 @@ class SkyModel:
 
     """
 
-    def __init__(self, sources: np.ndarray = None, wcs: awcs = None):
+    def __init__(self, sources: np.ndarray = None, wcs: awcs = None, nside: int = 0):
         """
         Initialization of a new SkyModel
 
@@ -313,67 +319,22 @@ class SkyModel:
         """
         return oskar.Sky.from_array(self[:, :-1])
 
+    @staticmethod
+    def read_healpix_file_to_sky_model_array(file, channel, polarisation: Polarisation) -> np.ndarray:
+        """
+        Read a healpix file in hdf5 format.
+        The file should have the map keywords:
 
-    def h5_diter(g, prefix=''):
-        '''
-        Get the data elements from the hdf5 datasets and groups
-        Input: HDF5 file
-        Output: Items and its path of data elements
-        '''
-        for key, item in g.items():
-            path = '{}/{}'.format(prefix, key)
-            if isinstance(item, h5.Dataset):  # test for dataset
-                yield (path, item)
-            elif isinstance(item, h5.Group):  # test for group (go down)
-                yield from h5_diter(item, path)
-
-    def print_hd5_object_and_keys(hdffile):
-        '''
-        Read HDF5 file
-        Returns: HDF Object, relavent keys
-        '''
-        with h5.File(hdffile, 'r') as f:
-            for (path, dset) in h5_diter(f):
-                print(path)
-        return f, f.keys()
-
-    def get_healpix_image(hdffile):
-        '''
-        Get index maps, maps and frequency from HDF5 file
-        '''
-        with h5.File(hdffile, 'r') as f:
-            for (path, dset) in h5_diter(f):
-                pass
-            print(f.keys())
-            mapp = f['map'][:];
-            imapp = f['index_map'][:];
-            freq = f['index_map/freq'][:]
-        return mapp
-
-    def get_vis_from_hdf5(hdffile):
-        '''
-        Get index maps, maps and frequency from HDF5 file
-        '''
-        with h5.File(hdffile, 'r') as f:
-            for (path, dset) in h5_diter(f):
-                pass
-            print(f.keys())
-            vis = f['vis'][:]
-        return vis
-
-    def convert_healpix_2_radec(arr):
-        '''
-        Convert array from healpix to 2-D array of RADEC
-        :param arr:
-        :return: RADEC in degrees
-        '''
-        nside = int(np.sqrt(arr.shape[0] / 12.))
-        print('NSIDE:', nside);
-        index = np.arange(arr.shape[0])
-        theta, phi = hp.pixelfunc.pix2ang(nside, index)
-        ra = np.rad2deg(phi);
-        dec = np.rad2deg(0.5 * np.pi - theta)
-        return ra, dec
+        :param file: hdf5 file path (healpix format)
+        :param channel: Channels of observation (between 0 and maximum numbers of channels of observation)
+        :param polarisation: 0 = Stokes I, 1 = Stokes Q, 2 = Stokes U, 3 = Stokes  V
+        :return:
+        """
+        arr = get_healpix_image(file)
+        filtered = arr[channel][polarisation.value]
+        ra, dec, nside = convert_healpix_2_radec(filtered)
+        size = len(ra)
+        return np.vstack((ra, dec, filtered)).transpose(), nside
 
     def __update_sky_model(self):
         """
