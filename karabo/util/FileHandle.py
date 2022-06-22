@@ -19,7 +19,7 @@ class FileHandle:
                     self.file = open(existing_file_path)
                     self.path = existing_file_path
             else:
-                self.file = tempfile.NamedTemporaryFile()
+                self.file = tempfile.NamedTemporaryFile(mode="w")
                 self.path = self.file.name
 
     def __del__(self):
