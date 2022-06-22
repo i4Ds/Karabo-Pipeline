@@ -2,6 +2,9 @@ import enum
 import os
 import subprocess
 
+import numpy as np
+from matplotlib import pyplot as plt
+
 from karabo.util.FileHandle import FileHandle
 
 
@@ -44,3 +47,29 @@ class BeamPattern:
 
         fit_data_process = subprocess.Popen(["oskar_fit_element_data", f"{settings_file.path}"])
         fit_data_process.communicate()
+
+    def make_cst_from_arr(self, arr, output_file_path):
+        """
+        Takes array of dimensions (*,8), and returns a cst files
+        :param arr:
+        :return:  cst file with given output filename
+        """
+        line1 = 'Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Abs(Theta)[dBi   ]  Phase(Theta)[deg.]  Abs(Phi  )[dBi   ]  Phase(Phi  )[deg.]  Ax.Ratio[dB    ]    '
+        line2 = '------------------------------------------------------------------------------------------------------------------------------------------------------'
+        np.savetxt(str(output_file_path)+'.cst', arr, delimiter=" ", header=line1 + "\n" + line2, comments='')
+
+    def plot_beam(self,theta,phi,absdir):
+        """
+
+        :param theta:
+        :param phi:
+        :param absdir:
+        :return:
+        """
+        fig = plt.figure()
+        ax = fig.add_axes([0.1,0.1,0.8,0.8],polar=True)
+        ax.pcolormesh(phi, theta, absdir) #X,Y & data2D must all be same dimensions
+        plt.show()
+
+
+
