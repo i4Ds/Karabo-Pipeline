@@ -35,7 +35,7 @@ def read_detection_from_sources_file_csv(filepath: str, source_image_path: str =
     return detection
 
 
-def detect_sources_in_image(image: Image, beam=None) -> SourceDetectionResult:
+def detect_sources_in_image(image: Image, beam=None) -> PyBDSFSourceDetectionResult:
     """
     Detecting sources in an image. The Source detection is impemented with the PyBDSF.process_image function.
     See https://www.astron.nl/citt/pybdsf/process_image.html for more information.

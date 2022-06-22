@@ -79,17 +79,35 @@ class SourceDetectionEvaluation:
         """
         truth_indexes = np.array(self.assignment[:, 0], dtype=int)
         truths = self.pixel_coordinates_sky[:, truth_indexes]
-        pred_indexes = np.array(self.assignment[:, 2], dtype=int)
+        pred_indexes = np.array(self.assignment[:, 1], dtype=int)
         preds = self.pixel_coordinates_detection[:, pred_indexes]
         return np.vstack((truths, preds)).transpose()
 
     def map_sky_to_detection_array(self) -> np.ndarray:
         truth_indexes = np.array(self.assignment[:, 0], dtype=int)
-        pred_indexes = np.array(self.assignment[:, 2], dtype=int)
-        truths = self.sky[:, truth_indexes]
-        predictions = self.source_detection.detected_sources[:, pred_indexes]
-        result = np.stack((truths, predictions))
+        pred_indexes = np.array(self.assignment[:, 1], dtype=int)
+        distances = self.assignment[:, 2]
+        distances = np.vstack((distances, np.zeros((6, 7)))).transpose()
+
+        predictions = self.source_detection.detected_sources[pred_indexes]
+        truths = self.__sky_array_to_same_shape_as_detection(truth_indexes, self.sky)
+
+        result = np.stack((truths, predictions, distances))
         return result
+
+    def __sky_array_to_same_shape_as_detection(self,
+                                               sky_indexes: np.ndarray,
+                                               sky_array: np.ndarray) -> np.ndarray:
+        pixel_coords = self.pixel_coordinates_sky[:, sky_indexes]
+        filtered = sky_array[sky_indexes.astype(dtype='uint32')]
+        ra = filtered[:, 0]
+        dec = filtered[:, 1]
+        flux = filtered[:, 2]
+        x_pos = pixel_coords[0]
+        y_pos = pixel_coords[1]
+        peak = np.zeros((len(filtered)))
+        indexes = sky_indexes.transpose()
+        return np.vstack((indexes, ra, dec, x_pos, y_pos, flux, peak)).transpose()
 
     def get_confusion_matrix(self):
         return np.array([[self.true_positives, self.false_negatives],

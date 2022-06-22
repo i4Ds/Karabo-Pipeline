@@ -12,6 +12,7 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 
 from karabo.data.external_data import GLEAMSurveyDownloadObject
+from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
 
 
@@ -285,6 +286,10 @@ class SkyModel:
         plt.show()
 
     def plot_sky(self, phase_center):
+        if self.wcs is None:
+            self.setup_default_wcs(phase_center)
+
+        slices = get_slices(self.wcs)
         ra0, dec0 = phase_center[0], phase_center[1]
         data = self[:, 0:3]
         ra = np.radians(data[:, 0] - ra0)
@@ -294,11 +299,10 @@ class SkyModel:
         x = np.cos(dec) * np.sin(ra)
         y = np.cos(np.radians(dec0)) * np.sin(dec) - \
             np.sin(np.radians(dec0)) * np.cos(dec) * np.cos(ra)
+        plt.subplot(projection=self.wcs, slices=slices)
         sc = plt.scatter(x, y, s=.5, c=log_flux, cmap='plasma',
                          vmin=np.min(log_flux), vmax=np.max(log_flux))
         plt.axis('equal')
-        plt.xlabel('x direction cosine')
-        plt.ylabel('y direction cosine')
         plt.colorbar(sc, label='Log10(Stokes I flux [Jy])')
         plt.show()
 
@@ -431,3 +435,13 @@ def read_sky_model_from_csv(path: str) -> SkyModel:
     sources = dataframe.to_numpy()
     sky = SkyModel(sources)
     return sky
+
+
+def get_random_poisson_disk_sky(
+        min_size: (float, float),
+        max_size: (float, float),
+        flux_min: float,
+        flux_max: float,
+        r=3):
+    sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
+    return SkyModel(sky_array)
