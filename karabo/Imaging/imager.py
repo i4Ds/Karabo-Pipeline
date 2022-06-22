@@ -96,6 +96,7 @@ class Imager:
         return image
 
     def imaging_rascil(self,
+                       client: Client = None,
                        num_bright_sources: int = None,
                        # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
                        clean_algorithm: str = 'mmclean',
@@ -132,7 +133,8 @@ class Imager:
 
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
-        client = get_local_dask_client(5)
+        if client is None:
+            client = get_local_dask_client(5)
         print(client.cluster)
         rsexecute.set_client(client)
 
