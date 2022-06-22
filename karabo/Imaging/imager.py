@@ -136,7 +136,7 @@ class Imager:
         if client is None:
             client = get_local_dask_client(5)
         print(client.cluster)
-        rsexecute.set_client(client)
+        rsexecute.set_client(use_dask=False, use_dlg=False)
 
         blockviss = create_blockvisibility_from_ms_rsexecute(
             msname=self.visibility.path,
