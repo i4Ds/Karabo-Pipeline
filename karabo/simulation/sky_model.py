@@ -11,7 +11,7 @@ from astropy import wcs as awcs
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 
-from karabo.data.external_data import GLEAMSurveyDownloadObject
+from karabo.data.external_data import GLEAMSurveyDownloadObject, MIGHTEESurveyDownloadObject
 from karabo.util.plotting_util import get_slices
 
 
@@ -401,6 +401,20 @@ def get_GLEAM_Sky() -> SkyModel:
     sky = SkyModel(sky_array)
     # major axis FWHM, minor axis FWHM, position angle, object id
     sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
+    return sky
+
+def get_MIGHTEE_Sky() -> SkyModel:
+    survey = MIGHTEESurveyDownloadObject()
+    path = survey.get()
+    mightee = SkyModel.get_fits_catalog(path)
+    df_mightee = mightee.to_pandas()
+    ref_freq = 76e6
+    ra, dec, fp = df_mightee['RA'], df_mightee['DEC'], df_mightee['NU_EFF']
+    sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
+                                 np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
+    sky = SkyModel(sky_array)
+    # major axis FWHM, minor axis FWHM, position angle, object id
+    sky[:, [9, 10, 11, 12]] = df_mightee[['IM_MAJ', 'IM_MIN', 'IM_PA', 'NAME']]
     return sky
 
 

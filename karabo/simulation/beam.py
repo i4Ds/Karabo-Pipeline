@@ -58,17 +58,19 @@ class BeamPattern:
         line2 = '------------------------------------------------------------------------------------------------------------------------------------------------------'
         np.savetxt(str(output_file_path)+'.cst', arr, delimiter=" ", header=line1 + "\n" + line2, comments='')
 
+
+
     def plot_beam(self,theta,phi,absdir):
         """
 
-        :param theta:
-        :param phi:
-        :param absdir:
-        :return:
+        :param theta: in radians
+        :param phi: in radian
+        :param absdir: in DBs
+        :return: polar plot
         """
         fig = plt.figure()
         ax = fig.add_axes([0.1,0.1,0.8,0.8],polar=True)
-        ax.pcolormesh(phi, theta, absdir) #X,Y & data2D must all be same dimensions
+        ax.pcolormesh(phi., theta, absdir) #X,Y & data2D must all be same dimensions
         plt.show()
 
 
