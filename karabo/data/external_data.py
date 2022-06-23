@@ -50,3 +50,16 @@ class GLEAMSurveyDownloadObject(DownloadObject):
     def __init__(self):
         super().__init__("GLEAM_ECG.fits",
                          "https://swiss-ska.fhnw.ch/index.php/s/TFqpCeL882PDqKM/download/GLEAM_EGC.fits")
+
+
+class ExampleHDF5Map(DownloadObject):
+
+    def __init__(self):
+        super().__init__("example_map.h5",
+                         "https://swiss-ska.fhnw.ch/index.php/s/Pnrm5bi2QPx9mNz/download/exmaple_map.h5")
+
+
+class MIGHTEE(DownloadObject):
+
+    def __init__(self):
+        super().__init__("MIGHTEE.fits", "add url")
