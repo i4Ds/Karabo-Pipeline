@@ -55,5 +55,5 @@ class MIGHTEESurveyDownloadObject(DownloadObject):
 
     def __init__(self):
         super().__init__("MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
-                         "https://pub093.cs.technik.fhnw.ch/index.php/s/tFm3AS3bAtJrc6q/download/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits")
+                         "https://swiss-ska.fhnw.ch/index.php/s/tFm3AS3bAtJrc6q/download/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits")
 
