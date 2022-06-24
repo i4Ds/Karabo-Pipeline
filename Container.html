@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -88,9 +89,9 @@
            <div itemprop="articleBody">
              
   <section id="containers">
-<h1>Containers<a class="headerlink" href="#containers" title="Permalink to this headline"></a></h1>
+<h1>Containers<a class="headerlink" href="#containers" title="Permalink to this heading"></a></h1>
 <section id="images">
-<h2>Images<a class="headerlink" href="#images" title="Permalink to this headline"></a></h2>
+<h2>Images<a class="headerlink" href="#images" title="Permalink to this heading"></a></h2>
 <p>There are two docker images available for using the karabo-pipeline without any installation inside a safe environment</p>
 <ul class="simple">
 <li><p>karabo-jupyter: Starting this image provides a full jupyter lab environment with the pipeline pre-installed. Useful for playing around with the pipeline with no commitment and hassle on your own machine.</p></li>
@@ -98,13 +99,13 @@
 </ul>
 </section>
 <section id="singularity-images">
-<h2>Singularity Images<a class="headerlink" href="#singularity-images" title="Permalink to this headline"></a></h2>
+<h2>Singularity Images<a class="headerlink" href="#singularity-images" title="Permalink to this heading"></a></h2>
 <p>! Coming Soon</p>
 </section>
 <section id="docker-images">
-<h2>Docker Images<a class="headerlink" href="#docker-images" title="Permalink to this headline"></a></h2>
+<h2>Docker Images<a class="headerlink" href="#docker-images" title="Permalink to this heading"></a></h2>
 <section id="jupyter-image">
-<h3>Jupyter Image<a class="headerlink" href="#jupyter-image" title="Permalink to this headline"></a></h3>
+<h3>Jupyter Image<a class="headerlink" href="#jupyter-image" title="Permalink to this heading"></a></h3>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker pull ghcr.io/i4ds/karabo-pipeline:jupyter
 </pre></div>
 </div>
@@ -122,7 +123,7 @@ Also use the function <code class="docutils literal notranslate"><span class="pr
 </pre></div>
 </div>
 <section id="compose">
-<h4>Compose<a class="headerlink" href="#compose" title="Permalink to this headline"></a></h4>
+<h4>Compose<a class="headerlink" href="#compose" title="Permalink to this heading"></a></h4>
 <p>If you are familiar with docker-compose, you can also start run it with this compose file. Save this into a file called <code class="docutils literal notranslate"><span class="pre">compose.yaml</span></code> and start the Jupyter Lab Server with <code class="docutils literal notranslate"><span class="pre">docker-compose</span> <span class="pre">-f</span> <span class="pre">compose.yaml</span> <span class="pre">up</span></code></p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;3&#39;</span><span class="w"></span>
 <span class="nt">services</span><span class="p">:</span><span class="w"></span>
@@ -140,7 +141,7 @@ Also use the function <code class="docutils literal notranslate"><span class="pr
 </section>
 </section>
 <section id="cli-command-line-interface-image">
-<h3>CLI (Command Line Interface) Image<a class="headerlink" href="#cli-command-line-interface-image" title="Permalink to this headline"></a></h3>
+<h3>CLI (Command Line Interface) Image<a class="headerlink" href="#cli-command-line-interface-image" title="Permalink to this heading"></a></h3>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker pull ghcr.io/i4ds/karabo-pipeline:cli
 </pre></div>
 </div>
@@ -163,7 +164,7 @@ Also use the function <code class="docutils literal notranslate"><span class="pr
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, i4ds.
-      <span class="lastupdated">Last updated on Jun 03, 2022.
+      <span class="lastupdated">Last updated on Jun 24, 2022.
       </span></p>
   </div>
 

@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -79,10 +80,10 @@ If you validate your code manually, consider just writing a method in a test cla
            <div itemprop="articleBody">
              
   <section id="development-documentation">
-<h1>Development Documentation<a class="headerlink" href="#development-documentation" title="Permalink to this headline"></a></h1>
+<h1>Development Documentation<a class="headerlink" href="#development-documentation" title="Permalink to this heading"></a></h1>
 </section>
 <section id="setup-local-dev-environment">
-<h1>Setup local dev environment<a class="headerlink" href="#setup-local-dev-environment" title="Permalink to this headline"></a></h1>
+<h1>Setup local dev environment<a class="headerlink" href="#setup-local-dev-environment" title="Permalink to this heading"></a></h1>
 <p>First clone the code via git.
 Then create a local development environment with the provided <code class="docutils literal notranslate"><span class="pre">environment-dev.yaml</span></code> file.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda env create -f environment-dev.yaml
@@ -94,7 +95,7 @@ Or a bit more sophisticated. You can use PyCharm or any other Python IDE. Then i
 <p><a class="reference external" href="https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html">Setup Python Interpreter in PyCharm</a>.</p>
 </section>
 <section id="update-documentation">
-<h1>Update documentation<a class="headerlink" href="#update-documentation" title="Permalink to this headline"></a></h1>
+<h1>Update documentation<a class="headerlink" href="#update-documentation" title="Permalink to this heading"></a></h1>
 <p>The docs are built from the python source code and other doc source files located in /doc/src.
 The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation</p>
 <p>If you want to add any sort of extra text like examples or other sort of documentation do this by adding a new .md file or .rst file inside of the /doc/src folder.
@@ -120,7 +121,7 @@ There is also the command <code class="docutils literal notranslate"><span class
 <p>If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. You can create a different conda environment with the <code class="docutils literal notranslate"><span class="pre">environment.yaml</span></code> file you find inside if /doc</p>
 </section>
 <section id="update-tests">
-<h1>Update Tests<a class="headerlink" href="#update-tests" title="Permalink to this headline"></a></h1>
+<h1>Update Tests<a class="headerlink" href="#update-tests" title="Permalink to this heading"></a></h1>
 <p>We use the basic <code class="docutils literal notranslate"><span class="pre">unittest</span></code> python package (<a class="reference external" href="https://docs.python.org/3/library/unittest.html">unittest docs</a>).
 The unit tests are run automatically on every push.
 To add a new test simply go to the karabo/test folder.
@@ -138,7 +139,7 @@ Add a new file for a new set of tests in this shape.</p>
 <hr class="docutils" />
 <section id="tip-if-you-validate-your-code-manually-consider-just-writing-a-method-in-a-test-class-instead-of-opening-a-jupyter-notebook-and-writing-a-new-cell-or-a-terminal-window-where-you-would-execute-the-code-you-want-to-test">
 <h2><strong>TIP</strong>
-If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.<a class="headerlink" href="#tip-if-you-validate-your-code-manually-consider-just-writing-a-method-in-a-test-class-instead-of-opening-a-jupyter-notebook-and-writing-a-new-cell-or-a-terminal-window-where-you-would-execute-the-code-you-want-to-test" title="Permalink to this headline"></a></h2>
+If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.<a class="headerlink" href="#tip-if-you-validate-your-code-manually-consider-just-writing-a-method-in-a-test-class-instead-of-opening-a-jupyter-notebook-and-writing-a-new-cell-or-a-terminal-window-where-you-would-execute-the-code-you-want-to-test" title="Permalink to this heading"></a></h2>
 </section>
 </section>
 
@@ -153,7 +154,7 @@ If you validate your code manually, consider just writing a method in a test cla
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, i4ds.
-      <span class="lastupdated">Last updated on Jun 03, 2022.
+      <span class="lastupdated">Last updated on Jun 24, 2022.
       </span></p>
   </div>
 
