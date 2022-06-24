@@ -1,7 +1,7 @@
 import enum
 import os
 import subprocess
-from katbeam import JimBeam
+#from katbeam import JimBeam
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -58,7 +58,7 @@ class BeamPattern:
         line1 = 'Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Abs(Theta)[dBi   ]  Phase(Theta)[deg.]  Abs(Phi  )[dBi   ]  Phase(Phi  )[deg.]  Ax.Ratio[dB    ]    '
         line2 = '------------------------------------------------------------------------------------------------------------------------------------------------------'
         np.savetxt(str(output_file_path)+'.cst', arr, delimiter=" ", header=line1 + "\n" + line2, comments='')
-
+    '''
     def get_meerkat_uhfbeam(f, pol, beamextent):
         """
 
@@ -95,7 +95,7 @@ class BeamPattern:
         plt.ylabel('deg');
         plt.colorbar()
         plt.show()
-
+    '''
     def plot_beam(self,theta,phi,absdir):
         """
 
