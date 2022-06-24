@@ -87,10 +87,10 @@ class SourceDetectionEvaluation:
         truth_indexes = np.array(self.assignment[:, 0], dtype=int)
         pred_indexes = np.array(self.assignment[:, 1], dtype=int)
         distances = self.assignment[:, 2]
-        distances = np.vstack((distances, np.zeros((6, 7)))).transpose()
 
         predictions = self.source_detection.detected_sources[pred_indexes]
         truths = self.__sky_array_to_same_shape_as_detection(truth_indexes, self.sky)
+        distances = np.vstack((distances, np.zeros((6, distances.shape[0])))).transpose()
 
         result = np.stack((truths, predictions, distances))
         return result
@@ -126,3 +126,44 @@ class SourceDetectionEvaluation:
         p = self.get_precision()
         sn = self.get_sensitivity()
         return 2 * (p * sn / (p + sn))
+
+
+class SourceDetectionEvaluationBlock:
+
+    def __init__(self, evaluations: [SourceDetectionEvaluation]):
+        if len(evaluations) != 0:
+            self.evaluations: [SourceDetectionEvaluation] = evaluations
+        else:
+            self.evaluations: [SourceDetectionEvaluation] = []
+
+    def add_evaluation(self, evaluation: SourceDetectionEvaluation):
+        self.evaluations.append(evaluation)
+
+    def flatten_plot(self, index_sky, index_result, index_distance):
+
+        sky = np.concatenate([t.map_sky_to_detection_array()[0] for t in self.evaluations])
+        result = np.concatenate([t.map_sky_to_detection_array()[1] for t in self.evaluations])
+        distance = np.concatenate([t.map_sky_to_detection_array()[2] for t in self.evaluations])
+
+        if not (len(sky) > index_sky >= 0):
+            raise IndexError("Sky Index is not in range")
+
+        if not (len(result) > index_result >= 0):
+            raise IndexError("")
+
+        if not (len(distance) > index_distance >= 0):
+            raise IndexError("")
+
+        x = range(0, len(distance))
+
+        sky_select = sky[:, index_sky]
+
+        result_select = result[:, index_result]
+
+        distance_select = result[:, index_distance]
+
+        fig, ax = plt.subplots()
+        ax.plot(x, sky_select)
+        ax.plot(x, result_select)
+        fig.savefig("./result_full.png")
+

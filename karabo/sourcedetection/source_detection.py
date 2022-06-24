@@ -51,7 +51,7 @@ def detect_sources_in_image(image: Image, beam=None) -> PyBDSFSourceDetectionRes
 
 
 def evaluate_result_with_sky(source_detection_result: SourceDetectionResult, sky: SkyModel,
-                             source_image_cell_size: float, distance_threshold: float):
+                             source_image_cell_size: float, distance_threshold: float, filter_outliers = False):
     """
     Evaluate Result of a Source Detection Result by comparing it with the original sky (in Pixel space).
     The mapping uses the automatic_assignment_of_ground_truth_and_prediction() function
@@ -68,7 +68,7 @@ def evaluate_result_with_sky(source_detection_result: SourceDetectionResult, sky
     image = source_detection_result.get_source_image()
     sky_projection_pixel_per_side = image.get_dimensions_of_image()[0]
 
-    truth = sky.project_sky_to_2d_image(source_image_cell_size, sky_projection_pixel_per_side)[:2].astype(
+    truth = sky.project_sky_to_2d_image(source_image_cell_size, sky_projection_pixel_per_side, filter_outliers)[:2].astype(
         'float64')
     pred = np.array(source_detection_result.get_pixel_position_of_sources()).astype('float64')
     assignment = automatic_assignment_of_ground_truth_and_prediction(truth, pred, distance_threshold)
