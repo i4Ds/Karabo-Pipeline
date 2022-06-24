@@ -57,3 +57,8 @@ class MIGHTEESurveyDownloadObject(DownloadObject):
         super().__init__("MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
                          "https://swiss-ska.fhnw.ch/index.php/s/tFm3AS3bAtJrc6q/download/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits")
 
+
+class ExampleHDF5Map(DownloadObject):
+    def __init__(self):
+        super().__init__("example_map.h5",
+                         "https://swiss-ska.fhnw.ch/index.php/s/Pnrm5bi2QPx9mNz/download/example_map.h5")
