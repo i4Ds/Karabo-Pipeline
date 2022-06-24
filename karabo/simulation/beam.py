@@ -1,6 +1,7 @@
 import enum
 import os
 import subprocess
+from katbeam import JimBeam
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -58,7 +59,42 @@ class BeamPattern:
         line2 = '------------------------------------------------------------------------------------------------------------------------------------------------------'
         np.savetxt(str(output_file_path)+'.cst', arr, delimiter=" ", header=line1 + "\n" + line2, comments='')
 
+    def get_meerkat_uhfbeam(f, pol, beamextent):
+        """
 
+        :param pol:
+        :param beamextent:
+        :return:
+        """
+        beam = JimBeam('MKAT-AA-UHF-JIM-2020');
+        freqlist = uhfbeam.freqMHzlist
+        margin = np.linspace(-beamextent / 2., beamextent / 2., int(beamextent * 2))
+        x, y = np.meshgrid(margin, margin)
+        freqMHz_idx = np.where(freqlist == freqlist.flat[np.abs(freqlist - f).argmin()])[0][0]
+        freqMHz = freqlist[freqMHz_idx]
+        if pol == 'H':
+            beampixels = beam.HH(x, y, freqMHz)
+        elif pol == 'V':
+            beampixels = beam.VV(x, y, freqMHz)
+        else:
+            beampixels = beam.I(x, y, freqMHz)
+            pol = 'I'
+        return beampixels
+
+    def show_beam(beampixels, beamextent, freq, pol):
+        """
+
+        :param beamextent:
+        :param freq:
+        :param pol:
+        :return:
+        """
+        plt.imshow(beampixels, extent=[-beamextent / 2, beamextent / 2, -beamextent / 2, beamextent / 2])
+        plt.title('%s pol beam\nfor %s at %dMHz' % (pol, '', freq))
+        plt.xlabel('deg');
+        plt.ylabel('deg');
+        plt.colorbar()
+        plt.show()
 
     def plot_beam(self,theta,phi,absdir):
         """
