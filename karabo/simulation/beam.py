@@ -70,7 +70,7 @@ class BeamPattern:
         """
         fig = plt.figure()
         ax = fig.add_axes([0.1,0.1,0.8,0.8],polar=True)
-        ax.pcolormesh(phi., theta, absdir) #X,Y & data2D must all be same dimensions
+        ax.pcolormesh(phi, theta, absdir) #TODO (Add check for this) X,Y & data2D must all be same dimensions
         plt.show()
 
 
