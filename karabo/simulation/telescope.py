@@ -239,9 +239,6 @@ def get_OSKAR_Example_Telescope():
     return read_OSKAR_tm_file(path)
 
 
-
-
-
 def read_OSKAR_tm_file(path: str) -> Telescope:
     abs_station_dir_paths = []
     station_position_file = None

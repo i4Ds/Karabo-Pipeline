@@ -6,6 +6,7 @@ from karabo.Imaging.source_detection import detect_sources_in_image
 # from karabo.Imaging.source_detection import  use_dao_star_finder
 from karabo.simulation.Visibility import Visibility
 from karabo.Imaging.imager import Imager
+from karabo.simulation.sky_model import get_GLEAM_Sky
 from karabo.test import data_path
 
 
@@ -32,6 +33,11 @@ class TestImage(unittest.TestCase):
         dirty.plot()
         dirty.plot()
 
+    def test_explore_sky(self):
+        sky = get_GLEAM_Sky()
+        sky.explore_sky([250, -80])
+
+    # TODO: move these on to CSCS Test Infrastructure once we have it.
     # # removed t from tests to force it to not run on test cases, as this test case takes too long
     # def test_clean(self):
     #     visibility = Visibility()
