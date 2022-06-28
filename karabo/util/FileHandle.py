@@ -6,6 +6,7 @@ class FileHandle:
 
     def __init__(self, existing_file_path: str = None, is_dir: bool = False, auto_clean: bool = True):
         self.auto_clean = auto_clean
+        self.isDir = is_dir
         if is_dir:
             self.file = tempfile.TemporaryDirectory()
             self.path = self.file.name
@@ -24,4 +25,7 @@ class FileHandle:
 
     def __del__(self):
         if os.path.exists(self.path) and self.auto_clean:
-            os.remove(self.path)
+            if(self.isDir):
+                os.rmdir(self.path)
+            else:
+                os.remove(self.path)

@@ -1,7 +1,16 @@
-import imp
 import os
 from dataclasses import dataclass
+
+from matplotlib import lines
 from karabo.util.FileHandle import FileHandle
+
+@dataclass
+class ParamInput:
+    name: str
+    isFlag: bool
+    active: bool
+    value: str
+    comment: str
 
 class Pinocchio:
 
@@ -10,13 +19,6 @@ class Pinocchio:
 
     PRMS_CMNT = "#"
     PRMS_CMNT_SPLITTER = "%"
-
-    @dataclass
-    class ParamInput:
-        name: str
-        active: bool
-        value: str
-        comment: str
 
     def __init__(self):
         """
@@ -30,9 +32,9 @@ class Pinocchio:
         self.paramsInputPath = inputFilesPath + Pinocchio.PIN_PARAMS_FILE
         self.outputsInputPath = inputFilesPath + Pinocchio.PIN_OUTPUT_FILE
 
-        self.currConfig: dict[str, self.ParamInput] = self.__loadPinocchioConfigs__()
+        self.currConfig: dict[str, list[ParamInput]] = self.__loadPinocchioConfigs__()
 
-    def __loadPinocchioConfigs__(self) -> dict[str, ParamInput]:
+    def __loadPinocchioConfigs__(self) -> dict[str, list[ParamInput]]:
         configF = open(self.paramsInputPath)
         
         # remove header
@@ -41,7 +43,7 @@ class Pinocchio:
             print("input file is broken or has no header")
             return {}
         
-        configMap: dict[str, self.ParamInput] = {}
+        configMap: dict[str, list[ParamInput]] = {}
         currMapName: str = ""
 
         while line:
@@ -54,7 +56,7 @@ class Pinocchio:
             # header found
             if line[0] == Pinocchio.PRMS_CMNT and line[1] == " ":
                 currMapName = line[2:].strip()
-                configMap[currMapName] = {} 
+                configMap[currMapName] = [] 
                 continue
 
             commentSplit: list[str] = line.split(Pinocchio.PRMS_CMNT_SPLITTER)
@@ -69,21 +71,20 @@ class Pinocchio:
 
             # deactivated flag found
             if len(paramPart) == 2 and len(lineSplit) == 1:
-                configMap[currMapName][lineSplit[1]] = (Pinocchio.InActive, comment)
-                continue
+                configMap[currMapName].append(ParamInput(lineSplit[0], True, False, "", comment))
             
             # deactivated param found
-            if len(paramPart) == 2 and len(lineSplit) == 4:
-                configMap[currMapName][lineSplit[1]] = (Pinocchio.InActive, comment)
+            elif len(paramPart) == 2 and len(lineSplit) == 4:
+                configMap[currMapName].append(ParamInput(lineSplit[0], False, False, " ".join(lineSplit[1:]), comment))
                 continue
 
             # activated flag found
-            if len(lineSplit) == 1:
-                configMap[currMapName][lineSplit[0]] = (Pinocchio.Active, comment)
+            elif len(lineSplit) == 1:
+                configMap[currMapName].append(ParamInput(lineSplit[0], True, True, "", comment))
 
             # param with value found
             elif len(lineSplit) == 2:
-                configMap[currMapName][lineSplit[0]] = (lineSplit[1], comment)
+                configMap[currMapName].append(ParamInput(lineSplit[0], False, True, lineSplit[1], comment))
 
             else:
                 assert False, "invalid entry"
