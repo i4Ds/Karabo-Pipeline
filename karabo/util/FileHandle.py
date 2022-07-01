@@ -1,6 +1,6 @@
 import os
+import shutil
 import tempfile
-
 
 class FileHandle:
 
@@ -26,6 +26,6 @@ class FileHandle:
     def __del__(self):
         if os.path.exists(self.path) and self.auto_clean:
             if(self.isDir):
-                os.rmdir(self.path)
+                shutil.rmtree(self.path, ignore_errors=True)
             else:
                 os.remove(self.path)
