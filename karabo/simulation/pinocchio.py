@@ -1,6 +1,7 @@
 import os
 import shutil
 from dataclasses import dataclass, field
+from tokenize import Double
 
 from karabo.util.FileHandle import FileHandle
 
@@ -17,11 +18,17 @@ class PinocchioConfig:
     confDict: dict[str, list[PinocchioParams]] = field(default_factory=dict)
     maxNameLength: int = 0
 
+@dataclass
+class PinocchioRedShiftRequest:
+    header: str = ""
+    redShifts: list[str] = field(default_factory=list)
+
 class Pinocchio:
 
     PIN_DEFAULT_PARAMS_FILE = "pinocchio_params.conf"
     PIN_DEFAULT_OUTPUT_FILE = "pinocchio_outs.conf"
     PIN_PARAM_FILE          = "parameter_file"
+    PIN_REDSHIFT_FILE       = "outputs"
 
     PRMS_CMNT = "#"
     PRMS_CMNT_SPLITTER = "%"
@@ -39,14 +46,63 @@ class Pinocchio:
         # get default input files
         inputFilesPath = os.environ["CONDA_PREFIX"] + "/etc/"
         self.paramsInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_PARAMS_FILE
-        self.outputsInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_OUTPUT_FILE
+        self.redShiftInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_OUTPUT_FILE
 
-        self.currConfig = self.__loadPinocchioDefaultConfigs__()
+        self.currConfig = self.__loadPinocchioDefaultConfig__()
+        self.redShiftRequest = self.__loadPinocchioDefaultRedShiftRequest__()
 
-    def __loadPinocchioDefaultConfigs__(self) -> PinocchioConfig:
+    def __loadPinocchioDefaultRedShiftRequest__(self) -> PinocchioRedShiftRequest:
+        return self.loadPinocchioRedShiftRequest(self.redShiftInputPath) 
+
+    def loadPinocchioRedShiftRequest(self, path: str) -> PinocchioRedShiftRequest:
+        redShifts = open(path)
+
+        rsr = PinocchioRedShiftRequest()
+        rsr.header = f"{Pinocchio.PRMS_CMNT} Generated redshift output request file for Pinocchio by Karabo Framework (https://github.com/i4Ds/Karabo-Pipeline)\n"
+
+        # skip and save header
+        line: str = redShifts.readline()
+        while line[0] == Pinocchio.PRMS_CMNT:
+            rsr.header += line
+            line = redShifts.readline()
+        
+        rsr.header += "\n"
+
+        # skip empty lines
+        while line[0] == "\n":
+            line = redShifts.readline()
+
+        # get redshifts
+        while line:
+            rsr.redShifts.append(line.strip())
+            line = redShifts.readline()
+
+        return rsr
+
+    def addRedShift(self, rs: str):
+        """
+        Add a redshift to the outputs file, 0.0 is default
+        """
+
+        assert len(rs.split(".")) == 2, "Input is no double value"
+        self.redShiftRequest.redShifts.append(rs)
+
+    def removeRedShift(self, rs: str):
+        """
+        Remove a redshift from the outputs file
+        """
+
+        assert len(rs.split(".")) == 2, "Input is no double value"
+        self.redShiftRequest.redShifts.remove(rs)
+
+    def __loadPinocchioDefaultConfig__(self) -> PinocchioConfig:
         return self.loadPinocchioConfig(self.paramsInputPath)     
 
     def loadPinocchioConfig(self, path: str) -> PinocchioConfig:
+        """
+        Load standard Pinocchio config from the installed package
+        """
+
         configF = open(path)
         
         # remove header
@@ -136,14 +192,40 @@ class Pinocchio:
             for i in v:
                 desc: str = "is a flag" if i.isFlag else f"has value = {i.value}"
                 status: str = "is active" if i.active else "is inactive"
-                print(f" {i.name}: {desc} and {status}, comment = {i.comment}")        
+                print(f"{i.name}: {desc} and {status}, comment = {i.comment}")        
+
+    def printRedShiftRequest(self):
+        """
+        Print the current red shift request that gets written into the ouputs file
+        """
+
+        k: str
+        for k in self.redShiftRequest.redShifts:
+            print(f"Redshift active: {k}")
 
     def run(self) -> None:
         """
         run pinocchio in a temp folder
         """
+
+        assert len(self.redShiftRequest.redShifts) > 0, "all redshifts removed from outputs file - pinocchio won't calculate anything"
+
         self.runConfigPath = self.__writeConfigToWD__()
+        self.outputFilePath = self.__writeRedShiftRequestFileToWD__()
+
+        # TODO run pinocchio
     
+    def __writeRedShiftRequestFileToWD__(self) -> str:
+        fp: str = os.path.join(self.wd.path, Pinocchio.PIN_REDSHIFT_FILE)
+
+        with open(os.path.join(fp), "w") as temp_file:
+            temp_file.write(self.redShiftRequest.header)
+            k: str
+            for k in self.redShiftRequest.redShifts:
+                temp_file.write(k + "\n")
+
+        return fp
+
     def __writeConfigToWD__(self) -> str:
         assert self.wd is not None and self.wd.isDir
 
@@ -202,7 +284,13 @@ class Pinocchio:
         assert os.path.isdir(outDir), "invalid directory"
         
         # copy config
-        shutil.copy(self.runConfigPath, os.path.join(outDir, Pinocchio.PIN_PARAM_FILE))
+        outfile = os.path.join(outDir, Pinocchio.PIN_PARAM_FILE)
+        shutil.copy(self.runConfigPath, outfile)
+        print(f"copied configuration file to {outfile}")
+        
+        outfile = os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE)
+        shutil.copy(self.outputFilePath, os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE))
+        print(f"copied outputs file to {outfile}")
 
         # TODO cpy the rest of the output
 
