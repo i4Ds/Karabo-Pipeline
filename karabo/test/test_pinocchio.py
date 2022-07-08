@@ -1,7 +1,12 @@
-from karabo.simulation.pinocchio import Pinocchio
+"""from karabo.simulation.pinocchio import Pinocchio
 
 def pinocchioFun():
     p = Pinocchio()
+    p.addRedShift("1.0")
+    p.printConfig()
+    p.printRedShiftRequest()
+    p.run()
+    p.save("/home/filip/pinocchiotest")
 
     #conf = p.getConfig()
     #conf["BoxSize"] = 400.0
@@ -11,7 +16,6 @@ def pinocchioFun():
 
     #p.plotMassfunction()
 
-    
-
-
 pinocchioFun()
+
+"""
