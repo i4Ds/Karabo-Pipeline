@@ -27,7 +27,9 @@ requirements:
     - requests
     - astropy
     - healpy
-    - pinocchio
+    - pinocchio # [linux]
+    - katbeam
+    - eidos
 
 
 test:
