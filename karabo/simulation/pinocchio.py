@@ -1,7 +1,8 @@
 import os
+import subprocess
 import shutil
 from dataclasses import dataclass, field
-from tokenize import Double
+from typing import List
 
 from karabo.util.FileHandle import FileHandle
 
@@ -203,7 +204,7 @@ class Pinocchio:
         for k in self.redShiftRequest.redShifts:
             print(f"Redshift active: {k}")
 
-    def run(self) -> None:
+    def run(self, printLiveOutput = False) -> None:
         """
         run pinocchio in a temp folder
         """
@@ -213,8 +214,17 @@ class Pinocchio:
         self.runConfigPath = self.__writeConfigToWD__()
         self.outputFilePath = self.__writeRedShiftRequestFileToWD__()
 
-        # TODO run pinocchio
-    
+        cmd: List[str] = ["pinocchio", self.runConfigPath]
+        self.out = subprocess.run(cmd, cwd=self.wd.path, capture_output = not printLiveOutput, text=True) 
+
+    def printPinocchioStdOutput(self):
+        if hasattr(self, "out"):
+            print(self.out.stdout)
+
+    def printPinocchioStdError(self):
+         if hasattr(self, "out"):
+            print(self.out.stderr)
+
     def __writeRedShiftRequestFileToWD__(self) -> str:
         fp: str = os.path.join(self.wd.path, Pinocchio.PIN_REDSHIFT_FILE)
 
@@ -283,7 +293,10 @@ class Pinocchio:
         """
         assert os.path.isdir(outDir), "invalid directory"
         
+        shutil.copytree(self.wd.path, outDir, dirs_exist_ok=True)
+
         # copy config
+        """
         outfile = os.path.join(outDir, Pinocchio.PIN_PARAM_FILE)
         shutil.copy(self.runConfigPath, outfile)
         print(f"copied configuration file to {outfile}")
@@ -291,8 +304,7 @@ class Pinocchio:
         outfile = os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE)
         shutil.copy(self.outputFilePath, os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE))
         print(f"copied outputs file to {outfile}")
-
-        # TODO cpy the rest of the output
+        """
 
     def getRunplannerOutput(self):
         pass
