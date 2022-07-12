@@ -84,5 +84,5 @@ class Image:
 
 def open_fits_image(fits_path: str) -> Image:
     image = Image()
-    image.file = FileHandle(existing_file_path=fits_path, auto_clean=False)
+    image.file = FileHandle(existing_file_path=fits_path)
     return image
