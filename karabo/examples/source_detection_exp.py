@@ -7,9 +7,8 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import get_ASKAP_Telescope
 from karabo.sourcedetection import detect_sources_in_image
-from dask import delayed
 
-from karabo.util.dask import get_global_client, parallel_for
+from karabo.util.dask import get_global_client, parallel_for, parallel_for_each
 
 
 def experiment():
@@ -17,7 +16,7 @@ def experiment():
     flux_range = np.logspace(-3, 1, 5)
     # flux_range = [1]
 
-    results = parallel_for(5, fluxy, flux_range[0])
+    results = parallel_for_each(flux_range, fluxy)
     results = dask.compute(*results)
     print(results)
 
