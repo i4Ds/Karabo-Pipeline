@@ -1,8 +1,13 @@
 import os
 import subprocess
 import shutil
+import numpy as np
+import matplotlib.pyplot as plt
+
 from dataclasses import dataclass, field
 from typing import List
+
+# from karabo.simulation.sky_model import SkyModel
 
 from karabo.util.FileHandle import FileHandle
 
@@ -32,6 +37,9 @@ class Pinocchio:
     PIN_DEFAULT_OUTPUT_FILE = f"{PIN_EXEC_NAME}_outs.conf"
     PIN_PARAM_FILE          = "parameter_file"
     PIN_REDSHIFT_FILE       = "outputs"
+
+    PIN_OUT_FILEENDING      = "out"
+
 
     PRMS_CMNT = "#"
     PRMS_CMNT_SPLITTER = "%"
@@ -215,7 +223,21 @@ class Pinocchio:
         for k in self.redShiftRequest.redShifts:
             print(f"Redshift active: {k}")
 
-    def run(self, printLiveOutput = False) -> None:
+    def setRunName(self, name: str):
+        l : list[PinocchioParams] = self.currConfig.confDict["runProperties"]
+        for i in l:
+           if i.name == "RunFlag":
+                i.value = name
+
+    def getRunName(self) -> str:
+        l : list[PinocchioParams] = self.currConfig.confDict["runProperties"]
+        for i in l:
+           if i.name == "RunFlag":
+                return i.value
+        
+        assert False, "config not available? package installation or custom loading failed"
+
+    def run(self, printLiveOutput = True) -> None:
         """
         run pinocchio in a temp folder
         """
@@ -227,6 +249,21 @@ class Pinocchio:
         cmd: List[str] = [Pinocchio.PIN_EXEC_NAME, self.runConfigPath]
         self.out = subprocess.run(cmd, cwd=self.wd.path, capture_output = not printLiveOutput, text=True) 
 
+        # mark output files
+        runName = self.getRunName()
+        
+        self.outCatalogPath: dict(str, str) = {}
+        self.outMFPath: dict(str, str) = {}
+
+        i: str
+        for i in self.redShiftRequest.redShifts:
+            outPrefix = f"{Pinocchio.PIN_EXEC_NAME}.{float(i):.04f}.{runName}"
+
+            self.outCatalogPath[i] = os.path.join(self.wd.path, f"{outPrefix}.catalog.{Pinocchio.PIN_OUT_FILEENDING}")
+            self.outMFPath[i] = os.path.join(self.wd.path, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}")
+
+        self.outLightConePath = os.path.join(self.wd.path, f"{Pinocchio.PIN_EXEC_NAME}.{runName}.plc.{Pinocchio.PIN_OUT_FILEENDING}")
+        
     def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
         """
         run the pinocchio runPlanner tool to check hardware requirements for given config
@@ -337,3 +374,89 @@ class Pinocchio:
         shutil.copy(self.outputFilePath, os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE))
         print(f"copied outputs file to {outfile}")
         """
+
+    def plotHalos(self, redshift: str = "0.0", save: bool = False):
+        """
+        plot function from pinocchio 
+        """
+
+        (x,y,z) = np.loadtxt(self.outCatalogPath[redshift], unpack=True, usecols=(5,6,7))
+
+        print(x)
+        print(y)
+        print(z)
+
+        plt.figure()
+
+        index=(z<100)
+        plt.plot(x[index], y[index], 'o', c='green', label='pinocchio halos')
+
+        plt.xlim([0, 500])
+        plt.ylim([0, 500])
+        plt.xscale('linear')
+        plt.yscale('linear')
+
+        plt.legend(frameon=True)
+        plt.title('Large-scale structure at z=0')
+        plt.xlabel(r'x (Mpc/h)', fontsize=16)
+        plt.ylabel(r'y (Mpc/h)', fontsize=16)
+
+        if save:
+            plt.savefig('lss.png')
+        
+        plt.show() 
+
+    def plotMassFunction(self, redshift: str = "0.0", save: bool = False):
+        """
+        plot function from pinocchio 
+        """
+
+        (m, nm, fit) = np.loadtxt(self.outMFPath[redshift], unpack=True, usecols=(0,1,5))
+
+        plt.figure()
+
+        plt.plot(m, m*nm, label='pinocchio MF', ls='-', lw=3, c='green')
+        plt.plot(m, m*fit, label='Watson fit', c='blue')
+
+
+        plt.xlim([0.8e13, 1.e16])
+        plt.ylim([1.e-8, 1.e-3])
+        plt.xscale('log')
+        plt.yscale('log')
+
+        plt.legend(frameon=True)
+        plt.title('Mass function at z=0')
+        plt.xlabel(r'M (M$_\odot$)', fontsize=16)
+        plt.ylabel(r'M n(M) (Mpc$^{-3}$)', fontsize=16)
+
+        if save:
+            plt.savefig('mf.png')
+        
+        plt.show()
+
+    def plotPastLightCone(self, redshift: str = "0.0", save: bool = False):
+        """
+        plot function from pinocchio 
+        """
+
+        (x,y,z,m)=np.loadtxt(self.outLightConePath, unpack=True, usecols=(2,3,4,8))
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        index=(m>1.e14)
+        ax.scatter(x[index], y[index], z[index], marker='o', c='green')
+
+        ax.set_xlabel('x (Mpc/h)')
+        ax.set_ylabel('y (Mpc/h)')
+        ax.set_zlabel('z (Mpc/h)')
+
+        plt.title('Past-light cone in comoving coordinates')
+
+        if save:
+            plt.savefig('plc.png')
+        
+        plt.show()
+
+    def getSkyModel(self, redshift: float = 0.0):# -> SkyModel:
+        pass
