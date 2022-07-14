@@ -1,7 +1,10 @@
+import os
+
 from distributed import Client, LocalCluster
 
-from karabo.Imaging.image import Image
+from karabo.Imaging.image import Image, open_fits_image
 from karabo.simulation.Visibility import Visibility
+from karabo.util.FileHandle import FileHandle
 from karabo.util.dask import get_local_dask_client
 
 from typing import List, Union, Dict, Tuple
@@ -94,6 +97,19 @@ class Imager:
         dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
         export_image_to_fits(dirty, f"{image.file.path}")
         return image
+        # from oskar import imager as oskarImager
+        # imager = oskarImager.Imager()
+        # imager.input_file = self.visibility.path
+        # imager.cellsize = self.imaging_cellsize
+        # imager.size = self.imaging_npixel
+        # output_dir = FileHandle(is_dir=True)
+        # imager.output_root = output_dir.path
+        # res = imager.finalise(return_images=1)
+        # # result
+        # # filename = os.listdir(output_dir.path)
+        # # image = open_fits_image(filename)
+        # # return image
+        # return Image()
 
     def imaging_rascil(self,
                        client: Client = None,

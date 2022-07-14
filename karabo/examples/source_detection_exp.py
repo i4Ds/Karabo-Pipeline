@@ -28,6 +28,7 @@ def experiment():
                                   frequency_increment_hz=20e6,
                                   number_of_channels=64)
         telescope = get_ASKAP_Telescope()
+        # result = do_flux(simulation, flux, telescope, observation)
         result = delayed(do_flux)(simulation, flux, telescope, observation)
         results.append(result)
 
