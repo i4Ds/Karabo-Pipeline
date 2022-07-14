@@ -9,7 +9,7 @@ from karabo.simulation.telescope import get_ASKAP_Telescope
 from karabo.sourcedetection import detect_sources_in_image
 from dask import delayed
 
-from karabo.util.dask import get_global_client
+from karabo.util.dask import get_global_client, parallel_for
 
 
 def experiment():
@@ -17,23 +17,24 @@ def experiment():
     flux_range = np.logspace(-3, 1, 5)
     # flux_range = [1]
 
-    results = []
-    for flux in flux_range:
-        simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
-                                              time_average_sec=10)
-        observation = Observation(100e6,
-                                  phase_centre_ra_deg=20,
-                                  phase_centre_dec_deg=-30,
-                                  number_of_time_steps=24,
-                                  frequency_increment_hz=20e6,
-                                  number_of_channels=64)
-        telescope = get_ASKAP_Telescope()
-        # result = do_flux(simulation, flux, telescope, observation)
-        result = delayed(do_flux)(simulation, flux, telescope, observation)
-        results.append(result)
-
+    results = parallel_for(5, fluxy, flux_range[0])
     results = dask.compute(*results)
     print(results)
+
+
+def fluxy(flux):
+    simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
+                                          time_average_sec=10)
+    observation = Observation(100e6,
+                              phase_centre_ra_deg=20,
+                              phase_centre_dec_deg=-30,
+                              number_of_time_steps=24,
+                              frequency_increment_hz=20e6,
+                              number_of_channels=64)
+    telescope = get_ASKAP_Telescope()
+    result = do_flux(simulation, flux, telescope, observation)
+    # result = delayed(do_flux)(simulation, flux, telescope, observation)
+    return result
 
 
 def do_flux(simulation, flux, telescope, observation):
