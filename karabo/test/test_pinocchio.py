@@ -5,10 +5,10 @@ def pinocchioFun():
     p = Pinocchio()
     p.printConfig()
     p.printRedShiftRequest()
-    p.run()
+    p.runPlanner(16, 1)
     p.printPinocchioStdOutput()
     p.printPinocchioStdError()
-    p.save("/home/filip/pinocchiotest")
+    #p.save("/home/filip/pinocchiotest")
         
     #p.plotMassfunction()
 

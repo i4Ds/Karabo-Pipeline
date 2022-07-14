@@ -26,8 +26,10 @@ class PinocchioRedShiftRequest:
 
 class Pinocchio:
 
-    PIN_DEFAULT_PARAMS_FILE = "pinocchio_params.conf"
-    PIN_DEFAULT_OUTPUT_FILE = "pinocchio_outs.conf"
+    PIN_EXEC_NAME           = "pinocchio"
+    PIN_EXEC_RP_NAME        = f"{PIN_EXEC_NAME}_rp"
+    PIN_DEFAULT_PARAMS_FILE = f"{PIN_EXEC_NAME}_params.conf"
+    PIN_DEFAULT_OUTPUT_FILE = f"{PIN_EXEC_NAME}_outs.conf"
     PIN_PARAM_FILE          = "parameter_file"
     PIN_REDSHIFT_FILE       = "outputs"
 
@@ -52,10 +54,18 @@ class Pinocchio:
         self.currConfig = self.__loadPinocchioDefaultConfig__()
         self.redShiftRequest = self.__loadPinocchioDefaultRedShiftRequest__()
 
+        self.runConfigPath = "NotSetYETCallRun*"
+        self.outputFilePath = "NotSetYETCallRun*"
+
     def __loadPinocchioDefaultRedShiftRequest__(self) -> PinocchioRedShiftRequest:
+        # load default redshift request (outputs) file
         return self.loadPinocchioRedShiftRequest(self.redShiftInputPath) 
 
     def loadPinocchioRedShiftRequest(self, path: str) -> PinocchioRedShiftRequest:
+        """
+        load a outputs file with the redshift requests
+        """
+        
         redShifts = open(path)
 
         rsr = PinocchioRedShiftRequest()
@@ -97,11 +107,12 @@ class Pinocchio:
         self.redShiftRequest.redShifts.remove(rs)
 
     def __loadPinocchioDefaultConfig__(self) -> PinocchioConfig:
+        # load default config installed with the pinocchio conda package
         return self.loadPinocchioConfig(self.paramsInputPath)     
 
     def loadPinocchioConfig(self, path: str) -> PinocchioConfig:
         """
-        Load standard Pinocchio config from the installed package
+        Load given pinocchio config 
         """
 
         configF = open(path)
@@ -211,19 +222,40 @@ class Pinocchio:
 
         assert len(self.redShiftRequest.redShifts) > 0, "all redshifts removed from outputs file - pinocchio won't calculate anything"
 
-        self.runConfigPath = self.__writeConfigToWD__()
-        self.outputFilePath = self.__writeRedShiftRequestFileToWD__()
+        self.__writeRequiredFilesToWD()
 
-        cmd: List[str] = ["pinocchio", self.runConfigPath]
+        cmd: List[str] = [Pinocchio.PIN_EXEC_NAME, self.runConfigPath]
         self.out = subprocess.run(cmd, cwd=self.wd.path, capture_output = not printLiveOutput, text=True) 
 
-    def printPinocchioStdOutput(self):
+    def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
+        """
+        run the pinocchio runPlanner tool to check hardware requirements for given config
+        """
+
+        self.__writeRequiredFilesToWD()
+
+        cmd: List[str] = [Pinocchio.PIN_EXEC_RP_NAME, self.runConfigPath, f"{gbPerNode}", f"{tasksPerNode}"]
+        subprocess.run(cmd, cwd=self.wd.path, text=True)
+
+    def printPinocchioStdOutput(self) -> None:
+        """
+        print the std output created during run, only available if live output was disabled
+        """
+
         if hasattr(self, "out"):
             print(self.out.stdout)
 
-    def printPinocchioStdError(self):
-         if hasattr(self, "out"):
+    def printPinocchioStdError(self) -> None:
+        """
+        print the std error created during run, only available if live output was disabled
+        """
+
+        if hasattr(self, "out"):
             print(self.out.stderr)
+
+    def __writeRequiredFilesToWD(self) -> None:
+        self.runConfigPath = self.__writeConfigToWD__()
+        self.outputFilePath = self.__writeRedShiftRequestFileToWD__()
 
     def __writeRedShiftRequestFileToWD__(self) -> str:
         fp: str = os.path.join(self.wd.path, Pinocchio.PIN_REDSHIFT_FILE)
@@ -287,7 +319,7 @@ class Pinocchio:
 
         return fp
 
-    def save(self, outDir: str):
+    def save(self, outDir: str) -> None:
         """
         save the run results and the config into a folder
         """
@@ -305,7 +337,3 @@ class Pinocchio:
         shutil.copy(self.outputFilePath, os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE))
         print(f"copied outputs file to {outfile}")
         """
-
-    def getRunplannerOutput(self):
-        pass
-
