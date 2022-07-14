@@ -1,4 +1,5 @@
 import copy
+import enum
 import math
 from typing import Callable
 
@@ -11,8 +12,17 @@ from astropy import wcs as awcs
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 
+from karabo.data.external_data import GLEAMSurveyDownloadObject, MIGHTEESurveyDownloadObject
 from karabo.data.external_data import GLEAMSurveyDownloadObject
+from karabo.util.hdf5_util import get_healpix_image, convert_healpix_2_radec
 from karabo.util.plotting_util import get_slices
+
+
+class Polarisation(enum.Enum):
+    STOKES_I = 0,
+    STOKES_Q = 1,
+    STOKES_U = 2,
+    STOKES_V = 3
 
 
 class SkyModel:
@@ -38,7 +48,7 @@ class SkyModel:
 
     """
 
-    def __init__(self, sources: np.ndarray = None, wcs: awcs = None):
+    def __init__(self, sources: np.ndarray = None, wcs: awcs = None, nside: int = 0):
         """
         Initialization of a new SkyModel
 
@@ -310,6 +320,23 @@ class SkyModel:
         """
         return oskar.Sky.from_array(self[:, :-1])
 
+    @staticmethod
+    def read_healpix_file_to_sky_model_array(file, channel, polarisation: Polarisation) -> np.ndarray:
+        """
+        Read a healpix file in hdf5 format.
+        The file should have the map keywords:
+
+        :param file: hdf5 file path (healpix format)
+        :param channel: Channels of observation (between 0 and maximum numbers of channels of observation)
+        :param polarisation: 0 = Stokes I, 1 = Stokes Q, 2 = Stokes U, 3 = Stokes  V
+        :return:
+        """
+        arr = get_healpix_image(file)
+        filtered = arr[channel][polarisation.value]
+        ra, dec, nside = convert_healpix_2_radec(filtered)
+        size = len(ra)
+        return np.vstack((ra, dec, filtered)).transpose(), nside
+
     def __update_sky_model(self):
         """
         Updates instance variables of the SkyModel
@@ -401,6 +428,20 @@ def get_GLEAM_Sky() -> SkyModel:
     sky = SkyModel(sky_array)
     # major axis FWHM, minor axis FWHM, position angle, object id
     sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
+    return sky
+
+def get_MIGHTEE_Sky() -> SkyModel:
+    survey = MIGHTEESurveyDownloadObject()
+    path = survey.get()
+    mightee = SkyModel.get_fits_catalog(path)
+    df_mightee = mightee.to_pandas()
+    ref_freq = 76e6
+    ra, dec, fp = df_mightee['RA'], df_mightee['DEC'], df_mightee['NU_EFF']
+    sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
+                                 np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
+    sky = SkyModel(sky_array)
+    # major axis FWHM, minor axis FWHM, position angle, object id
+    sky[:, [9, 10, 11, 12]] = df_mightee[['IM_MAJ', 'IM_MIN', 'IM_PA', 'NAME']]
     return sky
 
 

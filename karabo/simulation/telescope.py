@@ -11,7 +11,7 @@ from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import ALMAVersions, ATCAVersions, CARMAVersions, NGVLAVersions, PDBIVersions, \
-    SMAVersions, VLAVersions, ACAVersions
+    SMAVersions, VLAVersions, ACAVersions, MWAVersion
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import __get_module_absolute_path
 
@@ -236,6 +236,11 @@ def get_WSRT_Telescope():
 
 def get_OSKAR_Example_Telescope():
     path = f"{__get_module_absolute_path()}/data/telescope.tm"
+    return read_OSKAR_tm_file(path)
+
+
+def get_MWA_Telescope(version: MWAVersion):
+    path = f"{__get_module_absolute_path()}/data/mwa.phase{version}.tm"
     return read_OSKAR_tm_file(path)
 
 

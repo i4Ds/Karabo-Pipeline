@@ -11,3 +11,8 @@ dependencies:
   - dask
   - matplotlib
   - healpy
+  - requests
+  - astropy
+  - pinocchio
+  - katbeam
+  - eidos
