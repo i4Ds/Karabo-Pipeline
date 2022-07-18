@@ -5,10 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
-# from karabo.simulation.sky_model import SkyModel
-
+from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
 
 @dataclass
@@ -40,12 +39,13 @@ class Pinocchio:
 
     PIN_OUT_FILEENDING      = "out"
 
-
     PRMS_CMNT = "#"
     PRMS_CMNT_SPLITTER = "%"
 
     PIN_OUT_VAL_PADD = 3                            # padding after the name
     PIN_OUT_COMM_PADD = 12 + PIN_OUT_VAL_PADD       # padding between name and comment
+
+    RAD_TO_DEG = (180 / np.pi)
 
     def __init__(self):
         """
@@ -64,6 +64,8 @@ class Pinocchio:
 
         self.runConfigPath = "NotSetYETCallRun*"
         self.outputFilePath = "NotSetYETCallRun*"
+
+        self.didRun = False
 
     def __loadPinocchioDefaultRedShiftRequest__(self) -> PinocchioRedShiftRequest:
         # load default redshift request (outputs) file
@@ -98,7 +100,7 @@ class Pinocchio:
 
         return rsr
 
-    def addRedShift(self, rs: str):
+    def addRedShift(self, rs: str) -> None:
         """
         Add a redshift to the outputs file, 0.0 is default
         """
@@ -106,7 +108,7 @@ class Pinocchio:
         assert len(rs.split(".")) == 2, "Input is no double value"
         self.redShiftRequest.redShifts.append(rs)
 
-    def removeRedShift(self, rs: str):
+    def removeRedShift(self, rs: str) -> None:
         """
         Remove a redshift from the outputs file
         """
@@ -263,6 +265,8 @@ class Pinocchio:
             self.outMFPath[i] = os.path.join(self.wd.path, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}")
 
         self.outLightConePath = os.path.join(self.wd.path, f"{Pinocchio.PIN_EXEC_NAME}.{runName}.plc.{Pinocchio.PIN_OUT_FILEENDING}")
+
+        self.didRun = True
         
     def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
         """
@@ -375,16 +379,12 @@ class Pinocchio:
         print(f"copied outputs file to {outfile}")
         """
 
-    def plotHalos(self, redshift: str = "0.0", save: bool = False):
+    def plotHalos(self, redshift: str = "0.0", save: bool = False) -> None:
         """
         plot function from pinocchio 
         """
 
         (x,y,z) = np.loadtxt(self.outCatalogPath[redshift], unpack=True, usecols=(5,6,7))
-
-        print(x)
-        print(y)
-        print(z)
 
         plt.figure()
 
@@ -406,7 +406,7 @@ class Pinocchio:
         
         plt.show() 
 
-    def plotMassFunction(self, redshift: str = "0.0", save: bool = False):
+    def plotMassFunction(self, redshift: str = "0.0", save: bool = False) -> None:
         """
         plot function from pinocchio 
         """
@@ -417,7 +417,6 @@ class Pinocchio:
 
         plt.plot(m, m*nm, label='pinocchio MF', ls='-', lw=3, c='green')
         plt.plot(m, m*fit, label='Watson fit', c='blue')
-
 
         plt.xlim([0.8e13, 1.e16])
         plt.ylim([1.e-8, 1.e-3])
@@ -434,9 +433,14 @@ class Pinocchio:
         
         plt.show()
 
-    def plotPastLightCone(self, redshift: str = "0.0", save: bool = False):
-        """
+    def plotPastLightCone(self, redshift: str = "0.0", save: bool = False) -> None:
+        """ 
         plot function from pinocchio 
+        
+        :param redshift: redshift file that should be plotted, defaults to "0.0"
+        :type redshift: str, optional
+        :param save: , defaults to False
+        :type save: bool, optional
         """
 
         (x,y,z,m)=np.loadtxt(self.outLightConePath, unpack=True, usecols=(2,3,4,8))
@@ -458,5 +462,42 @@ class Pinocchio:
         
         plt.show()
 
-    def getSkyModel(self, redshift: float = 0.0):# -> SkyModel:
-        pass
+    def getSkyModel(self, near: int = 0, far: int = 100) -> SkyModel:
+        assert self.didRun, "can not get sky model if run() was never called"
+        return Pinocchio.getSkyModelFromFiles(self.outLightConePath, near, far)
+
+    def getSkyModelFromFiles(path: str, near: int = 0, far: int = 100) -> SkyModel:
+        """
+        Create a sky model from the pinocchio simulation cone. All halos from the near to 
+        far plane (euclid distance) will be translated into the RA (right ascension - [0,360] in deg) and 
+        DEC (declination - [0, 90] in deg) format. 
+        
+        example in 1D - this function will do the same on pinocchios 3D cone:
+
+        |               10              60          |
+        (0,0,0) --------near------------far--------->
+        extracted       |<------------->|
+
+        and translated into RA DEC
+
+        :param near: starting distance from the (0,0,0) point in [Mpc/h], default to 0
+        :param far: ending distance from the (0,0,0) point in [Mpc/h], default to 100
+        """
+        
+        # load pinocchio data
+        (x,y,z)=np.loadtxt(path, unpack=True, usecols=(2,3,4))
+
+        # calculate RA DEC
+        assert x.shape == y.shape == z.shape, "x, y, z do not have the same dimensions"
+        i: int
+        for i in range(len(x)):
+            x_pin = x[i]
+            y_pin = y[i]
+            z_pin = z[i]
+
+            r_calc_pin = np.sqrt(x_pin**2 + y_pin**2 + z_pin**2) # radial distance
+            theta_calc_pin = np.arccos(z_pin/r_calc_pin) # theta
+            ra = np.arctan2(y_pin, x_pin) * Pinocchio.RAD_TO_DEG # RA
+            dec = (np.pi/2. - theta_calc_pin) * Pinocchio.RAD_TO_DEG # DEC
+
+        
