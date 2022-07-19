@@ -3,8 +3,9 @@ import unittest
 import bdsf.image
 
 from karabo.Imaging.image import Image
-from karabo.sourcedetection import source_detection, SourceDetectionResult, PyBDSFSourceDetectionResult
-from karabo.sourcedetection import read_detection_from_sources_file_csv
+from karabo.sourcedetection import source_detection, SourceDetectionResult, PyBDSFSourceDetectionResult, \
+    SourceDetectionEvaluation, read_detection_from_sources_file_csv
+# from karabo.sourcedetection import read_detection_from_sources_file_csv
 from karabo.simulation.sky_model import SkyModel
 from karabo.test import data_path
 
@@ -14,7 +15,7 @@ class TestSourceDetection(unittest.TestCase):
     # TODO: move these on to CSCS Test Infrastructure once we have it.
     def test_detection(self):
         image = Image.open_from_file(f"{data_path}/restored.fits")
-        detection = source_detection.detect_sources_in_image(image)
+        detection = SourceDetectionResult.detect_sources_in_image(image)
         detection.save_to_file('result/result.zip')
         detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
         pixels = detection.get_pixel_position_of_sources()
@@ -35,7 +36,7 @@ class TestSourceDetection(unittest.TestCase):
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv",
                                                          source_image_path="./data/restored.fits")
         detection.save_sources_to_csv("./detection.csv")
-        mapping = source_detection.evaluate_result_with_sky(detection, sky, 3.878509448876288e-05, 10)
+        mapping =  SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 3.878509448876288e-05, 10)
         mapping.plot()
 
     def test_get_arrays(self):
@@ -45,15 +46,15 @@ class TestSourceDetection(unittest.TestCase):
                                                          source_image_path="./data/restored.fits")
         detection.save_sources_to_csv("./detection.csv")
 
-        mapping = source_detection.evaluate_result_with_sky(detection, sky, 3.878509448876288e-05, 10)
-        arr = mapping.map_sky_to_detection_array()
+        mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 3.878509448876288e-05, 10)
+        arr = mapping.__map_sky_to_detection_array()
         print(arr)
 
     def test_source_detection_plot_no_image(self):
         sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv")
-        mapping = source_detection.evaluate_result_with_sky(detection, sky, 3.878509448876288e-05, 10)
+        mapping = detection.evaluate_result_with_sky(sky, 3.878509448876288e-05, 10)
         mapping.plot()
 
     def test_monkey(self):

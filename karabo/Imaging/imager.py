@@ -235,39 +235,3 @@ class Imager:
 
         return deconvoled_image, restored_image, residual_image
 
-    @staticmethod
-    def sky_sources_to_pixel_coordinates(image_cell_size: float, image_pixel_per_side: float, sky: SkyModel,
-                                         filter_outlier: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image
-
-        :param image_pixel_per_side: Image cell-size in radian (pixel coverage)
-        :param image_cell_size: Number of pixels of the image
-        :param sky: SkyModel with the sources at catalog
-        :param filter_outlier: Exclude source
-
-        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
-        """
-
-        if sky.wcs is None:
-            raise BaseException("Sky does not have a WCS (world coordinate system). "
-                                "Please add one with sky.setup_default_wcs(phase_center) or with sky.add_wcs(wcs)")
-
-        radian_degree = lambda rad: rad * (180 / np.pi)
-        cdelt = radian_degree(image_cell_size)
-        crpix = np.floor((image_pixel_per_side / 2)) + 1
-        wcs = sky.wcs.copy()
-        wcs.wcs.crpix = np.array([crpix, crpix])
-        wcs.wcs.cdelt = np.array([-cdelt, cdelt])
-        px, py = wcs.wcs_world2pix(sky[:, 0], sky[:, 1], 1)
-
-        # pre-filtering before calling wcs.wcs_world2pix would be more efficient,
-        # however this has to be done in the ra-dec space. maybe for future work
-        if filter_outlier:
-            px_idxs = np.where(np.logical_and(px <= image_pixel_per_side, px >= 0))[0]
-            py_idxs = np.where(np.logical_and(py <= image_pixel_per_side, py >= 0))[0]
-            idxs = np.intersect1d(px_idxs, py_idxs)
-            px, py = px[idxs], py[idxs]
-        else:
-            idxs = np.arange(sky.num_sources)
-        return np.vstack((px, py, idxs))

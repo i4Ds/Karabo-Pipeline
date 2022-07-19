@@ -66,8 +66,10 @@ class TestImage(unittest.TestCase):
         sky.save_to_file("result/imaging_sky.txt")
 
     def test_power_spectrum(self):
-        fits = Image.open_from_file(f"{data_path}/restored.fits")
-        fits.plot_power_spectrum(save_png=True)
+        restored_image = Image.open_from_file(f"{data_path}/restored.fits")
+        # restored_image.plot_power_spectrum(save_png=True)
+        restored_image.get_cellsize()
+        # restored_image.plot_histogram()
 
 
     # def test_source_detection(self):

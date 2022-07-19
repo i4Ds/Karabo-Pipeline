@@ -18,7 +18,7 @@ def plot_result():
         detection = read_detection_from_sources_file_csv(f"detection_{flux}.csv", f"dirty_{flux}.fits")
         evaluation = evaluate_result_with_sky(detection, sky, 3.878509448876288e-05, 2, False)
         evals.append(evaluation)
-        eval_mappings.append(evaluation.map_sky_to_detection_array())
+        eval_mappings.append(evaluation.__map_sky_to_detection_array())
 
     block = SourceDetectionEvaluationBlock(evals)
     block.flatten_plot(5, 5, 0)

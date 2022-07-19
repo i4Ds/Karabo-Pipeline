@@ -1,10 +1,5 @@
-import numpy as np
-from scipy.spatial.distance import cdist
-
 from karabo.Imaging.image import Image
-from karabo.simulation.sky_model import SkyModel
-from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
-from karabo.sourcedetection.result import SourceDetectionResult, PyBDSFSourceDetectionResult
+from karabo.sourcedetection.result import SourceDetectionResult
 from karabo.util.data_util import read_CSV_to_ndarray
 
 

@@ -6,6 +6,7 @@ from typing import Callable
 import matplotlib.pyplot as plt
 import numpy
 import numpy as np
+import numpy.typing as npt
 import oskar
 import pandas as pd
 from astropy import units as u
@@ -437,11 +438,31 @@ class SkyModel(KaraboResource):
             axis=1, arr=self.sources))
         return cartesian_sky
 
-    def project_sky_to_2d_image(self, cell_size: float, pixel_per_side: int, filter_outliers=True):
-        from karabo.Imaging.imager import Imager
-        imager = Imager(visibility=None, imaging_cellsize=cell_size, imaging_npixel=pixel_per_side)
-        coords = imager.sky_sources_to_pixel_coordinates(cell_size, pixel_per_side, self, filter_outliers)
-        return coords
+    def project_sky_to_image(self,
+                             image: 'Image',
+                             filter_outlier: bool = True) -> (npt.NDArray, npt.NDArray, npt.NDArray):
+        """
+        Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image
+
+        :param image: Image, where the WCS will be extracted to convert the sky sources to pixel coordinates.
+        :param filter_outlier: Exclude sources
+
+        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
+        """
+        image_pixel_per_side = image.get_dimensions_of_image()[0]
+        wcs = image.get_wcs()
+        px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 1)
+
+        # pre-filtering before calling wcs.wcs_world2pix would be more efficient,
+        # however this has to be done in the ra-dec space. maybe for future work
+        if filter_outlier:
+            px_idxs = np.where(np.logical_and(px <= image_pixel_per_side, px >= 0))[0]
+            py_idxs = np.where(np.logical_and(py <= image_pixel_per_side, py >= 0))[0]
+            idxs = np.intersect1d(px_idxs, py_idxs)
+            px, py = px[idxs], py[idxs]
+        else:
+            idxs = np.arange(self.num_sources)
+        return np.vstack((px, py, idxs))
 
 
 def get_GLEAM_Sky() -> SkyModel:
