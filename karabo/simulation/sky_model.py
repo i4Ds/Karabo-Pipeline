@@ -1,8 +1,10 @@
 import copy
+import logging
 import math
 from typing import Callable
 
 import matplotlib.pyplot as plt
+import numpy
 import numpy as np
 import oskar
 import pandas as pd
@@ -12,11 +14,13 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 
 from karabo.data.external_data import GLEAMSurveyDownloadObject
+from karabo.error import KaraboError
+from karabo.resource import KaraboResource
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
 
 
-class SkyModel:
+class SkyModel(KaraboResource):
     """
     Class containing all information of the to be observed Sky.
 
@@ -127,6 +131,51 @@ class SkyModel:
         else:
             self.sources = new_sources
         self.__update_sky_model()
+
+    def save_to_file(self, path: str) -> None:
+        self.save_sky_model_as_csv(path)
+
+    @staticmethod
+    def open_from_file(path: str) -> any:
+        """
+        Read a CSV file in to create a SkyModel.
+        The CSV should have the following columns
+
+        - right ascension (deg)
+        - declination (deg)
+        - stokes I Flux (Jy)
+        - stokes Q Flux (Jy): if no information available, set to 0
+        - stokes U Flux (Jy): if no information available, set to 0
+        - stokes V Flux (Jy): if no information available, set to 0
+        - reference_frequency (Hz): if no information available, set to 0
+        - spectral index (N/A): if no information available, set to 0
+        - rotation measure (rad / m^2): if no information available, set to 0
+        - major axis FWHM (arcsec): if no information available, set to 0
+        - minor axis FWHM (arcsec): if no information available, set to 0
+        - position angle (deg): if no information available, set to 0
+        - source id (object): if no information available, set to None
+
+        :param path: file to read in
+        :return: SkyModel
+        """
+        dataframe = pd.read_csv(path)
+        if dataframe.ndim <= 2:
+            raise KaraboError(
+                f'CSV doesnt have enough dimensions to hold the necessary information: Dimensions: {dataframe.ndim}')
+
+        if dataframe.shape[1] < 3:
+            raise KaraboError(f"CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)")
+
+        if dataframe.shape[1] < 13:
+            logging.info(f"The CSV only holds {dataframe.shape[1]} columns."
+                         f" Extra {13 - dataframe.shape[1]} columns will be filled with defaults.")
+
+        if dataframe.shape[1] >= 13:
+            logging.info(f"CSV has {dataframe.shape[1] - 13} too many rows. The extra rows will be cut off.")
+
+        sources = dataframe.to_numpy()
+        sky = SkyModel(sources)
+        return sky
 
     def to_array(self, with_obj_ids: bool = False) -> np.ndarray:
         """
@@ -368,6 +417,9 @@ class SkyModel:
                                                   "position angle (deg)",
                                                   "source id (object)"])
 
+    def save_sky_model_to_txt(self, path: str, cols: [int] = [0, 1, 2, 3, 4, 5, 6, 7]):
+        numpy.savetxt(path, self.sources[:, cols])
+
     @staticmethod
     def __convert_ra_dec_to_cartesian(ra, dec):
         x = math.cos(ra) * math.cos(dec)
@@ -405,35 +457,6 @@ def get_GLEAM_Sky() -> SkyModel:
     sky = SkyModel(sky_array)
     # major axis FWHM, minor axis FWHM, position angle, object id
     sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
-    return sky
-
-
-def read_sky_model_from_csv(path: str) -> SkyModel:
-    """
-    Read a CSV file in to create a SkyModel.
-    The CSV should have the following columns
-
-    - right ascension (deg)
-    - declination (deg)
-    - stokes I Flux (Jy)
-    - stokes Q Flux (Jy): if no information available, set to 0
-    - stokes U Flux (Jy): if no information available, set to 0
-    - stokes V Flux (Jy): if no information available, set to 0
-    - reference_frequency (Hz): if no information available, set to 0
-    - spectral index (N/A): if no information available, set to 0
-    - rotation measure (rad / m^2): if no information available, set to 0
-    - major axis FWHM (arcsec): if no information available, set to 0
-    - minor axis FWHM (arcsec): if no information available, set to 0
-    - position angle (deg): if no information available, set to 0
-    - source id (object): if no information available, set to None
-
-    :param path: file to read in
-    :return: SkyModel
-    """
-    # TODO: add validation of csv
-    dataframe = pd.read_csv(path)
-    sources = dataframe.to_numpy()
-    sky = SkyModel(sources)
     return sky
 
 

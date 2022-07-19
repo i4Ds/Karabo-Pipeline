@@ -1,22 +1,46 @@
 import shutil
+import uuid
 
+import matplotlib
 import numpy
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
+from matplotlib import pyplot as plt
 
+from karabo.resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
 
+# store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
+previous_backend = matplotlib.get_backend()
+from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
+matplotlib.use(previous_backend)
 
-class Image:
 
-    def __init__(self):
+class Image(KaraboResource):
+
+    def __init__(self, name=None):
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
         self.header = None
         self.data = None
+        self.name = name
         self.file = FileHandle()
+        # self.power_spectrum_profile = None
+        # self.power_spectrum_theta_axis = None
+
+    def save_to_file(self, path: str) -> None:
+        if not path.endswith(".fits"):
+            raise EnvironmentError("The passed path and name of file must end with .fits")
+
+        shutil.copy(self.file.path, path)
+
+    @staticmethod
+    def open_from_file(path: str) -> any:
+        image = Image()
+        image.file = FileHandle(existing_file_path=path, mode='r')
+        return image
 
     # overwrite getter to make sure it always contains the data
     @property
@@ -41,12 +65,6 @@ class Image:
 
     def get_squeezed_data(self):
         return numpy.squeeze(self.data[:1, :1, :, :])
-
-    def save_as_fits(self, path_with_name: str):
-        if not path_with_name.endswith(".fits"):
-            raise EnvironmentError("The passed path and name of file must end with .fits")
-
-        shutil.copy(self.file.path, path_with_name)
 
     def plot(self):
         import matplotlib.pyplot as plt
@@ -81,8 +99,67 @@ class Image:
             result.append(self.header[f'NAXIS{dim + 1}'])
         return result
 
+    def get_quality_metric(self):
+        """
+        Get image statistics.
+        Statistics include :
 
-def open_fits_image(fits_path: str) -> Image:
-    image = Image()
-    image.file = FileHandle(existing_file_path=fits_path)
-    return image
+        - Shape of Image --> 'shape'
+        - Max Value --> 'max'
+        - Min Value --> 'min'
+        - Max Value absolute --> 'max-abs'
+        - Root mean square (RMS) --> 'rms'
+        - Sum of values --> 'sum'
+        - Median absolute --> 'median-abs'
+        - Median absolute deviation median --> 'median-abs-dev-median'
+        - Median --> 'median'
+        - Mean --> 'mean'
+
+        :return: Dictionary holding all image statistics
+        """
+        # same implementation as RASCIL
+        image_stats = {
+            "shape": str(self.data.shape),
+            "max": np.max(self.data),
+            "min": np.min(self.data),
+            "max-abs": np.max(np.abs(self.data)),
+            "rms": np.std(self.data),
+            "sum": np.sum(self.data),
+            "median-abs": np.median(np.abs(self.data)),
+            "median-abs-dev-median": np.median(np.abs(self.data - np.median(self.data))),
+            "median": np.median(self.data),
+            "mean": np.mean(self.data),
+        }
+
+        return image_stats
+
+    def get_power_spectrum(self, resolution=5.0e-4, signal_channel=None):
+        """
+        Calculate the power spectrum of this Image.
+
+        :param resolution: Resolution in radians needed for conversion from Jy to Kelvin
+        :param signal_channel: channel containing both signal and noise (arr of same shape as nchan of Image), optional
+        :return (profile, theta_axis)
+            profile: Brightness temperature for each angular scale in Kelvin
+            theta_axis: Angular scale data in degrees
+        """
+        # use RASCIL for power spectrum
+        profile, theta = power_spectrum(self.file.path, resolution, signal_channel)
+        return profile, theta
+
+    def plot_power_spectrum(self, resolution=5.0e-4, signal_channel=None, save_png=False):
+        profile, theta = self.get_power_spectrum(resolution, signal_channel)
+        plt.clf()
+
+        plt.plot(theta, profile)
+        plt.gca().set_title(f"Power spectrum of {self.name if self.name is not None else ''} image")
+        plt.gca().set_xlabel("Angular scale [degrees]")
+        plt.gca().set_ylabel("Brightness temperature [K]")
+        plt.gca().set_xscale("log")
+        plt.gca().set_yscale("log")
+        plt.gca().set_ylim(1e-6 * numpy.max(profile), 2.0 * numpy.max(profile))
+        plt.tight_layout()
+
+        if save_png:
+            plt.savefig(f"./power_spectrum_{self.name if self.name is not None else uuid.uuid4()}")
+        plt.show()

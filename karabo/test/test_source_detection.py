@@ -1,9 +1,11 @@
 import unittest
 
-from karabo.Imaging.image import open_fits_image
-from karabo.sourcedetection import source_detection
+import bdsf.image
+
+from karabo.Imaging.image import Image
+from karabo.sourcedetection import source_detection, SourceDetectionResult, PyBDSFSourceDetectionResult
 from karabo.sourcedetection import read_detection_from_sources_file_csv
-from karabo.simulation.sky_model import read_sky_model_from_csv
+from karabo.simulation.sky_model import SkyModel
 from karabo.test import data_path
 
 
@@ -11,11 +13,10 @@ class TestSourceDetection(unittest.TestCase):
 
     # TODO: move these on to CSCS Test Infrastructure once we have it.
     def test_detection(self):
-        image = open_fits_image("./data/restored.fits")
+        image = Image.open_from_file(f"{data_path}/restored.fits")
         detection = source_detection.detect_sources_in_image(image)
-        detection.bdsf_result.write_catalog(outfile="./bdsf_result.csv", catalog_type="gaul", format="csv",
-                                               clobber=True)
-        detection.save_sources_to_csv("./result/detection.csv")
+        detection.save_to_file('result/result.zip')
+        detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
         pixels = detection.get_pixel_position_of_sources()
         print(pixels)
 
@@ -29,7 +30,7 @@ class TestSourceDetection(unittest.TestCase):
         assert len(detection.detected_sources) == 8
 
     def test_source_detection_plot(self):
-        sky = read_sky_model_from_csv(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv",
                                                          source_image_path="./data/restored.fits")
@@ -38,7 +39,7 @@ class TestSourceDetection(unittest.TestCase):
         mapping.plot()
 
     def test_get_arrays(self):
-        sky = read_sky_model_from_csv(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv",
                                                          source_image_path="./data/restored.fits")
@@ -49,11 +50,19 @@ class TestSourceDetection(unittest.TestCase):
         print(arr)
 
     def test_source_detection_plot_no_image(self):
-        sky = read_sky_model_from_csv(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv")
         mapping = source_detection.evaluate_result_with_sky(detection, sky, 3.878509448876288e-05, 10)
         mapping.plot()
+
+    def test_monkey(self):
+        get_state_func = bdsf.image.Image.__getstate__
+        print(bdsf.image.Image.__getstate__)
+        bdsf.image.Image.__getstate__ = None
+        print(bdsf.image.Image.__getstate__)
+        bdsf.image.Image.__getstate__ = get_state_func
+        print(bdsf.image.Image.__getstate__)
     #
     # def test_full_workflow(self):
     #     sky_data = np.array([

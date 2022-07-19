@@ -5,7 +5,7 @@ from karabo.Imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import get_ASKAP_Telescope
+from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection import detect_sources_in_image
 
 from karabo.util.dask import get_global_client, parallel_for, parallel_for_each
@@ -17,7 +17,6 @@ def experiment():
     # flux_range = [1]
 
     results = parallel_for_each(flux_range, fluxy)
-    results = dask.compute(*results)
     print(results)
 
 
@@ -30,7 +29,7 @@ def fluxy(flux):
                               number_of_time_steps=24,
                               frequency_increment_hz=20e6,
                               number_of_channels=64)
-    telescope = get_ASKAP_Telescope()
+    telescope = Telescope.get_ASKAP_Telescope()
     result = do_flux(simulation, flux, telescope, observation)
     # result = delayed(do_flux)(simulation, flux, telescope, observation)
     return result
@@ -46,7 +45,7 @@ def do_flux(simulation, flux, telescope, observation):
                     ingest_vis_nchan=1)
 
     dirty = imager.get_dirty_image()
-    dirty.save_as_fits(f"dirty_{flux}.fits")
+    dirty.save_to_file(f"dirty_{flux}.fits")
     a = -0.00098910103194387 * 5
     detection = detect_sources_in_image(dirty, beam=(a, a, 0))
     detection.save_sources_to_csv(f"detection_{flux}.csv")

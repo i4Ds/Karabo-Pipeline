@@ -2,8 +2,9 @@ import os
 
 from distributed import Client, LocalCluster
 
-from karabo.Imaging.image import Image, open_fits_image
-from karabo.simulation.Visibility import Visibility
+import karabo.util.dask
+from karabo.Imaging.image import Image
+from karabo.simulation.visibility import Visibility
 from karabo.util.FileHandle import FileHandle
 from karabo.util.dask import get_local_dask_client
 
@@ -150,12 +151,12 @@ class Imager:
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
         if client is None:
-            client = get_local_dask_client(5)
+            client = karabo.util.dask.get_global_client(5)
         print(client.cluster)
         rsexecute.set_client(use_dask=False, use_dlg=False)
 
         blockviss = create_blockvisibility_from_ms_rsexecute(
-            msname=self.visibility.path,
+            msname=self.visibility.file.path,
             nchan_per_blockvis=self.ingest_chan_per_blockvis,
             nout=self.ingest_vis_nchan // self.ingest_chan_per_blockvis,
             dds=self.ingest_dd,
@@ -250,7 +251,7 @@ class Imager:
 
         if sky.wcs is None:
             raise BaseException("Sky does not have a WCS (world coordinate system). "
-                  "Please add one with sky.setup_default_wcs(phase_center) or with sky.add_wcs(wcs)")
+                                "Please add one with sky.setup_default_wcs(phase_center) or with sky.add_wcs(wcs)")
 
         radian_degree = lambda rad: rad * (180 / np.pi)
         cdelt = radian_degree(image_cell_size)

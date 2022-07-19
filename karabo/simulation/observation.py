@@ -1,8 +1,10 @@
 import datetime
 from datetime import timedelta, datetime
 
+from karabo.resource import KaraboResource
 
-class Observation:
+
+class Observation(KaraboResource):
     """
     The Observation class acts as an object to hold all important information about an Observation.
 

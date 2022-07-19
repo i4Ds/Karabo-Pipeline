@@ -5,7 +5,7 @@ import numpy as np
 import karabo
 
 
-def __get_module_absolute_path() -> str:
+def get_module_absolute_path() -> str:
     path_elements = os.path.abspath(karabo.__file__).split('/')
     path_elements.pop()
     return '/'.join(path_elements)
@@ -31,3 +31,12 @@ def read_CSV_to_ndarray(file: str) -> np.ndarray:
                         pass
                 sources.append(n_row)
     return np.array(sources, dtype=float)
+
+
+def full_setter(self, state):
+    self.__dict__ = state
+
+
+def full_getter(self):
+    state = self.__dict__
+    return state

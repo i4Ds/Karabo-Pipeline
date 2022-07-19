@@ -1,6 +1,7 @@
 import numpy as np
 from karabo.Imaging import imager
-from karabo.simulation import sky_model, telescope, observation, interferometer
+from karabo.simulation import sky_model, observation, interferometer
+from karabo.simulation.telescope import Telescope
 
 sky_data = np.array([
     [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
@@ -8,7 +9,7 @@ sky_data = np.array([
     [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10]])
 sky = sky_model.SkyModel(sky_data)
 
-ska_tel = telescope.get_SKA1_MID_Telescope()
+ska_tel = Telescope.get_SKA1_MID_Telescope()
 observation_settings = observation.Observation(100e6, phase_centre_ra_deg=20, phase_centre_dec_deg=-30,
                                                number_of_channels=64, number_of_time_steps=24)
 

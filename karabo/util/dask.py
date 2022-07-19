@@ -68,7 +68,7 @@ def parallel_for(n: int, function: Callable, *args):
     for i in range(0, n):
         res = delayed(function)(*[copy.deepcopy(arg) for arg in args])
         results.append(res)
-    return results
+    return dask.compute(*results)
 
 
 def parallel_for_each(arr: [any], function: Callable, *args):
@@ -84,5 +84,5 @@ def parallel_for_each(arr: [any], function: Callable, *args):
     for value in arr:
         res = delayed(function)(value, *[copy.deepcopy(arg) for arg in args])
         results.append(res)
-    return results
+    return dask.compute(*results)
 

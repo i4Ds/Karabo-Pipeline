@@ -3,7 +3,7 @@ from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 
 from karabo.simulation.sky_model import SkyModel
-from karabo.sourcedetection.result import SourceDetectionResult
+from karabo.sourcedetection.result import SourceDetectionResult, PyBDSFSourceDetectionResult
 from karabo.util.plotting_util import get_slices
 
 
@@ -126,6 +126,11 @@ class SourceDetectionEvaluation:
         p = self.get_precision()
         sn = self.get_sensitivity()
         return 2 * (p * sn / (p + sn))
+
+    def plot_with_running_mean(self):
+        from rascil.apps.imaging_qa.imaging_qa_diagnostics import plot_with_running_mean as pp
+        if isinstance(self.source_detection, PyBDSFSourceDetectionResult):
+            PyBDSFSourceDetectionResult(self.source_detection)
 
 
 class SourceDetectionEvaluationBlock:

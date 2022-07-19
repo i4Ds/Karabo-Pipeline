@@ -29,8 +29,12 @@ class FileHandle:
 
     __temp_path = './.tmp/'
 
-    def __init__(self, existing_file_path: str = None, is_dir: bool = False):
-        unique_path = self.__temp_path + str(uuid.uuid4())
+    def __init__(self,
+                 existing_file_path: str = None,
+                 is_dir: bool = False,
+                 mode="rt",
+                 suffix=""):
+        unique_path = self.__temp_path + str(uuid.uuid4()) + suffix
         if existing_file_path:
             unique_path = existing_file_path
             self.existing = True
@@ -44,10 +48,13 @@ class FileHandle:
             self.file = None
             self.path = unique_path
             self.is_dir = True
-
         else:
-            self.file = open(unique_path, "x")
-            self.path = unique_path
+            if os.path.exists(unique_path):
+                self.file = open(unique_path, mode)
+                self.path = unique_path
+            else:
+                self.file = open(unique_path, "x")
+                self.path = unique_path
 
     # def __del__(self):
     #     if self.existing:
