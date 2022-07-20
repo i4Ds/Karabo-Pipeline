@@ -5,7 +5,7 @@ import numpy as np
 from karabo.Imaging.imager import Imager
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope, get_OSKAR_Example_Telescope, get_SKA1_MID_Telescope
+from karabo.simulation.telescope import Telescope
 from karabo.simulation.interferometer import InterferometerSimulation
 
 
@@ -25,7 +25,7 @@ class TestSimulation(unittest.TestCase):
             [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10]])
         sky.add_point_sources(sky_data)
 
-        telescope = get_OSKAR_Example_Telescope()
+        telescope = Telescope.get_OSKAR_Example_Telescope()
         # telescope.centre_longitude = 3
 
         simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
@@ -43,5 +43,5 @@ class TestSimulation(unittest.TestCase):
                         imaging_cellsize=3.878509448876288e-05)
 
         dirty = imager.get_dirty_image()
-        dirty.save_as_fits("result/dirty.fits")
+        dirty.save_to_file("result/dirty.fits")
         dirty.plot()

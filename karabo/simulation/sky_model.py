@@ -160,7 +160,7 @@ class SkyModel(KaraboResource):
         :return: SkyModel
         """
         dataframe = pd.read_csv(path)
-        if dataframe.ndim <= 2:
+        if dataframe.ndim < 2:
             raise KaraboError(
                 f'CSV doesnt have enough dimensions to hold the necessary information: Dimensions: {dataframe.ndim}')
 
@@ -450,7 +450,14 @@ class SkyModel(KaraboResource):
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
         image_pixel_per_side = image.get_dimensions_of_image()[0]
-        wcs = image.get_wcs()
+        dims = image.get_dimensions_of_image()
+        wcs = image.get_2d_wcs()
+
+
+
+        # if len(dims) > 2:
+        #     ra = np.hstack((ra, np.zeros((ra.shape[0], 3))))
+        #     dec = np.hstack((dec, np.zeros((dec.shape[0], 3))))
         px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 1)
 
         # pre-filtering before calling wcs.wcs_world2pix would be more efficient,

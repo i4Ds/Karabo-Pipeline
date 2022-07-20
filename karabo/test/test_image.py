@@ -34,36 +34,36 @@ class TestImage(unittest.TestCase):
         sky = get_GLEAM_Sky()
         sky.explore_sky([250, -80])
 
-    # TODO: move these on to CSCS Test Infrastructure once we have it.
-    def test_clean(self):
-        sky = get_GLEAM_Sky()
-        phase_center = [250, -80]
-        sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
-        sky.setup_default_wcs(phase_center=phase_center)
-        tel = Telescope.get_ASKAP_Telescope()
-        observation_settings = Observation(100e6,
-                                           phase_centre_ra_deg=phase_center[0],
-                                           phase_centre_dec_deg=phase_center[1],
-                                           number_of_channels=64,
-                                           number_of_time_steps=24)
-
-        interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
-        visibility = interferometer_sim.run_simulation(tel, sky, observation_settings)
-
-        # visibility = Visibility()
-        # visibility.load_ms_file(f"./{data_path}/visibilities_gleam.ms")
-        imager = Imager(visibility,
-                        ingest_vis_nchan=16,
-                        ingest_chan_per_blockvis=1,
-                        ingest_average_blockvis=True,
-                        imaging_npixel=512,
-                        imaging_cellsize=3.878509448876288e-05*4,
-                        imaging_weighting='robust',
-                        imaging_robustness=-.5)
-        deconvoled_image, restored_image, residual_image = imager.imaging_rascil()
-        restored_image.save_to_file("result/restored.fits")
-        residual_image.save_to_file("result/residual.fits")
-        sky.save_to_file("result/imaging_sky.txt")
+    # # TODO: move these on to CSCS Test Infrastructure once we have it.
+    # def test_clean(self):
+    #     sky = get_GLEAM_Sky()
+    #     phase_center = [250, -80]
+    #     sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
+    #     sky.setup_default_wcs(phase_center=phase_center)
+    #     tel = Telescope.get_ASKAP_Telescope()
+    #     observation_settings = Observation(100e6,
+    #                                        phase_centre_ra_deg=phase_center[0],
+    #                                        phase_centre_dec_deg=phase_center[1],
+    #                                        number_of_channels=64,
+    #                                        number_of_time_steps=24)
+    #
+    #     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    #     visibility = interferometer_sim.run_simulation(tel, sky, observation_settings)
+    #
+    #     # visibility = Visibility()
+    #     # visibility.load_ms_file(f"./{data_path}/visibilities_gleam.ms")
+    #     imager = Imager(visibility,
+    #                     ingest_vis_nchan=16,
+    #                     ingest_chan_per_blockvis=1,
+    #                     ingest_average_blockvis=True,
+    #                     imaging_npixel=512,
+    #                     imaging_cellsize=3.878509448876288e-05*4,
+    #                     imaging_weighting='robust',
+    #                     imaging_robustness=-.5)
+    #     deconvoled_image, restored_image, residual_image = imager.imaging_rascil()
+    #     restored_image.save_to_file("result/restored.fits")
+    #     residual_image.save_to_file("result/residual.fits")
+    #     sky.save_to_file("result/imaging_sky.txt")
 
     def test_power_spectrum(self):
         restored_image = Image.open_from_file(f"{data_path}/restored.fits")

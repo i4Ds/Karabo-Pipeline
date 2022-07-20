@@ -7,6 +7,7 @@ import numpy
 import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
+from astropy import wcs as awcs
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 
@@ -181,8 +182,19 @@ class Image(KaraboResource):
             logging.warning("The Images's cdelt1 and cdelt2 are not the same in absolute value. Continuing with cdelt1")
         return np.deg2rad(np.abs(cdelt1))
 
-    def get_wcs(self):
+    def get_wcs(self) -> any:
         return WCS(self.header)
+
+    def get_2d_wcs(self) -> any:
+        w = WCS(naxis=2)
+        radian_degree = lambda rad: rad * (180 / np.pi)
+        cdelt = radian_degree(self.get_cellsize())
+        crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
+        w.wcs.crpix = np.array([crpix, crpix])
+        w.wcs.cdelt = np.array([-cdelt, cdelt])
+        w.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
+        w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
+        return w
 
     def project_sky_to_image(self,
                              sky: 'SkyModel',
@@ -196,8 +208,6 @@ class Image(KaraboResource):
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
         return sky.project_sky_to_image(self, filter_outliers)
-
-
 
     # def plot_histogram(self):
     #

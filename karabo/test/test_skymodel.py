@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from karabo.simulation.sky_model import SkyModel, get_GLEAM_Sky, read_sky_model_from_csv, get_random_poisson_disk_sky
+from karabo.simulation.sky_model import SkyModel, get_GLEAM_Sky, get_random_poisson_disk_sky
 from karabo.test import data_path
 
 
@@ -62,10 +62,10 @@ class TestSkyModel(unittest.TestCase):
         filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(phase_center=phase_center, figsize=(8, 6), s=80,
                                  xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
-        filtered_sky.save_sky_model_as_csv("./result/filtered_sky.csv")
+        filtered_sky.save_to_file("./result/filtered_sky.csv")
 
     def test_read_sky_model(self):
-        sky = read_sky_model_from_csv(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.explore_sky(phase_center=[250, -80], figsize=(8, 6), s=80,
                         xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
 
