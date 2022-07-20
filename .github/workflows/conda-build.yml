@@ -26,4 +26,5 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} move --from-label main --to-label old i4ds/karabo-pipeline
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2

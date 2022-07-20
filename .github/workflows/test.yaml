@@ -12,7 +12,7 @@ jobs:
       - name: Test Code
         shell: bash -l {0}
         run: |
-          conda activate karabo_env_test
+          conda activate karabo_dev_env
           python -m xmlrunner -o ./test-reports/junit
       - name: Upload Test Artifacts
         uses: actions/upload-artifact@v3

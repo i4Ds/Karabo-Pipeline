@@ -2,6 +2,7 @@ name: Build Docs
 
 on:
   release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -14,13 +15,15 @@ jobs:
           auto-update-conda: true
       - name: Checkout Code
         uses: actions/checkout@v2
-      - name: Create Enviornment
-        run: |
-          conda env create -f doc/environment.yaml
-      - name: Activate Conda
+      - name: Create Environment
         shell: bash -l {0}
         run: |
-          conda activate karabo_doc_env
+          conda env create -f environment.yaml
+          conda activate karabo_dev_env
+          conda install -y --file doc/doc_packages.txt
+      - name: Build Docs
+        shell: bash -l {0}
+        run: |
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v3

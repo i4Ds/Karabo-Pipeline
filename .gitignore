@@ -70,7 +70,8 @@ visibilities_task_stream.html
 *.hdf
 
 # PyCharm
-.idea
+.idea/*
+.idea/
 
 # Dask
 dask-worker-space
