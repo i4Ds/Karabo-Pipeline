@@ -89,7 +89,7 @@ class Imager:
         Get Dirty Image of visibilities passed to the Imager.
         :return: dirty image of visibilities.
         """
-        block_visibilities = create_blockvisibility_from_ms(self.visibility.path)
+        block_visibilities = create_blockvisibility_from_ms(self.visibility.file.path)
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
