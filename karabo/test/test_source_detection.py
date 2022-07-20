@@ -16,8 +16,9 @@ class TestSourceDetection(unittest.TestCase):
     def test_detection(self):
         image = Image.open_from_file(f"{data_path}/restored.fits")
         detection = SourceDetectionResult.detect_sources_in_image(image)
+        detection.save_sources_to_csv(f"result/detection_result_512px.csv")
         detection.save_to_file('result/result.zip')
-        detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
+        # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
         pixels = detection.get_pixel_position_of_sources()
         print(pixels)
 
@@ -27,43 +28,29 @@ class TestSourceDetection(unittest.TestCase):
     #     detection.save_sources_file_as_csv("./result/detection.csv")
 
     def test_read_detection(self):
-        detection = read_detection_from_sources_file_csv(filepath="./data/detection.csv")
+        detection = read_detection_from_sources_file_csv(filepath=f"{data_path}/detection_result_512px.csv")
         assert len(detection.detected_sources) == 8
 
     def test_source_detection_plot(self):
         sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
-        detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv",
+        detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path="./data/restored.fits")
         detection.save_sources_to_csv("./detection.csv")
-        mapping =  SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 3.878509448876288e-05, 10)
+        mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 5)
         mapping.plot()
 
     def test_get_arrays(self):
         sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
-        detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv",
+        detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path="./data/restored.fits")
         detection.save_sources_to_csv("./detection.csv")
 
-        mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 3.878509448876288e-05, 10)
-        arr = mapping.__map_sky_to_detection_array()
+        mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 10)
+        arr = mapping.mapped_array
         print(arr)
 
-    def test_source_detection_plot_no_image(self):
-        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
-        sky.setup_default_wcs([250, -80])
-        detection = read_detection_from_sources_file_csv(f"{data_path}/detection.csv")
-        mapping = detection.evaluate_result_with_sky(sky, 3.878509448876288e-05, 10)
-        mapping.plot()
-
-    def test_monkey(self):
-        get_state_func = bdsf.image.Image.__getstate__
-        print(bdsf.image.Image.__getstate__)
-        bdsf.image.Image.__getstate__ = None
-        print(bdsf.image.Image.__getstate__)
-        bdsf.image.Image.__getstate__ = get_state_func
-        print(bdsf.image.Image.__getstate__)
     #
     # def test_full_workflow(self):
     #     sky_data = np.array([

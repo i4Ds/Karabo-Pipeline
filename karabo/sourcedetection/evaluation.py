@@ -2,6 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
+from scipy.spatial.distance import cdist
 
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.result import SourceDetectionResult
@@ -167,11 +168,11 @@ class SourceDetectionEvaluation:
             plt.show()
 
     def __plot_truth_and_prediction(self, ax):
-        truth = self.get_truth_array()[:, [3, 4]]
-        pred = self.get_detected_array()[:, [3, 4]]
-        ax.plot(truth[0, :], truth[1, :], 'o', linewidth=5,
+        truth = self.get_truth_array()[:, [3, 4]].transpose()
+        pred = self.get_detected_array()[:, [3, 4]].transpose()
+        ax.plot(truth[0], truth[1], 'o', linewidth=5,
                 color="firebrick", alpha=0.5)
-        ax.plot(pred[2, :], pred[3, :], 'x', linewidth=5, color='green')
+        ax.plot(pred[0], pred[1], 'x', linewidth=5, color='green')
 
     def __map_sky_to_detection_array(self, assignment, sky: SkyModel) -> np.ndarray:
         truth_indexes = np.array(assignment[:, 0], dtype=int)
@@ -189,11 +190,11 @@ class SourceDetectionEvaluation:
                                                sky_indexes: npt.NDArray,
                                                sky: SkyModel) -> npt.NDArray:
         pixel_coords_sky = sky.project_sky_to_image(self.source_detection.get_source_image())
-        pixel_coords = pixel_coords_sky[sky_indexes]
+        pixel_coords = pixel_coords_sky[:, sky_indexes].transpose()
         filtered = sky[sky_indexes.astype(dtype='uint32')]
-        ra = filtered[0]
-        dec = filtered[1]
-        flux = filtered[2]
+        ra = filtered[:, 0]
+        dec = filtered[:, 1]
+        flux = filtered[:, 2]
         x_pos = pixel_coords[:, 0]
         y_pos = pixel_coords[:, 1]
         peak = np.zeros((len(filtered)))
