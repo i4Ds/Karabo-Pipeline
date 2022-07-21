@@ -29,7 +29,7 @@ class TestSourceDetection(unittest.TestCase):
 
     def test_read_detection(self):
         detection = read_detection_from_sources_file_csv(filepath=f"{data_path}/detection_result_512px.csv")
-        assert len(detection.detected_sources) == 8
+        assert len(detection.detected_sources) == 37
 
     def test_source_detection_plot(self):
         sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")

@@ -32,15 +32,13 @@ class BeamPattern:
                   f"frequency_hz={freq_hz} \n" \
                   f"average_fractional_error={avg_frac_error} \n" \
                   f"pol_type={pol_type.value[0]} \n" \
-                  f"output_directory={telescope.config_path} \n"
+                  f"output_directory={telescope.file} \n"
 
-
-        test = os.listdir(telescope.config_path)
+        test = os.listdir(telescope.file)
 
         for item in test:
             if item.endswith(".bin"):
-                os.remove(os.path.join(telescope.config_path, item))
-
+                os.remove(os.path.join(telescope.file, item))
 
         settings_file = FileHandle()
         settings_file.file.write(content)
@@ -57,7 +55,7 @@ class BeamPattern:
         """
         line1 = 'Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Abs(Theta)[dBi   ]  Phase(Theta)[deg.]  Abs(Phi  )[dBi   ]  Phase(Phi  )[deg.]  Ax.Ratio[dB    ]    '
         line2 = '------------------------------------------------------------------------------------------------------------------------------------------------------'
-        np.savetxt(str(output_file_path)+'.cst', arr, delimiter=" ", header=line1 + "\n" + line2, comments='')
+        np.savetxt(str(output_file_path) + '.cst', arr, delimiter=" ", header=line1 + "\n" + line2, comments='')
 
     def get_meerkat_uhfbeam(f, pol, beamextent):
         """
@@ -96,7 +94,7 @@ class BeamPattern:
         plt.colorbar()
         plt.show()
 
-    def plot_beam(self,theta,phi,absdir):
+    def plot_beam(self, theta, phi, absdir):
         """
 
         :param theta: in radians
@@ -105,9 +103,6 @@ class BeamPattern:
         :return: polar plot
         """
         fig = plt.figure()
-        ax = fig.add_axes([0.1,0.1,0.8,0.8],polar=True)
-        ax.pcolormesh(phi, theta, absdir) #TODO (Add check for this) X,Y & data2D must all be same dimensions
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+        ax.pcolormesh(phi, theta, absdir)  # TODO (Add check for this) X,Y & data2D must all be same dimensions
         plt.show()
-
-
-
