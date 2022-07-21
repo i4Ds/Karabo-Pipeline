@@ -33,7 +33,8 @@ class FileHandle:
                 shutil.copytree(existing_file_path, tmp_path)
             else:
                 # is a file
-                open(tmp_path, mode)
+                open(tmp_path, 'x')
+                shutil.copyfile(existing_file_path, tmp_path)
                 self.path = tmp_path
         else:
             # not existing
@@ -53,4 +54,4 @@ class FileHandle:
     #     if self.is_dir:
     #         os.rmdir(self.path)
     #     if not self.is_dir:
-    #
+

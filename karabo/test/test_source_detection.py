@@ -1,12 +1,7 @@
 import unittest
 
-import bdsf.image
-
-from karabo.Imaging.image import Image
-from karabo.sourcedetection import source_detection, SourceDetectionResult, PyBDSFSourceDetectionResult, \
-    SourceDetectionEvaluation, read_detection_from_sources_file_csv
-# from karabo.sourcedetection import read_detection_from_sources_file_csv
 from karabo.simulation.sky_model import SkyModel
+from karabo.sourcedetection import SourceDetectionEvaluation, read_detection_from_sources_file_csv
 from karabo.test import data_path
 
 
@@ -39,6 +34,8 @@ class TestSourceDetection(unittest.TestCase):
         detection.save_sources_to_csv("./detection.csv")
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 5)
         mapping.plot()
+        mapping.plot_error_ra_dec()
+        mapping.quiver_plot_error_ra_dec()
 
     def test_get_arrays(self):
         sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
@@ -51,7 +48,6 @@ class TestSourceDetection(unittest.TestCase):
         arr = mapping.mapped_array
         print(arr)
 
-    #
     # def test_full_workflow(self):
     #     sky_data = np.array([
     #         [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],

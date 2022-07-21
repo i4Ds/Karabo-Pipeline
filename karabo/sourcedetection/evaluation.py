@@ -229,12 +229,32 @@ class SourceDetectionEvaluation:
         return self.mapped_array[2]
 
     def plot_error_ra_dec(self):
-        ra_dec_truth = self.get_truth_array()[:, [1, 2]]
-        ra_dec_det = self.get_detected_array()[:, [1, 2]]
+        ra_dec_truth = self.get_truth_array()[:, [1, 2]].transpose()
+        ra_dec_det = self.get_detected_array()[:, [1, 2]].transpose()
         error = ra_dec_truth - ra_dec_det
+        ra_error = error[0]
+        dec_error = error[1]
 
-        plt.scatter(error[0], error[1])
+        err_r = max(np.max(ra_error), np.max(dec_error))
+        err_l = min(np.min(ra_error), np.min(dec_error))
+
+        plt.xlim([err_l, err_r])
+        plt.ylim([err_l, err_r])
+        plt.plot(error[0], error[1], 'o', markersize=5)
         plt.show()
+
+    def quiver_plot_error_ra_dec(self):
+        ra_dec_truth = self.get_truth_array()[:, [1, 2]].transpose()
+        ra_dec_det = self.get_detected_array()[:, [1, 2]].transpose()
+        error = ra_dec_truth - ra_dec_det
+        ra_error = error[0]
+        dec_error = error[1]
+
+        plt.quiver(ra_dec_truth[0], ra_dec_truth[1], ra_error, dec_error, color='b')
+        plt.scatter(ra_dec_truth[0], ra_dec_truth[1], color='r', s=8)
+        plt.show()
+
+
 
 # class SourceDetectionEvaluationBlock:
 #
