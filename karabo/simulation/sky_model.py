@@ -294,7 +294,7 @@ class SkyModel:
         plt.ylabel(ylabel)
         plt.show()
 
-    def plot_sky(self, phase_center):
+    def plot_sky(self, phase_center: tuple[float, float] = (0, 0)):
         ra0, dec0 = phase_center[0], phase_center[1]
         data = self[:, 0:3]
         ra = np.radians(data[:, 0] - ra0)

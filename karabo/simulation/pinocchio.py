@@ -45,12 +45,20 @@ class Pinocchio:
     PIN_OUT_VAL_PADD = 3                            # padding after the name
     PIN_OUT_COMM_PADD = 12 + PIN_OUT_VAL_PADD       # padding between name and comment
 
+    PIN_RIGHT_ASCENSION_IDX = 0
+    PIN_DECLINATION_IDX     = 1
+    PIN_I_FLUS_IDX          = 2
+    PIN_Q_FLUS_IDX          = 3
+    PIN_U_FLUS_IDX          = 4
+    PIN_V_FLUS_IDX          = 5
+    PIN_REF_F_IDX           = 6
+
     RAD_TO_DEG = (180 / np.pi)
 
     def __init__(self):
         """
         Creates temp directory (wd) for the pinocchio run. 
-        Load default file paths for config files, load default config file
+        Load default file paths for config files, load default config files
         """
         self.wd = FileHandle(is_dir = True)
         
@@ -59,21 +67,33 @@ class Pinocchio:
         self.paramsInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_PARAMS_FILE
         self.redShiftInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_OUTPUT_FILE
 
-        self.currConfig = self.__loadPinocchioDefaultConfig__()
-        self.redShiftRequest = self.__loadPinocchioDefaultRedShiftRequest__()
+        self.currConfig = self.__loadPinocchioDefaultConfig()
+        self.redShiftRequest = self.__loadPinocchioDefaultRedShiftRequest()
 
         self.runConfigPath = "NotSetYETCallRun*"
         self.outputFilePath = "NotSetYETCallRun*"
 
         self.didRun = False
 
-    def __loadPinocchioDefaultRedShiftRequest__(self) -> PinocchioRedShiftRequest:
-        # load default redshift request (outputs) file
+    def __loadPinocchioDefaultRedShiftRequest(self) -> PinocchioRedShiftRequest:
+        """
+        load default redshift request (outputs) file installed with the conda package
+
+        :return: Memory representation of the outputs file
+        :rtype: PinocchioRedShiftRequest
+        """
+
         return self.loadPinocchioRedShiftRequest(self.redShiftInputPath) 
 
-    def loadPinocchioRedShiftRequest(self, path: str) -> PinocchioRedShiftRequest:
+    @staticmethod
+    def loadPinocchioRedShiftRequest(path: str) -> PinocchioRedShiftRequest:
         """
         load a outputs file with the redshift requests
+
+        :param path: path to the outputs file 
+        :type path: str
+        :return: Memory representation of the outputs file
+        :rtype: PinocchioRedShiftRequest
         """
         
         redShifts = open(path)
@@ -102,7 +122,10 @@ class Pinocchio:
 
     def addRedShift(self, rs: str) -> None:
         """
-        Add a redshift to the outputs file, 0.0 is default
+         Add a redshift to the outputs file
+
+        :param rs: redshift that should be added, for example "2.0"
+        :type rs: str
         """
 
         assert len(rs.split(".")) == 2, "Input is no double value"
@@ -111,18 +134,33 @@ class Pinocchio:
     def removeRedShift(self, rs: str) -> None:
         """
         Remove a redshift from the outputs file
+
+        :param rs: redshift that should be removed for example "1.0"
+        :type rs: str
         """
 
         assert len(rs.split(".")) == 2, "Input is no double value"
         self.redShiftRequest.redShifts.remove(rs)
 
-    def __loadPinocchioDefaultConfig__(self) -> PinocchioConfig:
-        # load default config installed with the pinocchio conda package
-        return self.loadPinocchioConfig(self.paramsInputPath)     
+    def __loadPinocchioDefaultConfig(self) -> PinocchioConfig:
+        """
+        load default pinocchio config that gets installed with the conda package
 
-    def loadPinocchioConfig(self, path: str) -> PinocchioConfig:
+        :return: _description_
+        :rtype: PinocchioConfig
+        """
+        # load default config installed with the pinocchio conda package
+        return Pinocchio.loadPinocchioConfig(self.paramsInputPath)     
+
+    @staticmethod
+    def loadPinocchioConfig(path: str) -> PinocchioConfig:
         """
         Load given pinocchio config 
+
+        :param path: path to the config file
+        :type path: str
+        :return: Pinocchio config created from file
+        :rtype: PinocchioConfig
         """
 
         configF = open(path)
@@ -190,17 +228,23 @@ class Pinocchio:
 
     def getConfig(self) -> PinocchioConfig:
         """
-        Get pinocchio run config as a dictionary
-        
+        Get pinocchio run config as a dictionary.
         The first call returns the default dict that can be changed and set with 
         the setConfig method
         """        
+
         return self.currConfig
 
     def setConfig(self, config : PinocchioConfig) -> None:
         """
-        Replace the default pinocchio config with the given config
+        Replace the default pinocchio config with the given config. 
+        Get a config by calling the loadPinocchioConfig() method with a valid
+        path to a pinocchio config file.  
+
+        :param config: own created config in memory - format matters!
+        :type config: PinocchioConfig
         """
+
         self.currConfig = config
 
     def printConfig(self):
@@ -226,12 +270,26 @@ class Pinocchio:
             print(f"Redshift active: {k}")
 
     def setRunName(self, name: str):
+        """
+        set the name of the next run called by run()
+
+        :param name: run name
+        :type name: str
+        """
+
         l : list[PinocchioParams] = self.currConfig.confDict["runProperties"]
         for i in l:
            if i.name == "RunFlag":
                 i.value = name
 
     def getRunName(self) -> str:
+        """
+        return the specified name set by setRunName()
+
+        :return: name of the run
+        :rtype: str
+        """
+
         l : list[PinocchioParams] = self.currConfig.confDict["runProperties"]
         for i in l:
            if i.name == "RunFlag":
@@ -242,9 +300,15 @@ class Pinocchio:
     def run(self, printLiveOutput = True) -> None:
         """
         run pinocchio in a temp folder
+
+        :param printLiveOutput: specify if pinocchio should print the stdout and stderror to the console
+                                otherwise it gets written into memory and can be retrieved by calling
+                                getPinocchioStdOutput and getPinocchioStdError, defaults to True
+        :type printLiveOutput: bool, optional
         """
 
-        assert len(self.redShiftRequest.redShifts) > 0, "all redshifts removed from outputs file - pinocchio won't calculate anything"
+        assert len(self.redShiftRequest.redShifts) > 0, ("all redshifts removed from outputs file" ,
+                                                            " - pinocchio won't calculate anything")
 
         self.__writeRequiredFilesToWD()
 
@@ -271,6 +335,11 @@ class Pinocchio:
     def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
         """
         run the pinocchio runPlanner tool to check hardware requirements for given config
+
+        :param gbPerNode: defines how many GByte a node has
+        :type gbPerNode: int
+        :param tasksPerNode: defines how many tasks run on a node
+        :type tasksPerNode: int
         """
 
         self.__writeRequiredFilesToWD()
@@ -278,27 +347,44 @@ class Pinocchio:
         cmd: List[str] = [Pinocchio.PIN_EXEC_RP_NAME, self.runConfigPath, f"{gbPerNode}", f"{tasksPerNode}"]
         subprocess.run(cmd, cwd=self.wd.path, text=True)
 
-    def printPinocchioStdOutput(self) -> None:
+    def getPinocchioStdOutput(self) -> str:
         """
-        print the std output created during run, only available if live output was disabled
+        get the std output created during run, only available if live output was disabled
+
+        :return: pinocchio std output
+        :rtype: str
         """
 
         if hasattr(self, "out"):
-            print(self.out.stdout)
+            return self.out.stdout
 
-    def printPinocchioStdError(self) -> None:
+    def getPinocchioStdError(self) -> str:
         """
-        print the std error created during run, only available if live output was disabled
-        """
+        get the std error created during run, only available if live output was disabled
 
+        :return: pinocchio std error
+        :rtype: str
+        """
+       
         if hasattr(self, "out"):
-            print(self.out.stderr)
+            return self.out.stderr
 
     def __writeRequiredFilesToWD(self) -> None:
-        self.runConfigPath = self.__writeConfigToWD__()
-        self.outputFilePath = self.__writeRedShiftRequestFileToWD__()
+        """
+        prepare pinocchio for a run, write the needed files to the correct position
+        """
 
-    def __writeRedShiftRequestFileToWD__(self) -> str:
+        self.runConfigPath = self.__writeConfigToWD()
+        self.outputFilePath = self.__writeRedShiftRequestFileToWD()
+
+    def __writeRedShiftRequestFileToWD(self) -> str:
+        """
+        create a pinocchio outputs file and write it into the cwd
+
+        :return: path of the outputs file on the filesystem
+        :rtype: str
+        """
+
         fp: str = os.path.join(self.wd.path, Pinocchio.PIN_REDSHIFT_FILE)
 
         with open(os.path.join(fp), "w") as temp_file:
@@ -309,7 +395,13 @@ class Pinocchio:
 
         return fp
 
-    def __writeConfigToWD__(self) -> str:
+    def __writeConfigToWD(self) -> str:
+        """
+        create a pinocchio config file and write it into the cwd    
+
+        :return: path of the config on the filesystem
+        :rtype: str
+        """
         assert self.wd is not None and self.wd.isDir
 
         lines: list[str] = []
@@ -360,31 +452,46 @@ class Pinocchio:
 
         return fp
 
-    def save(self, outDir: str) -> None:
+    def save(self, outDirPath: str) -> None:
         """
-        save the run results and the config into a folder
-        """
-        assert os.path.isdir(outDir), "invalid directory"
-        
-        shutil.copytree(self.wd.path, outDir, dirs_exist_ok=True)
+        save pinocchio results after a run() into the given folder
+        Overwrites all files with the same name within that folder
+        Directory will not be created, needs to exist before this call
 
-        # copy config
+        :param outDirPath: path to the output folder
+        :type outDirPath: str
         """
-        outfile = os.path.join(outDir, Pinocchio.PIN_PARAM_FILE)
-        shutil.copy(self.runConfigPath, outfile)
-        print(f"copied configuration file to {outfile}")
         
-        outfile = os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE)
-        shutil.copy(self.outputFilePath, os.path.join(outDir, Pinocchio.PIN_REDSHIFT_FILE))
-        print(f"copied outputs file to {outfile}")
-        """
+        assert self.didRun, "can not save pinocchio results if run() was never called"
+        assert os.path.isdir(outDirPath), "invalid directory"
+        
+        shutil.copytree(self.wd.path, outDirPath, dirs_exist_ok=True)
 
     def plotHalos(self, redshift: str = "0.0", save: bool = False) -> None:
         """
-        plot function from pinocchio 
+        plotting the generated halos after a pinocchio run
+
+        :param redshift: redshift that chooses the mass function file, defaults to "0.0"
+        :type redshift: str, optional
+        :param save: save the plot to the cwd, defaults to False
+        :type save: bool, optional
+        """
+        assert self.didRun, ("can not plot mass function if run() was never called, "
+                                "use the Pinocchio.plotMassFunctionFromFile() call instead")
+        Pinocchio.plotHalosFromFile(self.outCatalogPath[redshift], save)
+
+    @staticmethod
+    def plotHalosFromFile(path: str, save: bool = False) -> None:
+        """
+        plot the halos given by a file - visualisation from pinocchio
+
+        :param path: path to the catalog file
+        :type path: str
+        :param save: save the plot to the cwd, defaults to False
+        :type save: bool, optional
         """
 
-        (x,y,z) = np.loadtxt(self.outCatalogPath[redshift], unpack=True, usecols=(5,6,7))
+        (x,y,z) = np.loadtxt(path, unpack=True, usecols=(5,6,7))
 
         plt.figure()
 
@@ -408,10 +515,29 @@ class Pinocchio:
 
     def plotMassFunction(self, redshift: str = "0.0", save: bool = False) -> None:
         """
-        plot function from pinocchio 
+        plotting the mass function after a pinocchio run
+
+        :param redshift: redshift that chooses the mass function file, defaults to "0.0"
+        :type redshift: str, optional
+        :param save: save the plot to the cwd, defaults to False
+        :type save: bool, optional
+        """
+        assert self.didRun, ("can not plot mass function if run() was never called, "
+                                "use the Pinocchio.plotMassFunctionFromFile() call instead")
+        Pinocchio.plotMassFunctionFromFile(self.outMFPath[redshift], save)
+
+    @staticmethod
+    def plotMassFunctionFromFile(path:str, save: bool = False) -> None:
+        """
+        plot the mass function given by a file - visualisation from pinocchio
+
+        :param path: path of the massfunction file created by pinocchio
+        :type path: str
+        :param save: save the plot to the cwd, defaults to False
+        :type save: bool, optional
         """
 
-        (m, nm, fit) = np.loadtxt(self.outMFPath[redshift], unpack=True, usecols=(0,1,5))
+        (m, nm, fit) = np.loadtxt(path, unpack=True, usecols=(0,1,5))
 
         plt.figure()
 
@@ -433,17 +559,29 @@ class Pinocchio:
         
         plt.show()
 
-    def plotPastLightCone(self, redshift: str = "0.0", save: bool = False) -> None:
-        """ 
-        plot function from pinocchio 
-        
-        :param redshift: redshift file that should be plotted, defaults to "0.0"
-        :type redshift: str, optional
-        :param save: , defaults to False
+    def plotPastLightCone(self, save: bool = False) -> None:
+        """
+        plotting the past light cone after a pinocchio run
+
+        :param save: save the plot to the cwd, defaults to False
+        :type save: bool, optional
+        """
+        assert self.didRun, ("can not plot past light cone if run() was never called, "
+                                "use the Pinocchio.plotPastLightConeFromFile() call instead")
+        Pinocchio.plotPastLightConeFromFile(self.outLightConePath, save)
+    
+    @staticmethod
+    def plotPastLightConeFromFile(path: str, save: bool = False) -> None:
+        """
+        plot the past light cone given by a file - visualisation from pinocchio
+
+        :param path: path to the plc file
+        :type path: str
+        :param save: save the plot to the cwd, defaults to False
         :type save: bool, optional
         """
 
-        (x,y,z,m)=np.loadtxt(self.outLightConePath, unpack=True, usecols=(2,3,4,8))
+        (x,y,z,m)=np.loadtxt(path, unpack=True, usecols=(2,3,4,8))
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -462,11 +600,24 @@ class Pinocchio:
         
         plt.show()
 
-    def getSkyModel(self, near: int = 0, far: int = 100) -> SkyModel:
+    def getSkyModel(self, near: float = 0, far: float = 100) -> SkyModel:
+        """
+        This method should be used on the pinocchio object after run() was called. 
+        It is a wrapper for the getSkyModelFromFiles() static method with the correct 
+        internal path. 
+
+        :param near: near distance, everything below gets clipped, defaults to 0
+        :type near: float, optional
+        :param far: far distance, everything above gets clipped, defaults to 100
+        :type far: float, optional
+        :return: SkyModel with the point sources in radial distance from near to far
+        :rtype: SkyModel
+        """
         assert self.didRun, "can not get sky model if run() was never called"
         return Pinocchio.getSkyModelFromFiles(self.outLightConePath, near, far)
 
-    def getSkyModelFromFiles(path: str, near: int = 0, far: int = 100) -> SkyModel:
+    @staticmethod
+    def getSkyModelFromFiles(path: str, near: float = 0, far: float = 100) -> SkyModel:
         """
         Create a sky model from the pinocchio simulation cone. All halos from the near to 
         far plane (euclid distance) will be translated into the RA (right ascension - [0,360] in deg) and 
@@ -480,24 +631,50 @@ class Pinocchio:
 
         and translated into RA DEC
 
-        :param near: starting distance from the (0,0,0) point in [Mpc/h], default to 0
+        :param path: path to the past light cone file, if there is no file, use the a pinocchio run 
+                     to create such a file. 
+        :type path: str
+        :param near: starting distance from the (0,0,0) point in [Mpc/h], defaults to 0
+        :type near: float, optional
         :param far: ending distance from the (0,0,0) point in [Mpc/h], default to 100
+        :type far: float, optional
+        :return: SkyModel with the point sources in radial distance from near to far
+        :rtype: SkyModel
         """
-        
+    
+        assert near < far, "near is further or equal to far"
+
         # load pinocchio data
-        (x,y,z)=np.loadtxt(path, unpack=True, usecols=(2,3,4))
-
-        # calculate RA DEC
-        assert x.shape == y.shape == z.shape, "x, y, z do not have the same dimensions"
-        i: int
-        for i in range(len(x)):
-            x_pin = x[i]
-            y_pin = y[i]
-            z_pin = z[i]
-
-            r_calc_pin = np.sqrt(x_pin**2 + y_pin**2 + z_pin**2) # radial distance
-            theta_calc_pin = np.arccos(z_pin/r_calc_pin) # theta
-            ra = np.arctan2(y_pin, x_pin) * Pinocchio.RAD_TO_DEG # RA
-            dec = (np.pi/2. - theta_calc_pin) * Pinocchio.RAD_TO_DEG # DEC
-
+        (x,y,z)=np.loadtxt(path, unpack=True, usecols=(2,3,4))    
         
+        assert x.shape == y.shape == z.shape, "x, y, z do not have the same dimensions"
+    
+        length: int = len(x)
+        skyModArr = np.empty((length, 7))
+
+        i: int
+        for i in range(length):
+            xPin = x[i]
+            yPin = y[i]
+            zPin = z[i]
+
+            radDist = np.sqrt(xPin**2 + yPin**2 + zPin**2) # radial distance
+
+            # skip if not between near and far "plane"
+            if radDist < near and radDist > far:
+                continue
+
+            # calculate RA DEC
+            theta = np.arccos(zPin/radDist) # theta
+            ra = np.arctan2(yPin, xPin) * Pinocchio.RAD_TO_DEG # RA
+            dec = (np.pi/2. - theta) * Pinocchio.RAD_TO_DEG # DEC
+
+            skyModArr[i, Pinocchio.PIN_RIGHT_ASCENSION_IDX] = ra
+            skyModArr[i, Pinocchio.PIN_DECLINATION_IDX] = dec
+            skyModArr[i, Pinocchio.PIN_I_FLUS_IDX] = 1
+            skyModArr[i, Pinocchio.PIN_Q_FLUS_IDX] = 0
+            skyModArr[i, Pinocchio.PIN_U_FLUS_IDX] = 0
+            skyModArr[i, Pinocchio.PIN_V_FLUS_IDX] = 0
+            skyModArr[i, Pinocchio.PIN_REF_F_IDX] = 1.e8
+
+        return SkyModel(skyModArr)
