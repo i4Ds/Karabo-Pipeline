@@ -237,10 +237,13 @@ class SourceDetectionEvaluation:
 
         err_r = max(np.max(ra_error), np.max(dec_error))
         err_l = min(np.min(ra_error), np.min(dec_error))
-
-        plt.xlim([err_l, err_r])
-        plt.ylim([err_l, err_r])
-        plt.plot(error[0], error[1], 'o', markersize=5)
+        err = max(err_l, err_r)
+        err *= 1.1 #scale to add a small border
+        plt.xlim([-err, err])
+        plt.ylim([-err, err])
+        plt.xlabel("RA (deg) error")
+        plt.ylabel("DEC (deg) error")
+        plt.plot(error[0], error[1], 'o', markersize=8, color='r', alpha=0.5)
         plt.show()
 
     def quiver_plot_error_ra_dec(self):

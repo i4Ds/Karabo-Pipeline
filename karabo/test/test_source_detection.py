@@ -35,7 +35,7 @@ class TestSourceDetection(unittest.TestCase):
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 5)
         mapping.plot()
         mapping.plot_error_ra_dec()
-        mapping.quiver_plot_error_ra_dec()
+        # mapping.quiver_plot_error_ra_dec()
 
     def test_get_arrays(self):
         sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
