@@ -31,7 +31,7 @@ class TestSourceDetection(unittest.TestCase):
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path=f"{data_path}/restored.fits")
-        detection.save_sources_to_csv("./detection.csv")
+        detection.save_sources_to_csv("./result/detection.csv")
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 5)
         mapping.plot()
         mapping.plot_error_ra_dec()
@@ -42,7 +42,7 @@ class TestSourceDetection(unittest.TestCase):
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path=f"{data_path}/restored.fits")
-        detection.save_sources_to_csv("./detection.csv")
+        detection.save_sources_to_csv("./result/detection.csv")
 
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 10)
         arr = mapping.mapped_array
