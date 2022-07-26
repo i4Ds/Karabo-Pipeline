@@ -7,6 +7,7 @@ from typing import List
 
 import numpy as np
 import oskar.telescope as os_telescope
+import utm
 
 import karabo.error
 from karabo.resource import KaraboResource
@@ -17,6 +18,7 @@ from karabo.simulation.telescope_versions import ALMAVersions, ATCAVersions, CAR
     SMAVersions, VLAVersions, ACAVersions
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_absolute_path
+from karabo.util.math_util import long_lat_to_cartesian
 
 
 class Telescope(KaraboResource):
@@ -158,6 +160,9 @@ class Telescope(KaraboResource):
 
     def save_to_file(self, path: str) -> None:
         shutil.copytree(self.file.path, path)
+
+    def get_cartesian_position(self):
+        return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
 
     @classmethod
     def open_from_file(cls, path: str) -> any:

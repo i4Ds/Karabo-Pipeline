@@ -1,5 +1,7 @@
+import math
 from random import random
 from math import cos, sin, floor, sqrt, pi, ceil
+from typing import Tuple
 
 import numpy as np
 
@@ -63,6 +65,7 @@ def get_poisson_disk_sky(min_size: (float, float),
                          flux_min: float,
                          flux_max: float,
                          r=10):
+    assert flux_max >= flux_min
     x, y = min_size
     X, Y = max_size
     width = abs(X - x)
@@ -76,6 +79,34 @@ def get_poisson_disk_sky(min_size: (float, float),
     ra = ra + center_x
     dec = dec + center_y
     np_samples = np.vstack((ra, dec)).transpose()
-    flux = np.random.random((len(samples), 1)) * (flux_max + 1 - flux_min) + flux_min
+    flux = np.random.random((len(samples), 1)) * (flux_max - flux_min) + flux_min
     sky_array = np.hstack((np_samples, flux))
     return sky_array
+
+
+#
+def long_lat_to_cartesian(lat, lon):
+    lat, lon = np.deg2rad(lat), np.deg2rad(lon)
+    x = R * cos(lat) * cos(lon)
+    y = R * cos(lat) * sin(lon)
+    z = R * sin(lat)
+    return np.array([x, y, z])/ np.linalg.norm(np.array([x, y, z]))
+
+
+#
+#
+# def cartesian_to_long_lat(cart: [float, float, float]):
+#     lat = np.degrees(np.arcsin(cart[2]))
+#     lon = np.degrees(np.arctan2(cart[1], cart[0]))
+#     return np.array([lon, lat])
+
+
+R = 6360000  # earth radius
+
+
+def cartesian_to_ll(x, y, z=0):
+    # does not use `z`
+    r = math.sqrt(x ** 2 + y ** 2)
+    long = 180 * math.atan2(y, x) / math.pi
+    lat = 180 * math.acos(r / R) / math.pi
+    return lat, long

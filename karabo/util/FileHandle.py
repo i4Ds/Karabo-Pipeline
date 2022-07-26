@@ -29,7 +29,7 @@ class FileHandle:
             if is_dir:
                 # is a directory
                 self.path = tmp_path
-                os.mkdir(tmp_path)
+                #os.mkdir(tmp_path)
                 shutil.copytree(existing_file_path, tmp_path)
             else:
                 # is a file

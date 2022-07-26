@@ -423,9 +423,9 @@ class SkyModel(KaraboResource):
 
     @staticmethod
     def __convert_ra_dec_to_cartesian(ra, dec):
-        x = math.cos(ra) * math.cos(dec)
-        y = math.sin(ra) * math.cos(dec)
-        z = math.sin(dec)
+        x = math.cos(math.radians(ra)) * math.cos(math.radians(dec))
+        y = math.sin(math.radians(ra)) * math.cos(math.radians(dec))
+        z = math.sin(math.radians(dec))
         r = np.array([x, y, z])
         norm = np.linalg.norm(r)
         if norm == 0:
@@ -471,28 +471,28 @@ class SkyModel(KaraboResource):
             idxs = np.arange(self.num_sources)
         return np.vstack((px, py, idxs))
 
+    @staticmethod
+    def get_GLEAM_Sky() -> 'SkyModel':
+        survey = GLEAMSurveyDownloadObject()
+        path = survey.get()
+        gleam = SkyModel.get_fits_catalog(path)
+        df_gleam = gleam.to_pandas()
+        ref_freq = 76e6
+        df_gleam = df_gleam[~df_gleam['Fp076'].isna()]
+        ra, dec, fp = df_gleam['RAJ2000'], df_gleam['DEJ2000'], df_gleam['Fp076']
+        sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
+                                     np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
+        sky = SkyModel(sky_array)
+        # major axis FWHM, minor axis FWHM, position angle, object id
+        sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
+        return sky
 
-def get_GLEAM_Sky() -> SkyModel:
-    survey = GLEAMSurveyDownloadObject()
-    path = survey.get()
-    gleam = SkyModel.get_fits_catalog(path)
-    df_gleam = gleam.to_pandas()
-    ref_freq = 76e6
-    df_gleam = df_gleam[~df_gleam['Fp076'].isna()]
-    ra, dec, fp = df_gleam['RAJ2000'], df_gleam['DEJ2000'], df_gleam['Fp076']
-    sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
-                                 np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
-    sky = SkyModel(sky_array)
-    # major axis FWHM, minor axis FWHM, position angle, object id
-    sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
-    return sky
-
-
-def get_random_poisson_disk_sky(
-        min_size: (float, float),
-        max_size: (float, float),
-        flux_min: float,
-        flux_max: float,
-        r=3):
-    sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
-    return SkyModel(sky_array)
+    @staticmethod
+    def get_random_poisson_disk_sky(
+            min_size: (float, float),
+            max_size: (float, float),
+            flux_min: float,
+            flux_max: float,
+            r=3):
+        sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
+        return SkyModel(sky_array)

@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from karabo.simulation.sky_model import SkyModel, get_GLEAM_Sky, get_random_poisson_disk_sky
+from karabo.simulation.sky_model import SkyModel
 from karabo.test import data_path
 
 
@@ -40,7 +40,7 @@ class TestSkyModel(unittest.TestCase):
         self.assertEqual(sky2.sources.shape, (sky_data.shape[0], 13))
 
     def test_plot_gleam(self):
-        sky = get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky()
         sky.plot_sky([250, -80])
         cartesian_sky = sky.get_cartesian_sky()
         print(cartesian_sky)
@@ -56,7 +56,7 @@ class TestSkyModel(unittest.TestCase):
         print(cart_sky)
 
     def test_filter_sky_model(self):
-        sky = get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky()
         phase_center = [250, -80]  # ra,dec
         filtered_sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
         filtered_sky.setup_default_wcs(phase_center)
@@ -70,6 +70,6 @@ class TestSkyModel(unittest.TestCase):
                         xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
 
     def test_get_poisson_sky(self):
-        sky = get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
+        sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
         sky.explore_sky([240, -70], xlim=(-10, 10), ylim=(-10, 10))
         sky.plot_sky([240, -70])

@@ -229,20 +229,33 @@ class SourceDetectionEvaluation:
         return self.mapped_array[2]
 
     def plot_error_ra_dec(self):
-        ra_dec_truth = self.get_truth_array()[:, [1, 2]].transpose()
-        ra_dec_det = self.get_detected_array()[:, [1, 2]].transpose()
+        truth = self.get_truth_array()
+        detection = self.get_detected_array()
+
+        # get ra-dec error
+        ra_dec_truth = truth[:, [1, 2]].transpose()
+        ra_dec_det = detection[:, [1, 2]].transpose()
         error = ra_dec_truth - ra_dec_det
         ra_error = error[0]
         dec_error = error[1]
 
-        err_r = max(np.max(ra_error), np.max(dec_error))
-        err_l = min(np.min(ra_error), np.min(dec_error))
-        err = max(err_l, err_r)
-        err *= 1.1 #scale to add a small border
-        plt.xlim([-err, err])
-        plt.ylim([-err, err])
-        plt.xlabel("RA (deg) error")
-        plt.ylabel("DEC (deg) error")
+        # get pixel error
+        pixel_truth = truth[:, [3, 4]].transpose()
+        pixel_detection = detection[:, [3, 4]].transpose()
+        error_pixel = pixel_truth - pixel_detection
+        pixel_x_error = error_pixel[0]
+        pixel_y_error = error_pixel[1]
+
+        ra_div_pix_error = ra_error / pixel_x_error
+        dec_div_pix_error = ra_error * np.cos(dec_error) / pixel_y_error
+
+        error_max_ra = max(np.max(ra_div_pix_error), np.max(dec_div_pix_error))
+        error_min_dec = min(np.min(ra_div_pix_error), np.min(dec_div_pix_error))
+
+        plt.xlim([error_min_dec, error_max_ra])
+        plt.ylim([error_min_dec, error_max_ra])
+        plt.xlabel("RA (deg) error / x")
+        plt.ylabel("DEC (deg) error / y")
         plt.plot(error[0], error[1], 'o', markersize=8, color='r', alpha=0.5)
         plt.show()
 
@@ -256,44 +269,3 @@ class SourceDetectionEvaluation:
         plt.quiver(ra_dec_truth[0], ra_dec_truth[1], ra_error, dec_error, color='b')
         plt.scatter(ra_dec_truth[0], ra_dec_truth[1], color='r', s=8)
         plt.show()
-
-
-
-# class SourceDetectionEvaluationBlock:
-#
-#     def __init__(self, evaluations: [SourceDetectionEvaluation]):
-#         if len(evaluations) != 0:
-#             self.evaluations: [SourceDetectionEvaluation] = evaluations
-#         else:
-#             self.evaluations: [SourceDetectionEvaluation] = []
-#
-#     def add_evaluation(self, evaluation: SourceDetectionEvaluation):
-#         self.evaluations.append(evaluation)
-#
-#     def flatten_plot(self, index_sky, index_result, index_distance):
-#
-#         sky = np.concatenate([t.mapped_array[0] for t in self.evaluations])
-#         result = np.concatenate([t.mapped_array[1] for t in self.evaluations])
-#         distance = np.concatenate([t.mapped_array[2] for t in self.evaluations])
-#
-#         if not (len(sky) > index_sky >= 0):
-#             raise IndexError("Sky Index is not in range")
-#
-#         if not (len(result) > index_result >= 0):
-#             raise IndexError("")
-#
-#         if not (len(distance) > index_distance >= 0):
-#             raise IndexError("")
-#
-#         x = range(0, len(distance))
-#
-#         sky_select = sky[:, index_sky]
-#
-#         result_select = result[:, index_result]
-#
-#         distance_select = result[:, index_distance]
-#
-#         fig, ax = plt.subplots()
-#         ax.plot(x, sky_select)
-#         ax.plot(x, result_select)
-#         fig.savefig("./result_full.png")

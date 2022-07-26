@@ -1,21 +1,77 @@
+import os
 import unittest
 
+from karabo.Imaging.image import Image
+from karabo.Imaging.imager import Imager
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
-from karabo.sourcedetection import SourceDetectionEvaluation, read_detection_from_sources_file_csv
+from karabo.simulation.telescope import Telescope
+from karabo.simulation.visibility import Visibility
+from karabo.sourcedetection import SourceDetectionEvaluation, read_detection_from_sources_file_csv, \
+    SourceDetectionResult
 from karabo.test import data_path
 
 
 class TestSourceDetection(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        # make dir for result files
+        if not os.path.exists('result/'):
+            os.makedirs('result/')
+
+        if not os.path.exists('result/test_dec'):
+            os.makedirs('result/test_dec')
+
     # # TODO: move these on to CSCS Test Infrastructure once we have it.
-    # def test_detection(self):
-    #     image = Image.open_from_file(f"{data_path}/restored.fits")
-    #     detection = SourceDetectionResult.detect_sources_in_image(image)
-    #     detection.save_sources_to_csv(f"result/detection_result_512px.csv")
-    #     detection.save_to_file('result/result.zip')
-    #     # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
-    #     pixels = detection.get_pixel_position_of_sources()
-    #     print(pixels)
+    def test_detection(self):
+        image = Image.open_from_file(f"{data_path}/restored.fits")
+        detection = SourceDetectionResult.detect_sources_in_image(image)
+        detection.save_sources_to_csv(f"result/detection_result_512px.csv")
+        detection.save_to_file('result/result.zip')
+        # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
+        pixels = detection.get_pixel_position_of_sources()
+        print(pixels)
+
+    def test_create_detection_from_ms(self):
+        phasecenter = (30, -20)
+        sky = SkyModel.get_GLEAM_Sky()
+        sky.filter_by_flux(0.4, 1)
+        sky.plot_sky(phasecenter)
+        sky.explore_sky(phasecenter, xlim=(-10, 10), ylim=(-10, 10))
+
+        telescope = Telescope.get_MEERKAT_Telescope()
+        # telescope.centre_longitude = 3
+
+        simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
+                                              time_average_sec=10)
+        observation = Observation(100e6,
+                                  phase_centre_ra_deg=phasecenter[0],
+                                  phase_centre_dec_deg=phasecenter[1],
+                                  number_of_time_steps=24,
+                                  frequency_increment_hz=20e6,
+                                  number_of_channels=64)
+
+        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility.save_to_file("./result/poisson_vis.ms")
+
+        imager = Imager(visibility,
+                        ingest_vis_nchan=16,
+                        ingest_chan_per_blockvis=1,
+                        ingest_average_blockvis=True,
+                        imaging_npixel=2018,
+                        imaging_cellsize=0.3,
+                        imaging_weighting='robust',
+                        imaging_robustness=-.5)
+        convolved, restored, residual = imager.imaging_rascil()
+
+        convolved.save_to_file("result/test_dec/convolved.fits")
+        restored.save_to_file("result/test_dec/restored.fits")
+        residual.save_to_file("result/test_dec/residual.fits")
+
+        result = SourceDetectionResult.detect_sources_in_image(restored)
+        result.save_to_file("/result/test_dec/sources.csv")
 
     # def test_save_detection(self):
     #     image = open_fits_image("./data/restored.fits")
