@@ -2,6 +2,7 @@ import os
 
 import dask
 import numpy as np
+from dask.distributed import Client
 
 from karabo.Imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -54,7 +55,7 @@ def do_flux(simulation, flux, telescope, observation):
 
 
 if __name__ == '__main__':
-    client = get_global_client()
+    client = Client(processes=False, n_workers=5)
     flux_range = np.logspace(-3, 1, 5)
     # flux_range = [1]
 
