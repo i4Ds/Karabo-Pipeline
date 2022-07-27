@@ -2,12 +2,10 @@ import logging
 import os
 import re
 import shutil
-import tempfile
 from typing import List
 
 import numpy as np
 import oskar.telescope as os_telescope
-import utm
 
 import karabo.error
 from karabo.resource import KaraboResource
