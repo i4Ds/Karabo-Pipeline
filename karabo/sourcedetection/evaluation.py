@@ -198,7 +198,7 @@ class SourceDetectionEvaluation:
     def __sky_array_to_same_shape_as_detection(self,
                                                sky_indexes: npt.NDArray,
                                                sky: SkyModel) -> npt.NDArray:
-        pixel_coords_sky = sky.project_sky_to_image(self.source_detection.get_source_image())
+        pixel_coords_sky = sky.project_sky_to_image(self.source_detection.get_source_image(), filter_outlier=False)
         pixel_coords = pixel_coords_sky[:, sky_indexes].transpose()
         filtered = sky[sky_indexes.astype(dtype='uint32')]
         ra = filtered[:, 0]
@@ -209,9 +209,6 @@ class SourceDetectionEvaluation:
         peak = np.zeros((len(filtered)))
         indexes = sky_indexes.transpose()
         return np.vstack((indexes, ra, dec, x_pos, y_pos, flux, peak)).transpose()
-
-    def __get_RASCIL_QA_Structure(self):
-        detection = self.source_detection.get_sources_as_RASCIL_Skycomponents()
 
     def get_confusion_matrix(self) -> npt.NDArray:
         return np.array([[self.true_positives, self.false_negatives],
@@ -241,8 +238,8 @@ class SourceDetectionEvaluation:
         return self.mapped_array[2]
 
     def plot_error_ra_dec(self):
-        truth = self.get_truth_array()
-        detection = self.get_detected_array()
+        truth = self.get_truth_array().astype(float)
+        detection = self.get_detected_array().astype(float)
 
         # get ra-dec error
         ra_dec_truth = truth[:, [1, 2]].transpose()
@@ -262,10 +259,10 @@ class SourceDetectionEvaluation:
         dec_div_pix_error = ra_error * np.cos(dec_error) / pixel_y_error
 
         error_max_ra = max(np.max(ra_div_pix_error), np.max(dec_div_pix_error))
-        error_min_dec = min(np.min(ra_div_pix_error), np.min(dec_div_pix_error))
+        error_max_dec = max(np.max(ra_div_pix_error), np.max(dec_div_pix_error))
 
-        plt.xlim([error_min_dec, error_max_ra])
-        plt.ylim([error_min_dec, error_max_ra])
+        plt.xlim([-error_max_ra, error_max_ra])
+        plt.ylim([-error_max_dec, error_max_ra])
         plt.xlabel("RA (deg) error / x")
         plt.ylabel("DEC (deg) error / y")
         plt.plot(error[0], error[1], 'o', markersize=8, color='r', alpha=0.5)

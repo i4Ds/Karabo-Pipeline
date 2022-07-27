@@ -60,8 +60,8 @@ class TestSourceDetection(unittest.TestCase):
                         ingest_vis_nchan=16,
                         ingest_chan_per_blockvis=1,
                         ingest_average_blockvis=True,
-                        imaging_npixel=2018,
-                        imaging_cellsize=0.3,
+                        imaging_npixel=2048,
+                        imaging_cellsize=0.0003,
                         imaging_weighting='robust',
                         imaging_robustness=-.5)
         convolved, restored, residual = imager.imaging_rascil()
@@ -89,10 +89,10 @@ class TestSourceDetection(unittest.TestCase):
                                                          source_image_path=f"{data_path}/restored.fits")
         detection.write_to_file("./result/detection.csv")
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 5)
-        # mapping.plot()
+        mapping.plot()
         mapping.plot_error_ra_dec()
-        # mapping.plot_quiver_positions()
-        # mapping.plot_flux_ratio_to_distance()
+        mapping.plot_quiver_positions()
+        mapping.plot_flux_ratio_to_distance()
         mapping.plot_flux_ratio_to_ra_dec()
         mapping.plot_flux_histogram()
 
