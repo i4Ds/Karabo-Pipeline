@@ -59,7 +59,7 @@ if __name__ == '__main__':
     flux_range = np.logspace(-3, 1, 5)
     # flux_range = [1]
 
-    # results = parallel_for_each(flux_range, one_expirement)
-    for flux in flux_range:
-        one_expirement(flux)
+    results = parallel_for_each(flux_range, one_expirement)
+    # for flux in flux_range:
+    #     one_expirement(flux)
     # print(results)
