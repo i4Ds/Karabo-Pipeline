@@ -37,11 +37,12 @@ def do_flux(simulation, flux, telescope, observation):
                     ingest_vis_nchan=16)
 
     dirty = imager.get_dirty_image()
-    dirty.write_to_file(f"dirty_{flux}.fits")
+
     a = -0.00098910103194387 * 5
     detection = SourceDetectionResult.detect_sources_in_image(dirty, beam=(a, a, 0))
 
     os.mkdir(f"results_{flux}")
+    dirty.write_to_file(f"results_{flux}/dirty_{flux}.fits")
     detection.write_to_file(f"results_{flux}/detection_{flux}.zip")
     evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 10)
     evaluation.plot(filename=f"results_{flux}/overlay.png")
@@ -57,5 +58,7 @@ if __name__ == '__main__':
     flux_range = np.logspace(-3, 1, 5)
     # flux_range = [1]
 
-    results = parallel_for_each(flux_range, one_expirement)
-    print(results)
+    # results = parallel_for_each(flux_range, one_expirement)
+    for flux in flux_range:
+        one_expirement(flux)
+    # print(results)
