@@ -62,10 +62,10 @@ class TestSkyModel(unittest.TestCase):
         filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(phase_center=phase_center, figsize=(8, 6), s=80,
                                  xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
-        filtered_sky.save_to_file("./result/filtered_sky.csv")
+        filtered_sky.write_to_file("./result/filtered_sky.csv")
 
     def test_read_sky_model(self):
-        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.explore_sky(phase_center=[250, -80], figsize=(8, 6), s=80,
                         xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
 

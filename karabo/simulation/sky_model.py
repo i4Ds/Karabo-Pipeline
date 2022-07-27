@@ -135,11 +135,11 @@ class SkyModel(KaraboResource):
             self.sources = new_sources
         self.__update_sky_model()
 
-    def save_to_file(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         self.save_sky_model_as_csv(path)
 
     @staticmethod
-    def open_from_file(path: str) -> any:
+    def read_from_file(path: str) -> any:
         """
         Read a CSV file in to create a SkyModel.
         The CSV should have the following columns

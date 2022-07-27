@@ -22,12 +22,12 @@ class TestImage(unittest.TestCase):
 
     def test_dirty_image(self):
         vis = Visibility()
-        vis.open_from_file(f"{data_path}/visibilities_gleam.ms")
+        vis.read_from_file(f"{data_path}/visibilities_gleam.ms")
         imager = Imager(vis, imaging_npixel=2048,
                         imaging_cellsize=3.878509448876288e-05)
 
         dirty = imager.get_dirty_image()
-        dirty.save_to_file("result/dirty.fits")
+        dirty.write_to_file("result/dirty.fits")
         dirty.plot()
 
     def test_explore_sky(self):
@@ -66,7 +66,7 @@ class TestImage(unittest.TestCase):
     #     sky.save_to_file("result/imaging_sky.txt")
 
     def test_power_spectrum(self):
-        restored_image = Image.open_from_file(f"{data_path}/restored.fits")
+        restored_image = Image.read_from_file(f"{data_path}/restored.fits")
         # restored_image.plot_power_spectrum(save_png=True)
         restored_image.get_cellsize()
         # restored_image.plot_histogram()

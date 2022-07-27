@@ -26,10 +26,10 @@ class TestSourceDetection(unittest.TestCase):
 
     # # TODO: move these on to CSCS Test Infrastructure once we have it.
     def test_detection(self):
-        image = Image.open_from_file(f"{data_path}/restored.fits")
+        image = Image.read_from_file(f"{data_path}/restored.fits")
         detection = SourceDetectionResult.detect_sources_in_image(image)
         detection.__save_sources_to_csv(f"result/detection_result_512px.csv")
-        detection.save_to_file('result/result.zip')
+        detection.write_to_file('result/result.zip')
         # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
         pixels = detection.get_pixel_position_of_sources()
         print(pixels)
@@ -54,7 +54,7 @@ class TestSourceDetection(unittest.TestCase):
                                   number_of_channels=64)
 
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.save_to_file("./result/poisson_vis.ms")
+        visibility.write_to_file("./result/poisson_vis.ms")
 
         imager = Imager(visibility,
                         ingest_vis_nchan=16,
@@ -66,12 +66,12 @@ class TestSourceDetection(unittest.TestCase):
                         imaging_robustness=-.5)
         convolved, restored, residual = imager.imaging_rascil()
 
-        convolved.save_to_file("result/test_dec/convolved.fits")
-        restored.save_to_file("result/test_dec/restored.fits")
-        residual.save_to_file("result/test_dec/residual.fits")
+        convolved.write_to_file("result/test_dec/convolved.fits")
+        restored.write_to_file("result/test_dec/restored.fits")
+        residual.write_to_file("result/test_dec/residual.fits")
 
         result = SourceDetectionResult.detect_sources_in_image(restored)
-        result.save_to_file("/result/test_dec/sources.csv")
+        result.write_to_file("/result/test_dec/sources.csv")
 
     # def test_save_detection(self):
     #     image = open_fits_image("./data/restored.fits")
@@ -83,25 +83,25 @@ class TestSourceDetection(unittest.TestCase):
         assert len(detection.detected_sources) == 37
 
     def test_source_detection_plot(self):
-        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path=f"{data_path}/restored.fits")
-        detection.__save_sources_to_csv("./result/detection.csv")
+        detection.write_to_file("./result/detection.csv")
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 5)
         # mapping.plot()
-        # mapping.plot_error_ra_dec()
+        mapping.plot_error_ra_dec()
         # mapping.plot_quiver_positions()
         # mapping.plot_flux_ratio_to_distance()
         mapping.plot_flux_ratio_to_ra_dec()
         mapping.plot_flux_histogram()
 
     def test_get_arrays(self):
-        sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path=f"{data_path}/restored.fits")
-        detection.__save_sources_to_csv("./result/detection.csv")
+        detection.write_to_file("./result/detection.csv")
 
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 10)
         arr = mapping.mapped_array

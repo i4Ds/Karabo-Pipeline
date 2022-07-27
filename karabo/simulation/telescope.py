@@ -158,14 +158,14 @@ class Telescope(KaraboResource):
                 f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n")
         layout_file.close()
 
-    def save_to_file(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         shutil.copytree(self.file.path, path)
 
     def get_cartesian_position(self):
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
 
     @classmethod
-    def open_from_file(cls, path: str) -> any:
+    def read_from_file(cls, path: str) -> any:
         if path.endswith(".tm"):
             logging.info("Supplied file is a .tm file. Read as OSKAR Telescope file.")
             cls.read_OSKAR_tm_file(path)

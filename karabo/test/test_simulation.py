@@ -39,12 +39,12 @@ class TestSimulation(unittest.TestCase):
                                   number_of_channels=64)
 
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.save_to_file("./result/poisson_vis.ms")
+        visibility.write_to_file("./result/poisson_vis.ms")
 
         imager = Imager(visibility,
                         imaging_npixel=2048,
                         imaging_cellsize=0.03)
 
         dirty = imager.get_dirty_image()
-        dirty.save_to_file("result/dirty.fits")
+        dirty.write_to_file("result/dirty.fits")
         dirty.plot()

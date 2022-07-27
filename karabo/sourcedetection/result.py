@@ -47,21 +47,21 @@ class SourceDetectionResult(KaraboResource):
         detection = bdsf.process_image(image.file.path, beam=beam, quiet=quiet, format='csv')
         return PyBDSFSourceDetectionResult(detection)
 
-    def save_to_file(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         """
         Save Source Detection Result to ZIP Archive containing the .fits source image and source-finding catalog.
         :param path: path to save the zip archive as.
         """
         tempdir = FileHandle(is_dir=True)
-        self.source_image.save_to_file(tempdir.path + "/source_image.fits")
+        self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, 'zip', tempdir.path)
 
     @staticmethod
-    def open_from_file(path) -> any:
+    def read_from_file(path) -> any:
         tempdir = FileHandle(is_dir=True)
         shutil.unpack_archive(path, tempdir.path)
-        source_image = Image.open_from_file(tempdir.path + "/source_image.fits")
+        source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
         source_catalouge = numpy.loadtxt(tempdir.path + "/detected_sources.csv", delimiter=',')
         return SourceDetectionResult(source_catalouge, source_image)
 

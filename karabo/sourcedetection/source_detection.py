@@ -24,7 +24,7 @@ def read_detection_from_sources_file_csv(filepath: str, source_image_path: str =
     """
     image = None
     if source_image_path is not None:
-        image = Image.open_from_file(source_image_path)
+        image = Image.read_from_file(source_image_path)
     detected_sources = read_CSV_to_ndarray(filepath)
     detection = SourceDetectionResult(detected_sources=detected_sources, source_image=image)
     return detection

@@ -144,7 +144,7 @@ class SourceDetectionEvaluation:
         fn = ground_truth.shape[0] - assignments.shape[0]
         return tp, fp, fn
 
-    def plot(self):
+    def plot(self, filename=None):
         """
         Plot the found sources as green x's and the source truth as red 'o' on the original image,
          that the source detection was performed on.
@@ -161,12 +161,20 @@ class SourceDetectionEvaluation:
 
             self.__plot_truth_and_prediction(ax)
 
-            plt.show()
+            if filename:
+                plt.savefig(filename)
+                plt.show(block=False)
+            else:
+                plt.show()
         else:
             fig, ax = plt.subplots(1, 1, subplot_kw=dict())
 
             self.__plot_truth_and_prediction(ax)
-            plt.show()
+            if filename:
+                plt.savefig(filename)
+                plt.show(block=False)
+            else:
+                plt.show()
 
     def __plot_truth_and_prediction(self, ax):
         truth = self.get_truth_array()[:, [3, 4]].transpose()
@@ -204,7 +212,6 @@ class SourceDetectionEvaluation:
 
     def __get_RASCIL_QA_Structure(self):
         detection = self.source_detection.get_sources_as_RASCIL_Skycomponents()
-
 
     def get_confusion_matrix(self) -> npt.NDArray:
         return np.array([[self.true_positives, self.false_negatives],
@@ -264,7 +271,7 @@ class SourceDetectionEvaluation:
         plt.plot(error[0], error[1], 'o', markersize=8, color='r', alpha=0.5)
         plt.show()
 
-    def plot_quiver_positions(self):
+    def plot_quiver_positions(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2]].transpose().astype(float)
         ra_ref = np.array(ref[0], dtype=float)
@@ -283,12 +290,13 @@ class SourceDetectionEvaluation:
         ax.set_xlabel("RA (deg)")
         ax.set_ylabel("Dec (deg)")
         plt.title(f"Matched {num} sources")
-        plt.show(block=False)
-        plt.clf()
+        if filename:
+            plt.savefig(filename)
+            plt.show(block=False)
+        else:
+            plt.show()
 
-
-
-    def plot_flux_ratio_to_distance(self, max_ratio=2):
+    def plot_flux_ratio_to_distance(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2, 5]].transpose().astype(float)
         # ra_dec_ref = ref[0, 1]
@@ -311,9 +319,13 @@ class SourceDetectionEvaluation:
         plt.title("Flux ratio vs. distance")
         plt.xlabel("Distance to center (Deg)")
         plt.ylabel("Flux Ratio (Out/In)")
-        plt.show()
+        if filename:
+            plt.savefig(filename)
+            plt.show(block=False)
+        else:
+            plt.show()
 
-    def plot_flux_ratio_to_ra_dec(self):
+    def plot_flux_ratio_to_ra_dec(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2, 5]].transpose().astype(float)
         ra_pred = pred[0]
@@ -332,10 +344,13 @@ class SourceDetectionEvaluation:
         ax1.set_xlabel("RA (deg)")
         ax2.set_xlabel("Dec (deg)")
         ax1.set_ylabel("Flux ratio (Out/In)")
-        plt.show()
-        plt.clf()
+        if filename:
+            plt.savefig(filename)
+            plt.show(block=False)
+        else:
+            plt.show()
 
-    def plot_flux_histogram(self, nbins=10):
+    def plot_flux_histogram(self, nbins=10, filename=None):
 
         flux_in = self.get_truth_array()[:, [5]].transpose().astype(float)
         flux_out = self.get_detected_array()[:, [5]].transpose().astype(float)
@@ -359,4 +374,8 @@ class SourceDetectionEvaluation:
         ax.set_xscale("log")
         ax.set_ylabel("Source Count")
         plt.legend(loc="best")
-        plt.show()
+        if filename:
+            plt.savefig(filename)
+            plt.show(block=False)
+        else:
+            plt.show()

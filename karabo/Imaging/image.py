@@ -35,14 +35,14 @@ class Image(KaraboResource):
         # self.power_spectrum_profile = None
         # self.power_spectrum_theta_axis = None
 
-    def save_to_file(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         if not path.endswith(".fits"):
             raise EnvironmentError("The passed path and name of file must end with .fits")
 
         shutil.copy(self.file.path, path)
 
     @staticmethod
-    def open_from_file(path: str) -> 'Image':
+    def read_from_file(path: str) -> 'Image':
         image = Image()
         image.file = FileHandle(existing_file_path=path, mode='r')
         return image
