@@ -1,6 +1,7 @@
 import logging
 import shutil
 import uuid
+from typing import Tuple
 
 import matplotlib
 import numpy
@@ -102,6 +103,9 @@ class Image(KaraboResource):
         for dim in np.arange(0, dimensions, 1):
             result.append(self.header[f'NAXIS{dim + 1}'])
         return result
+
+    def get_phase_centre(self) -> Tuple[float, float]:
+        return float(self.header["CRVAL1"]), float(self.header["CRVAL2"])
 
     def get_quality_metric(self) -> dict:
         """
@@ -208,6 +212,7 @@ class Image(KaraboResource):
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
         return sky.project_sky_to_image(self, filter_outliers)
+
 
     # def plot_histogram(self):
     #

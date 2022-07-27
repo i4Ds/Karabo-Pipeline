@@ -11,8 +11,10 @@ import oskar
 import pandas as pd
 from astropy import units as u
 from astropy import wcs as awcs
+from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
+from rascil.data_models import Skycomponent
 
 from karabo.data.external_data import GLEAMSurveyDownloadObject
 from karabo.error import KaraboError

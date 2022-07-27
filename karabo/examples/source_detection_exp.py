@@ -6,7 +6,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.sourcedetection import detect_sources_in_image
+from karabo.sourcedetection import SourceDetectionResult
 
 from karabo.util.dask import get_global_client, parallel_for, parallel_for_each
 
@@ -41,14 +41,14 @@ def do_flux(simulation, flux, telescope, observation):
     visibility = simulation.run_simulation(telescope, sky, observation)
     imager = Imager(visibility,
                     imaging_npixel=2048,
-                    imaging_cellsize=3.878509448876288e-05,
+                    imaging_cellsize=0.3,
                     ingest_vis_nchan=1)
 
     dirty = imager.get_dirty_image()
     dirty.save_to_file(f"dirty_{flux}.fits")
     a = -0.00098910103194387 * 5
-    detection = detect_sources_in_image(dirty, beam=(a, a, 0))
-    detection.save_sources_to_csv(f"detection_{flux}.csv")
+    detection = SourceDetectionResult.detect_sources_in_image(dirty, beam=(a, a, 0))
+    detection.__save_sources_to_csv(f"detection_{flux}.csv")
 
     return detection
 

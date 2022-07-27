@@ -28,7 +28,7 @@ class TestSourceDetection(unittest.TestCase):
     def test_detection(self):
         image = Image.open_from_file(f"{data_path}/restored.fits")
         detection = SourceDetectionResult.detect_sources_in_image(image)
-        detection.save_sources_to_csv(f"result/detection_result_512px.csv")
+        detection.__save_sources_to_csv(f"result/detection_result_512px.csv")
         detection.save_to_file('result/result.zip')
         # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
         pixels = detection.get_pixel_position_of_sources()
@@ -87,18 +87,21 @@ class TestSourceDetection(unittest.TestCase):
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path=f"{data_path}/restored.fits")
-        detection.save_sources_to_csv("./result/detection.csv")
+        detection.__save_sources_to_csv("./result/detection.csv")
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 5)
-        mapping.plot()
-        mapping.plot_error_ra_dec()
-        # mapping.quiver_plot_error_ra_dec()
+        # mapping.plot()
+        # mapping.plot_error_ra_dec()
+        # mapping.plot_quiver_positions()
+        # mapping.plot_flux_ratio_to_distance()
+        mapping.plot_flux_ratio_to_ra_dec()
+        mapping.plot_flux_histogram()
 
     def test_get_arrays(self):
         sky = SkyModel.open_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
         detection = read_detection_from_sources_file_csv(f"{data_path}/detection_result_512px.csv",
                                                          source_image_path=f"{data_path}/restored.fits")
-        detection.save_sources_to_csv("./result/detection.csv")
+        detection.__save_sources_to_csv("./result/detection.csv")
 
         mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 10)
         arr = mapping.mapped_array

@@ -1,6 +1,8 @@
 import numpy as np
 import numpy.typing as npt
+from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
+import astropy.units as u
 from matplotlib import pyplot as plt
 from scipy.spatial.distance import cdist
 
@@ -34,7 +36,6 @@ class SourceDetectionEvaluation:
         self.true_positives = true_positives
         self.false_negatives = false_negatives
         self.false_positives = false_positives
-
         self.mapped_array = self.__map_sky_to_detection_array(assignment, sky)
 
     @staticmethod
@@ -201,6 +202,10 @@ class SourceDetectionEvaluation:
         indexes = sky_indexes.transpose()
         return np.vstack((indexes, ra, dec, x_pos, y_pos, flux, peak)).transpose()
 
+    def __get_RASCIL_QA_Structure(self):
+        detection = self.source_detection.get_sources_as_RASCIL_Skycomponents()
+
+
     def get_confusion_matrix(self) -> npt.NDArray:
         return np.array([[self.true_positives, self.false_negatives],
                          [self.false_positives, 0.0]])
@@ -259,13 +264,99 @@ class SourceDetectionEvaluation:
         plt.plot(error[0], error[1], 'o', markersize=8, color='r', alpha=0.5)
         plt.show()
 
-    def quiver_plot_error_ra_dec(self):
-        ra_dec_truth = self.get_truth_array()[:, [1, 2]].transpose()
-        ra_dec_det = self.get_detected_array()[:, [1, 2]].transpose()
-        error = ra_dec_truth - ra_dec_det
-        ra_error = error[0]
-        dec_error = error[1]
+    def plot_quiver_positions(self):
+        ref = self.get_truth_array()[:, [1, 2]].transpose().astype(float)
+        pred = self.get_detected_array()[:, [1, 2]].transpose().astype(float)
+        ra_ref = np.array(ref[0], dtype=float)
+        dec_ref = np.array(ref[1], dtype=float)
+        num = len(ra_ref)
 
-        plt.quiver(ra_dec_truth[0], ra_dec_truth[1], ra_error, dec_error, color='b')
-        plt.scatter(ra_dec_truth[0], ra_dec_truth[1], color='r', s=8)
+        error = ref - pred
+        ra_error = error[0] * (np.cos(np.deg2rad(dec_ref)))
+        dec_error = error[1]
+        fig, ax = plt.subplots()
+        if np.mean(np.deg2rad(dec_ref)) != 0.0:
+            ax.set_aspect(1.0 / np.cos(np.mean(np.deg2rad(dec_ref))))
+        q = ax.quiver(ra_ref, dec_ref, ra_error, dec_error, color="b")
+
+        ax.scatter(ra_ref, dec_ref, color="r", s=8)
+        ax.set_xlabel("RA (deg)")
+        ax.set_ylabel("Dec (deg)")
+        plt.title(f"Matched {num} sources")
+        plt.show(block=False)
+        plt.clf()
+
+
+
+    def plot_flux_ratio_to_distance(self, max_ratio=2):
+        ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
+        pred = self.get_detected_array()[:, [1, 2, 5]].transpose().astype(float)
+        # ra_dec_ref = ref[0, 1]
+        ra_dec_pred = ref[[0, 1]]
+        ra_ref = ref[0]
+        dec_ref = ref[1]
+        flux_ref = ref[2]
+        ra_pred = pred[0]
+        dec_pred = pred[1]
+        flux_pred = pred[2]
+        phase_center = self.source_detection.get_source_image().get_phase_centre()
+
+        flux_ratio = flux_pred / flux_ref
+
+        sky_coords_pred = [SkyCoord(ra=p[0], dec=p[1], frame='icrs', unit="deg") for p in ra_dec_pred.transpose()]
+        sky_coord_center = SkyCoord(phase_center[0] * u.degree, phase_center[1] * u.degree, frame='icrs')
+        dist = [coord.separation(sky_coord_center).degree for coord in sky_coords_pred]
+
+        plt.plot(dist, flux_ratio, "o", color="b", markersize=5, alpha=0.5)
+        plt.title("Flux ratio vs. distance")
+        plt.xlabel("Distance to center (Deg)")
+        plt.ylabel("Flux Ratio (Out/In)")
+        plt.show()
+
+    def plot_flux_ratio_to_ra_dec(self):
+        ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
+        pred = self.get_detected_array()[:, [1, 2, 5]].transpose().astype(float)
+        ra_pred = pred[0]
+        dec_pred = pred[1]
+        flux_ref = ref[2]
+        flux_pred = pred[2]
+
+        flux_ratio = flux_pred / flux_ref
+
+        # Flux ratio vs. RA & Dec
+        fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+        fig.suptitle("Flux ratio vs. Position")
+        ax1.plot(ra_pred, flux_ratio, "o", color="b", markersize=5, alpha=0.5)
+        ax2.plot(dec_pred, flux_ratio, "o", color="b", markersize=5, alpha=0.5)
+
+        ax1.set_xlabel("RA (deg)")
+        ax2.set_xlabel("Dec (deg)")
+        ax1.set_ylabel("Flux ratio (Out/In)")
+        plt.show()
+        plt.clf()
+
+    def plot_flux_histogram(self, nbins=10):
+
+        flux_in = self.get_truth_array()[:, [5]].transpose().astype(float)
+        flux_out = self.get_detected_array()[:, [5]].transpose().astype(float)
+
+        flux_in = flux_in[flux_in > 0.0]
+        flux_out = flux_out[flux_out > 0.0]
+
+        hist = [flux_in, flux_out]
+        labels = ["Flux In", "Flux Out"]
+        colors = ["r", "b"]
+        hist_min = min(np.min(flux_in), np.min(flux_out))
+        hist_max = max(np.max(flux_in), np.max(flux_out))
+
+        hist_bins = np.logspace(np.log10(hist_min), np.log10(hist_max), nbins)
+
+        fig, ax = plt.subplots()
+        ax.hist(hist, bins=hist_bins, log=True, color=colors, label=labels)
+
+        ax.set_title("Flux histogram")
+        ax.set_xlabel("Flux (Jy)")
+        ax.set_xscale("log")
+        ax.set_ylabel("Source Count")
+        plt.legend(loc="best")
         plt.show()
