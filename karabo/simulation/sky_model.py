@@ -453,8 +453,6 @@ class SkyModel(KaraboResource):
         dims = image.get_dimensions_of_image()
         wcs = image.get_2d_wcs()
 
-
-
         # if len(dims) > 2:
         #     ra = np.hstack((ra, np.zeros((ra.shape[0], 3))))
         #     dec = np.hstack((dec, np.zeros((dec.shape[0], 3))))
