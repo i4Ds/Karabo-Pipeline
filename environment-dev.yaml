@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - oskar=2.7.6
+  - oskarpy=2.8.0
   - rascil=0.5.0
   - astropy
   - numpy>=1.21
