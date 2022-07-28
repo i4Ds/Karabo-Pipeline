@@ -24,6 +24,7 @@ jobs:
       - name: Build Docs
         shell: bash -l {0}
         run: |
+          sphinx-apidoc . -o doc/src
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v3
