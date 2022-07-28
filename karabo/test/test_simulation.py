@@ -2,7 +2,7 @@ import os
 import unittest
 
 import numpy as np
-from karabo.Imaging.imager import Imager
+from karabo.imaging.imager import Imager
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope, get_OSKAR_Example_Telescope, get_SKA1_MID_Telescope

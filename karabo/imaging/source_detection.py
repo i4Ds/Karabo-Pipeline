@@ -8,7 +8,7 @@ from bdsf import image as bdsf_image
 from matplotlib import pyplot as plt
 from scipy.spatial.distance import cdist
 
-from karabo.Imaging.image import Image, open_fits_image
+from karabo.imaging.image import Image, open_fits_image
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
 from karabo.util.plotting_util import get_slices

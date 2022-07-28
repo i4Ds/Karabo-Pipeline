@@ -409,7 +409,7 @@ class SkyModel:
         return cartesian_sky
 
     def project_sky_to_2d_image(self, cell_size: float, pixel_per_side: int):
-        from karabo.Imaging.imager import Imager
+        from karabo.imaging.imager import Imager
         imager = Imager(visibility=None, imaging_cellsize=cell_size, imaging_npixel=pixel_per_side)
         coords = imager.sky_sources_to_pixel_coordinates(cell_size, pixel_per_side, self)
         return coords

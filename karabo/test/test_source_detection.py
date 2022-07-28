@@ -1,7 +1,7 @@
 import unittest
 
-from karabo.Imaging import source_detection
-from karabo.Imaging.source_detection import read_detection_from_sources_file_csv
+from karabo.imaging import source_detection
+from karabo.imaging.source_detection import read_detection_from_sources_file_csv
 from karabo.simulation.sky_model import read_sky_model_from_csv
 from karabo.test import data_path
 

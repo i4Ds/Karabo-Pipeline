@@ -1,6 +1,6 @@
 from distributed import Client, LocalCluster
 
-from karabo.Imaging.image import Image
+from karabo.imaging.image import Image
 from karabo.simulation.Visibility import Visibility
 from karabo.util.dask import get_local_dask_client
 
@@ -35,7 +35,7 @@ class Imager:
                  imaging_phasecentre: str = None,  # Phase centre (in SkyCoord string format)
                  imaging_pol: str = 'stokesI',  # RASCIL polarisation frame for image
                  imaging_nchan: int = 1,  # Number of channels per image
-                 imaging_context: str = 'ng',  # Imaging context i.e. the gridder used 2d | ng
+                 imaging_context: str = 'ng',  # imaging context i.e. the gridder used 2d | ng
                  imaging_ng_threads: int = 4,  # Number of Nifty Gridder threads to use (4 is a good choice)
                  imaging_w_stacking: Union[bool, str] = True,  # Use the improved w stacking method in Nifty Gridder?
                  imaging_flat_sky: Union[bool, str] = False,  # If using a primary beam, normalise to flat sky?

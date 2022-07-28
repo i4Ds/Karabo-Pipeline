@@ -1,11 +1,11 @@
 import os
 import unittest
 
-from karabo.Imaging.image import open_fits_image
-from karabo.Imaging.source_detection import detect_sources_in_image
-# from karabo.Imaging.source_detection import  use_dao_star_finder
+from karabo.imaging.image import open_fits_image
+from karabo.imaging.source_detection import detect_sources_in_image
+# from karabo.imaging.source_detection import  use_dao_star_finder
 from karabo.simulation.Visibility import Visibility
-from karabo.Imaging.imager import Imager
+from karabo.imaging.imager import Imager
 from karabo.simulation.sky_model import get_GLEAM_Sky
 from karabo.test import data_path
 
@@ -19,7 +19,7 @@ class TestImage(unittest.TestCase):
             os.makedirs('result/')
 
     def testJupyterSetupEnv(self):
-        from karabo.Imaging.imager import Imager
+        from karabo.imaging.imager import Imager
         print(Imager)
 
     def test_dirty_image(self):
