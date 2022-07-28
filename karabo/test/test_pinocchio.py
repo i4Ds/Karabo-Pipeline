@@ -12,14 +12,10 @@ def pinocchioFun():
     p.setRunName("plotTest")
     p.printConfig()
     p.printRedShiftRequest()
-    # p.runPlanner(16, 1)
-    p.run(mpiThreads=1)
-    # p.plotHalos()
-    # p.plotMassFunction()
-    # p.plotPastLightCone()
-    # p.save("/home/filip/pinocchiotest")
+    p.runPlanner(16, 1)
+    p.run(mpiThreads=2)
+
     # sky = p.getSkyModel()
-    # sky = Pinocchio.getSkyModelFromFiles("/home/filip/pinocchiotest/pinocchio.plotTest.plc.out")
 
     # sky.plot_sky()
     # sky = sky.filter_by_radius(0, 1, 32, 45)

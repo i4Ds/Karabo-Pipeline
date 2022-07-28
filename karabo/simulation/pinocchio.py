@@ -631,7 +631,6 @@ class Pinocchio:
 
         |               10              60          |
         (0,0,0) --------near------------far--------->
-        extracted       |<------------->|
 
         and translated into RA DEC
 
