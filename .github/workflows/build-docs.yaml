@@ -24,6 +24,7 @@ jobs:
       - name: Build Docs
         shell: bash -l {0}
         run: |
+          conda activate karabo_dev_env
           sphinx-apidoc . -o doc/src
           make html
       - name: Archive doc build
