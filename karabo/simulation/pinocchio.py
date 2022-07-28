@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
+from traitlets import Bool
+
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
 
@@ -30,6 +32,8 @@ class PinocchioRedShiftRequest:
 
 class Pinocchio:
 
+    PIN_EXEC_MPI            = "mpirun"
+    PIN_EXEC_MPI_NO_NODES   = "-np"
     PIN_EXEC_NAME           = "pinocchio"
     PIN_EXEC_RP_NAME        = f"{PIN_EXEC_NAME}_rp"
     PIN_DEFAULT_PARAMS_FILE = f"{PIN_EXEC_NAME}_params.conf"
@@ -297,7 +301,7 @@ class Pinocchio:
         
         assert False, "config not available? package installation or custom loading failed"
 
-    def run(self, printLiveOutput = True) -> None:
+    def run(self, mpiThreads: int = 4, printLiveOutput: Bool = True) -> None:
         """
         run pinocchio in a temp folder
 
@@ -312,7 +316,7 @@ class Pinocchio:
 
         self.__writeRequiredFilesToWD()
 
-        cmd: List[str] = [Pinocchio.PIN_EXEC_NAME, self.runConfigPath]
+        cmd: List[str] = [Pinocchio.PIN_EXEC_MPI, Pinocchio.PIN_EXEC_MPI_NO_NODES, str(mpiThreads), Pinocchio.PIN_EXEC_NAME, self.runConfigPath]
         self.out = subprocess.run(cmd, cwd=self.wd.path, capture_output = not printLiveOutput, text=True) 
 
         # mark output files
