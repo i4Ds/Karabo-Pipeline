@@ -151,7 +151,7 @@ class Imager:
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
         if client is None:
-            client = karabo.util.dask.get_global_client(5)
+            client = karabo.util.dask.get_global_client(70)
         print(client.cluster)
         rsexecute.set_client(use_dask=False, use_dlg=False)
 
