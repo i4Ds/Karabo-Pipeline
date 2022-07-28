@@ -66,8 +66,10 @@ def get_poisson_disk_sky(min_size: (float, float),
                          flux_max: float,
                          r=10):
     assert flux_max >= flux_min
-    x, y = min_size
-    X, Y = max_size
+    x = min_size[0]
+    y = min_size[1]
+    X = max_size[0]
+    Y = max_size[1]
     width = abs(X - x)
     height = abs(Y - y)
     center_x = x + (X - x) * 0.5

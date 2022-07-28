@@ -1,6 +1,8 @@
 import os
 import unittest
 
+import numpy as np
+
 from karabo.Imaging.image import Image
 from karabo.Imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -35,9 +37,10 @@ class TestSourceDetection(unittest.TestCase):
         print(pixels)
 
     def test_create_detection_from_ms(self):
-        phasecenter = (30, -20)
-        sky = SkyModel.get_GLEAM_Sky()
-        sky.filter_by_flux(0.4, 1)
+        phasecenter = np.array([225, -65])
+        sky = SkyModel.get_random_poisson_disk_sky(phasecenter + np.array([-5, -5]), phasecenter + np.array([+5, +5]), 100, 200, 0.4)
+        # sky = SkyModel.get_GLEAM_Sky()
+        # sky.filter_by_flux(0.4, 1)
         sky.plot_sky(phasecenter)
         sky.explore_sky(phasecenter, xlim=(-10, 10), ylim=(-10, 10))
 
@@ -62,7 +65,7 @@ class TestSourceDetection(unittest.TestCase):
                         ingest_average_blockvis=True,
                         imaging_npixel=2048,
                         imaging_cellsize=0.0003,
-                        imaging_weighting='robust',
+                        imaging_weighting='natural',
                         imaging_robustness=-.5)
         convolved, restored, residual = imager.imaging_rascil()
 
