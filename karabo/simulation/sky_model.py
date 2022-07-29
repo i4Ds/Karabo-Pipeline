@@ -1,4 +1,5 @@
 import copy
+import enum
 import logging
 import math
 from typing import Callable
@@ -11,22 +12,23 @@ import oskar
 import pandas as pd
 from astropy import units as u
 from astropy import wcs as awcs
-from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
-from rascil.data_models import Skycomponent
 
-from karabo.data.external_data import GLEAMSurveyDownloadObject
+from karabo.data.external_data import (
+    GLEAMSurveyDownloadObject,
+    MIGHTEESurveyDownloadObject,
+)
 from karabo.error import KaraboError
-from karabo.resource import KaraboResource
+from karabo.util.hdf5_util import get_healpix_image, convert_healpix_2_radec
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
 
 
 class Polarisation(enum.Enum):
-    STOKES_I = 0,
-    STOKES_Q = 1,
-    STOKES_U = 2,
+    STOKES_I = (0,)
+    STOKES_Q = (1,)
+    STOKES_U = (2,)
     STOKES_V = 3
 
 
@@ -70,7 +72,11 @@ class SkyModel:
 
     def __get_empty_sources(self, n_sources):
         empty_sources = np.hstack(
-            (np.zeros((n_sources, self.sources_m - 1)), np.array([[None] * n_sources]).reshape(-1, 1)))
+            (
+                np.zeros((n_sources, self.sources_m - 1)),
+                np.array([[None] * n_sources]).reshape(-1, 1),
+            )
+        )
         return empty_sources
 
     def add_point_sources(self, sources: np.ndarray):
@@ -110,11 +116,22 @@ class SkyModel:
                 self.sources = sources
             self.__update_sky_model()
 
-    def add_point_source(self, right_ascension: float, declination: float, stokes_I_flux: float,
-                         stokes_Q_flux: float = 0, stokes_U_flux: float = 0, stokes_V_flux: float = 0,
-                         reference_frequency: float = 0, spectral_index: float = 0, rotation_measure: float = 0,
-                         major_axis_FWHM: float = 0, minor_axis_FWHM: float = 0, position_angle: float = 0,
-                         source_id: object = None):
+    def add_point_source(
+        self,
+        right_ascension: float,
+        declination: float,
+        stokes_I_flux: float,
+        stokes_Q_flux: float = 0,
+        stokes_U_flux: float = 0,
+        stokes_V_flux: float = 0,
+        reference_frequency: float = 0,
+        spectral_index: float = 0,
+        rotation_measure: float = 0,
+        major_axis_FWHM: float = 0,
+        minor_axis_FWHM: float = 0,
+        position_angle: float = 0,
+        source_id: object = None,
+    ):
         """
         Add a single new point source to the sky model.
 
@@ -133,9 +150,24 @@ class SkyModel:
         :param source_id:
         """
         new_sources = np.array(
-            [[right_ascension, declination, stokes_I_flux, stokes_Q_flux, stokes_U_flux,
-              stokes_V_flux, reference_frequency, spectral_index, rotation_measure,
-              major_axis_FWHM, minor_axis_FWHM, position_angle, source_id]])
+            [
+                [
+                    right_ascension,
+                    declination,
+                    stokes_I_flux,
+                    stokes_Q_flux,
+                    stokes_U_flux,
+                    stokes_V_flux,
+                    reference_frequency,
+                    spectral_index,
+                    rotation_measure,
+                    major_axis_FWHM,
+                    minor_axis_FWHM,
+                    position_angle,
+                    source_id,
+                ]
+            ]
+        )
         if self.sources is not None:
             self.sources = np.vstack(self.sources, new_sources)
         else:
@@ -171,17 +203,24 @@ class SkyModel:
         dataframe = pd.read_csv(path)
         if dataframe.ndim < 2:
             raise KaraboError(
-                f'CSV doesnt have enough dimensions to hold the necessary information: Dimensions: {dataframe.ndim}')
+                f"CSV doesnt have enough dimensions to hold the necessary information: Dimensions: {dataframe.ndim}"
+            )
 
         if dataframe.shape[1] < 3:
-            raise KaraboError(f"CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)")
+            raise KaraboError(
+                f"CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)"
+            )
 
         if dataframe.shape[1] < 13:
-            logging.info(f"The CSV only holds {dataframe.shape[1]} columns."
-                         f" Extra {13 - dataframe.shape[1]} columns will be filled with defaults.")
+            logging.info(
+                f"The CSV only holds {dataframe.shape[1]} columns."
+                f" Extra {13 - dataframe.shape[1]} columns will be filled with defaults."
+            )
 
         if dataframe.shape[1] >= 13:
-            logging.info(f"CSV has {dataframe.shape[1] - 13} too many rows. The extra rows will be cut off.")
+            logging.info(
+                f"CSV has {dataframe.shape[1] - 13} too many rows. The extra rows will be cut off."
+            )
 
         sources = dataframe.to_numpy()
         sky = SkyModel(sources)
@@ -200,7 +239,13 @@ class SkyModel:
         else:
             return self[:, :-1]
 
-    def filter_by_radius(self, inner_radius_deg: float, outer_radius_deg: float, ra0_deg: float, dec0_deg: float):
+    def filter_by_radius(
+        self,
+        inner_radius_deg: float,
+        outer_radius_deg: float,
+        ra0_deg: float,
+        dec0_deg: float,
+    ):
         """
         Filters the sky according the an inner and outer circle from the phase center
 
@@ -211,11 +256,15 @@ class SkyModel:
         :return sky: Filtered copy of the sky
         """
         copied_sky = copy.deepcopy(self)
-        inner_circle = SphericalCircle((ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg)
-        outer_circle = SphericalCircle((ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg)
-        outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype('int')
-        inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype('int')
-        filtered_sources = np.array(outer_sources - inner_sources, dtype='bool')
+        inner_circle = SphericalCircle(
+            (ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg
+        )
+        outer_circle = SphericalCircle(
+            (ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg
+        )
+        outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype("int")
+        inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype("int")
+        filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
         filtered_sources_idxs = np.where(filtered_sources == True)[0]
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
         copied_sky.__update_sky_model()
@@ -230,7 +279,9 @@ class SkyModel:
         :param max_flux_jy: Maximum flux in Jy
         """
         stokes_I_flux = self[:, 2]
-        filtered_sources_idxs = np.where(np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy))[0]
+        filtered_sources_idxs = np.where(
+            np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy)
+        )[0]
         self.sources = self.sources[filtered_sources_idxs]
         self.__update_sky_model()
 
@@ -242,7 +293,9 @@ class SkyModel:
         :param max_freq: Maximum frequency in Hz
         """
         freq = self[:, 6]
-        filtered_sources_idxs = np.where(np.logical_and(freq <= max_freq, freq >= min_freq))[0]
+        filtered_sources_idxs = np.where(
+            np.logical_and(freq <= max_freq, freq >= min_freq)
+        )[0]
         self.sources = self.sources[filtered_sources_idxs]
         self.__update_sky_model()
 
@@ -292,10 +345,22 @@ class SkyModel:
         """
         return Table.read(path)
 
-    def explore_sky(self, phase_center: np.ndarray = np.array([0, 0]), xlim: tuple = (-1, 1), ylim: tuple = (-1, 1),
-                    figsize: tuple = (6, 6), title: str = '', xlabel: str = '', ylabel: str = '',
-                    s: float = 20, cfun: Callable = np.log10, cmap: str = 'plasma', cbar_label: str = '',
-                    with_labels: bool = False, wcs: awcs = None):
+    def explore_sky(
+        self,
+        phase_center: np.ndarray = np.array([0, 0]),
+        xlim: tuple = (-1, 1),
+        ylim: tuple = (-1, 1),
+        figsize: tuple = (6, 6),
+        title: str = "",
+        xlabel: str = "",
+        ylabel: str = "",
+        s: float = 20,
+        cfun: Callable = np.log10,
+        cmap: str = "plasma",
+        cbar_label: str = "",
+        with_labels: bool = False,
+        wcs: awcs = None,
+    ):
         """
         A scatter plot of y vs. x of the point sources of the SkyModel
 
@@ -328,14 +393,16 @@ class SkyModel:
 
         slices = get_slices(wcs)
 
-        fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
+        fig, ax = plt.subplots(
+            figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices)
+        )
         sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, vmin=vmin, vmax=vmax)
 
         if with_labels:
             for i, txt in enumerate(self[:, -1]):
                 ax.annotate(txt, (px[i], py[i]))
 
-        plt.axis('equal')
+        plt.axis("equal")
         plt.colorbar(sc, label=cbar_label)
         plt.title(title)
         plt.xlim(xlim)
@@ -356,15 +423,23 @@ class SkyModel:
         flux = data[:, 2]
         log_flux = np.log10(flux)
         x = np.cos(dec) * np.sin(ra)
-        y = np.cos(np.radians(dec0)) * np.sin(dec) - \
-            np.sin(np.radians(dec0)) * np.cos(dec) * np.cos(ra)
+        y = np.cos(np.radians(dec0)) * np.sin(dec) - np.sin(np.radians(dec0)) * np.cos(
+            dec
+        ) * np.cos(ra)
         plt.subplot(projection=self.wcs, slices=slices)
-        sc = plt.scatter(x, y, s=.5, c=log_flux, cmap='plasma',
-                         vmin=np.min(log_flux), vmax=np.max(log_flux))
-        plt.axis('equal')
-        plt.xlabel('x direction cosine')
-        plt.ylabel('y direction cosine')
-        plt.colorbar(sc, label='Log10(Stokes I flux [Jy])')
+        sc = plt.scatter(
+            x,
+            y,
+            s=0.5,
+            c=log_flux,
+            cmap="plasma",
+            vmin=np.min(log_flux),
+            vmax=np.max(log_flux),
+        )
+        plt.axis("equal")
+        plt.xlabel("x direction cosine")
+        plt.ylabel("y direction cosine")
+        plt.colorbar(sc, label="Log10(Stokes I flux [Jy])")
         plt.show()
 
     def get_OSKAR_sky(self) -> oskar.Sky:
@@ -376,7 +451,9 @@ class SkyModel:
         return oskar.Sky.from_array(self[:, :-1])
 
     @staticmethod
-    def read_healpix_file_to_sky_model_array(file, channel, polarisation: Polarisation) -> np.ndarray:
+    def read_healpix_file_to_sky_model_array(
+        file, channel, polarisation: Polarisation
+    ) -> np.ndarray:
         """
         Read a healpix file in hdf5 format.
         The file should have the map keywords:
@@ -431,20 +508,25 @@ class SkyModel:
         Save source array into a csv.
         :param path: path to save the csv file in.
         """
-        pd.DataFrame(self.sources).to_csv(path, index=False,
-                                          header=["right ascension (deg)",
-                                                  "declination (deg)",
-                                                  "stokes I Flux (Jy)",
-                                                  "stokes Q Flux (Jy)",
-                                                  "stokes U Flux (Jy)",
-                                                  "stokes V Flux (Jy)",
-                                                  "reference_frequency (Hz)",
-                                                  "spectral index (N/A)",
-                                                  "rotation measure (rad / m^2)",
-                                                  "major axis FWHM (arcsec)",
-                                                  "minor axis FWHM (arcsec)",
-                                                  "position angle (deg)",
-                                                  "source id (object)"])
+        pd.DataFrame(self.sources).to_csv(
+            path,
+            index=False,
+            header=[
+                "right ascension (deg)",
+                "declination (deg)",
+                "stokes I Flux (Jy)",
+                "stokes Q Flux (Jy)",
+                "stokes U Flux (Jy)",
+                "stokes V Flux (Jy)",
+                "reference_frequency (Hz)",
+                "spectral index (N/A)",
+                "rotation measure (rad / m^2)",
+                "major axis FWHM (arcsec)",
+                "minor axis FWHM (arcsec)",
+                "position angle (deg)",
+                "source id (object)",
+            ],
+        )
 
     def save_sky_model_to_txt(self, path: str, cols: [int] = [0, 1, 2, 3, 4, 5, 6, 7]):
         numpy.savetxt(path, self.sources[:, cols])
@@ -461,14 +543,20 @@ class SkyModel:
         return r / norm
 
     def get_cartesian_sky(self):
-        cartesian_sky = np.squeeze(np.apply_along_axis(
-            lambda row: [self.__convert_ra_dec_to_cartesian(float(row[0]), float(row[1]))],
-            axis=1, arr=self.sources))
+        cartesian_sky = np.squeeze(
+            np.apply_along_axis(
+                lambda row: [
+                    self.__convert_ra_dec_to_cartesian(float(row[0]), float(row[1]))
+                ],
+                axis=1,
+                arr=self.sources,
+            )
+        )
         return cartesian_sky
 
-    def project_sky_to_image(self,
-                             image: 'Image',
-                             filter_outlier: bool = True) -> (npt.NDArray, npt.NDArray, npt.NDArray):
+    def project_sky_to_image(
+        self, image: "Image", filter_outlier: bool = True
+    ) -> (npt.NDArray, npt.NDArray, npt.NDArray):
         """
         Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image
 
@@ -478,44 +566,76 @@ class SkyModel:
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
         image_pixel_per_side = image.get_dimensions_of_image()[0]
-        dims = image.get_dimensions_of_image()
         wcs = image.get_2d_wcs()
+        px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 1)
 
-def get_GLEAM_Sky() -> SkyModel:
-    survey = GLEAMSurveyDownloadObject()
-    path = survey.get()
-    gleam = SkyModel.get_fits_catalog(path)
-    df_gleam = gleam.to_pandas()
-    ref_freq = 76e6
-    df_gleam = df_gleam[~df_gleam['Fp076'].isna()]
-    ra, dec, fp = df_gleam['RAJ2000'], df_gleam['DEJ2000'], df_gleam['Fp076']
-    sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
-                                 np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
-    sky = SkyModel(sky_array)
-    # major axis FWHM, minor axis FWHM, position angle, object id
-    sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
-    return sky
+        # pre-filtering before calling wcs.wcs_world2pix would be more efficient,
+        # however this has to be done in the ra-dec space. maybe for future work
+        if filter_outlier:
+            px_idxs = np.where(np.logical_and(px <= image_pixel_per_side, px >= 0))[0]
+            py_idxs = np.where(np.logical_and(py <= image_pixel_per_side, py >= 0))[0]
+            idxs = np.intersect1d(px_idxs, py_idxs)
+            px, py = px[idxs], py[idxs]
+        else:
+            idxs = np.arange(self.num_sources)
+        return np.vstack((px, py, idxs))
 
-def get_MIGHTEE_Sky() -> SkyModel:
-    survey = MIGHTEESurveyDownloadObject()
-    path = survey.get()
-    mightee = SkyModel.get_fits_catalog(path)
-    df_mightee = mightee.to_pandas()
-    ref_freq = 76e6
-    ra, dec, fp = df_mightee['RA'], df_mightee['DEC'], df_mightee['NU_EFF']
-    sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
-                                 np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
-    sky = SkyModel(sky_array)
-    # major axis FWHM, minor axis FWHM, position angle, object id
-    sky[:, [9, 10, 11, 12]] = df_mightee[['IM_MAJ', 'IM_MIN', 'IM_PA', 'NAME']]
-    return sky
+    @staticmethod
+    def get_GLEAM_Sky() -> "SkyModel":
+        survey = GLEAMSurveyDownloadObject()
+        path = survey.get()
+        gleam = SkyModel.get_fits_catalog(path)
+        df_gleam = gleam.to_pandas()
+        ref_freq = 76e6
+        df_gleam = df_gleam[~df_gleam["Fp076"].isna()]
+        ra, dec, fp = df_gleam["RAJ2000"], df_gleam["DEJ2000"], df_gleam["Fp076"]
+        sky_array = np.column_stack(
+            (
+                ra,
+                dec,
+                fp,
+                np.zeros(ra.shape[0]),
+                np.zeros(ra.shape[0]),
+                np.zeros(ra.shape[0]),
+                [ref_freq] * ra.shape[0],
+            )
+        ).astype("float64")
+        sky = SkyModel(sky_array)
+        # major axis FWHM, minor axis FWHM, position angle, object id
+        sky[:, [9, 10, 11, 12]] = df_gleam[["a076", "b076", "pa076", "GLEAM"]]
+        return sky
+
+    @staticmethod
+    def get_MIGHTEE_Sky() -> "SkyModel":
+        survey = MIGHTEESurveyDownloadObject()
+        path = survey.get()
+        mightee = SkyModel.get_fits_catalog(path)
+        df_mightee = mightee.to_pandas()
+        ref_freq = 76e6
+        ra, dec, fp = df_mightee["RA"], df_mightee["DEC"], df_mightee["NU_EFF"]
+        sky_array = np.column_stack(
+            (
+                ra,
+                dec,
+                fp,
+                np.zeros(ra.shape[0]),
+                np.zeros(ra.shape[0]),
+                np.zeros(ra.shape[0]),
+                [ref_freq] * ra.shape[0],
+            )
+        ).astype("float64")
+        sky = SkyModel(sky_array)
+        # major axis FWHM, minor axis FWHM, position angle, object id
+        sky[:, [9, 10, 11, 12]] = df_mightee[["IM_MAJ", "IM_MIN", "IM_PA", "NAME"]]
+        return sky
 
     @staticmethod
     def get_random_poisson_disk_sky(
-            min_size: (float, float),
-            max_size: (float, float),
-            flux_min: float,
-            flux_max: float,
-            r=3):
+        min_size: (float, float),
+        max_size: (float, float),
+        flux_min: float,
+        flux_max: float,
+        r=3,
+    ):
         sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
         return SkyModel(sky_array)

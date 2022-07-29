@@ -12,7 +12,6 @@ from karabo.util.data_util import read_CSV_to_ndarray
 
 
 class SourceDetectionResult(KaraboResource):
-
     def __init__(self, detected_sources: np.ndarray, source_image: Image):
         """
         Generic Source Detection Result Class.
@@ -44,7 +43,9 @@ class SourceDetectionResult(KaraboResource):
                      None means it will try to be extracted from the Image data. (Might fail)
         :return: Source Detection Result containing the found sources
         """
-        detection = bdsf.process_image(image.file.path, beam=beam, quiet=quiet, format='csv')
+        detection = bdsf.process_image(
+            image.file.path, beam=beam, quiet=quiet, format="csv"
+        )
         return PyBDSFSourceDetectionResult(detection)
 
     def write_to_file(self, path: str) -> None:
@@ -53,18 +54,20 @@ class SourceDetectionResult(KaraboResource):
         :param path: path to save the zip archive as.
         """
         if path.endswith(".zip"):
-            path.removesuffix(".zip")
+            path = path[0 : len(path) - 4]
         tempdir = FileHandle(is_dir=True)
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
-        shutil.make_archive(path, 'zip', tempdir.path)
+        shutil.make_archive(path, "zip", tempdir.path)
 
     @staticmethod
     def read_from_file(path) -> any:
         tempdir = FileHandle(is_dir=True)
         shutil.unpack_archive(path, tempdir.path)
         source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
-        source_catalouge = numpy.loadtxt(tempdir.path + "/detected_sources.csv", delimiter=',')
+        source_catalouge = numpy.loadtxt(
+            tempdir.path + "/detected_sources.csv", delimiter=","
+        )
         return SourceDetectionResult(source_catalouge, source_image)
 
     def __save_sources_to_csv(self, filepath: str):
@@ -73,7 +76,7 @@ class SourceDetectionResult(KaraboResource):
         :param filepath:
         :return:
         """
-        numpy.savetxt(filepath, self.detected_sources, delimiter=',')
+        numpy.savetxt(filepath, self.detected_sources, delimiter=",")
 
     def has_source_image(self) -> bool:
         """
@@ -100,7 +103,6 @@ class SourceDetectionResult(KaraboResource):
 
 
 class PyBDSFSourceDetectionResult(SourceDetectionResult):
-
     def __init__(self, bdsf_detection: bdsf_image):
         """
         Source Detection Result Wrapper for source detection results from PyBDSF.
@@ -108,14 +110,18 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         :param bdsf_detection: PyBDSF result image
         """
         sources_file = FileHandle()
-        bdsf_detection.write_catalog(outfile=sources_file.path, catalog_type="gaul", format="csv", clobber=True)
+        bdsf_detection.write_catalog(
+            outfile=sources_file.path, catalog_type="gaul", format="csv", clobber=True
+        )
         bdsf_detected_sources = read_CSV_to_ndarray(sources_file.path)
 
-        detected_sources = self.__transform_bdsf_to_reduced_result_array(bdsf_detected_sources)
+        detected_sources = self.__transform_bdsf_to_reduced_result_array(
+            bdsf_detected_sources
+        )
 
         self.bdsf_detected_sources = bdsf_detected_sources
         self.bdsf_result = bdsf_detection
-        source_image = self.__get_result_image('ch0')
+        source_image = self.__get_result_image("ch0")
         super().__init__(detected_sources, source_image)
 
     @staticmethod
@@ -125,44 +131,49 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
 
     def __get_result_image(self, image_type: str) -> Image:
         image = Image()
-        self.bdsf_result.export_image(outfile=image.file.path, img_format='fits', img_type=image_type, clobber=True)
+        self.bdsf_result.export_image(
+            outfile=image.file.path,
+            img_format="fits",
+            img_type=image_type,
+            clobber=True,
+        )
         return image
 
     def get_RMS_map_image(self) -> Image:
-        return self.__get_result_image('rms')
+        return self.__get_result_image("rms")
 
     def get_mean_map_image(self) -> Image:
-        return self.__get_result_image('mean')
+        return self.__get_result_image("mean")
 
     def get_polarized_intensity_image(self):
-        return self.__get_result_image('pi')
+        return self.__get_result_image("pi")
 
     def get_gaussian_residual_image(self) -> Image:
-        return self.__get_result_image('gaus_resid')
+        return self.__get_result_image("gaus_resid")
 
     def get_gaussian_model_image(self) -> Image:
-        return self.__get_result_image('gaus_model')
+        return self.__get_result_image("gaus_model")
 
     def get_shapelet_residual_image(self) -> Image:
-        return self.__get_result_image('shap_resid')
+        return self.__get_result_image("shap_resid")
 
     def get_shapelet_model_image(self) -> Image:
-        return self.__get_result_image('shap_model')
+        return self.__get_result_image("shap_model")
 
     def get_major_axis_FWHM_variation_image(self) -> Image:
-        return self.__get_result_image('psf_major')
+        return self.__get_result_image("psf_major")
 
     def get_minor_axis_FWHM_variation_image(self) -> Image:
-        return self.__get_result_image('psf_minor')
+        return self.__get_result_image("psf_minor")
 
     def get_position_angle_variation_image(self) -> Image:
-        return self.__get_result_image('psf_pa')
+        return self.__get_result_image("psf_pa")
 
     def get_peak_to_total_flux_variation_image(self) -> Image:
-        return self.__get_result_image('psf_ratio')
+        return self.__get_result_image("psf_ratio")
 
     def get_peak_to_aperture_flux_variation_image(self) -> Image:
-        return self.__get_result_image('psf_ratio_aper')
+        return self.__get_result_image("psf_ratio_aper")
 
     def get_island_mask(self) -> Image:
-        return self.__get_result_image('island_mask')
+        return self.__get_result_image("island_mask")

@@ -1,13 +1,20 @@
+import os
 import unittest
 
-import karabo.simulation.telescope
 from karabo.simulation.beam import BeamPattern
+from karabo.simulation.telescope import Telescope
 from karabo.test import data_path
 
 
 class MyTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # make dir for result files
+        if not os.path.exists("result/"):
+            os.makedirs("result/")
+
     def test_fit_element(self):
-        tel = karabo.simulation.telescope.get_MEERKAT_Telescope()
+        tel = Telescope.get_MEERKAT_Telescope()
         beam = BeamPattern(f"{data_path}/run5.cst")
         beam.fit_elements(tel, freq_hz=1.0e08, avg_frac_error=0.5)
 

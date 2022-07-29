@@ -1,37 +1,32 @@
 import os
 import unittest
 
-# from karabo.Imaging.source_detection import  use_dao_star_finder
-from karabo.Imaging.image import Image
+from karabo.imaging.image import Image
+from karabo.imaging.imager import Imager
+from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
-from karabo.Imaging.imager import Imager
-from karabo.simulation.interferometer import InterferometerSimulation
-from karabo.simulation.observation import Observation
-from karabo.simulation.sky_model import get_GLEAM_Sky
-from karabo.simulation.telescope import Telescope
 from karabo.test import data_path
 
 
 class TestImage(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls) -> None:
         # make dir for result files
-        if not os.path.exists('result/'):
-            os.makedirs('result/')
+        if not os.path.exists("result/"):
+            os.makedirs("result/")
 
     def test_dirty_image(self):
-        vis = Visibility()
-        vis.read_from_file(f"{data_path}/visibilities_gleam.ms")
-        imager = Imager(vis, imaging_npixel=2048,
-                        imaging_cellsize=3.878509448876288e-05)
+        vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+        imager = Imager(
+            vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05
+        )
 
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/dirty.fits")
         dirty.plot()
 
     def test_explore_sky(self):
-        sky = get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky()
         sky.explore_sky([250, -80])
 
     # # TODO: move these on to CSCS Test Infrastructure once we have it.
@@ -70,7 +65,6 @@ class TestImage(unittest.TestCase):
         # restored_image.plot_power_spectrum(save_png=True)
         restored_image.get_cellsize()
         # restored_image.plot_histogram()
-
 
     # def test_source_detection(self):
     #     restored = open_fits_image("karabo/test/data/restored.fits")

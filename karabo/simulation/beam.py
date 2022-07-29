@@ -9,6 +9,7 @@ from eidos.spatial import recon_par
 from katbeam import JimBeam
 from matplotlib import pyplot as plt
 
+from karabo.simulation.telescope import Telescope
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_path_of_module
 
@@ -28,7 +29,7 @@ class BeamPattern:
         self.cst_file_path = cst_file_path
 
     def fit_elements(
-        self, telescope, freq_hz=0, pol_type=PolType.XY, avg_frac_error=0.005
+        self, telescope: Telescope, freq_hz=0, pol_type=PolType.XY, avg_frac_error=0.005
     ):
         content = (
             "[General] \n"
@@ -39,18 +40,19 @@ class BeamPattern:
             f"frequency_hz={freq_hz} \n"
             f"average_fractional_error={avg_frac_error} \n"
             f"pol_type={pol_type.value[0]} \n"
-            f"output_directory={telescope.config_path} \n"
+            f"output_directory={telescope.path} \n"
         )
 
-        test = os.listdir(telescope.config_path)
+        test = os.listdir(telescope.path)
 
         for item in test:
             if item.endswith(".bin"):
-                os.remove(os.path.join(telescope.config_path, item))
+                os.remove(os.path.join(telescope.path, item))
 
         settings_file = FileHandle()
-        settings_file.file.write(content)
-        settings_file.file.flush()
+        file = open(settings_file.path, "wt")
+        file.write(content)
+        file.flush()
 
         fit_data_process = subprocess.Popen(
             ["oskar_fit_element_data", f"{settings_file.path}"]
@@ -99,10 +101,11 @@ class BeamPattern:
         return beampixels
 
     @staticmethod
-    def get_eidos_holographic_beam(npix, ch, dia, thres, mode="AH"):
+    def get_eidos_holographic_beam(npix, ch, dia, thres, mode="AH") -> complex:
         """
         Returns beam
         """
+        B = None
         if mode == "AH":
             meerkat_beam_coeff_ah = f"{get_module_path_of_module(eidos)}/data/meerkat_beam_coeffs_ah_zp_dct.npy"
             params, freqs = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres)

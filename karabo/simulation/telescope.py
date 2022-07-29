@@ -25,7 +25,7 @@ class Telescope(KaraboResource):
         WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
         self.temp_dir = None
-        self.file = None  # hotfix #59
+        self.path = None  # hotfix #59
         self.centre_longitude: float = longitude
         self.centre_latitude: float = latitude
         self.centre_altitude: float = altitude
@@ -127,7 +127,7 @@ class Telescope(KaraboResource):
         self.__create_telescope_tm_file(self.temp_dir.path)
         tel = os_telescope.Telescope()
         tel.load(self.temp_dir.path)
-        self.file = self.temp_dir.path
+        self.path = self.temp_dir.path
         return tel
 
     def __create_telescope_tm_file(self, path: str) -> None:
@@ -157,7 +157,7 @@ class Telescope(KaraboResource):
         layout_file.close()
 
     def write_to_file(self, path: str) -> None:
-        shutil.copytree(self.file.path, path)
+        shutil.copytree(self.path.path, path)
 
     def get_cartesian_position(self):
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
@@ -316,7 +316,7 @@ class Telescope(KaraboResource):
                                                                 antenna_pos[4],
                                                                 antenna_pos[5]))
 
-        telescope.file = path
+        telescope.path = path
         return telescope
 
     @classmethod

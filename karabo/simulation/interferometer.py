@@ -94,7 +94,7 @@ class InterferometerSimulation:
         interferometer_settings = self.__get_OSKAR_settings_tree()
         settings = {**interferometer_settings, **observation_settings}
         telescope.get_OSKAR_telescope()
-        settings["telescope"] = {"input_directory":telescope.file} # hotfix #59
+        settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)
         simulation = oskar.Interferometer(settings=setting_tree)
