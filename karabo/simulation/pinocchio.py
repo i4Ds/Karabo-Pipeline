@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dataclasses import dataclass, field
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from traitlets import Bool
 
@@ -22,13 +22,13 @@ class PinocchioParams:
 
 @dataclass
 class PinocchioConfig:
-    confDict: dict[str, list[PinocchioParams]] = field(default_factory=dict)
+    confDict: Dict[str, List[PinocchioParams]] = field(default_factory=dict)
     maxNameLength: int = 0
 
 @dataclass
 class PinocchioRedShiftRequest:
     header: str = ""
-    redShifts: list[str] = field(default_factory=list)
+    redShifts: List[str] = field(default_factory=list)
 
 class Pinocchio:
 
@@ -191,15 +191,15 @@ class Pinocchio:
                 c.confDict[currMapName] = [] 
                 continue
 
-            commentSplit: list[str] = line.split(Pinocchio.PRMS_CMNT_SPLITTER)
+            commentSplit: List[str] = line.split(Pinocchio.PRMS_CMNT_SPLITTER)
             
             # empty comment line
             if len(commentSplit) == 2 and commentSplit[0].strip() == "":
                 continue
 
             comment: str = commentSplit[-1].strip()
-            paramPart: list[str] = commentSplit[:-1]
-            lineSplit: list[str] = "".join(paramPart).split()
+            paramPart: List[str] = commentSplit[:-1]
+            lineSplit: List[str] = "".join(paramPart).split()
 
             if len(lineSplit) == 0:
                 assert False, "no lines to split"
@@ -281,7 +281,7 @@ class Pinocchio:
         :type name: str
         """
 
-        l : list[PinocchioParams] = self.currConfig.confDict["runProperties"]
+        l : List[PinocchioParams] = self.currConfig.confDict["runProperties"]
         for i in l:
            if i.name == "RunFlag":
                 i.value = name
@@ -294,7 +294,7 @@ class Pinocchio:
         :rtype: str
         """
 
-        l : list[PinocchioParams] = self.currConfig.confDict["runProperties"]
+        l : List[PinocchioParams] = self.currConfig.confDict["runProperties"]
         for i in l:
            if i.name == "RunFlag":
                 return i.value
@@ -322,8 +322,8 @@ class Pinocchio:
         # mark output files
         runName = self.getRunName()
         
-        self.outCatalogPath: dict(str, str) = {}
-        self.outMFPath: dict(str, str) = {}
+        self.outCatalogPath: Dict[str, str] = {}
+        self.outMFPath: Dict[str, str] = {}
 
         i: str
         for i in self.redShiftRequest.redShifts:
@@ -408,14 +408,14 @@ class Pinocchio:
         """
         assert self.wd is not None
 
-        lines: list[str] = []
+        lines: List[str] = []
         # add header
         lines.append(f"{Pinocchio.PRMS_CMNT} Generated param file for Pinocchio by Karabo Framework (https://github.com/i4Ds/Karabo-Pipeline)")
         lines.append("")
 
         # write entries
         k: str
-        v: list[PinocchioParams]
+        v: List[PinocchioParams]
         for (k, v) in self.currConfig.confDict.items():
             # write header
             lines.append(f"{Pinocchio.PRMS_CMNT} {k}")

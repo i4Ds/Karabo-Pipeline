@@ -2,17 +2,16 @@ import os
 import shutil
 import uuid
 
+
 class FileHandle:
     path: str
-    __temp_path = './.tmp/'
+    __temp_path = "./.tmp/"
 
-    def __init__(self,
-                 existing_file_path: str = None,
-                 is_dir: bool = False,
-                 mode="rt",
-                 suffix=""):
+    def __init__(
+        self, existing_file_path: str = None, is_dir: bool = False, mode="rt", suffix=""
+    ):
 
-        tmp_path = self.__temp_path + str(uuid.uuid4()) + suffix
+        tmp_path = os.path.abspath(self.__temp_path + str(uuid.uuid4()) + suffix)
 
         # make temp folder if not present
         if not os.path.exists(self.__temp_path):
@@ -26,7 +25,7 @@ class FileHandle:
                 shutil.copytree(existing_file_path, tmp_path)
             else:
                 # is a file
-                open(tmp_path, 'x')
+                open(tmp_path, "x")
                 shutil.copyfile(existing_file_path, tmp_path)
                 self.path = tmp_path
 
