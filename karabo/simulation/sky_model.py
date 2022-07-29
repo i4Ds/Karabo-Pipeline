@@ -411,7 +411,7 @@ class SkyModel:
         plt.ylabel(ylabel)
         plt.show()
 
-    def plot_sky(self, phase_center):
+    def plot_sky(self, phase_center: tuple[float, float] = (0, 0)):
         if self.wcs is None:
             self.setup_default_wcs(phase_center)
 

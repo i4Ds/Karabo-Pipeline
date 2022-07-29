@@ -2,7 +2,6 @@ import os
 import shutil
 import uuid
 
-
 class FileHandle:
     path: str
     __temp_path = './.tmp/'
@@ -30,6 +29,7 @@ class FileHandle:
                 open(tmp_path, 'x')
                 shutil.copyfile(existing_file_path, tmp_path)
                 self.path = tmp_path
+
         else:
             # not existing
             if is_dir:
