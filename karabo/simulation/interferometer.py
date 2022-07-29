@@ -4,7 +4,7 @@ from typing import Dict, Union, Any
 import oskar
 
 import karabo.error
-from karabo.simulation.Visibility import Visibility
+from karabo.simulation.visibility import Visibility
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
@@ -94,7 +94,7 @@ class InterferometerSimulation:
         interferometer_settings = self.__get_OSKAR_settings_tree()
         settings = {**interferometer_settings, **observation_settings}
         telescope.get_OSKAR_telescope()
-        settings["telescope"] = {"input_directory":telescope.config_path} # hotfix #59
+        settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)
         simulation = oskar.Interferometer(settings=setting_tree)
@@ -106,7 +106,7 @@ class InterferometerSimulation:
     def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
-                "ms_filename": self.ms_file.path,
+                "ms_filename": self.ms_file.file.path,
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
                 "time_average_sec": str(self.time_average_sec),
                 "max_time_samples_per_block": str(self.max_time_per_samples),

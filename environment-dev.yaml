@@ -13,6 +13,6 @@ dependencies:
   - healpy
   - requests
   - astropy
-  - pinocchio
+  - pinocchio # [linux]
   - katbeam
   - eidos

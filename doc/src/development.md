@@ -70,7 +70,6 @@ class TestSimulation(unittest.TestCase):
 
 Add tests for when you write some sort of new code that you feel like might break.
 
----
-**TIP**
+
+TIP:
 If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.
----

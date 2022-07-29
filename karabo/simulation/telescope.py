@@ -1,28 +1,31 @@
+import logging
 import os
 import re
-import tempfile
+import shutil
 from typing import List
 
 import numpy as np
 import oskar.telescope as os_telescope
 
 import karabo.error
+from karabo.resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import ALMAVersions, ATCAVersions, CARMAVersions, NGVLAVersions, PDBIVersions, \
-    SMAVersions, VLAVersions, ACAVersions, MWAVersion
+    SMAVersions, VLAVersions, ACAVersions
 from karabo.util.FileHandle import FileHandle
-from karabo.util.data_util import __get_module_absolute_path
+from karabo.util.data_util import get_module_absolute_path
+from karabo.util.math_util import long_lat_to_cartesian
 
 
-class Telescope:
+class Telescope(KaraboResource):
     def __init__(self, longitude: float, latitude: float, altitude: float = 0):
         """
         WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
         """
         self.temp_dir = None
-        self.config_path = None  # hotfix #59
+        self.path = None  # hotfix #59
         self.centre_longitude: float = longitude
         self.centre_latitude: float = latitude
         self.centre_altitude: float = altitude
@@ -124,7 +127,7 @@ class Telescope:
         self.__create_telescope_tm_file(self.temp_dir.path)
         tel = os_telescope.Telescope()
         tel.load(self.temp_dir.path)
-        self.config_path = self.temp_dir.path
+        self.path = self.temp_dir.path
         return tel
 
     def __create_telescope_tm_file(self, path: str) -> None:
@@ -153,180 +156,188 @@ class Telescope:
                 f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n")
         layout_file.close()
 
+    def write_to_file(self, path: str) -> None:
+        shutil.copytree(self.path.path, path)
 
-def get_MEERKAT_Telescope() -> Telescope:
-    path = f"{__get_module_absolute_path()}/data/meerkat.tm"
-    return read_OSKAR_tm_file(path)
+    def get_cartesian_position(self):
+        return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
 
+    @classmethod
+    def read_from_file(cls, path: str) -> any:
+        if path.endswith(".tm"):
+            logging.info("Supplied file is a .tm file. Read as OSKAR Telescope file.")
+            cls.read_OSKAR_tm_file(path)
 
-def get_ACA_Telescope(version: ACAVersions):
-    path = f"{__get_module_absolute_path()}/data/aca.{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_MEERKAT_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/meerkat.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_ACA_Telescope(cls, version: ACAVersions):
+        path = f"{get_module_absolute_path()}/data/aca.{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_ALMA_Telescope(version: ALMAVersions):
-    path = f"{__get_module_absolute_path()}/data/alma.{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_ALMA_Telescope(cls, version: ALMAVersions):
+        path = f"{get_module_absolute_path()}/data/alma.{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_ASKAP_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/askap.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_ASKAP_Telescope():
-    path = f"{__get_module_absolute_path()}/data/askap.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_ATCA_Telescope(cls, version: ATCAVersions):
+        path = f"{get_module_absolute_path()}/data/atca.{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_CARMA_Telescope(cls, version: CARMAVersions):
+        path = f"{get_module_absolute_path()}/data/carma.{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_ATCA_Telescope(version: ATCAVersions):
-    path = f"{__get_module_absolute_path()}/data/atca.{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_LOFAR_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/lofar.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_MKATPLUS_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/mkatplus.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_CARMA_Telescope(version: CARMAVersions):
-    path = f"{__get_module_absolute_path()}/data/carma.{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_NG_VLA_Telescope(cls, version: NGVLAVersions):
+        path = f"{get_module_absolute_path()}/data/ngvla-{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_PDBI_Telescope(cls, version: PDBIVersions):
+        path = f"{get_module_absolute_path()}/data/pdbi-{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_LOFAR_Telescope():
-    path = f"{__get_module_absolute_path()}/data/lofar.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_SKA1_LOW_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/ska1low.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_SKA1_MID_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/ska1mid.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_MKATPLUS_Telescope():
-    path = f"{__get_module_absolute_path()}/data/mkatplus.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_SMA_Telescope(cls, version: SMAVersions):
+        path = f"{get_module_absolute_path()}/data/sma.{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_VLA_Telescope(cls, version: VLAVersions):
+        path = f"{get_module_absolute_path()}/data/vla.{version.value}.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_NG_VLA_Telescope(version: NGVLAVersions):
-    path = f"{__get_module_absolute_path()}/data/ngvla-{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_VLBA_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/vlba.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def get_WSRT_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/WSRT.tm"
+        return cls.read_OSKAR_tm_file(path)
 
-def get_PDBI_Telescope(version: PDBIVersions):
-    path = f"{__get_module_absolute_path()}/data/pdbi-{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+    @classmethod
+    def get_OSKAR_Example_Telescope(cls):
+        path = f"{get_module_absolute_path()}/data/telescope.tm"
+        return cls.read_OSKAR_tm_file(path)
 
+    @classmethod
+    def read_OSKAR_tm_file(cls, path: str) -> any:
+        abs_station_dir_paths = []
+        station_position_file = None
+        station_layout_file = None
+        for file_or_dir in os.listdir(path):
+            if file_or_dir.startswith("position"):
+                station_position_file = os.path.abspath(os.path.join(path, file_or_dir))
+            if file_or_dir.startswith("layout"):
+                station_layout_file = os.path.abspath(os.path.join(path, file_or_dir))
+            if file_or_dir.startswith("station"):
+                abs_station_dir_paths.append(os.path.abspath(os.path.join(path, file_or_dir)))
 
-def get_SKA1_LOW_Telescope():
-    path = f"{__get_module_absolute_path()}/data/ska1low.tm"
-    return read_OSKAR_tm_file(path)
+        if station_position_file is None:
+            raise karabo.error.KaraboError("Missing crucial position.txt file_or_dir")
 
+        if station_layout_file is None:
+            raise karabo.error.KaraboError(
+                "Missing layout.txt file in station directory. Only Layout.txt is support. "
+                "The layout_ecef.txt and layout_wgs84.txt as "
+                "defined in the OSKAR Telescope .tm specification are not currently supported.")
 
-def get_SKA1_MID_Telescope():
-    path = f"{__get_module_absolute_path()}/data/ska1mid.tm"
-    return read_OSKAR_tm_file(path)
+        telescope = None
 
+        position_file = open(station_position_file)
+        lines = position_file.readlines()
+        for line in lines:
+            long_lat = line.split(" ")
+            if len(long_lat) > 3:
+                raise karabo.error.KaraboError("Too many values in position.txt")
+            long = float(long_lat[0])
+            lat = float(long_lat[1])
+            alt = 0
+            if len(long_lat) == 3:
+                alt = float(long_lat[2])
+            telescope = Telescope(long, lat, alt)
 
-def get_SMA_Telescope(version: SMAVersions):
-    path = f"{__get_module_absolute_path()}/data/sma.{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+        if Telescope is None:
+            raise karabo.error.KaraboError("Could not create Telescope from position.txt file_or_dir.")
 
+        position_file.close()
 
-def get_VLA_Telescope(version: VLAVersions):
-    path = f"{__get_module_absolute_path()}/data/vla.{version.value}.tm"
-    return read_OSKAR_tm_file(path)
+        station_positions = cls.__read_layout_txt(station_layout_file)
+        for station_position in station_positions:
+            telescope.add_station(station_position[0], station_position[1],
+                                  station_position[2], station_position[3],
+                                  station_position[4], station_position[5])
 
-
-def get_VLBA_Telescope():
-    path = f"{__get_module_absolute_path()}/data/vlba.tm"
-    return read_OSKAR_tm_file(path)
-
-
-def get_WSRT_Telescope():
-    path = f"{__get_module_absolute_path()}/data/WSRT.tm"
-    return read_OSKAR_tm_file(path)
-
-
-def get_OSKAR_Example_Telescope():
-    path = f"{__get_module_absolute_path()}/data/telescope.tm"
-    return read_OSKAR_tm_file(path)
-
-
-def get_MWA_Telescope(version: MWAVersion):
-    path = f"{__get_module_absolute_path()}/data/mwa.phase{version}.tm"
-    return read_OSKAR_tm_file(path)
-
-
-def read_OSKAR_tm_file(path: str) -> Telescope:
-    abs_station_dir_paths = []
-    station_position_file = None
-    station_layout_file = None
-    for file_or_dir in os.listdir(path):
-        if file_or_dir.startswith("position"):
-            station_position_file = os.path.abspath(os.path.join(path, file_or_dir))
-        if file_or_dir.startswith("layout"):
-            station_layout_file = os.path.abspath(os.path.join(path, file_or_dir))
-        if file_or_dir.startswith("station"):
-            abs_station_dir_paths.append(os.path.abspath(os.path.join(path, file_or_dir)))
-
-    if station_position_file is None:
-        raise karabo.error.KaraboException("Missing crucial position.txt file_or_dir")
-
-    if station_layout_file is None:
-        raise karabo.error.KaraboException(
-            "Missing layout.txt file in station directory. Only Layout.txt is support. "
-            "layout_ecef.txt and layout_wgs84.txt support is on its way.")
-
-    telescope = None
-
-    position_file = open(station_position_file)
-    lines = position_file.readlines()
-    for line in lines:
-        long_lat = line.split(" ")
-        if len(long_lat) > 3:
-            raise karabo.error.KaraboException("Too many values in position.txt")
-        long = float(long_lat[0])
-        lat = float(long_lat[1])
-        alt = 0
-        if len(long_lat) == 3:
-            alt = float(long_lat[2])
-        telescope = Telescope(long, lat, alt)
-
-    if Telescope is None:
-        raise karabo.error.KaraboException("Could not create Telescope from position.txt file_or_dir.")
-
-    position_file.close()
-
-    station_positions = __read_layout_txt(station_layout_file)
-    for station_position in station_positions:
-        telescope.add_station(station_position[0], station_position[1],
-                              station_position[2], station_position[3],
-                              station_position[4], station_position[5])
-
-    if len(abs_station_dir_paths) != len(telescope.stations):
-        raise karabo.error.KaraboException(f"There are {len(telescope.stations)} stations "
+        if len(abs_station_dir_paths) != len(telescope.stations):
+            raise karabo.error.KaraboError(f"There are {len(telescope.stations)} stations "
                                            f"but {len(abs_station_dir_paths)} "
                                            f"station directories.")
 
-    for station_dir, station in zip(abs_station_dir_paths, telescope.stations):
-        antenna_positions = __read_layout_txt(os.path.join(station_dir, "layout.txt"))
-        for antenna_pos in antenna_positions:
-            station.add_station_antenna(EastNorthCoordinate(antenna_pos[0],
-                                                            antenna_pos[1],
-                                                            antenna_pos[2],
-                                                            antenna_pos[3],
-                                                            antenna_pos[4],
-                                                            antenna_pos[5]))
+        for station_dir, station in zip(abs_station_dir_paths, telescope.stations):
+            antenna_positions = cls.__read_layout_txt(os.path.join(station_dir, "layout.txt"))
+            for antenna_pos in antenna_positions:
+                station.add_station_antenna(EastNorthCoordinate(antenna_pos[0],
+                                                                antenna_pos[1],
+                                                                antenna_pos[2],
+                                                                antenna_pos[3],
+                                                                antenna_pos[4],
+                                                                antenna_pos[5]))
 
-    telescope.config_path = path  # hotfix #59
-    return telescope
+        telescope.path = path
+        return telescope
 
+    @classmethod
+    def __read_layout_txt(cls, path) -> List[List[float]]:
+        positions: List[List[float]] = []
+        layout_file = open(path)
+        lines = layout_file.readlines()
+        for line in lines:
+            station_position = re.split("[\\s,]+", line)
+            values = np.zeros(6)
+            i = 0
+            for pos in station_position:
+                values[i] = cls.__float_try_parse(pos)
+                i += 1
+            positions.append([values[0], values[1], values[2], values[3], values[4], values[5]])
+        layout_file.close()
+        return positions
 
-def __read_layout_txt(path) -> List[List[float]]:
-    positions: List[List[float]] = []
-    layout_file = open(path)
-    lines = layout_file.readlines()
-    for line in lines:
-        station_position = re.split("[\\s,]+", line)
-        values = np.zeros(6)
-        i = 0
-        for pos in station_position:
-            values[i] = __float_try_parse(pos)
-            i += 1
-        positions.append([values[0], values[1], values[2], values[3], values[4], values[5]])
-    layout_file.close()
-    return positions
-
-
-def __float_try_parse(value):
-    try:
-        return float(value)
-    except ValueError:
-        return 0.0
+    @classmethod
+    def __float_try_parse(cls, value):
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0

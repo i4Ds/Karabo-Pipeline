@@ -75,7 +75,8 @@ visibilities_task_stream.html
 
 # Dask
 dask-worker-space
-
+.tmp
+*.vis
 # Configs
 config.yaml
 
