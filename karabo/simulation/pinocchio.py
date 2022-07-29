@@ -406,7 +406,7 @@ class Pinocchio:
         :return: path of the config on the filesystem
         :rtype: str
         """
-        assert self.wd is not None and self.wd.isDir
+        assert self.wd is not None
 
         lines: list[str] = []
         # add header
