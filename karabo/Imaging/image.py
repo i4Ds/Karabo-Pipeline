@@ -32,8 +32,6 @@ class Image(KaraboResource):
         self.data = None
         self.name = name
         self.file = FileHandle()
-        # self.power_spectrum_profile = None
-        # self.power_spectrum_theta_axis = None
 
     def write_to_file(self, path: str) -> None:
         if not path.endswith(".fits"):
@@ -212,19 +210,3 @@ class Image(KaraboResource):
         :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
         """
         return sky.project_sky_to_image(self, filter_outliers)
-
-
-    # def plot_histogram(self):
-    #
-    #     counts, bins, _ = plt.hist(
-    #         self.data.flatten(), bins=10, density=False, zorder=5, histtype="step"
-    #     )
-    #     # # "bins" are the bin edge points, so need the mid points.
-    #     # mid_points = bins[:-1] + 0.5 * abs(bins[1:] - bins[:-1])
-    #
-    #     # # initial guess of the parameters of the fitted gaussian curve
-    #     # initial_params = [counts.max(), bdsf_image.raw_mean, bdsf_image.raw_rms]
-    #     # optimized_fit_params, _ = optimize.curve_fit(
-    #     #     gaussian, mid_points, counts, p0=initial_params
-    #     # )
-    #     plt.show()

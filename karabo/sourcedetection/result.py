@@ -5,7 +5,7 @@ import numpy as np
 import bdsf
 from bdsf import image as bdsf_image
 
-from karabo.Imaging.image import Image
+from karabo.imaging.image import Image
 from karabo.resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import read_CSV_to_ndarray
@@ -52,6 +52,8 @@ class SourceDetectionResult(KaraboResource):
         Save Source Detection Result to ZIP Archive containing the .fits source image and source-finding catalog.
         :param path: path to save the zip archive as.
         """
+        if path.endswith(".zip"):
+            path.removesuffix(".zip")
         tempdir = FileHandle(is_dir=True)
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")

@@ -7,7 +7,7 @@ import pyvista
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 
-from karabo.Imaging.imager import Imager
+from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -18,6 +18,9 @@ from karabo.util.math_util import long_lat_to_cartesian
 class ObservationPlotter:
 
     def __init__(self, sky, tel, observation, imager=None):
+        """
+        WIP
+        """
         self.sky = sky
         self.tel = tel
         self.obs = observation

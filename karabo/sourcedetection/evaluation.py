@@ -12,13 +12,15 @@ from karabo.util.plotting_util import get_slices
 
 
 class SourceDetectionEvaluation:
-
-    def __init__(self, assignment: np.array,
-                 sky: SkyModel,
-                 source_detection: SourceDetectionResult,
-                 true_positives,
-                 false_negatives,
-                 false_positives):
+    def __init__(
+        self,
+        assignment: np.array,
+        sky: SkyModel,
+        source_detection: SourceDetectionResult,
+        true_positives,
+        false_negatives,
+        false_positives,
+    ):
         """
         Class that holds the mapping of a source detection to truth mapping.
         :param assignment: jx3 np.ndarray where each row represents an assignment
@@ -39,10 +41,12 @@ class SourceDetectionEvaluation:
         self.mapped_array = self.__map_sky_to_detection_array(assignment, sky)
 
     @staticmethod
-    def evaluate_result_with_sky_in_pixel_space(source_detection_result: SourceDetectionResult,
-                                                sky: SkyModel,
-                                                distance_threshold: float,
-                                                filter_outliers=False):
+    def evaluate_result_with_sky_in_pixel_space(
+        source_detection_result: SourceDetectionResult,
+        sky: SkyModel,
+        distance_threshold: float,
+        filter_outliers=False,
+    ):
         """
         Evaluate Result of this Source Detection Result by comparing it with a Sky Model.
         The Sky Model will be converted to Pixel space based on the dimensions of the original Image.
@@ -63,19 +67,25 @@ class SourceDetectionEvaluation:
         """
         image = source_detection_result.get_source_image()
 
-        truth = sky.project_sky_to_image(image, filter_outliers)[
-                :2].astype(
-            'float64')
-        pred = np.array(source_detection_result.get_pixel_position_of_sources()).astype('float64')
-        assignment = SourceDetectionEvaluation. \
-            automatic_assignment_of_ground_truth_and_prediction(truth, pred, distance_threshold)
-        tp, fp, fn = SourceDetectionEvaluation.calculate_evaluation_measures(assignment, truth, pred)
-        result = SourceDetectionEvaluation(assignment, sky, source_detection_result, tp, fp, fn)
+        truth = sky.project_sky_to_image(image, filter_outliers)[:2].astype("float64")
+        pred = np.array(source_detection_result.get_pixel_position_of_sources()).astype(
+            "float64"
+        )
+        assignment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+            truth, pred, distance_threshold
+        )
+        tp, fp, fn = SourceDetectionEvaluation.calculate_evaluation_measures(
+            assignment, truth, pred
+        )
+        result = SourceDetectionEvaluation(
+            assignment, sky, source_detection_result, tp, fp, fn
+        )
         return result
 
     @staticmethod
-    def automatic_assignment_of_ground_truth_and_prediction(ground_truth: np.ndarray, detected: np.ndarray,
-                                                            max_dist: float) -> np.ndarray:
+    def automatic_assignment_of_ground_truth_and_prediction(
+        ground_truth: np.ndarray, detected: np.ndarray, max_dist: float
+    ) -> np.ndarray:
         """
         Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
         The strategy is the following
@@ -104,10 +114,15 @@ class SourceDetectionEvaluation:
         ground_truth_assignments = np.array([None] * ground_truth.shape[0])
         # gets the euclidian_distances sorted values indices as (m*n of euclidian_distances) x 2 matrix
         argsort_2dIndexes = np.array(
-            np.unravel_index(np.argsort(euclidian_distances, axis=None), euclidian_distances.shape)).transpose()
-        max_dist_2dIndexes = np.array(np.where(euclidian_distances <= max_dist)).transpose()
+            np.unravel_index(
+                np.argsort(euclidian_distances, axis=None), euclidian_distances.shape
+            )
+        ).transpose()
+        max_dist_2dIndexes = np.array(
+            np.where(euclidian_distances <= max_dist)
+        ).transpose()
         # can slice it since argsort_2dIndexes is sorted. it is to ensure to not assign sources outside of max_dist
-        argsort_2dIndexes = argsort_2dIndexes[:max_dist_2dIndexes.shape[0]]
+        argsort_2dIndexes = argsort_2dIndexes[: max_dist_2dIndexes.shape[0]]
         # to get the closes assignment it is the task to get the first indices pair which each index in each column
         # occured just once
         assigned_ground_truth_indexes, assigned_predicted_idxs, eucl_dist = [], [], []
@@ -116,16 +131,22 @@ class SourceDetectionEvaluation:
             # selected idxs after assignment
             assignment_idxs = argsort_2dIndexes[i]
             if (assignment_idxs[0] not in assigned_ground_truth_indexes) and (
-                    assignment_idxs[1] not in assigned_predicted_idxs):
+                assignment_idxs[1] not in assigned_predicted_idxs
+            ):
                 assigned_ground_truth_indexes.append(assignment_idxs[0])
                 assigned_predicted_idxs.append(assignment_idxs[1])
-                eucl_dist.append(euclidian_distances[assignment_idxs[0], assignment_idxs[1]])
-        assignments = np.array([assigned_ground_truth_indexes, assigned_predicted_idxs, eucl_dist]).transpose()
+                eucl_dist.append(
+                    euclidian_distances[assignment_idxs[0], assignment_idxs[1]]
+                )
+        assignments = np.array(
+            [assigned_ground_truth_indexes, assigned_predicted_idxs, eucl_dist]
+        ).transpose()
         return assignments
 
     @staticmethod
-    def calculate_evaluation_measures(assignments: np.ndarray, ground_truth: np.ndarray,
-                                      detected: np.ndarray) -> tuple:
+    def calculate_evaluation_measures(
+        assignments: np.ndarray, ground_truth: np.ndarray, detected: np.ndarray
+    ) -> tuple:
         """
         Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
         - TP are the detections associated with a source
@@ -157,7 +178,7 @@ class SourceDetectionEvaluation:
             slices = get_slices(wcs)
 
             fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=slices))
-            ax.imshow(image.data[0][0], cmap="jet", origin='lower', interpolation=None)
+            ax.imshow(image.data[0][0], cmap="jet", origin="lower", interpolation=None)
 
             self.__plot_truth_and_prediction(ax)
 
@@ -179,9 +200,8 @@ class SourceDetectionEvaluation:
     def __plot_truth_and_prediction(self, ax):
         truth = self.get_truth_array()[:, [3, 4]].transpose()
         pred = self.get_detected_array()[:, [3, 4]].transpose()
-        ax.plot(truth[0], truth[1], 'o', linewidth=5,
-                color="firebrick", alpha=0.5)
-        ax.plot(pred[0], pred[1], 'x', linewidth=5, color='green')
+        ax.plot(truth[0], truth[1], "o", linewidth=5, color="firebrick", alpha=0.5)
+        ax.plot(pred[0], pred[1], "x", linewidth=5, color="green")
 
     def __map_sky_to_detection_array(self, assignment, sky: SkyModel) -> np.ndarray:
         truth_indexes = np.array(assignment[:, 0], dtype=int)
@@ -195,12 +215,14 @@ class SourceDetectionEvaluation:
         result = np.stack((truths, predictions, meta))
         return result
 
-    def __sky_array_to_same_shape_as_detection(self,
-                                               sky_indexes: npt.NDArray,
-                                               sky: SkyModel) -> npt.NDArray:
-        pixel_coords_sky = sky.project_sky_to_image(self.source_detection.get_source_image(), filter_outlier=False)
+    def __sky_array_to_same_shape_as_detection(
+        self, sky_indexes: npt.NDArray, sky: SkyModel
+    ) -> npt.NDArray:
+        pixel_coords_sky = sky.project_sky_to_image(
+            self.source_detection.get_source_image(), filter_outlier=False
+        )
         pixel_coords = pixel_coords_sky[:, sky_indexes].transpose()
-        filtered = sky[sky_indexes.astype(dtype='uint32')]
+        filtered = sky[sky_indexes.astype(dtype="uint32")]
         ra = filtered[:, 0]
         dec = filtered[:, 1]
         flux = filtered[:, 2]
@@ -211,11 +233,14 @@ class SourceDetectionEvaluation:
         return np.vstack((indexes, ra, dec, x_pos, y_pos, flux, peak)).transpose()
 
     def get_confusion_matrix(self) -> npt.NDArray:
-        return np.array([[self.true_positives, self.false_negatives],
-                         [self.false_positives, 0.0]])
+        return np.array(
+            [[self.true_positives, self.false_negatives], [self.false_positives, 0.0]]
+        )
 
     def get_accuracy(self) -> float:
-        return self.true_positives / (self.true_positives + self.false_positives + self.false_negatives)
+        return self.true_positives / (
+            self.true_positives + self.false_positives + self.false_negatives
+        )
 
     def get_precision(self) -> float:
         return self.true_positives / (self.true_positives + self.false_positives)
@@ -237,7 +262,7 @@ class SourceDetectionEvaluation:
     def get_meta_data_array(self) -> npt.NDArray:
         return self.mapped_array[2]
 
-    def plot_error_ra_dec(self):
+    def plot_error_ra_dec(self, filename=None):
         truth = self.get_truth_array().astype(float)
         detection = self.get_detected_array().astype(float)
 
@@ -265,8 +290,12 @@ class SourceDetectionEvaluation:
         plt.ylim([-error_max_dec, error_max_ra])
         plt.xlabel("RA (deg) error / x")
         plt.ylabel("DEC (deg) error / y")
-        plt.plot(error[0], error[1], 'o', markersize=8, color='r', alpha=0.5)
-        plt.show()
+        plt.plot(error[0], error[1], "o", markersize=8, color="r", alpha=0.5)
+        if filename:
+            plt.savefig(filename)
+            plt.show(block=False)
+        else:
+            plt.show()
 
     def plot_quiver_positions(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2]].transpose().astype(float)
@@ -308,8 +337,13 @@ class SourceDetectionEvaluation:
 
         flux_ratio = flux_pred / flux_ref
 
-        sky_coords_pred = [SkyCoord(ra=p[0], dec=p[1], frame='icrs', unit="deg") for p in ra_dec_pred.transpose()]
-        sky_coord_center = SkyCoord(phase_center[0] * u.degree, phase_center[1] * u.degree, frame='icrs')
+        sky_coords_pred = [
+            SkyCoord(ra=p[0], dec=p[1], frame="icrs", unit="deg")
+            for p in ra_dec_pred.transpose()
+        ]
+        sky_coord_center = SkyCoord(
+            phase_center[0] * u.degree, phase_center[1] * u.degree, frame="icrs"
+        )
         dist = [coord.separation(sky_coord_center).degree for coord in sky_coords_pred]
 
         plt.plot(dist, flux_ratio, "o", color="b", markersize=5, alpha=0.5)

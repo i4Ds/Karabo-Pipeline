@@ -1,11 +1,6 @@
 import os
 import shutil
-import tempfile
 import uuid
-
-from distributed import Client
-
-from karabo.util.dask import get_global_client
 
 
 class FileHandle:
@@ -29,7 +24,6 @@ class FileHandle:
             if is_dir:
                 # is a directory
                 self.path = tmp_path
-                #os.mkdir(tmp_path)
                 shutil.copytree(existing_file_path, tmp_path)
             else:
                 # is a file
@@ -47,11 +41,11 @@ class FileHandle:
                 open(tmp_path, "x")
                 self.path = tmp_path
 
-    # def __del__(self):
-    #     if self.existing:
-    #         return
-    #
-    #     if self.is_dir:
-    #         os.rmdir(self.path)
-    #     if not self.is_dir:
-
+    def __del__(self):
+        if os.path.isdir(self.path):
+            shutil.rmtree(self.path)
+        else:
+            os.remove(self.path)
+        # remove temp dir if it was the last temporary file
+        if len(os.listdir(self.__temp_path)) == 0:
+            os.rmdir(self.__temp_path)
