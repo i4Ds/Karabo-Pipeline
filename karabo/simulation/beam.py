@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 from karabo.util.FileHandle import FileHandle
 from eidos.create_beam import zernike_parameters
-from eidos.spatial import recon_par, jones_to_mueller_all
+from eidos.spatial import recon_par
 from karabo.test import data_path
 from karabo.util.data_util import get_module_absolute_path, get_module_path_of_module
 
