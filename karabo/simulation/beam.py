@@ -123,6 +123,7 @@ class BeamPattern:
         ax01 = ax[0, 1]
         ax10 = ax[1, 0]
         ax11 = ax[1, 1]
+        B_ah[np.where(np.abs(B_ah)==0)]=1+1j
         ax00.imshow(
             10 * np.log10(np.abs(B_ah[0, 0])),
             aspect="auto",
