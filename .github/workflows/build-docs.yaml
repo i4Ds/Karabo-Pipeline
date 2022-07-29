@@ -18,12 +18,14 @@ jobs:
       - name: Create Environment
         shell: bash -l {0}
         run: |
-          conda env create -f environment.yaml
+          conda env create -f environment-dev.yaml
           conda activate karabo_dev_env
-          conda install -y --file doc/doc_packages.txt
+          conda install -c conda-forge -y --file doc/doc_packages.txt
       - name: Build Docs
         shell: bash -l {0}
         run: |
+          conda activate karabo_dev_env
+          sphinx-apidoc . -o doc/src
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v3

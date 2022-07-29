@@ -23,7 +23,14 @@ from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
 
 
-class SkyModel(KaraboResource):
+class Polarisation(enum.Enum):
+    STOKES_I = 0,
+    STOKES_Q = 1,
+    STOKES_U = 2,
+    STOKES_V = 3
+
+
+class SkyModel:
     """
     Class containing all information of the to be observed Sky.
 
@@ -46,7 +53,7 @@ class SkyModel(KaraboResource):
 
     """
 
-    def __init__(self, sources: np.ndarray = None, wcs: awcs = None):
+    def __init__(self, sources: np.ndarray = None, wcs: awcs = None, nside: int = 0):
         """
         Initialization of a new SkyModel
 
@@ -355,6 +362,8 @@ class SkyModel(KaraboResource):
         sc = plt.scatter(x, y, s=.5, c=log_flux, cmap='plasma',
                          vmin=np.min(log_flux), vmax=np.max(log_flux))
         plt.axis('equal')
+        plt.xlabel('x direction cosine')
+        plt.ylabel('y direction cosine')
         plt.colorbar(sc, label='Log10(Stokes I flux [Jy])')
         plt.show()
 
@@ -365,6 +374,23 @@ class SkyModel(KaraboResource):
         :return: oskar sky model
         """
         return oskar.Sky.from_array(self[:, :-1])
+
+    @staticmethod
+    def read_healpix_file_to_sky_model_array(file, channel, polarisation: Polarisation) -> np.ndarray:
+        """
+        Read a healpix file in hdf5 format.
+        The file should have the map keywords:
+
+        :param file: hdf5 file path (healpix format)
+        :param channel: Channels of observation (between 0 and maximum numbers of channels of observation)
+        :param polarisation: 0 = Stokes I, 1 = Stokes Q, 2 = Stokes U, 3 = Stokes  V
+        :return:
+        """
+        arr = get_healpix_image(file)
+        filtered = arr[channel][polarisation.value]
+        ra, dec, nside = convert_healpix_2_radec(filtered)
+        size = len(ra)
+        return np.vstack((ra, dec, filtered)).transpose(), nside
 
     def __update_sky_model(self):
         """
@@ -455,37 +481,34 @@ class SkyModel(KaraboResource):
         dims = image.get_dimensions_of_image()
         wcs = image.get_2d_wcs()
 
-        # if len(dims) > 2:
-        #     ra = np.hstack((ra, np.zeros((ra.shape[0], 3))))
-        #     dec = np.hstack((dec, np.zeros((dec.shape[0], 3))))
-        px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 1)
+def get_GLEAM_Sky() -> SkyModel:
+    survey = GLEAMSurveyDownloadObject()
+    path = survey.get()
+    gleam = SkyModel.get_fits_catalog(path)
+    df_gleam = gleam.to_pandas()
+    ref_freq = 76e6
+    df_gleam = df_gleam[~df_gleam['Fp076'].isna()]
+    ra, dec, fp = df_gleam['RAJ2000'], df_gleam['DEJ2000'], df_gleam['Fp076']
+    sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
+                                 np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
+    sky = SkyModel(sky_array)
+    # major axis FWHM, minor axis FWHM, position angle, object id
+    sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
+    return sky
 
-        # pre-filtering before calling wcs.wcs_world2pix would be more efficient,
-        # however this has to be done in the ra-dec space. maybe for future work
-        if filter_outlier:
-            px_idxs = np.where(np.logical_and(px <= image_pixel_per_side, px >= 0))[0]
-            py_idxs = np.where(np.logical_and(py <= image_pixel_per_side, py >= 0))[0]
-            idxs = np.intersect1d(px_idxs, py_idxs)
-            px, py = px[idxs], py[idxs]
-        else:
-            idxs = np.arange(self.num_sources)
-        return np.vstack((px, py, idxs))
-
-    @staticmethod
-    def get_GLEAM_Sky() -> 'SkyModel':
-        survey = GLEAMSurveyDownloadObject()
-        path = survey.get()
-        gleam = SkyModel.get_fits_catalog(path)
-        df_gleam = gleam.to_pandas()
-        ref_freq = 76e6
-        df_gleam = df_gleam[~df_gleam['Fp076'].isna()]
-        ra, dec, fp = df_gleam['RAJ2000'], df_gleam['DEJ2000'], df_gleam['Fp076']
-        sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
-                                     np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
-        sky = SkyModel(sky_array)
-        # major axis FWHM, minor axis FWHM, position angle, object id
-        sky[:, [9, 10, 11, 12]] = df_gleam[['a076', 'b076', 'pa076', 'GLEAM']]
-        return sky
+def get_MIGHTEE_Sky() -> SkyModel:
+    survey = MIGHTEESurveyDownloadObject()
+    path = survey.get()
+    mightee = SkyModel.get_fits_catalog(path)
+    df_mightee = mightee.to_pandas()
+    ref_freq = 76e6
+    ra, dec, fp = df_mightee['RA'], df_mightee['DEC'], df_mightee['NU_EFF']
+    sky_array = np.column_stack((ra, dec, fp, np.zeros(ra.shape[0]), np.zeros(ra.shape[0]),
+                                 np.zeros(ra.shape[0]), [ref_freq] * ra.shape[0])).astype('float64')
+    sky = SkyModel(sky_array)
+    # major axis FWHM, minor axis FWHM, position angle, object id
+    sky[:, [9, 10, 11, 12]] = df_mightee[['IM_MAJ', 'IM_MIN', 'IM_PA', 'NAME']]
+    return sky
 
     @staticmethod
     def get_random_poisson_disk_sky(
