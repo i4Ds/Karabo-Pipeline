@@ -467,7 +467,8 @@ class Pinocchio:
         """
         
         assert self.didRun, "can not save pinocchio results if run() was never called"
-        assert os.path.isdir(outDirPath), "invalid directory"
+        if not os.path.isdir(outDirPath):
+            os.mkdir(outDirPath)
         
         shutil.copytree(self.wd.path, outDirPath, dirs_exist_ok=True)
 

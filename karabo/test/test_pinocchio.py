@@ -12,21 +12,23 @@ from karabo.simulation.pinocchio import Pinocchio
 
 class TestPinocchio(unittest.TestCase):
 
+    RESULT_FOLDER = "result/"
+
     @classmethod
     def setUpClass(cls) -> None:
         # make dir for result files
-        if not os.path.exists('result/'):
-            os.makedirs('result/')
+        if not os.path.exists(TestPinocchio.RESULT_FOLDER):
+            os.makedirs(TestPinocchio.RESULT_FOLDER)
 
     def testSimpleInstance(self) -> None:
         p = Pinocchio()
-        p.setRunName("plotTest")
+        p.setRunName("unittest")
         p.printConfig()
         p.printRedShiftRequest()
         p.runPlanner(16, 1)
         p.run(mpiThreads=2)
 
-        p.save("./result/")
+        p.save(f"./{TestPinocchio.RESULT_FOLDER}")
 
         # sky = p.getSkyModel()
         # sky.plot_sky()
