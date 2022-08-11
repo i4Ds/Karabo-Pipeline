@@ -14,6 +14,7 @@ from astropy import units as u
 from astropy import wcs as awcs
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
+from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
@@ -416,16 +417,11 @@ class SkyModel:
             self.setup_default_wcs(phase_center)
 
         slices = get_slices(self.wcs)
-        ra0, dec0 = phase_center[0], phase_center[1]
         data = self[:, 0:3]
-        ra = np.radians(data[:, 0] - ra0)
-        dec = np.radians(data[:, 1])
         flux = data[:, 2]
         log_flux = np.log10(flux)
-        x = np.cos(dec) * np.sin(ra)
-        y = np.cos(np.radians(dec0)) * np.sin(dec) - np.sin(np.radians(dec0)) * np.cos(
-            dec
-        ) * np.cos(ra)
+        radec = SkyCoord([data[:,0]], [data[:,1]], frame='icrs', unit='deg')
+        x,y=self.wcs.world_to_pixel(radec)
         plt.subplot(projection=self.wcs, slices=slices)
         sc = plt.scatter(
             x,
