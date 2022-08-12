@@ -1,14 +1,18 @@
 import os
 import unittest
-
+import numpy as np
 from karabo.simulation.pinocchio import Pinocchio
-# from karabo.Imaging.imager import Imager
-# from karabo.simulation.observation import Observation
-# from karabo.simulation.telescope import get_MEERKAT_Telescope, get_OSKAR_Example_Telescope
-# from karabo.simulation.interferometer import InterferometerSimulation
-# from datetime import datetime
-# from astropy import units as u
-# from astropy.coordinates import SkyCoord
+#from karabo.Imaging.imager import Imager
+from karabo.simulation.observation import Observation
+from karabo.simulation.telescope import Telescope
+#from karabo.simulation.telescope import get_MEERKAT_Telescope, get_OSKAR_Example_Telescope
+from karabo.simulation.interferometer import InterferometerSimulation
+
+import datetime
+from karabo.simulation.sky_model import SkyModel
+from karabo.imaging.imager import Imager
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 
 class TestPinocchio(unittest.TestCase):
 
@@ -30,31 +34,37 @@ class TestPinocchio(unittest.TestCase):
 
         p.save(f"./{TestPinocchio.RESULT_FOLDER}")
 
-        # sky = p.getSkyModel()
-        # sky.plot_sky()
-        # sky = sky.filter_by_radius(0, 1, 32, 45)
-        # sky.plot_sky()
+        sky = p.getSkyModel()
+        #sky.plot_sky()
+        sky = sky.filter_by_radius(0, 1, 32, 45)
+        #sky = SkyModel()
+        #sky_data = np.array([
+        #    [358.6292,1.70722, 0.001, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0, 'source1']])
+        #sky.add_point_sources(sky_data)
+        #sky.plot_sky()
 
-        # telescope = get_OSKAR_Example_Telescope()
+        #telescope = get_OSKAR_Example_Telescope()
+        telescope = Telescope.get_SKA1_MID_Telescope()
 
-        # simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
-        #                                           time_average_sec=10)
-        # observation = Observation(100e6,
-        #                               phase_centre_ra_deg=32,
-        #                               phase_centre_dec_deg=45,
-        #                               number_of_time_steps=24,
-        #                               frequency_increment_hz=20e6,
-        #                               number_of_channels=64,
-        #                               start_date_and_time=datetime.fromisoformat("2022-07-21T16:00:00+01:00"))
+        simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
+                                                   time_average_sec=10)
+        observation = Observation(1e9,
+                                       phase_centre_ra_deg=31.9875,
+                                       phase_centre_dec_deg=45.1333,
+                                       length=datetime.timedelta(hours=4),
+                                       number_of_time_steps=1,
+                                       frequency_increment_hz=20e6,
+                                       number_of_channels=1,
+                                       start_date_and_time=datetime.datetime.fromisoformat("2022-03-01T11:00:00"))
 
-        # visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility = simulation.run_simulation(telescope, sky, observation)
 
-        # visibility.save_to_ms("./result/pinocchiotest/vis.ms")
+        visibility.write_to_file("./result/pinocchiotest/vis.ms")
+        cellsize=0.003;boxsize=4096*4
+        imager = Imager(visibility, imaging_npixel=boxsize,
+                             imaging_cellsize=cellsize)
+                             # imaging_phasecentre = SkyCoord(ra=32*u.degree, dec=45*u.degree, frame='icrs').to_string())
 
-        # imager = Imager(visibility, imaging_npixel=4096,
-        #                     imaging_cellsize=0.03)
-        #                     # imaging_phasecentre = SkyCoord(ra=32*u.degree, dec=45*u.degree, frame='icrs').to_string())
-
-        # dirty = imager.get_dirty_image()
-        # # dirty.save_as_fits("result/dirty.fits")
-        # dirty.plot()
+        dirty = imager.get_dirty_image()
+        dirty.write_to_file("result/dirty.fits")
+        dirty.plot()
