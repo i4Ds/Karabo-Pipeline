@@ -1,22 +1,16 @@
 import os
 import unittest
-import numpy as np
+import datetime
 from karabo.simulation.pinocchio import Pinocchio
-#from karabo.Imaging.imager import Imager
 from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
-#from karabo.simulation.telescope import get_MEERKAT_Telescope, get_OSKAR_Example_Telescope
 from karabo.simulation.interferometer import InterferometerSimulation
-
-import datetime
-from karabo.simulation.sky_model import SkyModel
 from karabo.imaging.imager import Imager
 from astropy import units as u
-from astropy.coordinates import SkyCoord
 
 class TestPinocchio(unittest.TestCase):
 
-    RESULT_FOLDER = "result/"
+    RESULT_FOLDER = "./result"
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -27,23 +21,15 @@ class TestPinocchio(unittest.TestCase):
     def testSimpleInstance(self) -> None:
         p = Pinocchio()
         p.setRunName("unittest")
-        p.printConfig()
-        p.printRedShiftRequest()
-        p.runPlanner(16, 1)
+        # p.printConfig()
+        # p.printRedShiftRequest()
+        # p.runPlanner(16, 1)
         p.run(mpiThreads=2)
 
-        p.save(f"./{TestPinocchio.RESULT_FOLDER}")
+        # p.save(TestPinocchio.RESULT_FOLDER)
 
         sky = p.getSkyModel()
-        #sky.plot_sky()
         sky = sky.filter_by_radius(0, 1, 32, 45)
-        #sky = SkyModel()
-        #sky_data = np.array([
-        #    [358.6292,1.70722, 0.001, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0, 'source1']])
-        #sky.add_point_sources(sky_data)
-        #sky.plot_sky()
-
-        #telescope = get_OSKAR_Example_Telescope()
         telescope = Telescope.get_SKA1_MID_Telescope()
 
         simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
@@ -59,12 +45,10 @@ class TestPinocchio(unittest.TestCase):
 
         visibility = simulation.run_simulation(telescope, sky, observation)
 
-        visibility.write_to_file("./result/pinocchiotest/vis.ms")
+        visibility.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/pinocchiotest/vis.ms")
         cellsize=0.003;boxsize=4096*4
-        imager = Imager(visibility, imaging_npixel=boxsize,
-                             imaging_cellsize=cellsize)
-                             # imaging_phasecentre = SkyCoord(ra=32*u.degree, dec=45*u.degree, frame='icrs').to_string())
+        imager = Imager(visibility, imaging_npixel=boxsize, imaging_cellsize=cellsize)
 
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("result/dirty.fits")
+        dirty.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/dirty.fits")
         dirty.plot()
