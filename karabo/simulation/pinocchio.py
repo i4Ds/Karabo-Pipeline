@@ -318,8 +318,6 @@ class Pinocchio:
 
         self.__writeRequiredFilesToWD()
 
-        print("start pinocchio run...")
-
         # add mpi runner executable 
         cmd: List[str] = [Pinocchio.PIN_EXEC_MPI]
         # add number of nodes that gets used
@@ -354,8 +352,6 @@ class Pinocchio:
         print(f"past light cone at {self.outLightConePath}")
 
         self.didRun = True
-
-        print("pinocchio run done!")
         
     def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
         """

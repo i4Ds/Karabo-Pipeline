@@ -28,27 +28,31 @@ class TestPinocchio(unittest.TestCase):
 
         # p.save(TestPinocchio.RESULT_FOLDER)
 
-        sky = p.getSkyModel()
-        sky = sky.filter_by_radius(0, 1, 32, 45)
-        telescope = Telescope.get_SKA1_MID_Telescope()
+        # sky = p.getSkyModel()
+        # sky = sky.filter_by_radius(0, 1, 32, 45)
+        # telescope = Telescope.get_SKA1_MID_Telescope()
 
-        simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
-                                                   time_average_sec=10)
-        observation = Observation(1e9,
-                                       phase_centre_ra_deg=31.9875,
-                                       phase_centre_dec_deg=45.1333,
-                                       length=datetime.timedelta(hours=4),
-                                       number_of_time_steps=1,
-                                       frequency_increment_hz=20e6,
-                                       number_of_channels=1,
-                                       start_date_and_time=datetime.datetime.fromisoformat("2022-03-01T11:00:00"))
+        # simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
+        #                                            time_average_sec=10)
+        # observation = Observation(1e9,
+        #                                phase_centre_ra_deg=31.9875,
+        #                                phase_centre_dec_deg=45.1333,
+        #                                length=datetime.timedelta(hours=4),
+        #                                number_of_time_steps=1,
+        #                                frequency_increment_hz=20e6,
+        #                                number_of_channels=1,
+        #                                start_date_and_time=datetime.datetime.fromisoformat("2022-03-01T11:00:00"))
 
-        visibility = simulation.run_simulation(telescope, sky, observation)
+        # visibility = simulation.run_simulation(telescope, sky, observation)
 
-        visibility.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/pinocchiotest/vis.ms")
-        cellsize=0.003;boxsize=4096*4
-        imager = Imager(visibility, imaging_npixel=boxsize, imaging_cellsize=cellsize)
+        # visibility.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/pinocchiotest/vis.ms")
+        # cellsize=0.003;boxsize=4096*4
+        # imager = Imager(visibility, imaging_npixel=boxsize, imaging_cellsize=cellsize)
 
-        dirty = imager.get_dirty_image()
-        dirty.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/dirty.fits")
-        dirty.plot()
+        # dirty = imager.get_dirty_image()
+        # dirty.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/dirty.fits")
+        # dirty.plot()
+
+t = TestPinocchio()
+t.setUpClass()
+t.testSimpleInstance()
