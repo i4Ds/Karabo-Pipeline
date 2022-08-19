@@ -100,27 +100,28 @@ class Pinocchio:
         :rtype: PinocchioRedShiftRequest
         """
         
-        redShifts = open(path)
-
         rsr = PinocchioRedShiftRequest()
-        rsr.header = f"{Pinocchio.PRMS_CMNT} Generated redshift output request file for Pinocchio by Karabo Framework (https://github.com/i4Ds/Karabo-Pipeline)\n"
 
-        # skip and save header
-        line: str = redShifts.readline()
-        while line[0] == Pinocchio.PRMS_CMNT:
-            rsr.header += line
-            line = redShifts.readline()
+        with open(path) as redShifts:
         
-        rsr.header += "\n"
+            rsr.header = f"{Pinocchio.PRMS_CMNT} Generated redshift output request file for Pinocchio by Karabo Framework (https://github.com/i4Ds/Karabo-Pipeline)\n"
 
-        # skip empty lines
-        while line[0] == "\n":
-            line = redShifts.readline()
+            # skip and save header
+            line: str = redShifts.readline()
+            while line[0] == Pinocchio.PRMS_CMNT:
+                rsr.header += line
+                line = redShifts.readline()
 
-        # get redshifts
-        while line:
-            rsr.redShifts.append(line.strip())
-            line = redShifts.readline()
+            rsr.header += "\n"
+
+            # skip empty lines
+            while line[0] == "\n":
+                line = redShifts.readline()
+
+            # get redshifts
+            while line:
+                rsr.redShifts.append(line.strip())
+                line = redShifts.readline()
 
         return rsr
 
@@ -167,68 +168,68 @@ class Pinocchio:
         :rtype: PinocchioConfig
         """
 
-        configF = open(path)
-        
-        # remove header
-        line: str = configF.readline()
-        if line[0] != Pinocchio.PRMS_CMNT:
-            print("input file is broken or has no header")
-            return {}
-        
         c: PinocchioConfig = PinocchioConfig()
-        currMapName: str = ""
+        
+        with open(path) as configF:
+        
+            # remove header
+            line: str = configF.readline()
+            if line[0] != Pinocchio.PRMS_CMNT:
+                print("input file is broken or has no header")
+                return {}
 
-        while line:
-            line = configF.readline()
-           
-            # skip empty lines
-            if len(line.strip()) == 0:
-                continue
-            
-            # header found
-            if line[0] == Pinocchio.PRMS_CMNT and line[1] == " ":
-                currMapName = line[2:].strip()
-                c.confDict[currMapName] = [] 
-                continue
+            currMapName: str = ""
 
-            commentSplit: List[str] = line.split(Pinocchio.PRMS_CMNT_SPLITTER)
-            
-            # empty comment line
-            if len(commentSplit) == 2 and commentSplit[0].strip() == "":
-                continue
+            while line:
+                line = configF.readline()
 
-            comment: str = commentSplit[-1].strip()
-            paramPart: List[str] = commentSplit[:-1]
-            lineSplit: List[str] = "".join(paramPart).split()
+                # skip empty lines
+                if len(line.strip()) == 0:
+                    continue
+                
+                # header found
+                if line[0] == Pinocchio.PRMS_CMNT and line[1] == " ":
+                    currMapName = line[2:].strip()
+                    c.confDict[currMapName] = [] 
+                    continue
 
-            if len(lineSplit) == 0:
-                assert False, "no lines to split"
+                commentSplit: List[str] = line.split(Pinocchio.PRMS_CMNT_SPLITTER)
 
-            name: str = lineSplit[0]
-            if c.maxNameLength < len(name):
-                c.maxNameLength = len(name)
+                # empty comment line
+                if len(commentSplit) == 2 and commentSplit[0].strip() == "":
+                    continue
 
-            # deactivated flag found
-            if len(paramPart) == 2 and len(lineSplit) == 1:
-                c.confDict[currMapName].append(PinocchioParams(name, True, False, "", comment))
-            
-            # deactivated param found
-            elif len(paramPart) == 2 and len(lineSplit) == 4:
-                c.confDict[currMapName].append(PinocchioParams(name, False, False, " ".join(lineSplit[1:]), comment))
+                comment: str = commentSplit[-1].strip()
+                paramPart: List[str] = commentSplit[:-1]
+                lineSplit: List[str] = "".join(paramPart).split()
 
-            # activated flag found
-            elif len(lineSplit) == 1:
-                c.confDict[currMapName].append(PinocchioParams(name, True, True, "", comment))
+                if len(lineSplit) == 0:
+                    assert False, "no lines to split"
 
-            # param with value found
-            elif len(lineSplit) == 2:
-                c.confDict[currMapName].append(PinocchioParams(name, False, True, lineSplit[1], comment))
+                name: str = lineSplit[0]
+                if c.maxNameLength < len(name):
+                    c.maxNameLength = len(name)
 
-            else:
-                assert False, "invalid entry"
+                # deactivated flag found
+                if len(paramPart) == 2 and len(lineSplit) == 1:
+                    c.confDict[currMapName].append(PinocchioParams(name, True, False, "", comment))
 
-        configF.close()
-        return c
+                # deactivated param found
+                elif len(paramPart) == 2 and len(lineSplit) == 4:
+                    c.confDict[currMapName].append(PinocchioParams(name, False, False, " ".join(lineSplit[1:]), comment))
+
+                # activated flag found
+                elif len(lineSplit) == 1:
+                    c.confDict[currMapName].append(PinocchioParams(name, True, True, "", comment))
+
+                # param with value found
+                elif len(lineSplit) == 2:
+                    c.confDict[currMapName].append(PinocchioParams(name, False, True, lineSplit[1], comment))
+
+                else:
+                    assert False, "invalid entry"
+
+            return c
 
     def getConfig(self) -> PinocchioConfig:
         """
@@ -335,6 +336,8 @@ class Pinocchio:
             self.outMFPath[i] = os.path.join(self.wd.path, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}")
 
         self.outLightConePath = os.path.join(self.wd.path, f"{Pinocchio.PIN_EXEC_NAME}.{runName}.plc.{Pinocchio.PIN_OUT_FILEENDING}")
+
+        print(f"past light cone at {self.outLightConePath}")
 
         self.didRun = True
 
