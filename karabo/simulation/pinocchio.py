@@ -316,6 +316,8 @@ class Pinocchio:
 
         self.__writeRequiredFilesToWD()
 
+        print("start pinocchio run...")
+
         cmd: List[str] = [Pinocchio.PIN_EXEC_MPI, Pinocchio.PIN_EXEC_MPI_NO_NODES, str(mpiThreads), Pinocchio.PIN_EXEC_NAME, self.runConfigPath]
         self.out = subprocess.run(cmd, cwd=self.wd.path, capture_output = not printLiveOutput, text=True) 
 
@@ -335,6 +337,8 @@ class Pinocchio:
         self.outLightConePath = os.path.join(self.wd.path, f"{Pinocchio.PIN_EXEC_NAME}.{runName}.plc.{Pinocchio.PIN_OUT_FILEENDING}")
 
         self.didRun = True
+
+        print("pinocchio run done!")
         
     def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
         """
