@@ -34,6 +34,7 @@ class Pinocchio:
 
     PIN_EXEC_MPI            = "mpirun"
     PIN_EXEC_MPI_NO_NODES   = "-np"
+    PIN_EXEC_MPI_AS_ROOT    = "--allow-run-as-root"
     PIN_EXEC_NAME           = "pinocchio"
     PIN_EXEC_RP_NAME        = f"{PIN_EXEC_NAME}_rp"
     PIN_DEFAULT_PARAMS_FILE = f"{PIN_EXEC_NAME}_params.conf"
@@ -319,7 +320,20 @@ class Pinocchio:
 
         print("start pinocchio run...")
 
-        cmd: List[str] = [Pinocchio.PIN_EXEC_MPI, Pinocchio.PIN_EXEC_MPI_NO_NODES, str(mpiThreads), Pinocchio.PIN_EXEC_NAME, self.runConfigPath]
+        # add mpi runner executable 
+        cmd: List[str] = [Pinocchio.PIN_EXEC_MPI]
+        # add number of nodes that gets used
+        cmd.append(Pinocchio.PIN_EXEC_MPI_NO_NODES)
+        cmd.append(str(mpiThreads))
+        # add --allow-run-as-root if we're in a test environment
+        if os.environ.get("IS_GITHUB_RUNNER") is not None:
+            print("we're inside a github runner - allow mpirunner as root")
+            cmd.append(Pinocchio.PIN_EXEC_MPI_AS_ROOT)
+        # add pinocchio executable 
+        cmd.append(Pinocchio.PIN_EXEC_NAME)
+        # add working directory
+        cmd.append(self.runConfigPath)
+
         self.out = subprocess.run(cmd, cwd=self.wd.path, capture_output = not printLiveOutput, text=True) 
 
         # mark output files
