@@ -67,7 +67,16 @@ class InterferometerSimulation:
                  uv_filter_max: float = float('inf'),
                  uv_filter_units: FilterUnits = FilterUnits.WaveLengths,
                  force_polarised_ms: bool = False,
-                 ignore_w_components: bool = False):
+                 ignore_w_components: bool = False,
+                 noise_enable:bool=False,
+                 noise_seed:int=1,
+                 noise_start_freq: float = 0,
+                 noise_inc_freq: float = 0,
+                 noise_number_freq: int = 0,
+                 noise_rms_start: float =0,
+                 noise_rms_end: float =0,
+                 noise_rms: str = 'Range',
+                 noise_freq: str = 'Range'):
 
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
@@ -80,6 +89,15 @@ class InterferometerSimulation:
         self.uv_filter_units: FilterUnits = uv_filter_units
         self.force_polarised_ms: bool = force_polarised_ms
         self.ignore_w_components: bool = ignore_w_components
+        self.noise_enable: bool = noise_enable
+        self.noise_start_freq = noise_start_freq
+        self.noise_inc_freq = noise_inc_freq
+        self.noise_number_freq = noise_number_freq
+        self.noise_seed = noise_seed
+        self.noise_rms_start = noise_rms_start
+        self.noise_rms_end = noise_rms_end
+        self.noise_rms=noise_rms
+        self.noise_freq=noise_freq
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
         """
@@ -115,7 +133,17 @@ class InterferometerSimulation:
                 "uv_filter_max": str(self.__interpret_uv_filter(self.uv_filter_max)),
                 "uv_filter_units": str(self.uv_filter_units.value),
                 "force_polarised_ms": str(self.force_polarised_ms),
-                "ignore_w_components": str(self.ignore_w_components)
+                "ignore_w_components": str(self.ignore_w_components),
+                "noise/enable":str(self.noise_enable),
+                "noise/seed":str(self.noise_seed),
+                "noise/freq/start":str(self.noise_start_freq),
+                "noise/freq/inc":str(self.noise_inc_freq),
+                "noise/freq/number":str(self.noise_number_freq),
+                "noise/rms":str(self.noise_rms),
+                "noise/freq": str(self.noise_freq),
+                "noise/rms/start":str(self.noise_rms_start),
+                "noise/rms/end": str(self.noise_rms_end)
+
             }
         }
         if self.vis_path:
