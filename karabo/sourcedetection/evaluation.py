@@ -4,8 +4,7 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 import astropy.units as u
 from matplotlib import pyplot as plt
-from scipy.spatial.distance import cdist
-
+from scipy.spatial import KDTree
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.result import SourceDetectionResult
 from karabo.util.plotting_util import get_slices
@@ -81,10 +80,21 @@ class SourceDetectionEvaluation:
             assignment, sky, source_detection_result, tp, fp, fn
         )
         return result
-
+    @staticmethod
+    def _return_multiple_assigned_detected_points(assigments: np.ndarray) -> np.ndarray:
+        """
+        Returns the indices of the predicted sources that are assigned to more than one ground truth source.
+        """
+        # Check if a ground truth point is assigned to more than one predicted point
+        unique_counts = np.unique(assigments[:, 0], return_counts=True) # O(nlogn)
+        pred_multiple_assignment = unique_counts[0][unique_counts[1] > 1]
+        # Don't check unassigned points (When no points are below the max distance by kdtree, they are assigned to input.shape, which we replace to -1).
+        pred_multiple_assignment = pred_multiple_assignment[pred_multiple_assignment != -1]
+        return pred_multiple_assignment
+        
     @staticmethod
     def automatic_assignment_of_ground_truth_and_prediction(
-        ground_truth: np.ndarray, detected: np.ndarray, max_dist: float
+        ground_truth: np.ndarray, detected: np.ndarray, max_dist: float, top_k: int = 3
     ) -> np.ndarray:
         """
         Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
@@ -102,46 +112,39 @@ class SourceDetectionEvaluation:
         :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
         :param detected: kx2 np.ndarray with the predicted pixel coordinates of the image
         :param max_dist: maximal allowed distance for assignment (in pixel)
+        :param top_k: number of top predictions to be considered in scipy.spatial.KDTree. A small value could lead to inperfect results.
 
-        :return: jx3 np.ndarray where each row represents an assignment
-                     - first column represents the ground truth index
-                     - second column represents the predicted index
-                     - third column represents the euclidean distance between the assignment
+        :return: nx3 np.ndarray where each row represents an assignment
+                        - first column represents the ground truth index
+                        - second column represents the predicted index
+                        - third column represents the euclidean distance between the assignment
         """
-        ground_truth = ground_truth.transpose()
-        detected = detected.transpose()
-        euclidian_distances = cdist(ground_truth, detected)
-        ground_truth_assignments = np.array([None] * ground_truth.shape[0])
-        # gets the euclidian_distances sorted values indices as (m*n of euclidian_distances) x 2 matrix
-        argsort_2dIndexes = np.array(
-            np.unravel_index(
-                np.argsort(euclidian_distances, axis=None), euclidian_distances.shape
-            )
-        ).transpose()
-        max_dist_2dIndexes = np.array(
-            np.where(euclidian_distances <= max_dist)
-        ).transpose()
-        # can slice it since argsort_2dIndexes is sorted. it is to ensure to not assign sources outside of max_dist
-        argsort_2dIndexes = argsort_2dIndexes[: max_dist_2dIndexes.shape[0]]
-        # to get the closes assignment it is the task to get the first indices pair which each index in each column
-        # occured just once
-        assigned_ground_truth_indexes, assigned_predicted_idxs, eucl_dist = [], [], []
-        for i in range(argsort_2dIndexes.shape[0]):
-            # could maybe perform better if possible assignments argsort_2dIndexes is very large by filtering the
-            # selected idxs after assignment
-            assignment_idxs = argsort_2dIndexes[i]
-            if (assignment_idxs[0] not in assigned_ground_truth_indexes) and (
-                assignment_idxs[1] not in assigned_predicted_idxs
-            ):
-                assigned_ground_truth_indexes.append(assignment_idxs[0])
-                assigned_predicted_idxs.append(assignment_idxs[1])
-                eucl_dist.append(
-                    euclidian_distances[assignment_idxs[0], assignment_idxs[1]]
-                )
-        assignments = np.array(
-            [assigned_ground_truth_indexes, assigned_predicted_idxs, eucl_dist]
-        ).transpose()
-        return assignments
+
+        # With scipy.spatial.KDTree get the closest detection point for each ground truth point
+        tree = KDTree(detected)
+        distance, idx_assigment_pred = tree.query(ground_truth, k=top_k, distance_upper_bound=max_dist)
+        # Replace unassigned points with -1
+        idx_assigment_pred[distance == np.inf] = -1
+        # Check if a ground truth point is assigned to more than one predicted point
+        pred_multiple_assignments = SourceDetectionEvaluation._return_multiple_assigned_detected_points(idx_assigment_pred)
+        while len(pred_multiple_assignments) > 0:
+            for pred_multiple_assignment in pred_multiple_assignments:
+                # Get idx
+                idx_pred_multiple_assigment = np.where(idx_assigment_pred[:, 0] == pred_multiple_assignment)
+                idx_max_distance_multiple_assigment = np.argmax(distance[idx_pred_multiple_assigment, 0])
+                idx_max_distance_multiple_assigment = idx_pred_multiple_assigment[0][idx_max_distance_multiple_assigment]
+                # Switch the assignment to the next closest point by rolling the row with the highest distance one to the left
+                distance[idx_max_distance_multiple_assigment, :] = np.roll(distance[idx_max_distance_multiple_assigment, :], -1)
+                # To avoid infinite loops, we set the last element to np.inf.
+                distance[idx_max_distance_multiple_assigment, -1] = np.inf
+                idx_assigment_pred[idx_max_distance_multiple_assigment, :] = np.roll(idx_assigment_pred[idx_max_distance_multiple_assigment, :], -1)
+                # Update points with no assignment with -1
+                idx_assigment_pred[distance == np.inf] = -1   
+                # Check if a ground truth point is assigned to more than one predicted point
+                pred_multiple_assignments = SourceDetectionEvaluation._return_multiple_assigned_detected_points(idx_assigment_pred)
+        
+        assigments = np.array([np.arange(ground_truth.shape[0]), idx_assigment_pred[:, 0], distance[:, 0]]).T
+        return assigments
 
     @staticmethod
     def calculate_evaluation_measures(
@@ -153,7 +156,10 @@ class SourceDetectionEvaluation:
         - FP are detections without any associated source
         - FN are sources with no associations with a detection
 
-        :param assignments:
+        :param assignments: nx3 did np.ndarray where each row represents an assignment
+                            - first column represents the ground truth index
+                            - second column represents the predicted index
+                            - third column represents the euclidean distance between the assignment
         :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
         :param detected: kx2 np.ndarray with the predicted pixel coordinates of the image
         :param max_dist: maximal allowed distance for assignment
