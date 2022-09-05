@@ -113,3 +113,14 @@ class TestSourceDetection(unittest.TestCase):
         mapping.plot_flux_ratio_to_distance()
         mapping.plot_flux_ratio_to_ra_dec()
         mapping.plot_flux_histogram()
+    
+    def test_automatic_assignment_of_ground_truth_and_prediction(self):
+        # Create matrices of ground truth and prediction
+        gtruth = np.random.randn(5000, 2) * 10
+        detected = np.flipud(gtruth)
+
+        # Calculate result
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(gtruth, detected, 0.5, top_k=3)
+
+        # Check that the result is correct by flipping the assigment and checking that it is equal
+        assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
