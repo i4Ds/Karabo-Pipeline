@@ -71,7 +71,7 @@ class SourceDetectionEvaluation:
             "float64"
         )
         assignment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
-            truth, pred, distance_threshold
+            truth.T, pred.T, distance_threshold
         )
         tp, fp, fn = SourceDetectionEvaluation.calculate_evaluation_measures(
             assignment, truth, pred
@@ -81,7 +81,7 @@ class SourceDetectionEvaluation:
         )
         return result
     @staticmethod
-    def _return_multiple_assigned_detected_points(assigments: np.ndarray) -> np.ndarray:
+    def __return_multiple_assigned_detected_points(assigments: np.ndarray) -> np.ndarray:
         """
         Returns the indices of the predicted sources that are assigned to more than one ground truth source.
         """
@@ -98,7 +98,7 @@ class SourceDetectionEvaluation:
     ) -> np.ndarray:
         """
         Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
-        The strategy is the following
+        The strategy is the following:
         (similar to AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61, Marc MASIAS MOYSET, 2014):
 
         Each distance between the predicted and the ground truth sources is calculated.
@@ -126,7 +126,7 @@ class SourceDetectionEvaluation:
         # Replace unassigned points with -1
         idx_assigment_pred[distance == np.inf] = -1
         # Check if a ground truth point is assigned to more than one predicted point
-        pred_multiple_assignments = SourceDetectionEvaluation._return_multiple_assigned_detected_points(idx_assigment_pred)
+        pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(idx_assigment_pred)
         while len(pred_multiple_assignments) > 0:
             for pred_multiple_assignment in pred_multiple_assignments:
                 # Get idx
@@ -141,7 +141,7 @@ class SourceDetectionEvaluation:
                 # Update points with no assignment with -1
                 idx_assigment_pred[distance == np.inf] = -1   
                 # Check if a ground truth point is assigned to more than one predicted point
-                pred_multiple_assignments = SourceDetectionEvaluation._return_multiple_assigned_detected_points(idx_assigment_pred)
+                pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(idx_assigment_pred)
         
         assigments = np.array([np.arange(ground_truth.shape[0]), idx_assigment_pred[:, 0], distance[:, 0]]).T
         return assigments
