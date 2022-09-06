@@ -1,4 +1,4 @@
-![Alt text](karabo_logo.png?raw=true "Karabo")
+![Alt text](doc/src/_static/logo.png?raw=true "Karabo")
 ===========
 [![Test Software](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yaml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yaml)
 [![Build Docs](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yaml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yaml)
