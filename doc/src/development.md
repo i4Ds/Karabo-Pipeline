@@ -48,7 +48,13 @@ So an md file can reference like ``[some file](path/to/some/file)``.
 When adding new submodules or modules. You need to update the modules.rst file accordingly and add new files similiar to the karabo.simulation.rst. To enable the automatic generation of the documentation via the python docstrings.
 There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that can automate this.
 
-If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. You can create a different conda environment with the ``environment.yaml`` file you find inside if /doc 
+If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, use the following commands to generate the documentation:
+
+```shell
+conda install -c conda-forge -y --file doc/doc_packages.txt
+sphinx-apidoc . -o doc/src
+make html
+```
 
 ## Update Tests
 
