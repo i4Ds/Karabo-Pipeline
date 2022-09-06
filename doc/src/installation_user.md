@@ -14,16 +14,18 @@ conda activate karabo-env
 conda install -c i4ds -c conda-forge karabo-pipeline
 ```
 
-# Known Issues
-## Rascil
+##  Known Issues
+### Rascil
 Sometimes the installation of rascil fails due to the installation of pybdsf. If you have trouble with installing the pybdsf dependency, we recommend to check out their issue page for solutions.: https://github.com/lofar-astron/PyBDSF/issues
 
+Please also have a look at [Other installation methods](installation_no_conda.md) to see how to install Rascil manually.
 
-[Other installation methods](installation_no_conda.md)
+### Oskar
+Sometimes Oskar is not correctly installed. 
 
-## Rascil
+Please also have a look at [Other installation methods](installation_no_conda.md) to see how to install Oskar manually.
 
-## undefined symbol: H5Pset_*
+### undefined symbol: H5Pset_*
 Sometimes, the package causes an error similar to `undefined symbol: H5Pset_fapl_ros3`. 
 
 Downgrading `h5py` to 3.1 with the following command fixes it:
@@ -32,7 +34,7 @@ Downgrading `h5py` to 3.1 with the following command fixes it:
 pip install h5py==3.1
 ```
 
-## UnsatisfiableError: The following specifications were *
+### UnsatisfiableError: The following specifications were *
 
 ```python
 UnsatisfiableError: The following specifications were found to be incompatible with each other:
