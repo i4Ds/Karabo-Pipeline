@@ -52,7 +52,6 @@ If you want to work this sphinx locally on your machine, for example to use this
 
 ```shell
 conda install -c conda-forge -y --file doc/doc_packages.txt
-sphinx-apidoc . -o doc/src
 make html
 ```
 
