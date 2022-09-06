@@ -115,12 +115,37 @@ class TestSourceDetection(unittest.TestCase):
         mapping.plot_flux_histogram()
     
     def test_automatic_assignment_of_ground_truth_and_prediction(self):
+        ## Test that the automatic assignment of ground truth and prediction works
         # Create matrices of ground truth and prediction
-        gtruth = np.random.randn(5000, 2) * 10
+        gtruth = np.random.randn(5000, 2) * 100
         detected = np.flipud(gtruth)
 
         # Calculate result
         assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(gtruth, detected, 0.5, top_k=3)
+
+        # Check that the result is correct by flipping the assigment and checking that it is equal
+        assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
+
+        ## Check reassigment of detected points, i.e. that the same detected point is not assigned to multiple ground truth points
+        # Create matrices of ground truth and prediction
+        gtruth = np.array([
+            [1.0, 0.0],
+            [2.0, 0.0],
+            [3.0, 0.0],
+            [4.0, 0.0]
+            ]
+        )
+
+        detected = np.array([
+            [0.0, 0.0],
+            [0.1, 0.0],
+            [0.2, 0.0],
+            [0.3, 0.0]
+            ]
+        )
+
+        # Calculate result
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(gtruth, detected, np.inf, top_k=4)
 
         # Check that the result is correct by flipping the assigment and checking that it is equal
         assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
