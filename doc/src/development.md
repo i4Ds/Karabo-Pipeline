@@ -1,6 +1,6 @@
 # Development Documentation
 
-# Setup local dev environment
+## Setup local dev environment
 
 First clone the code via git.
 Then create a local development environment with the provided `environment-dev.yaml` file.
@@ -10,13 +10,12 @@ conda env create -f environment-dev.yaml
 ```
 
 With this only the dependencies but not the current version of karabo will be installed into a conda environment.
-Then you can simply run your code inside that environment. 
-Or a bit more sophisticated. You can use PyCharm or any other Python IDE. Then inside of the IDE setup the correct python interpreter to be the one you just steup before with the ```conda env create``` command.
+Then you can simply run your code inside that environment. To tell Python to treat the reposity as a package, the following links can be helpful:
 
 [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
+[how to use conda develop?](https://github.com/conda/conda-build/issues/1992)
 
-
-# Update documentation
+## Update documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
 The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation
@@ -51,7 +50,7 @@ There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that
 
 If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. You can create a different conda environment with the ``environment.yaml`` file you find inside if /doc 
 
-# Update Tests
+## Update Tests
 
 We use the basic ``unittest`` python package ([unittest docs](https://docs.python.org/3/library/unittest.html)).
 The unit tests are run automatically on every push.

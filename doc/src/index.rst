@@ -8,15 +8,21 @@ Welcome to Karabo-Pipeline's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Users
 
-   Installation
-   Container
-   modules
-   examples/Examples.md
+   installation_user
+   container
+   examples/examples.md
+
+Development
+==================
+.. toctree::
+   :maxdepth: 2
+   :caption: Developers
+
    development.md
-
-
+   installation_no_conda
+  
 Indices and tables
 ==================
 

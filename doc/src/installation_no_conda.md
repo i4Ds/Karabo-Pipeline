@@ -1,9 +1,10 @@
-## Manual Installation (no Conda)
+# Installation without Conda
 
 To Install the package on your local system, follow the steps below.
 The installation has been tested on Ubuntu 20.04 (x86_x64) and MacOS (Intel).
+However, we strongly recommend using Conda.
 
-### Dependencies
+## Dependencies
 
 Your system should have the following packages dependencies installed
 
@@ -19,7 +20,7 @@ Your system should have the following packages dependencies installed
 The Pipeline uses the [OSKAR](https://github.com/OxfordSKA/OSKAR) and [RASCIL](https://ska-telescope.gitlab.io/external/rascil/index.html) packages.
 The Installation procedure of the packages is not straight forward, therefore an installation scripts exist. See below.
 
-### Instructions Linux (Ubuntu)
+## Instructions Linux (Ubuntu)
 
 1. Install package dependencies
 
@@ -52,7 +53,7 @@ conda install -c anaconda ipykernel
 python -m ipykernel install --user --name=pipeline_env
 ```
 
-### Instructions MacOS (Intel)
+## Instructions MacOS (Intel)
 
 On MacOS the installation of the dependencies can be installed most easily with [Homebrew](https://brew.sh/).
 The C and C++ compilers and git are installed via the XCode Command Line Tools.
@@ -81,7 +82,7 @@ pip install 'git+https://github.com/OxfordSKA/OSKAR.git@master#egg=oskarpy&subdi
 
 Follow the Mac OS specific [instructions](https://ska-telescope.gitlab.io/external/rascil/installation/RASCIL_macos_install.html).
 
-### Some Remarks
+## Some Remarks
 
 Running under the new Apple Silicon is possible, however requires modification of the OSKAR Source Code or running the x86 binaries emulated.
 If somebody wants to do that, please contact.
