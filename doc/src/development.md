@@ -87,3 +87,6 @@ When everything is merged which should be merged, a new Release can be deployed 
 - Check that the `Target` is set to `main`.
 - Describe the release (get inspired by the previous releases).
 - Click `Publish release`. 
+- Check on [Karabo-Pipeline | Github Actions](https://github.com/i4Ds/Karabo-Pipeline/actions) that the release is succesful. 
+- Check that the new version is on [Anaconda.org | Packages](https://anaconda.org/i4ds/karabo-pipeline)
+
