@@ -77,3 +77,13 @@ Add tests for when you write some sort of new code that you feel like might brea
 
 TIP:
 If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.
+
+## Release a new version
+When everything is merged which should be merged, a new Release can be deployed on `conda-forge` as following:
+- [Karabo-Pipline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
+- Click on `Draft a new release`
+- Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
+- Update `_version.txt`
+- Check that the `Target` is set to `main`.
+- Describe the release (get inspired by the previous releases).
+- Click `Publish release`. 
