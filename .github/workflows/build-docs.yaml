@@ -25,7 +25,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate karabo_dev_env
-          sphinx-apidoc . -o doc/src
+          sphinx-apidoc . -o doc/_build
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v3
@@ -41,8 +41,9 @@ jobs:
           echo "delete old branch and create a new one"
           git push origin -d pages_source || true
           git checkout -b pages_source
-          
+
           echo "add new files"
+          touch .nojekyll
           git add .
           git commit -m "updated docs"
-          git push
+          git push -u origin pages_source
