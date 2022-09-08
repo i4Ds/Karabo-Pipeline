@@ -37,20 +37,12 @@ jobs:
           git config --global user.name 'PaperBot'
           git config --global user.email 'actions@github.com'
           git fetch origin
-          git switch pages_source
           
-          echo "remove old files"
-          find . -maxdepth 1 -type f -delete
-          rm -rf _images
-          rm -rf _sources
-          rm -rf _static
-          rm -rf examples
+          echo "delete old branch and create a new one"
+          git push origin -d pages_source || true
+          git checkout -b pages_source
           
           echo "add new files"
-          mv build/html/* .
-          rm -rf build/
-          touch .nojekyll
-          
           git add .
-          git commit -m "update docs"
+          git commit -m "updated docs"
           git push
