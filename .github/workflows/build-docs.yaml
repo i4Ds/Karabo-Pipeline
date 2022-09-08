@@ -45,4 +45,4 @@ jobs:
           echo "add new files"
           git add .
           git commit -m "updated docs"
-          git push -u origin
+          git push -u origin pages_source
