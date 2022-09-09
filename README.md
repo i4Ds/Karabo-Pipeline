@@ -7,7 +7,7 @@
 [![Build Docker Jupyter](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-jupyter-docker-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-jupyter-docker-image.yml)
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
-[Example](karabo/exmaples/how_to_use_karabo_example.ipynb) |
+[Example](karabo/examples/how_to_use_karabo_example.ipynb) |
 [Contributors](CONTRIBUTORS.md) |
 
 Karabo is a starting point for the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment.
