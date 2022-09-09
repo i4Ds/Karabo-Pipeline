@@ -4,7 +4,7 @@ from typing import Dict, Union, Any
 import oskar
 
 import karabo.error
-from karabo.simulation.Visibility import Visibility
+from karabo.simulation.visibility import Visibility
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
@@ -67,7 +67,16 @@ class InterferometerSimulation:
                  uv_filter_max: float = float('inf'),
                  uv_filter_units: FilterUnits = FilterUnits.WaveLengths,
                  force_polarised_ms: bool = False,
-                 ignore_w_components: bool = False):
+                 ignore_w_components: bool = False,
+                 noise_enable:bool=False,
+                 noise_seed:int=1,
+                 noise_start_freq: float = 0,
+                 noise_inc_freq: float = 0,
+                 noise_number_freq: int = 0,
+                 noise_rms_start: float =0,
+                 noise_rms_end: float =0,
+                 noise_rms: str = 'Range',
+                 noise_freq: str = 'Range'):
 
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
@@ -80,6 +89,15 @@ class InterferometerSimulation:
         self.uv_filter_units: FilterUnits = uv_filter_units
         self.force_polarised_ms: bool = force_polarised_ms
         self.ignore_w_components: bool = ignore_w_components
+        self.noise_enable: bool = noise_enable
+        self.noise_start_freq = noise_start_freq
+        self.noise_inc_freq = noise_inc_freq
+        self.noise_number_freq = noise_number_freq
+        self.noise_seed = noise_seed
+        self.noise_rms_start = noise_rms_start
+        self.noise_rms_end = noise_rms_end
+        self.noise_rms=noise_rms
+        self.noise_freq=noise_freq
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
         """
@@ -94,7 +112,7 @@ class InterferometerSimulation:
         interferometer_settings = self.__get_OSKAR_settings_tree()
         settings = {**interferometer_settings, **observation_settings}
         telescope.get_OSKAR_telescope()
-        settings["telescope"] = {"input_directory":telescope.config_path} # hotfix #59
+        settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)
         simulation = oskar.Interferometer(settings=setting_tree)
@@ -106,7 +124,7 @@ class InterferometerSimulation:
     def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
-                "ms_filename": self.ms_file.path,
+                "ms_filename": self.ms_file.file.path,
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
                 "time_average_sec": str(self.time_average_sec),
                 "max_time_samples_per_block": str(self.max_time_per_samples),
@@ -115,7 +133,17 @@ class InterferometerSimulation:
                 "uv_filter_max": str(self.__interpret_uv_filter(self.uv_filter_max)),
                 "uv_filter_units": str(self.uv_filter_units.value),
                 "force_polarised_ms": str(self.force_polarised_ms),
-                "ignore_w_components": str(self.ignore_w_components)
+                "ignore_w_components": str(self.ignore_w_components),
+                "noise/enable":str(self.noise_enable),
+                "noise/seed":str(self.noise_seed),
+                "noise/freq/start":str(self.noise_start_freq),
+                "noise/freq/inc":str(self.noise_inc_freq),
+                "noise/freq/number":str(self.noise_number_freq),
+                "noise/rms":str(self.noise_rms),
+                "noise/freq": str(self.noise_freq),
+                "noise/rms/start":str(self.noise_rms_start),
+                "noise/rms/end": str(self.noise_rms_end)
+
             }
         }
         if self.vis_path:

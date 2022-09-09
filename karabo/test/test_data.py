@@ -1,7 +1,7 @@
 import unittest
 
 from karabo.data.external_data import GLEAMSurveyDownloadObject
-from karabo.simulation.sky_model import get_GLEAM_Sky
+from karabo.simulation.sky_model import SkyModel
 
 
 class TestData(unittest.TestCase):
@@ -11,5 +11,5 @@ class TestData(unittest.TestCase):
         survey.get()
 
     def test_download_gleam_and_make_sky_model(self):
-        sky = get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky()
         sky.plot_sky([250, -30])

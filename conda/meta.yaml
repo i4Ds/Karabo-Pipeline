@@ -22,12 +22,15 @@ requirements:
   run:
     - python
     - numpy
-    - oskar=2.7.6
+    - matplotlib
+    - oskarpy=2.8.0
     - rascil=0.5.0
     - requests
     - astropy
     - healpy
-
+    - pinocchio # [linux]
+    - katbeam
+    - eidos
 
 test:
   imports:

@@ -1,58 +1,70 @@
 import os
 import unittest
 
-from karabo.Imaging.image import open_fits_image
-from karabo.Imaging.source_detection import detect_sources_in_image
-# from karabo.Imaging.source_detection import  use_dao_star_finder
-from karabo.simulation.Visibility import Visibility
-from karabo.Imaging.imager import Imager
-from karabo.simulation.sky_model import get_GLEAM_Sky
+from karabo.imaging.image import Image
+from karabo.imaging.imager import Imager
+from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.visibility import Visibility
 from karabo.test import data_path
 
 
 class TestImage(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls) -> None:
         # make dir for result files
-        if not os.path.exists('result/'):
-            os.makedirs('result/')
-
-    def testJupyterSetupEnv(self):
-        from karabo.Imaging.imager import Imager
-        print(Imager)
+        if not os.path.exists("result/"):
+            os.makedirs("result/")
 
     def test_dirty_image(self):
-        vis = Visibility()
-        vis.load_ms_file(f"{data_path}/visibilities_gleam.ms")
-        imager = Imager(vis, imaging_npixel=2048,
-                        imaging_cellsize=3.878509448876288e-05)
+        vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+        imager = Imager(
+            vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05
+        )
 
         dirty = imager.get_dirty_image()
-        dirty.save_as_fits("result/dirty.fits")
-        dirty.plot()
-        dirty.plot()
+        dirty.write_to_file("result/dirty.fits")
+        dirty.plot(title="Dirty Image")
 
     def test_explore_sky(self):
-        sky = get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky()
         sky.explore_sky([250, -80])
 
-    # TODO: move these on to CSCS Test Infrastructure once we have it.
-    # # removed t from tests to force it to not run on test cases, as this test case takes too long
+    # # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_clean(self):
-    #     visibility = Visibility()
-    #     visibility.load_ms_file("./data/visibilities_gleam.ms")
+    #     sky = get_GLEAM_Sky()
+    #     phase_center = [250, -80]
+    #     sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
+    #     sky.setup_default_wcs(phase_center=phase_center)
+    #     tel = Telescope.get_ASKAP_Telescope()
+    #     observation_settings = Observation(100e6,
+    #                                        phase_centre_ra_deg=phase_center[0],
+    #                                        phase_centre_dec_deg=phase_center[1],
+    #                                        number_of_channels=64,
+    #                                        number_of_time_steps=24)
+    #
+    #     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    #     visibility = interferometer_sim.run_simulation(tel, sky, observation_settings)
+    #
+    #     # visibility = Visibility()
+    #     # visibility.load_ms_file(f"./{data_path}/visibilities_gleam.ms")
     #     imager = Imager(visibility,
-    #                     ingest_dd=[0],
     #                     ingest_vis_nchan=16,
     #                     ingest_chan_per_blockvis=1,
     #                     ingest_average_blockvis=True,
-    #                     imaging_npixel=2048,
-    #                     imaging_cellsize=3.878509448876288e-05,
+    #                     imaging_npixel=512,
+    #                     imaging_cellsize=3.878509448876288e-05*4,
     #                     imaging_weighting='robust',
     #                     imaging_robustness=-.5)
-    #     result = imager.imaging_rascil()
-    #     print(result)
+    #     deconvoled_image, restored_image, residual_image = imager.imaging_rascil()
+    #     restored_image.save_to_file("result/restored.fits")
+    #     residual_image.save_to_file("result/residual.fits")
+    #     sky.save_to_file("result/imaging_sky.txt")
+
+    def test_power_spectrum(self):
+        restored_image = Image.read_from_file(f"{data_path}/restored.fits")
+        # restored_image.plot_power_spectrum(save_png=True)
+        restored_image.get_cellsize()
+        # restored_image.plot_histogram()
 
     # def test_source_detection(self):
     #     restored = open_fits_image("karabo/test/data/restored.fits")

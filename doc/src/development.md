@@ -1,6 +1,6 @@
 # Development Documentation
 
-# Setup local dev environment
+## Setup local dev environment
 
 First clone the code via git.
 Then create a local development environment with the provided `environment-dev.yaml` file.
@@ -10,13 +10,12 @@ conda env create -f environment-dev.yaml
 ```
 
 With this only the dependencies but not the current version of karabo will be installed into a conda environment.
-Then you can simply run your code inside that environment. 
-Or a bit more sophisticated. You can use PyCharm or any other Python IDE. Then inside of the IDE setup the correct python interpreter to be the one you just steup before with the ```conda env create``` command.
+Then you can simply run your code inside that environment. To tell Python to treat the reposity as a package, the following links can be helpful:
 
 [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
+[how to use conda develop?](https://github.com/conda/conda-build/issues/1992)
 
-
-# Update documentation
+## Update documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
 The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation
@@ -49,9 +48,14 @@ So an md file can reference like ``[some file](path/to/some/file)``.
 When adding new submodules or modules. You need to update the modules.rst file accordingly and add new files similiar to the karabo.simulation.rst. To enable the automatic generation of the documentation via the python docstrings.
 There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that can automate this.
 
-If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. You can create a different conda environment with the ``environment.yaml`` file you find inside if /doc 
+If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, use the following commands to generate the documentation:
 
-# Update Tests
+```shell
+conda install -c conda-forge -y --file doc/doc_packages.txt
+make html
+```
+
+## Update Tests
 
 We use the basic ``unittest`` python package ([unittest docs](https://docs.python.org/3/library/unittest.html)).
 The unit tests are run automatically on every push.
@@ -70,7 +74,19 @@ class TestSimulation(unittest.TestCase):
 
 Add tests for when you write some sort of new code that you feel like might break.
 
----
-**TIP**
+
+TIP:
 If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.
----
+
+## Create a Release
+When everything is merged which should be merged, a new Release can be deployed on `conda-forge` as following:
+- [Karabo-Pipline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
+- Click on `Draft a new release`
+- Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
+- Update `_version.txt`
+- Check that the `Target` is set to `main`.
+- Describe the release (get inspired by the previous releases).
+- Click `Publish release`. 
+- Check on [Karabo-Pipeline | Github Actions](https://github.com/i4Ds/Karabo-Pipeline/actions) that the release is succesful. 
+- Check that the new version is on [Anaconda.org | Packages](https://anaconda.org/i4ds/karabo-pipeline)
+

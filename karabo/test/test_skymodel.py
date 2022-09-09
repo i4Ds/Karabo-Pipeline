@@ -3,8 +3,7 @@ import unittest
 
 import numpy as np
 
-from karabo.data.external_data import ExampleHDF5Map
-from karabo.simulation.sky_model import SkyModel, get_GLEAM_Sky, read_sky_model_from_csv, Polarisation
+from karabo.simulation.sky_model import SkyModel, Polarisation
 from karabo.test import data_path
 
 
@@ -41,7 +40,7 @@ class TestSkyModel(unittest.TestCase):
         self.assertEqual(sky2.sources.shape, (sky_data.shape[0], 13))
 
     def test_plot_gleam(self):
-        sky = get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky()
         sky.plot_sky([250, -80])
         cartesian_sky = sky.get_cartesian_sky()
         print(cartesian_sky)
@@ -57,16 +56,16 @@ class TestSkyModel(unittest.TestCase):
         print(cart_sky)
 
     def test_filter_sky_model(self):
-        sky = get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky()
         phase_center = [250, -80]  # ra,dec
         filtered_sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
         filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(phase_center=phase_center, figsize=(8, 6), s=80,
                                  xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
-        filtered_sky.save_sky_model_as_csv("./result/filtered_sky.csv")
+        filtered_sky.write_to_file("./result/filtered_sky.csv")
 
     def test_read_sky_model(self):
-        sky = read_sky_model_from_csv(f"{data_path}/filtered_sky.csv")
+        sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.explore_sky(phase_center=[250, -80], figsize=(8, 6), s=80,
                         xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
 
@@ -78,3 +77,8 @@ class TestSkyModel(unittest.TestCase):
                                                                             Polarisation.STOKES_I)
         sky = SkyModel(source_array, nside=nside)
         sky.plot_sky([250, -80])
+
+    def test_get_poisson_sky(self):
+        sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
+        sky.explore_sky([240, -70], xlim=(-10, 10), ylim=(-10, 10))
+        sky.plot_sky([240, -70])

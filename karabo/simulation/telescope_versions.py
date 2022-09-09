@@ -1,5 +1,6 @@
 import enum
 
+
 # when adding new versions make sure the string for the enum value is the string used in the telescope file name
 
 class ALMAVersions(enum.Enum):
@@ -110,7 +111,6 @@ class ALMAVersions(enum.Enum):
 
 
 class ACAVersions(enum.Enum):
-
     ALL = "all"
     CYCLE_1 = "cycle1"
     CYCLE_2_i = "cycle2.i"
@@ -184,7 +184,6 @@ class NGVLAVersions(enum.Enum):
 
 
 class PDBIVersions(enum.Enum):
-
     A = "a"
     B = "b"
     C = "c"
@@ -192,7 +191,6 @@ class PDBIVersions(enum.Enum):
 
 
 class SMAVersions(enum.Enum):
-
     COMPACT_N = "compact.n"
     COMPACT = "compact"
     EXTENDED = "extended"
@@ -201,7 +199,6 @@ class SMAVersions(enum.Enum):
 
 
 class VLAVersions(enum.Enum):
-
     A = "a"
     B = "b"
     C = "c"
@@ -209,5 +206,11 @@ class VLAVersions(enum.Enum):
     B_n_a = "bna"
     C_n_b = "cnb"
     D_n_c = "dnc"
+
+
+class MWAVersion(enum.Enum):
+    ONE = "1"
+    TWO_COMPACT = "2compact"
+    TWO_EXTENDED = "2ext"
 
 # ska low revision 02 2016-05-31
