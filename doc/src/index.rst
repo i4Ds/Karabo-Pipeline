@@ -5,18 +5,25 @@
 
 Welcome to Karabo-Pipeline's documentation!
 ===========================================
+Karabo is a starting point for the `Square Kilometer Array <https://www.skatelescope.org/the-ska-project/>`_ Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Users
 
-   Installation
-   Container
-   modules
-   examples/Examples.md
+   installation_user
+   container
+   examples/examples.md
+
+Development
+==================
+.. toctree::
+   :maxdepth: 2
+   :caption: Developers
+
    development.md
-
-
+   installation_no_conda
+  
 Indices and tables
 ==================
 

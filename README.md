@@ -1,33 +1,28 @@
+![Alt text](doc/src/_static/logo.png?raw=true "Karabo")
+===========
 [![Test Software](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yaml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yaml)
 [![Build Docs](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yaml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yaml)
 [![Build Conda](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml)
 [![Build Docker CLI](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-cli-docker-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-cli-docker-image.yml)
 [![Build Docker Jupyter](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-jupyter-docker-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-jupyter-docker-image.yml)
 
-# Karabo Pipeline
+[Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
+[Example](karabo/examples/how_to_use_karabo_example.ipynb) |
+[Contributors](CONTRIBUTORS.md) |
 
-This pipeline serves as the starting point for the SKA Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment. Two specific radio telescope packages are used:
+Karabo is a starting point for the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment.
+
+Two specific radio telescope packages are used:
 
 - OSKAR: Responsible for the simulation of the sky and the telescope https://github.com/OxfordSKA/OSKAR
 	- OSKAR telescope files telescope.tm are from https://github.com/OxfordSKA/OSKAR/releases -> Example Data
 - RASCIL: Responsible for imaging https://gitlab.com/ska-telescope/external/rascil
 
-## Local Installation
-#### Conda
-```shell
-conda create -n karabo
-conda activate karabo
-conda install -c i4ds -c conda-forge karabo-pipeline
-```
+License
+-------
+© Contributors, 2022. Licensed under an [MIT License](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) license.
 
-[Installation](doc/src/Installation.md)
+Contribute to Karabo
+---------------------
+Please have a look at our [issues](https://github.com/i4Ds/Karabo-Pipeline/issues).
 
-## Containers
-
-Complete Jupyter Environment in a Docker container
-
-```shell
-docker run -p 8888:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.io/i4ds/karabo-pipeline:jupyter
-```
-
-[Containers](doc/src/Container.md)
