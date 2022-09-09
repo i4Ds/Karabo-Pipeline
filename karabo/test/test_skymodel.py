@@ -5,6 +5,7 @@ import numpy as np
 
 from karabo.simulation.sky_model import SkyModel, Polarisation
 from karabo.test import data_path
+from karabo.data.external_data import ExampleHDF5Map
 
 
 class TestSkyModel(unittest.TestCase):
