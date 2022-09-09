@@ -25,17 +25,18 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate karabo_dev_env
-          sphinx-apidoc doc -o _build
+          cp -a doc/src/ _build
+          sphinx-apidoc . -o _build
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v3
         with:
           name: docs_built
-          path: _build
+          path: _deploy
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/html
+          publish_dir: _deploy/html
           force_orphan: true
