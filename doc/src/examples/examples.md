@@ -1,6 +1,6 @@
 # Examples
 
-# Running an interferometer simulation
+## Running an interferometer simulation
 
 Running an interferometer simulation is really easy.
 Please look at the karabo.package documentation for specifics on the individual functions.
@@ -34,7 +34,7 @@ observation = Observation(1e6)
 simulation.run_simulation(telescope, sky, observation)
 ```
 
-# Show telescope config
+## Show telescope config
 
 ```python
 from karabo.simulation.telescope import get_OSKAR_Example_Telescope

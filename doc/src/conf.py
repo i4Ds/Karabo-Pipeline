@@ -62,8 +62,10 @@ html_last_updated_fmt = ""
 #
 html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html']}
 html_theme = 'sphinx_rtd_theme'
-
+html_logo = '_static/logo.png'
 html_theme_options = {
+    'logo_only': True,
+    'display_version': True,
     'collapse_navigation': True,
     'sticky_navigation': True,
     'titles_only': False
