@@ -51,8 +51,8 @@ coverage.xml
 *.log
 
 # Sphinx documentation
-doc/_build/
-local_doc/*
+_deploy/*
+_build/*
 
 # PyBuilder
 target/
@@ -88,3 +88,4 @@ karabo/test/result
 
 # Results
 result/*
+
