@@ -1,0 +1,26 @@
+name: Tests WSL Ubuntu 20.04
+
+on: [ push ]
+
+jobs:
+  test_wsl_1_ubuntu_20_04:
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: wsl-bash {0}
+    steps:
+    - uses: Vampire/setup-wsl@v1
+      with:
+        distribution: Ubuntu-20.04
+    - uses: actions/checkout@v2
+    - shell: wsl-bash_Ubuntu-20.04 {0}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget
+        wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh
+        sudo bash Miniconda3-py39_4.12.0-Linux-x86_64.sh -b -p /usr/local
+        source ~/.bashrc
+
+
+
+
