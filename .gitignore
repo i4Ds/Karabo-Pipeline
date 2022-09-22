@@ -88,3 +88,6 @@ karabo/test/result
 
 # Results
 result/*
+
+# Vscode
+.vscode/*

@@ -54,15 +54,17 @@ class TestSourceDetection(unittest.TestCase):
         # telescope.centre_longitude = 3
     
         simulation = InterferometerSimulation(
-            channel_bandwidth_hz=1e6, time_average_sec=10
-        )
+            channel_bandwidth_hz=1e6,
+            time_average_sec=1
+            )
+
         observation = Observation(
             100e6,
             phase_centre_ra_deg=phasecenter[0],
             phase_centre_dec_deg=phasecenter[1],
             number_of_time_steps=1,
             frequency_increment_hz=20e6,
-            number_of_channels=1,
+            number_of_channels=1
         )
     
         visibility = simulation.run_simulation(telescope, sky, observation)
