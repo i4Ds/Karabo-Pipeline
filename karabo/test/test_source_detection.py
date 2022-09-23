@@ -44,7 +44,7 @@ class TestSourceDetection(unittest.TestCase):
             200,
             0.4,
         )
-        print(sky.sources)
+
         # sky = SkyModel.get_GLEAM_Sky()
         # sky.filter_by_flux(0.4, 1)
         sky.plot_sky(phasecenter)
@@ -81,7 +81,7 @@ class TestSourceDetection(unittest.TestCase):
             imaging_robustness=-0.5,
         )
         convolved, restored, residual = imager.imaging_rascil()
-    
+
         convolved.write_to_file("result/test_dec/convolved.fits")
         restored.write_to_file("result/test_dec/restored.fits")
         residual.write_to_file("result/test_dec/residual.fits")
