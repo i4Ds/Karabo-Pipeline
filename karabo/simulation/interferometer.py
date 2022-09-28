@@ -76,7 +76,8 @@ class InterferometerSimulation:
                  noise_rms_start: float =0,
                  noise_rms_end: float =0,
                  noise_rms: str = 'Range',
-                 noise_freq: str = 'Range'):
+                 noise_freq: str = 'Range',
+                 enable_beam:bool = False):
 
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
@@ -98,6 +99,7 @@ class InterferometerSimulation:
         self.noise_rms_end = noise_rms_end
         self.noise_rms=noise_rms
         self.noise_freq=noise_freq
+        self.enable_beam=enable_beam
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
         """
@@ -113,6 +115,7 @@ class InterferometerSimulation:
         settings = {**interferometer_settings, **observation_settings}
         telescope.get_OSKAR_telescope()
         settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
+        #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/array_pattern/enable": True}
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings)
         simulation = oskar.Interferometer(settings=setting_tree)
@@ -144,6 +147,15 @@ class InterferometerSimulation:
                 "noise/rms/start":str(self.noise_rms_start),
                 "noise/rms/end": str(self.noise_rms_end)
 
+             },
+            "telescope":{"aperture_array/array_pattern/enable":self.enable_beam,
+                         "pol_mode":'Full',
+                         "station_type":"Aperture array",
+                         "allow_station_beam_duplication":True,
+                         "aperture_array/array_pattern/normalise":True,
+                         "normalise_beams_at_phase_centre":True,
+                         "aperture_array/element_pattern/enable_numerical":True,
+                         "telescope/aperture_array/element_pattern/normalise":True,
             }
         }
         if self.vis_path:
