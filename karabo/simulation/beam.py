@@ -277,15 +277,18 @@ class BeamPattern:
         else:
             return voltage_beam ** 2
 
+    @staticmethod
     def get_scaled_theta_phi(theta,theta_em,phi_em,beam0):
         beam_em=interp.griddata([theta_em,phi_em], beam0, (theta, phi), method='cubic')
         return beam_em
 
+    @staticmethod
     def cart2pol(x, y):
         rho = np.sqrt(x ** 2 + y ** 2)
         phi = np.arctan2(y, x)
         return (rho, phi)
 
+    @staticmethod
     def pol2cart(rho, phi):
         x = rho * np.cos(phi)
         y = rho * np.sin(phi)
@@ -316,9 +319,9 @@ class BeamPattern:
             vcrpol_y = self.quad_crosspol(theta, phi_y, vcopol_y, **crpol_kwargs)
         if(beam_method=='EIDOS_AH'):
             npix=100
-            B = get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
+            B = self.get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
-            theta_ah,phi_ah=cart2pol(xy[0], xy[1]);phi_ah=phi_ah*180./np.pi+180
+            theta_ah,phi_ah=self.cart2pol(xy[0], xy[1]);phi_ah=phi_ah*180./np.pi+180
             theta_phi_ah=np.meshgrid(theta_ah, phi_ah)
             vcopol_x = interpolate.griddata((theta_ah.flatten(), phi_ah.flatten()),
                                           np.abs(B[0][0]).flatten(), (theta, phi), method='cubic',fill_value=0)
@@ -331,9 +334,9 @@ class BeamPattern:
                                           np.abs(B[1][0]).flatten(), (theta, phi), method='cubic',fill_value=0)
         if(beam_method=='EIDOS_EM'):
             npix=100
-            B = get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
+            B = self.get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
-            theta_em,phi_em=cart2pol(xy[0], xy[1]);phi_em=phi_em*180./np.pi+180
+            theta_em,phi_em=self.cart2pol(xy[0], xy[1]);phi_em=phi_em*180./np.pi+180
             theta_phi_em=np.meshgrid(theta_em, phi_em)
             vcopol_x = interpolate.griddata((theta_em.flatten(), phi_em.flatten()),
                                           np.abs(B[0][0]).flatten(), (theta, phi), method='cubic',fill_value=0)
@@ -346,7 +349,7 @@ class BeamPattern:
                                           np.abs(B[1][0]).flatten(), (theta, phi), method='cubic',fill_value=0)
         if(beam_method=='KatBeam'):
             beampixel=get_meerkat_uhfbeam(f, 'H', 30, 30)
-            theta_kb,phi_kb=cart2pol(beampixel[0], beampixel[1]);katb_H=beampixel[2];phi_kb=phi_kb*180./np.pi+180
+            theta_kb,phi_kb=self.cart2pol(beampixel[0], beampixel[1]);katb_H=beampixel[2];phi_kb=phi_kb*180./np.pi+180
             vcopol_x = interpolate.griddata((theta_kb.flatten(), phi_kb.flatten()),katb_H.flatten(), (theta, phi), method='cubic',fill_value=0)
             vcrpol_x = quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
             beampixel=get_meerkat_uhfbeam(f, 'V', 30, 30)
