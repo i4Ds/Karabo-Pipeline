@@ -8,7 +8,7 @@
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
 [Example](karabo/examples/how_to_use_karabo_example.ipynb) |
-[Contributors](CONTRIBUTORS.md) |
+[Contributors](CONTRIBUTORS.md)
 
 Karabo is a starting point for the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment.
 
