@@ -53,8 +53,8 @@ class MyTestCase(unittest.TestCase):
          sky.add_point_sources(sky_data)
          telescope = Telescope.get_MEERKAT_Telescope()
          # telescope.centre_longitude = 3
-         xcstfile_path='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_1.txt'
-         ycstfile_path='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_2.txt'
+         xcstfile_path='./data/cst_like_beam_port_1.txt'
+         ycstfile_path='./data/cst_like_beam_port_2.txt'
          enable_array_beam=True
          # Remove beam if already present
          test = os.listdir(telescope.path)
@@ -72,7 +72,7 @@ class MyTestCase(unittest.TestCase):
             pb.save_meerkat_cst_file(beam[4])
             pb.fit_elements(telescope, freq_hz=1.e9, avg_frac_error=0.8, pol='Y')
          #------------- Simulation Begins
-         simulation = InterferometerSimulation(vis_path='/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.vis',
+         simulation = InterferometerSimulation(vis_path='./test/result/beam/beam_vis.vis',
                                                channel_bandwidth_hz=2e7,
                                                time_average_sec=1, noise_enable=False,
                                                noise_seed="time", noise_freq="Range", noise_rms="Range",
@@ -92,11 +92,11 @@ class MyTestCase(unittest.TestCase):
                                    number_of_channels=1, )
     #
          visibility = simulation.run_simulation(telescope, sky, observation)
-         visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
+         #visibility.write_to_file("./test/result/beam/beam_vis.ms")
 
-         imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
-         dirty = imager.get_dirty_image()
-         dirty.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits")
+         #imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
+         #dirty = imager.get_dirty_image()
+         #dirty.write_to_file("./test/result/beam/beam_vis.fits")
          #dirty.plot(title='Flux Density (Jy)')
          #aa=fits.open('./result/beam/beam_vis.fits');bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
          #print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))
