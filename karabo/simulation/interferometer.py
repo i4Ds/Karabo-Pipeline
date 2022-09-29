@@ -120,7 +120,6 @@ class InterferometerSimulation:
         #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings1)
-        print(os_sky,settings1["telescope"])
         #settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
         simulation = oskar.Interferometer(settings=setting_tree)
         # simulation.set_telescope_model( # outcommented by hotfix #59
