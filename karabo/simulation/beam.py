@@ -79,7 +79,7 @@ class BeamPattern:
         )
 
     @staticmethod
-    def get_meerkat_uhfbeam(self,f, pol, beamextentx,beamextenty):
+    def get_meerkat_uhfbeam(f, pol, beamextentx,beamextenty):
         """
 
         :param pol:
@@ -105,7 +105,7 @@ class BeamPattern:
         return x,y,beampixels
 
     @staticmethod
-    def get_eidos_holographic_beam(self,npix, ch, dia, thres, mode="AH") -> complex:
+    def get_eidos_holographic_beam(npix, ch, dia, thres, mode="AH") -> complex:
         """
         Returns beam
         """
