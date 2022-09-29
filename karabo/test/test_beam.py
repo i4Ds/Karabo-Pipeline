@@ -53,19 +53,27 @@ class MyTestCase(unittest.TestCase):
          sky.add_point_sources(sky_data)
          telescope = Telescope.get_MEERKAT_Telescope()
          # telescope.centre_longitude = 3
-         xcstfile_path='./data/cst_like_beam_port_1.txt'
-         ycstfile_path='./data/cst_like_beam_port_2.txt'
-         #------------ X-coordinate
-         pb = BeamPattern(xcstfile_path) # Instance of the Beam class
-         beam = pb.sim_beam(beam_method='Gaussian Beam') # Computing beam
-         pb.save_meerkat_cst_file(beam[3]) # Saving the beam cst file
-         pb.fit_elements(telescope,freq_hz=1.e9,avg_frac_error=0.8,pol='X') # Fitting the beam using cst file
-         #------------ Y-coordinate
-         pb=BeamPattern(ycstfile_path)
-         pb.save_meerkat_cst_file(beam[4])
-         pb.fit_elements(telescope, freq_hz=1.e9, avg_frac_error=0.8, pol='Y')
+         xcstfile_path='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_1.txt'
+         ycstfile_path='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_2.txt'
+         enable_array_beam=True
+         # Remove beam if already present
+         test = os.listdir(telescope.path)
+         for item in test:
+             if item.endswith(".bin"):
+                 os.remove(os.path.join(telescope.path, item))
+         if(enable_array_beam):
+            #------------ X-coordinate
+            pb = BeamPattern(xcstfile_path) # Instance of the Beam class
+            beam = pb.sim_beam(beam_method='Gaussian Beam') # Computing beam
+            pb.save_meerkat_cst_file(beam[3]) # Saving the beam cst file
+            pb.fit_elements(telescope,freq_hz=1.e9,avg_frac_error=0.8,pol='X') # Fitting the beam using cst file
+            #------------ Y-coordinate
+            pb=BeamPattern(ycstfile_path)
+            pb.save_meerkat_cst_file(beam[4])
+            pb.fit_elements(telescope, freq_hz=1.e9, avg_frac_error=0.8, pol='Y')
          #------------- Simulation Begins
-         simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
+         simulation = InterferometerSimulation(vis_path='/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.vis',
+                                               channel_bandwidth_hz=2e7,
                                                time_average_sec=1, noise_enable=False,
                                                noise_seed="time", noise_freq="Range", noise_rms="Range",
                                                noise_start_freq=1.e9,
@@ -73,24 +81,24 @@ class MyTestCase(unittest.TestCase):
                                                noise_number_freq=24,
                                                noise_rms_start=0,
                                                noise_rms_end=0,
-                                               enable_beam=False)
-         observation = Observation(phase_centre_ra_deg=20.0,
-                                   start_date_and_time=datetime(2022, 9, 1, 23, 00, 00, 521489),
+                                               enable_numerical_beam=enable_array_beam,enable_array_beam=enable_array_beam)
+         observation = Observation(mode='Tracking',phase_centre_ra_deg=20.0,
+                                   start_date_and_time=datetime(2000, 1, 1, 13, 00, 00, 521489),
                                    length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
-                                   phase_centre_dec_deg=-30.5,
+                                   phase_centre_dec_deg=-30.0,
                                    number_of_time_steps=1,
                                    start_frequency_hz=1.e9,
                                    frequency_increment_hz=1e6,
                                    number_of_channels=1, )
     #
          visibility = simulation.run_simulation(telescope, sky, observation)
-         visibility.write_to_file("./result/beam/beam_vis.ms")
+         visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
 
          imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
          dirty = imager.get_dirty_image()
-         dirty.write_to_file("./result/beam/beam_vis.fits")
+         dirty.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits")
          dirty.plot(title='Flux Density (Jy)')
-         aa=fits.open('./result/beam/beam_vis.fits');bb=fits.open('./result/beam/beam_vis_aperture.fits')
+         aa=fits.open('./result/beam/beam_vis.fits');bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
          print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))
 
 

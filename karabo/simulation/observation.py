@@ -25,7 +25,7 @@ class Observation(KaraboResource):
                                 and the number of beam pattern snapshots for beam pattern simulations.
     """
 
-    def __init__(self, start_frequency_hz: float,
+    def __init__(self, mode:str = None,start_frequency_hz: float =0,
                  start_date_and_time: datetime = datetime.utcnow(),
                  length: timedelta = timedelta(hours=12),
                  number_of_channels: float = 1,
@@ -37,6 +37,7 @@ class Observation(KaraboResource):
         self.start_frequency_hz: float = start_frequency_hz
         self.start_date_and_time: datetime = start_date_and_time
         self.length: timedelta = length
+        self.mode: str = mode
 
         # optional
         self.number_of_channels: float = number_of_channels
@@ -67,6 +68,7 @@ class Observation(KaraboResource):
         settings = {
             "observation": {
                 "start_frequency_hz": str(self.start_frequency_hz),
+                "mode":self.mode,
                 # remove last three digits from milliseconds
                 "start_time_utc": self.start_date_and_time.strftime("%d-%m-%Y %H:%M:%S.%f")[:-3],
                 "length": self.__strfdelta(self.length),

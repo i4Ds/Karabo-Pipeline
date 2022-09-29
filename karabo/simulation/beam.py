@@ -47,11 +47,10 @@ class BeamPattern:
             f"output_directory={telescope.path} \n"
         )
 
-        test = os.listdir(telescope.path)
-
-        for item in test:
-            if item.endswith(".bin"):
-                os.remove(os.path.join(telescope.path, item))
+        #test = os.listdir(telescope.path)
+        #for item in test:
+        #    if item.endswith(".bin"):
+        #        os.remove(os.path.join(telescope.path, item))
 
         settings_file = FileHandle()
         file = open(settings_file.path, "wt")
@@ -410,7 +409,7 @@ class BeamPattern:
         plt.savefig(savefile)
         plt.close()
 
-    def save_meerkat_cst_file(self,data_x):
+    def save_meerkat_cst_file(self,cstdata):
         """
         Save CST file for MeerKat telescope for the custom beams
         """
@@ -425,7 +424,7 @@ class BeamPattern:
         out_header = ''.join([f'{it:>20s}' for it in header])
         out_header += '\n' + '-' * len(out_header)
         np.savetxt(self.cst_file_path,  # X polarised (port 1) (Co=H)
-                   X=data_x, header=out_header,
+                   X=cstdata, header=out_header,
                    fmt='%20e', comments='', delimiter='')
 
 
