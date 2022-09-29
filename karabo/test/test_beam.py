@@ -96,6 +96,7 @@ class MyTestCase(unittest.TestCase):
          visibility = simulation.run_simulation(telescope, sky, observation)
          #visibility.write_to_file("./test/result/beam/beam_vis.ms")
 
+
          #imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
          #dirty = imager.get_dirty_image()
          #dirty.write_to_file("./test/result/beam/beam_vis.fits")
