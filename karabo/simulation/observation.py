@@ -25,7 +25,7 @@ class Observation(KaraboResource):
                                 and the number of beam pattern snapshots for beam pattern simulations.
     """
 
-    def __init__(self, mode:str = None,start_frequency_hz: float =0,
+    def __init__(self, mode:str = 'Tracking',start_frequency_hz: float =0,
                  start_date_and_time: datetime = datetime.utcnow(),
                  length: timedelta = timedelta(hours=12),
                  number_of_channels: float = 1,
