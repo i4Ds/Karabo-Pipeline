@@ -53,8 +53,10 @@ class MyTestCase(unittest.TestCase):
          sky.add_point_sources(sky_data)
          telescope = Telescope.get_MEERKAT_Telescope()
          # telescope.centre_longitude = 3
-         xcstfile_path='./data/cst_like_beam_port_1.txt'
-         ycstfile_path='./data/cst_like_beam_port_2.txt'
+         xcstfile_path='./test/data/cst_like_beam_port_1.txt'
+         ycstfile_path='./test/data/cst_like_beam_port_2.txt'
+         #xcstfile_path = '/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_1.txt'
+         #ycstfile_path = '/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_2.txt'
          enable_array_beam=True
          # Remove beam if already present
          test = os.listdir(telescope.path)
@@ -64,7 +66,7 @@ class MyTestCase(unittest.TestCase):
          if(enable_array_beam):
             #------------ X-coordinate
             pb = BeamPattern(xcstfile_path) # Instance of the Beam class
-            beam = pb.sim_beam(beam_method='Gaussian Beam') # Computing beam
+            beam = pb.sim_beam(beam_method='EIDOS_AH') # Computing beam
             pb.save_meerkat_cst_file(beam[3]) # Saving the beam cst file
             pb.fit_elements(telescope,freq_hz=1.e9,avg_frac_error=0.8,pol='X') # Fitting the beam using cst file
             #------------ Y-coordinate
@@ -72,7 +74,7 @@ class MyTestCase(unittest.TestCase):
             pb.save_meerkat_cst_file(beam[4])
             pb.fit_elements(telescope, freq_hz=1.e9, avg_frac_error=0.8, pol='Y')
          #------------- Simulation Begins
-         simulation = InterferometerSimulation(vis_path='./test/result/beam/beam_vis.vis',
+         simulation = InterferometerSimulation(vis_path='./test/data/beam_vis.vis',
                                                channel_bandwidth_hz=2e7,
                                                time_average_sec=1, noise_enable=False,
                                                noise_seed="time", noise_freq="Range", noise_rms="Range",
