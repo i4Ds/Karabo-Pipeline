@@ -77,7 +77,9 @@ class InterferometerSimulation:
         noise_rms_start: float = 0,
         noise_rms_end: float = 0,
         noise_rms: str = 'Range',
-        noise_freq: str = 'Range'):
+        noise_freq: str = 'Range',
+        enable_array_beam:bool = False,
+        enable_numerical_beam:bool = False):
 
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
