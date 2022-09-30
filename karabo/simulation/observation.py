@@ -1,8 +1,7 @@
 import datetime
 from datetime import timedelta, datetime
 
-from karabo.resource import KaraboResource
-
+from karabo.karabo_resource import KaraboResource
 
 class Observation(KaraboResource):
     """
