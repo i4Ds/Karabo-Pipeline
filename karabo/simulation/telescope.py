@@ -8,7 +8,7 @@ import numpy as np
 import oskar.telescope as os_telescope
 
 import karabo.error
-from karabo.karabo_resource import KaraboResource
+from karabo.resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
