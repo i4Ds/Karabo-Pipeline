@@ -17,7 +17,7 @@ class TestSystemNoise(unittest.TestCase):
         if not os.path.exists('result/system_noise'):
             os.makedirs('result/system_noise')
 
-    def test_disabled_basic(self):
+    def disabled_test_basic(self):
         sky = SkyModel()
         sky_data = np.array([
               [20.0, -30.0, 100, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0],

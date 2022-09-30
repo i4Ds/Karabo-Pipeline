@@ -6,6 +6,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.imaging.imager import Imager
+from astropy import units as u
 
 class TestPinocchio(unittest.TestCase):
 
@@ -17,7 +18,7 @@ class TestPinocchio(unittest.TestCase):
         if not os.path.exists(TestPinocchio.RESULT_FOLDER):
             os.makedirs(TestPinocchio.RESULT_FOLDER)
 
-    def test_simple_instance(self) -> None:
+    def testSimpleInstance(self) -> None:
         p = Pinocchio()
         p.setRunName("unittest")
         p.printConfig()

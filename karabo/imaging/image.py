@@ -12,7 +12,7 @@ from astropy import wcs as awcs
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 
-from karabo.karabo_resource import KaraboResource
+from karabo.resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
 
 # store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
