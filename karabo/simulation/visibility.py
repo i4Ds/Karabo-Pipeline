@@ -1,7 +1,7 @@
 import os.path
 import shutil
 
-from karabo.resource import KaraboResource
+from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
 
 
