@@ -17,7 +17,8 @@ from karabo.simulation.telescope_versions import ALMAVersions, ATCAVersions, CAR
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.math_util import long_lat_to_cartesian
-
+from astropy import units
+from astropy.stats import gaussian_fwhm_to_sigma
 
 class Telescope(KaraboResource):
     def __init__(self, longitude: float, latitude: float, altitude: float = 0):
@@ -118,6 +119,8 @@ class Telescope(KaraboResource):
         else:
             plt.show()
 
+
+
     def get_OSKAR_telescope(self) -> os_telescope:
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
@@ -161,6 +164,7 @@ class Telescope(KaraboResource):
 
     def get_cartesian_position(self):
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
+
 
     @classmethod
     def read_from_file(cls, path: str) -> any:
@@ -341,3 +345,5 @@ class Telescope(KaraboResource):
             return float(value)
         except ValueError:
             return 0.0
+
+

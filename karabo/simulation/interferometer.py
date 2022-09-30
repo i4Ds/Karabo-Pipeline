@@ -99,6 +99,8 @@ class InterferometerSimulation:
         self.noise_rms_end = noise_rms_end
         self.noise_rms=noise_rms
         self.noise_freq=noise_freq
+        self.enable_array_beam=enable_array_beam
+        self.enable_numerical_beam=enable_numerical_beam
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
         """
@@ -110,19 +112,21 @@ class InterferometerSimulation:
 
         os_sky = sky.get_OSKAR_sky()
         observation_settings = observation.get_OSKAR_settings_tree()
-        interferometer_settings = self.__get_OSKAR_settings_tree()
-        settings = {**interferometer_settings, **observation_settings}
+        input_telpath=telescope.path
+        interferometer_settings = self.__get_OSKAR_settings_tree(input_telpath=input_telpath)
         telescope.get_OSKAR_telescope()
-        settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
+        settings1 = {**interferometer_settings, **observation_settings}
+        #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
-        setting_tree.from_dict(settings)
+        setting_tree.from_dict(settings1)
+        #settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
         simulation = oskar.Interferometer(settings=setting_tree)
         # simulation.set_telescope_model( # outcommented by hotfix #59
         simulation.set_sky_model(os_sky)
         simulation.run()
         return self.ms_file
 
-    def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
+    def __get_OSKAR_settings_tree(self,input_telpath) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
                 "ms_filename": self.ms_file.file.path,
@@ -145,6 +149,17 @@ class InterferometerSimulation:
                 "noise/rms/start":str(self.noise_rms_start),
                 "noise/rms/end": str(self.noise_rms_end)
 
+             },
+            "telescope":{"input_directory":input_telpath,
+                         "normalise_beams_at_phase_centre": True,
+                         "allow_station_beam_duplication": True,
+                         "pol_mode":'Full',
+                         "station_type":'Aperture array',
+                         "aperture_array/array_pattern/enable":self.enable_array_beam,
+                         "aperture_array/array_pattern/normalise":True,
+                         "aperture_array/element_pattern/enable_numerical":self.enable_numerical_beam,
+                         "aperture_array/element_pattern/normalise":True,
+                         "aperture_array/element_pattern/taper/type":'None',
             }
         }
         if self.vis_path:
