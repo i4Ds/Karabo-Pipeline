@@ -106,7 +106,7 @@ class InterferometerSimulation:
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
         """
-        Run a singel interferometer simulation with the given sky, telescope.png and observation settings.
+        Run a single interferometer simulation with the given sky, telescope.png and observation settings.
         :param telescope: telescope.png model defining the telescope.png configuration
         :param sky: sky model defining the sky sources
         :param observation: observation settings

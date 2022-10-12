@@ -59,12 +59,12 @@ class TestSourceDetection(unittest.TestCase):
             )
 
         observation = Observation(
-            100e6,
+            start_frequency_hz=100e6,
             phase_centre_ra_deg=phasecenter[0],
             phase_centre_dec_deg=phasecenter[1],
             number_of_time_steps=1,
             frequency_increment_hz=20e6,
-            number_of_channels=1
+            number_of_channels=3
         )
     
         visibility = simulation.run_simulation(telescope, sky, observation)
@@ -72,7 +72,7 @@ class TestSourceDetection(unittest.TestCase):
     
         imager = Imager(
             visibility,
-            ingest_vis_nchan=1,
+            ingest_vis_nchan=3,
             ingest_chan_per_blockvis=1,
             ingest_average_blockvis=True,
             imaging_npixel=2048,
@@ -82,6 +82,12 @@ class TestSourceDetection(unittest.TestCase):
         )
         convolved, restored, residual = imager.imaging_rascil()
 
+        # Print shapes
+        print("Convolved shape: ", convolved.get_dimensions_of_image())
+        print("Restored shape: ", restored.get_dimensions_of_image())
+        print("Residual shape: ", residual.get_dimensions_of_image())
+        
+        """
         convolved.write_to_file("result/test_dec/convolved.fits")
         restored.write_to_file("result/test_dec/restored.fits")
         residual.write_to_file("result/test_dec/residual.fits")
@@ -98,7 +104,7 @@ class TestSourceDetection(unittest.TestCase):
         evaluation.plot_flux_histogram(filename="result/test_dec/flux_histogram.png")
         evaluation.plot_flux_ratio_to_distance(filename="result/test_dec/flux_ratio_distance.png")
         evaluation.plot_flux_ratio_to_ra_dec(filename="result/test_dec/flux_ratio_ra_dec.png")
-
+        """
     def test_source_detection_plot(self):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
