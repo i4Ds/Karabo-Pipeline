@@ -23,7 +23,7 @@ class TestImage(unittest.TestCase):
 
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/dirty.fits")
-        dirty.plot()
+        dirty.plot(title="Dirty Image")
 
     def test_explore_sky(self):
         sky = SkyModel.get_GLEAM_Sky()

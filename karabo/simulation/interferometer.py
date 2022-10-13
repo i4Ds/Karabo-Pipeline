@@ -57,17 +57,29 @@ class InterferometerSimulation:
                                W-smearing. Use only if you know what you’re doing!
     """
 
-    def __init__(self,
-                 vis_path: str = None,
-                 channel_bandwidth_hz: float = 0,
-                 time_average_sec: float = 0,
-                 max_time_per_samples: int = 8,
-                 correlation_type: CorrelationType = CorrelationType.Cross_Correlations,
-                 uv_filter_min: float = .0,
-                 uv_filter_max: float = float('inf'),
-                 uv_filter_units: FilterUnits = FilterUnits.WaveLengths,
-                 force_polarised_ms: bool = False,
-                 ignore_w_components: bool = False):
+    def __init__(
+        self,
+        vis_path: str = None,
+        channel_bandwidth_hz: float = 0,
+        time_average_sec: float = 0,
+        max_time_per_samples: int = 8,
+        correlation_type: CorrelationType = CorrelationType.Cross_Correlations,
+        uv_filter_min: float = .0,
+        uv_filter_max: float = float('inf'),
+        uv_filter_units: FilterUnits = FilterUnits.WaveLengths,
+        force_polarised_ms: bool = False,
+        ignore_w_components: bool = False,
+        noise_enable: bool = False,
+        noise_seed: Union[str, int] = 'time',
+        noise_start_freq = 1.e9,
+        noise_inc_freq = 1.e8,
+        noise_number_freq = 24,
+        noise_rms_start: float = 0,
+        noise_rms_end: float = 0,
+        noise_rms: str = 'Range',
+        noise_freq: str = 'Range',
+        enable_array_beam:bool = False,
+        enable_numerical_beam:bool = False):
 
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
@@ -80,6 +92,17 @@ class InterferometerSimulation:
         self.uv_filter_units: FilterUnits = uv_filter_units
         self.force_polarised_ms: bool = force_polarised_ms
         self.ignore_w_components: bool = ignore_w_components
+        self.noise_enable: bool = noise_enable
+        self.noise_start_freq = noise_start_freq
+        self.noise_inc_freq = noise_inc_freq
+        self.noise_number_freq = noise_number_freq
+        self.noise_seed = noise_seed
+        self.noise_rms_start = noise_rms_start
+        self.noise_rms_end = noise_rms_end
+        self.noise_rms=noise_rms
+        self.noise_freq=noise_freq
+        self.enable_array_beam=enable_array_beam
+        self.enable_numerical_beam=enable_numerical_beam
 
     def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
         """
@@ -91,19 +114,21 @@ class InterferometerSimulation:
 
         os_sky = sky.get_OSKAR_sky()
         observation_settings = observation.get_OSKAR_settings_tree()
-        interferometer_settings = self.__get_OSKAR_settings_tree()
-        settings = {**interferometer_settings, **observation_settings}
+        input_telpath=telescope.path
+        interferometer_settings = self.__get_OSKAR_settings_tree(input_telpath=input_telpath)
         telescope.get_OSKAR_telescope()
-        settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
+        settings1 = {**interferometer_settings, **observation_settings}
+        #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
-        setting_tree.from_dict(settings)
+        setting_tree.from_dict(settings1)
+        #settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
         simulation = oskar.Interferometer(settings=setting_tree)
         # simulation.set_telescope_model( # outcommented by hotfix #59
         simulation.set_sky_model(os_sky)
         simulation.run()
         return self.ms_file
 
-    def __get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
+    def __get_OSKAR_settings_tree(self,input_telpath) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "interferometer": {
                 "ms_filename": self.ms_file.file.path,
@@ -115,7 +140,28 @@ class InterferometerSimulation:
                 "uv_filter_max": str(self.__interpret_uv_filter(self.uv_filter_max)),
                 "uv_filter_units": str(self.uv_filter_units.value),
                 "force_polarised_ms": str(self.force_polarised_ms),
-                "ignore_w_components": str(self.ignore_w_components)
+                "ignore_w_components": str(self.ignore_w_components),
+                "noise/enable":str(self.noise_enable),
+                "noise/seed":str(self.noise_seed),
+                "noise/freq/start":str(self.noise_start_freq),
+                "noise/freq/inc":str(self.noise_inc_freq),
+                "noise/freq/number":str(self.noise_number_freq),
+                "noise/rms":str(self.noise_rms),
+                "noise/freq": str(self.noise_freq),
+                "noise/rms/start":str(self.noise_rms_start),
+                "noise/rms/end": str(self.noise_rms_end)
+
+             },
+            "telescope":{"input_directory":input_telpath,
+                         "normalise_beams_at_phase_centre": True,
+                         "allow_station_beam_duplication": True,
+                         "pol_mode":'Full',
+                         "station_type":'Aperture array',
+                         "aperture_array/array_pattern/enable":self.enable_array_beam,
+                         "aperture_array/array_pattern/normalise":True,
+                         "aperture_array/element_pattern/enable_numerical":self.enable_numerical_beam,
+                         "aperture_array/element_pattern/normalise":True,
+                         "aperture_array/element_pattern/taper/type":'None',
             }
         }
         if self.vis_path:

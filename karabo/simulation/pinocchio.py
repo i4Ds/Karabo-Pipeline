@@ -5,9 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dataclasses import dataclass, field
-from typing import List, Tuple, Dict
-
-from traitlets import Bool
+from typing import List, Dict
 
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
@@ -303,7 +301,7 @@ class Pinocchio:
         
         assert False, "config not available? package installation or custom loading failed"
 
-    def run(self, mpiThreads: int = 4, printLiveOutput: Bool = True) -> None:
+    def run(self, mpiThreads: int = 4, printLiveOutput: bool = True) -> None:
         """
         run pinocchio in a temp folder
 

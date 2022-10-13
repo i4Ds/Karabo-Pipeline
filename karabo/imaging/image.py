@@ -12,7 +12,7 @@ from astropy import wcs as awcs
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 
-from karabo.resource import KaraboResource
+from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
 
 # store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
@@ -69,7 +69,7 @@ class Image(KaraboResource):
     def get_squeezed_data(self) -> npt.NDArray:
         return numpy.squeeze(self.data[:1, :1, :, :])
 
-    def plot(self) -> None:
+    def plot(self, title) -> None:
         import matplotlib.pyplot as plt
         wcs = WCS(self.header)
         print(wcs)
@@ -83,9 +83,10 @@ class Image(KaraboResource):
             else:
                 slices.append(0)
 
-        plt.subplot(projection=wcs, slices=slices)
+        ax=plt.subplot(projection=wcs, slices=slices)
         plt.imshow(self.data[0][0], cmap="jet", origin='lower')
-        plt.colorbar()
+        plt.colorbar(label=title)
+        ax.invert_xaxis()
         plt.show()
 
     def __read_fits_data(self) -> None:

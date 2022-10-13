@@ -17,7 +17,7 @@ class TestSimulation(unittest.TestCase):
         if not os.path.exists('result/sim'):
             os.makedirs('result/sim')
 
-    # def test_basic(self):
+    #def test_basic(self):
     #     # sky = SkyModel()
     #     # sky_data = np.array([
     #     #     [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
