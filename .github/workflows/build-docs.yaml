@@ -25,32 +25,18 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate karabo_dev_env
-          sphinx-apidoc . -o doc/src
+          cp -a doc/src/ _build
+          sphinx-apidoc . -o _build
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v3
         with:
           name: docs_built
-          path: build/
-      - name: Commit built-doc
-        run: |
-          git config --global user.name 'PaperBot'
-          git config --global user.email 'actions@github.com'
-          git fetch origin
-          git switch pages_source
-          
-          echo "remove old files"
-          find . -maxdepth 1 -type f -delete
-          rm -rf _images
-          rm -rf _sources
-          rm -rf _static
-          rm -rf examples
-          
-          echo "add new files"
-          mv build/html/* .
-          rm -rf build/
-          touch .nojekyll
-          
-          git add .
-          git commit -m "update docs"
-          git push
+          path: _deploy
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _deploy/html
+          force_orphan: true

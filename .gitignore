@@ -51,7 +51,8 @@ coverage.xml
 *.log
 
 # Sphinx documentation
-doc/_build/
+_deploy/*
+_build/*
 
 # PyBuilder
 target/
@@ -77,8 +78,14 @@ visibilities_task_stream.html
 dask-worker-space
 .tmp
 *.vis
+
 # Configs
 config.yaml
 
+# Tests
 karabo/test/result/*
 karabo/test/result
+
+# Results
+result/*
+

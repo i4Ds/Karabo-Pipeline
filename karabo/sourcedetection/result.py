@@ -6,7 +6,7 @@ import bdsf
 from bdsf import image as bdsf_image
 
 from karabo.imaging.image import Image
-from karabo.resource import KaraboResource
+from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import read_CSV_to_ndarray
 
