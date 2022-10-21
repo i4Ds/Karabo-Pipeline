@@ -37,6 +37,8 @@ class SourceDetectionEvaluation:
         self.true_positives = true_positives
         self.false_negatives = false_negatives
         self.false_positives = false_positives
+        # The mapped array contains the following information:
+        # indexes, ra, dec, x_pos, y_pos, flux, peak
         self.mapped_array = self.__map_sky_to_detection_array(assignment, sky)
 
     @staticmethod
@@ -74,12 +76,13 @@ class SourceDetectionEvaluation:
             truth.T, pred.T, distance_threshold
         )
         tp, fp, fn = SourceDetectionEvaluation.calculate_evaluation_measures(
-            assignment, truth, pred
+            assignment
         )
         result = SourceDetectionEvaluation(
             assignment, sky, source_detection_result, tp, fp, fn
         )
         return result
+    
     @staticmethod
     def __return_multiple_assigned_detected_points(assigments: np.ndarray) -> np.ndarray:
         """
@@ -119,10 +122,9 @@ class SourceDetectionEvaluation:
                         - second column represents the predicted index
                         - third column represents the euclidean distance between the assignment
         """
-
         # With scipy.spatial.KDTree get the closest detection point for each ground truth point
-        tree = KDTree(detected)
-        distance, idx_assigment_pred = tree.query(ground_truth, k=top_k, distance_upper_bound=max_dist)
+        tree = KDTree(ground_truth)
+        distance, idx_assigment_pred = tree.query(detected, k=top_k, distance_upper_bound=max_dist)
         # Replace unassigned points with -1
         idx_assigment_pred[distance == np.inf] = -1
         # Check if a ground truth point is assigned to more than one predicted point
@@ -143,12 +145,20 @@ class SourceDetectionEvaluation:
                 # Check if a ground truth point is assigned to more than one predicted point
                 pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(idx_assigment_pred)
         
-        assigments = np.array([np.arange(ground_truth.shape[0]), idx_assigment_pred[:, 0], distance[:, 0]]).T
-        return assigments
+        
+        assigments = np.array([idx_assigment_pred[:, 0], np.arange(detected.shape[0]), distance[:, 0]]).T
+        
+        # If there are more predicitons than GTs, we need to add the missing GTs.
+        missing_gts = np.setdiff1d(np.arange(ground_truth.shape[0]), assigments[:,0])
+        missing_gts = missing_gts[missing_gts != -1]
+        if len(missing_gts) > 0:
+            missing_gts = np.array([missing_gts, np.full(len(missing_gts), -1), np.full(len(missing_gts), np.inf)])
+            assigments = np.vstack([assigments, missing_gts.T])
+        return assigments[assigments[:,0].argsort()]
 
     @staticmethod
     def calculate_evaluation_measures(
-        assignments: np.ndarray, ground_truth: np.ndarray, detected: np.ndarray
+        assignments: np.ndarray
     ) -> tuple:
         """
         Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
@@ -160,15 +170,12 @@ class SourceDetectionEvaluation:
                             - first column represents the ground truth index
                             - second column represents the predicted index
                             - third column represents the euclidean distance between the assignment
-        :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
-        :param detected: kx2 np.ndarray with the predicted pixel coordinates of the image
-        :param max_dist: maximal allowed distance for assignment
 
         :return: TP, FP, FN
         """
-        tp = assignments.shape[0]
-        fp = detected.shape[0] - assignments.shape[0]
-        fn = ground_truth.shape[0] - assignments.shape[0]
+        tp = assignments[np.logical_and(assignments[:, 1] != -1,assignments[:, 0] != -1), :].shape[0]
+        fp = assignments[assignments[:, 1] == -1, :].shape[0]
+        fn = assignments[assignments[:, 0] == -1, :].shape[0]
         return tp, fp, fn
 
     def plot(self, filename=None):
@@ -210,10 +217,11 @@ class SourceDetectionEvaluation:
         ax.plot(pred[0], pred[1], "x", linewidth=5, color="green")
 
     def __map_sky_to_detection_array(self, assignment, sky: SkyModel) -> np.ndarray:
-        truth_indexes = np.array(assignment[:, 0], dtype=int)
-        pred_indexes = np.array(assignment[:, 1], dtype=int)
-        meta = assignment[:, 2]
-
+        source_matches = assignment[assignment[:, 2] != np.inf, :]
+        truth_indexes = np.array(source_matches[:, 0], dtype=int)
+        pred_indexes = np.array(source_matches[:, 1], dtype=int)
+        meta = source_matches[:, 2]
+    
         predictions = self.source_detection.detected_sources[pred_indexes]
         truths = self.__sky_array_to_same_shape_as_detection(truth_indexes, sky)
         meta = np.vstack((meta, np.zeros((6, meta.shape[0])))).transpose()
