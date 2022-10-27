@@ -284,24 +284,7 @@ class SourceDetectionEvaluation:
         ra_dec_truth = truth[:, [1, 2]].transpose()
         ra_dec_det = detection[:, [1, 2]].transpose()
         error = ra_dec_truth - ra_dec_det
-        ra_error = error[0]
-        dec_error = error[1]
-
-        # get pixel error
-        pixel_truth = truth[:, [3, 4]].transpose()
-        pixel_detection = detection[:, [3, 4]].transpose()
-        error_pixel = pixel_truth - pixel_detection
-        pixel_x_error = error_pixel[0]
-        pixel_y_error = error_pixel[1]
-
-        ra_div_pix_error = ra_error / pixel_x_error
-        dec_div_pix_error = ra_error * np.cos(dec_error) / pixel_y_error
-
-        error_max_ra = max(np.max(ra_div_pix_error), np.max(dec_div_pix_error))
-        error_max_dec = max(np.max(ra_div_pix_error), np.max(dec_div_pix_error))
-
-        plt.xlim([-error_max_ra, error_max_ra])
-        plt.ylim([-error_max_dec, error_max_ra])
+        
         plt.xlabel("RA (deg) error / x")
         plt.ylabel("DEC (deg) error / y")
         plt.plot(error[0], error[1], "o", markersize=8, color="r", alpha=0.5)
