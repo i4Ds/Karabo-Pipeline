@@ -173,9 +173,9 @@ class SourceDetectionEvaluation:
 
         :return: TP, FP, FN
         """
-        tp = int(assignments[np.logical_and(assignments[:, 1] != -1,assignments[:, 0] != -1), :].shape[0])
-        fp = int(assignments[assignments[:, 1] == -1, :].shape[0])
-        fn = int(assignments[assignments[:, 0] == -1, :].shape[0])
+        tp = assignments[np.logical_and(assignments[:, 1] != -1,assignments[:, 0] != -1), :].shape[0]
+        fp = assignments[assignments[:, 1] == -1, :].shape[0]
+        fn = assignments[assignments[:, 0] == -1, :].shape[0]
         return tp, fp, fn
 
     def plot(self, filename=None):
@@ -303,7 +303,7 @@ class SourceDetectionEvaluation:
         ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
         for i in range(conf_matrix.shape[0]):
             for j in range(conf_matrix.shape[1]):
-                ax.text(x=j, y=i,s=conf_matrix[i, j], va='center', ha='center', size='x-large')
+                ax.text(x=j, y=i,s=int(conf_matrix[i, j]), va='center', ha='center', size='x-large')
         
         plt.xlabel('Predicted', fontsize=13)
         plt.ylabel('Reference', fontsize=13)
