@@ -6,7 +6,7 @@ from typing import List
 
 import numpy as np
 import oskar.telescope as os_telescope
-
+from math import comb
 import karabo.error
 from karabo.karabo_resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
@@ -345,5 +345,31 @@ class Telescope(KaraboResource):
             return float(value)
         except ValueError:
             return 0.0
+
+def compute_distance(i, j, station_x,station_y):
+        return np.sqrt((station_x[i]-station_x[j])**2+(station_y[i]-station_y[j])**2)
+def create_baseline_cut_telelescope(lcut,hcut,tel):
+        stations=np.loadtxt(tel.path+'/layout.txt')
+        station_x=stations[:,0];station_y=stations[:,1];nb=comb(stations.shape[0],2)
+        k=0;baseline=np.zeros(nb);baseline_x=np.zeros(nb);baseline_y=np.zeros(nb)
+        for i in range(stations.shape[0]):
+            for j in range(i):
+                baseline[k] = compute_distance(i, j, station_x,station_y)
+                baseline_x[k]=i;baseline_y[k]=j
+                k=k+1
+        cut_idx=np.where((baseline>lcut) & (baseline<hcut))
+        cut_baseline_x=baseline_x[cut_idx];cut_baseline_y=baseline_y[cut_idx]
+        cut_station_list=np.unique(np.hstack((cut_baseline_x,cut_baseline_y)))
+        output_path = tel.path.split('data/')[0] + 'data/' + 'tel_baseline_cut.tm';
+        os.system('rm -rf '+output_path)
+        os.system('mkdir ' + output_path);l=0
+        for ns in cut_station_list:
+            os.system('cp -r '+tel.path+'/station0'+str(int(ns))+' '+output_path)
+            os.system('mv '+output_path+'/station0'+str(int(ns))+' '+output_path+'/station0'+"%02d" % (int(l)))
+            l=l+1
+        cut_stations=stations[cut_station_list.astype(int)]
+        os.system('cp -r '+tel.path+'/position.txt '+output_path)
+        np.savetxt(output_path+'/layout.txt',cut_stations)
+        return output_path
 
 
