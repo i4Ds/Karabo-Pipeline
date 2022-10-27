@@ -173,9 +173,9 @@ class SourceDetectionEvaluation:
 
         :return: TP, FP, FN
         """
-        tp = assignments[np.logical_and(assignments[:, 1] != -1,assignments[:, 0] != -1), :].shape[0]
-        fp = assignments[assignments[:, 1] == -1, :].shape[0]
-        fn = assignments[assignments[:, 0] == -1, :].shape[0]
+        tp = int(assignments[np.logical_and(assignments[:, 1] != -1,assignments[:, 0] != -1), :].shape[0])
+        fp = int(assignments[assignments[:, 1] == -1, :].shape[0])
+        fn = int(assignments[assignments[:, 0] == -1, :].shape[0])
         return tp, fp, fn
 
     def plot(self, filename=None):
@@ -190,7 +190,7 @@ class SourceDetectionEvaluation:
 
             slices = get_slices(wcs)
 
-            fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=slices))
+            _, ax = plt.subplots(1, 1, subplot_kw=dict(projection=wcs, slices=slices))
             ax.imshow(image.data[0][0], cmap="jet", origin="lower", interpolation=None)
 
             self.__plot_truth_and_prediction(ax)
@@ -201,7 +201,7 @@ class SourceDetectionEvaluation:
             else:
                 plt.show()
         else:
-            fig, ax = plt.subplots(1, 1, subplot_kw=dict())
+            _, ax = plt.subplots(1, 1, subplot_kw=dict())
 
             self.__plot_truth_and_prediction(ax)
             if filename:
@@ -248,7 +248,7 @@ class SourceDetectionEvaluation:
 
     def get_confusion_matrix(self) -> npt.NDArray:
         return np.array(
-            [[self.true_positives, self.false_negatives], [self.false_positives, 0.0]]
+            [[0.0, self.false_positives], [self.false_negatives, self.true_positives]]
         )
 
     def get_accuracy(self) -> float:
@@ -310,7 +310,28 @@ class SourceDetectionEvaluation:
             plt.show(block=False)
         else:
             plt.show()
-
+            
+    def plot_confusion_matrix(self, file_name=None):
+        conf_matrix = self.get_confusion_matrix()
+        #
+        # Print the confusion matrix using Matplotlib
+        #
+        _, ax = plt.subplots()
+        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
+        for i in range(conf_matrix.shape[0]):
+            for j in range(conf_matrix.shape[1]):
+                ax.text(x=j, y=i,s=conf_matrix[i, j], va='center', ha='center', size='x-large')
+        
+        plt.xlabel('Predicted', fontsize=13)
+        plt.ylabel('Reference', fontsize=13)
+        plt.title('Confusion Matrix', fontsize=13)
+        
+        if file_name:
+            plt.savefig(file_name)
+            plt.show(block=False)
+        else:
+            plt.show()
+            
     def plot_quiver_positions(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2]].transpose().astype(float)
@@ -363,7 +384,7 @@ class SourceDetectionEvaluation:
         plt.plot(dist, flux_ratio, "o", color="b", markersize=5, alpha=0.5)
         plt.title("Flux ratio vs. distance")
         plt.xlabel("Distance to center (Deg)")
-        plt.ylabel("Flux Ratio (Out/In)")
+        plt.ylabel("Flux Ratio (Pred/Ref)")
         if filename:
             plt.savefig(filename)
             plt.show(block=False)
@@ -388,7 +409,7 @@ class SourceDetectionEvaluation:
 
         ax1.set_xlabel("RA (deg)")
         ax2.set_xlabel("Dec (deg)")
-        ax1.set_ylabel("Flux ratio (Out/In)")
+        ax1.set_ylabel("Flux ratio (Pred/Ref)")
         if filename:
             plt.savefig(filename)
             plt.show(block=False)
@@ -404,7 +425,7 @@ class SourceDetectionEvaluation:
         flux_out = flux_out[flux_out > 0.0]
 
         hist = [flux_in, flux_out]
-        labels = ["Flux In", "Flux Out"]
+        labels = ["Flux Reference", "Flux Predicted"]
         colors = ["r", "b"]
         hist_min = min(np.min(flux_in), np.min(flux_out))
         hist_max = max(np.max(flux_in), np.max(flux_out))
