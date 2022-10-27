@@ -46,13 +46,10 @@ class TestSourceDetection(unittest.TestCase):
             0.4,
         )
 
-        # sky = SkyModel.get_GLEAM_Sky()
-        # sky.filter_by_flux(0.4, 1)
         sky.plot_sky(phasecenter)
         sky.explore_sky(phasecenter, xlim=(-1, 1), ylim=(-1, 1))
     
         telescope = Telescope.get_MEERKAT_Telescope()
-        # telescope.centre_longitude = 3
     
         simulation = InterferometerSimulation(
             channel_bandwidth_hz=1e6,
@@ -82,13 +79,7 @@ class TestSourceDetection(unittest.TestCase):
             imaging_robustness=-0.5,
         )
         convolved, restored, residual = imager.imaging_rascil()
-
-        # Print shapes
-        print("Convolved shape: ", convolved.get_dimensions_of_image())
-        print("Restored shape: ", restored.get_dimensions_of_image())
-        print("Residual shape: ", residual.get_dimensions_of_image())
-        
-   
+    
         convolved.write_to_file("result/test_dec/convolved.fits")
         restored.write_to_file("result/test_dec/restored.fits")
         residual.write_to_file("result/test_dec/residual.fits")
