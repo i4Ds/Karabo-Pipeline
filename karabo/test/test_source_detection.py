@@ -38,6 +38,7 @@ class TestSourceDetection(unittest.TestCase):
     
     def test_create_detection_from_ms_small(self):
         phasecenter = np.array([225, -65])
+        np.random.seed(42)
         sky = SkyModel.get_random_poisson_disk_sky(
             phasecenter + np.array([-0.1, -0.1]),
             phasecenter + np.array([+0.1, +0.1]),
@@ -93,6 +94,7 @@ class TestSourceDetection(unittest.TestCase):
         evaluation.plot(filename="result/test_dec/matching_plot.png")
         evaluation.plot_error_ra_dec(filename="result/test_dec/error_ra_dec_plot.png")
         evaluation.plot_quiver_positions(filename="result/test_dec/quiver_position.png")
+
         evaluation.plot_flux_histogram(filename="result/test_dec/flux_histogram.png")
         evaluation.plot_flux_ratio_to_distance(filename="result/test_dec/flux_ratio_distance.png")
         evaluation.plot_flux_ratio_to_ra_dec(filename="result/test_dec/flux_ratio_ra_dec.png")

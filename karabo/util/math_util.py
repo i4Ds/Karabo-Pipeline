@@ -1,5 +1,4 @@
 import math
-from random import random
 from math import cos, sin, floor, sqrt, pi, ceil
 from typing import Tuple
 
@@ -12,10 +11,10 @@ def euclidean_distance(a, b):
     return sqrt(dx * dx + dy * dy)
 
 
-def poisson_disc_samples(width, height, r, k=5, distance=euclidean_distance, random=random):
+def poisson_disc_samples(width, height, r, k=5, distance=euclidean_distance):
     tau = 2 * pi
     cellsize = r / sqrt(2)
-
+    random = np.random.rand
     grid_width = int(ceil(width / cellsize))
     grid_height = int(ceil(height / cellsize))
     grid = [None] * (grid_width * grid_height)
@@ -60,8 +59,8 @@ def poisson_disc_samples(width, height, r, k=5, distance=euclidean_distance, ran
     return [p for p in grid if p is not None]
 
 
-def get_poisson_disk_sky(min_size: (float, float),
-                         max_size: (float, float),
+def get_poisson_disk_sky(min_size: Tuple[float, float],
+                         max_size: Tuple[float, float],
                          flux_min: float,
                          flux_max: float,
                          r=10):
