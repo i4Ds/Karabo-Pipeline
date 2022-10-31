@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta, datetime
+from typing import List, Tuple, Callable, Any
 
 from karabo.karabo_resource import KaraboResource
 
@@ -25,14 +26,18 @@ class Observation(KaraboResource):
                                 and the number of beam pattern snapshots for beam pattern simulations.
     """
 
-    def __init__(self, mode:str = 'Tracking',start_frequency_hz: float =0,
-                 start_date_and_time: datetime = datetime.utcnow(),
-                 length: timedelta = timedelta(hours=12),
-                 number_of_channels: float = 1,
-                 frequency_increment_hz: float = 0,
-                 phase_centre_ra_deg: float = 0,
-                 phase_centre_dec_deg: float = 0,
-                 number_of_time_steps: float = 1):
+    def __init__(
+        self, mode:str='Tracking',
+        start_frequency_hz:float=0,
+        start_date_and_time:datetime=datetime.utcnow(),
+        length:timedelta=timedelta(hours=12),
+        number_of_channels:float=1,
+        frequency_increment_hz:float=0,
+        phase_centre_ra_deg:float=0,
+        phase_centre_dec_deg:float=0,
+        number_of_time_steps:float=1,
+    ) -> None:
+
         # required
         self.start_frequency_hz: float = start_frequency_hz
         self.start_date_and_time: datetime = start_date_and_time
@@ -46,7 +51,13 @@ class Observation(KaraboResource):
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
 
-    def set_length_of_observation(self, hours: float, minutes: float, seconds: float, milliseconds: float):
+    def set_length_of_observation(
+        self,
+        hours:float,
+        minutes:float,
+        seconds:float,
+        milliseconds:float,
+    ) -> None:
         """
         Set a new length for the observation. Overriding the observation length set in the constructor.
 
@@ -81,7 +92,10 @@ class Observation(KaraboResource):
         }
         return settings
 
-    def __strfdelta(self, tdelta):
+    def __strfdelta(
+        self,
+        tdelta:timedelta,
+    ):
         hours = tdelta.seconds // 3600 + tdelta.days * 24
         rm = tdelta.seconds % 3600
         minutes = rm // 60

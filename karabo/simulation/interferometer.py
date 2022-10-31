@@ -8,6 +8,7 @@ from karabo.simulation.visibility import Visibility
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulation.beam import BeamPattern
 from karabo.util.FileHandle import FileHandle
 from datetime import timedelta, datetime
 
