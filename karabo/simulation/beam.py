@@ -1,6 +1,7 @@
 import enum
 import os
 import subprocess
+from typing import Callable
 
 import eidos
 import numpy as np
@@ -430,4 +431,10 @@ class BeamPattern:
                    X=cstdata, header=out_header,
                    fmt='%20e', comments='', delimiter='')
 
-
+    def save_cst_file(self, cstdata:np.ndarray, telescope_type:str) -> bool:
+        success = True
+        if telescope_type == 'meerkat':
+            self.save_meerkat_cst_file(cstdata=cstdata)
+        else:
+            success = False
+        return success

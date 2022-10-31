@@ -161,6 +161,7 @@ class ObservationLong(KaraboResource):
         visiblity_files = [0] * self.number_of_days
         ms_files = [0] * self.number_of_days
         current_date = self.observation.start_date_and_time
+        tel_type = self.telescope.path.split('/')[-1].split('.tm')[0] # works as long as `read_OSKAR_tm_file` sets telescope.path
         if os.path.exists(self.vis_path):
             ans = input(f'{self.vis_path} already exists. Do you want to replace it? [y/N]')
             if ans != 'y':
@@ -178,7 +179,7 @@ class ObservationLong(KaraboResource):
                 # ------------ X-coordinate
                 pb = BeamPattern(self.xcstfile_path)  # Instance of the Beam class
                 beam = pb.sim_beam(beam_method=self.beam_method)  # Computing beam
-                pb.save_meerkat_cst_file(beam[3])  # Saving the beam cst file
+                pb.save_cst_file(beam[3], telescope_type=tel_type)  # Saving the beam cst file
                 pb.fit_elements(
                     telescope,
                     freq_hz=self.observation.start_frequency_hz,
@@ -187,7 +188,7 @@ class ObservationLong(KaraboResource):
                 )  # Fitting the beam using cst file
                 # ------------ Y-coordinate
                 pb = BeamPattern(self.ycstfile_path)
-                pb.save_meerkat_cst_file(beam[4])
+                pb.save_cst_file(beam[4], telescope_type=tel_type)
                 pb.fit_elements(
                     telescope,
                     freq_hz=self.observation.start_frequency_hz,
