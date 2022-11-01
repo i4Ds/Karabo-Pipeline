@@ -224,5 +224,3 @@ class TestSourceDetection(unittest.TestCase):
         assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
         
         
-test = TestSourceDetection()
-test.test_create_detection_from_ms_small()
