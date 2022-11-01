@@ -4,7 +4,7 @@
 
 class KaraboWarning(Warning):
     """
-    Base Warnoing thrown by the Karabo Pipeline
+    Base Warning thrown by the Karabo Pipeline
     """
 
 
