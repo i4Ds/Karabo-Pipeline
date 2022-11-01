@@ -38,10 +38,10 @@ class TestSourceDetection(unittest.TestCase):
     
     def test_create_detection_from_ms_small(self):
         phasecenter = np.array([225, -65])
-        np.random.seed(42)
+        np.random.seed(0)
         sky = SkyModel.get_random_poisson_disk_sky(
             phasecenter + np.array([-0.1, -0.1]),
-            phasecenter + np.array([+0.1, +0.1]),
+            phasecenter + np.array([+0.2, +0.2]),
             100,
             200,
             0.4,
@@ -89,7 +89,7 @@ class TestSourceDetection(unittest.TestCase):
         result.write_to_file("result/test_dec/sources.zip")
     
         evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
-            result, sky, 1
+            result, sky, 10
         )
         evaluation.plot(filename="result/test_dec/matching_plot.png")
         evaluation.plot_error_ra_dec(filename="result/test_dec/error_ra_dec_plot.png")
@@ -222,3 +222,5 @@ class TestSourceDetection(unittest.TestCase):
 
         # Check that the result is correct by flipping the assigment and checking that it is equal
         assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
+        
+        

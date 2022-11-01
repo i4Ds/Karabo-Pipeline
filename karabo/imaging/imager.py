@@ -1,4 +1,4 @@
-from typing import List, Union, Dict
+from typing import List, Tuple, Union, Dict
 
 from distributed import Client
 from rascil.data_models import PolarisationFrame
@@ -145,7 +145,7 @@ class Imager:
         # Type of interpolation between facets in restore step (none or linear or tukey)
         clean_restored_output: str = "list",
         # Type of restored image output: taylor, list, or integrated
-    ) -> (Image, Image, Image):
+    ) -> Tuple[Image, Image, Image]:
         """
         Starts imaging process using RASCIL, will run a CLEAN algorithm on the passed visibilities to the
         Imager.
