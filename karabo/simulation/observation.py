@@ -1,16 +1,10 @@
-import datetime, os, sys
+import datetime
 from operator import mod
 import numpy as np
 from datetime import timedelta, datetime
-from copy import deepcopy
-from typing import List
 from karabo.error import KaraboError
 
 from karabo.karabo_resource import KaraboResource
-from karabo.simulation.interferometer import InterferometerSimulation # causes circular import with Observation
-from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope
-from karabo.simulation.beam import BeamPattern
 
 
 class Observation(KaraboResource):
