@@ -1,4 +1,4 @@
-import enum, os, sys
+import enum, os, sys, glob
 from copy import deepcopy
 from typing import Dict, List, Union, Any
 
@@ -150,12 +150,27 @@ class InterferometerSimulation:
         try:
             os.environ['SIM_LONG'] = str(True) # to not cause inf loop of `run_simulation` and not alter interface
             visiblity_files = [0] * observation.number_of_days
-            ms_files = [0] * observation.number_of_days
+            ms_files = [0] * observation.number_of_days # ms_files is out of range!!!!
             current_date = observation.start_date_and_time
+            beam_vis_prefix = 'beam_vis_'
+            files = []
             if os.path.exists(self.vis_path):
-                ans = input(f'{self.vis_path} already exists. Do you want to replace it? [y/N]')
-                if ans != 'y':
-                    sys.exit(0)
+                vis_files = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.vis'))
+                ms_files = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.ms'))
+                files = [*vis_files,*ms_files]
+                if len(files) > 0:
+                    print('Some example files to remove/replace:')
+                    print(f'{[*vis_files[:3],*ms_files[:3]]}')
+                    ans = input(f'Found already existing "beam_vis_*.vis" and "beam_vis_*.ms" files inside {self.vis_path}, \
+                        Do you want to replace remove/replace them? [y/N]')
+                    if ans != 'y':
+                        sys.exit(0)
+                    else:
+                        [os.system('rm -rf '+file_name) for file_name in files]
+                        print(f'Removed {len(files)} file(s) matching the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!')
+            else:
+                os.makedirs(self.vis_path, exist_ok=True)
+                print(f'Created dirs {self.vis_path}')
             vis_path_long = self.vis_path
             for i in range(observation.number_of_days):
                 sky_run = SkyModel(sources=deepcopy(sky.sources)) # is deepcopy or copy needed?
@@ -169,28 +184,18 @@ class InterferometerSimulation:
                 if self.enable_array_beam:
                     # ------------ X-coordinate
                     pb = deepcopy(self.beam_polX)
-                    #beam = pb.sim_beam(beam_method=self.beam_method)  # Computing beam
                     beam = pb.sim_beam()
                     pb.save_cst_file(beam[3], telescope=telescope)  # Saving the beam cst file
                     pb.fit_elements(telescope)
-                    #    freq_hz=self.observation.start_frequency_hz,
-                    #    avg_frac_error=self.avg_frac_error,
-                    #    pol='X',
-                    #)  # Fitting the beam using cst file
                     # ------------ Y-coordinate
                     pb = deepcopy(self.beam_polY)
                     pb.save_cst_file(beam[4], telescope=telescope)
                     pb.fit_elements(telescope)
-                    #    freq_hz=self.observation.start_frequency_hz,
-                    #    avg_frac_error=self.avg_frac_error,
-                    #    pol='Y',
-                    #)
                 print('Observing Day: ' + str(i) + ' the ' + str(current_date))
                 # ------------- Simulation Begins
-                visiblity_files[i] = os.path.join(self.vis_path, 'beam_vis_' + str(i) + '.vis')
+                visiblity_files[i] = os.path.join(self.vis_path, beam_vis_prefix + str(i) + '.vis')
+                print(visiblity_files[i])
                 ms_files[i] = visiblity_files[i].split('.vis')[0] + '.ms'
-                os.system('rm -rf ' + visiblity_files[i])
-                os.system('rm -rf ' + ms_files[i])
                 self.vis_path = visiblity_files[i]
                 # ------------- Design Observation
                 observation_run = deepcopy(observation)

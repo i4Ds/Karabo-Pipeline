@@ -133,7 +133,8 @@ class ObservationLong(Observation):
         number_of_days:int=None,
     ) -> None:
 
-        super.__init__(
+        self.enable_check = False
+        super().__init__(
             mode=mode,
             start_frequency_hz=start_frequency_hz,
             start_date_and_time=start_date_and_time,
@@ -147,6 +148,7 @@ class ObservationLong(Observation):
         self.number_of_days : int = number_of_days
         self.__check_attrs()
 
+
     def __check_attrs(self) -> None:
         if not isinstance(self.number_of_days, int):
             raise KaraboError(f'`number_of_days` must be of type int but is of type {type(self.number_of_days)}!')
@@ -154,7 +156,3 @@ class ObservationLong(Observation):
             raise KaraboError(f'`number_of_days` must be >=2 but is {self.number_of_days}!')
         if self.length > timedelta(hours=24):
             raise KaraboError(f'`length` should be max 24 hours but is {self.length}!')
-
-    def __setattr__(self, name, value):
-        self.__dict__[name] = value.upper()
-        self.__check_attrs()

@@ -1,14 +1,13 @@
 import os
 import unittest
 from karabo.simulation.interferometer import InterferometerSimulation
-from karabo.simulation.interferometer import create_vis_long, sky_tel_long
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.telescope import Telescope
 from karabo.test import data_path
 from karabo.simulation.sky_model import SkyModel
 import numpy as np
 from karabo.simulation.visibility import Visibility
-from karabo.simulation.observation import Observation, ObservationLong
+from karabo.simulation.observation import ObservationLong
 from datetime import timedelta, datetime
 from karabo.imaging.imager import Imager
 from astropy.io import fits
