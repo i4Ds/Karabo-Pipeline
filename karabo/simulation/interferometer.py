@@ -1,11 +1,12 @@
-import enum, os
-from typing import Dict, Union, Any
+import enum, os, sys
+from copy import deepcopy
+from typing import Dict, List, Union, Any
 
 import oskar
 import numpy as np
 import karabo.error
 from karabo.simulation.visibility import Visibility
-from karabo.simulation.observation import Observation
+from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.beam import BeamPattern
@@ -52,10 +53,10 @@ class InterferometerSimulation:
                          Values outside this range are not evaluated.
     :ivar uv_filter_units: The units of the baseline UV length filter values. Any value of Enum FilterUnits
     :ivar force_polarised_ms: If True, always write the Measurment Set in polarised format even if the simulation
-                              was run in the single polarisation ‘Scalar’ (or Stokes-I) mode. If False, the size of
+                              was run in the single polarisation 'Scalar' (or Stokes-I) mode. If False, the size of
                               the polarisation dimension in the the Measurement Set will be determined by the simulation mode.
     :ivar ignore_w_components: If enabled, baseline W-coordinate component values will be set to 0. This will disable
-                               W-smearing. Use only if you know what you’re doing!
+                               W-smearing. Use only if you know what you're doing!
     """
 
     def __init__(
@@ -80,7 +81,10 @@ class InterferometerSimulation:
         noise_rms: str = 'Range',
         noise_freq: str = 'Range',
         enable_array_beam:bool = False,
-        enable_numerical_beam:bool = False):
+        enable_numerical_beam:bool = False,
+        beam_polX:BeamPattern = None, # currently only considered for `ObservationLong`
+        beam_polY:BeamPattern = None, # currently only considered for `ObservationLong`
+    ) -> None:
 
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
@@ -104,30 +108,104 @@ class InterferometerSimulation:
         self.noise_freq=noise_freq
         self.enable_array_beam=enable_array_beam
         self.enable_numerical_beam=enable_numerical_beam
+        self.beam_polX: BeamPattern = beam_polX
+        self.beam_polY: BeamPattern = beam_polY
 
-    def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
+    def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Union[Visibility,List[str]]:
         """
         Run a singel interferometer simulation with the given sky, telescope.png and observation settings.
         :param telescope: telescope.png model defining the telescope.png configuration
         :param sky: sky model defining the sky sources
         :param observation: observation settings
         """
+        if isinstance(observation, ObservationLong) and os.environ.get('SIM_LONG') is None:
+            return self.__run_simulation_long(
+                telescope=telescope,
+                sky=sky,
+                observation=observation,
+            )
+        else:
+            os_sky = sky.get_OSKAR_sky()
+            observation_settings = observation.get_OSKAR_settings_tree()
+            input_telpath=telescope.path
+            interferometer_settings = self.__get_OSKAR_settings_tree(input_telpath=input_telpath)
+            telescope.get_OSKAR_telescope()
+            settings1 = {**interferometer_settings, **observation_settings}
+            #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
+            setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
+            setting_tree.from_dict(settings1)
+            #settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
+            simulation = oskar.Interferometer(settings=setting_tree)
+            # simulation.set_telescope_model( # outcommented by hotfix #59
+            simulation.set_sky_model(os_sky)
+            simulation.run()
+            return self.ms_file
 
-        os_sky = sky.get_OSKAR_sky()
-        observation_settings = observation.get_OSKAR_settings_tree()
-        input_telpath=telescope.path
-        interferometer_settings = self.__get_OSKAR_settings_tree(input_telpath=input_telpath)
-        telescope.get_OSKAR_telescope()
-        settings1 = {**interferometer_settings, **observation_settings}
-        #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
-        setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
-        setting_tree.from_dict(settings1)
-        #settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
-        simulation = oskar.Interferometer(settings=setting_tree)
-        # simulation.set_telescope_model( # outcommented by hotfix #59
-        simulation.set_sky_model(os_sky)
-        simulation.run()
-        return self.ms_file
+    def __run_simulation_long(
+        self,
+        telescope:Telescope,
+        sky:SkyModel,
+        observation:ObservationLong,
+    ) -> List[str]:
+        try:
+            os.environ['SIM_LONG'] = str(True) # to not cause inf loop of `run_simulation` and not alter interface
+            visiblity_files = [0] * observation.number_of_days
+            ms_files = [0] * observation.number_of_days
+            current_date = observation.start_date_and_time
+            if os.path.exists(self.vis_path):
+                ans = input(f'{self.vis_path} already exists. Do you want to replace it? [y/N]')
+                if ans != 'y':
+                    sys.exit(0)
+            vis_path_long = self.vis_path
+            for i in range(observation.number_of_days):
+                sky_run = SkyModel(sources=deepcopy(sky.sources)) # is deepcopy or copy needed?
+                telescope_run = Telescope.read_OSKAR_tm_file(telescope.path)
+                # telescope.centre_longitude = 3
+                # Remove beam if already present
+                test = os.listdir(telescope.path)
+                for item in test:
+                    if item.endswith('.bin'):
+                        os.remove(os.path.join(telescope.path, item))
+                if self.enable_array_beam:
+                    # ------------ X-coordinate
+                    pb = deepcopy(self.beam_polX)
+                    #beam = pb.sim_beam(beam_method=self.beam_method)  # Computing beam
+                    beam = pb.sim_beam()
+                    pb.save_cst_file(beam[3], telescope=telescope)  # Saving the beam cst file
+                    pb.fit_elements(telescope)
+                    #    freq_hz=self.observation.start_frequency_hz,
+                    #    avg_frac_error=self.avg_frac_error,
+                    #    pol='X',
+                    #)  # Fitting the beam using cst file
+                    # ------------ Y-coordinate
+                    pb = deepcopy(self.beam_polY)
+                    pb.save_cst_file(beam[4], telescope=telescope)
+                    pb.fit_elements(telescope)
+                    #    freq_hz=self.observation.start_frequency_hz,
+                    #    avg_frac_error=self.avg_frac_error,
+                    #    pol='Y',
+                    #)
+                print('Observing Day: ' + str(i) + ' the ' + str(current_date))
+                # ------------- Simulation Begins
+                visiblity_files[i] = os.path.join(self.vis_path, 'beam_vis_' + str(i) + '.vis')
+                ms_files[i] = visiblity_files[i].split('.vis')[0] + '.ms'
+                os.system('rm -rf ' + visiblity_files[i])
+                os.system('rm -rf ' + ms_files[i])
+                self.vis_path = visiblity_files[i]
+                # ------------- Design Observation
+                observation_run = deepcopy(observation)
+                observation_run.start_date_and_time = current_date
+                visibility = self.run_simulation(telescope_run, sky_run, observation_run)
+                visibility.write_to_file(ms_files[i])
+                current_date + timedelta(days=1)
+            del os.environ['SIM_LONG']
+            self.vis_path = vis_path_long
+            return visiblity_files
+
+        except BaseException as exp:
+            del os.environ['SIM_LONG']
+            self.vis_path = vis_path_long
+            raise exp
 
     def __get_OSKAR_settings_tree(self,input_telpath) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
@@ -177,65 +255,3 @@ class InterferometerSimulation:
             return "min"
         else:
             return str(uv_filter)
-
-def sky_tel_long(sky_data, telescope_path):
-        sky = SkyModel()
-        sky.add_point_sources(sky_data)
-        telescope = Telescope.read_OSKAR_tm_file(telescope_path)
-        return sky, telescope
-
-def create_vis_long(number_of_days:int, hours_per_day:int,
-                        sky_data, input_telescope, enable_array_beam:bool, xcstfile_path:str,ycstfile_path:str):
-        days = np.arange(1, number_of_days + 1);
-        visiblity_files = [0] * len(days);
-        ms_files = [0] * len(days);
-        i = 0
-        for day in days:
-            sky,telescope=sky_tel_long(sky_data, input_telescope.path)
-            # telescope.centre_longitude = 3
-            # Remove beam if already present
-            test = os.listdir(telescope.path)
-            for item in test:
-                if item.endswith(".bin"):
-                    os.remove(os.path.join(telescope.path, item))
-            if (enable_array_beam):
-                # ------------ X-coordinate
-                pb = BeamPattern(xcstfile_path)  # Instance of the Beam class
-                beam = pb.sim_beam(beam_method='Gaussian Beam')  # Computing beam
-                pb.save_meerkat_cst_file(beam[3])  # Saving the beam cst file
-                pb.fit_elements(telescope, freq_hz=1.e9, avg_frac_error=0.8, pol='X')  # Fitting the beam using cst file
-                # ------------ Y-coordinate
-                pb = BeamPattern(ycstfile_path)
-                pb.save_meerkat_cst_file(beam[4])
-                pb.fit_elements(telescope, freq_hz=1.e9, avg_frac_error=0.8, pol='Y')
-            print('Observing Day: ' + str(day))
-            # ------------- Simulation Begins
-            visiblity_files[i] = './karabo/test/data/beam_vis_' + str(day) + '.vis'
-            ms_files[i] = visiblity_files[i].split('.vis')[0] + '.ms'
-            os.system('rm -rf ' + visiblity_files[i]);
-            os.system('rm -rf ' + ms_files[i])
-            simulation = InterferometerSimulation(vis_path=visiblity_files[i],
-                                                  channel_bandwidth_hz=2e7,
-                                                  time_average_sec=1, noise_enable=False,
-                                                  noise_seed="time", noise_freq="Range", noise_rms="Range",
-                                                  noise_start_freq=1.e9,
-                                                  noise_inc_freq=1.e6,
-                                                  noise_number_freq=1,
-                                                  noise_rms_start=0.1,
-                                                  noise_rms_end=1,
-                                                  enable_numerical_beam=enable_array_beam,
-                                                  enable_array_beam=enable_array_beam)
-            # ------------- Design Observation
-            observation = Observation(mode='Tracking', phase_centre_ra_deg=20.0,
-                                      start_date_and_time=datetime(2000, 1, day, 11, 00, 00, 521489),
-                                      length=timedelta(hours=hours_per_day, minutes=0, seconds=0, milliseconds=0),
-                                      phase_centre_dec_deg=-30.0,
-                                      number_of_time_steps=1,
-                                      start_frequency_hz=1.e9,
-                                      frequency_increment_hz=1e6,
-                                      number_of_channels=1, )
-            visibility = simulation.run_simulation(telescope, sky, observation)
-            visibility.write_to_file(ms_files[i])
-            i = i + 1
-        return visiblity_files
-
