@@ -11,6 +11,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.beam import BeamPattern
 from karabo.util.FileHandle import FileHandle
+from karabo.util.data_util import input_wrapper
 from datetime import timedelta, datetime
 
 class CorrelationType(enum.Enum):
@@ -118,28 +119,46 @@ class InterferometerSimulation:
         :param sky: sky model defining the sky sources
         :param observation: observation settings
         """
-        if isinstance(observation, ObservationLong) and os.environ.get('SIM_LONG') is None:
+        if isinstance(observation, ObservationLong):
             return self.__run_simulation_long(
                 telescope=telescope,
                 sky=sky,
                 observation=observation,
             )
         else:
-            os_sky = sky.get_OSKAR_sky()
-            observation_settings = observation.get_OSKAR_settings_tree()
-            input_telpath=telescope.path
-            interferometer_settings = self.__get_OSKAR_settings_tree(input_telpath=input_telpath)
-            telescope.get_OSKAR_telescope()
-            settings1 = {**interferometer_settings, **observation_settings}
-            #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
-            setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
-            setting_tree.from_dict(settings1)
-            #settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
-            simulation = oskar.Interferometer(settings=setting_tree)
-            # simulation.set_telescope_model( # outcommented by hotfix #59
-            simulation.set_sky_model(os_sky)
-            simulation.run()
-            return self.ms_file
+            return self.__run_simulation_oskar(
+                telescope=telescope,
+                sky=sky,
+                observation=observation,
+            )
+
+    def __run_simulation_oskar(
+        self,
+        telescope:Telescope,
+        sky:SkyModel,
+        observation:Observation,
+    ) -> Visibility:
+        """
+        Run a single interferometer simulation with a given sky, telescope and observation settings.
+        :param telescope: telescope model defining it's configuration
+        :param sky: sky model defining the sources
+        :param observation: observation settings
+        """
+        os_sky = sky.get_OSKAR_sky()
+        observation_settings = observation.get_OSKAR_settings_tree()
+        input_telpath=telescope.path
+        interferometer_settings = self.__get_OSKAR_settings_tree(input_telpath=input_telpath)
+        telescope.get_OSKAR_telescope()
+        settings1 = {**interferometer_settings, **observation_settings}
+        #settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
+        setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
+        setting_tree.from_dict(settings1)
+        #settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
+        simulation = oskar.Interferometer(settings=setting_tree)
+        # simulation.set_telescope_model( # outcommented by hotfix #59
+        simulation.set_sky_model(os_sky)
+        simulation.run()
+        return self.ms_file
 
     def __run_simulation_long(
         self,
@@ -148,26 +167,26 @@ class InterferometerSimulation:
         observation:ObservationLong,
     ) -> List[str]:
         try:
-            os.environ['SIM_LONG'] = str(True) # to not cause inf loop of `run_simulation` and not alter interface
             visiblity_files = [0] * observation.number_of_days
             ms_files = [0] * observation.number_of_days # ms_files is out of range!!!!
             current_date = observation.start_date_and_time
             beam_vis_prefix = 'beam_vis_'
-            files = []
+            files_existing = []
             if os.path.exists(self.vis_path):
-                vis_files = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.vis'))
-                ms_files = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.ms'))
-                files = [*vis_files,*ms_files]
-                if len(files) > 0:
+                vis_files_existing = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.vis'))
+                ms_files_existing = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.ms'))
+                files_existing = [*vis_files_existing,*ms_files_existing]
+                if len(files_existing) > 0:
                     print('Some example files to remove/replace:')
-                    print(f'{[*vis_files[:3],*ms_files[:3]]}')
-                    ans = input(f'Found already existing "beam_vis_*.vis" and "beam_vis_*.ms" files inside {self.vis_path}, \
-                        Do you want to replace remove/replace them? [y/N]')
+                    print(f'{[*vis_files_existing[:3],*ms_files_existing[:3]]}')
+                    msg = f'Found already existing "beam_vis_*.vis" and "beam_vis_*.ms" files inside {self.vis_path}, \
+                        Do you want to replace remove/replace them? [y/N]'
+                    ans = input_wrapper(msg=msg, ret='y')
                     if ans != 'y':
                         sys.exit(0)
                     else:
-                        [os.system('rm -rf '+file_name) for file_name in files]
-                        print(f'Removed {len(files)} file(s) matching the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!')
+                        [os.system('rm -rf '+file_name) for file_name in files_existing]
+                        print(f'Removed {len(files_existing)} file(s) matching the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!')
             else:
                 os.makedirs(self.vis_path, exist_ok=True)
                 print(f'Created dirs {self.vis_path}')
@@ -193,22 +212,20 @@ class InterferometerSimulation:
                     pb.fit_elements(telescope)
                 print('Observing Day: ' + str(i) + ' the ' + str(current_date))
                 # ------------- Simulation Begins
-                visiblity_files[i] = os.path.join(self.vis_path, beam_vis_prefix + str(i) + '.vis')
+                visiblity_files[i] = os.path.join(vis_path_long, beam_vis_prefix + str(i) + '.vis')
                 print(visiblity_files[i])
                 ms_files[i] = visiblity_files[i].split('.vis')[0] + '.ms'
                 self.vis_path = visiblity_files[i]
                 # ------------- Design Observation
                 observation_run = deepcopy(observation)
                 observation_run.start_date_and_time = current_date
-                visibility = self.run_simulation(telescope_run, sky_run, observation_run)
+                visibility = self.__run_simulation_oskar(telescope_run, sky_run, observation_run)
                 visibility.write_to_file(ms_files[i])
                 current_date + timedelta(days=1)
-            del os.environ['SIM_LONG']
             self.vis_path = vis_path_long
             return visiblity_files
 
         except BaseException as exp:
-            del os.environ['SIM_LONG']
             self.vis_path = vis_path_long
             raise exp
 
