@@ -50,14 +50,14 @@ class MyTestCase(unittest.TestCase):
 
 
     def test_long_observations(self):
+        os.environ['SKIP_INPUT'] = str(True) # skips `input` during unit tests if using `karabo.util.data_util.input_wrapper`
         number_of_days=2
         hours_per_day=1
         enable_array_beam=True
         vis_path = './karabo/test/data'
         combined_vis_filepath = os.path.join(vis_path, 'combined_vis.ms')
-        xcstfile_path = './karabo-pipeline/karabo/test/data/cst_like_beam_port_1.txt'
-        ycstfile_path = './karabo-pipeline/karabo/test/data/cst_like_beam_port_2.txt'
-        #combined_vis_filepath = '/home/rohit/karabo/karabo-pipeline/karabo/test/data/combined_vis.ms'
+        xcstfile_path = os.path.join(vis_path, 'cst_like_beam_port_1.txt')
+        ycstfile_path = os.path.join(vis_path, 'cst_like_beam_port_2.txt')
         sky = SkyModel()
         sky_data = np.array([
         [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
