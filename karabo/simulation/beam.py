@@ -38,7 +38,7 @@ class BeamPattern:
         average_fractional_error_factor_increase:float=1.1,
         ignore_data_at_pole:bool=True,
         avg_frac_error:float=0.8,
-        beam_method:str='EIDOS_AH' #'Gaussian Beam'
+        beam_method:str='Gaussian Beam'
 
     ) -> None:
         self.cst_file_path : str = cst_file_path

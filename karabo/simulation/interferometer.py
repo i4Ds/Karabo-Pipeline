@@ -204,12 +204,12 @@ class InterferometerSimulation:
                     # ------------ X-coordinate
                     pb = deepcopy(self.beam_polX)
                     beam = pb.sim_beam()
-                    pb.save_cst_file(beam[3], telescope=telescope)  # Saving the beam cst file
-                    pb.fit_elements(telescope)
+                    pb.save_cst_file(beam[3], telescope=telescope_run)  # Saving the beam cst file
+                    pb.fit_elements(telescope_run)
                     # ------------ Y-coordinate
                     pb = deepcopy(self.beam_polY)
-                    pb.save_cst_file(beam[4], telescope=telescope)
-                    pb.fit_elements(telescope)
+                    pb.save_cst_file(beam[4], telescope=telescope_run)
+                    pb.fit_elements(telescope_run)
                 print('Observing Day: ' + str(i) + ' the ' + str(current_date))
                 # ------------- Simulation Begins
                 visiblity_files[i] = os.path.join(vis_path_long, beam_vis_prefix + str(i) + '.vis')

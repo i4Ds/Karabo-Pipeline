@@ -154,5 +154,5 @@ class ObservationLong(Observation):
             raise KaraboError(f'`number_of_days` must be of type int but is of type {type(self.number_of_days)}!')
         if self.number_of_days <= 1:
             raise KaraboError(f'`number_of_days` must be >=2 but is {self.number_of_days}!')
-        if self.length > timedelta(hours=24):
-            raise KaraboError(f'`length` should be max 24 hours but is {self.length}!')
+        if self.length > timedelta(hours=12):
+            raise KaraboError(f'`length` should be max 12 hours but is {self.length}!')
