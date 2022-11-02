@@ -46,3 +46,19 @@ def full_setter(self, state):
 def full_getter(self):
     state = self.__dict__
     return state
+
+def input_wrapper(
+    msg:str,
+    ret:str='y',
+) -> str:
+    """
+    Wrapper of standard `input` to define what return `ret` it will get during Unit-tests, since the test just stops oterwise.
+    The environment variable 'SKIP_INPUT' or 'UNIT_TEST' must be set with an arbitrary value to return `ret`.
+
+    :param msg: input message
+    :param ret: return value if 'SKIP_INPUT' or 'UNIT_TEST' is set, default='y'
+    """
+    if os.environ.get('SKIP_INPUT') is not None or os.environ.get('UNIT_TEST') is not None :
+        return ret
+    else:
+        return input(msg)
