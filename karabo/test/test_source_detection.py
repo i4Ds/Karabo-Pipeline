@@ -16,7 +16,7 @@ from karabo.sourcedetection.result import (
 from karabo.test import data_path
 from karabo.util.dask import get_global_client
 
-import wagg as wg
+# import wagg as wg #This gives an ImportError if no GPU is available
 import numpy as np
 
 class TestSourceDetection(unittest.TestCase):
