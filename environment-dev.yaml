@@ -19,5 +19,6 @@ dependencies:
   - katbeam
   - eidos
   - cuda-toolkit
+  - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
 variables:
   LD_LIBRARY_PATH: $LD_LIBRARY_PATH:/usr/lib/wsl/lib
