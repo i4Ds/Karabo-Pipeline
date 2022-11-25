@@ -1,5 +1,5 @@
 import copy
-from typing import Callable
+from typing import Callable, List
 
 import dask
 from dask import delayed
@@ -8,15 +8,15 @@ import psutil
 
 client = None
 
-def get_global_client(min_ram_gb_per_worker: int = 4):
+def get_global_client(min_ram_gb_per_worker: int = 2, threads_per_worker: int = 1) -> Client:
     global client
     if client is None:
-        client = get_local_dask_client(min_ram_gb_per_worker)
+        client = get_local_dask_client(min_ram_gb_per_worker, threads_per_worker)
     print(f"Client Dashboard Address: {client.dashboard_link}")
     return client
 
 
-def get_local_dask_client(min_ram_gb_per_worker: int = 4) -> Client:
+def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
     global client
     if client is not None:
         return client
@@ -24,13 +24,13 @@ def get_local_dask_client(min_ram_gb_per_worker: int = 4) -> Client:
     cpus = psutil.cpu_count()
     ram = psutil.virtual_memory().total / 1024 / 1024
     if ram / cpus >= min_ram_gb_per_worker:
-        client = Client(LocalCluster(n_workers=cpus, threads_per_worker=1))
+        client = Client(LocalCluster(n_workers=cpus, threads_per_worker=threads_per_worker))
     else:
         workers = cpus
         while ram / workers < min_ram_gb_per_worker:
             workers -= 1
 
-        client = Client(LocalCluster(n_workers=workers, threads_per_worker=1))
+        client = Client(LocalCluster(n_workers=workers, threads_per_worker=threads_per_worker))
     return client
 
 
@@ -71,7 +71,7 @@ def parallel_for(n: int, function: Callable, *args):
     return dask.compute(*results)
 
 
-def parallel_for_each(arr: [any], function: Callable, *args):
+def parallel_for_each(arr: List[any], function: Callable, *args):
     """
 
 

@@ -4,7 +4,7 @@ import dask
 import numpy as np
 from dask.distributed import Client
 
-from karabo.Imaging.imager import Imager
+from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
