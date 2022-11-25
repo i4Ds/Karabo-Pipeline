@@ -50,7 +50,7 @@ class TestSystemNoise(unittest.TestCase):
         visibility.write_to_file("./result/system_noise/noise_vis.ms")
 
         imager = Imager(visibility,
-                         imaging_npixel=4096*4,
+                         imaging_npixel=4096*1,
                          imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/system_noise/noise_dirty.fits")
