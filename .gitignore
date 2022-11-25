@@ -84,8 +84,11 @@ config.yaml
 
 # Tests
 karabo/test/result/*
-karabo/test/result
+karabo/test/data/*
 
 # Results
 result/*
+karabo/result/*
 
+# Vscode
+.vscode/*

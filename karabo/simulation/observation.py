@@ -1,5 +1,8 @@
 import datetime
+from operator import mod
+import numpy as np
 from datetime import timedelta, datetime
+from karabo.error import KaraboError
 
 from karabo.karabo_resource import KaraboResource
 
@@ -25,14 +28,18 @@ class Observation(KaraboResource):
                                 and the number of beam pattern snapshots for beam pattern simulations.
     """
 
-    def __init__(self, mode:str = 'Tracking',start_frequency_hz: float =0,
-                 start_date_and_time: datetime = datetime.utcnow(),
-                 length: timedelta = timedelta(hours=12),
-                 number_of_channels: float = 1,
-                 frequency_increment_hz: float = 0,
-                 phase_centre_ra_deg: float = 0,
-                 phase_centre_dec_deg: float = 0,
-                 number_of_time_steps: float = 1):
+    def __init__(
+        self, mode:str='Tracking',
+        start_frequency_hz:float=0,
+        start_date_and_time:datetime=datetime.utcnow(),
+        length:timedelta=timedelta(hours=12),
+        number_of_channels:float=1,
+        frequency_increment_hz:float=0,
+        phase_centre_ra_deg:float=0,
+        phase_centre_dec_deg:float=0,
+        number_of_time_steps:float=1,
+    ) -> None:
+
         # required
         self.start_frequency_hz: float = start_frequency_hz
         self.start_date_and_time: datetime = start_date_and_time
@@ -46,7 +53,13 @@ class Observation(KaraboResource):
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
 
-    def set_length_of_observation(self, hours: float, minutes: float, seconds: float, milliseconds: float):
+    def set_length_of_observation(
+        self,
+        hours:float,
+        minutes:float,
+        seconds:float,
+        milliseconds:float,
+    ) -> None:
         """
         Set a new length for the observation. Overriding the observation length set in the constructor.
 
@@ -81,7 +94,10 @@ class Observation(KaraboResource):
         }
         return settings
 
-    def __strfdelta(self, tdelta):
+    def __strfdelta(
+        self,
+        tdelta:timedelta,
+    ):
         hours = tdelta.seconds // 3600 + tdelta.days * 24
         rm = tdelta.seconds % 3600
         minutes = rm // 60
@@ -91,3 +107,52 @@ class Observation(KaraboResource):
 
     def get_phase_centre(self):
         return [self.phase_centre_ra_deg, self.phase_centre_dec_deg]
+
+
+class ObservationLong(Observation):
+    """
+    This class allows the use of several observations on different days over a certain period of time within one day.
+    If only ONE observation is desired, even if it takes a little longer, this is already possible using `Observation`.
+    This class extends `Observation` so its parameters (except `length`) are not discussed here.
+    `length` is little different, which describes the duration of ONE observation, whose maximum duration for `ObservationLong` is 24h.
+
+    :ivar number_of_days: Number of successive days to observe
+    """
+
+    def __init__(
+        self,
+        mode:str='Tracking',
+        start_frequency_hz:float=0,
+        start_date_and_time:datetime=datetime.utcnow(),
+        length:timedelta=timedelta(hours=12),
+        number_of_channels:float=1,
+        frequency_increment_hz:float=0,
+        phase_centre_ra_deg:float=0,
+        phase_centre_dec_deg:float=0,
+        number_of_time_steps:float=1,
+        number_of_days:int=None,
+    ) -> None:
+
+        self.enable_check = False
+        super().__init__(
+            mode=mode,
+            start_frequency_hz=start_frequency_hz,
+            start_date_and_time=start_date_and_time,
+            length=length,
+            number_of_channels=number_of_channels,
+            frequency_increment_hz=frequency_increment_hz,
+            phase_centre_ra_deg=phase_centre_ra_deg,
+            phase_centre_dec_deg=phase_centre_dec_deg,
+            number_of_time_steps=number_of_time_steps,
+        )
+        self.number_of_days : int = number_of_days
+        self.__check_attrs()
+
+
+    def __check_attrs(self) -> None:
+        if not isinstance(self.number_of_days, int):
+            raise KaraboError(f'`number_of_days` must be of type int but is of type {type(self.number_of_days)}!')
+        if self.number_of_days <= 1:
+            raise KaraboError(f'`number_of_days` must be >=2 but is {self.number_of_days}!')
+        if self.length > timedelta(hours=12):
+            raise KaraboError(f'`length` should be max 12 hours but is {self.length}!')

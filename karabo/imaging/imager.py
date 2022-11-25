@@ -1,4 +1,4 @@
-from typing import List, Union, Dict
+from typing import List, Tuple, Union, Dict
 
 from distributed import Client
 from rascil.data_models import PolarisationFrame
@@ -17,49 +17,93 @@ from rascil.workflows import (
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
 
-import karabo.util.dask
+from karabo.util.dask import get_global_client
 from karabo.imaging.image import Image
 from karabo.simulation.visibility import Visibility
 
 
 class Imager:
-    """
-    The Imager class provides imaging functionality using the visibilities of an observation.
+    """Imager class provides imaging functionality using the visibilities of an observation with the help of RASCIL.
     In addition, it provides the calculation of the pixel coordinates of point sources.
+    
+    Parameters
+    ----------
+    visibility : Visibility, required
+        Visibility object containing the visibilities of an observation.
+    logfile : str, default=None,
+        Name of logfile (default is to construct one from msname)
+    performance_file : str, default=None
+        Name of json file to contain performance information
+    ingest_dd : List[int], default=[0],
+        Data descriptors in MS to read (all must have the same number of channels)
+    ingest_vis_nchan : int, default=None,
+        Number of channels in a single data descriptor in the MS
+    ingest_chan_per_blockvis : int, defualt=1,
+        Number of channels per blockvis (before any average)
+    ingest_average_blockvis : Union[bool, str], default=False,
+        Average all channels in blockvis. 
+    imaging_phasecentre : str, default=None
+        Phase centre (in SkyCoord string format)
+    imaging_pol : str, default="stokesI"
+        RASCIL polarisation frame for image
+    imaging_nchan : int, default=1,
+        Number of channels per image
+    imaging_ng_threads : int, default=4,
+        Number of Nifty Gridder threads to use (4 is a good choice)
+    imaging_w_stacking : Union[bool, str], default=True
+        Use the improved w stacking method in Nifty Gridder?
+    imaging_flat_sky : Union[bool, str], default=False
+        If using a primary beam, normalise to flat sky?
+    imaging_npixel : int, default=None
+        Number of pixels in ra, dec: Should be a composite of 2, 3, 5
+    imaging_cellsize : float, default=None
+        Cellsize (radians). Default is to calculate
+    imaging_weighting : str, default="uniform"
+        Type of weighting uniform or robust or natural
+    imaging_robustness : float, default=0.0
+        Robustness for robust weighting
+    imaging_gaussian_taper : float, default=None
+        Size of Gaussian smoothing, implemented as taper in weights (rad)
+    imaging_dopsf : Union[bool, str], default=False
+        Make the PSF instead of the dirty image?
+    imaging_dft_kernel : str, default=None
+        DFT kernel: cpu_looped | cpu_numba | gpu_raw
+    Attributes
+    ----------
+    TODO: Add attributes
+    -----
+    See [Rascil](https://gitlab.com/ska-telescope/external/rascil) for more information.
+    Examples
+    --------
+    >>> imager = Imager()
+    >>> convolved, restored, residual = imager.imaging_rascil()
+    ...
+    >>> SourceDetectionResult.detect_sources_in_image(restored)
     """
-
     def __init__(
         self,
         visibility: Visibility,
-        logfile: str = None,  # Name of logfile (default is to construct one from msname)
-        performance_file: str = None,  # Name of json file to contain performance information
+        logfile: str = None,
+        performance_file: str = None, 
         ingest_dd: List[int] = [0],
-        # Data descriptors in MS to read (all must have the same number of channels)
-        ingest_vis_nchan: int = None,  # Number of channels in a single data descriptor in the MS
-        ingest_chan_per_blockvis: int = 1,  # Number of channels per blockvis (before any average)
+        ingest_vis_nchan: int = None,
+        ingest_chan_per_blockvis: int = 1,
         ingest_average_blockvis: Union[
             bool, str
-        ] = False,  # Average all channels in blockvis?
-        imaging_phasecentre: str = None,  # Phase centre (in SkyCoord string format)
-        imaging_pol: str = "stokesI",  # RASCIL polarisation frame for image
-        imaging_nchan: int = 1,  # Number of channels per image
-        imaging_context: str = "ng",  # Imaging context i.e. the gridder used 2d | ng
-        imaging_ng_threads: int = 4,  # Number of Nifty Gridder threads to use (4 is a good choice)
-        imaging_w_stacking: Union[
-            bool, str
-        ] = True,  # Use the improved w stacking method in Nifty Gridder?
-        imaging_flat_sky: Union[
-            bool, str
-        ] = False,  # If using a primary beam, normalise to flat sky?
-        imaging_npixel: int = None,  # Number of pixels in ra, dec: Should be a composite of 2, 3, 5
-        imaging_cellsize: float = None,  # Cellsize (radians). Default is to calculate
-        imaging_weighting: str = "uniform",  # Type of weighting uniform or robust or natural
-        imaging_robustness: float = 0.0,  # Robustness for robust weighting
+        ] = False,
+        imaging_phasecentre: str = None,
+        imaging_pol: str = "stokesI",
+        imaging_nchan: int = 1,
+        imaging_context: str = "ng",
+        imaging_ng_threads: int = 4,
+        imaging_w_stacking: Union[bool, str] = True, 
+        imaging_flat_sky: Union[bool, str] = False, 
+        imaging_npixel: int = None,
+        imaging_cellsize: float = None,
+        imaging_weighting: str = "uniform",
+        imaging_robustness: float = 0.0,
         imaging_gaussian_taper: float = None,
-        # Size of Gaussian smoothing, implemented as taper in weights (rad)
-        imaging_dopsf: Union[
-            bool, str
-        ] = False,  # Make the PSF instead of the dirty image?
+        imaging_dopsf: Union[bool, str] = False,
         imaging_dft_kernel: str = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
     ):
         self.logfile: str = logfile
@@ -114,6 +158,10 @@ class Imager:
     def imaging_rascil(
         self,
         client: Client = None,
+        use_dask: bool = False,
+        n_threads: int = 1,
+        use_cuda: bool = False, # If True, use CUDA for Nifty Gridder
+        img_context: str = "ng", # Imaging context: Which nifty gridder to use. See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
         num_bright_sources: int = None,
         # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
         clean_algorithm: str = "hogbom",
@@ -145,17 +193,25 @@ class Imager:
         # Type of interpolation between facets in restore step (none or linear or tukey)
         clean_restored_output: str = "list",
         # Type of restored image output: taylor, list, or integrated
-    ) -> (Image, Image, Image):
+    ) -> Tuple[Image, Image, Image]:
         """
         Starts imaging process using RASCIL, will run a CLEAN algorithm on the passed visibilities to the
         Imager.
 
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
-        if client is None:
-            client = karabo.util.dask.get_global_client(6)
-        print(client.cluster)
-        rsexecute.set_client(use_dask=False, use_dlg=False)
+        if (use_cuda and use_dask) or (use_cuda and client is not None):
+            raise EnvironmentError("Cannot use CUDA and Dask at the same time")
+        if client and not use_dask:
+            raise EnvironmentError("Client passed but use_dask is False")
+        if use_dask and not client:
+            client = get_global_client()
+        if client:
+            print(client.cluster)
+        # Set CUDA parameters
+        if use_cuda:
+            img_context='wg'
+        rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
         blockviss = create_blockvisibility_from_ms_rsexecute(
             msname=self.visibility.file.path,
@@ -184,8 +240,8 @@ class Imager:
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
             blockviss,  # List of BlockVisibilitys
             models,  # List of model images
-            context=self.imaging_context,  # Use nifty-gridder
-            threads=self.imaging_ng_threads,
+            context=img_context,
+            threads=n_threads,
             wstacking=self.imaging_w_stacking
             == "True",  # Correct for w term in gridding
             niter=clean_niter,  # iterations in minor cycle

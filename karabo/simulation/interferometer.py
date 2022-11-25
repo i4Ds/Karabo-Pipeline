@@ -1,15 +1,18 @@
-import enum, os
-from typing import Dict, Union, Any
+import enum, os, sys, glob
+from copy import deepcopy
+from typing import Dict, List, Union, Any
 
 import oskar
-
+import numpy as np
 import karabo.error
 from karabo.simulation.visibility import Visibility
-from karabo.simulation.observation import Observation
+from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulation.beam import BeamPattern
 from karabo.util.FileHandle import FileHandle
-
+from karabo.util.data_util import input_wrapper
+from datetime import timedelta, datetime
 
 class CorrelationType(enum.Enum):
     """
@@ -51,10 +54,10 @@ class InterferometerSimulation:
                          Values outside this range are not evaluated.
     :ivar uv_filter_units: The units of the baseline UV length filter values. Any value of Enum FilterUnits
     :ivar force_polarised_ms: If True, always write the Measurment Set in polarised format even if the simulation
-                              was run in the single polarisation ‘Scalar’ (or Stokes-I) mode. If False, the size of
+                              was run in the single polarisation 'Scalar' (or Stokes-I) mode. If False, the size of
                               the polarisation dimension in the the Measurement Set will be determined by the simulation mode.
     :ivar ignore_w_components: If enabled, baseline W-coordinate component values will be set to 0. This will disable
-                               W-smearing. Use only if you know what you’re doing!
+                               W-smearing. Use only if you know what you're doing!
     """
 
     def __init__(
@@ -79,7 +82,10 @@ class InterferometerSimulation:
         noise_rms: str = 'Range',
         noise_freq: str = 'Range',
         enable_array_beam:bool = False,
-        enable_numerical_beam:bool = False):
+        enable_numerical_beam:bool = False,
+        beam_polX:BeamPattern = None, # currently only considered for `ObservationLong`
+        beam_polY:BeamPattern = None, # currently only considered for `ObservationLong`
+    ) -> None:
 
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
@@ -103,15 +109,41 @@ class InterferometerSimulation:
         self.noise_freq=noise_freq
         self.enable_array_beam=enable_array_beam
         self.enable_numerical_beam=enable_numerical_beam
+        self.beam_polX: BeamPattern = beam_polX
+        self.beam_polY: BeamPattern = beam_polY
 
-    def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Visibility:
+    def run_simulation(self, telescope: Telescope, sky: SkyModel, observation: Observation) -> Union[Visibility,List[str]]:
         """
-        Run a singel interferometer simulation with the given sky, telescope.png and observation settings.
+        Run a single interferometer simulation with the given sky, telescope.png and observation settings.
         :param telescope: telescope.png model defining the telescope.png configuration
         :param sky: sky model defining the sky sources
         :param observation: observation settings
         """
+        if isinstance(observation, ObservationLong):
+            return self.__run_simulation_long(
+                telescope=telescope,
+                sky=sky,
+                observation=observation,
+            )
+        else:
+            return self.__run_simulation_oskar(
+                telescope=telescope,
+                sky=sky,
+                observation=observation,
+            )
 
+    def __run_simulation_oskar(
+        self,
+        telescope:Telescope,
+        sky:SkyModel,
+        observation:Observation,
+    ) -> Visibility:
+        """
+        Run a single interferometer simulation with a given sky, telescope and observation settings.
+        :param telescope: telescope model defining it's configuration
+        :param sky: sky model defining the sources
+        :param observation: observation settings
+        """
         os_sky = sky.get_OSKAR_sky()
         observation_settings = observation.get_OSKAR_settings_tree()
         input_telpath=telescope.path
@@ -127,6 +159,75 @@ class InterferometerSimulation:
         simulation.set_sky_model(os_sky)
         simulation.run()
         return self.ms_file
+
+    def __run_simulation_long(
+        self,
+        telescope:Telescope,
+        sky:SkyModel,
+        observation:ObservationLong,
+    ) -> List[str]:
+        try:
+            visiblity_files = [0] * observation.number_of_days
+            ms_files = [0] * observation.number_of_days # ms_files is out of range!!!!
+            current_date = observation.start_date_and_time
+            beam_vis_prefix = 'beam_vis_'
+            files_existing = []
+            if os.path.exists(self.vis_path):
+                vis_files_existing = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.vis'))
+                ms_files_existing = glob.glob(os.path.join(self.vis_path, beam_vis_prefix+'*.ms'))
+                files_existing = [*vis_files_existing,*ms_files_existing]
+                if len(files_existing) > 0:
+                    print('Some example files to remove/replace:')
+                    print(f'{[*vis_files_existing[:3],*ms_files_existing[:3]]}')
+                    msg = f'Found already existing "beam_vis_*.vis" and "beam_vis_*.ms" files inside {self.vis_path}, \
+                        Do you want to replace remove/replace them? [y/N]'
+                    ans = input_wrapper(msg=msg, ret='y')
+                    if ans != 'y':
+                        sys.exit(0)
+                    else:
+                        [os.system('rm -rf '+file_name) for file_name in files_existing]
+                        print(f'Removed {len(files_existing)} file(s) matching the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!')
+            else:
+                os.makedirs(self.vis_path, exist_ok=True)
+                print(f'Created dirs {self.vis_path}')
+            vis_path_long = self.vis_path
+            for i in range(observation.number_of_days):
+                sky_run = SkyModel(sources=deepcopy(sky.sources)) # is deepcopy or copy needed?
+                telescope_run = Telescope.read_OSKAR_tm_file(telescope.path)
+                # telescope.centre_longitude = 3
+                # Remove beam if already present
+                test = os.listdir(telescope.path)
+                for item in test:
+                    if item.endswith('.bin'):
+                        os.remove(os.path.join(telescope.path, item))
+                if self.enable_array_beam:
+                    # ------------ X-coordinate
+                    pb = deepcopy(self.beam_polX)
+                    beam = pb.sim_beam()
+                    pb.save_cst_file(beam[3], telescope=telescope_run)  # Saving the beam cst file
+                    pb.fit_elements(telescope_run)
+                    # ------------ Y-coordinate
+                    pb = deepcopy(self.beam_polY)
+                    pb.save_cst_file(beam[4], telescope=telescope_run)
+                    pb.fit_elements(telescope_run)
+                print('Observing Day: ' + str(i) + ' the ' + str(current_date))
+                # ------------- Simulation Begins
+                visiblity_files[i] = os.path.join(vis_path_long, beam_vis_prefix + str(i) + '.vis')
+                print(visiblity_files[i])
+                ms_files[i] = visiblity_files[i].split('.vis')[0] + '.ms'
+                self.vis_path = visiblity_files[i]
+                # ------------- Design Observation
+                observation_run = deepcopy(observation)
+                observation_run.start_date_and_time = current_date
+                visibility = self.__run_simulation_oskar(telescope_run, sky_run, observation_run)
+                visibility.write_to_file(ms_files[i])
+                current_date + timedelta(days=1)
+            self.vis_path = vis_path_long
+            return visiblity_files
+
+        except BaseException as exp:
+            self.vis_path = vis_path_long
+            raise exp
 
     def __get_OSKAR_settings_tree(self,input_telpath) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
