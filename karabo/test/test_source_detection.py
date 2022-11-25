@@ -35,68 +35,143 @@ class TestSourceDetection(unittest.TestCase):
     #     pixels = detection.get_pixel_position_of_sources()
     #     print(pixels)
     #
-    # def test_create_detection_from_ms(self):
-    #     phasecenter = np.array([225, -65])
-    #     sky = SkyModel.get_random_poisson_disk_sky(
-    #         phasecenter + np.array([-5, -5]),
-    #         phasecenter + np.array([+5, +5]),
-    #         100,
-    #         200,
-    #         0.4,
-    #     )
-    #     print(sky.sources)
-    #     # sky = SkyModel.get_GLEAM_Sky()
-    #     # sky.filter_by_flux(0.4, 1)
-    #     sky.plot_sky(phasecenter)
-    #     sky.explore_sky(phasecenter, xlim=(-10, 10), ylim=(-10, 10))
-    #
-    #     telescope = Telescope.get_MEERKAT_Telescope()
-    #     # telescope.centre_longitude = 3
-    #
-    #     simulation = InterferometerSimulation(
-    #         channel_bandwidth_hz=1e6, time_average_sec=10
-    #     )
-    #     observation = Observation(
-    #         100e6,
-    #         phase_centre_ra_deg=phasecenter[0],
-    #         phase_centre_dec_deg=phasecenter[1],
-    #         number_of_time_steps=1,
-    #         frequency_increment_hz=20e6,
-    #         number_of_channels=1,
-    #     )
-    #
-    #     visibility = simulation.run_simulation(telescope, sky, observation)
-    #     visibility.write_to_file("./result/test_dec/poisson_vis.ms")
-    #
-    #     imager = Imager(
-    #         visibility,
-    #         ingest_vis_nchan=1,
-    #         ingest_chan_per_blockvis=1,
-    #         ingest_average_blockvis=True,
-    #         imaging_npixel=2048,
-    #         imaging_cellsize=0.0003,
-    #         imaging_weighting="natural",
-    #         imaging_robustness=-0.5,
-    #     )
-    #     convolved, restored, residual = imager.imaging_rascil()
-    #
-    #     convolved.write_to_file("result/test_dec/convolved.fits")
-    #     restored.write_to_file("result/test_dec/restored.fits")
-    #     residual.write_to_file("result/test_dec/residual.fits")
-    #
-    #     result = SourceDetectionResult.detect_sources_in_image(restored)
-    #     result.write_to_file("result/test_dec/sources.zip")
-    #
-    #     evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
-    #         result, sky, 1
-    #     )
-    #     evaluation.plot(filename="result/test_dec/matching_plot.png")
-    #     evaluation.plot_error_ra_dec(filename="result/test_dec/error_ra_dec_plot.png")
-    #     evaluation.plot_quiver_positions(filename="result/test_dec/quiver_position.png")
-    #     evaluation.plot_flux_histogram(filename="result/test_dec/flux_histogram.png")
-    #     evaluation.plot_flux_ratio_to_distance(filename="result/test_dec/flux_ratio_distance.png")
-    #     evaluation.plot_flux_ratio_to_ra_dec(filename="result/test_dec/flux_ratio_ra_dec.png")
+    #TODO: Investigate why this error sometimes fails and sometimes doesn't, especially when running it on github hosted instances.
+    """
+    def test_create_detection_from_ms_small(self):
+        phasecenter = np.array([225, -65])
+        np.random.seed(0)
+        sky = SkyModel.get_random_poisson_disk_sky(
+            phasecenter + np.array([-0.1, -0.1]),
+            phasecenter + np.array([+0.2, +0.2]),
+            100,
+            200,
+            0.4,
+        )
 
+        sky.plot_sky(phasecenter)
+        sky.explore_sky(phasecenter, xlim=(-1, 1), ylim=(-1, 1))
+    
+        telescope = Telescope.get_MEERKAT_Telescope()
+    
+        simulation = InterferometerSimulation(
+            channel_bandwidth_hz=1e6,
+            time_average_sec=1
+            )
+
+        observation = Observation(
+            start_frequency_hz=100e6,
+            phase_centre_ra_deg=phasecenter[0],
+            phase_centre_dec_deg=phasecenter[1],
+            number_of_time_steps=1,
+            frequency_increment_hz=20e6,
+            number_of_channels=1
+        )
+    
+        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility.write_to_file("./result/test_dec/poisson_vis.ms")
+    
+        imager = Imager(
+            visibility,
+            ingest_vis_nchan=1,
+            ingest_chan_per_blockvis=1,
+            ingest_average_blockvis=True,
+            imaging_npixel=2*3*5,
+            imaging_cellsize=0.0003,
+            imaging_weighting="natural",
+            imaging_robustness=-0.5,
+        )
+        convolved, restored, residual = imager.imaging_rascil()
+    
+        convolved.write_to_file("result/test_dec/convolved.fits")
+        restored.write_to_file("result/test_dec/restored.fits")
+        residual.write_to_file("result/test_dec/residual.fits")
+    
+        result = SourceDetectionResult.detect_sources_in_image(restored)
+        result.write_to_file("result/test_dec/sources.zip")
+    
+        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
+            result, sky, 10
+        )
+        evaluation.plot(filename="result/test_dec/matching_plot.png")
+        evaluation.plot_error_ra_dec(filename="result/test_dec/error_ra_dec_plot.png")
+        evaluation.plot_quiver_positions(filename="result/test_dec/quiver_position.png")
+
+        evaluation.plot_flux_histogram(filename="result/test_dec/flux_histogram.png")
+        evaluation.plot_flux_ratio_to_distance(filename="result/test_dec/flux_ratio_distance.png")
+        evaluation.plot_flux_ratio_to_ra_dec(filename="result/test_dec/flux_ratio_ra_dec.png")
+        
+        
+        TODO: DEPLOY ON CSCS:
+    def test_create_detection_from_ms(self):
+        phasecenter = np.array([225, -65])
+        sky = SkyModel.get_random_poisson_disk_sky(
+            phasecenter + np.array([-5, -5]),
+            phasecenter + np.array([+5, +5]),
+            100,
+            200,
+            0.4,
+        )
+
+        # sky = SkyModel.get_GLEAM_Sky()
+        # sky.filter_by_flux(0.4, 1)
+        sky.plot_sky(phasecenter)
+        sky.explore_sky(phasecenter, xlim=(-10, 10), ylim=(-10, 10))
+    
+        telescope = Telescope.get_MEERKAT_Telescope()
+        # telescope.centre_longitude = 3
+    
+        simulation = InterferometerSimulation(
+            channel_bandwidth_hz=1e6,
+            time_average_sec=1
+            )
+
+        observation = Observation(
+            start_frequency_hz=100e6,
+            phase_centre_ra_deg=phasecenter[0],
+            phase_centre_dec_deg=phasecenter[1],
+            number_of_time_steps=1,
+            frequency_increment_hz=20e6,
+            number_of_channels=3
+        )
+    
+        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility.write_to_file("./result/test_dec/poisson_vis.ms")
+    
+        imager = Imager(
+            visibility,
+            ingest_vis_nchan=3,
+            ingest_chan_per_blockvis=1,
+            ingest_average_blockvis=True,
+            imaging_npixel=2048,
+            imaging_cellsize=0.0003,
+            imaging_weighting="natural",
+            imaging_robustness=-0.5,
+        )
+        convolved, restored, residual = imager.imaging_rascil()
+
+        # Print shapes
+        print("Convolved shape: ", convolved.get_dimensions_of_image())
+        print("Restored shape: ", restored.get_dimensions_of_image())
+        print("Residual shape: ", residual.get_dimensions_of_image())
+        
+        
+        convolved.write_to_file("result/test_dec/convolved.fits")
+        restored.write_to_file("result/test_dec/restored.fits")
+        residual.write_to_file("result/test_dec/residual.fits")
+    
+        result = SourceDetectionResult.detect_sources_in_image(restored)
+        result.write_to_file("result/test_dec/sources.zip")
+    
+        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
+            result, sky, 1
+        )
+        evaluation.plot(filename="result/test_dec/matching_plot.png")
+        evaluation.plot_error_ra_dec(filename="result/test_dec/error_ra_dec_plot.png")
+        evaluation.plot_quiver_positions(filename="result/test_dec/quiver_position.png")
+        evaluation.plot_flux_histogram(filename="result/test_dec/flux_histogram.png")
+        evaluation.plot_flux_ratio_to_distance(filename="result/test_dec/flux_ratio_distance.png")
+        evaluation.plot_flux_ratio_to_ra_dec(filename="result/test_dec/flux_ratio_ra_dec.png")
+        """
     def test_source_detection_plot(self):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
@@ -149,3 +224,5 @@ class TestSourceDetection(unittest.TestCase):
 
         # Check that the result is correct by flipping the assigment and checking that it is equal
         assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
+        
+        
