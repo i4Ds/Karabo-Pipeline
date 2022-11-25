@@ -1,10 +1,8 @@
 import os
-
 import numpy as np
-
 import karabo
-
 from astropy.io import fits
+from scipy.special import wofz
 
 
 def get_module_absolute_path() -> str:
@@ -66,8 +64,8 @@ def Voigt(x, x0, y0, a, sigma, gamma):
 
 def get_spectral_sky_data(ra, dec, freq0, nfreq):
     dfreq_arr = np.linspace(-0.1, 0.1, 100)
-    y_voigt= self.Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01)
-    y_gauss= self.Gauss(dfreq_arr, 0, 0, 1, 0.01)
+    y_voigt= Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01)
+    y_gauss= Gauss(dfreq_arr, 0, 0, 1, 0.01)
     dfreq_sample=dfreq_arr[::nfreq];flux_sample=y_voigt[::nfreq];freq_sample=freq0+dfreq_sample*freq0
     sky_data = np.zeros((nfreq,12));sky_data[:,0] = ra; sky_data[:,1] = dec; sky_data[:,2] = flux_sample; sky_data[:,6] = freq_sample; sky_data[:,7]=-200
     return sky_data
