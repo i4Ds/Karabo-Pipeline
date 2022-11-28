@@ -24,7 +24,7 @@ requirements:
     - numpy
     - matplotlib
     - oskarpy=2.8.0
-    - rascil=0.5.0
+    - rascil=0.7.0
     - requests
     - astropy
     - healpy
