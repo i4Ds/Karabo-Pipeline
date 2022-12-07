@@ -79,6 +79,9 @@ class Observation(KaraboResource):
         :return: Dictionary containing the full configuration in the OSKAR Settings Tree format.
         """
         settings = {
+            "simulator": {
+                "use_gpus": True
+            },
             "observation": {
                 "start_frequency_hz": str(self.start_frequency_hz),
                 "mode":self.mode,

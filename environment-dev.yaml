@@ -1,11 +1,12 @@
-name: karabo_dev_env
+name: karabo_dev_env_GPU
 channels:
   - i4ds
+  - i4ds/label/dev
   - conda-forge
   - nvidia
   - defaults
 dependencies:
-  - oskarpy=2.8.0
+  - oskarpy=2.8.dev3
   - rascil=0.7.0
   - xarray=2022.3.0 # Issue https://github.com/i4Ds/Karabo-Pipeline/issues/146
   - astropy
@@ -17,6 +18,5 @@ dependencies:
   - astropy
   - pinocchio # [linux]
   - katbeam
-  - eidos
   - cuda-toolkit
   - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
