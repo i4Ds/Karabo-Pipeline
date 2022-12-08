@@ -7,7 +7,7 @@ from karabo.warning import KaraboWarning
 
 from karabo.karabo_resource import KaraboResource
 
-from karabo.util.gpu_util import is_cuda_gpu_available
+from karabo.util.gpu_util import is_cuda_available
 
 class Observation(KaraboResource):
     """
@@ -50,7 +50,7 @@ class Observation(KaraboResource):
         self.mode: str = mode
 
         # optional
-        if use_gpu and not is_cuda_gpu_available():
+        if use_gpu and not is_cuda_available():
             print(KaraboWarning("GPU not available. Using CPU instead."))
             use_gpu = False
         self.use_gpu: bool = use_gpu
