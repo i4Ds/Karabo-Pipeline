@@ -1,4 +1,4 @@
-name: karabo_dev_env_GPU
+name: karabo_dev_env
 channels:
   - i4ds
   - i4ds/label/dev
@@ -20,3 +20,4 @@ dependencies:
   - katbeam
   - cuda-toolkit
   - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
+  - eidos

@@ -49,7 +49,7 @@ class TestSimulation(unittest.TestCase):
     #     dirty.write_to_file("result/dirty.fits")
     #     dirty.plot()
 
-    def test_basic_GPU(self):
+    def test_oskar_basic_GPU(self):
         sky = SkyModel()
         sky_data = np.array([
             [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
@@ -65,11 +65,12 @@ class TestSimulation(unittest.TestCase):
                                             time_average_sec=10)
         observation = Observation(
             start_frequency_hz=100e6,
-                                phase_centre_ra_deg=240,
-                                phase_centre_dec_deg=-70,
-                                number_of_time_steps=24,
-                                frequency_increment_hz=20e6,
-                                number_of_channels=64)
+            use_gpu=True,
+            phase_centre_ra_deg=240,
+            phase_centre_dec_deg=-70,
+            number_of_time_steps=24,
+            frequency_increment_hz=20e6,
+            number_of_channels=64)
 
         visibility = simulation.run_simulation(telescope, sky, observation)
         visibility.write_to_file("./result/poisson_vis.ms")
@@ -80,4 +81,3 @@ class TestSimulation(unittest.TestCase):
 
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/dirty.fits")
-        dirty.plot()
