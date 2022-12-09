@@ -14,6 +14,7 @@ from karabo.util.data_util import read_CSV_to_ndarray, image_header_has_paramete
 
 from karabo.warning import KaraboWarning
 
+
 class SourceDetectionResult(KaraboResource):
     def __init__(self, detected_sources: np.ndarray, source_image: Image):
         """
@@ -42,25 +43,31 @@ class SourceDetectionResult(KaraboResource):
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
 
         :param image: Image to perform source detection on.
-        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N). 
+        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N).
                                             None means it will try to be extracted from the Image data. (Might fail)
         :return: Source Detection Result containing the found sources
         """
         detection = bdsf.process_image(
             image.file.path, beam=beam, quiet=quiet, format="csv"
         )
-        
+
         return PyBDSFSourceDetectionResult(detection)
-    
+
     @staticmethod
-    def detect_sources_in_dirty_image(imager: Imager, dirty: Image=None, quiet=False, beam=None, beam_guessing_method='rascil_1_iter'):
+    def detect_sources_in_dirty_image(
+        imager: Imager,
+        dirty: Image = None,
+        quiet=False,
+        beam=None,
+        beam_guessing_method="rascil_1_iter",
+    ):
         """
         Detecting sources in an dirty image (No clean algorithm is applied). The Source detection is implemented with the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
 
         :param Imager: Imager. Because some information is needed from the imager class, don't pass directly the Image.
         :param dirty: Image. Pass the precalculated dirty image to speedup the source detection.
-        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N). 
+        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N).
                         If not specified, the beam is read from the header or calculated with the help of rascil.
         :return: Source Detection Result containing the found sources
         """
@@ -68,22 +75,24 @@ class SourceDetectionResult(KaraboResource):
             dirty = imager.get_dirty_image()
         if beam is None:
             if SourceDetectionResult.image_has_beam_parameters(dirty):
-                beam = (
-                    dirty.header["BMAJ"],
-                    dirty.header["BMIN"],
-                    dirty.header["BPA"]
+                beam = (dirty.header["BMAJ"], dirty.header["BMIN"], dirty.header["BPA"])
+            elif beam is None and not SourceDetectionResult.image_has_beam_parameters(
+                dirty
+            ):
+                beam = SourceDetectionResult.guess_beam_parameters(
+                    imager, beam_guessing_method
                 )
-            elif beam is None and not SourceDetectionResult.image_has_beam_parameters(dirty):
-                beam = SourceDetectionResult.guess_beam_parameters(imager, beam_guessing_method)
             else:
-                raise KaraboWarning("No beam parameter found. Source detection might fail.")
-                         
+                raise KaraboWarning(
+                    "No beam parameter found. Source detection might fail."
+                )
+
         detection = bdsf.process_image(
             dirty.file.path, beam=beam, quiet=quiet, format="csv"
         )
-        
+
         return PyBDSFSourceDetectionResult(detection)
-            
+
     def write_to_file(self, path: str) -> None:
         """
         Save Source Detection Result to ZIP Archive containing the .fits source image and source-finding catalog.
@@ -95,7 +104,7 @@ class SourceDetectionResult(KaraboResource):
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, "zip", tempdir.path)
-        
+
     @staticmethod
     def image_has_beam_parameters(image: Image) -> bool:
         """
@@ -103,29 +112,26 @@ class SourceDetectionResult(KaraboResource):
         :param image: Image to check
         :return: True if the image has the beam parameters in the header
         """
-        return image_header_has_parameters(
-            image, ["BMAJ", "BMIN", "BPA"]
-        )
-        
+        return image_header_has_parameters(image, ["BMAJ", "BMIN", "BPA"])
+
     @staticmethod
-    def guess_beam_parameters(imager: Imager, method='rascil_1_iter') -> Tuple[float, float, float]:
+    def guess_beam_parameters(
+        imager: Imager, method="rascil_1_iter"
+    ) -> Tuple[float, float, float]:
         """
         Guess the beam parameters from the image header.
         :param imager: Imager to guess the beam parameters from
         :param method: Method to use for guessing the beam parameters.
         :return: (BMAJ, BMIN, BPA)
         """
-        if method == 'rascil_1_iter':
+        if method == "rascil_1_iter":
             # TODO: Investigate why those parameters need to be set.
             imager.ingest_chan_per_blockvis = 1
             imager.ingest_vis_nchan = 16
-            # Run 
-            _, restored, _ = imager.imaging_rascil(
-                clean_niter=1,
-                clean_nmajor=1
-                )
+            # Run
+            _, restored, _ = imager.imaging_rascil(clean_niter=1, clean_nmajor=1)
         else:
-            raise NotImplementedError('Only rascil_1_iter is implemented')
+            raise NotImplementedError("Only rascil_1_iter is implemented")
 
         return (
             restored.header["BMAJ"],

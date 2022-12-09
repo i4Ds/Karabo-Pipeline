@@ -75,26 +75,28 @@ class SourceDetectionEvaluation:
         assignment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
             truth.T, pred.T, distance_threshold
         )
-        tp, fp, fn = SourceDetectionEvaluation.calculate_evaluation_measures(
-            assignment
-        )
+        tp, fp, fn = SourceDetectionEvaluation.calculate_evaluation_measures(assignment)
         result = SourceDetectionEvaluation(
             assignment, sky, source_detection_result, tp, fp, fn
         )
         return result
-    
+
     @staticmethod
-    def __return_multiple_assigned_detected_points(assigments: np.ndarray) -> np.ndarray:
+    def __return_multiple_assigned_detected_points(
+        assigments: np.ndarray,
+    ) -> np.ndarray:
         """
         Returns the indices of the predicted sources that are assigned to more than one ground truth source.
         """
         # Check if a ground truth point is assigned to more than one predicted point
-        unique_counts = np.unique(assigments[:, 0], return_counts=True) # O(nlogn)
+        unique_counts = np.unique(assigments[:, 0], return_counts=True)  # O(nlogn)
         pred_multiple_assignment = unique_counts[0][unique_counts[1] > 1]
         # Don't check unassigned points (When no points are below the max distance by kdtree, they are assigned to input.shape, which we replace to -1).
-        pred_multiple_assignment = pred_multiple_assignment[pred_multiple_assignment != -1]
+        pred_multiple_assignment = pred_multiple_assignment[
+            pred_multiple_assignment != -1
+        ]
         return pred_multiple_assignment
-        
+
     @staticmethod
     def automatic_assignment_of_ground_truth_and_prediction(
         ground_truth: np.ndarray, detected: np.ndarray, max_dist: float, top_k: int = 3
@@ -124,42 +126,65 @@ class SourceDetectionEvaluation:
         """
         # With scipy.spatial.KDTree get the closest detection point for each ground truth point
         tree = KDTree(ground_truth)
-        distance, idx_assigment_pred = tree.query(detected, k=top_k, distance_upper_bound=max_dist)
+        distance, idx_assigment_pred = tree.query(
+            detected, k=top_k, distance_upper_bound=max_dist
+        )
         # Replace unassigned points with -1
         idx_assigment_pred[distance == np.inf] = -1
         # Check if a ground truth point is assigned to more than one predicted point
-        pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(idx_assigment_pred)
+        pred_multiple_assignments = (
+            SourceDetectionEvaluation.__return_multiple_assigned_detected_points(
+                idx_assigment_pred
+            )
+        )
         while len(pred_multiple_assignments) > 0:
             for pred_multiple_assignment in pred_multiple_assignments:
                 # Get idx
-                idx_pred_multiple_assigment = np.where(idx_assigment_pred[:, 0] == pred_multiple_assignment)
-                idx_max_distance_multiple_assigment = np.argmax(distance[idx_pred_multiple_assigment, 0])
-                idx_max_distance_multiple_assigment = idx_pred_multiple_assigment[0][idx_max_distance_multiple_assigment]
+                idx_pred_multiple_assigment = np.where(
+                    idx_assigment_pred[:, 0] == pred_multiple_assignment
+                )
+                idx_max_distance_multiple_assigment = np.argmax(
+                    distance[idx_pred_multiple_assigment, 0]
+                )
+                idx_max_distance_multiple_assigment = idx_pred_multiple_assigment[0][
+                    idx_max_distance_multiple_assigment
+                ]
                 # Switch the assignment to the next closest point by rolling the row with the highest distance one to the left
-                distance[idx_max_distance_multiple_assigment, :] = np.roll(distance[idx_max_distance_multiple_assigment, :], -1)
+                distance[idx_max_distance_multiple_assigment, :] = np.roll(
+                    distance[idx_max_distance_multiple_assigment, :], -1
+                )
                 # To avoid infinite loops, we set the last element to np.inf.
                 distance[idx_max_distance_multiple_assigment, -1] = np.inf
-                idx_assigment_pred[idx_max_distance_multiple_assigment, :] = np.roll(idx_assigment_pred[idx_max_distance_multiple_assigment, :], -1)
+                idx_assigment_pred[idx_max_distance_multiple_assigment, :] = np.roll(
+                    idx_assigment_pred[idx_max_distance_multiple_assigment, :], -1
+                )
                 # Update points with no assignment with -1
-                idx_assigment_pred[distance == np.inf] = -1   
+                idx_assigment_pred[distance == np.inf] = -1
                 # Check if a ground truth point is assigned to more than one predicted point
-                pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(idx_assigment_pred)
-        
-        
-        assigments = np.array([idx_assigment_pred[:, 0], np.arange(detected.shape[0]), distance[:, 0]]).T
-        
+                pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(
+                    idx_assigment_pred
+                )
+
+        assigments = np.array(
+            [idx_assigment_pred[:, 0], np.arange(detected.shape[0]), distance[:, 0]]
+        ).T
+
         # If there are more predicitons than GTs, we need to add the missing GTs.
-        missing_gts = np.setdiff1d(np.arange(ground_truth.shape[0]), assigments[:,0])
+        missing_gts = np.setdiff1d(np.arange(ground_truth.shape[0]), assigments[:, 0])
         missing_gts = missing_gts[missing_gts != -1]
         if len(missing_gts) > 0:
-            missing_gts = np.array([missing_gts, np.full(len(missing_gts), -1), np.full(len(missing_gts), np.inf)])
+            missing_gts = np.array(
+                [
+                    missing_gts,
+                    np.full(len(missing_gts), -1),
+                    np.full(len(missing_gts), np.inf),
+                ]
+            )
             assigments = np.vstack([assigments, missing_gts.T])
-        return assigments[assigments[:,0].argsort()]
+        return assigments[assigments[:, 0].argsort()]
 
     @staticmethod
-    def calculate_evaluation_measures(
-        assignments: np.ndarray
-    ) -> tuple:
+    def calculate_evaluation_measures(assignments: np.ndarray) -> tuple:
         """
         Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
         - TP are the detections associated with a source
@@ -173,7 +198,9 @@ class SourceDetectionEvaluation:
 
         :return: TP, FP, FN
         """
-        tp = assignments[np.logical_and(assignments[:, 1] != -1,assignments[:, 0] != -1), :].shape[0]
+        tp = assignments[
+            np.logical_and(assignments[:, 1] != -1, assignments[:, 0] != -1), :
+        ].shape[0]
         fp = assignments[assignments[:, 1] == -1, :].shape[0]
         fn = assignments[assignments[:, 0] == -1, :].shape[0]
         return tp, fp, fn
@@ -221,7 +248,7 @@ class SourceDetectionEvaluation:
         truth_indexes = np.array(source_matches[:, 0], dtype=int)
         pred_indexes = np.array(source_matches[:, 1], dtype=int)
         meta = source_matches[:, 2]
-    
+
         predictions = self.source_detection.detected_sources[pred_indexes]
         truths = self.__sky_array_to_same_shape_as_detection(truth_indexes, sky)
         meta = np.vstack((meta, np.zeros((6, meta.shape[0])))).transpose()
@@ -284,7 +311,7 @@ class SourceDetectionEvaluation:
         ra_dec_truth = truth[:, [1, 2]].transpose()
         ra_dec_det = detection[:, [1, 2]].transpose()
         error = ra_dec_truth - ra_dec_det
-        
+
         plt.xlabel("RA (deg) error / x")
         plt.ylabel("DEC (deg) error / y")
         plt.plot(error[0], error[1], "o", markersize=8, color="r", alpha=0.5)
@@ -293,7 +320,7 @@ class SourceDetectionEvaluation:
             plt.show(block=False)
         else:
             plt.show()
-            
+
     def plot_confusion_matrix(self, file_name=None):
         conf_matrix = self.get_confusion_matrix()
         #
@@ -303,18 +330,25 @@ class SourceDetectionEvaluation:
         ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
         for i in range(conf_matrix.shape[0]):
             for j in range(conf_matrix.shape[1]):
-                ax.text(x=j, y=i,s=int(conf_matrix[i, j]), va='center', ha='center', size='x-large')
-        
-        plt.xlabel('Predicted', fontsize=13)
-        plt.ylabel('Reference', fontsize=13)
-        plt.title('Confusion Matrix', fontsize=13)
-        
+                ax.text(
+                    x=j,
+                    y=i,
+                    s=int(conf_matrix[i, j]),
+                    va="center",
+                    ha="center",
+                    size="x-large",
+                )
+
+        plt.xlabel("Predicted", fontsize=13)
+        plt.ylabel("Reference", fontsize=13)
+        plt.title("Confusion Matrix", fontsize=13)
+
         if file_name:
             plt.savefig(file_name)
             plt.show(block=False)
         else:
             plt.show()
-            
+
     def plot_quiver_positions(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2]].transpose().astype(float)

@@ -25,7 +25,7 @@ from karabo.simulation.visibility import Visibility
 class Imager:
     """Imager class provides imaging functionality using the visibilities of an observation with the help of RASCIL.
     In addition, it provides the calculation of the pixel coordinates of point sources.
-    
+
     Parameters
     ----------
     visibility : Visibility, required
@@ -41,7 +41,7 @@ class Imager:
     ingest_chan_per_blockvis : int, defualt=1,
         Number of channels per blockvis (before any average)
     ingest_average_blockvis : Union[bool, str], default=False,
-        Average all channels in blockvis. 
+        Average all channels in blockvis.
     imaging_phasecentre : str, default=None
         Phase centre (in SkyCoord string format)
     imaging_pol : str, default="stokesI"
@@ -80,53 +80,52 @@ class Imager:
     ...
     >>> SourceDetectionResult.detect_sources_in_image(restored)
     """
+
     def __init__(
         self,
         visibility: Visibility,
-        logfile: str = None,
-        performance_file: str = None, 
+        logfile: Union[None, str] = None,
+        performance_file: Union[None, str] = None,
         ingest_dd: List[int] = [0],
-        ingest_vis_nchan: int = None,
+        ingest_vis_nchan: Union[None, int] = None,
         ingest_chan_per_blockvis: int = 1,
-        ingest_average_blockvis: Union[
-            bool, str
-        ] = False,
-        imaging_phasecentre: str = None,
+        ingest_average_blockvis: Union[bool, str] = False,
+        imaging_phasecentre: Union[None, str] = None,
         imaging_pol: str = "stokesI",
         imaging_nchan: int = 1,
         imaging_context: str = "ng",
         imaging_ng_threads: int = 4,
-        imaging_w_stacking: Union[bool, str] = True, 
-        imaging_flat_sky: Union[bool, str] = False, 
-        imaging_npixel: int = None,
-        imaging_cellsize: float = None,
+        imaging_w_stacking: Union[bool, str] = True,
+        imaging_flat_sky: Union[bool, str] = False,
+        imaging_npixel: Union[None, int] = None,
+        imaging_cellsize: Union[None, float] = None,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,
-        imaging_gaussian_taper: float = None,
+        imaging_gaussian_taper: Union[None, float] = None,
         imaging_dopsf: Union[bool, str] = False,
-        imaging_dft_kernel: str = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
+        imaging_dft_kernel: Union[None, str] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
     ):
-        self.logfile: str = logfile
-        self.performance_file: str = performance_file
-        self.visibility: Visibility = visibility
-        self.ingest_dd: List[int] = ingest_dd
-        self.ingest_vis_nchan: int = ingest_vis_nchan
-        self.ingest_chan_per_blockvis: int = ingest_chan_per_blockvis
-        self.ingest_average_blockvis: Union[bool, str] = ingest_average_blockvis
-        self.imaging_phasecentre: str = imaging_phasecentre
-        self.imaging_pol: str = imaging_pol
-        self.imaging_nchan: int = imaging_nchan
-        self.imaging_context: str = imaging_context
-        self.imaging_ng_threads: int = imaging_ng_threads
-        self.imaging_w_stacking: Union[bool, str] = imaging_w_stacking
-        self.imaging_flat_sky: Union[bool, str] = imaging_flat_sky
-        self.imaging_npixel: int = imaging_npixel
-        self.imaging_cellsize: float = imaging_cellsize
-        self.imaging_weighting: str = imaging_weighting
-        self.imaging_robustness: float = imaging_robustness
-        self.imaging_gaussian_taper: float = imaging_gaussian_taper
-        self.imaging_dopsf: Union[bool, str] = imaging_dopsf
-        self.imaging_dft_kernel: str = imaging_dft_kernel
+        self.logfile = logfile
+        self.performance_file = performance_file
+        self.visibility = visibility
+        self.ingest_dd = ingest_dd
+        self.ingest_vis_nchan = ingest_vis_nchan
+        self.ingest_chan_per_blockvis = ingest_chan_per_blockvis
+        self.ingest_average_blockvis = ingest_average_blockvis
+        self.imaging_phasecentre = imaging_phasecentre
+        self.imaging_pol = imaging_pol
+        self.imaging_nchan = imaging_nchan
+        self.imaging_context = imaging_context
+        self.imaging_ng_threads = imaging_ng_threads
+        self.imaging_w_stacking = imaging_w_stacking
+        self.imaging_flat_sky = imaging_flat_sky
+        self.imaging_npixel = imaging_npixel
+        self.imaging_cellsize = imaging_cellsize
+        self.imaging_weighting = imaging_weighting
+        self.imaging_robustness = imaging_robustness
+        self.imaging_gaussian_taper = imaging_gaussian_taper
+        self.imaging_dopsf = imaging_dopsf
+        self.imaging_dft_kernel = imaging_dft_kernel
 
     def __getattribute__(self, name) -> object:
         """
@@ -157,12 +156,11 @@ class Imager:
 
     def imaging_rascil(
         self,
-        client: Client = None,
+        client: Union[Client, None] = None,
         use_dask: bool = False,
         n_threads: int = 1,
-        use_cuda: bool = False, # If True, use CUDA for Nifty Gridder
-        img_context: str = "ng", # Imaging context: Which nifty gridder to use. See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
-        num_bright_sources: int = None,
+        use_cuda: bool = False,  # If True, use CUDA for Nifty Gridder
+        img_context: str = "ng",  # Imaging context: Which nifty gridder to use. See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
         # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
         clean_algorithm: str = "hogbom",
         # Type of deconvolution algorithm (hogbom or msclean or mmclean)
@@ -210,7 +208,7 @@ class Imager:
             print(client.cluster)
         # Set CUDA parameters
         if use_cuda:
-            img_context='wg'
+            img_context = "wg"
         rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
         blockviss = create_blockvisibility_from_ms_rsexecute(

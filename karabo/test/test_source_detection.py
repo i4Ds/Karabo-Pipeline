@@ -19,6 +19,7 @@ from karabo.util.dask import get_global_client
 # import wagg as wg #This gives an ImportError if no GPU is available
 import numpy as np
 
+
 class TestSourceDetection(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -28,7 +29,7 @@ class TestSourceDetection(unittest.TestCase):
 
         if not os.path.exists("result/test_dec"):
             os.makedirs("result/test_dec")
-            
+
     def test_source_detection_plot(self):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs([250, -80])
@@ -45,7 +46,7 @@ class TestSourceDetection(unittest.TestCase):
         mapping.plot_flux_ratio_to_distance()
         mapping.plot_flux_ratio_to_ra_dec()
         mapping.plot_flux_histogram()
-        
+
     def test_automatic_assignment_of_ground_truth_and_prediction(self):
         ## Test that the automatic assignment of ground truth and prediction works
         # Create matrices of ground truth and prediction
@@ -53,35 +54,31 @@ class TestSourceDetection(unittest.TestCase):
         detected = np.flipud(gtruth)
 
         # Calculate result
-        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(gtruth, detected, 0.5, top_k=3)
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+            gtruth, detected, 0.5, top_k=3
+        )
 
         # Check that the result is correct by flipping the assigment and checking that it is equal
-        assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
+        assert np.all(
+            assigment[:, 0] == np.flipud(assigment[:, 1])
+        ), "Automatic assignment of ground truth and detected is not correct"
 
         ## Check reassigment of detected points, i.e. that the same detected point is not assigned to multiple ground truth points
         # Create matrices of ground truth and prediction
-        gtruth = np.array([
-            [1.0, 0.0],
-            [2.0, 0.0],
-            [3.0, 0.0],
-            [4.0, 0.0]
-            ]
-        )
+        gtruth = np.array([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]])
 
-        detected = np.array([
-            [0.0, 0.0],
-            [0.1, 0.0],
-            [0.2, 0.0],
-            [0.3, 0.0]
-            ]
-        )
+        detected = np.array([[0.0, 0.0], [0.1, 0.0], [0.2, 0.0], [0.3, 0.0]])
 
         # Calculate result
-        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(gtruth, detected, np.inf, top_k=4)
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+            gtruth, detected, np.inf, top_k=4
+        )
 
         # Check that the result is correct by flipping the assigment and checking that it is equal
-        assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
-        
+        assert np.all(
+            assigment[:, 0] == np.flipud(assigment[:, 1])
+        ), "Automatic assignment of ground truth and detected is not correct"
+
     # # # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_detection(self):
     #     image = Image.read_from_file(f"{data_path}/restored.fits")
@@ -90,9 +87,8 @@ class TestSourceDetection(unittest.TestCase):
     #     # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
     #     pixels = detection.get_pixel_position_of_sources()
     #     print(pixels)
-    
-    
-    #TODO: Investigate why this error sometimes fails and sometimes doesn't, especially when running it on github hosted instances.
+
+    # TODO: Investigate why this error sometimes fails and sometimes doesn't, especially when running it on github hosted instances.
     """
     def test_create_detection_from_ms_small(self):
         phasecenter = np.array([225, -65])
@@ -351,6 +347,3 @@ class TestSourceDetection(unittest.TestCase):
         assert type(image_gpu) == np.ndarray
         assert MAE < 1.e-02, "WAGG does not correctly reconstruct the image" 
         """
-
-        
-        

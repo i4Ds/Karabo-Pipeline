@@ -420,8 +420,8 @@ class SkyModel:
         data = self[:, 0:3]
         flux = data[:, 2]
         log_flux = np.log10(flux)
-        radec = SkyCoord([data[:,0]], [data[:,1]], frame='icrs', unit='deg')
-        x,y=self.wcs.world_to_pixel(radec)
+        radec = SkyCoord([data[:, 0]], [data[:, 1]], frame="icrs", unit="deg")
+        x, y = self.wcs.world_to_pixel(radec)
         plt.subplot(projection=self.wcs, slices=slices)
         sc = plt.scatter(
             x,

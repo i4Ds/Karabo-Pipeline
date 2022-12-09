@@ -59,11 +59,13 @@ def poisson_disc_samples(width, height, r, k=5, distance=euclidean_distance):
     return [p for p in grid if p is not None]
 
 
-def get_poisson_disk_sky(min_size: Tuple[float, float],
-                         max_size: Tuple[float, float],
-                         flux_min: float,
-                         flux_max: float,
-                         r=10):
+def get_poisson_disk_sky(
+    min_size: Tuple[float, float],
+    max_size: Tuple[float, float],
+    flux_min: float,
+    flux_max: float,
+    r=10,
+):
     assert flux_max >= flux_min
     x = min_size[0]
     y = min_size[1]
@@ -91,7 +93,7 @@ def long_lat_to_cartesian(lat, lon):
     x = R * cos(lat) * cos(lon)
     y = R * cos(lat) * sin(lon)
     z = R * sin(lat)
-    return np.array([x, y, z])/ np.linalg.norm(np.array([x, y, z]))
+    return np.array([x, y, z]) / np.linalg.norm(np.array([x, y, z]))
 
 
 #
@@ -107,7 +109,7 @@ R = 6360000  # earth radius
 
 def cartesian_to_ll(x, y, z=0):
     # does not use `z`
-    r = math.sqrt(x ** 2 + y ** 2)
+    r = math.sqrt(x**2 + y**2)
     long = 180 * math.atan2(y, x) / math.pi
     lat = 180 * math.acos(r / R) / math.pi
     return lat, long

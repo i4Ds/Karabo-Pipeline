@@ -5,7 +5,6 @@ from karabo.simulation.sky_model import SkyModel
 
 
 class TestData(unittest.TestCase):
-
     def test_download_gleam(self):
         survey = GLEAMSurveyDownloadObject()
         survey.get()
