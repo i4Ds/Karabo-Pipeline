@@ -3,9 +3,11 @@ from operator import mod
 import numpy as np
 from datetime import timedelta, datetime
 from karabo.error import KaraboError
+from karabo.warning import KaraboWarning
 
 from karabo.karabo_resource import KaraboResource
 
+from karabo.util.gpu_util import is_cuda_available
 
 class Observation(KaraboResource):
     """
@@ -33,6 +35,7 @@ class Observation(KaraboResource):
         start_frequency_hz:float=0,
         start_date_and_time:datetime=datetime.utcnow(),
         length:timedelta=timedelta(hours=12),
+        use_gpu:bool = False,
         number_of_channels:float=1,
         frequency_increment_hz:float=0,
         phase_centre_ra_deg:float=0,
@@ -47,6 +50,10 @@ class Observation(KaraboResource):
         self.mode: str = mode
 
         # optional
+        if use_gpu and not is_cuda_available():
+            print(KaraboWarning("GPU not available. Using CPU instead."))
+            use_gpu = False
+        self.use_gpu: bool = use_gpu
         self.number_of_channels: float = number_of_channels
         self.frequency_increment_hz: float = frequency_increment_hz
         self.phase_centre_ra_deg: float = phase_centre_ra_deg
@@ -79,6 +86,9 @@ class Observation(KaraboResource):
         :return: Dictionary containing the full configuration in the OSKAR Settings Tree format.
         """
         settings = {
+            "simulator": {
+                "use_gpus": self.use_gpu
+            },
             "observation": {
                 "start_frequency_hz": str(self.start_frequency_hz),
                 "mode":self.mode,
