@@ -17,7 +17,8 @@ class TestSimulation(unittest.TestCase):
         if not os.path.exists('result/sim'):
             os.makedirs('result/sim')
 
-    def test_oskar_basic_GPU(self):
+    def test_oskar_simulation_basic(self):
+        # Tests oskar simulation. Should use GPU if available and if not, CPU.
         sky = SkyModel()
         sky_data = np.array([
             [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
@@ -33,7 +34,6 @@ class TestSimulation(unittest.TestCase):
                                             time_average_sec=10)
         observation = Observation(
             start_frequency_hz=100e6,
-            use_gpu=True,
             phase_centre_ra_deg=240,
             phase_centre_dec_deg=-70,
             number_of_time_steps=24,
