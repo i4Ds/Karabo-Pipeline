@@ -146,7 +146,7 @@ class Image(KaraboResource):
 
     def get_power_spectrum(
         self, resolution=5.0e-4, signal_channel=None
-    ) -> Tuple(npt.NDArray, npt.NDArray):
+    ) -> Tuple[npt.NDArray, npt.NDArray]:
         """
         Calculate the power spectrum of this image.
 
@@ -215,7 +215,7 @@ class Image(KaraboResource):
 
     def project_sky_to_image(
         self, sky: "SkyModel", filter_outliers=False
-    ) -> Tuple(npt.NDArray, npt.NDArray, npt.NDArray):
+    ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
         """
         Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image.
         The WCS of this image will be used to transform the sky coordinates.
