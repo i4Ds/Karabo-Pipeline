@@ -452,16 +452,38 @@ class SkyModel:
         plt.axis("equal")
         if cbar_label is None: cbar_label = ''
         plt.colorbar(sc, label=cbar_label)
-        if title is not None: plt.title(title)
-        if xlim is not None: plt.xlim(xlim)
-        if ylim is not None: plt.ylim(ylim)
-        if xlabel is not None: plt.xlabel(xlabel)
-        if ylabel is not None: plt.ylabel(ylabel)
-        plt.show(block=False)
-        plt.pause(1)
+        plt.title(title)
+        plt.xlim(xlim)
+        plt.ylim(ylim)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.show()
 
-        if isinstance(filename, str):
-            fig.savefig(fname=filename)
+    def plot_sky(self, phase_center: Tuple[float, float] = (0, 0)):
+        if self.wcs is None:
+            self.setup_default_wcs(phase_center)
+
+        slices = get_slices(self.wcs)
+        data = self[:, 0:3]
+        flux = data[:, 2]
+        log_flux = np.log10(flux)
+        radec = SkyCoord([data[:, 0]], [data[:, 1]], frame="icrs", unit="deg")
+        x, y = self.wcs.world_to_pixel(radec)
+        plt.subplot(projection=self.wcs, slices=slices)
+        sc = plt.scatter(
+            x,
+            y,
+            s=0.5,
+            c=log_flux,
+            cmap="plasma",
+            vmin=np.min(log_flux),
+            vmax=np.max(log_flux),
+        )
+        plt.axis("equal")
+        plt.xlabel("x direction cosine")
+        plt.ylabel("y direction cosine")
+        plt.colorbar(sc, label="Log10(Stokes I flux [Jy])")
+        plt.show()
 
     def get_OSKAR_sky(self) -> oskar.Sky:
         """

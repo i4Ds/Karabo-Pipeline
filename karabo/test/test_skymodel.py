@@ -9,19 +9,21 @@ from karabo.data.external_data import ExampleHDF5Map
 
 
 class TestSkyModel(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls) -> None:
         # make dir for result files
-        if not os.path.exists('result/'):
-            os.makedirs('result/')
+        if not os.path.exists("result/"):
+            os.makedirs("result/")
 
     def test_init(self):
         sky1 = SkyModel()
-        sky_data = np.array([
-            [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, 'source1'],
-            [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, 'source2'],
-            [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, 'source3']])
+        sky_data = np.array(
+            [
+                [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, "source1"],
+                [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, "source2"],
+                [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, "source3"],
+            ]
+        )
         sky1.add_point_sources(sky_data)
         sky2 = SkyModel(sky_data)
         # test if sources are inside now
@@ -30,10 +32,7 @@ class TestSkyModel(unittest.TestCase):
 
     def test_not_full_array(self):
         sky1 = SkyModel()
-        sky_data = np.array([
-            [20.0, -30.0, 1],
-            [20.0, -30.5, 3],
-            [20.5, -30.5, 3]])
+        sky_data = np.array([[20.0, -30.0, 1], [20.0, -30.5, 3], [20.5, -30.5, 3]])
         sky1.add_point_sources(sky_data)
         sky2 = SkyModel(sky_data)
         # test if doc shape were expanded
@@ -48,10 +47,13 @@ class TestSkyModel(unittest.TestCase):
 
     def test_get_cartesian(self):
         sky1 = SkyModel()
-        sky_data = np.array([
-            [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, 'source1'],
-            [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, 'source2'],
-            [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, 'source3']])
+        sky_data = np.array(
+            [
+                [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, "source1"],
+                [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, "source2"],
+                [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, "source3"],
+            ]
+        )
         sky1.add_point_sources(sky_data)
         cart_sky = sky1.get_cartesian_sky()
         print(cart_sky)
@@ -59,27 +61,26 @@ class TestSkyModel(unittest.TestCase):
     def test_filter_sky_model(self):
         sky = SkyModel.get_GLEAM_Sky()
         phase_center = [250, -80]  # ra,dec
-        filtered_sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
+        filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
         filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(
             phase_center=phase_center,
             figsize=(8, 6),
             s=80,
-            xlim=(254, 246), # RA-lim
-            ylim=(-81, -79), # DEC-lim
+            xlim=(-0.55, 0.55),
+            ylim=(-0.55, 0.55),
             with_labels=True,
         )
         filtered_sky.write_to_file("./result/filtered_sky.csv")
 
     def test_read_sky_model(self):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
-        phase_center = [250, -80]  # ra,dec
         sky.explore_sky(
-            phase_center=phase_center,
+            phase_center=[250, -80],
             figsize=(8, 6),
             s=80,
-            xlim=(254, 246), # RA-lim
-            ylim=(-81, -79), # DEC-lim
+            xlim=(-0.55, 0.55),
+            ylim=(-0.55, 0.55),
             with_labels=True,
         )
 
@@ -87,9 +88,7 @@ class TestSkyModel(unittest.TestCase):
         download = ExampleHDF5Map()
         path = download.get()
         source_array, nside = SkyModel.read_healpix_file_to_sky_model_array(
-            f"{path}",
-            0,
-            Polarisation.STOKES_I,
+            f"{path}", 0, Polarisation.STOKES_I
         )
         sky = SkyModel(source_array, nside=nside)
         sky.explore_sky([250, -80])

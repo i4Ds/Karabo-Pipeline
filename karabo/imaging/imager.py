@@ -28,7 +28,7 @@ from karabo.simulation.sky_model import SkyModel
 class Imager:
     """Imager class provides imaging functionality using the visibilities of an observation with the help of RASCIL.
     In addition, it provides the calculation of the pixel coordinates of point sources.
-    
+
     Parameters
     ----------
     visibility : Visibility, required
@@ -44,7 +44,7 @@ class Imager:
     ingest_chan_per_blockvis : int, defualt=1,
         Number of channels per blockvis (before any average)
     ingest_average_blockvis : Union[bool, str], default=False,
-        Average all channels in blockvis. 
+        Average all channels in blockvis.
     imaging_phasecentre : str, default=None
         Phase centre (in SkyCoord string format)
     imaging_pol : str, default="stokesI"
@@ -83,33 +83,34 @@ class Imager:
     ...
     >>> SourceDetectionResult.detect_sources_in_image(restored)
     """
+
     def __init__(
         self,
         visibility: Visibility,
-        logfile: Optional[str] = None,
-        performance_file: Optional[str] = None, 
+        logfile: Union[None, str] = None,
+        performance_file: Union[None, str] = None,
         ingest_dd: List[int] = [0],
-        ingest_vis_nchan: Optional[int] = None,
+        ingest_vis_nchan: Union[None, int] = None,
         ingest_chan_per_blockvis: int = 1,
         ingest_average_blockvis: Union[bool, str] = False,
-        imaging_phasecentre: Optional[str] = None,
+        imaging_phasecentre: Union[None, str] = None,
         imaging_pol: str = "stokesI",
         imaging_nchan: int = 1,
         imaging_context: str = "ng",
         imaging_ng_threads: int = 4,
         imaging_w_stacking: Union[bool, str] = True,
-        imaging_flat_sky: Union[bool, str] = False, 
-        imaging_npixel: Optional[int] =  None,
-        imaging_cellsize: Optional[float] = None,
+        imaging_flat_sky: Union[bool, str] = False,
+        imaging_npixel: Union[None, int] = None,
+        imaging_cellsize: Union[None, float] = None,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,
-        imaging_gaussian_taper: Optional[float] = None,
-        imaging_dopsf: Union[bool,str] = False,
-        imaging_dft_kernel: Optional[str] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
-    ) -> None:
-        self.visibility = visibility
+        imaging_gaussian_taper: Union[None, float] = None,
+        imaging_dopsf: Union[bool, str] = False,
+        imaging_dft_kernel: Union[None, str] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
+    ):
         self.logfile = logfile
         self.performance_file = performance_file
+        self.visibility = visibility
         self.ingest_dd = ingest_dd
         self.ingest_vis_nchan = ingest_vis_nchan
         self.ingest_chan_per_blockvis = ingest_chan_per_blockvis
@@ -158,12 +159,11 @@ class Imager:
 
     def imaging_rascil(
         self,
-        client: Optional[Client] = None,
+        client: Union[Client, None] = None,
         use_dask: bool = False,
         n_threads: int = 1,
-        use_cuda: bool = False, # If True, use CUDA for Nifty Gridder
-        img_context: str = "ng", # Imaging context: Which nifty gridder to use. See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
-        num_bright_sources: Optional[int] = None,
+        use_cuda: bool = False,  # If True, use CUDA for Nifty Gridder
+        img_context: str = "ng",  # Imaging context: Which nifty gridder to use. See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
         # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
         clean_algorithm: str = "hogbom",
         # Type of deconvolution algorithm (hogbom or msclean or mmclean)
@@ -209,7 +209,7 @@ class Imager:
             print(client.cluster)
         # Set CUDA parameters
         if use_cuda:
-            img_context='wg'
+            img_context = "wg"
         rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
         blockviss = create_blockvisibility_from_ms_rsexecute(

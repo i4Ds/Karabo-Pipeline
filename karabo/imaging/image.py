@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 import shutil
 import uuid
-from typing import Tuple, Dict, List, Any, Optional
+from typing import Tuple, List
 
 import matplotlib
 import numpy
@@ -23,8 +23,7 @@ matplotlib.use(previous_backend)
 
 
 class Image(KaraboResource):
-
-    def __init__(self, name=None) -> None:
+    def __init__(self, name=None):
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
@@ -35,14 +34,16 @@ class Image(KaraboResource):
 
     def write_to_file(self, path: str) -> None:
         if not path.endswith(".fits"):
-            raise EnvironmentError("The passed path and name of file must end with .fits")
+            raise EnvironmentError(
+                "The passed path and name of file must end with .fits"
+            )
 
         shutil.copy(self.file.path, path)
 
     @staticmethod
-    def read_from_file(path: str) -> Image:
+    def read_from_file(path: str) -> "Image":
         image = Image()
-        image.file = FileHandle(existing_file_path=path, mode='r')
+        image.file = FileHandle(existing_file_path=path, mode="r")
         return image
 
     # overwrite getter to make sure it always contains the data
@@ -71,20 +72,21 @@ class Image(KaraboResource):
 
     def plot(self, title:str) -> None:
         import matplotlib.pyplot as plt
+
         wcs = WCS(self.header)
         print(wcs)
 
         slices = []
         for i in range(wcs.pixel_n_dim):
             if i == 0:
-                slices.append('x')
+                slices.append("x")
             elif i == 1:
-                slices.append('y')
+                slices.append("y")
             else:
                 slices.append(0)
 
-        ax=plt.subplot(projection=wcs, slices=slices)
-        plt.imshow(self.data[0][0], cmap="jet", origin='lower')
+        ax = plt.subplot(projection=wcs, slices=slices)
+        plt.imshow(self.data[0][0], cmap="jet", origin="lower")
         plt.colorbar(label=title)
         ax.invert_xaxis()
         plt.show(block=False)
@@ -101,7 +103,7 @@ class Image(KaraboResource):
         result = []
         dimensions = self.header["NAXIS"]
         for dim in np.arange(0, dimensions, 1):
-            result.append(self.header[f'NAXIS{dim + 1}'])
+            result.append(self.header[f"NAXIS{dim + 1}"])
         return result
 
     def get_phase_center(self) -> Tuple[float, float]:
@@ -134,7 +136,9 @@ class Image(KaraboResource):
             "rms": np.std(self.data),
             "sum": np.sum(self.data),
             "median-abs": np.median(np.abs(self.data)),
-            "median-abs-dev-median": np.median(np.abs(self.data - np.median(self.data))),
+            "median-abs-dev-median": np.median(
+                np.abs(self.data - np.median(self.data))
+            ),
             "median": np.median(self.data),
             "mean": np.mean(self.data),
         }
@@ -142,10 +146,8 @@ class Image(KaraboResource):
         return image_stats
 
     def get_power_spectrum(
-        self,
-        resolution:float=5.0e-4,
-        signal_channel:Optional[int]=None,
-    ) -> Tuple[NDArray[np.float64], NDArray[np.floating]]:
+        self, resolution=5.0e-4, signal_channel=None
+    ) -> Tuple(npt.NDArray, npt.NDArray):
         """
         Calculate the power spectrum of this image.
 
@@ -160,10 +162,7 @@ class Image(KaraboResource):
         return profile, theta
 
     def plot_power_spectrum(
-        self,
-        resolution:float=5.0e-4,
-        signal_channel:Optional[int]=None,
-        save_png:bool=False,
+        self, resolution=5.0e-4, signal_channel=None, save_png=False
     ) -> None:
         """
         Plot the power spectrum of this image.
@@ -176,7 +175,9 @@ class Image(KaraboResource):
         plt.clf()
 
         plt.plot(theta, profile)
-        plt.gca().set_title(f"Power spectrum of {self.name if self.name is not None else ''} image")
+        plt.gca().set_title(
+            f"Power spectrum of {self.name if self.name is not None else ''} image"
+        )
         plt.gca().set_xlabel("Angular scale [degrees]")
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
@@ -185,15 +186,18 @@ class Image(KaraboResource):
         plt.tight_layout()
 
         if save_png:
-            plt.savefig(f"./power_spectrum_{self.name if self.name is not None else uuid.uuid4()}")
-        plt.show(block=False)
-        plt.pause(1)
+            plt.savefig(
+                f"./power_spectrum_{self.name if self.name is not None else uuid.uuid4()}"
+            )
+        plt.show()
 
     def get_cellsize(self) -> float:
         cdelt1 = self.header["CDELT1"]
         cdelt2 = self.header["CDELT2"]
         if abs(cdelt1) != abs(cdelt2):
-            logging.warning("The Images's cdelt1 and cdelt2 are not the same in absolute value. Continuing with cdelt1")
+            logging.warning(
+                "The Images's cdelt1 and cdelt2 are not the same in absolute value. Continuing with cdelt1"
+            )
         return np.deg2rad(np.abs(cdelt1))
 
     def get_wcs(self) -> WCS:
@@ -207,9 +211,21 @@ class Image(KaraboResource):
         radian_degree = lambda rad: rad * (180 / np.pi)
         cdelt = radian_degree(self.get_cellsize())
         crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
-        wcs.wcs.crpix = np.array([crpix, crpix])
-        ra_sign = -1 if invert_ra else 1
-        wcs.wcs.cdelt = np.array([ra_sign*cdelt, cdelt])
-        wcs.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
-        wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
-        return wcs
+        w.wcs.crpix = np.array([crpix, crpix])
+        w.wcs.cdelt = np.array([-cdelt, cdelt])
+        w.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
+        w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
+        return w
+
+    def project_sky_to_image(
+        self, sky: "SkyModel", filter_outliers=False
+    ) -> Tuple(npt.NDArray, npt.NDArray, npt.NDArray):
+        """
+        Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image.
+        The WCS of this image will be used to transform the sky coordinates.
+
+        :param sky: Sky of which the sources will be projected onto the image plane.
+        :param filter_outliers: Exclude source
+        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
+        """
+        return sky.project_sky_to_image(self, filter_outliers)

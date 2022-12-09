@@ -1,7 +1,9 @@
 import numpy as np
 
 
-def east_north_to_long_lat(east_relative: float, north_relative: float, long: float, lat: float) -> (float, float):
+def east_north_to_long_lat(
+    east_relative: float, north_relative: float, long: float, lat: float
+) -> (float, float):
     """
     Calculate the longitude and latitude of an east-north coordinate based on some reference location.
 
@@ -16,5 +18,6 @@ def east_north_to_long_lat(east_relative: float, north_relative: float, long: fl
     r_earth = 6371000
     new_latitude = lat + (east_relative / r_earth) * (180 / np.pi)
     new_longitude = long + (north_relative / r_earth) * (180 / np.pi) / np.cos(
-        long * np.pi / 180)
+        long * np.pi / 180
+    )
     return new_longitude, new_latitude

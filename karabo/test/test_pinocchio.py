@@ -8,6 +8,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.imaging.imager import Imager
 from astropy import units as u
 
+
 class TestPinocchio(unittest.TestCase):
 
     RESULT_FOLDER = "./result"
@@ -29,7 +30,7 @@ class TestPinocchio(unittest.TestCase):
         p.save(TestPinocchio.RESULT_FOLDER)
         sky = p.getSkyModel()
         sky = sky.filter_by_radius(0, 1, 32, 45)
-        
+
         # telescope = Telescope.get_SKA1_MID_Telescope()
 
         # simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
