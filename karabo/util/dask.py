@@ -1,9 +1,10 @@
 import copy
 from typing import Callable, List
 
-import dask
-from dask import delayed
-from distributed import Client, LocalCluster
+from dask.delayed import delayed
+from dask.base import compute
+from distributed import Client
+from distributed.deploy.local import LocalCluster
 import psutil
 
 client = None
@@ -47,8 +48,8 @@ def parallel_for(n: int, function: Callable, *args):
 
     For example creating many simulations at once for running in parallel::
 
-        # we pass telescope as we want to use the same in every simulation, and so we only need to setup one.
-        # pass flux so we can use a different one in each iteration.
+        # we pass telescope as we want to use the same in every simulation, and so we only need to
+        # setup one. pass flux so we can use a different one in each iteration.
         def my_simulation_code(telescope, flux):
             # setup simulation settings and observation settings
             simulation = InterferometerSimulation(...)
@@ -75,13 +76,11 @@ def parallel_for(n: int, function: Callable, *args):
     for i in range(0, n):
         res = delayed(function)(*[copy.deepcopy(arg) for arg in args])
         results.append(res)
-    return dask.compute(*results)
+    return compute(*results)
 
 
-def parallel_for_each(arr: List[any], function: Callable, *args):
+def parallel_for_each(arr: List, function: Callable, *args):
     """
-
-
     :param arr:
     :param function:
     :param args:
@@ -91,4 +90,4 @@ def parallel_for_each(arr: List[any], function: Callable, *args):
     for value in arr:
         res = delayed(function)(value, *[copy.deepcopy(arg) for arg in args])
         results.append(res)
-    return dask.compute(*results)
+    return compute(*results)

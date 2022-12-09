@@ -1,7 +1,6 @@
 import enum
-import os
 import subprocess
-from typing import Callable
+from typing import Optional
 
 import eidos
 import numpy as np
@@ -32,39 +31,37 @@ class BeamPattern:
     def __init__(
         self,
         cst_file_path: str,
-        telescope: Telescope = None,
+        telescope: Optional[Telescope] = None,
         freq_hz: float = 0,
         pol: str = "XY",
         element_type_index: int = 0,
-        average_fractional_error_factor_increase: float = 1.1,
+        avg_frac_error_factor_inc: float = 1.1,
         ignore_data_at_pole: bool = True,
         avg_frac_error: float = 0.8,
         beam_method: str = "Gaussian Beam",
     ) -> None:
-        self.cst_file_path: str = cst_file_path
-        self.telescope: Telescope = telescope
-        self.freq_hz: float = freq_hz
-        self.pol: str = pol
-        self.element_type_index: int = element_type_index
-        self.average_fractional_error_factor_increase: float = (
-            average_fractional_error_factor_increase
-        )
+        self.cst_file_path = cst_file_path
+        self.telescope = telescope
+        self.freq_hz = freq_hz
+        self.pol = pol
+        self.element_type_index = element_type_index
+        self.avg_frac_error_factor_inc = avg_frac_error_factor_inc
         self.ignore_data_at_pole: bool = ignore_data_at_pole
         self.avg_frac_error: float = avg_frac_error
         self.beam_method: str = beam_method
 
     def fit_elements(
         self,
-        telescope: Telescope = None,
-        freq_hz: float = None,
-        pol: str = None,
-        element_type_index: int = None,
-        average_fractional_error_factor_increase: float = None,
-        ignore_data_at_pole: bool = None,
-        avg_frac_error: float = None,
+        telescope: Optional[Telescope] = None,
+        freq_hz: Optional[float] = None,
+        pol: Optional[str] = None,
+        element_type_index: Optional[int] = None,
+        avg_frac_error_factor_inc: Optional[float] = None,
+        ignore_data_at_pole: Optional[bool] = None,
+        avg_frac_error: Optional[float] = None,
     ) -> None:
         if telescope is not None:
-            self.telescope: Telescope = telescope
+            self.telescope = telescope
         if not isinstance(self.telescope, Telescope):
             raise KaraboError(
                 f"`telescope` is {type(self.telescope)} but must be of type `Telescope`!"
@@ -75,10 +72,8 @@ class BeamPattern:
             self.pol: str = pol
         if element_type_index is not None:
             self.element_type_index: int = element_type_index
-        if average_fractional_error_factor_increase is not None:
-            self.average_fractional_error_factor_increase: float = (
-                average_fractional_error_factor_increase
-            )
+        if avg_frac_error_factor_inc is not None:
+            self.avg_frac_error_factor_inc: float = avg_frac_error_factor_inc
         if ignore_data_at_pole is not None:
             self.ignore_data_at_pole: bool = ignore_data_at_pole
         if avg_frac_error is not None:
@@ -93,7 +88,7 @@ class BeamPattern:
             f"frequency_hz={self.freq_hz} \n"
             f"average_fractional_error={self.avg_frac_error} \n"
             f"pol_type={self.pol} \n"
-            f"average_fractional_error_factor_increase={self.average_fractional_error_factor_increase} \n"
+            f"average_fractional_error_factor_increase={self.avg_frac_error_factor_inc} \n"
             f"ignore_data_at_pole={self.ignore_data_at_pole} \n"
             f"element_type_index={self.element_type_index}\n"
             f"output_directory={self.telescope.path} \n"
