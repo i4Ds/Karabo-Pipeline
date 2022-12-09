@@ -1,11 +1,13 @@
 import numpy as np
+from typing import Union
 
 
 def east_north_to_long_lat(
     east_relative: float, north_relative: float, long: float, lat: float
-) -> (float, float):
+) -> Union[float, float]:
     """
-    Calculate the longitude and latitude of an east-north coordinate based on some reference location.
+    Calculate the longitude and latitude of an east-north coordinate based on some reference
+    location.
 
     :param east_relative: east coordinate in meters
     :param north_relative: north coordinate in meters
