@@ -2,7 +2,7 @@ import copy
 import enum
 import logging
 import math
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Optional
 
 import matplotlib.pyplot as plt
 import numpy
@@ -56,17 +56,17 @@ class SkyModel:
 
     """
 
-    def __init__(self, sources: np.ndarray = None, wcs: awcs = None, nside: int = 0):
+    def __init__(self, sources: Optional[np.ndarray] = None, wcs: Optional[awcs.wcs.WCS] = None):
         """
         Initialization of a new SkyModel
 
         :param sources: Adds point sources
         :param wcs: world coordinate system
         """
-        self.num_sources: int = 0
-        self.shape: tuple = (0, 0)
-        self.sources: np.ndarray = None
-        self.wcs: awcs = wcs
+        self.num_sources = 0
+        self.shape = (0, 0)
+        self.sources = sources
+        self.wcs = wcs
         self.sources_m = 13
         if sources is not None:
             self.add_point_sources(sources)
@@ -84,7 +84,8 @@ class SkyModel:
         """
         Add new point sources to the sky model.
 
-        :param sources: Array-like with shape (number of sources, 13). Each row representing one source.
+        :param sources: Array-like with shape (number of sources, 13). 
+                        Each row representing one source.
                         The indices in the second dimension of the array correspond to:
 
                         - [0] right ascension (deg)-
@@ -150,27 +151,27 @@ class SkyModel:
         :param position_angle:
         :param source_id:
         """
-        new_sources = np.array(
+        new_sources = [
             [
-                [
-                    right_ascension,
-                    declination,
-                    stokes_I_flux,
-                    stokes_Q_flux,
-                    stokes_U_flux,
-                    stokes_V_flux,
-                    reference_frequency,
-                    spectral_index,
-                    rotation_measure,
-                    major_axis_FWHM,
-                    minor_axis_FWHM,
-                    position_angle,
-                    source_id,
+                right_ascension,
+                declination,
+                stokes_I_flux,
+                stokes_Q_flux,
+                stokes_U_flux,
+                stokes_V_flux,
+                reference_frequency,
+                spectral_index,
+                rotation_measure,
+                major_axis_FWHM,
+                minor_axis_FWHM,
+                position_angle,
+                source_id,
                 ]
             ]
-        )
+
+        new_sources = np.vstack(new_sources)
         if self.sources is not None:
-            self.sources = np.vstack(self.sources, new_sources)
+            self.sources = np.vstack([self.sources, new_sources])
         else:
             self.sources = new_sources
         self.__update_sky_model()
@@ -179,7 +180,7 @@ class SkyModel:
         self.save_sky_model_as_csv(path)
 
     @staticmethod
-    def read_from_file(path: str) -> any:
+    def read_from_file(path: str):
         """
         Read a CSV file in to create a SkyModel.
         The CSV should have the following columns
@@ -204,12 +205,12 @@ class SkyModel:
         dataframe = pd.read_csv(path)
         if dataframe.ndim < 2:
             raise KaraboError(
-                f"CSV doesnt have enough dimensions to hold the necessary information: Dimensions: {dataframe.ndim}"
+                f"CSV does not have enough dimensions. It has only {dataframe.ndim} Dimensions."
             )
 
         if dataframe.shape[1] < 3:
             raise KaraboError(
-                f"CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)"
+                "CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)"
             )
 
         if dataframe.shape[1] < 13:
@@ -235,10 +236,13 @@ class SkyModel:
 
         :return: the sources of the SkyModel as np.ndarray
         """
-        if with_obj_ids:
-            return self[:]
+        if self.sources is not None:
+            if with_obj_ids:
+                return self.sources[:]
+            else:
+                return self.sources[:, :-1]
         else:
-            return self[:, :-1]
+            raise KaraboError("SkyModel has no sources")
 
     def filter_by_radius(
         self,
@@ -257,19 +261,24 @@ class SkyModel:
         :return sky: Filtered copy of the sky
         """
         copied_sky = copy.deepcopy(self)
-        inner_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg
-        )
-        outer_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg
-        )
-        outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype("int")
-        inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype("int")
-        filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
-        filtered_sources_idxs = np.where(filtered_sources == True)[0]
-        copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
-        copied_sky.__update_sky_model()
-        return copied_sky
+        if copied_sky.sources is None:
+            raise KaraboError("SkyModel has no sources")
+        else:
+            inner_circle = SphericalCircle(
+                (ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg  # type: ignore
+            )
+            outer_circle = SphericalCircle(
+                (ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg  # type: ignore
+            )
+            outer_sources = outer_circle.contains_points(
+                copied_sky[:, 0:2]).astype("int")  # type: ignore
+            inner_sources = inner_circle.contains_points(
+                copied_sky[:, 0:2]).astype("int")  # type: ignore  
+            filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
+            filtered_sources_idxs = np.where(filtered_sources)[0]
+            copied_sky.sources = copied_sky.sources[filtered_sources_idxs]  # type: ignore
+            copied_sky.__update_sky_model()
+            return copied_sky
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """
@@ -279,12 +288,15 @@ class SkyModel:
         :param min_flux_jy: Minimum flux in Jy
         :param max_flux_jy: Maximum flux in Jy
         """
-        stokes_I_flux = self[:, 2]
-        filtered_sources_idxs = np.where(
-            np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy)
-        )[0]
-        self.sources = self.sources[filtered_sources_idxs]
-        self.__update_sky_model()
+        if self.sources is None:
+            raise KaraboError("SkyModel has no sources")
+        else:
+            stokes_I_flux = self[:, 2]
+            filtered_sources_idxs = np.where(
+                np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy)
+            )[0]
+            self.sources = self.sources[filtered_sources_idxs]
+            self.__update_sky_model()
 
     def filter_by_frequency(self, min_freq: float, max_freq: float):
         """
@@ -293,14 +305,17 @@ class SkyModel:
         :param min_freq: Minimum frequency in Hz
         :param max_freq: Maximum frequency in Hz
         """
-        freq = self[:, 6]
-        filtered_sources_idxs = np.where(
-            np.logical_and(freq <= max_freq, freq >= min_freq)
-        )[0]
-        self.sources = self.sources[filtered_sources_idxs]
-        self.__update_sky_model()
+        if self.sources is None:
+            raise KaraboError("SkyModel has no sources")
+        else:
+            freq = self[:, 6]
+            filtered_sources_idxs = np.where(
+                np.logical_and(freq <= max_freq, freq >= min_freq)
+            )[0]
+            self.sources = self.sources[filtered_sources_idxs]
+            self.__update_sky_model()
 
-    def get_wcs(self) -> awcs:
+    def get_wcs(self) -> awcs:  # type: ignore
         """
         Gets the currently active world coordinate system astropy.wcs
         For details see https://docs.astropy.org/en/stable/wcs/index.html
@@ -309,7 +324,7 @@ class SkyModel:
         """
         return self.wcs
 
-    def set_wcs(self, wcs: awcs):
+    def set_wcs(self, wcs: awcs):  # type: ignore
         """
         Sets a new world coordinate system astropy.wcs
         For details see https://docs.astropy.org/en/stable/wcs/index.html
@@ -318,7 +333,7 @@ class SkyModel:
         """
         self.wcs = wcs
 
-    def setup_default_wcs(self, phase_center: list = [0, 0]) -> awcs:
+    def setup_default_wcs(self, phase_center: list = [0, 0]) -> awcs:  # type: ignore
         """
         Defines a default world coordinate system astropy.wcs
         For more details see https://docs.astropy.org/en/stable/wcs/index.html
@@ -333,7 +348,7 @@ class SkyModel:
         w.wcs.crval = phase_center
         w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
         self.wcs = w
-        return w
+        return self.wcs
 
     @staticmethod
     def get_fits_catalog(path: str) -> Table:
