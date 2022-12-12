@@ -1,5 +1,3 @@
 include karabo/_version.txt
-recursive-include karabo/data/telescope.tm *.txt
-recursive-include karabo/data/meerkat.tm *.txt
-recursive-include karabo/data/alma.tm *.txt
-recursive-include karabo/data/examples *.ipynb
+recursive-include karabo/data/**/*.*
+recursive-include karabo/examples *.ipynb
