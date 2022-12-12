@@ -1,3 +1,3 @@
 include karabo/_version.txt
-recursive-include karabo/data/**/*.*
+recursive-include karabo/data/**/*.txt
 recursive-include karabo/examples *.ipynb
