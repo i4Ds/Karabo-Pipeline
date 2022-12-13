@@ -46,7 +46,7 @@ class SourceDetectionEvaluation:
         source_detection_result: SourceDetectionResult,
         sky: SkyModel,
         distance_threshold: float,
-        filter_outliers=False,
+        filter_outliers: bool = False,
     ):
         """
         Evaluate Result of this Source Detection Result by comparing it with a Sky Model.

@@ -9,13 +9,11 @@ import numpy
 import numpy as np
 from numpy.typing import NDArray
 from astropy.io import fits
-from astropy import wcs as awcs
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
-from karabo.simulation.sky_model import SkyModel
 
 # store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
 previous_backend = matplotlib.get_backend()
@@ -199,28 +197,17 @@ class Image(KaraboResource):
     def get_wcs(self) -> WCS:
         return WCS(self.header)
 
-    def get_2d_wcs(self) -> WCS:
+    def get_2d_wcs(
+        self,
+        invert_ra: bool = True,
+    ) -> WCS:
         wcs = WCS(naxis=2)
         radian_degree = lambda rad: rad * (180 / np.pi)
         cdelt = radian_degree(self.get_cellsize())
         crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
         wcs.wcs.crpix = np.array([crpix, crpix])
-        wcs.wcs.cdelt = np.array([-cdelt, cdelt])
+        ra_sign = -1 if invert_ra else 1
+        wcs.wcs.cdelt = np.array([ra_sign*cdelt, cdelt])
         wcs.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
         wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
         return wcs
-
-    def project_sky_to_image(
-        self,
-        sky:SkyModel,
-        filter_outliers:bool=True,
-    ) -> Tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]:
-        """
-        Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image.
-        The WCS of this image will be used to transform the sky coordinates.
-
-        :param sky: Sky of which the sources will be projected onto the image plane.
-        :param filter_outliers: Exclude source
-        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
-        """
-        return sky.project_sky_to_image(self, filter_outliers)

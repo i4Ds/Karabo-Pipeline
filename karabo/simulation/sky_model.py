@@ -1,17 +1,18 @@
+from __future__ import annotations
 import copy
 import enum
 import logging
 import math
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Optional, List, Any
 
 import matplotlib.pyplot as plt
 import numpy
 import numpy as np
-import numpy.typing as npt
+from numpy.typing import NDArray
 import oskar
 import pandas as pd
 from astropy import units as u
-from astropy import wcs as awcs
+from astropy.wcs import WCS
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.coordinates import SkyCoord
@@ -56,17 +57,22 @@ class SkyModel:
 
     """
 
-    def __init__(self, sources: np.ndarray = None, wcs: awcs = None, nside: int = 0):
+    def __init__(
+        self,
+        sources: Optional[NDArray[Any]]=None,
+        wcs: Optional[WCS] = None,
+        nside: int = 0,
+    ) -> None:
         """
         Initialization of a new SkyModel
 
         :param sources: Adds point sources
         :param wcs: world coordinate system
         """
-        self.num_sources: int = 0
-        self.shape: tuple = (0, 0)
-        self.sources: np.ndarray = None
-        self.wcs: awcs = wcs
+        self.num_sources = 0
+        self.shape = (0, 0)
+        self.sources = None
+        self.wcs = wcs
         self.sources_m = 13
         if sources is not None:
             self.add_point_sources(sources)
@@ -80,7 +86,7 @@ class SkyModel:
         )
         return empty_sources
 
-    def add_point_sources(self, sources: np.ndarray):
+    def add_point_sources(self, sources: NDArray[Any]) -> None:
         """
         Add new point sources to the sky model.
 
@@ -167,10 +173,10 @@ class SkyModel:
                     position_angle,
                     source_id,
                 ]
-            ]
+            ], dtype=object,
         )
         if self.sources is not None:
-            self.sources = np.vstack(self.sources, new_sources)
+            self.sources = np.vstack(self.sources, new_sources) # pyright: ignore
         else:
             self.sources = new_sources
         self.__update_sky_model()
@@ -179,7 +185,7 @@ class SkyModel:
         self.save_sky_model_as_csv(path)
 
     @staticmethod
-    def read_from_file(path: str) -> any:
+    def read_from_file(path: str) -> SkyModel:
         """
         Read a CSV file in to create a SkyModel.
         The CSV should have the following columns
@@ -227,7 +233,7 @@ class SkyModel:
         sky = SkyModel(sources)
         return sky
 
-    def to_array(self, with_obj_ids: bool = False) -> np.ndarray:
+    def to_array(self, with_obj_ids: bool = False) -> NDArray[Any]:
         """
         Gets the sources as np.ndarray
 
@@ -236,9 +242,9 @@ class SkyModel:
         :return: the sources of the SkyModel as np.ndarray
         """
         if with_obj_ids:
-            return self[:]
+            return self[:] # pyright: ignore
         else:
-            return self[:, :-1]
+            return self[:, :-1] # pyright: ignore
 
     def filter_by_radius(
         self,
@@ -246,7 +252,7 @@ class SkyModel:
         outer_radius_deg: float,
         ra0_deg: float,
         dec0_deg: float,
-    ):
+    ) -> SkyModel:
         """
         Filters the sky according the an inner and outer circle from the phase center
 
@@ -258,10 +264,10 @@ class SkyModel:
         """
         copied_sky = copy.deepcopy(self)
         inner_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg
+            (ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg # pyright: ignore
         )
         outer_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg
+            (ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg # pyright: ignore
         )
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype("int")
         inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype("int")
@@ -300,7 +306,7 @@ class SkyModel:
         self.sources = self.sources[filtered_sources_idxs]
         self.__update_sky_model()
 
-    def get_wcs(self) -> awcs:
+    def get_wcs(self) -> WCS:
         """
         Gets the currently active world coordinate system astropy.wcs
         For details see https://docs.astropy.org/en/stable/wcs/index.html
@@ -309,7 +315,7 @@ class SkyModel:
         """
         return self.wcs
 
-    def set_wcs(self, wcs: awcs):
+    def set_wcs(self, wcs: WCS) -> None:
         """
         Sets a new world coordinate system astropy.wcs
         For details see https://docs.astropy.org/en/stable/wcs/index.html
@@ -318,7 +324,10 @@ class SkyModel:
         """
         self.wcs = wcs
 
-    def setup_default_wcs(self, phase_center: list = [0, 0]) -> awcs:
+    def setup_default_wcs(
+        self,
+        phase_center: List[float] = [0,0],
+    ) -> WCS:
         """
         Defines a default world coordinate system astropy.wcs
         For more details see https://docs.astropy.org/en/stable/wcs/index.html
@@ -327,7 +336,7 @@ class SkyModel:
 
         :return: wcs
         """
-        w = awcs.wcs.WCS(naxis=2)
+        w = WCS(naxis=2)
         w.wcs.crpix = [0, 0]  # coordinate reference pixel per axis
         w.wcs.cdelt = [-1, 1]  # coordinate increments on sphere per axis
         w.wcs.crval = phase_center
@@ -348,7 +357,7 @@ class SkyModel:
 
     def explore_sky(
         self,
-        phase_center: np.ndarray = np.array([0, 0]),
+        phase_center: NDArray[np.float64] = np.array([0, 0]),
         xlim: tuple = (-1, 1),
         ylim: tuple = (-1, 1),
         figsize: tuple = (6, 6),
@@ -360,7 +369,7 @@ class SkyModel:
         cmap: str = "plasma",
         cbar_label: str = "",
         with_labels: bool = False,
-        wcs: awcs = None,
+        wcs: WCS = None,
     ):
         """
         A scatter plot of y vs. x of the point sources of the SkyModel
@@ -412,7 +421,10 @@ class SkyModel:
         plt.ylabel(ylabel)
         plt.show()
 
-    def plot_sky(self, phase_center: Tuple[float, float] = (0, 0)):
+    def plot_sky(
+        self,
+        phase_center: List[float] = [0,0],
+    ) -> None:
         if self.wcs is None:
             self.setup_default_wcs(phase_center)
 
@@ -448,8 +460,10 @@ class SkyModel:
 
     @staticmethod
     def read_healpix_file_to_sky_model_array(
-        file, channel, polarisation: Polarisation
-    ) -> np.ndarray:
+        file,
+        channel,
+        polarisation: Polarisation
+    ) -> Tuple[NDArray[np.float64],int]:
         """
         Read a healpix file in hdf5 format.
         The file should have the map keywords:
@@ -465,7 +479,7 @@ class SkyModel:
         size = len(ra)
         return np.vstack((ra, dec, filtered)).transpose(), nside
 
-    def __update_sky_model(self):
+    def __update_sky_model(self) -> None:
         """
         Updates instance variables of the SkyModel
         """
@@ -524,11 +538,14 @@ class SkyModel:
             ],
         )
 
-    def save_sky_model_to_txt(self, path: str, cols: [int] = [0, 1, 2, 3, 4, 5, 6, 7]):
+    def save_sky_model_to_txt(
+        self, path: str,
+        cols: List[int] = [0, 1, 2, 3, 4, 5, 6, 7],
+    ) -> None:
         numpy.savetxt(path, self.sources[:, cols])
 
     @staticmethod
-    def __convert_ra_dec_to_cartesian(ra, dec):
+    def __convert_ra_dec_to_cartesian(ra: float, dec: float) -> float:
         x = math.cos(math.radians(ra)) * math.cos(math.radians(dec))
         y = math.sin(math.radians(ra)) * math.cos(math.radians(dec))
         z = math.sin(math.radians(dec))
@@ -538,7 +555,7 @@ class SkyModel:
             return r
         return r / norm
 
-    def get_cartesian_sky(self):
+    def get_cartesian_sky(self) -> NDArray[np.float64]:
         cartesian_sky = np.squeeze(
             np.apply_along_axis(
                 lambda row: [
@@ -550,34 +567,8 @@ class SkyModel:
         )
         return cartesian_sky
 
-    def project_sky_to_image(
-        self, image: "Image", filter_outlier: bool = True
-    ) -> (npt.NDArray, npt.NDArray, npt.NDArray):
-        """
-        Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image
-
-        :param image: Image, where the WCS will be extracted to convert the sky sources to pixel coordinates.
-        :param filter_outlier: Exclude sources
-
-        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
-        """
-        image_pixel_per_side = image.get_dimensions_of_image()[0]
-        wcs = image.get_2d_wcs()
-        px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 1)
-
-        # pre-filtering before calling wcs.wcs_world2pix would be more efficient,
-        # however this has to be done in the ra-dec space. maybe for future work
-        if filter_outlier:
-            px_idxs = np.where(np.logical_and(px <= image_pixel_per_side, px >= 0))[0]
-            py_idxs = np.where(np.logical_and(py <= image_pixel_per_side, py >= 0))[0]
-            idxs = np.intersect1d(px_idxs, py_idxs)
-            px, py = px[idxs], py[idxs]
-        else:
-            idxs = np.arange(self.num_sources)
-        return np.vstack((px, py, idxs))
-
     @staticmethod
-    def get_GLEAM_Sky() -> "SkyModel":
+    def get_GLEAM_Sky() -> SkyModel:
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
         gleam = SkyModel.get_fits_catalog(path)
@@ -602,7 +593,7 @@ class SkyModel:
         return sky
 
     @staticmethod
-    def get_MIGHTEE_Sky() -> "SkyModel":
+    def get_MIGHTEE_Sky() -> SkyModel:
         survey = MIGHTEESurveyDownloadObject()
         path = survey.get()
         mightee = SkyModel.get_fits_catalog(path)
@@ -627,8 +618,8 @@ class SkyModel:
 
     @staticmethod
     def get_random_poisson_disk_sky(
-        min_size: (float, float),
-        max_size: (float, float),
+        min_size: Tuple[float,float],
+        max_size: Tuple[float,float],
         flux_min: float,
         flux_max: float,
         r=3,
