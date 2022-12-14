@@ -299,7 +299,7 @@ class Imager:
         imaging_npixel: int,
         filter_outlier: bool = True,
         invert_ra: bool = True,
-    ) -> Tuple[NDArray[np.float64],NDArray[np.float64],NDArray[np.int64]]:
+    ) -> NDArray[np.float64]:
         """
         Calculates the pixel coordinates `sky` sources as floats.
         If you want to have integer indices, just round them.
@@ -311,7 +311,7 @@ class Imager:
         :param filter_outlier: Exclude source outside of image?
         :param invert_ra: Invert RA axis?
 
-        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
+        :return: image-coordinates as np.ndarray[px,py,idxs] where `idxs` are `SkyModel` sources indices
         """
         # calc WCS args
         radian_degree = lambda rad: rad * (180/np.pi)
@@ -337,5 +337,6 @@ class Imager:
             px, py = px[idxs], py[idxs]
         else:
             idxs = np.arange(sky.num_sources)
+        img_coords = np.array([px,py,idxs])
 
-        return px, py, idxs
+        return img_coords

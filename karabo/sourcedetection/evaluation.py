@@ -1,5 +1,5 @@
+from __future__ import annotations
 import numpy as np
-import numpy.typing as npt
 from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 import astropy.units as u
@@ -8,17 +8,19 @@ from scipy.spatial import KDTree
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.result import SourceDetectionResult
 from karabo.util.plotting_util import get_slices
+from typing import Union, List, Tuple, Optional
+from numpy.typing import NDArray
 
 
 class SourceDetectionEvaluation:
     def __init__(
         self,
-        assignment: np.array,
+        assignment: NDArray[np.float64],
         sky: SkyModel,
         source_detection: SourceDetectionResult,
-        true_positives,
-        false_negatives,
-        false_positives,
+        true_positives: int,
+        false_negatives: int,
+        false_positives: int,
     ):
         """
         Class that holds the mapping of a source detection to truth mapping.
@@ -40,51 +42,9 @@ class SourceDetectionEvaluation:
         # The mapped array contains the following information:
         # indexes, ra, dec, x_pos, y_pos, flux, peak
         self.mapped_array = self.__map_sky_to_detection_array(assignment, sky)
-
-    @staticmethod
-    def evaluate_result_with_sky_in_pixel_space(
-        source_detection_result: SourceDetectionResult,
-        sky: SkyModel,
-        distance_threshold: float,
-        filter_outliers: bool = False,
-    ):
-        """
-        Evaluate Result of this Source Detection Result by comparing it with a Sky Model.
-        The Sky Model will be converted to Pixel space based on the dimensions of the original Image.
-        Then the pixel space of the found sources and sky model sources will be compared and paired automatically.
-        But only if so possible based on the
-
-        The mapping uses the automatic_assignment_of_ground_truth_and_prediction() function
-        and calculate_evaluation_measures() to create the evaluation
-
-        :param filter_outliers: If True outliers will be filtered , defaults to False
-        :param source_detection_result: result that was produced with a source detection algorithm
-        :param sky: sky that was used to create the image
-        :param source_image_cell_size: cellsize in the original source image (used for mapping),
-                                       cannot be read out from the fits file (unfortunately)
-        :param distance_threshold: threshold of distance between two sources,
-                                   so that they are still considered in mathching (pixel distance).
-        :return:
-        """
-        image = source_detection_result.get_source_image()
-
-        truth = sky.project_sky_to_image(image, filter_outliers)[:2].astype("float64")
-        pred = np.array(source_detection_result.get_pixel_position_of_sources()).astype(
-            "float64"
-        )
-        assignment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
-            truth.T, pred.T, distance_threshold
-        )
-        tp, fp, fn = SourceDetectionEvaluation.calculate_evaluation_measures(
-            assignment
-        )
-        result = SourceDetectionEvaluation(
-            assignment, sky, source_detection_result, tp, fp, fn
-        )
-        return result
     
     @staticmethod
-    def __return_multiple_assigned_detected_points(assigments: np.ndarray) -> np.ndarray:
+    def __return_multiple_assigned_detected_points(assigments: NDArray) -> NDArray:
         """
         Returns the indices of the predicted sources that are assigned to more than one ground truth source.
         """
@@ -97,8 +57,11 @@ class SourceDetectionEvaluation:
         
     @staticmethod
     def automatic_assignment_of_ground_truth_and_prediction(
-        ground_truth: np.ndarray, detected: np.ndarray, max_dist: float, top_k: int = 3
-    ) -> np.ndarray:
+        ground_truth: Union[NDArray[np.int64],NDArray[np.float64]],
+        detected: Union[NDArray[np.int64],NDArray[np.float64]],
+        max_dist: float,
+        top_k: int = 3,
+    ) -> NDArray[np.float64]:
         """
         Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
         The strategy is the following:
@@ -158,7 +121,7 @@ class SourceDetectionEvaluation:
 
     @staticmethod
     def calculate_evaluation_measures(
-        assignments: np.ndarray
+        assignments: NDArray[np.float64],
     ) -> tuple:
         """
         Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
@@ -178,7 +141,10 @@ class SourceDetectionEvaluation:
         fn = assignments[assignments[:, 0] == -1, :].shape[0]
         return tp, fp, fn
 
-    def plot(self, filename=None):
+    def plot(
+        self,
+        filename: Optional[str] = None,
+    ) -> None:
         """
         Plot the found sources as green x's and the source truth as red 'o' on the original image,
          that the source detection was performed on.
@@ -210,13 +176,17 @@ class SourceDetectionEvaluation:
             else:
                 plt.show()
 
-    def __plot_truth_and_prediction(self, ax):
+    def __plot_truth_and_prediction(self, ax) -> None:
         truth = self.get_truth_array()[:, [3, 4]].transpose()
         pred = self.get_detected_array()[:, [3, 4]].transpose()
         ax.plot(truth[0], truth[1], "o", linewidth=5, color="firebrick", alpha=0.5)
         ax.plot(pred[0], pred[1], "x", linewidth=5, color="green")
 
-    def __map_sky_to_detection_array(self, assignment, sky: SkyModel) -> np.ndarray:
+    def __map_sky_to_detection_array(
+        self,
+        assignment: NDArray[np.float64],
+        sky: SkyModel,
+    ) -> NDArray[np.float64]:
         source_matches = assignment[assignment[:, 2] != np.inf, :]
         truth_indexes = np.array(source_matches[:, 0], dtype=int)
         pred_indexes = np.array(source_matches[:, 1], dtype=int)
@@ -230,9 +200,11 @@ class SourceDetectionEvaluation:
         return result
 
     def __sky_array_to_same_shape_as_detection(
-        self, sky_indexes: npt.NDArray, sky: SkyModel
-    ) -> npt.NDArray:
-        pixel_coords_sky = sky.project_sky_to_image(
+        self,
+        sky_indexes: NDArray[np.int64],
+        sky: SkyModel,
+    ) -> NDArray[np.float64]:
+        pixel_coords_sky = sky.project_sky_to_image( # TODO manage altered return type
             self.source_detection.get_source_image(), filter_outlier=False
         )
         pixel_coords = pixel_coords_sky[:, sky_indexes].transpose()
@@ -246,7 +218,7 @@ class SourceDetectionEvaluation:
         indexes = sky_indexes.transpose()
         return np.vstack((indexes, ra, dec, x_pos, y_pos, flux, peak)).transpose()
 
-    def get_confusion_matrix(self) -> npt.NDArray:
+    def get_confusion_matrix(self) -> NDArray[np.int64]:
         return np.array(
             [[0.0, self.false_positives], [self.false_negatives, self.true_positives]]
         )
@@ -267,16 +239,19 @@ class SourceDetectionEvaluation:
         sn = self.get_sensitivity()
         return 2 * (p * sn / (p + sn))
 
-    def get_truth_array(self) -> npt.NDArray:
+    def get_truth_array(self) -> NDArray[np.float64]:
         return self.mapped_array[0]
 
-    def get_detected_array(self) -> npt.NDArray:
+    def get_detected_array(self) -> NDArray[np.float64]:
         return self.mapped_array[1]
 
-    def get_meta_data_array(self) -> npt.NDArray:
+    def get_meta_data_array(self) -> NDArray:
         return self.mapped_array[2]
 
-    def plot_error_ra_dec(self, filename=None):
+    def plot_error_ra_dec(
+        self,
+        filename: Optional[str] = None,
+    ) -> None:
         truth = self.get_truth_array().astype(float)
         detection = self.get_detected_array().astype(float)
 
@@ -294,7 +269,10 @@ class SourceDetectionEvaluation:
         else:
             plt.show()
             
-    def plot_confusion_matrix(self, file_name=None):
+    def plot_confusion_matrix(
+        self,
+        file_name: Optional[str] = None,
+    ) -> None:
         conf_matrix = self.get_confusion_matrix()
         #
         # Print the confusion matrix using Matplotlib
@@ -315,7 +293,10 @@ class SourceDetectionEvaluation:
         else:
             plt.show()
             
-    def plot_quiver_positions(self, filename=None):
+    def plot_quiver_positions(
+        self,
+        filename: Optional[str] = None,
+        ) -> None:
         ref = self.get_truth_array()[:, [1, 2]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2]].transpose().astype(float)
         ra_ref = np.array(ref[0], dtype=float)
@@ -340,7 +321,10 @@ class SourceDetectionEvaluation:
         else:
             plt.show()
 
-    def plot_flux_ratio_to_distance(self, filename=None):
+    def plot_flux_ratio_to_distance(
+        self,
+        filename: Optional[str] = None,
+    ) -> None:
         ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2, 5]].transpose().astype(float)
         # ra_dec_ref = ref[0, 1]
@@ -374,7 +358,10 @@ class SourceDetectionEvaluation:
         else:
             plt.show()
 
-    def plot_flux_ratio_to_ra_dec(self, filename=None):
+    def plot_flux_ratio_to_ra_dec(
+        self,
+        filename: Optional[str] = None,
+    ) -> None:
         ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
         pred = self.get_detected_array()[:, [1, 2, 5]].transpose().astype(float)
         ra_pred = pred[0]
@@ -399,7 +386,11 @@ class SourceDetectionEvaluation:
         else:
             plt.show()
 
-    def plot_flux_histogram(self, nbins=10, filename=None):
+    def plot_flux_histogram(
+        self,
+        nbins: int = 10,
+        filename: Optional[str] = None,
+    ) -> None:
 
         flux_in = self.get_truth_array()[:, [5]].transpose().astype(float)
         flux_out = self.get_detected_array()[:, [5]].transpose().astype(float)
