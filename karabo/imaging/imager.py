@@ -294,7 +294,7 @@ class Imager:
     @staticmethod
     def project_sky_to_image(
         sky:SkyModel,
-        phase_center: List[float],
+        phase_center: Union[List[int],List[float]],
         imaging_cellsize: float,
         imaging_npixel: int,
         filter_outlier: bool = True,

@@ -3,7 +3,7 @@ import copy
 import enum
 import logging
 import math
-from typing import Callable, Tuple, Optional, List, Any
+from typing import Callable, Tuple, Optional, List, Any, Union
 
 import matplotlib.pyplot as plt
 import numpy
@@ -326,7 +326,7 @@ class SkyModel:
 
     def setup_default_wcs(
         self,
-        phase_center: List[float] = [0,0],
+        phase_center: Union[List[int],List[float]] = [0,0],
     ) -> WCS:
         """
         Defines a default world coordinate system astropy.wcs
@@ -357,7 +357,7 @@ class SkyModel:
 
     def explore_sky(
         self,
-        phase_center: NDArray[np.float64] = np.array([0, 0]),
+        phase_center: Union[List[int],List[float]] = [0,0],
         xlim: tuple = (-1, 1),
         ylim: tuple = (-1, 1),
         figsize: tuple = (6, 6),
@@ -369,7 +369,7 @@ class SkyModel:
         cmap: str = "plasma",
         cbar_label: str = "",
         with_labels: bool = False,
-        wcs: WCS = None,
+        wcs: Optional[WCS] = None,
     ):
         """
         A scatter plot of y vs. x of the point sources of the SkyModel
@@ -423,7 +423,7 @@ class SkyModel:
 
     def plot_sky(
         self,
-        phase_center: List[float] = [0,0],
+        phase_center: Union[List[int],List[float]] = [0,0],
     ) -> None:
         if self.wcs is None:
             self.setup_default_wcs(phase_center)
