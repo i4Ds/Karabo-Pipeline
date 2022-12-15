@@ -1,15 +1,15 @@
 name: karabo_dev_env
 channels:
   - i4ds
+  - nvidia/label/cuda-11.7.0
   - i4ds/label/dev
   - conda-forge
-  - nvidia
   - defaults
 dependencies:
   - oskarpy=2.8.0
   - rascil=0.7.0
   - xarray=2022.3.0 # Issue https://github.com/i4Ds/Karabo-Pipeline/issues/146
-  - astropy
+  - astropy=5.1.1
   - numpy>=1.21
   - dask
   - matplotlib
