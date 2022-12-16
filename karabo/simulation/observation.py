@@ -35,7 +35,7 @@ class Observation(KaraboResource):
         start_frequency_hz:float=0,
         start_date_and_time:datetime=datetime.utcnow(),
         length:timedelta=timedelta(hours=12),
-        use_gpu:bool = False,
+        use_gpu:bool=None,
         number_of_channels:float=1,
         frequency_increment_hz:float=0,
         phase_centre_ra_deg:float=0,
@@ -50,15 +50,18 @@ class Observation(KaraboResource):
         self.mode: str = mode
 
         # optional
-        if use_gpu and not is_cuda_available():
-            print(KaraboWarning("GPU not available. Using CPU instead."))
-            use_gpu = False
-        self.use_gpu: bool = use_gpu
         self.number_of_channels: float = number_of_channels
         self.frequency_increment_hz: float = frequency_increment_hz
         self.phase_centre_ra_deg: float = phase_centre_ra_deg
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
+        
+        # set use_gpu
+        if use_gpu is None:
+            print(KaraboWarning(f'use_gpu is None, using is_cuda_available() to set use_gpu to {is_cuda_available()}'))
+            self.use_gpu = is_cuda_available()
+        else:
+            self.use_gpu = use_gpu
 
     def set_length_of_observation(
         self,
