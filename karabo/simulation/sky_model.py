@@ -357,9 +357,9 @@ class SkyModel:
 
     def explore_sky(
         self,
-        phase_center: Union[List[int],List[float]] = [0,0],
-        xlim: tuple = (-1, 1),
-        ylim: tuple = (-1, 1),
+        phase_center: Union[List[int],List[float]],
+        xlim: tuple,
+        ylim: tuple,
         figsize: tuple = (6, 6),
         title: str = "",
         xlabel: str = "",
@@ -375,8 +375,8 @@ class SkyModel:
         A scatter plot of y vs. x of the point sources of the SkyModel
 
         :param phase_center:
-        :param xlim: limit of plot in degrees from phase centre in x direction
-        :param ylim: limit of plot in degrees from phase centre in y direction
+        :param xlim: RA-limit of plot (inverse position of `xlim` to mirror along x-axis)
+        :param ylim: DEC-limit of plot (inverse position of `ylim` to mirror along y-axis)
         :param figsize: figure size
         :param title: plot titble
         :param xlabel: xlabel override
@@ -390,7 +390,8 @@ class SkyModel:
         """
         if wcs is None:
             wcs = self.setup_default_wcs(phase_center)
-        px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 1)  # ra-dec transformation
+        px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 0)  # ra-dec transformation
+        xlim, ylim = wcs.wcs_world2pix(xlim, ylim, 0)
 
         flux, vmin, vmax = None, None, None
         if cmap is not None and cfun is not None:
