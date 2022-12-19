@@ -290,7 +290,6 @@ class SourceDetectionEvaluation:
         plt.plot(error[0], error[1], "o", markersize=8, color="r", alpha=0.5)
         if filename:
             plt.savefig(filename)
-        
         plt.show(block=False)
         plt.pause(1)
             
@@ -311,7 +310,6 @@ class SourceDetectionEvaluation:
         
         if filename:
             plt.savefig(filename)
-        
         plt.show(block=False)
         plt.pause(1)
 
@@ -337,7 +335,6 @@ class SourceDetectionEvaluation:
         plt.title(f"Matched {num} sources")
         if filename:
             plt.savefig(filename)
-        
         plt.show(block=False)
         plt.pause(1)
 
@@ -371,7 +368,6 @@ class SourceDetectionEvaluation:
         plt.ylabel("Flux Ratio (Pred/Ref)")
         if filename:
             plt.savefig(filename)
-        
         plt.show(block=False)
         plt.pause(1)
 
@@ -397,7 +393,6 @@ class SourceDetectionEvaluation:
         ax1.set_ylabel("Flux ratio (Pred/Ref)")
         if filename:
             plt.savefig(filename)
-        
         plt.show(block=False)
         plt.pause(1)
 
@@ -428,7 +423,6 @@ class SourceDetectionEvaluation:
         plt.legend(loc="best")
         if filename:
             plt.savefig(filename)        
-        
         plt.show(block=False)
         plt.pause(1)
 

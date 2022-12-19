@@ -530,7 +530,6 @@ class Pinocchio:
 
         if save:
             plt.savefig('lss.png')
-    
         plt.show(block=False)
         plt.pause(1) 
 
@@ -577,8 +576,6 @@ class Pinocchio:
 
         if save:
             plt.savefig('mf.png')
-        
-        
         plt.show(block=False)
         plt.pause(1)
 
@@ -620,8 +617,6 @@ class Pinocchio:
 
         if save:
             plt.savefig('plc.png')
-        
-        
         plt.show(block=False)
         plt.pause(1)
 
