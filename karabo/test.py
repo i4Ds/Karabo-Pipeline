@@ -10,3 +10,4 @@ def run_tests(verbosity=0, *args, **kwargs):
         
 if __name__ == '__main__':
     run_tests()
+    
