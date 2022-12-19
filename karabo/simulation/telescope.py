@@ -118,6 +118,7 @@ class Telescope(KaraboResource):
             plt.close(fig)
         else:
             plt.show(block=False)
+            plt.pause(1)
 
 
 
