@@ -103,7 +103,7 @@ class Image(KaraboResource):
             result.append(self.header[f'NAXIS{dim + 1}'])
         return result
 
-    def get_phase_centre(self) -> Tuple[float, float]:
+    def get_phase_center(self) -> Tuple[float, float]:
         return float(self.header["CRVAL1"]), float(self.header["CRVAL2"])
 
     def get_quality_metric(self) -> Dict[str,Any]:
