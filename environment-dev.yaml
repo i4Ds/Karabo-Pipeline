@@ -8,7 +8,6 @@ channels:
 dependencies:
   - oskarpy=2.8.0
   - rascil=0.7.0
-  - xarray=2022.3.0 # Issue https://github.com/i4Ds/Karabo-Pipeline/issues/146
   - astropy
   - numpy>=1.21
   - dask
