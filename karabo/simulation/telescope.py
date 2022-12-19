@@ -117,7 +117,7 @@ class Telescope(KaraboResource):
             plt.savefig(file)
             plt.close(fig)
         else:
-            plt.show()
+            plt.show(block=False)
 
 
 

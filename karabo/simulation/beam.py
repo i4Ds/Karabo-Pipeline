@@ -201,7 +201,7 @@ class BeamPattern:
         plt.colorbar(im)
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
 
     @staticmethod
     def eidos_lineplot(B_ah, B_em, npix, path=None):
@@ -232,7 +232,7 @@ class BeamPattern:
         ax0.legend()
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
 
     @staticmethod
     def show_kat_beam(beampixels, beamextent, freq, pol, path=None):
@@ -253,7 +253,7 @@ class BeamPattern:
         plt.colorbar()
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
 
     def plot_beam(self, theta, phi, absdir, path=None):
         """
@@ -270,7 +270,7 @@ class BeamPattern:
         )  # TODO (Add check for this) X,Y & data2D must all be same dimensions
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
 
     def integrate(self, theta, phi, integrand):
         theta = units.Quantity(theta, unit=units.deg).to('rad')

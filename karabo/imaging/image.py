@@ -87,7 +87,7 @@ class Image(KaraboResource):
         plt.imshow(self.data[0][0], cmap="jet", origin='lower')
         plt.colorbar(label=title)
         ax.invert_xaxis()
-        plt.show()
+        plt.show(block=False)
 
     def __read_fits_data(self) -> None:
         self.data, self.header = fits.getdata(self.file.path, ext=0, header=True)
@@ -176,7 +176,7 @@ class Image(KaraboResource):
 
         if save_png:
             plt.savefig(f"./power_spectrum_{self.name if self.name is not None else uuid.uuid4()}")
-        plt.show()
+        plt.show(block=False)
 
     def get_cellsize(self):
         cdelt1 = self.header["CDELT1"]

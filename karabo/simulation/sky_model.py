@@ -410,7 +410,7 @@ class SkyModel:
         plt.ylim(ylim)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.show()
+        plt.show(block=False)
 
     def plot_sky(self, phase_center: Tuple[float, float] = (0, 0)):
         if self.wcs is None:
@@ -436,7 +436,7 @@ class SkyModel:
         plt.xlabel("x direction cosine")
         plt.ylabel("y direction cosine")
         plt.colorbar(sc, label="Log10(Stokes I flux [Jy])")
-        plt.show()
+        plt.show(block=False)
 
     def get_OSKAR_sky(self) -> oskar.Sky:
         """
