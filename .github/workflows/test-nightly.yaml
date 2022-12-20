@@ -1,0 +1,21 @@
+name: Test Nightly Build
+
+on:
+  workflow_run:
+    workflows: ["Create Nightly Build"]
+    types:
+      - completed
+
+jobs:
+  Test_Karabo:
+    runs-on: ubuntu-20.04
+    container: ghcr.io/i4ds/mambabuild-docker:latest
+
+    steps:
+      - name: Install Nightly Build
+        run: |
+          conda install -c "i4ds/label/nightly" karabo-pipeline --yes
+      - name: Test Nightly Build
+        run: |
+          conda activate base
+          python -c "import karabo; karabo.util.testing.run_tests()"
