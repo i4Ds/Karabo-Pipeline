@@ -1,14 +1,13 @@
 import unittest
-import os
+from karabo.util.data_util import get_module_absolute_path
 
 def run_tests(verbosity=0, *args, **kwargs):
     loader = unittest.TestLoader()
-    start_dir = os.path.dirname(__file__)
+    
+    # Get location of karabo package
+    start_dir = get_module_absolute_path()
     suite = loader.discover(start_dir)
 
     runner = unittest.TextTestRunner(verbosity=verbosity, *args, **kwargs)
     runner.run(suite)
         
-if __name__ == '__main__':
-    run_tests()
-    
