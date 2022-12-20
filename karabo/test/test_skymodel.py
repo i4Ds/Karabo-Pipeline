@@ -42,7 +42,7 @@ class TestSkyModel(unittest.TestCase):
 
     def test_plot_gleam(self):
         sky = SkyModel.get_GLEAM_Sky()
-        sky.plot_sky([250, -80])
+        sky.explore_sky([250, -80], s=.1)
         cartesian_sky = sky.get_cartesian_sky()
         print(cartesian_sky)
 
@@ -61,25 +61,39 @@ class TestSkyModel(unittest.TestCase):
         phase_center = [250, -80]  # ra,dec
         filtered_sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
         filtered_sky.setup_default_wcs(phase_center)
-        filtered_sky.explore_sky(phase_center=phase_center, figsize=(8, 6), s=80,
-                                 xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
+        filtered_sky.explore_sky(
+            phase_center=phase_center,
+            figsize=(8, 6),
+            s=80,
+            xlim=(254, 246), # RA-lim
+            ylim=(-81, -79), # DEC-lim
+            with_labels=True,
+        )
         filtered_sky.write_to_file("./result/filtered_sky.csv")
 
     def test_read_sky_model(self):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
-        sky.explore_sky(phase_center=[250, -80], figsize=(8, 6), s=80,
-                        xlim=(-.55, .55), ylim=(-.55, .55), with_labels=True)
+        phase_center = [250, -80]  # ra,dec
+        sky.explore_sky(
+            phase_center=phase_center,
+            figsize=(8, 6),
+            s=80,
+            xlim=(254, 246), # RA-lim
+            ylim=(-81, -79), # DEC-lim
+            with_labels=True,
+        )
 
     def test_read_healpix_map(self):
         download = ExampleHDF5Map()
         path = download.get()
-        source_array, nside = SkyModel.read_healpix_file_to_sky_model_array(f"{path}",
-                                                                            0,
-                                                                            Polarisation.STOKES_I)
+        source_array, nside = SkyModel.read_healpix_file_to_sky_model_array(
+            f"{path}",
+            0,
+            Polarisation.STOKES_I,
+        )
         sky = SkyModel(source_array, nside=nside)
-        sky.plot_sky([250, -80])
+        sky.explore_sky([250, -80])
 
     def test_get_poisson_sky(self):
         sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
-        sky.explore_sky([240, -70], xlim=(-10, 10), ylim=(-10, 10))
-        sky.plot_sky([240, -70])
+        sky.explore_sky([240, -70])

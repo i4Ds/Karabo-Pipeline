@@ -25,7 +25,7 @@ class TestSystemNoise(unittest.TestCase):
               [20.5, -30.5, 100, 0, 0, 2, 1.0e9, -0.7, 0.0, 0, 10, -10]])
         sky.add_point_sources(sky_data)
         #sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 1, 1, 1)
-        #sky.plot_sky((240, -70))
+        #sky.explore_sky([240, -70])
         telescope = Telescope.get_SKA1_MID_Telescope()
         # telescope.centre_longitude = 3
 

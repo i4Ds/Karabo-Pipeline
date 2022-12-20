@@ -373,7 +373,6 @@ class SkyModel:
         title: Optional[str] = None,
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
-        s: float = 20,
         cfun: Optional[Callable] = np.log10,
         cmap: Optional[str] = "plasma",
         cbar_label: Optional[str] = None,
@@ -394,7 +393,6 @@ class SkyModel:
         :param title: plot title
         :param xlabel: xlabel
         :param ylabel: ylabel
-        :param s: size of scatter points
         :param cfun: flux scale transformation function for scatter-coloring
         :param cmap: matplotlib color map
         :param cbar_label: color bar label
@@ -402,7 +400,7 @@ class SkyModel:
         :param wcs: If you want to use a custom astropy.wcs, ignores `phase_center` if set
         :param wcs_enabled: Use wcs transformation?
         :param filename: Set to path to save figure
-        :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `vmin` or `vmax`
+        :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
         """
         if wcs is None and wcs_enabled:
             wcs = self.setup_default_wcs(phase_center)
@@ -439,7 +437,7 @@ class SkyModel:
             fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
         else:
             fig, ax = plt.subplots(figsize=figsize)
-        sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, **kwargs)
+        sc = ax.scatter(px, py, c=flux, cmap=cmap, **kwargs)
 
         if with_labels:
             for i, txt in enumerate(self[:, -1]):
@@ -457,35 +455,6 @@ class SkyModel:
 
         if isinstance(filename, str):
             fig.savefig(fname=filename)
-
-    def plot_sky(
-        self,
-        phase_center: List[float] = [0,0],
-    ) -> None:
-        if self.wcs is None:
-            self.setup_default_wcs(phase_center)
-
-        slices = get_slices(self.wcs)
-        data = self[:, 0:3]
-        flux = data[:, 2]
-        log_flux = np.log10(flux)
-        radec = SkyCoord([data[:,0]], [data[:,1]], frame='icrs', unit='deg')
-        x,y=self.wcs.world_to_pixel(radec)
-        plt.subplot(projection=self.wcs, slices=slices)
-        sc = plt.scatter(
-            x,
-            y,
-            s=0.5,
-            c=log_flux,
-            cmap="plasma",
-            vmin=np.min(log_flux),
-            vmax=np.max(log_flux),
-        )
-        plt.axis("equal")
-        plt.xlabel("x direction cosine")
-        plt.ylabel("y direction cosine")
-        plt.colorbar(sc, label="Log10(Stokes I flux [Jy])")
-        plt.show()
 
     def get_OSKAR_sky(self) -> oskar.Sky:
         """
