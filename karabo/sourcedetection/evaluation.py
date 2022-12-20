@@ -160,6 +160,8 @@ class SourceDetectionEvaluation:
 
     def plot(
         self,
+        exclude_img: bool = False,
+        show_legend: bool = True,
         filename: Optional[str] = None,
     ) -> None:
         """
@@ -167,7 +169,7 @@ class SourceDetectionEvaluation:
          that the source detection was performed on.
         """
 
-        if self.source_detection.has_source_image():
+        if self.source_detection.has_source_image() and not exclude_img:
             image = self.source_detection.get_source_image()
             wcs = WCS(image.header)
             slices = get_slices(wcs)
@@ -176,7 +178,7 @@ class SourceDetectionEvaluation:
             ax.imshow(image.data[0][0], cmap="jet", origin="lower", interpolation=None)
         else:
             _, ax = plt.subplots(1, 1, subplot_kw=dict())
-        self.__plot_truth_and_prediction(ax)
+        self.__plot_truth_and_prediction(ax, show_legend=show_legend)
 
         if filename:
             plt.savefig(filename)
@@ -184,11 +186,12 @@ class SourceDetectionEvaluation:
         else:
             plt.show()
 
-    def __plot_truth_and_prediction(self, ax) -> None:
+    def __plot_truth_and_prediction(self, ax, show_legend: bool) -> None:
         truth = self.sky_array_gt_img_pos
         pred = self.detected_sources_array_pred[:,[3,4]].astype(np.float64).T
-        ax.plot(truth[0], truth[1], "o", linewidth=5, color="firebrick", alpha=0.5)
-        ax.plot(pred[0], pred[1], "x", linewidth=5, color="green")
+        ax.plot(truth[0], truth[1], "o", linewidth=5, color="firebrick", alpha=0.5, label='truth')
+        ax.plot(pred[0], pred[1], "x", linewidth=5, color="green", label='pred')
+        if show_legend: ax.legend()
 
 
     def get_confusion_matrix(self) -> NDArray[np.int64]:
