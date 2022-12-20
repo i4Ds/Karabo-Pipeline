@@ -1,5 +1,6 @@
 # set shared library if WSL to detect GPU drivers
 import os, platform, sys
+from .version import __version__
 
 if 'WSL' in platform.release() and (os.environ.get('LD_LIBRARY_PATH') is None or 'wsl' not in os.environ['LD_LIBRARY_PATH']):
     wsl_ld_path = '/usr/lib/wsl/lib'

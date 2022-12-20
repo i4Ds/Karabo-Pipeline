@@ -1,5 +1,8 @@
 name: Create Nightly Build
 
+env:
+  BUILD_NIGHTLY: True
+
 on:
   schedule: # Every night at 3am
     - cron: '0 3 * * *'
