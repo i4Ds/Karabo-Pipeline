@@ -199,7 +199,7 @@ class SourceDetectionEvaluation:
                 plt.savefig(filename)
                 plt.show(block=False)
             else:
-                plt.show()
+                plt.show(block=False)
         else:
             _, ax = plt.subplots(1, 1, subplot_kw=dict())
 
@@ -208,7 +208,7 @@ class SourceDetectionEvaluation:
                 plt.savefig(filename)
                 plt.show(block=False)
             else:
-                plt.show()
+                plt.show(block=False)
 
     def __plot_truth_and_prediction(self, ax):
         truth = self.get_truth_array()[:, [3, 4]].transpose()
@@ -290,11 +290,10 @@ class SourceDetectionEvaluation:
         plt.plot(error[0], error[1], "o", markersize=8, color="r", alpha=0.5)
         if filename:
             plt.savefig(filename)
-            plt.show(block=False)
-        else:
-            plt.show()
+        plt.show(block=False)
+        plt.pause(1)
             
-    def plot_confusion_matrix(self, file_name=None):
+    def plot_confusion_matrix(self, filename=None):
         conf_matrix = self.get_confusion_matrix()
         #
         # Print the confusion matrix using Matplotlib
@@ -309,11 +308,11 @@ class SourceDetectionEvaluation:
         plt.ylabel('Reference', fontsize=13)
         plt.title('Confusion Matrix', fontsize=13)
         
-        if file_name:
-            plt.savefig(file_name)
-            plt.show(block=False)
-        else:
-            plt.show()
+        if filename:
+            plt.savefig(filename)
+        plt.show(block=False)
+        plt.pause(1)
+
             
     def plot_quiver_positions(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2]].transpose().astype(float)
@@ -336,9 +335,8 @@ class SourceDetectionEvaluation:
         plt.title(f"Matched {num} sources")
         if filename:
             plt.savefig(filename)
-            plt.show(block=False)
-        else:
-            plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
     def plot_flux_ratio_to_distance(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
@@ -370,9 +368,9 @@ class SourceDetectionEvaluation:
         plt.ylabel("Flux Ratio (Pred/Ref)")
         if filename:
             plt.savefig(filename)
-            plt.show(block=False)
-        else:
-            plt.show()
+        plt.show(block=False)
+        plt.pause(1)
+
 
     def plot_flux_ratio_to_ra_dec(self, filename=None):
         ref = self.get_truth_array()[:, [1, 2, 5]].transpose().astype(float)
@@ -395,9 +393,9 @@ class SourceDetectionEvaluation:
         ax1.set_ylabel("Flux ratio (Pred/Ref)")
         if filename:
             plt.savefig(filename)
-            plt.show(block=False)
-        else:
-            plt.show()
+        plt.show(block=False)
+        plt.pause(1)
+
 
     def plot_flux_histogram(self, nbins=10, filename=None):
 
@@ -424,7 +422,7 @@ class SourceDetectionEvaluation:
         ax.set_ylabel("Source Count")
         plt.legend(loc="best")
         if filename:
-            plt.savefig(filename)
-            plt.show(block=False)
-        else:
-            plt.show()
+            plt.savefig(filename)        
+        plt.show(block=False)
+        plt.pause(1)
+
