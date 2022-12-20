@@ -77,7 +77,7 @@ class SkyModel:
         if sources is not None:
             self.add_point_sources(sources)
 
-    def __get_empty_sources(self, n_sources):
+    def __get_empty_sources(self, n_sources: int) -> NDArray[Any]:
         empty_sources = np.hstack(
             (
                 np.zeros((n_sources, self.sources_m - 1)),
@@ -137,7 +137,7 @@ class SkyModel:
         major_axis_FWHM: float = 0,
         minor_axis_FWHM: float = 0,
         position_angle: float = 0,
-        source_id: object = None,
+        source_id: Optional[object] = None,
     ):
         """
         Add a single new point source to the sky model.
@@ -277,7 +277,11 @@ class SkyModel:
         copied_sky.__update_sky_model()
         return copied_sky
 
-    def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
+    def filter_by_flux(
+        self,
+        min_flux_jy: float,
+        max_flux_jy: float,
+    ) -> None:
         """
         Filters the sky using the Stokes-I-flux
         Values outside the range are removed
@@ -292,7 +296,11 @@ class SkyModel:
         self.sources = self.sources[filtered_sources_idxs]
         self.__update_sky_model()
 
-    def filter_by_frequency(self, min_freq: float, max_freq: float):
+    def filter_by_frequency(
+        self,
+        min_freq: float,
+        max_freq: float,
+    ) -> None:
         """
         Filters the sky using the referency frequency in Hz
 
@@ -326,7 +334,7 @@ class SkyModel:
 
     def setup_default_wcs(
         self,
-        phase_center: Union[List[int],List[float]] = [0,0],
+        phase_center: List[float] = [0,0],
     ) -> WCS:
         """
         Defines a default world coordinate system astropy.wcs
@@ -357,74 +365,102 @@ class SkyModel:
 
     def explore_sky(
         self,
-        phase_center: Union[List[int],List[float]],
-        xlim: tuple,
-        ylim: tuple,
-        figsize: tuple = (6, 6),
-        title: str = "",
-        xlabel: str = "",
-        ylabel: str = "",
+        phase_center: List[float],
+        flux_idx: int = 2,
+        xlim: Optional[Tuple[float,float]] = None,
+        ylim: Optional[Tuple[float,float]] = None,
+        figsize: Optional[Tuple[float,float]] = None,
+        title: Optional[str] = None,
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
         s: float = 20,
-        cfun: Callable = np.log10,
-        cmap: str = "plasma",
-        cbar_label: str = "",
+        cfun: Optional[Callable] = np.log10,
+        cmap: Optional[str] = "plasma",
+        cbar_label: Optional[str] = None,
         with_labels: bool = False,
         wcs: Optional[WCS] = None,
-    ):
+        wcs_enabled: bool = True,
+        filename: Optional[str] = None,
+        **kwargs,
+    ) -> None:
         """
-        A scatter plot of y vs. x of the point sources of the SkyModel
+        A scatter plot of the `SkyModel` (self) where the sources are projected according to the `phase_center`
 
-        :param phase_center:
-        :param xlim: RA-limit of plot (inverse position of `xlim` to mirror along x-axis)
-        :param ylim: DEC-limit of plot (inverse position of `ylim` to mirror along y-axis)
-        :param figsize: figure size
-        :param title: plot titble
-        :param xlabel: xlabel override
-        :param ylabel: ylabel override
+        :param phase_center: [RA,DEC]
+        :param flux_idx: `SkyModel` flux index, default is "Stokes I" flux with index 2
+        :param xlim: RA-limit of plot (switch position of `xlim` to mirror along x-axis)
+        :param ylim: DEC-limit of plot (switch position of `ylim` to mirror along y-axis)
+        :param figsize: figsize as tuple
+        :param title: plot title
+        :param xlabel: xlabel
+        :param ylabel: ylabel
         :param s: size of scatter points
-        :param cfun: color function
-        :param cmap: color map
+        :param cfun: flux scale transformation function for scatter-coloring
+        :param cmap: matplotlib color map
         :param cbar_label: color bar label
-        :param with_labels: Plots object ID's if set
-        :param wcs: If you want to use a custom astropy.wcs, ignores phase_center if set
+        :param with_labels: Plots object ID's if set?
+        :param wcs: If you want to use a custom astropy.wcs, ignores `phase_center` if set
+        :param wcs_enabled: Use wcs transformation?
+        :param filename: Set to path to save figure
+        :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `vmin` or `vmax`
         """
-        if wcs is None:
+        if wcs is None and wcs_enabled:
             wcs = self.setup_default_wcs(phase_center)
-        px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 0)  # ra-dec transformation
-        xlim, ylim = wcs.wcs_world2pix(xlim, ylim, 0)
+        if wcs_enabled:
+            px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 0)  # ra-dec transformation
+        else:
+            px, py = self[:, 0], self[:, 1]
 
-        flux, vmin, vmax = None, None, None
-        if cmap is not None and cfun is not None:
-            flux = self[:, 2]
-            flux = cfun(flux)
-            vmin, vmax = np.min(flux), np.max(flux)
-        else:  # set both to None if one of them is None
-            cfun = None
-            cmap = None
+        if wcs_enabled: # create dummy xlim or ylim if only one is set for convertion
+            xlim_reset, ylim_reset = False, False
+            if xlim is None and ylim is not None:
+                xlim = (-1,1)
+                xlim_reset = True
+            elif xlim is not None and ylim is None:
+                ylim = (-1,1)
+                ylim_reset = True
+            if xlim is not None and ylim is not None:
+                xlim, ylim = wcs.wcs_world2pix(xlim, ylim, 0)
+            if xlim_reset: xlim = None
+            if ylim_reset: ylim = None
 
-        slices = get_slices(wcs)
+        flux = None
+        if cmap is not None:
+            flux = self[:, flux_idx]
+            if cfun is not None:
+                flux = cfun(flux)
 
-        fig, ax = plt.subplots(
-            figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices)
-        )
-        sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, vmin=vmin, vmax=vmax)
+        # handle matplotlib kwargs (not set as normal args because default assignment depends on args)
+        if 'vmin' not in kwargs: kwargs['vmin'] = np.min(flux)
+        if 'vmax' not in kwargs: kwargs['vmax'] = np.max(flux)
+
+        if wcs_enabled:
+            slices = get_slices(wcs)
+            fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
+        else:
+            fig, ax = plt.subplots(figsize=figsize)
+        sc = ax.scatter(px, py, s=s, c=flux, cmap=cmap, **kwargs)
 
         if with_labels:
             for i, txt in enumerate(self[:, -1]):
                 ax.annotate(txt, (px[i], py[i]))
 
         plt.axis("equal")
+        if cbar_label is None: cbar_label = ''
         plt.colorbar(sc, label=cbar_label)
-        plt.title(title)
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        if title is not None: plt.title(title)
+        if xlim is not None: plt.xlim(xlim)
+        if ylim is not None: plt.ylim(ylim)
+        if xlabel is not None: plt.xlabel(xlabel)
+        if ylabel is not None: plt.ylabel(ylabel)
         plt.show()
+
+        if isinstance(filename, str):
+            fig.savefig(fname=filename)
 
     def plot_sky(
         self,
-        phase_center: Union[List[int],List[float]] = [0,0],
+        phase_center: List[float] = [0,0],
     ) -> None:
         if self.wcs is None:
             self.setup_default_wcs(phase_center)
@@ -461,8 +497,8 @@ class SkyModel:
 
     @staticmethod
     def read_healpix_file_to_sky_model_array(
-        file,
-        channel,
+        file: str,
+        channel: int,
         polarisation: Polarisation
     ) -> Tuple[NDArray[np.float64],int]:
         """
@@ -623,7 +659,7 @@ class SkyModel:
         max_size: Tuple[float,float],
         flux_min: float,
         flux_max: float,
-        r=3,
-    ):
+        r: int = 3,
+    ) -> SkyModel:
         sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
         return SkyModel(sky_array)
