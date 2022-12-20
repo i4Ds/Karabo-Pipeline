@@ -2,15 +2,13 @@ name: Create Nightly Build
 
 env:
   BUILD_NIGHTLY: True
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 on:
   schedule: # Every night at 3am
     - cron: '0 3 * * *'
   workflow_dispatch:
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   conda-build:
