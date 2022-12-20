@@ -1,5 +1,6 @@
 name: Tests
 
+on:
   workflow_run:
     workflows: ["Create Nightly Build"]
     types:

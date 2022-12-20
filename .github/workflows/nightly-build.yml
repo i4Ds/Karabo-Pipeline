@@ -3,7 +3,6 @@ name: Create Nightly Build
 on:
   schedule: # Every night at 3am
     - cron: '0 3 * * *'
-  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
