@@ -1,5 +1,6 @@
 import unittest
 import os
+
 def run_tests(verbosity=0, *args, **kwargs):
     loader = unittest.TestLoader()
     start_dir = os.path.dirname(__file__)
