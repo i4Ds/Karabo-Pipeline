@@ -269,7 +269,7 @@ class SkyModel:
         filtered_sources_idxs = np.where(filtered_sources == True)[0]
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
         copied_sky.__update_sky_model()
-        return copied_sky
+        return copied_sky, filtered_sources_idxs
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """
