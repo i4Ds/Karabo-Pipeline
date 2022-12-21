@@ -246,14 +246,16 @@ class SkyModel:
         outer_radius_deg: float,
         ra0_deg: float,
         dec0_deg: float,
+        indices=False
     ):
         """
-        Filters the sky according the an inner and outer circle from the phase center
+        Filters the sky according to an inner and outer circle from the phase center
 
         :param inner_radius_deg: Inner radius in degrees
-        :param outer_radius_deg: Outer raidus in degrees
-        :param ra0_deg: Phase center right ascention
+        :param outer_radius_deg: Outer radius in degrees
+        :param ra0_deg: Phase center right ascension
         :param dec0_deg: Phase center declination
+        :param indices: Optional parameter, if set to True, we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
         copied_sky = copy.deepcopy(self)
@@ -269,7 +271,11 @@ class SkyModel:
         filtered_sources_idxs = np.where(filtered_sources == True)[0]
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
         copied_sky.__update_sky_model()
-        return copied_sky, filtered_sources_idxs
+
+        if indices is True:
+            return copied_sky, filtered_sources_idxs
+        else:
+            return copied_sky
 
     def filter_by_flux(self, min_flux_jy: float, max_flux_jy: float):
         """
