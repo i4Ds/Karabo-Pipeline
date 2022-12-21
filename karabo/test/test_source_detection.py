@@ -27,13 +27,12 @@ class TestSourceDetection(unittest.TestCase):
         phase_center = [250, -80]
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs(phase_center=phase_center)
-        detection = SourceDetectionResult.read_from_file(
-            f"{data_path}/detection.zip",
-        )
+        detection = SourceDetectionResult.read_from_file(f"{data_path}/detection.zip")
         detection.write_to_file("./result/detection.zip")
 
-        imaging_npixel = 2048
-        imaging_cellsize = 3.878509448876288e-05
+        img = detection.get_source_image()
+        imaging_npixel = img.header['NAXIS1']
+        imaging_cellsize = img.get_cellsize()
 
         ground_truth, sky_idxs = Imager.project_sky_to_image(
             sky=sky,
@@ -56,9 +55,6 @@ class TestSourceDetection(unittest.TestCase):
             sky_idxs=sky_idxs,
             source_detection=detection,
         )
-        # mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
-        #     detection, sky, 5
-        # )
         mapping.plot()
         mapping.plot_error_ra_dec()
         mapping.plot_quiver_positions()
