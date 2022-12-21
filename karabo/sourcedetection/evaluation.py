@@ -96,9 +96,12 @@ class SourceDetectionEvaluation:
         :param top_k: number of top predictions to be considered in scipy.spatial.KDTree. A small value could lead to inperfect results.
 
         :return: nx3 np.ndarray where each row represents an assignment
-                        - first column represents the ground truth index (return is sorted by this column)
-                        - second column represents the predicted index
-                        - third column represents the euclidean distance between the assignment
+            - first column represents the ground truth index (return is sorted by this column)
+                a minus index means a ground-truth source with no allocated prediction
+            - second column represents the predicted index
+                a minus index means a predicted source with no allocated ground-truth
+            - third column represents the euclidean distance between the assignment
+                a "inf" means no allocation between ground-truth and prediction of that source
         """
         # With scipy.spatial.KDTree get the closest detection point for each ground truth point
         tree = KDTree(ground_truth)
@@ -145,9 +148,8 @@ class SourceDetectionEvaluation:
         - FN are sources with no associations with a detection
 
         :param assignments: nx3 did np.ndarray where each row represents an assignment
-                            - first column represents the ground truth index
-                            - second column represents the predicted index
-                            - third column represents the euclidean distance between the assignment
+            The `assignments` is expected to be as `automatic_assignment_of_ground_truth_and_prediction` return.
+            Therefore, the non-assigned sources must have a value of "-1".
 
         :return: TP, FP, FN
         """

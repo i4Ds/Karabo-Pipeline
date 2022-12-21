@@ -399,7 +399,7 @@ class SkyModel:
         :param with_labels: Plots object ID's if set?
         :param wcs: If you want to use a custom astropy.wcs, ignores `phase_center` if set
         :param wcs_enabled: Use wcs transformation?
-        :param filename: Set to path to save figure
+        :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
         """
         if wcs is None and wcs_enabled:
