@@ -1,7 +1,7 @@
 name: Create Nightly Build
 
 env:
-  BUILD_NIGHTLY: True
+  NIGHTLY_BUILD: True
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
