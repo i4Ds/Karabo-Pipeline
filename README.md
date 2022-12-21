@@ -18,6 +18,24 @@ Two specific radio telescope packages are used:
 	- OSKAR telescope files telescope.tm are from https://github.com/OxfordSKA/OSKAR/releases -> Example Data
 - RASCIL: Responsible for imaging https://gitlab.com/ska-telescope/external/rascil
 
+Requirements
+------------
+
+- Linux or Windows with WSL. 
+- Conda
+
+Installation
+------------
+
+```shell
+conda create -n karabo-env python=3.9
+conda activate karabo-env
+conda install -c i4ds -c conda-forge karabo-pipeline
+```
+
+For further details check our documentation:
+https://i4ds.github.io/Karabo-Pipeline/installation_user.html
+
 License
 -------
 © Contributors, 2022. Licensed under an [MIT License](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) license.

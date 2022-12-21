@@ -530,8 +530,8 @@ class Pinocchio:
 
         if save:
             plt.savefig('lss.png')
-        
-        plt.show() 
+        plt.show(block=False)
+        plt.pause(1) 
 
     def plotMassFunction(self, redshift: str = "0.0", save: bool = False) -> None:
         """
@@ -576,8 +576,8 @@ class Pinocchio:
 
         if save:
             plt.savefig('mf.png')
-        
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
     def plotPastLightCone(self, save: bool = False) -> None:
         """
@@ -617,8 +617,8 @@ class Pinocchio:
 
         if save:
             plt.savefig('plc.png')
-        
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
     def getSkyModel(self, near: float = 0, far: float = 100) -> SkyModel:
         """

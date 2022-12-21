@@ -1,10 +1,13 @@
-name: Conda Build
+name: Create Nightly Build
 
 on:
-  release:
-    types: [published]
+  schedule: # Every night at 3am
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   conda-build:
@@ -27,5 +30,4 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} move --from-label main --to-label old i4ds/karabo-pipeline
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2 --label nightly --force
