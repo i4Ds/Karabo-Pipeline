@@ -48,9 +48,7 @@ class SourceDetectionEvaluation:
         self.sky_array_gt = self.sky[sky_idxs_gt]
         self.sky_array_gt_img_pos = self.ground_truth[:,assignment_truth[:,0].astype(np.int64)]
         # get `SourceDetectionResult.detected_sources` array of predictions
-        assignment_pred = self.assignments[np.where(self.assignments[:,1] >= 0)]
-        sdr_idxs_pred = assignment_pred[:,1].astype(np.int64)
-        self.detected_sources_array_pred = self.source_detection.detected_sources[sdr_idxs_pred]
+        self.detected_sources_array_pred = self.source_detection.detected_sources
         # get `SkyModel` array of assigned ground truth sources
         assignment_assigned = self.assignments[np.where(self.assignments[:,2] != np.inf)]
         sky_idxs_gt_assigned = self.sky_idxs[assignment_assigned[:,0].astype(np.int64)]
@@ -196,7 +194,7 @@ class SourceDetectionEvaluation:
 
     def get_confusion_matrix(self) -> NDArray[np.int64]:
         return np.array(
-            [[0.0, self.fp], [self.fn, self.tp]]
+            [[0.0, self.fn], [self.fp, self.tp]]
         )
 
     def get_accuracy(self) -> float:
