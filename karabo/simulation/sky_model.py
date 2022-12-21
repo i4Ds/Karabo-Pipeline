@@ -246,7 +246,7 @@ class SkyModel:
         outer_radius_deg: float,
         ra0_deg: float,
         dec0_deg: float,
-        indices=False
+        indices: bool = False
     ):
         """
         Filters the sky according to an inner and outer circle from the phase center
