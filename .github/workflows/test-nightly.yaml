@@ -22,7 +22,6 @@ jobs:
         run: |
           conda create -n test_karabo python=3.9.13
           conda activate test_karabo
-          conda install -c conda-forge __glibc=2.33 --yes
       - name: Install Karabo
         run: |
           conda install -c "i4ds/label/nightly" karabo-pipeline --yes
