@@ -7,7 +7,7 @@ on:
       - completed
 
 jobs:
-  Test_Karabo:
+  Test_Nightly_Build:
     runs-on: ubuntu-20.04
     steps:
       - name: Install Conda
