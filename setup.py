@@ -14,11 +14,10 @@ if os.getenv('NIGHTLY_BUILD', 'false') == 'true':
     else:
         __version__ = __version__ + '.dev0'
         
-# Rewrite _version.txt with the updated version. 
-os.remove(os.path.join('karabo', '_version.txt'))
-with open(os.path.join('karabo', '_version.txt'), 'w') as version_file:
-    version_file.write(__version__)
-    version_file.close()
+if not os.path.exists(os.path.join('karabo', '_package_version.txt')):
+    with open(os.path.join('karabo', '_package_version.txt'), 'w') as version_file:
+        version_file.write(__version__)
+        version_file.close()
 
 # implicitly takes config from setup.cfg (used by conda build load_setup_py_data())
 setup(
