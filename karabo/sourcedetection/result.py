@@ -2,7 +2,6 @@ from __future__ import annotations
 import shutil
 from typing import Tuple, Optional
 
-import numpy
 import numpy as np
 from numpy.typing import NDArray
 import bdsf
@@ -46,6 +45,7 @@ class SourceDetectionResult(KaraboResource):
         image: Image,
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
+        **kwargs,
     ) -> PyBDSFSourceDetectionResult:
         """
         Detecting sources in an image. The Source detection is implemented with the PyBDSF.process_image function.
@@ -61,6 +61,7 @@ class SourceDetectionResult(KaraboResource):
             beam=beam,
             quiet=quiet,
             format="csv",
+            **kwargs,
         )
         
         return PyBDSFSourceDetectionResult(detection)
@@ -72,6 +73,7 @@ class SourceDetectionResult(KaraboResource):
         quiet: bool = False,
         beam: Optional[Tuple[float, float, float]] = None,
         beam_guessing_method: str = 'rascil_1_iter',
+        **kwargs,
     ) -> PyBDSFSourceDetectionResult:
         """
         Detecting sources in an dirty image (No clean algorithm is applied). The Source detection is implemented with the PyBDSF.process_image function.
@@ -98,7 +100,11 @@ class SourceDetectionResult(KaraboResource):
                 raise KaraboWarning("No beam parameter found. Source detection might fail.")
                          
         detection = bdsf.process_image(
-            dirty.file.path, beam=beam, quiet=quiet, format="csv"
+            dirty.file.path,
+            beam=beam,
+            quiet=quiet,
+            format="csv",
+            **kwargs,
         )
         
         return PyBDSFSourceDetectionResult(detection)
@@ -145,8 +151,8 @@ class SourceDetectionResult(KaraboResource):
             # Run 
             _, restored, _ = imager.imaging_rascil(
                 clean_niter=1,
-                clean_nmajor=1
-                )
+                clean_nmajor=1,
+            )
         else:
             raise NotImplementedError('Only rascil_1_iter is implemented')
 
@@ -161,7 +167,7 @@ class SourceDetectionResult(KaraboResource):
         tempdir = FileHandle(is_dir=True)
         shutil.unpack_archive(path, tempdir.path)
         source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
-        source_catalouge = numpy.loadtxt(
+        source_catalouge = np.loadtxt(
             tempdir.path + "/detected_sources.csv", delimiter=","
         )
         return SourceDetectionResult(source_catalouge, source_image)
@@ -172,7 +178,7 @@ class SourceDetectionResult(KaraboResource):
         :param filepath:
         :return:
         """
-        numpy.savetxt(filepath, self.detected_sources, delimiter=",")
+        np.savetxt(filepath, self.detected_sources, delimiter=",")
 
     def has_source_image(self) -> bool:
         """
@@ -199,7 +205,10 @@ class SourceDetectionResult(KaraboResource):
 
 
 class PyBDSFSourceDetectionResult(SourceDetectionResult):
-    def __init__(self, bdsf_detection: bdsf_image) -> None:
+    def __init__(
+        self,
+        bdsf_detection: bdsf_image,
+    ) -> None:
         """
         Source Detection Result Wrapper for source detection results from PyBDSF.
         The Object allows the use of all Karabo-Source Detection functions on PyBDSF results
