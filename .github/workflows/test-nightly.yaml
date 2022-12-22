@@ -5,6 +5,7 @@ on:
     workflows: ["Create Nightly Build"]
     types:
       - completed
+  workflow_dispatch:
 
 jobs:
   Test_Nightly_Build:
