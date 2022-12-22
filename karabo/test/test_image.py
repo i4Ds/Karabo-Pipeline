@@ -27,7 +27,7 @@ class TestImage(unittest.TestCase):
 
     def test_explore_sky(self):
         sky = SkyModel.get_GLEAM_Sky()
-        sky.explore_sky([250, -80])
+        sky.explore_sky([250, -80], s=.1)
 
     # # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_clean(self):

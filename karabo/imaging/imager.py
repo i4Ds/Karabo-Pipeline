@@ -1,5 +1,7 @@
-from typing import List, Tuple, Union, Dict
-
+from typing import List, Tuple, Union, Dict, Any, Optional
+import numpy as np
+from numpy.typing import NDArray
+from astropy.wcs import WCS
 from distributed import Client
 from rascil.data_models import PolarisationFrame
 from rascil.processing_components import (
@@ -20,6 +22,7 @@ from rascil.workflows.rsexecute.execution_support import rsexecute
 from karabo.util.dask import get_global_client
 from karabo.imaging.image import Image
 from karabo.simulation.visibility import Visibility
+from karabo.simulation.sky_model import SkyModel
 
 
 class Imager:
@@ -83,52 +86,50 @@ class Imager:
     def __init__(
         self,
         visibility: Visibility,
-        logfile: str = None,
-        performance_file: str = None, 
+        logfile: Optional[str] = None,
+        performance_file: Optional[str] = None, 
         ingest_dd: List[int] = [0],
-        ingest_vis_nchan: int = None,
+        ingest_vis_nchan: Optional[int] = None,
         ingest_chan_per_blockvis: int = 1,
-        ingest_average_blockvis: Union[
-            bool, str
-        ] = False,
-        imaging_phasecentre: str = None,
+        ingest_average_blockvis: Union[bool, str] = False,
+        imaging_phasecentre: Optional[str] = None,
         imaging_pol: str = "stokesI",
         imaging_nchan: int = 1,
         imaging_context: str = "ng",
         imaging_ng_threads: int = 4,
-        imaging_w_stacking: Union[bool, str] = True, 
+        imaging_w_stacking: Union[bool, str] = True,
         imaging_flat_sky: Union[bool, str] = False, 
-        imaging_npixel: int = None,
-        imaging_cellsize: float = None,
+        imaging_npixel: Optional[int] =  None,
+        imaging_cellsize: Optional[float] = None,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,
-        imaging_gaussian_taper: float = None,
-        imaging_dopsf: Union[bool, str] = False,
-        imaging_dft_kernel: str = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
-    ):
-        self.logfile: str = logfile
-        self.performance_file: str = performance_file
-        self.visibility: Visibility = visibility
-        self.ingest_dd: List[int] = ingest_dd
-        self.ingest_vis_nchan: int = ingest_vis_nchan
-        self.ingest_chan_per_blockvis: int = ingest_chan_per_blockvis
-        self.ingest_average_blockvis: Union[bool, str] = ingest_average_blockvis
-        self.imaging_phasecentre: str = imaging_phasecentre
-        self.imaging_pol: str = imaging_pol
-        self.imaging_nchan: int = imaging_nchan
-        self.imaging_context: str = imaging_context
-        self.imaging_ng_threads: int = imaging_ng_threads
-        self.imaging_w_stacking: Union[bool, str] = imaging_w_stacking
-        self.imaging_flat_sky: Union[bool, str] = imaging_flat_sky
-        self.imaging_npixel: int = imaging_npixel
-        self.imaging_cellsize: float = imaging_cellsize
-        self.imaging_weighting: str = imaging_weighting
-        self.imaging_robustness: float = imaging_robustness
-        self.imaging_gaussian_taper: float = imaging_gaussian_taper
-        self.imaging_dopsf: Union[bool, str] = imaging_dopsf
-        self.imaging_dft_kernel: str = imaging_dft_kernel
+        imaging_gaussian_taper: Optional[float] = None,
+        imaging_dopsf: Union[bool,str] = False,
+        imaging_dft_kernel: Optional[str] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
+    ) -> None:
+        self.visibility = visibility
+        self.logfile = logfile
+        self.performance_file = performance_file
+        self.ingest_dd = ingest_dd
+        self.ingest_vis_nchan = ingest_vis_nchan
+        self.ingest_chan_per_blockvis = ingest_chan_per_blockvis
+        self.ingest_average_blockvis = ingest_average_blockvis
+        self.imaging_phasecentre = imaging_phasecentre
+        self.imaging_pol = imaging_pol
+        self.imaging_nchan = imaging_nchan
+        self.imaging_context = imaging_context
+        self.imaging_ng_threads = imaging_ng_threads
+        self.imaging_w_stacking = imaging_w_stacking
+        self.imaging_flat_sky = imaging_flat_sky
+        self.imaging_npixel = imaging_npixel
+        self.imaging_cellsize = imaging_cellsize
+        self.imaging_weighting = imaging_weighting
+        self.imaging_robustness = imaging_robustness
+        self.imaging_gaussian_taper = imaging_gaussian_taper
+        self.imaging_dopsf = imaging_dopsf
+        self.imaging_dft_kernel = imaging_dft_kernel
 
-    def __getattribute__(self, name) -> object:
+    def __getattribute__(self, name: str) -> Any:
         """
         Ensures that the variable access of bool are casted to str since RASCIL defined their bool to be str
         """
@@ -157,20 +158,18 @@ class Imager:
 
     def imaging_rascil(
         self,
-        client: Client = None,
+        client: Optional[Client] = None,
         use_dask: bool = False,
         n_threads: int = 1,
         use_cuda: bool = False, # If True, use CUDA for Nifty Gridder
         img_context: str = "ng", # Imaging context: Which nifty gridder to use. See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
-        num_bright_sources: int = None,
+        num_bright_sources: Optional[int] = None,
         # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
         clean_algorithm: str = "hogbom",
         # Type of deconvolution algorithm (hogbom or msclean or mmclean)
-        clean_beam: Dict[str, float] = None,
+        clean_beam: Optional[Dict[str,float]] = None,
         # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args. NEEDS TESTING!!
-        clean_scales: List[int] = [
-            0
-        ],  # Scales for multiscale clean (pixels) e.g. [0, 6, 10]
+        clean_scales: List[int] = [0],  # Scales for multiscale clean (pixels) e.g. [0, 6, 10]
         clean_nmoment: int = 4,
         # Number of frequency moments in mmclean (1 is a constant, 2 is linear, etc.)
         clean_nmajor: int = 5,  # Number of major cycles in cip or ical
@@ -178,7 +177,7 @@ class Imager:
         clean_psf_support: int = 256,  # Half-width of psf used in cleaning (pixels)
         clean_gain: float = 0.1,  # Clean loop gain
         clean_threshold: float = 1e-4,  # Clean stopping threshold (Jy/beam)
-        clean_component_threshold: float = None,
+        clean_component_threshold: Optional[float] = None,
         # Sources with absolute flux > this level (Jy) are fit or extracted using skycomponents
         clean_component_method: str = "fit",
         # Method to convert sources in image to skycomponents: 'fit' in frequency or 'extract' actual values
@@ -216,7 +215,7 @@ class Imager:
         blockviss = create_blockvisibility_from_ms_rsexecute(
             msname=self.visibility.file.path,
             nchan_per_blockvis=self.ingest_chan_per_blockvis,
-            nout=self.ingest_vis_nchan // self.ingest_chan_per_blockvis,
+            nout=self.ingest_vis_nchan // self.ingest_chan_per_blockvis, # pyright: ignore
             dds=self.ingest_dd,
             average_channels=True,
         )
@@ -238,12 +237,11 @@ class Imager:
             for bvis in blockviss
         ]
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
-            blockviss,  # List of BlockVisibilitys
-            models,  # List of model images
+            vis_list=blockviss,  # List of BlockVisibilitys
+            model_imagelist=models,  # List of model images
             context=img_context,
             threads=n_threads,
-            wstacking=self.imaging_w_stacking
-            == "True",  # Correct for w term in gridding
+            wstacking=self.imaging_w_stacking == "True",  # Correct for w term in gridding
             niter=clean_niter,  # iterations in minor cycle
             nmajor=clean_nmajor,  # Number of major cycles
             algorithm=clean_algorithm,
@@ -276,9 +274,9 @@ class Imager:
         residual, restored, skymodel = result
 
         deconvolved = [sm.image for sm in skymodel]
-        deconvolved_image = image_gather_channels(deconvolved)
-        deconvoled_image = Image()
-        export_image_to_fits(deconvolved_image, deconvoled_image.file.path)
+        deconvolved_image_rascil = image_gather_channels(deconvolved)
+        deconvolved_image = Image()
+        export_image_to_fits(deconvolved_image_rascil, deconvolved_image.file.path)
 
         restored_image = Image()
         if isinstance(restored, list):
@@ -291,4 +289,54 @@ class Imager:
         residual_image = Image()
         export_image_to_fits(residual, residual_image.file.path)
 
-        return deconvoled_image, restored_image, residual_image
+        return deconvolved_image, restored_image, residual_image
+
+    @staticmethod
+    def project_sky_to_image(
+        sky: SkyModel,
+        phase_center: Union[List[int], List[float]],
+        imaging_cellsize: float,
+        imaging_npixel: int,
+        filter_outlier: bool = True,
+        invert_ra: bool = True,
+    ) -> Tuple[NDArray[np.float64], NDArray[np.int64]]:
+        """
+        Calculates the pixel coordinates `sky` sources as floats.
+        If you want to have integer indices, just round them.
+        
+        :param sky: `SkyModel` with the sources
+        :param phase_center: [RA,DEC]
+        :param imaging_cellsize: Image cellsize in radian (pixel coverage)
+        :param imaging_npixel: Number of pixels of the image
+        :param filter_outlier: Exclude source outside of image?
+        :param invert_ra: Invert RA axis?
+
+        :return: image-coordinates as np.ndarray[px,py] and `SkyModel` sources indices as np.ndarray[idxs]
+        """
+        # calc WCS args
+        radian_degree = lambda rad: rad * (180/np.pi)
+        cdelt = radian_degree(imaging_cellsize)
+        crpix = np.floor((imaging_npixel/2))+1
+        
+        # setup WCS
+        w = WCS(naxis=2)
+        w.wcs.crpix = np.array([crpix,crpix])  # coordinate reference pixel per axis
+        ra_sign = -1 if invert_ra else 1
+        w.wcs.cdelt = np.array([ra_sign*cdelt,cdelt])  # coordinate increments on sphere per axis
+        w.wcs.crval = phase_center
+        w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
+
+        # convert coordinates
+        px, py = w.wcs_world2pix(sky[:,0], sky[:,1], 1)
+        
+        # post processing
+        if filter_outlier: # pre filtering before calling wcs.wcs_world2pix would be more efficient, however this has to be done in the ra-dec space. maybe for future work
+            px_idxs = np.where(np.logical_and(px <= imaging_npixel, px >= 0))[0]
+            py_idxs = np.where(np.logical_and(py <= imaging_npixel, py >= 0))[0]
+            idxs = np.intersect1d(px_idxs, py_idxs)
+            px, py = px[idxs], py[idxs]
+        else:
+            idxs = np.arange(sky.num_sources)
+        img_coords = np.array([px,py])
+
+        return img_coords, idxs
