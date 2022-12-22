@@ -9,13 +9,21 @@ on:
 jobs:
   Test_Karabo:
     runs-on: ubuntu-20.04
-    container: ghcr.io/i4ds/mambabuild-docker:latest
-
-    steps:
-      - name: Install Nightly Build
+      steps:
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Create Environment
+        shell: bash -l {0}
         run: |
+          conda create -n test_karabo python=3.9.13
+          conda activate test_karabo
+      - name: Install Karabo
           conda install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
         run: |
-          conda activate base
+          conda activate test_karabo
           python -c "import karabo; karabo.util.testing.run_tests()"
