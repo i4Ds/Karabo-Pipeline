@@ -135,7 +135,7 @@ class SourceDetectionEvaluation:
         if len(missing_gts) > 0:
             missing_gts = np.array([missing_gts, np.full(len(missing_gts), -1), np.full(len(missing_gts), np.inf)])
             assigments = np.vstack([assigments, missing_gts.T])
-        return assigments[assigments[:,0].argsort()] # don't change sorting easly, there might be function dependencies
+        return assigments[assigments[:,0].argsort()]
 
     @staticmethod
     def calculate_evaluation_measures(
