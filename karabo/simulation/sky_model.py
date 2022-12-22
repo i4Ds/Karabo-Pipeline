@@ -458,6 +458,7 @@ class SkyModel:
         if xlabel is not None: plt.xlabel(xlabel)
         if ylabel is not None: plt.ylabel(ylabel)
         plt.show(block=False)
+        plt.pause(1)
 
         if isinstance(filename, str):
             fig.savefig(fname=filename)
