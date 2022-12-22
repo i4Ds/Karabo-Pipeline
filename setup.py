@@ -6,7 +6,7 @@ with open(os.path.join('karabo', '_version.txt')) as version_file:
     __version__ = version_file.read().strip()
     version_file.close()
     
-if os.getenv('NIGHTLY_BUILD', 'False') == 'True':
+if os.getenv('NIGHTLY_BUILD', 'false') == 'true':
     if 'dev' in __version__:
         # Increment the dev version number
         dev_version = int(__version__.split('dev')[-1])
