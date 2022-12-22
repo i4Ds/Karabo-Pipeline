@@ -88,17 +88,17 @@ class Imager:
         visibility: Visibility,
         logfile: Optional[str] = None,
         performance_file: Optional[str] = None, 
-        ingest_dd: List[int] =[0],
+        ingest_dd: List[int] = [0],
         ingest_vis_nchan: Optional[int] = None,
         ingest_chan_per_blockvis: int = 1,
-        ingest_average_blockvis: Union[bool,str] = False,
+        ingest_average_blockvis: Union[bool, str] = False,
         imaging_phasecentre: Optional[str] = None,
         imaging_pol: str = "stokesI",
         imaging_nchan: int = 1,
         imaging_context: str = "ng",
         imaging_ng_threads: int = 4,
-        imaging_w_stacking: Union[bool,str] = True,
-        imaging_flat_sky: Union[bool,str] = False, 
+        imaging_w_stacking: Union[bool, str] = True,
+        imaging_flat_sky: Union[bool, str] = False, 
         imaging_npixel: Optional[int] =  None,
         imaging_cellsize: Optional[float] = None,
         imaging_weighting: str = "uniform",
@@ -237,8 +237,8 @@ class Imager:
             for bvis in blockviss
         ]
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
-            blockviss,  # List of BlockVisibilitys
-            models,  # List of model images
+            vis_list=blockviss,  # List of BlockVisibilitys
+            model_imagelist=models,  # List of model images
             context=img_context,
             threads=n_threads,
             wstacking=self.imaging_w_stacking == "True",  # Correct for w term in gridding
@@ -293,13 +293,13 @@ class Imager:
 
     @staticmethod
     def project_sky_to_image(
-        sky:SkyModel,
-        phase_center: Union[List[int],List[float]],
+        sky: SkyModel,
+        phase_center: Union[List[int], List[float]],
         imaging_cellsize: float,
         imaging_npixel: int,
         filter_outlier: bool = True,
         invert_ra: bool = True,
-    ) -> Tuple[NDArray[np.float64],NDArray[np.int64]]:
+    ) -> Tuple[NDArray[np.float64], NDArray[np.int64]]:
         """
         Calculates the pixel coordinates `sky` sources as floats.
         If you want to have integer indices, just round them.

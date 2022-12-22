@@ -16,11 +16,11 @@ class SourceDetectionEvaluation:
     def __init__(
         self,
         sky: SkyModel,
-        ground_truth: Tuple[NDArray[np.float64],NDArray[np.int64]],
+        ground_truth: Tuple[NDArray[np.float64], NDArray[np.int64]],
         assignments: NDArray[np.float64],
         sky_idxs: NDArray[np.int64],
         source_detection: SourceDetectionResult,
-    ):
+    ) -> None:
         """
         Class that holds the mapping of a source detection to truth mapping.
         :param sky: `SkyModel` where the `assignment` comes from
@@ -72,8 +72,8 @@ class SourceDetectionEvaluation:
         
     @staticmethod
     def automatic_assignment_of_ground_truth_and_prediction(
-        ground_truth: Union[NDArray[np.int64],NDArray[np.float64]],
-        detected: Union[NDArray[np.int64],NDArray[np.float64]],
+        ground_truth: Union[NDArray[np.int64], NDArray[np.float64]],
+        detected: Union[NDArray[np.int64], NDArray[np.float64]],
         max_dist: float,
         top_k: int = 3,
     ) -> NDArray[np.float64]:
@@ -140,7 +140,7 @@ class SourceDetectionEvaluation:
     @staticmethod
     def calculate_evaluation_measures(
         assignments: NDArray[np.float64],
-    ) -> Tuple[int,int,int]:
+    ) -> Tuple[int, int, int]:
         """
         Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
         - TP are the detections associated with a source

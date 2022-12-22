@@ -59,7 +59,7 @@ class SkyModel:
 
     def __init__(
         self,
-        sources: Optional[NDArray[Any]]=None,
+        sources: Optional[NDArray[Any]] = None,
         wcs: Optional[WCS] = None,
         nside: int = 0,
     ) -> None:
@@ -253,7 +253,7 @@ class SkyModel:
         ra0_deg: float,
         dec0_deg: float,
         indices: bool = False
-    ) -> Union[SkyModel,Tuple[SkyModel,NDArray[np.int64]]]:
+    ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int64]]]:
         """
         Filters the sky according to an inner and outer circle from the phase center
 
@@ -373,9 +373,9 @@ class SkyModel:
         self,
         phase_center: List[float],
         flux_idx: int = 2,
-        xlim: Optional[Tuple[float,float]] = None,
-        ylim: Optional[Tuple[float,float]] = None,
-        figsize: Optional[Tuple[float,float]] = None,
+        xlim: Optional[Tuple[float, float]] = None,
+        ylim: Optional[Tuple[float, float]] = None,
+        figsize: Optional[Tuple[float, float]] = None,
         title: Optional[str] = None,
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
@@ -475,7 +475,7 @@ class SkyModel:
         file: str,
         channel: int,
         polarisation: Polarisation
-    ) -> Tuple[NDArray[np.float64],int]:
+    ) -> Tuple[NDArray[np.float64], int]:
         """
         Read a healpix file in hdf5 format.
         The file should have the map keywords:
@@ -630,8 +630,8 @@ class SkyModel:
 
     @staticmethod
     def get_random_poisson_disk_sky(
-        min_size: Tuple[float,float],
-        max_size: Tuple[float,float],
+        min_size: Tuple[float, float],
+        max_size: Tuple[float, float],
         flux_min: float,
         flux_max: float,
         r: int = 3,
