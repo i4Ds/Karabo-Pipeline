@@ -29,31 +29,33 @@ class TestSystemNoise(unittest.TestCase):
         im_maj=mightee_continuum['IM_MAJ'];im_min=mightee_continuum['IM_MIN'];im_pa=mightee_continuum['IM_PA']
         sky_data=np.zeros((len(ra),12));sky_data[:,0]=ra;sky_data[:,1]=dec;sky_data[:,2]=s_peak;sky_data[:,6]=f_eff;sky_data[:,9]=im_maj;sky_data[:,10]=im_min;sky_data[:,11]=im_pa
         sky.add_point_sources(sky_data)
-        phase_ra=150.0;phase_dec=2.2;phasecenter=(phase_ra,phase_dec)
+        ra_list=[150.0,150.5,160.0];dec_list=[2.0,2.5,3.0]
         f_obs=1.e9;chan=1.e7
-        sky_filter=sky.filter_by_radius(ra0_deg=phase_ra,dec0_deg=phase_dec,inner_radius_deg=0,outer_radius_deg=2.0)
-        telescope = Telescope.get_MEERKAT_Telescope()
-        # telescope.centre_longitude = 3
-        simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
-                                               time_average_sec=1, noise_enable=True,
-                                                noise_seed="time", noise_freq="Range", noise_rms="Range",
-                                                noise_start_freq=f_obs,
-                                                noise_inc_freq=chan,
-                                                noise_number_freq=1,
-                                                noise_rms_start=5,
-                                                noise_rms_end=10)
-        observation = Observation(phase_centre_ra_deg=phase_ra,
-                                   start_date_and_time=datetime(2022, 9, 1, 9, 00, 00, 521489),
-                                   length=timedelta(hours=10, minutes=0, seconds=1, milliseconds=0),
-                                   phase_centre_dec_deg=phase_dec,
-                                   number_of_time_steps=1,
-                                   start_frequency_hz=1.e9+chan,
-                                   frequency_increment_hz=chan,
-                                   number_of_channels=1,)
-
-        visibility = simulation.run_simulation(telescope, sky_filter, observation)
-        time_vis = (time.time() - start_time)
-        visibility.write_to_file("./result/mock_mightee/mock_mightee.ms")
+        chan_bandwidth=1.e6
+        for phase_ra in ra_list:
+            for phase_dec in dec_list:
+                sky_filter=sky.filter_by_radius(ra0_deg=phase_ra,dec0_deg=phase_dec,inner_radius_deg=0,outer_radius_deg=2.0)
+                telescope = Telescope.get_MEERKAT_Telescope()
+                # telescope.centre_longitude = 3
+                simulation = InterferometerSimulation(channel_bandwidth_hz=chan_bandwidth,
+                                                       time_average_sec=1, noise_enable=False,
+                                                        noise_seed="time", noise_freq="Range", noise_rms="Range",
+                                                        noise_start_freq=f_obs,
+                                                        noise_inc_freq=chan,
+                                                        noise_number_freq=1,
+                                                        noise_rms_start=5,
+                                                        noise_rms_end=10)
+                observation = Observation(phase_centre_ra_deg=phase_ra,
+                                           start_date_and_time=datetime(2022, 9, 1, 9, 00, 00, 521489),
+                                           length=timedelta(hours=10, minutes=0, seconds=1, milliseconds=0),
+                                           phase_centre_dec_deg=phase_dec,
+                                           number_of_time_steps=1,
+                                           start_frequency_hz=1.e9+chan,
+                                           frequency_increment_hz=chan,
+                                           number_of_channels=1,)
+                visibility = simulation.run_simulation(telescope, sky_filter, observation)
+                visibility.write_to_file("./result/mock_mightee/mock_mightee_dec"+str(phase_ra)+"ra_"+str(phase_dec)+".ms")
+        '''      
         time_vis_write=(time.time() - start_time)
         imager = Imager(visibility,
                          imaging_npixel=4096,
@@ -66,5 +68,5 @@ class TestSystemNoise(unittest.TestCase):
         plt.plot([1,10,30,60,80,100],[20.5,22.4,30.2,40.3,42.2,44.4],'o-',label='Vis Run')
         plt.plot([1, 10, 30, 60, 80, 100], [24.3,46.5,148.2,247.2,373.6,537.7], 'o-', label='Vis + Image Run')
         plt.xlabel('Number of Channels');plt.ylabel('Execution Time (sec)')
-        plt.legend();plt.show()
+        plt.legend();plt.show()'''
 
