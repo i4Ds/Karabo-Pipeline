@@ -69,7 +69,27 @@ class Image(KaraboResource):
     def get_squeezed_data(self) -> NDArray[np.float64]:
         return numpy.squeeze(self.data[:1, :1, :, :])
 
-    def plot(self, title:str) -> None:
+    def plot(
+        self,
+        title: str,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+        cmap: Optional[str] = "jet",
+        origin: Optional[str] = 'lower',
+        norm: Optional[str] = None,
+        aspect: Optional[float] = None
+    ) -> None:
+        """
+        Plots the image
+
+        :param title: the title of the colormap
+        :param vmin: defines the minimum of the data range that the colormap covers
+        :param vmax: defines the maximum of the data range that the colormap covers
+        :param cmap: matplotlib color map
+        :param origin: place the [0, 0] index of the array in the upper left or lower left corner of the Axes
+        :param norm: The normalization method used to scale scalar data to the [0, 1] range before mapping to colors using cmap. By default, a linear scaling is used, mapping the lowest value to 0 and the highest to 1.
+        :param aspect: The aspect ratio of the Axes. This parameter is particularly relevant for images since it determines whether data pixels are square.
+        """
         import matplotlib.pyplot as plt
         wcs = WCS(self.header)
         print(wcs)
@@ -84,7 +104,7 @@ class Image(KaraboResource):
                 slices.append(0)
 
         ax=plt.subplot(projection=wcs, slices=slices)
-        plt.imshow(self.data[0][0], cmap="jet", origin='lower')
+        plt.imshow(self.data[0][0], cmap=cmap, norm=norm, aspect=aspect, vmin=vmin, vmax=vmax, origin=origin)
         plt.colorbar(label=title)
         ax.invert_xaxis()
         plt.show(block=False)
