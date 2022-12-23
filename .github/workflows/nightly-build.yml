@@ -1,13 +1,14 @@
 name: Create Nightly Build
 
+env:
+  NIGHTLY_BUILD: true
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 on:
   schedule: # Every night at 3am
     - cron: '0 3 * * *'
   workflow_dispatch:
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   conda-build:
@@ -15,6 +16,11 @@ jobs:
     container: ghcr.io/i4ds/mambabuild-docker:latest
 
     steps:
+      - name: Print Out Environment
+        run: |
+          echo "NIGHTLY_BUILD: $NIGHTLY_BUILD"
+          echo "REGISTRY: $REGISTRY"
+          echo "IMAGE_NAME: $IMAGE_NAME"
       - name: Install conda build
         run: |
           conda config --append channels conda-forge
