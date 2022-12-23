@@ -30,6 +30,9 @@ jobs:
           mamba activate test_karabo
       - name: Install Karabo
         run: |
+          mamba config --append channels conda-forge
+          mamba config --append channels i4ds
+          mamba config --append channels nvidia/label/cuda-11.7.0
           mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
         run: |
