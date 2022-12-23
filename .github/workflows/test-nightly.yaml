@@ -34,4 +34,4 @@ jobs:
       - name: Test Nightly Build
         run: |
           conda activate test_karabo
-          python -c "import karabo; karabo.util.testing.run_tests()"
+          python -c "from karabo.util.testing import run_tests; run_tests()"
