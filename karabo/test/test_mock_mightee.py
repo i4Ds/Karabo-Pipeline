@@ -24,7 +24,7 @@ class TestSystemNoise(unittest.TestCase):
     def test_mock_mightee(self):
         sky = SkyModel()
         start_time = time.time()
-        mightee0=fits.open('/home/rohit/simulations/MIGHTEE/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits');mightee_continuum=mightee0[1].data
+        mightee0=fits.open('https://object.cscs.ch:443/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits');mightee_continuum=mightee0[1].data
         ra=mightee_continuum['RA'];dec=mightee_continuum['DEC'];name=mightee_continuum['NAME'];s_peak = mightee_continuum['S_PEAK'];f_eff=mightee_continuum['NU_EFF']
         im_maj=mightee_continuum['IM_MAJ'];im_min=mightee_continuum['IM_MIN'];im_pa=mightee_continuum['IM_PA']
         sky_data=np.zeros((len(ra),12));sky_data[:,0]=ra;sky_data[:,1]=dec;sky_data[:,2]=s_peak;sky_data[:,6]=f_eff;sky_data[:,9]=im_maj;sky_data[:,10]=im_min;sky_data[:,11]=im_pa
