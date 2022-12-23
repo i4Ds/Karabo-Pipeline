@@ -26,15 +26,15 @@ jobs:
       - name: Create Environment
         shell: bash -l {0}
         run: |
-          mamba create -n test_karabo python=${{ matrix.python-version }}
-          mamba activate test_karabo
+          conda create -n test_karabo python=${{ matrix.python-version }}
+          conda activate test_karabo
       - name: Install Karabo
         run: |
-          mamba config --append channels conda-forge
-          mamba config --append channels i4ds
-          mamba config --append channels nvidia/label/cuda-11.7.0
-          mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
+          conda config --append channels conda-forge
+          conda config --append channels i4ds
+          conda config --append channels nvidia/label/cuda-11.7.0
+          conda install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
         run: |
-          mamba activate test_karabo
+          conda activate test_karabo
           python -c "from karabo.util.testing import run_tests; run_tests()"
