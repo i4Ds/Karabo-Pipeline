@@ -3,18 +3,12 @@ import unittest
 
 import numpy as np
 
-from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
-from karabo.simulation.interferometer import InterferometerSimulation
-from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
-from karabo.sourcedetection.result import (
-    SourceDetectionResult,
-)
+from karabo.sourcedetection.result import SourceDetectionResult
+
 from karabo.test import data_path
-from karabo.util.dask import get_global_client
 
 # import wagg as wg #This gives an ImportError if no GPU is available
 import numpy as np
@@ -30,14 +24,36 @@ class TestSourceDetection(unittest.TestCase):
             os.makedirs("result/test_dec")
             
     def test_source_detection_plot(self):
+        phase_center = [250, -80]
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
-        sky.setup_default_wcs([250, -80])
-        detection = SourceDetectionResult.read_from_file(
-            f"{data_path}/detection.zip",
-        )
+        sky.setup_default_wcs(phase_center=phase_center)
+        detection = SourceDetectionResult.read_from_file(f"{data_path}/detection.zip")
         detection.write_to_file("./result/detection.zip")
-        mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
-            detection, sky, 5
+
+        img = detection.get_source_image()
+        imaging_npixel = img.header['NAXIS1']
+        imaging_cellsize = img.get_cellsize()
+
+        ground_truth, sky_idxs = Imager.project_sky_to_image(
+            sky=sky,
+            phase_center=phase_center,
+            imaging_cellsize=imaging_cellsize,
+            imaging_npixel=imaging_npixel,
+            filter_outlier=True,
+            invert_ra=True,
+        )
+        assignments = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+            ground_truth=ground_truth.T,
+            detected=detection.get_pixel_position_of_sources().T,
+            max_dist=10,
+            top_k=3,
+        )
+        mapping = SourceDetectionEvaluation(
+            sky=sky,
+            ground_truth=ground_truth,
+            assignments=assignments,
+            sky_idxs=sky_idxs,
+            source_detection=detection,
         )
         mapping.plot()
         mapping.plot_error_ra_dec()
@@ -105,8 +121,7 @@ class TestSourceDetection(unittest.TestCase):
             0.4,
         )
 
-        sky.plot_sky(phasecenter)
-        sky.explore_sky(phasecenter, xlim=(-1, 1), ylim=(-1, 1))
+        sky.explore_sky(phasecenter)
     
         telescope = Telescope.get_MEERKAT_Telescope()
     
@@ -146,7 +161,7 @@ class TestSourceDetection(unittest.TestCase):
         result = SourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
     
-        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
+        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space( # DOESN't WORK ANYMORE
             result, sky, 10
         )
         evaluation.plot(filename="result/test_dec/matching_plot.png")
@@ -171,8 +186,7 @@ class TestSourceDetection(unittest.TestCase):
 
         # sky = SkyModel.get_GLEAM_Sky()
         # sky.filter_by_flux(0.4, 1)
-        sky.plot_sky(phasecenter)
-        sky.explore_sky(phasecenter, xlim=(-10, 10), ylim=(-10, 10))
+        sky.explore_sky(phasecenter)
     
         telescope = Telescope.get_MEERKAT_Telescope()
         # telescope.centre_longitude = 3
@@ -219,7 +233,7 @@ class TestSourceDetection(unittest.TestCase):
         result = SourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
     
-        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
+        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space( # DOESN't WORK ANYMORE
             result, sky, 1
         )
         evaluation.plot(filename="result/test_dec/matching_plot.png")
@@ -241,8 +255,7 @@ class TestSourceDetection(unittest.TestCase):
 
         # sky = SkyModel.get_GLEAM_Sky()
         # sky.filter_by_flux(0.4, 1)
-        sky.plot_sky(phasecenter)
-        sky.explore_sky(phasecenter, xlim=(-10, 10), ylim=(-10, 10))
+        sky.explore_sky(phasecenter)
     
         telescope = Telescope.get_MEERKAT_Telescope()
         # telescope.centre_longitude = 3
@@ -287,7 +300,7 @@ class TestSourceDetection(unittest.TestCase):
         result = SourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
     
-        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
+        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space( # DOESN't WORK ANYMORE
             result, sky, 1
         )
         evaluation.plot(filename="result/test_dec/matching_plot.png")
@@ -304,7 +317,7 @@ class TestSourceDetection(unittest.TestCase):
             f"{data_path}/detection.zip",
         )
         detection.write_to_file("./result/detection.zip")
-        mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
+        mapping = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space( # DOESN't WORK ANYMORE
             detection, sky, 5
         )
         mapping.plot()

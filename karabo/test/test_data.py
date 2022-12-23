@@ -12,4 +12,4 @@ class TestData(unittest.TestCase):
 
     def test_download_gleam_and_make_sky_model(self):
         sky = SkyModel.get_GLEAM_Sky()
-        sky.plot_sky([250, -30])
+        sky.explore_sky([250, -30], s=.1)
