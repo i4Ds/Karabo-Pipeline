@@ -18,8 +18,8 @@ import sys
 set_rascil_data_directory_env()
 
 # Set version. If dev version, use _version.txt, otherwise use package_version.txt
-if os.path.exists(get_module_absolute_path()+'/package_version.txt'):
-    with open(get_module_absolute_path()+'/package_version.txt', 'r') as f:
+if os.path.exists(get_module_absolute_path()+'/_package_version.txt'):
+    with open(get_module_absolute_path()+'/_package_version.txt', 'r') as f:
         version = f.read()
 else:
     with open(get_module_absolute_path()+'/_version.txt', 'r') as f:

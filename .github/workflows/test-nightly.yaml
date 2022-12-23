@@ -9,23 +9,32 @@ on:
 
 jobs:
   Test_Nightly_Build:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-22.04"]
+        python-version: ["3.9"]
     steps:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-update-conda: true
+          use-mamba: true
+          python-version: ${{ matrix.python-version }}
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Create Environment
         shell: bash -l {0}
         run: |
-          conda create -n test_karabo python=3.9.13
+          conda create -n test_karabo python=${{ matrix.python-version }}
           conda activate test_karabo
       - name: Install Karabo
         run: |
+          conda config --append channels conda-forge
+          conda config --append channels i4ds
+          conda config --append channels nvidia/label/cuda-11.7.0
           conda install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
         run: |
           conda activate test_karabo
-          python -c "import karabo; karabo.util.testing.run_tests()"
+          python -c "from karabo.util.testing import run_tests; run_tests()"
