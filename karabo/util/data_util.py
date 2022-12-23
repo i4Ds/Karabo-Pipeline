@@ -21,6 +21,7 @@ def get_module_path_of_module(module: ModuleType) -> str:
     return os.path.sep.join(path_elements)
 
 
+
 def image_header_has_parameters(image, parameters):
     fitsfile = fits.open(image.file.path)
     header = fitsfile[0].header

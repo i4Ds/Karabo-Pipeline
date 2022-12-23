@@ -283,11 +283,6 @@ class SkyModel:
             copied_sky.__update_sky_model()
             return copied_sky
 
-        if indices is True:
-            return copied_sky, filtered_sources_idxs
-        else:
-            return copied_sky
-
     def filter_by_flux(
         self,
         min_flux_jy: float,

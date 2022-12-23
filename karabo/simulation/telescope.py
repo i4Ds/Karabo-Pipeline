@@ -153,8 +153,7 @@ class Telescope(KaraboResource):
             plt.savefig(file)
             plt.close(fig)
         else:
-            plt.show(block=False)
-            plt.pause(1)
+            plt.show()
 
     def get_OSKAR_telescope(self) -> os_telescope:
         """
