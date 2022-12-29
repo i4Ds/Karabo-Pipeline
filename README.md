@@ -30,7 +30,7 @@ Installation
 ```shell
 conda create -n karabo-env python=3.9
 conda activate karabo-env
-conda install -c i4ds -c conda-forge karabo-pipeline
+conda install -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 ```
 
 For further details check our documentation:
