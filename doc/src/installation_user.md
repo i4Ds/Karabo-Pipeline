@@ -11,7 +11,6 @@
 
 ### CUDA (if you want to use your Nvidia GPU)
 - The proprietary Nvidia driver
-- The CUDA Toolkit that works with your driver (Cuda 11+ is supported)
 
 ## Install Conda
 
@@ -31,7 +30,7 @@ Full command sequence for installation may look like this.
 conda create -n karabo-env python=3.9
 conda activate karabo-env
 # karabo-pipeline
-conda install -c i4ds -c conda-forge karabo-pipeline
+conda install -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 ```
 
 ## MacOS Support
