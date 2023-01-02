@@ -9,6 +9,9 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.interferometer import InterferometerSimulation
 from astropy.io import fits
 import time
+import glob
+from reproject import reproject_interp
+from reproject.mosaicking import reproject_and_coadd
 import matplotlib.pyplot as plt
 import rascil.processing_components.simulation.rfi as rf
 
@@ -55,6 +58,27 @@ class TestSystemNoise(unittest.TestCase):
                                            number_of_channels=1,)
                 visibility = simulation.run_simulation(telescope, sky_filter, observation)
                 visibility.write_to_file("./result/mock_mightee/mock_mightee_dec"+str(phase_ra)+"ra_"+str(phase_dec)+".ms")
+                imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)  # imaging cellsize is over-written in the Imager based on max uv dist.
+                dirty = imager.get_dirty_image()
+                dirty.write_to_file("result/mock_mightee/noise_dirty"+str(phase_ra)+"ra_"+str(phase_dec)+".fits")
+
+        imglist=sorted(glob.glob('result/mock_mightee/noise_dirty1*.fits'))
+        data=[0]*len(imglist);hdu=[0]*len(imglist);i=0;ff=[0]*len(imglist)
+        for img in imglist:
+            ff[i]=fits.open(img,memmap=True);data[i]=ff[i][0].data;hdu[i]=ff[i][0].header
+            i=i+1
+        mc_hdu=hdu[0]
+        mc_array, footprint = reproject_interp(ff[1], mc_hdu)
+        #mc_array, footprint = reproject_and_coadd((data[0], hdu[0]), mc_hdu, reproject_function=reproject_interp)
+        mosaic_hdu = fits.PrimaryHDU(data=mc_array, header=mc_hdu)
+        mosaic_hdu.writeto('result/mock_mightee/mosaic.fits', overwrite=True)
+        f,ax=plt.subplots(2,1);ax0=ax[0];ax1=ax[1]
+        ax0.imshow(data[0][0][0]);ax1.imshow(mc_array[0][0])
+        plt.show()
+
+        #cc=reproject_and_coadd(imglist[1:2],output_projection=hdu[0],reproject_function=reproject_interp)
+
+
         '''      
         time_vis_write=(time.time() - start_time)
         imager = Imager(visibility,
@@ -69,4 +93,6 @@ class TestSystemNoise(unittest.TestCase):
         plt.plot([1, 10, 30, 60, 80, 100], [24.3,46.5,148.2,247.2,373.6,537.7], 'o-', label='Vis + Image Run')
         plt.xlabel('Number of Channels');plt.ylabel('Execution Time (sec)')
         plt.legend();plt.show()'''
+
+
 
