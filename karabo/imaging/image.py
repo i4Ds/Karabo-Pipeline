@@ -72,23 +72,31 @@ class Image(KaraboResource):
     def plot(
         self,
         title: str,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        xlim: Optional[Tuple[float, float]] = None,
+        ylim: Optional[Tuple[float, float]] = None,
+        figsize: Optional[Tuple[float, float]] = None,
+        plot_title: Optional[str] = None,
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
         cmap: Optional[str] = "jet",
         origin: Optional[str] = 'lower',
-        norm: Optional[str] = None,
-        aspect: Optional[float] = None
+        filename: Optional[str] = None,
+        **kwargs
     ) -> None:
         """
         Plots the image
 
         :param title: the title of the colormap
-        :param vmin: defines the minimum of the data range that the colormap covers
-        :param vmax: defines the maximum of the data range that the colormap covers
+        :param xlim: RA-limit of plot
+        :param ylim: DEC-limit of plot
+        :param figsize: figsize as tuple
+        :param plot_title: plot title
+        :param xlabel: xlabel
+        :param ylabel: ylabel
         :param cmap: matplotlib color map
         :param origin: place the [0, 0] index of the array in the upper left or lower left corner of the Axes
-        :param norm: The normalization method used to scale scalar data to the [0, 1] range before mapping to colors using cmap. By default, a linear scaling is used, mapping the lowest value to 0 and the highest to 1.
-        :param aspect: The aspect ratio of the Axes. This parameter is particularly relevant for images since it determines whether data pixels are square.
+        :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
+        :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
         """
         import matplotlib.pyplot as plt
         wcs = WCS(self.header)
@@ -103,10 +111,16 @@ class Image(KaraboResource):
             else:
                 slices.append(0)
 
-        ax=plt.subplot(projection=wcs, slices=slices)
-        plt.imshow(self.data[0][0], cmap=cmap, norm=norm, aspect=aspect, vmin=vmin, vmax=vmax, origin=origin)
+        fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
+        plt.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
         plt.colorbar(label=title)
+        if plot_title is not None: plt.title(plot_title)
+        if xlim is not None: plt.xlim(xlim)
+        if ylim is not None: plt.ylim(ylim)
+        if xlabel is not None: plt.xlabel(xlabel)
+        if ylabel is not None: plt.ylabel(ylabel)
         ax.invert_xaxis()
+        if filename is not None: plt.savefig(filename)
         plt.show(block=False)
         plt.pause(1)
 
