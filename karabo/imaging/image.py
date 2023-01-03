@@ -80,6 +80,8 @@ class Image(KaraboResource):
         ylabel: Optional[str] = None,
         cmap: Optional[str] = "jet",
         origin: Optional[str] = 'lower',
+        wcs_enabled: bool = True,
+        invert_xaxis: bool = True,
         filename: Optional[str] = None,
         **kwargs
     ) -> None:
@@ -95,23 +97,44 @@ class Image(KaraboResource):
         :param ylabel: ylabel
         :param cmap: matplotlib color map
         :param origin: place the [0, 0] index of the array in the upper left or lower left corner of the Axes
+        :param wcs_enabled: Use wcs transformation?
+        :param invert_xaxis: Do you want to invert the xaxis?
         :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
         """
         import matplotlib.pyplot as plt
-        wcs = WCS(self.header)
-        print(wcs)
 
-        slices = []
-        for i in range(wcs.pixel_n_dim):
-            if i == 0:
-                slices.append('x')
-            elif i == 1:
-                slices.append('y')
-            else:
-                slices.append(0)
+        if wcs_enabled:
+            wcs = WCS(self.header)
+            print(wcs)
 
-        fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
+            slices = []
+            for i in range(wcs.pixel_n_dim):
+                if i == 0:
+                    slices.append('x')
+                elif i == 1:
+                    slices.append('y')
+                else:
+                    slices.append(0)
+
+            # create dummy xlim or ylim if only one is set for conversion
+            xlim_reset, ylim_reset = False, False
+            if xlim is None and ylim is not None:
+                xlim = (-1,1)
+                xlim_reset = True
+            elif xlim is not None and ylim is None:
+                ylim = (-1,1)
+                ylim_reset = True
+            if xlim is not None and ylim is not None:
+                xlim, ylim = wcs.wcs_world2pix(xlim, ylim, 0)
+            if xlim_reset: xlim = None
+            if ylim_reset: ylim = None
+
+        if wcs_enabled:
+            fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
+        else:
+            fig, ax = plt.subplots(figsize=figsize)
+
         plt.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
         plt.colorbar(label=title)
         if plot_title is not None: plt.title(plot_title)
@@ -119,7 +142,7 @@ class Image(KaraboResource):
         if ylim is not None: plt.ylim(ylim)
         if xlabel is not None: plt.xlabel(xlabel)
         if ylabel is not None: plt.ylabel(ylabel)
-        ax.invert_xaxis()
+        if invert_xaxis: ax.invert_xaxis()
         if filename is not None: plt.savefig(filename)
         plt.show(block=False)
         plt.pause(1)
