@@ -26,6 +26,7 @@ jobs:
       - name: Create Environment
         shell: bash -l {0}
         run: |
+          mamba init
           mamba create -n test_karabo python=${{ matrix.python-version }}
       - name: Install Karabo
         shell: bash -l {0}
