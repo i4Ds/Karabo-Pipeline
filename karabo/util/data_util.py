@@ -6,6 +6,9 @@ import karabo
 
 from astropy.io import fits
 
+from numpy.typing import NDArray
+
+from typing import List, Dict, Any, Tuple
 
 def get_module_absolute_path() -> str:
     path_elements = os.path.abspath(karabo.__file__).split("/")
