@@ -1,4 +1,5 @@
 include karabo/_version.txt
 include karabo/_package_version.txt
 recursive-include karabo/data **
+recursive-include karabo/test/data **
 recursive-include karabo/examples *.ipynb
