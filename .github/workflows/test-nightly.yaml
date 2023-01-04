@@ -26,15 +26,13 @@ jobs:
         uses: actions/checkout@v2
       - name: Create Environment
         run: |
-          mamba init
           mamba create -n test_karabo python=${{ matrix.python-version }}
       - name: Install Karabo
         shell: bash -l {0}
         run: |
-          mamba activate test_karabo
+          conda activate test_karabo
           mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
         run: |
-          mamba init
-          mamba activate test_karabo
+          conda activate test_karabo
           python -c "from karabo.util.testing import run_tests; run_tests()"
