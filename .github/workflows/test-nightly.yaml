@@ -18,23 +18,20 @@ jobs:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          use-mamba: true
-          auto-update-conda: true
+          mamba-version: "*"
+          channels: conda-forge, i4ds, nvidia/label/cuda-11.7.0
           python-version: ${{ matrix.python-version }}
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Create Environment
         shell: bash -l {0}
         run: |
-          conda create -n test_karabo python=${{ matrix.python-version }}
-          conda activate test_karabo
+          mamba create -n test_karabo python=${{ matrix.python-version }}
+          mamba activate test_karabo
       - name: Install Karabo
         run: |
-          conda config --append channels conda-forge
-          conda config --append channels i4ds
-          conda config --append channels nvidia/label/cuda-11.7.0
-          conda install -c "i4ds/label/nightly" karabo-pipeline --yes
+          mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
         run: |
-          conda activate test_karabo
+          mamba activate test_karabo
           python -c "from karabo.util.testing import run_tests; run_tests()"
