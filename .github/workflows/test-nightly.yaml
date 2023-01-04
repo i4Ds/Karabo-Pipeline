@@ -28,11 +28,12 @@ jobs:
         run: |
           mamba create -n test_karabo python=${{ matrix.python-version }}
       - name: Install Karabo
-        shell: bash -l {0}
+      - shell: bash -el {0}
         run: |
           conda activate test_karabo
           mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
+        shell: bash -el {0}
         run: |
           conda activate test_karabo
           python -c "from karabo.util.testing import run_tests; run_tests()"
