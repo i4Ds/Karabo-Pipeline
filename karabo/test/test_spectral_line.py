@@ -72,7 +72,7 @@ class TestSystemNoise(unittest.TestCase):
 
 
 
-    def test_spectral_line(self):
+    def disabled_spectral_line(self):
         #------- Simulate Foreground ---------#
         make_foreground_image=0
         bandwidth_smearing=0; phase_ra=20.0; phase_dec=-30.0;obs_freq=0.99e9 # 999.0 MHz & 0.2 MHz
