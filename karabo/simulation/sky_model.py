@@ -415,7 +415,7 @@ class SkyModel:
         else:
             px, py = self[:, 0], self[:, 1]
 
-        if wcs_enabled: # create dummy xlim or ylim if only one is set for convertion
+        if wcs_enabled: # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
             if xlim is None and ylim is not None:
                 xlim = (-1,1)
