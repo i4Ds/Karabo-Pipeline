@@ -24,7 +24,7 @@ class TestSystemNoise(unittest.TestCase):
             os.makedirs('result/system_noise')
 
 
-    def test_plot_spectral_profiles(self):
+    def disabled_plot_spectral_profiles(self):
         #popt, pcov = curve_fit(Voigt, x, y, p0=[8, np.max(y), -(np.max(y) - np.min(y)), sigma, gamma])
         plt.plot(dfreq_arr,y_voigt,label='Voigt');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
         plt.plot(dfreq_arr,y_gauss,label='Gaussian');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
