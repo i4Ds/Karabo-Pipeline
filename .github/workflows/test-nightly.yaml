@@ -28,7 +28,7 @@ jobs:
         run: |
           mamba create -n test_karabo python=${{ matrix.python-version }}
       - name: Install Karabo
-      - shell: bash -el {0}
+        shell: bash -el {0}
         run: |
           conda activate test_karabo
           mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
