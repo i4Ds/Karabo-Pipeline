@@ -26,10 +26,11 @@ jobs:
       - name: Create Environment
         shell: bash -l {0}
         run: |
-          mamba create -n test_karabo python=${{ matrix.python-version }}
-          mamba activate test_karabo
+          mamba create -n test_karabo python=${{ matrix.python-version }}¨
       - name: Install Karabo
+        shell: bash -l {0}
         run: |
+          mamba activate test_karabo
           mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
         run: |
