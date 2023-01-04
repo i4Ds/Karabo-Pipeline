@@ -1,10 +1,14 @@
-name: Conda Build
+name: Create Nightly Build
+
+env:
+  NIGHTLY_BUILD: true
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 on:
-  release:
-    types: [published]
+  schedule: # Every night at 3am
+    - cron: '0 3 * * *'
   workflow_dispatch:
-
 
 jobs:
   conda-build:
@@ -12,6 +16,11 @@ jobs:
     container: ghcr.io/i4ds/mambabuild-docker:latest
 
     steps:
+      - name: Print Out Environment
+        run: |
+          echo "NIGHTLY_BUILD: $NIGHTLY_BUILD"
+          echo "REGISTRY: $REGISTRY"
+          echo "IMAGE_NAME: $IMAGE_NAME"
       - name: Install conda build
         run: |
           conda config --append channels conda-forge
@@ -27,6 +36,4 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} move --from-label main --to-label old i4ds/karabo-pipeline
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} remove i4ds/karabo-pipeline/nightly --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2 --label nightly --force

@@ -1,6 +1,7 @@
 import enum
 import os
 import subprocess
+from typing import Callable
 
 import eidos
 import numpy as np
@@ -9,6 +10,7 @@ from eidos.spatial import recon_par
 from katbeam import JimBeam
 from matplotlib import pyplot as plt
 from astropy.stats import gaussian_fwhm_to_sigma
+from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
 from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_path_of_module
@@ -16,8 +18,8 @@ from scipy import interpolate
 from astropy import units
 
 class PolType(enum.Enum):
-    X = ("X",)
-    Y = ("Y",)
+    X = "X"
+    Y = "Y"
     XY = "XY"
 
 
@@ -26,25 +28,61 @@ class BeamPattern:
     :param
     """
 
-    def __init__(self, cst_file_path):
-        self.cst_file_path = cst_file_path
+    def __init__(
+        self,
+        cst_file_path:str,
+        telescope:Telescope=None,
+        freq_hz:float=0,
+        pol:str='XY',
+        element_type_index:int=0,
+        average_fractional_error_factor_increase:float=1.1,
+        ignore_data_at_pole:bool=True,
+        avg_frac_error:float=0.8,
+        beam_method:str='Gaussian Beam'
+
+    ) -> None:
+        self.cst_file_path : str = cst_file_path
+        self.telescope : Telescope = telescope
+        self.freq_hz : float = freq_hz
+        self.pol : str = pol
+        self.element_type_index : int = element_type_index
+        self.average_fractional_error_factor_increase : float = average_fractional_error_factor_increase
+        self.ignore_data_at_pole : bool = ignore_data_at_pole
+        self.avg_frac_error : float = avg_frac_error
+        self.beam_method : str = beam_method
 
     def fit_elements(
-        self, telescope: Telescope, freq_hz=0, pol='XY',element_type_index=0, average_fractional_error_factor_increase=1.1,ignore_data_at_pole=True,avg_frac_error=0.8
-    ):
+        self,
+        telescope:Telescope=None,
+        freq_hz:float=None,
+        pol:str=None,
+        element_type_index:int=None,
+        average_fractional_error_factor_increase:float=None,
+        ignore_data_at_pole:bool=None,
+        avg_frac_error:float=None,
+    ) -> None:
+        if telescope is not None: self.telescope : Telescope = telescope
+        if not isinstance(self.telescope, Telescope): raise KaraboError(f'`telescope` is {type(self.telescope)} but must be of type `Telescope`!')
+        if freq_hz is not None: self.freq_hz : float = freq_hz
+        if pol is not None: self.pol : str = pol
+        if element_type_index is not None: self.element_type_index : int = element_type_index
+        if average_fractional_error_factor_increase is not None: self.average_fractional_error_factor_increase : float = average_fractional_error_factor_increase
+        if ignore_data_at_pole is not None: self.ignore_data_at_pole : bool = ignore_data_at_pole
+        if avg_frac_error is not None: self.avg_frac_error : float = avg_frac_error
+
         content = (
             "[General] \n"
             "app=oskar_fit_element_data \n"
             "\n"
             "[element_fit] \n"
             f"input_cst_file={self.cst_file_path} \n"
-            f"frequency_hz={freq_hz} \n"
-            f"average_fractional_error={avg_frac_error} \n"
-            f"pol_type={pol} \n"
-            f"average_fractional_error_factor_increase={average_fractional_error_factor_increase} \n"
-            f"ignore_data_at_pole={ignore_data_at_pole} \n"
-            f"element_type_index={element_type_index}\n"
-            f"output_directory={telescope.path} \n"
+            f"frequency_hz={self.freq_hz} \n"
+            f"average_fractional_error={self.avg_frac_error} \n"
+            f"pol_type={self.pol} \n"
+            f"average_fractional_error_factor_increase={self.average_fractional_error_factor_increase} \n"
+            f"ignore_data_at_pole={self.ignore_data_at_pole} \n"
+            f"element_type_index={self.element_type_index}\n"
+            f"output_directory={self.telescope.path} \n"
         )
 
         #test = os.listdir(telescope.path)
@@ -163,7 +201,8 @@ class BeamPattern:
         plt.colorbar(im)
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
     @staticmethod
     def eidos_lineplot(B_ah, B_em, npix, path=None):
@@ -194,7 +233,8 @@ class BeamPattern:
         ax0.legend()
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
     @staticmethod
     def show_kat_beam(beampixels, beamextent, freq, pol, path=None):
@@ -215,7 +255,8 @@ class BeamPattern:
         plt.colorbar()
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
     def plot_beam(self, theta, phi, absdir, path=None):
         """
@@ -232,7 +273,9 @@ class BeamPattern:
         )  # TODO (Add check for this) X,Y & data2D must all be same dimensions
         if path:
             plt.savefig(path)
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
+
     def integrate(self, theta, phi, integrand):
         theta = units.Quantity(theta, unit=units.deg).to('rad')
         phi = units.Quantity(phi, unit=units.deg).to('rad')
@@ -294,8 +337,12 @@ class BeamPattern:
         y = rho * np.sin(phi)
         return (x, y)
 
-    def sim_beam(self,beam_method='EIDOS_AH'):
-        print("Computing Primary Beam from "+str(beam_method))
+    def sim_beam(
+            self,
+            beam_method=None,
+        ):
+        if beam_method is not None: self.beam_method = beam_method
+        print("Computing Primary Beam from "+str(self.beam_method))
         max_theta = 20 * units.deg
         n_theta = 180
         n_phi = 360
@@ -312,12 +359,12 @@ class BeamPattern:
         over_360 = phi_y[phi_y >= 360 * units.deg]
         over_360 = over_360 - 360 * units.deg
         # %%
-        if(beam_method=='Gaussian Beam'):
+        if(self.beam_method=='Gaussian Beam'):
             vcopol_x = self.sym_gaussian(theta, phi, **copol_kwargs)
             vcrpol_x = self.quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
             vcopol_y = self.sym_gaussian(theta, phi_y, **copol_kwargs)
             vcrpol_y = self.quad_crosspol(theta, phi_y, vcopol_y, **crpol_kwargs)
-        if(beam_method=='EIDOS_AH'):
+        if(self.beam_method=='EIDOS_AH'):
             npix=100
             B = self.get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
@@ -332,7 +379,7 @@ class BeamPattern:
                                           np.abs(B[1][1]).flatten(), (theta, phi), method='cubic',fill_value=0)
             vcrpol_y = interpolate.griddata((theta_ah.flatten(), phi_ah.flatten()),
                                           np.abs(B[1][0]).flatten(), (theta, phi), method='cubic',fill_value=0)
-        if(beam_method=='EIDOS_EM'):
+        if(self.beam_method=='EIDOS_EM'):
             npix=100
             B = self.get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
@@ -347,7 +394,7 @@ class BeamPattern:
                                           np.abs(B[1][1]).flatten(), (theta, phi), method='cubic',fill_value=0)
             vcrpol_y = interpolate.griddata((theta_em.flatten(), phi_em.flatten()),
                                           np.abs(B[1][0]).flatten(), (theta, phi), method='cubic',fill_value=0)
-        if(beam_method=='KatBeam'):
+        if(self.beam_method=='KatBeam'):
             beampixel=get_meerkat_uhfbeam(f, 'H', 30, 30)
             theta_kb,phi_kb=self.cart2pol(beampixel[0], beampixel[1]);katb_H=beampixel[2];phi_kb=phi_kb*180./np.pi+180
             vcopol_x = interpolate.griddata((theta_kb.flatten(), phi_kb.flatten()),katb_H.flatten(), (theta, phi), method='cubic',fill_value=0)
@@ -379,6 +426,7 @@ class BeamPattern:
             np.zeros_like(theta).value,  # Ax. ratio * / Unused
         ])
         return grid_th_phi,vcopol_x,vcopol_y,data_x,data_y
+
     def plot_beam(savefile):
         grid_th_phi,vcopol_x,vcopol_y,data_x,data_y = sim_beam('EIDOS_AH')
         fig = plt.figure(figsize=(9, 4))
@@ -412,7 +460,10 @@ class BeamPattern:
         plt.savefig(savefile)
         plt.close()
 
-    def save_meerkat_cst_file(self,cstdata):
+    def save_meerkat_cst_file(
+            self,
+            cstdata:np.ndarray,
+        ) -> None:
         """
         Save CST file for MeerKat telescope for the custom beams
         """
@@ -430,4 +481,17 @@ class BeamPattern:
                    X=cstdata, header=out_header,
                    fmt='%20e', comments='', delimiter='')
 
-
+    def save_cst_file(
+        self,
+        cstdata:np.ndarray,
+        telescope:Telescope=None,
+    ) -> bool:
+        if telescope is None and self.telescope is not None:
+            telescope = self.telescope
+        telescope_type = telescope.path.split('/')[-1].split('.tm')[0] # works as long as `read_OSKAR_tm_file` sets telescope.path
+        success = True
+        if telescope_type == 'meerkat':
+            self.save_meerkat_cst_file(cstdata=cstdata)
+        else:
+            success = False
+        return success

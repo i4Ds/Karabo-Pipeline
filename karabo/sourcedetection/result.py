@@ -1,8 +1,9 @@
+from __future__ import annotations
 import shutil
-from typing import Tuple
+from typing import Tuple, Optional
 
-import numpy
 import numpy as np
+from numpy.typing import NDArray
 import bdsf
 from bdsf import image as bdsf_image
 
@@ -15,7 +16,11 @@ from karabo.util.data_util import read_CSV_to_ndarray, image_header_has_paramete
 from karabo.warning import KaraboWarning
 
 class SourceDetectionResult(KaraboResource):
-    def __init__(self, detected_sources: np.ndarray, source_image: Image):
+    def __init__(
+        self,
+        detected_sources: NDArray[np.float64],
+        source_image: Image,
+    ) -> None:
         """
         Generic Source Detection Result Class.
         Inputting your Source Detection Result as an Array with specified shape and columns
@@ -36,24 +41,40 @@ class SourceDetectionResult(KaraboResource):
         self.detected_sources = detected_sources
 
     @staticmethod
-    def detect_sources_in_image(image: Image, beam=None, quiet=False) -> any:
+    def detect_sources_in_image(
+        image: Image,
+        beam: Optional[Tuple[float, float, float]] = None,
+        quiet: bool = False,
+        **kwargs,
+    ) -> PyBDSFSourceDetectionResult:
         """
         Detecting sources in an image. The Source detection is implemented with the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
 
         :param image: Image to perform source detection on.
         :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N). 
-                                            None means it will try to be extracted from the Image data. (Might fail)
+            None means it will try to be extracted from the Image data. (Might fail)
         :return: Source Detection Result containing the found sources
         """
         detection = bdsf.process_image(
-            image.file.path, beam=beam, quiet=quiet, format="csv"
+            image.file.path,
+            beam=beam,
+            quiet=quiet,
+            format="csv",
+            **kwargs,
         )
         
         return PyBDSFSourceDetectionResult(detection)
     
     @staticmethod
-    def detect_sources_in_dirty_image(imager: Imager, dirty: Image=None, quiet=False, beam=None, beam_guessing_method='rascil_1_iter'):
+    def detect_sources_in_dirty_image(
+        imager: Imager,
+        dirty: Optional[Image] = None,
+        quiet: bool = False,
+        beam: Optional[Tuple[float, float, float]] = None,
+        beam_guessing_method: str = 'rascil_1_iter',
+        **kwargs,
+    ) -> PyBDSFSourceDetectionResult:
         """
         Detecting sources in an dirty image (No clean algorithm is applied). The Source detection is implemented with the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
@@ -79,7 +100,11 @@ class SourceDetectionResult(KaraboResource):
                 raise KaraboWarning("No beam parameter found. Source detection might fail.")
                          
         detection = bdsf.process_image(
-            dirty.file.path, beam=beam, quiet=quiet, format="csv"
+            dirty.file.path,
+            beam=beam,
+            quiet=quiet,
+            format="csv",
+            **kwargs,
         )
         
         return PyBDSFSourceDetectionResult(detection)
@@ -104,11 +129,15 @@ class SourceDetectionResult(KaraboResource):
         :return: True if the image has the beam parameters in the header
         """
         return image_header_has_parameters(
-            image, ["BMAJ", "BMIN", "BPA"]
+            image,
+            ["BMAJ", "BMIN", "BPA"],
         )
         
     @staticmethod
-    def guess_beam_parameters(imager: Imager, method='rascil_1_iter') -> Tuple[float, float, float]:
+    def guess_beam_parameters(
+        imager: Imager,
+        method: str = 'rascil_1_iter',
+    ) -> Tuple[float, float, float]:
         """
         Guess the beam parameters from the image header.
         :param imager: Imager to guess the beam parameters from
@@ -122,8 +151,8 @@ class SourceDetectionResult(KaraboResource):
             # Run 
             _, restored, _ = imager.imaging_rascil(
                 clean_niter=1,
-                clean_nmajor=1
-                )
+                clean_nmajor=1,
+            )
         else:
             raise NotImplementedError('Only rascil_1_iter is implemented')
 
@@ -134,22 +163,22 @@ class SourceDetectionResult(KaraboResource):
         )
 
     @staticmethod
-    def read_from_file(path) -> any:
+    def read_from_file(path: str) -> SourceDetectionResult:
         tempdir = FileHandle(is_dir=True)
         shutil.unpack_archive(path, tempdir.path)
         source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
-        source_catalouge = numpy.loadtxt(
+        source_catalouge = np.loadtxt(
             tempdir.path + "/detected_sources.csv", delimiter=","
         )
         return SourceDetectionResult(source_catalouge, source_image)
 
-    def __save_sources_to_csv(self, filepath: str):
+    def __save_sources_to_csv(self, filepath: str) -> None:
         """
         Save detected Sources to CSV
         :param filepath:
         :return:
         """
-        numpy.savetxt(filepath, self.detected_sources, delimiter=",")
+        np.savetxt(filepath, self.detected_sources, delimiter=",")
 
     def has_source_image(self) -> bool:
         """
@@ -160,7 +189,7 @@ class SourceDetectionResult(KaraboResource):
             return True
         return False
 
-    def get_source_image(self) -> Image:
+    def get_source_image(self) -> Optional[Image]:
         """
         Return the source image, where the source detection was performed on.
         :return: Karabo Image or None (if not supplied)
@@ -168,7 +197,7 @@ class SourceDetectionResult(KaraboResource):
         if self.has_source_image():
             return self.source_image
 
-    def get_pixel_position_of_sources(self):
+    def get_pixel_position_of_sources(self) -> NDArray[np.float64]:
         x_pos = self.detected_sources[:, 3]
         y_pos = self.detected_sources[:, 4]
         result = np.vstack((np.array(x_pos), np.array(y_pos)))
@@ -176,7 +205,10 @@ class SourceDetectionResult(KaraboResource):
 
 
 class PyBDSFSourceDetectionResult(SourceDetectionResult):
-    def __init__(self, bdsf_detection: bdsf_image):
+    def __init__(
+        self,
+        bdsf_detection: bdsf_image,
+    ) -> None:
         """
         Source Detection Result Wrapper for source detection results from PyBDSF.
         The Object allows the use of all Karabo-Source Detection functions on PyBDSF results
@@ -188,8 +220,8 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         )
         bdsf_detected_sources = read_CSV_to_ndarray(sources_file.path)
 
-        detected_sources = self.__transform_bdsf_to_reduced_result_array(
-            bdsf_detected_sources
+        detected_sources = type(self).__transform_bdsf_to_reduced_result_array(
+            bdsf_detected_sources=bdsf_detected_sources,
         )
 
         self.bdsf_detected_sources = bdsf_detected_sources
@@ -198,7 +230,9 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         super().__init__(detected_sources, source_image)
 
     @staticmethod
-    def __transform_bdsf_to_reduced_result_array(bdsf_detected_sources):
+    def __transform_bdsf_to_reduced_result_array(
+        bdsf_detected_sources: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
         sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         return sources
 
@@ -218,7 +252,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def get_mean_map_image(self) -> Image:
         return self.__get_result_image("mean")
 
-    def get_polarized_intensity_image(self):
+    def get_polarized_intensity_image(self) -> Image:
         return self.__get_result_image("pi")
 
     def get_gaussian_residual_image(self) -> Image:

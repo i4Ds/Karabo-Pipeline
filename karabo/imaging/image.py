@@ -1,14 +1,14 @@
+from __future__ import annotations
 import logging
 import shutil
 import uuid
-from typing import Tuple
+from typing import Tuple, Dict, List, Any, Optional
 
 import matplotlib
 import numpy
 import numpy as np
-import numpy.typing as npt
+from numpy.typing import NDArray
 from astropy.io import fits
-from astropy import wcs as awcs
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 
@@ -24,7 +24,7 @@ matplotlib.use(previous_backend)
 
 class Image(KaraboResource):
 
-    def __init__(self, name=None):
+    def __init__(self, name=None) -> None:
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
@@ -40,36 +40,36 @@ class Image(KaraboResource):
         shutil.copy(self.file.path, path)
 
     @staticmethod
-    def read_from_file(path: str) -> 'Image':
+    def read_from_file(path: str) -> Image:
         image = Image()
         image.file = FileHandle(existing_file_path=path, mode='r')
         return image
 
     # overwrite getter to make sure it always contains the data
     @property
-    def data(self) -> npt.NDArray:
+    def data(self) -> NDArray[np.float64]:
         if self._data is None:
             self.__read_fits_data()
         return self._data
 
     @data.setter
-    def data(self, value: npt.NDArray):
+    def data(self, value:NDArray[np.float64]):
         self._data = value
 
     @property
-    def header(self) -> dict:
+    def header(self) -> Dict[str,Any]:
         if self._header is None:
             self.__read_fits_data()
         return self._header
 
     @header.setter
-    def header(self, value: dict) -> None:
+    def header(self, value:Dict[str,Any]) -> None:
         self._header = value
 
-    def get_squeezed_data(self) -> npt.NDArray:
+    def get_squeezed_data(self) -> NDArray[np.float64]:
         return numpy.squeeze(self.data[:1, :1, :, :])
 
-    def plot(self, title) -> None:
+    def plot(self, title:str) -> None:
         import matplotlib.pyplot as plt
         wcs = WCS(self.header)
         print(wcs)
@@ -87,12 +87,13 @@ class Image(KaraboResource):
         plt.imshow(self.data[0][0], cmap="jet", origin='lower')
         plt.colorbar(label=title)
         ax.invert_xaxis()
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
     def __read_fits_data(self) -> None:
         self.data, self.header = fits.getdata(self.file.path, ext=0, header=True)
 
-    def get_dimensions_of_image(self) -> []:
+    def get_dimensions_of_image(self) -> List[int]:
         """
         Get the sizes of the dimensions of this Image in an array.
         :return: list with the dimensions.
@@ -103,10 +104,10 @@ class Image(KaraboResource):
             result.append(self.header[f'NAXIS{dim + 1}'])
         return result
 
-    def get_phase_centre(self) -> Tuple[float, float]:
+    def get_phase_center(self) -> Tuple[float, float]:
         return float(self.header["CRVAL1"]), float(self.header["CRVAL2"])
 
-    def get_quality_metric(self) -> dict:
+    def get_quality_metric(self) -> Dict[str,Any]:
         """
         Get image statistics.
         Statistics include :
@@ -140,7 +141,11 @@ class Image(KaraboResource):
 
         return image_stats
 
-    def get_power_spectrum(self, resolution=5.0e-4, signal_channel=None) -> (npt.NDArray, npt.NDArray):
+    def get_power_spectrum(
+        self,
+        resolution:float=5.0e-4,
+        signal_channel:Optional[int]=None,
+    ) -> Tuple[NDArray[np.float64], NDArray[np.floating]]:
         """
         Calculate the power spectrum of this image.
 
@@ -154,7 +159,12 @@ class Image(KaraboResource):
         profile, theta = power_spectrum(self.file.path, resolution, signal_channel)
         return profile, theta
 
-    def plot_power_spectrum(self, resolution=5.0e-4, signal_channel=None, save_png=False) -> None:
+    def plot_power_spectrum(
+        self,
+        resolution:float=5.0e-4,
+        signal_channel:Optional[int]=None,
+        save_png:bool=False,
+    ) -> None:
         """
         Plot the power spectrum of this image.
 
@@ -176,38 +186,30 @@ class Image(KaraboResource):
 
         if save_png:
             plt.savefig(f"./power_spectrum_{self.name if self.name is not None else uuid.uuid4()}")
-        plt.show()
+        plt.show(block=False)
+        plt.pause(1)
 
-    def get_cellsize(self):
+    def get_cellsize(self) -> float:
         cdelt1 = self.header["CDELT1"]
         cdelt2 = self.header["CDELT2"]
         if abs(cdelt1) != abs(cdelt2):
             logging.warning("The Images's cdelt1 and cdelt2 are not the same in absolute value. Continuing with cdelt1")
         return np.deg2rad(np.abs(cdelt1))
 
-    def get_wcs(self) -> any:
+    def get_wcs(self) -> WCS:
         return WCS(self.header)
 
-    def get_2d_wcs(self) -> any:
-        w = WCS(naxis=2)
+    def get_2d_wcs(
+        self,
+        invert_ra: bool = True,
+    ) -> WCS:
+        wcs = WCS(naxis=2)
         radian_degree = lambda rad: rad * (180 / np.pi)
         cdelt = radian_degree(self.get_cellsize())
         crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
-        w.wcs.crpix = np.array([crpix, crpix])
-        w.wcs.cdelt = np.array([-cdelt, cdelt])
-        w.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
-        w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
-        return w
-
-    def project_sky_to_image(self,
-                             sky: 'SkyModel',
-                             filter_outliers=False) -> (npt.NDArray, npt.NDArray, npt.NDArray):
-        """
-        Calculates the pixel coordinates of the given sky sources, based on the dimensions passed for a certain image.
-        The WCS of this image will be used to transform the sky coordinates.
-
-        :param sky: Sky of which the sources will be projected onto the image plane.
-        :param filter_outliers: Exclude source
-        :return: pixel-coordinates x-axis, pixel-coordinates y-axis, sky sources indices
-        """
-        return sky.project_sky_to_image(self, filter_outliers)
+        wcs.wcs.crpix = np.array([crpix, crpix])
+        ra_sign = -1 if invert_ra else 1
+        wcs.wcs.cdelt = np.array([ra_sign*cdelt, cdelt])
+        wcs.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
+        wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
+        return wcs

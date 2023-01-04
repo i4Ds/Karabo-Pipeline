@@ -62,3 +62,4 @@ class ExampleHDF5Map(DownloadObject):
     def __init__(self):
         super().__init__("example_map.h5",
                          "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/karabo_public/example_map.h5")
+

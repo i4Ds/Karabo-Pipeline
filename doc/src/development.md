@@ -15,6 +15,23 @@ Then you can simply run your code inside that environment. To tell Python to tre
 [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
 [how to use conda develop?](https://github.com/conda/conda-build/issues/1992)
 
+## Upload Objects to CSCS
+
+Make objects available through CSCS object-storage REST-API. The GET-request URI follows the following format: `{CSCS-object-store-prefix}/{container}/{object}` where the prefix comes from [CSCS API access](https://castor.cscs.ch/dashboard/project/api_access/).
+
+### Through Web Interface
+
+1. Go to [Castor](https://castor.cscs.ch/) and authenticate yourself.
+2. Navigate to `project/object-storage/container` and choose the container you want to upload (e.g. `karabo_public`). 
+3. Click the upload option and upload the file of choice.
+
+### Through CLI
+
+1. Read https://github.com/eth-cscs/openstack/tree/master/cli
+2. `source openstack/cli/castor.env`
+3. `swift post karabo_public --read-acl ".r:*,.rlistings"`
+4. `swift upload karabo_public example_file.fits`
+
 ## Update documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
@@ -83,7 +100,7 @@ When everything is merged which should be merged, a new Release can be deployed 
 - [Karabo-Pipline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
 - Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
-- Update `_version.txt`
+- Update version in `karabo/_version.txt`
 - Check that the `Target` is set to `main`.
 - Describe the release (get inspired by the previous releases).
 - Click `Publish release`. 

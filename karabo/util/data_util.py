@@ -1,27 +1,26 @@
 import os
-
 import numpy as np
-
 import karabo
-
-from astropy.io import fits
-
-from numpy.typing import NDArray
-
+from karabo.imaging.image import Image
 from typing import List, Dict, Any, Tuple
+from types import ModuleType
+from numpy.typing import NDArray
+from astropy.io import fits
+from scipy.special import wofz
+
 
 def get_module_absolute_path() -> str:
-    path_elements = os.path.abspath(karabo.__file__).split("/")
+    path_elements = os.path.abspath(karabo.__file__).split(os.path.sep)
     path_elements.pop()
-    return "/".join(path_elements)
+    return os.path.sep.join(path_elements)
 
 
-def get_module_path_of_module(module) -> str:
-    path_elements = os.path.abspath(module.__file__).split("/")
+def get_module_path_of_module(module: ModuleType) -> str:
+    path_elements = os.path.abspath(module.__file__).split(os.path.sep)
     path_elements.pop()
-    return "/".join(path_elements)
+    return os.path.sep.join(path_elements)
 
-def image_header_has_parameters(image, parameters):
+def image_header_has_parameters(image: Image, parameters: List[str]) -> bool:
     fitsfile=fits.open(image.file.path)
     header=fitsfile[0].header
     for parameter in parameters:
@@ -29,7 +28,7 @@ def image_header_has_parameters(image, parameters):
             return False
     return True
 
-def read_CSV_to_ndarray(file: str) -> np.ndarray:
+def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
     import csv
     sources = []
     with open(file, newline='') as sourcefile:
@@ -49,6 +48,15 @@ def read_CSV_to_ndarray(file: str) -> np.ndarray:
                         pass
                 sources.append(n_row)
     return np.array(sources, dtype=float)
+
+
+def full_setter(self, state: Dict[str, Any]) -> None:
+    self.__dict__ = state
+
+
+def full_getter(self) -> Dict[str, Any]:
+    state = self.__dict__
+    return state
 
 
 def Gauss(x, x0, y0, a,  sigma):
@@ -88,11 +96,18 @@ def resample_spectral_lines(
     line_sampled = spec_line[::m]
     return dfreq_sampled, line_sampled
 
+def input_wrapper(
+    msg: str,
+    ret: str = 'y',
+) -> str:
+    """
+    Wrapper of standard `input` to define what return `ret` it will get during Unit-tests, since the test just stops oterwise.
+    The environment variable 'SKIP_INPUT' or 'UNIT_TEST' must be set with an arbitrary value to return `ret`.
 
-def full_setter(self, state):
-    self.__dict__ = state
-
-
-def full_getter(self):
-    state = self.__dict__
-    return state
+    :param msg: input message
+    :param ret: return value if 'SKIP_INPUT' or 'UNIT_TEST' is set, default='y'
+    """
+    if os.environ.get('SKIP_INPUT') is not None or os.environ.get('UNIT_TEST') is not None :
+        return ret
+    else:
+        return input(msg)
