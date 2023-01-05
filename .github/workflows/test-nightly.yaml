@@ -7,11 +7,11 @@ on:
       - completed
   workflow_dispatch:
 
+
 jobs:
   Test_Nightly_Build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: ["ubuntu-22.04"]
         python-version: ["3.9"]
@@ -19,22 +19,21 @@ jobs:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          use-mamba: true
+          mamba-version: "*"
+          channels: conda-forge, i4ds, nvidia/label/cuda-11.7.0
           python-version: ${{ matrix.python-version }}
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Create Environment
-        shell: bash -l {0}
         run: |
-          conda create -n test_karabo python=${{ matrix.python-version }}
-          conda activate test_karabo
+          mamba create -n test_karabo python=${{ matrix.python-version }}
       - name: Install Karabo
+        shell: bash -el {0}
         run: |
-          conda config --append channels conda-forge
-          conda config --append channels i4ds
-          conda config --append channels nvidia/label/cuda-11.7.0
-          conda install -c "i4ds/label/nightly" karabo-pipeline --yes
+          conda activate test_karabo
+          mamba install -c "i4ds/label/nightly" karabo-pipeline --yes
       - name: Test Nightly Build
+        shell: bash -el {0}
         run: |
           conda activate test_karabo
           python -c "from karabo.util.testing import run_tests; run_tests()"
