@@ -111,6 +111,9 @@ class Telescope(KaraboResource):
 
         ax.scatter(x, y, label="Centre")
         ax.ticklabel_format(useOffset=False)
+        ax.set_xlabel('Longitude [deg]')
+        ax.set_ylabel('Latitude [deg]')
+        ax.set_title('Antenna Locations')
         ax.legend(loc='upper left', shadow=False, fontsize='medium')
 
         if file is not None:
