@@ -14,8 +14,8 @@ jobs:
     steps:
       - name: Install conda build
         run: |
-          conda config --append channels conda-forge
           conda config --append channels i4ds
+          conda config --append channels conda-forge
           conda config --append channels nvidia/label/cuda-11.7.0
       - name: Checkout repository
         uses: actions/checkout@v2
