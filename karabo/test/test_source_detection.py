@@ -100,7 +100,7 @@ class TestSourceDetection(unittest.TestCase):
         
     # # # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_detection(self):
-    #     image = Image.read_from_file(f"{data_path}/restored.fits")
+    #     image = Image(path=f"{data_path}/restored.fits")
     #     detection = SourceDetectionResult.detect_sources_in_image(image)
     #     detection.write_to_file("result/result.zip")
     #     # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')

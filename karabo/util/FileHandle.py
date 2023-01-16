@@ -48,3 +48,9 @@ class FileHandle:
         # remove temp dir if it was the last temporary file
         if len(os.listdir(self.__temp_path)) == 0:
             os.rmdir(self.__temp_path)
+
+
+def check_ending(path: str, ending: str) -> None:
+    if not path.endswith(ending):
+        fname = path.split(os.path.sep)[-1]
+        raise ValueError(f"Invalid file-ending, file {fname} must have {ending} extension!")

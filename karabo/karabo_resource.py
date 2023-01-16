@@ -1,4 +1,4 @@
-
+from typing import Any
 
 class KaraboResource:
 
@@ -6,11 +6,11 @@ class KaraboResource:
         """
         Save the specified resource to disk (in format specified by resource itself)
         """
-        pass
+        raise NotImplementedError()
 
     @staticmethod
-    def read_from_file(path: str) -> any:
+    def read_from_file(path: str) -> Any:
         """
         Read the specified resource from disk into Karabo. (format specified by resource itself)
         """
-        pass
+        raise NotImplementedError()

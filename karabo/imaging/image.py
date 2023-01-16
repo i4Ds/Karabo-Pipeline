@@ -11,7 +11,7 @@ from astropy.wcs import WCS
 import matplotlib.pyplot as plt
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
+from karabo.util.FileHandle import FileHandle, check_ending
 
 # store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
 previous_backend = matplotlib.get_backend()
@@ -24,61 +24,32 @@ class Image(KaraboResource):
 
     def __init__(
         self,
-        name: Optional[str] = None,
+        path: str,
+        **kwargs,
     ) -> None:
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
-        self.header = None
-        self.data = None
-        self.name = name
-        self.file = FileHandle()
-
-    def write_to_file(self, path: str) -> None:
-        if not path.endswith('.fits'):
-            raise ValueError("Invalid file-ending, file must have .fits extension!")
-
-        shutil.copy(self.file.path, path)
+        self.__name = path.split(os.path.sep)[-1]
+        self.file = FileHandle(existing_file_path=path, mode='r')
+        self.data, self.header = fits.getdata(self.file.path, ext=0, header=True, **kwargs)
 
     @staticmethod
     def read_from_file(path: str) -> Image:
-        name = path.split(os.path.sep)[-1].split('.fits')[0]
-        image = Image(name=name)
-        image.file = FileHandle(existing_file_path=path, mode='r')
-        return image
+        return Image(path=path)
+
+    def write_to_file(self, path: str) -> None:
+        check_ending(path=path, ending='.fits')
+        shutil.copy(self.file.path, path)
 
     def header_has_parameters(
         self,
-        image: Image,
         parameters: List[str],
     ) -> bool:
-        fitsfile=fits.open(image.file.path)
-        header=fitsfile[0].header
         for parameter in parameters:
-            if parameter not in header:
+            if parameter not in self.header:
                 return False
         return True
-
-    # overwrite getter to make sure it always contains the data
-    @property
-    def data(self) -> NDArray[np.float64]:
-        if self._data is None:
-            self.__read_fits_data()
-        return self._data
-
-    @data.setter
-    def data(self, value: NDArray[np.float64]) -> None:
-        self._data = value
-
-    @property
-    def header(self) -> Dict[str,Any]:
-        if self._header is None:
-            self.__read_fits_data()
-        return self._header
-
-    @header.setter
-    def header(self, value:Dict[str,Any]) -> None:
-        self._header = value
 
     def get_squeezed_data(self) -> NDArray[np.float64]:
         return numpy.squeeze(self.data[:1, :1, :, :])
@@ -158,9 +129,6 @@ class Image(KaraboResource):
         if filename is not None: plt.savefig(filename)
         plt.show(block=False)
         plt.pause(1)
-
-    def __read_fits_data(self) -> None:
-        self.data, self.header = fits.getdata(self.file.path, ext=0, header=True)
 
     def get_dimensions_of_image(self) -> List[int]:
         """
@@ -255,7 +223,7 @@ class Image(KaraboResource):
         plt.clf()
 
         plt.plot(theta, profile)
-        plt.gca().set_title(f"Power spectrum of {self.name if self.name is not None else ''} image")
+        plt.gca().set_title(f"Power spectrum of {self.__name if self.__name is not None else ''} image")
         plt.gca().set_xlabel("Angular scale [degrees]")
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
@@ -264,7 +232,7 @@ class Image(KaraboResource):
         plt.tight_layout()
 
         if save_png:
-            plt.savefig(f"./power_spectrum_{self.name if self.name is not None else uuid.uuid4()}")
+            plt.savefig(f"./power_spectrum_{self.__name if self.__name is not None else uuid.uuid4()}")
         plt.show(block=False)
         plt.pause(1)
 

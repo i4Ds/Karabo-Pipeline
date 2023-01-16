@@ -66,6 +66,7 @@ class SourceDetectionResult(KaraboResource):
                 )
             else:
                 warn(KaraboWarning("No beam parameter found. Source detection might fail!"))
+                
         detection = bdsf.process_image(
             image.file.path,
             beam=beam,
@@ -191,14 +192,16 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         return sources
 
-    def __get_result_image(self, image_type: str) -> Image:
-        image = Image()
+    def __get_result_image(self, image_type: str, **kwargs) -> Image:
+        file_handle = FileHandle()
         self.bdsf_result.export_image(
-            outfile=image.file.path,
+            outfile=file_handle.path,
             img_format="fits",
             img_type=image_type,
             clobber=True,
+            **kwargs,
         )
+        image = Image(path=file_handle.path)
         return image
 
     def get_RMS_map_image(self) -> Image:
