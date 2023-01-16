@@ -1,6 +1,6 @@
 from __future__ import annotations
 import shutil
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Type
 
 import numpy as np
 from numpy.typing import NDArray
@@ -41,13 +41,14 @@ class SourceDetectionResult(KaraboResource):
         self.source_image = source_image
         self.detected_sources = detected_sources
 
-    @staticmethod
+    @classmethod
     def detect_sources_in_image(
+        cls: Type[SourceDetectionResult],
         image: Image,
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
         **kwargs,
-    ) -> PyBDSFSourceDetectionResult:
+    ) -> PyBDSFSourceDetectionResult: # could maybe be changed using `TypeVar`, but this is more specific atm
         """
         Detecting sources in an image. The Source detection is implemented with the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
@@ -66,7 +67,7 @@ class SourceDetectionResult(KaraboResource):
                 )
             else:
                 warn(KaraboWarning("No beam parameter found. Source detection might fail!"))
-                
+
         detection = bdsf.process_image(
             image.file.path,
             beam=beam,
@@ -75,7 +76,7 @@ class SourceDetectionResult(KaraboResource):
             **kwargs,
         )
         
-        return PyBDSFSourceDetectionResult(detection)
+        return cls(detection)
             
     def write_to_file(self, path: str) -> None:
         """
@@ -189,7 +190,10 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def __transform_bdsf_to_reduced_result_array(
         bdsf_detected_sources: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
+        if bdsf_detected_sources.shape[0] > 0:
+            sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
+        else:
+            sources = bdsf_detected_sources
         return sources
 
     def __get_result_image(self, image_type: str, **kwargs) -> Image:
