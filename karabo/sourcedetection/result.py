@@ -48,7 +48,7 @@ class SourceDetectionResult(KaraboResource):
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
         **kwargs,
-    ) -> PyBDSFSourceDetectionResult: # could maybe be changed using `TypeVar`, but this is more specific atm
+    ) -> Optional[PyBDSFSourceDetectionResult]: # could maybe be changed using `TypeVar`, but this is more specific atm
         """
         Detecting sources in an image. The Source detection is implemented with the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
@@ -68,13 +68,21 @@ class SourceDetectionResult(KaraboResource):
             else:
                 warn(KaraboWarning("No beam parameter found. Source detection might fail!"))
 
-        detection = bdsf.process_image(
-            image.file.path,
-            beam=beam,
-            quiet=quiet,
-            format="csv",
-            **kwargs,
-        )
+        try:
+            detection = bdsf.process_image(
+                image.file.path,
+                beam=beam,
+                quiet=quiet,
+                format="csv",
+                **kwargs,
+            )
+        except RuntimeError as e:
+            wmsg = 'All pixels in the image are blanked.'
+            if str(e) == wmsg:
+                warn(KaraboWarning(wmsg))
+                return None
+            else:
+                raise e
         
         return cls(detection)
             
