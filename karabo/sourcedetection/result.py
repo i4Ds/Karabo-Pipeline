@@ -6,6 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 import bdsf
 from bdsf import image as bdsf_image
+from warnings import warn
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
@@ -53,54 +54,20 @@ class SourceDetectionResult(KaraboResource):
 
         :param image: Image to perform source detection on.
         :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N). 
-            None means it will try to be extracted from the Image data. (Might fail)
+            None means it will try to be extracted from the Image data.
         :return: Source Detection Result containing the found sources
         """
+        if beam is None:
+            if image.has_beam_parameters():
+                beam = (
+                    image.header["BMAJ"],
+                    image.header["BMIN"],
+                    image.header["BPA"]
+                )
+            else:
+                warn(KaraboWarning("No beam parameter found. Source detection might fail!"))
         detection = bdsf.process_image(
             image.file.path,
-            beam=beam,
-            quiet=quiet,
-            format="csv",
-            **kwargs,
-        )
-        
-        return PyBDSFSourceDetectionResult(detection)
-    
-    @staticmethod
-    def detect_sources_in_dirty_image(
-        imager: Imager,
-        dirty: Optional[Image] = None,
-        quiet: bool = False,
-        beam: Optional[Tuple[float, float, float]] = None,
-        beam_guessing_method: str = 'rascil_1_iter',
-        **kwargs,
-    ) -> PyBDSFSourceDetectionResult:
-        """
-        Detecting sources in an dirty image (No clean algorithm is applied). The Source detection is implemented with the PyBDSF.process_image function.
-        See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
-
-        :param Imager: Imager. Because some information is needed from the imager class, don't pass directly the Image.
-        :param dirty: Image. Pass the precalculated dirty image to speedup the source detection.
-        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N). 
-                        If not specified, the beam is read from the header or calculated with the help of rascil.
-        :return: Source Detection Result containing the found sources
-        """
-        if dirty is None:
-            dirty = imager.get_dirty_image()
-        if beam is None:
-            if dirty.image_has_beam_parameters():
-                beam = (
-                    dirty.header["BMAJ"],
-                    dirty.header["BMIN"],
-                    dirty.header["BPA"]
-                )
-            elif beam is None and not dirty.image_has_beam_parameters():
-                beam = SourceDetectionResult.guess_beam_parameters(imager, beam_guessing_method)
-            else:
-                raise KaraboWarning("No beam parameter found. Source detection might fail.")
-                         
-        detection = bdsf.process_image(
-            dirty.file.path,
             beam=beam,
             quiet=quiet,
             format="csv",

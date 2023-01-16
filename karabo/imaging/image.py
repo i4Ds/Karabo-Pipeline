@@ -45,7 +45,7 @@ class Image(KaraboResource):
         image.file = FileHandle(existing_file_path=path, mode='r')
         return image
 
-    def image_header_has_parameters(
+    def header_has_parameters(
         self,
         image: Image,
         parameters: List[str],
@@ -176,13 +176,13 @@ class Image(KaraboResource):
     def get_phase_center(self) -> Tuple[float, float]:
         return float(self.header["CRVAL1"]), float(self.header["CRVAL2"])
 
-    def image_has_beam_parameters(self) -> bool:
+    def has_beam_parameters(self) -> bool:
         """
         Check if the image has the beam parameters in the header.
         :param image: Image to check
         :return: True if the image has the beam parameters in the header
         """
-        return self.image_header_has_parameters(
+        return self.header_has_parameters(
             ["BMAJ", "BMIN", "BPA"],
         )
 
