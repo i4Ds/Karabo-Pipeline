@@ -1,7 +1,5 @@
 from __future__ import annotations
-import logging
-import shutil
-import uuid
+import logging, os, shutil, uuid
 from typing import Tuple, Dict, List, Any, Optional
 
 import matplotlib
@@ -10,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 from astropy.io import fits
 from astropy.wcs import WCS
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
@@ -24,7 +22,10 @@ matplotlib.use(previous_backend)
 
 class Image(KaraboResource):
 
-    def __init__(self, name=None) -> None:
+    def __init__(
+        self,
+        name: Optional[str] = None,
+    ) -> None:
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
@@ -34,14 +35,15 @@ class Image(KaraboResource):
         self.file = FileHandle()
 
     def write_to_file(self, path: str) -> None:
-        if not path.endswith(".fits"):
-            raise EnvironmentError("The passed path and name of file must end with .fits")
+        if not path.endswith('.fits'):
+            raise ValueError("Invalid file-ending, file must have .fits extension!")
 
         shutil.copy(self.file.path, path)
 
     @staticmethod
     def read_from_file(path: str) -> Image:
-        image = Image()
+        name = path.split(os.path.sep)[-1].split('.fits')[0]
+        image = Image(name=name)
         image.file = FileHandle(existing_file_path=path, mode='r')
         return image
 
@@ -65,7 +67,7 @@ class Image(KaraboResource):
         return self._data
 
     @data.setter
-    def data(self, value:NDArray[np.float64]):
+    def data(self, value: NDArray[np.float64]) -> None:
         self._data = value
 
     @property
@@ -114,8 +116,6 @@ class Image(KaraboResource):
         :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
         """
-        import matplotlib.pyplot as plt
-
         if wcs_enabled:
             wcs = WCS(self.header)
             print(wcs)
@@ -222,8 +222,8 @@ class Image(KaraboResource):
 
     def get_power_spectrum(
         self,
-        resolution:float=5.0e-4,
-        signal_channel:Optional[int]=None,
+        resolution: float = 5.0e-4,
+        signal_channel: Optional[int] = None,
     ) -> Tuple[NDArray[np.float64], NDArray[np.floating]]:
         """
         Calculate the power spectrum of this image.
@@ -240,9 +240,9 @@ class Image(KaraboResource):
 
     def plot_power_spectrum(
         self,
-        resolution:float=5.0e-4,
-        signal_channel:Optional[int]=None,
-        save_png:bool=False,
+        resolution: float = 5.0e-4,
+        signal_channel: Optional[int] = None,
+        save_png: bool = False,
     ) -> None:
         """
         Plot the power spectrum of this image.
