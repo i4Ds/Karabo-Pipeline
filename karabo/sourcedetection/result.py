@@ -11,7 +11,7 @@ from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
-from karabo.util.data_util import read_CSV_to_ndarray, image_header_has_parameters
+from karabo.util.data_util import read_CSV_to_ndarray
 
 from karabo.warning import KaraboWarning
 
@@ -88,13 +88,13 @@ class SourceDetectionResult(KaraboResource):
         if dirty is None:
             dirty = imager.get_dirty_image()
         if beam is None:
-            if SourceDetectionResult.image_has_beam_parameters(dirty):
+            if dirty.image_has_beam_parameters():
                 beam = (
                     dirty.header["BMAJ"],
                     dirty.header["BMIN"],
                     dirty.header["BPA"]
                 )
-            elif beam is None and not SourceDetectionResult.image_has_beam_parameters(dirty):
+            elif beam is None and not dirty.image_has_beam_parameters():
                 beam = SourceDetectionResult.guess_beam_parameters(imager, beam_guessing_method)
             else:
                 raise KaraboWarning("No beam parameter found. Source detection might fail.")
@@ -120,18 +120,6 @@ class SourceDetectionResult(KaraboResource):
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, "zip", tempdir.path)
-        
-    @staticmethod
-    def image_has_beam_parameters(image: Image) -> bool:
-        """
-        Check if the image has the beam parameters in the header.
-        :param image: Image to check
-        :return: True if the image has the beam parameters in the header
-        """
-        return image_header_has_parameters(
-            image,
-            ["BMAJ", "BMIN", "BPA"],
-        )
         
     @staticmethod
     def guess_beam_parameters(

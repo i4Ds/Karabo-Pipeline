@@ -45,6 +45,18 @@ class Image(KaraboResource):
         image.file = FileHandle(existing_file_path=path, mode='r')
         return image
 
+    def image_header_has_parameters(
+        self,
+        image: Image,
+        parameters: List[str],
+    ) -> bool:
+        fitsfile=fits.open(image.file.path)
+        header=fitsfile[0].header
+        for parameter in parameters:
+            if parameter not in header:
+                return False
+        return True
+
     # overwrite getter to make sure it always contains the data
     @property
     def data(self) -> NDArray[np.float64]:
@@ -163,6 +175,16 @@ class Image(KaraboResource):
 
     def get_phase_center(self) -> Tuple[float, float]:
         return float(self.header["CRVAL1"]), float(self.header["CRVAL2"])
+
+    def image_has_beam_parameters(self) -> bool:
+        """
+        Check if the image has the beam parameters in the header.
+        :param image: Image to check
+        :return: True if the image has the beam parameters in the header
+        """
+        return self.image_header_has_parameters(
+            ["BMAJ", "BMIN", "BPA"],
+        )
 
     def get_quality_metric(self) -> Dict[str,Any]:
         """
