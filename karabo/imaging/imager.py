@@ -82,7 +82,7 @@ class Imager:
     >>> imager = Imager()
     >>> convolved, restored, residual = imager.imaging_rascil()
     ...
-    >>> SourceDetectionResult.detect_sources_in_image(restored)
+    >>> PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
     """
     def __init__(
         self,

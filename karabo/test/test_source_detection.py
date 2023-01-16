@@ -101,7 +101,7 @@ class TestSourceDetection(unittest.TestCase):
     # # # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_detection(self):
     #     image = Image(path=f"{data_path}/restored.fits")
-    #     detection = SourceDetectionResult.detect_sources_in_image(image)
+    #     detection = PyBDSFSourceDetectionResult.detect_sources_in_image(image)
     #     detection.write_to_file("result/result.zip")
     #     # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
     #     pixels = detection.get_pixel_position_of_sources()
@@ -158,7 +158,7 @@ class TestSourceDetection(unittest.TestCase):
         restored.write_to_file("result/test_dec/restored.fits")
         residual.write_to_file("result/test_dec/residual.fits")
     
-        result = SourceDetectionResult.detect_sources_in_image(restored)
+        result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
     
         evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space( # DOESN't WORK ANYMORE
@@ -230,7 +230,7 @@ class TestSourceDetection(unittest.TestCase):
         restored.write_to_file("result/test_dec/restored.fits")
         residual.write_to_file("result/test_dec/residual.fits")
     
-        result = SourceDetectionResult.detect_sources_in_image(restored)
+        result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
     
         evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space( # DOESN't WORK ANYMORE
@@ -297,7 +297,7 @@ class TestSourceDetection(unittest.TestCase):
         restored.write_to_file("result/test_dec/restored.fits")
         residual.write_to_file("result/test_dec/residual.fits")
     
-        result = SourceDetectionResult.detect_sources_in_image(restored)
+        result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
     
         evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space( # DOESN't WORK ANYMORE
