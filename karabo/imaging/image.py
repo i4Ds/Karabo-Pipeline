@@ -38,9 +38,28 @@ class Image(KaraboResource):
     def read_from_file(path: str) -> Image:
         return Image(path=path)
 
-    def write_to_file(self, path: str) -> None:
+    def copy_image_file_to(self, path: str) -> None:
+        """
+        Makes a copy the .fits file to `path`.
+        Pay attention, this doesn't copy the current state of `Image` to `path` if the `Image` was altered,
+            it just creates a copy of the current .fits file of this `Image` to `path`.
+        """
         check_ending(path=path, ending='.fits')
         shutil.copy(self.file.path, path)
+
+    def export_image_to(
+        self,
+        path: str,
+        overwrite: bool = False,
+    ) -> None:
+        """Write an `Image` to `path`  as .fits"""
+        check_ending(path=path, ending='.fits')
+        fits.writeto(
+            filename=path,
+            data=self.data,
+            header=self.header,
+            overwrite=overwrite,
+        )
 
     def header_has_parameters(
         self,

@@ -47,11 +47,11 @@ class TestSystemNoise(unittest.TestCase):
                                    number_of_channels=1,)
 
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.write_to_file("./result/system_noise/noise_vis.ms")
+        visibility.copy_image_file_to("./result/system_noise/noise_vis.ms")
 
         imager = Imager(visibility,
                          imaging_npixel=4096*1,
                          imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("result/system_noise/noise_dirty.fits")
+        dirty.copy_image_file_to("result/system_noise/noise_dirty.fits")
         dirty.plot(title='Flux Density (Jy)')

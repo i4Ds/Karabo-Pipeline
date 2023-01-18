@@ -220,7 +220,7 @@ class InterferometerSimulation:
                 observation_run = deepcopy(observation)
                 observation_run.start_date_and_time = current_date
                 visibility = self.__run_simulation_oskar(telescope_run, sky_run, observation_run)
-                visibility.write_to_file(ms_files[i])
+                visibility.copy_image_file_to(ms_files[i])
                 current_date + timedelta(days=1)
             self.vis_path = vis_path_long
             return visiblity_files

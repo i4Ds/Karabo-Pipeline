@@ -67,7 +67,7 @@ class TestSystemNoise(unittest.TestCase):
                                    frequency_increment_hz=chan_width,
                                    number_of_channels=1)
             visibility = simulation.run_simulation(telescope, spectral_sky, observation)
-            visibility.write_to_file(spectral_ms_output[i])
+            visibility.copy_image_file_to(spectral_ms_output[i])
         return spectral_vis_output,spectral_ms_output
 
 
@@ -107,7 +107,7 @@ class TestSystemNoise(unittest.TestCase):
         if(make_foreground_image):
             imager = Imager(visibility,imaging_npixel=2048 * 1,imaging_cellsize=50)  # imaging cellsize is over-written in the Imager based on max uv dist.
             dirty = imager.get_dirty_image()
-            dirty.write_to_file("./result/spectral_line/foreground.fits")
+            dirty.copy_image_file_to("./result/spectral_line/foreground.fits")
             dirty.plot(title='Flux Density (Jy)')
         #------- Simulate Spectral Line Sky -----#
         spectral_freq0=1.e9; make_spectral_image =0
@@ -118,7 +118,7 @@ class TestSystemNoise(unittest.TestCase):
         if(make_spectral_image):
                 imager = Imager(visibility, imaging_npixel=2048 * 1, imaging_cellsize=50)  # imaging cellsize is over-written in the Imager based on max uv dist.
                 dirty = imager.get_dirty_image()
-                dirty.write_to_file("./result/spectral_line/spectral_line_" + str(i) + ".fits")
+                dirty.copy_image_file_to("./result/spectral_line/spectral_line_" + str(i) + ".fits")
                 dirty.plot(title='Flux Density (Jy)')
 
         #------- Combine Visibilities ----------#

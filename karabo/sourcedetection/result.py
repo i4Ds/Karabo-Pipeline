@@ -83,7 +83,7 @@ class SourceDetectionResult(KaraboResource):
         
         return cls(detection)
             
-    def write_to_file(self, path: str) -> None:
+    def copy_image_file_to(self, path: str) -> None:
         """
         Save Source Detection Result to ZIP Archive containing the .fits source image and source-finding catalog.
         :param path: path to save the zip archive as.
@@ -91,7 +91,7 @@ class SourceDetectionResult(KaraboResource):
         if path.endswith(".zip"):
             path = path[0 : len(path) - 4]
         tempdir = FileHandle(is_dir=True)
-        self.source_image.write_to_file(tempdir.path + "/source_image.fits")
+        self.source_image.copy_image_file_to(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, "zip", tempdir.path)
         

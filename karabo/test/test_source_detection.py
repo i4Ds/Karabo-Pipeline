@@ -29,7 +29,7 @@ class TestSourceDetection(unittest.TestCase):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs(phase_center=phase_center)
         detection = SourceDetectionResult.read_from_file(f"{data_path}/detection.zip")
-        detection.write_to_file("./result/detection.zip")
+        detection.copy_image_file_to("./result/detection.zip")
 
         img = detection.get_source_image()
         imaging_npixel = img.header['NAXIS1']
@@ -70,6 +70,10 @@ class TestSourceDetection(unittest.TestCase):
         """
         with open(f'{data_path}/image_blank.pkl', 'rb') as f:
             image_blanked: Image = pickle.load(f)
+        fits_path = f'{data_path}/image_blank.fits'
+        if not os.path.exists(fits_path):
+            image_blanked.export_image_to(path=fits_path)
+            image_blanked.file.path = fits_path
         beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
         PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked, beam=beam_guess)
         

@@ -2,7 +2,7 @@ from typing import Any
 
 class KaraboResource:
 
-    def write_to_file(self, path: str) -> None:
+    def copy_image_file_to(self, path: str) -> None:
         """
         Save the specified resource to disk (in format specified by resource itself)
         """
