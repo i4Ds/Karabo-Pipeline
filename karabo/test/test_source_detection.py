@@ -68,7 +68,7 @@ class TestSourceDetection(unittest.TestCase):
         Tests if bdsf error message in `PyBDSFSourceDetectionResult.detect_sources_in_image` has changed
         If it has changed, it will throw a `RuntimeError`
         """
-        with open('image_blank.pkl', 'rb') as f:
+        with open(f'{data_path}/image_blank.pkl', 'rb') as f:
             image_blanked: Image = pickle.load(f)
         beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
         PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked, beam=beam_guess)
