@@ -155,7 +155,7 @@ class Imager:
         )
         dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
         export_image_to_fits(dirty, f"{file_handle.path}")
-        image = Image(file_handle.path)
+        image = Image(path=file_handle)
         return image
 
     def imaging_rascil(

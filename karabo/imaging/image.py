@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging, os, shutil, uuid
-from typing import Tuple, Dict, List, Any, Optional
+from typing import Tuple, Dict, List, Any, Optional, Union
 
 import matplotlib
 import numpy
@@ -11,7 +11,7 @@ from astropy.wcs import WCS
 import matplotlib.pyplot as plt
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle, check_ending
+from karabo.util.FileHandle import check_ending, FileHandle
 
 # store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
 previous_backend = matplotlib.get_backend()
@@ -24,15 +24,20 @@ class Image(KaraboResource):
 
     def __init__(
         self,
-        path: str,
+        path: Union[str, FileHandle],
         **kwargs,
     ) -> None:
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
-        self.__name = path.split(os.path.sep)[-1]
-        self.file = FileHandle(existing_file_path=path, mode='r')
-        self.data, self.header = fits.getdata(self.file.path, ext=0, header=True, **kwargs)
+        if isinstance(path, FileHandle): # save FileHandle if used to not lose reference and call it's __del__
+            self.__file_handle = path
+            path_ = path.path
+        else:
+            path_ = path
+        self.path = path_
+        self.__name = self.path.split(os.path.sep)[-1]
+        self.data, self.header = fits.getdata(self.path, ext=0, header=True, **kwargs)
 
     @staticmethod
     def read_from_file(path: str) -> Image:
@@ -45,7 +50,7 @@ class Image(KaraboResource):
             it just creates a copy of the current .fits file of this `Image` to `path`.
         """
         check_ending(path=path, ending='.fits')
-        shutil.copy(self.file.path, path)
+        shutil.copy(self.path, path)
 
     def export_image_to(
         self,
@@ -222,7 +227,7 @@ class Image(KaraboResource):
             theta_axis: Angular scale data in degrees
         """
         # use RASCIL for power spectrum
-        profile, theta = power_spectrum(self.file.path, resolution, signal_channel)
+        profile, theta = power_spectrum(self.path, resolution, signal_channel)
         return profile, theta
 
     def plot_power_spectrum(

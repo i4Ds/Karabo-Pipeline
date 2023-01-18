@@ -70,7 +70,7 @@ class SourceDetectionResult(KaraboResource):
 
         try:
             detection = bdsf.process_image(
-                image.file.path,
+                image.path,
                 beam=beam,
                 quiet=quiet,
                 format="csv",

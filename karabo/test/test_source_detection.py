@@ -5,9 +5,12 @@ import numpy as np
 
 from karabo.imaging.imager import Imager
 from karabo.imaging.image import Image
+from karabo.simulation.telescope import Telescope
+from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import SourceDetectionResult, PyBDSFSourceDetectionResult
+from karabo.simulation.interferometer import InterferometerSimulation
 
 from karabo.test import data_path
 
@@ -67,13 +70,31 @@ class TestSourceDetection(unittest.TestCase):
         """
         Tests if bdsf error message in `PyBDSFSourceDetectionResult.detect_sources_in_image` has changed
         If it has changed, it will throw a `RuntimeError`
+        Test could maybe be changed if .fits file with blanked pixels is available and
+            therefore you can just create an `Image` from that file
         """
-        with open(f'{data_path}/image_blank.pkl', 'rb') as f:
-            image_blanked: Image = pickle.load(f)
-        fits_path = f'{data_path}/image_blank.fits'
-        if not os.path.exists(fits_path):
-            image_blanked.export_image_to(path=fits_path)
-            image_blanked.file.path = fits_path
+        phase_center = [250, -80]
+        gleam_sky = SkyModel.get_GLEAM_Sky()
+        sky = gleam_sky.filter_by_radius(0, .01, phase_center[0], phase_center[1])
+        sky.setup_default_wcs(phase_center=phase_center)
+        askap_tel = Telescope.get_ASKAP_Telescope()
+        observation_settings = Observation(
+            start_frequency_hz=100e6,
+            phase_centre_ra_deg=phase_center[0],
+            phase_centre_dec_deg=phase_center[1],
+            number_of_channels=64,
+            number_of_time_steps=24,
+        )
+        interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+        visibility_askap = interferometer_sim.run_simulation(askap_tel, sky, observation_settings)
+        imaging_npixel = 2048
+        imaging_cellsize = 3.878509448876288e-05
+        imager_askap = Imager(
+            visibility_askap,
+            imaging_npixel = imaging_npixel,
+            imaging_cellsize = imaging_cellsize,
+        )
+        image_blanked = imager_askap.get_dirty_image()
         beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
         PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked, beam=beam_guess)
         
