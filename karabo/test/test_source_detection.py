@@ -1,12 +1,13 @@
-import os
+import os, pickle
 import unittest
 
 import numpy as np
 
 from karabo.imaging.imager import Imager
+from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
-from karabo.sourcedetection.result import SourceDetectionResult
+from karabo.sourcedetection.result import SourceDetectionResult, PyBDSFSourceDetectionResult
 
 from karabo.test import data_path
 
@@ -61,6 +62,16 @@ class TestSourceDetection(unittest.TestCase):
         mapping.plot_flux_ratio_to_distance()
         mapping.plot_flux_ratio_to_ra_dec()
         mapping.plot_flux_histogram()
+
+    def test_bdsf_image_blanked(self):
+        """
+        Tests if bdsf error message in `PyBDSFSourceDetectionResult.detect_sources_in_image` has changed
+        If it has changed, it will throw a `RuntimeError`
+        """
+        with open('image_blank.pkl', 'rb') as f:
+            image_blanked: Image = pickle.load(f)
+        beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
+        PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked, beam=beam_guess)
         
     def test_automatic_assignment_of_ground_truth_and_prediction(self):
         ## Test that the automatic assignment of ground truth and prediction works

@@ -78,11 +78,8 @@ class SourceDetectionResult(KaraboResource):
             )
         except RuntimeError as e:
             wmsg = 'All pixels in the image are blanked.'
-            if str(e) == wmsg:
-                warn(KaraboWarning(wmsg))
-                return None
-            else:
-                raise e
+            if str(e) == wmsg: return None # no need to create additional warnings since `bdsf` already prints an according Error message
+            else: raise e
         
         return cls(detection)
             

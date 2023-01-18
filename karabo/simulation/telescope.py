@@ -1,8 +1,9 @@
+from __future__ import annotations
 import logging
 import os
 import re
 import shutil
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import oskar.telescope as os_telescope
@@ -171,98 +172,98 @@ class Telescope(KaraboResource):
 
 
     @classmethod
-    def read_from_file(cls, path: str) -> any:
+    def read_from_file(cls, path: str) -> Optional[Telescope]:
         if path.endswith(".tm"):
             logging.info("Supplied file is a .tm file. Read as OSKAR Telescope file.")
-            cls.read_OSKAR_tm_file(path)
+            return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_MEERKAT_Telescope(cls):
+    def get_MEERKAT_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/meerkat.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_ACA_Telescope(cls, version: ACAVersions):
+    def get_ACA_Telescope(cls, version: ACAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/aca.{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_ALMA_Telescope(cls, version: ALMAVersions):
+    def get_ALMA_Telescope(cls, version: ALMAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/alma.{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_ASKAP_Telescope(cls):
+    def get_ASKAP_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/askap.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_ATCA_Telescope(cls, version: ATCAVersions):
+    def get_ATCA_Telescope(cls, version: ATCAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/atca.{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_CARMA_Telescope(cls, version: CARMAVersions):
+    def get_CARMA_Telescope(cls, version: CARMAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/carma.{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_LOFAR_Telescope(cls):
+    def get_LOFAR_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/lofar.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_MKATPLUS_Telescope(cls):
+    def get_MKATPLUS_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/mkatplus.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_NG_VLA_Telescope(cls, version: NGVLAVersions):
+    def get_NG_VLA_Telescope(cls, version: NGVLAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/ngvla-{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_PDBI_Telescope(cls, version: PDBIVersions):
+    def get_PDBI_Telescope(cls, version: PDBIVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/pdbi-{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_SKA1_LOW_Telescope(cls):
+    def get_SKA1_LOW_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/ska1low.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_SKA1_MID_Telescope(cls):
+    def get_SKA1_MID_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/ska1mid.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_SMA_Telescope(cls, version: SMAVersions):
+    def get_SMA_Telescope(cls, version: SMAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/sma.{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_VLA_Telescope(cls, version: VLAVersions):
+    def get_VLA_Telescope(cls, version: VLAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/vla.{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_VLBA_Telescope(cls):
+    def get_VLBA_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/vlba.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_WSRT_Telescope(cls):
+    def get_WSRT_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/WSRT.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def get_OSKAR_Example_Telescope(cls):
+    def get_OSKAR_Example_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/telescope.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def read_OSKAR_tm_file(cls, path: str) -> any:
+    def read_OSKAR_tm_file(cls, path: str) -> Telescope:
         abs_station_dir_paths = []
         station_position_file = None
         station_layout_file = None
