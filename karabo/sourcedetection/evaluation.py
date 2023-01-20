@@ -178,6 +178,7 @@ class SourceDetectionEvaluation:
             ax.imshow(image.data[0][0], cmap="jet", origin="lower", interpolation=None)
         else:
             _, ax = plt.subplots(1, 1, subplot_kw=dict())
+        ax.grid()
         self.__plot_truth_and_prediction(ax, show_legend=show_legend)
 
         if filename:
