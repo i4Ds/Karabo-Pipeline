@@ -164,7 +164,7 @@ class Telescope(KaraboResource):
                 f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n")
         layout_file.close()
 
-    def copy_image_file_to(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         shutil.copytree(self.path.path, path)
 
     def get_cartesian_position(self):

@@ -22,7 +22,7 @@ class TestImage(unittest.TestCase):
         )
 
         dirty = imager.get_dirty_image()
-        dirty.copy_image_file_to("result/dirty.fits")
+        dirty.write_to_file("result/dirty.fits", overwrite=True)
         dirty.plot(title="Dirty Image")
 
     def test_explore_sky(self):

@@ -14,7 +14,7 @@ class Visibility(KaraboResource):
     def __init__(self):
         self.file = FileHandle(is_dir=True, suffix=".ms")
 
-    def copy_image_file_to(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         if os.path.exists(path):
             shutil.rmtree(path)
         shutil.copytree(self.file.path, path)

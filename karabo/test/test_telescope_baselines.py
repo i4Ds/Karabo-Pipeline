@@ -46,13 +46,13 @@ class MyTestCase(unittest.TestCase):
 
         visibility = simulation.run_simulation(telescope, sky, observation)
         #visibility = simulation.run_simulation(parant_tel, sky, observation)
-        visibility.copy_image_file_to("./result/baseline_cut.ms")
+        visibility.write_to_file("./result/baseline_cut.ms")
 
         imager = Imager(visibility,
                          imaging_npixel=4096*1,
                          imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        dirty.copy_image_file_to("result/baseline_cut.fits")
+        dirty.write_to_file("result/baseline_cut.fits", overwrite=True)
         dirty.plot(title='Flux Density (Jy)')
 
 

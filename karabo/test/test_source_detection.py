@@ -32,7 +32,7 @@ class TestSourceDetection(unittest.TestCase):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
         sky.setup_default_wcs(phase_center=phase_center)
         detection = SourceDetectionResult.read_from_file(f"{data_path}/detection.zip")
-        detection.copy_image_file_to("./result/detection.zip")
+        detection.write_to_file("./result/detection.zip")
 
         img = detection.get_source_image()
         imaging_npixel = img.header['NAXIS1']
