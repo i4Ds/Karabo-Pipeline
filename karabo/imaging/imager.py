@@ -61,6 +61,8 @@ class Imager:
         Number of pixels in ra, dec: Should be a composite of 2, 3, 5
     imaging_cellsize : float, default=None
         Cellsize (radians). Default is to calculate
+    override_cellsize : bool, default=None
+        Override the cellsize if it is above the critical cellsize
     imaging_weighting : str, default="uniform"
         Type of weighting uniform or robust or natural
     imaging_robustness : float, default=0.0
@@ -229,14 +231,14 @@ class Imager:
             rsexecute.execute(convert_blockvisibility_to_stokesI)(bv)
             for bv in blockviss
         ]
-
-        cellsize = self.imaging_cellsize
+        
         models = [
             rsexecute.execute(create_image_from_visibility)(
                 bvis,
                 npixel=self.imaging_npixel,
                 nchan=self.imaging_nchan,
-                cellsize=cellsize,
+                cellsize=self.imaging_cellsize,
+                override_cellsize=self.override_cellsize,
                 polarisation_frame=PolarisationFrame("stokesI"),
             )
             for bvis in blockviss
