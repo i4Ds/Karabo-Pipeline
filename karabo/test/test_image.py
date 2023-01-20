@@ -24,7 +24,57 @@ class TestImage(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/dirty.fits")
         dirty.plot(title="Dirty Image")
+        
+    def test_cellsize_overwrite_true(self):
+        vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+        imager = Imager(
+            vis,
+            imaging_npixel=2048, 
+            imaging_cellsize=10,
+            override_cellsize=True,
+        )
 
+        dirty = imager.get_dirty_image()
+        header = dirty.header
+        cdelt_overwrite_cellsize_false = header["CDELT1"]
+
+        imager = Imager(
+            vis,
+            imaging_npixel=2048, 
+            imaging_cellsize=100,
+            override_cellsize=True,
+        )
+        dirty = imager.get_dirty_image()
+        header = dirty.header
+        cdelt_overwrite_cellsize_true = header["CDELT1"]
+
+        assert cdelt_overwrite_cellsize_false == cdelt_overwrite_cellsize_true
+        
+    def test_cellsize_overwrite_false(self):
+        vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+        imager = Imager(
+            vis,
+            imaging_npixel=2048, 
+            imaging_cellsize=100,
+            override_cellsize=True,
+        )
+
+        dirty = imager.get_dirty_image()
+        header = dirty.header
+        cdelt_overwrite_cellsize_false = header["CDELT1"]
+
+        imager = Imager(
+            vis,
+            imaging_npixel=2048, 
+            imaging_cellsize=100,
+            override_cellsize=False,
+        )
+        dirty = imager.get_dirty_image()
+        header = dirty.header
+        cdelt_overwrite_cellsize_true = header["CDELT1"]
+
+        assert cdelt_overwrite_cellsize_false != cdelt_overwrite_cellsize_true
+        
     def test_explore_sky(self):
         sky = SkyModel.get_GLEAM_Sky()
         sky.explore_sky([250, -80], s=.1)

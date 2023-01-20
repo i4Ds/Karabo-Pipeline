@@ -101,6 +101,7 @@ class Imager:
         imaging_flat_sky: Union[bool, str] = False, 
         imaging_npixel: Optional[int] =  None,
         imaging_cellsize: Optional[float] = None,
+        override_cellsize: Optional[bool] = None,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,
         imaging_gaussian_taper: Optional[float] = None,
@@ -123,6 +124,7 @@ class Imager:
         self.imaging_flat_sky = imaging_flat_sky
         self.imaging_npixel = imaging_npixel
         self.imaging_cellsize = imaging_cellsize
+        self.override_cellsize = override_cellsize
         self.imaging_weighting = imaging_weighting
         self.imaging_robustness = imaging_robustness
         self.imaging_gaussian_taper = imaging_gaussian_taper
@@ -150,7 +152,10 @@ class Imager:
         visibility = block_visibilities[0]
         image = Image()
         model = create_image_from_visibility(
-            visibility, cellsize=self.imaging_cellsize, npixel=self.imaging_npixel
+            visibility, 
+            cellsize=self.imaging_cellsize, 
+            npixel=self.imaging_npixel, 
+            override_cellsize=self.override_cellsize
         )
         dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
         export_image_to_fits(dirty, f"{image.file.path}")
