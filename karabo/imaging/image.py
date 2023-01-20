@@ -81,7 +81,7 @@ class Image(KaraboResource):
         cmap: Optional[str] = "jet",
         origin: Optional[str] = 'lower',
         wcs_enabled: bool = True,
-        invert_xaxis: bool = True,
+        invert_xaxis: bool = False,
         filename: Optional[str] = None,
         **kwargs
     ) -> None:
