@@ -14,13 +14,13 @@ build:
 
 requirements:
   build:
-    - python
+    - python=3.9
     - pip
   host:
-    - python
+    - python=3.9
     - pip
   run:
-    - python
+    - python=3.9
     - numpy
     - matplotlib
     - oskarpy=2.8.3
