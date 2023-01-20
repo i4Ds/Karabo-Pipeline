@@ -70,7 +70,7 @@ class SourceDetectionResult(KaraboResource):
 
         try:
             detection = bdsf.process_image(
-                image.path,
+                input=image.path,
                 beam=beam,
                 quiet=quiet,
                 format="csv",
@@ -195,9 +195,12 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def __transform_bdsf_to_reduced_result_array(
         bdsf_detected_sources: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        if bdsf_detected_sources.shape[0] > 0:
+        if len(bdsf_detected_sources.shape) == 2 and bdsf_detected_sources.shape[1] > 14:
             sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         else:
+            wmsg = f"Got unexpected shape of `bdsf_detected_sources` of {bdsf_detected_sources.shape}, \
+                expected 2-dimensional array with sources!"
+            warn(KaraboWarning(wmsg))
             sources = bdsf_detected_sources
         return sources
 
