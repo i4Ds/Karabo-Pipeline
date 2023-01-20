@@ -51,5 +51,5 @@ class TestPinocchio(unittest.TestCase):
         imager = Imager(visibility, imaging_npixel=boxsize, imaging_cellsize=cellsize)
 
         dirty = imager.get_dirty_image()
-        dirty.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/dirty.fits")
+        dirty.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/dirty.fits", overwrite=True)
         dirty.plot("pinocchio sim dirty plot")
