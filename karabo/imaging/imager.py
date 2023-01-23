@@ -134,15 +134,6 @@ class Imager:
         self.imaging_dopsf = imaging_dopsf
         self.imaging_dft_kernel = imaging_dft_kernel
 
-    def __getattribute__(self, name: str) -> Any:
-        """
-        Ensures that the variable access of bool are casted to str since RASCIL defined their bool to be str
-        """
-        value = object.__getattribute__(self, name)
-        if isinstance(value, bool):
-            return str(value)
-        else:
-            return value
 
     def get_dirty_image(self) -> Image:
         """
@@ -156,8 +147,8 @@ class Imager:
         file_handle = FileHandle()
         model = create_image_from_visibility(
             visibility, 
-            cellsize=self.imaging_cellsize, 
             npixel=self.imaging_npixel, 
+            cellsize=self.imaging_cellsize, 
             override_cellsize=self.override_cellsize
         )
         dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
