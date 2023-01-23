@@ -18,6 +18,6 @@ dependencies:
   - pinocchio # [linux]
   - katbeam
   - eidos
-  - cuda-toolkit
+  - libcufft
+  - cuda-cudart
   - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
-
