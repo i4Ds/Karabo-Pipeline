@@ -14,9 +14,9 @@ Karabo is a starting point for the [Square Kilometer Array](https://www.skateles
 
 Two specific radio telescope packages are used:
 
-- OSKAR: Responsible for the simulation of the sky and the telescope https://github.com/OxfordSKA/OSKAR
+- OSKAR: Simulates the sky and the telescope https://github.com/OxfordSKA/OSKAR
 	- OSKAR telescope files telescope.tm are from https://github.com/OxfordSKA/OSKAR/releases -> Example Data
-- RASCIL: Responsible for imaging https://gitlab.com/ska-telescope/external/rascil
+- RASCIL: Provides imaging functionality https://gitlab.com/ska-telescope/external/rascil
 
 Requirements
 ------------
@@ -32,6 +32,7 @@ conda create -n karabo-env python=3.9
 conda activate karabo-env
 conda install -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 ```
+We have noticed that dependency-resolving with conda's native solver can take a while. Therefore, we recommend using the libmamba solver for installation.
 
 For further details check our documentation:
 https://i4ds.github.io/Karabo-Pipeline/installation_user.html
