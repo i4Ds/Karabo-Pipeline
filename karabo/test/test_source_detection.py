@@ -96,7 +96,9 @@ class TestSourceDetection(unittest.TestCase):
         )
         image_blanked = imager_askap.get_dirty_image()
         beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
-        PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked, beam=beam_guess)
+        ret = PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked, beam=beam_guess)
+        if ret is not None:
+            raise Exception("The return value is not None as expected due to PyBDSF RuntimeError!")
         
     def test_automatic_assignment_of_ground_truth_and_prediction(self):
         ## Test that the automatic assignment of ground truth and prediction works
