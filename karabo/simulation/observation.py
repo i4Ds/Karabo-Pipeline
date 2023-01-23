@@ -1,15 +1,13 @@
 import datetime
+from typing import Union 
 from operator import mod
-import numpy as np
 from datetime import timedelta, datetime
 from karabo.error import KaraboError
 from karabo.warning import KaraboWarning
 
-from karabo.karabo_resource import KaraboResource
-
 from karabo.util.gpu_util import is_cuda_available
 
-class Observation(KaraboResource):
+class Observation:
     """
     The Observation class acts as an object to hold all important information about an Observation.
 
@@ -33,7 +31,7 @@ class Observation(KaraboResource):
     def __init__(
         self, mode:str='Tracking',
         start_frequency_hz:float=0,
-        start_date_and_time:datetime=datetime.utcnow(),
+        start_date_and_time: Union[datetime, str] = datetime.utcnow(),
         length:timedelta=timedelta(hours=12),
         use_gpu:bool=None,
         number_of_channels:float=1,
@@ -45,7 +43,12 @@ class Observation(KaraboResource):
 
         # required
         self.start_frequency_hz: float = start_frequency_hz
-        self.start_date_and_time: datetime = start_date_and_time
+        
+        if isinstance(start_date_and_time, str):
+            self.start_date_and_time: datetime = datetime.fromisoformat(start_date_and_time)
+        else:
+            self.start_date_and_time: datetime = start_date_and_time
+        
         self.length: timedelta = length
         self.mode: str = mode
 
@@ -136,7 +139,7 @@ class ObservationLong(Observation):
         self,
         mode:str='Tracking',
         start_frequency_hz:float=0,
-        start_date_and_time:datetime=datetime.utcnow(),
+        start_date_and_time: Union[datetime, str] =datetime.utcnow(),
         length:timedelta=timedelta(hours=12),
         number_of_channels:float=1,
         frequency_increment_hz:float=0,

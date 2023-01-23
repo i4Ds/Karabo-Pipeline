@@ -447,7 +447,10 @@ class SkyModel:
 
         if with_labels:
             for i, txt in enumerate(self[:, -1]):
-                ax.annotate(txt, (px[i], py[i]))
+                if self.shape[0] > 1:
+                    ax.annotate(txt, (px[i], py[i]))
+                else:
+                    ax.annotate(txt, (px, py))
 
         plt.axis("equal")
         if cbar_label is None: cbar_label = ''

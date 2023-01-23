@@ -1,8 +1,6 @@
 from __future__ import annotations
-import logging
-import shutil
-import uuid
-from typing import Tuple, Dict, List, Any, Optional
+import logging, os, shutil, uuid
+from typing import Tuple, Dict, List, Any, Optional, Union
 
 import matplotlib
 import numpy
@@ -10,10 +8,10 @@ import numpy as np
 from numpy.typing import NDArray
 from astropy.io import fits
 from astropy.wcs import WCS
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
+from karabo.util.FileHandle import check_ending, FileHandle
 
 # store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
 previous_backend = matplotlib.get_backend()
@@ -24,47 +22,49 @@ matplotlib.use(previous_backend)
 
 class Image(KaraboResource):
 
-    def __init__(self, name=None) -> None:
+    def __init__(
+        self,
+        path: Union[str, FileHandle],
+        **kwargs,
+    ) -> None:
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
-        self.header = None
-        self.data = None
-        self.name = name
-        self.file = FileHandle()
-
-    def write_to_file(self, path: str) -> None:
-        if not path.endswith(".fits"):
-            raise EnvironmentError("The passed path and name of file must end with .fits")
-
-        shutil.copy(self.file.path, path)
+        if isinstance(path, FileHandle): # save FileHandle if used to not lose reference and call it's __del__
+            self.__file_handle = path
+            path_ = path.path
+        else:
+            path_ = path
+        self.path = path_
+        self.__name = self.path.split(os.path.sep)[-1]
+        self.data, self.header = fits.getdata(self.path, ext=0, header=True, **kwargs)
 
     @staticmethod
     def read_from_file(path: str) -> Image:
-        image = Image()
-        image.file = FileHandle(existing_file_path=path, mode='r')
-        return image
+        return Image(path=path)
 
-    # overwrite getter to make sure it always contains the data
-    @property
-    def data(self) -> NDArray[np.float64]:
-        if self._data is None:
-            self.__read_fits_data()
-        return self._data
+    def write_to_file(
+        self,
+        path: str,
+        overwrite: bool = False,
+    ) -> None:
+        """Write an `Image` to `path`  as .fits"""
+        check_ending(path=path, ending='.fits')
+        fits.writeto(
+            filename=path,
+            data=self.data,
+            header=self.header,
+            overwrite=overwrite,
+        )
 
-    @data.setter
-    def data(self, value:NDArray[np.float64]):
-        self._data = value
-
-    @property
-    def header(self) -> Dict[str,Any]: 
-        if self._header is None:
-            self.__read_fits_data()
-        return self._header
-
-    @header.setter
-    def header(self, value:Dict[str,Any]) -> None:
-        self._header = value
+    def header_has_parameters(
+        self,
+        parameters: List[str],
+    ) -> bool:
+        for parameter in parameters:
+            if parameter not in self.header:
+                return False
+        return True
 
     def get_squeezed_data(self) -> NDArray[np.float64]:
         return numpy.squeeze(self.data[:1, :1, :, :])
@@ -102,8 +102,6 @@ class Image(KaraboResource):
         :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
         """
-        import matplotlib.pyplot as plt
-
         if wcs_enabled:
             wcs = WCS(self.header)
             print(wcs)
@@ -150,9 +148,6 @@ class Image(KaraboResource):
         plt.show(block=False)
         plt.pause(1)
 
-    def __read_fits_data(self) -> None:
-        self.data, self.header = fits.getdata(self.file.path, ext=0, header=True)
-
     def get_dimensions_of_image(self) -> List[int]:
         """
         Get the sizes of the dimensions of this Image in an array.
@@ -166,6 +161,16 @@ class Image(KaraboResource):
 
     def get_phase_center(self) -> Tuple[float, float]:
         return float(self.header["CRVAL1"]), float(self.header["CRVAL2"])
+
+    def has_beam_parameters(self) -> bool:
+        """
+        Check if the image has the beam parameters in the header.
+        :param image: Image to check
+        :return: True if the image has the beam parameters in the header
+        """
+        return self.header_has_parameters(
+            ["BMAJ", "BMIN", "BPA"],
+        )
 
     def get_quality_metric(self) -> Dict[str,Any]:
         """
@@ -203,8 +208,8 @@ class Image(KaraboResource):
 
     def get_power_spectrum(
         self,
-        resolution:float=5.0e-4,
-        signal_channel:Optional[int]=None,
+        resolution: float = 5.0e-4,
+        signal_channel: Optional[int] = None,
     ) -> Tuple[NDArray[np.float64], NDArray[np.floating]]:
         """
         Calculate the power spectrum of this image.
@@ -216,14 +221,14 @@ class Image(KaraboResource):
             theta_axis: Angular scale data in degrees
         """
         # use RASCIL for power spectrum
-        profile, theta = power_spectrum(self.file.path, resolution, signal_channel)
+        profile, theta = power_spectrum(self.path, resolution, signal_channel)
         return profile, theta
 
     def plot_power_spectrum(
         self,
-        resolution:float=5.0e-4,
-        signal_channel:Optional[int]=None,
-        save_png:bool=False,
+        resolution: float = 5.0e-4,
+        signal_channel: Optional[int] = None,
+        save_png: bool = False,
     ) -> None:
         """
         Plot the power spectrum of this image.
@@ -236,7 +241,7 @@ class Image(KaraboResource):
         plt.clf()
 
         plt.plot(theta, profile)
-        plt.gca().set_title(f"Power spectrum of {self.name if self.name is not None else ''} image")
+        plt.gca().set_title(f"Power spectrum of {self.__name if self.__name is not None else ''} image")
         plt.gca().set_xlabel("Angular scale [degrees]")
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
@@ -245,7 +250,7 @@ class Image(KaraboResource):
         plt.tight_layout()
 
         if save_png:
-            plt.savefig(f"./power_spectrum_{self.name if self.name is not None else uuid.uuid4()}")
+            plt.savefig(f"./power_spectrum_{self.__name if self.__name is not None else uuid.uuid4()}")
         plt.show(block=False)
         plt.pause(1)
 

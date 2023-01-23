@@ -71,7 +71,7 @@ class TestSystemNoise(unittest.TestCase):
                 visibility.write_to_file("./result/mock_mightee/mock_mightee_dec"+str(phase_ra)+"ra_"+str(phase_dec)+".ms")
                 imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)  # imaging cellsize is over-written in the Imager based on max uv dist.
                 dirty = imager.get_dirty_image()
-                dirty.write_to_file("result/mock_mightee/noise_dirty"+str(phase_ra)+"ra_"+str(phase_dec)+".fits")
+                dirty.write_to_file("result/mock_mightee/noise_dirty"+str(phase_ra)+"ra_"+str(phase_dec)+".fits", overwrite=True)
 
         imglist=sorted(glob.glob('result/mock_mightee/noise_dirty1*.fits'))
         data=[0]*len(imglist);hdu=[0]*len(imglist);i=0;ff=[0]*len(imglist)
