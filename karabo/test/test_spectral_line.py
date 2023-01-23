@@ -24,15 +24,26 @@ class TestSystemNoise(unittest.TestCase):
             os.makedirs('result/system_noise')
 
 
-    def disabled_plot_spectral_profiles(self):
-        #popt, pcov = curve_fit(Voigt, x, y, p0=[8, np.max(y), -(np.max(y) - np.min(y)), sigma, gamma])
-        plt.plot(dfreq_arr,y_voigt,label='Voigt');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
-        plt.plot(dfreq_arr,y_gauss,label='Gaussian');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
-        for i in range(nfreq):
-            plt.axvline(x=dfreq_sample[i],color='red')
-        plt.legend();plt.show()
+    # def disabled_plot_spectral_profiles(self):
+    #     #popt, pcov = curve_fit(Voigt, x, y, p0=[8, np.max(y), -(np.max(y) - np.min(y)), sigma, gamma])
+    #     plt.plot(dfreq_arr,y_voigt,label='Voigt');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
+    #     plt.plot(dfreq_arr,y_gauss,label='Gaussian');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
+    #     for i in range(nfreq):
+    #         plt.axvline(x=dfreq_sample[i],color='red')
+    #     plt.legend();plt.show()
 
-    def simulate_spectral_vis(ra_spec,dec_spec,phase_ra,phase_dec,spectral_freq0,npoints,dfreq,spec_line,spec_path,bandwidth_smearing,chan_width):
+    def simulate_spectral_vis(
+        self,
+        ra_spec,
+        dec_spec,
+        phase_ra,
+        phase_dec,
+        spectral_freq0,
+        npoints,dfreq,
+        spec_line,
+        spec_path,
+        bandwidth_smearing,chan_width,
+    ):
         '''
         Simulates spectral line point sources
         '''
@@ -107,18 +118,18 @@ class TestSystemNoise(unittest.TestCase):
         if(make_foreground_image):
             imager = Imager(visibility,imaging_npixel=2048 * 1,imaging_cellsize=50)  # imaging cellsize is over-written in the Imager based on max uv dist.
             dirty = imager.get_dirty_image()
-            dirty.write_to_file("./result/spectral_line/foreground.fits")
+            dirty.write_to_file("./result/spectral_line/foreground.fits", overwrite=True)
             dirty.plot(title='Flux Density (Jy)')
         #------- Simulate Spectral Line Sky -----#
         spectral_freq0=1.e9; make_spectral_image =0
         dfreq=np.linspace(-5,5,1000)*1.e6;spec_line=Gauss(dfreq,0,0,10,2.e6); npoints= int((dfreq[-1]-dfreq[0])/chan_width)
         ra_spec = 20.2;dec_spec = -30.2; spec_path = './result/spectral_line/'
-        spectral_vis_output,spectral_ms_output=simulate_spectral_vis(ra_spec,dec_spec,
+        spectral_vis_output,spectral_ms_output=self.simulate_spectral_vis(ra_spec,dec_spec,
                                         phase_ra,phase_dec,spectral_freq0,npoints,dfreq,spec_line,spec_path,bandwidth_smearing,chan_width)
         if(make_spectral_image):
                 imager = Imager(visibility, imaging_npixel=2048 * 1, imaging_cellsize=50)  # imaging cellsize is over-written in the Imager based on max uv dist.
                 dirty = imager.get_dirty_image()
-                dirty.write_to_file("./result/spectral_line/spectral_line_" + str(i) + ".fits")
+                dirty.write_to_file("./result/spectral_line/spectral_line_" + str(i) + ".fits", overwrite=True)
                 dirty.plot(title='Flux Density (Jy)')
 
         #------- Combine Visibilities ----------#

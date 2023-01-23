@@ -43,7 +43,7 @@ def do_flux(simulation, flux, telescope, observation):
     detection = SourceDetectionResult.detect_sources_in_image(dirty, beam=(a, a, 0))
 
     os.mkdir(f"results_{flux}")
-    dirty.write_to_file(f"results_{flux}/dirty_{flux}.fits")
+    dirty.write_to_file(f"results_{flux}/dirty_{flux}.fits", overwrite=True)
     detection.write_to_file(f"results_{flux}/detection_{flux}.zip")
     evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(detection, sky, 10)
     evaluation.plot(filename=f"results_{flux}/overlay.png")

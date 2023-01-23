@@ -22,7 +22,7 @@ class TestImage(unittest.TestCase):
         )
 
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("result/dirty.fits")
+        dirty.write_to_file("result/dirty.fits", overwrite=True)
         dirty.plot(title="Dirty Image")
 
     def test_explore_sky(self):
@@ -61,7 +61,7 @@ class TestImage(unittest.TestCase):
     #     sky.save_to_file("result/imaging_sky.txt")
 
     def test_power_spectrum(self):
-        restored_image = Image.read_from_file(f"{data_path}/restored.fits")
+        restored_image = Image(path=f"{data_path}/restored.fits")
         # restored_image.plot_power_spectrum(save_png=True)
         restored_image.get_cellsize()
         # restored_image.plot_histogram()

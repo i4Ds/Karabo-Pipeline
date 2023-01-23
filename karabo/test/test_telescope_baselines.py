@@ -52,7 +52,7 @@ class MyTestCase(unittest.TestCase):
                          imaging_npixel=4096*1,
                          imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("result/baseline_cut.fits")
+        dirty.write_to_file("result/baseline_cut.fits", overwrite=True)
         dirty.plot(title='Flux Density (Jy)')
 
 
