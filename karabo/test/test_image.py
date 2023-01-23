@@ -55,8 +55,8 @@ class TestImage(unittest.TestCase):
         imager = Imager(
             vis,
             imaging_npixel=2048, 
-            imaging_cellsize=10,
-            override_cellsize=False,
+            imaging_cellsize=1000,
+            override_cellsize=True,
         )
 
         dirty = imager.get_dirty_image()
@@ -66,7 +66,7 @@ class TestImage(unittest.TestCase):
         imager = Imager(
             vis,
             imaging_npixel=2048, 
-            imaging_cellsize=100,
+            imaging_cellsize=1000,
             override_cellsize=False,
         )
         dirty = imager.get_dirty_image()
