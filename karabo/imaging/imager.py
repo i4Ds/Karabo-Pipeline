@@ -20,6 +20,7 @@ from rascil.workflows import (
 from rascil.workflows.rsexecute.execution_support import rsexecute
 
 from karabo.util.dask import get_global_client
+from karabo.util.FileHandle import FileHandle
 from karabo.imaging.image import Image
 from karabo.simulation.visibility import Visibility
 from karabo.simulation.sky_model import SkyModel
@@ -81,7 +82,7 @@ class Imager:
     >>> imager = Imager()
     >>> convolved, restored, residual = imager.imaging_rascil()
     ...
-    >>> SourceDetectionResult.detect_sources_in_image(restored)
+    >>> PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
     """
     def __init__(
         self,
@@ -148,12 +149,13 @@ class Imager:
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
-        image = Image()
+        file_handle = FileHandle()
         model = create_image_from_visibility(
             visibility, cellsize=self.imaging_cellsize, npixel=self.imaging_npixel
         )
         dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
-        export_image_to_fits(dirty, f"{image.file.path}")
+        export_image_to_fits(dirty, f"{file_handle.path}")
+        image = Image(path=file_handle)
         return image
 
     def imaging_rascil(
@@ -275,19 +277,22 @@ class Imager:
 
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
-        deconvolved_image = Image()
-        export_image_to_fits(deconvolved_image_rascil, deconvolved_image.file.path)
+        file_handle_deconvolved = FileHandle()
+        export_image_to_fits(deconvolved_image_rascil, file_handle_deconvolved.path)
+        deconvolved_image = Image(path=file_handle_deconvolved.path)
 
-        restored_image = Image()
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
-        export_image_to_fits(restored, restored_image.file.path)
+        file_handle_restored = FileHandle()
+        export_image_to_fits(restored, file_handle_restored.path)
+        restored_image = Image(path=file_handle_restored.path)
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
-        residual_image = Image()
-        export_image_to_fits(residual, residual_image.file.path)
+        file_handle_residual = FileHandle()
+        export_image_to_fits(residual, file_handle_residual.path)
+        residual_image = Image(path=file_handle_residual.path)
 
         return deconvolved_image, restored_image, residual_image
 
@@ -329,8 +334,12 @@ class Imager:
         # convert coordinates
         px, py = w.wcs_world2pix(sky[:,0], sky[:,1], 1)
         
-        # post processing
-        if filter_outlier: # pre filtering before calling wcs.wcs_world2pix would be more efficient, however this has to be done in the ra-dec space. maybe for future work
+        # check length to cover single source pre-filtering
+        if len(px.shape) == 0 and len(py.shape) == 0:
+            px, py = [px], [py]
+            idxs = np.arange(sky.num_sources)
+        # post processing, pre filtering before calling wcs.wcs_world2pix would be more efficient, however this has to be done in the ra-dec space. maybe for future work
+        elif filter_outlier:
             px_idxs = np.where(np.logical_and(px <= imaging_npixel, px >= 0))[0]
             py_idxs = np.where(np.logical_and(py <= imaging_npixel, py >= 0))[0]
             idxs = np.intersect1d(px_idxs, py_idxs)

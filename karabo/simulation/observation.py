@@ -5,11 +5,9 @@ from datetime import timedelta, datetime
 from karabo.error import KaraboError
 from karabo.warning import KaraboWarning
 
-from karabo.karabo_resource import KaraboResource
-
 from karabo.util.gpu_util import is_cuda_available
 
-class Observation(KaraboResource):
+class Observation:
     """
     The Observation class acts as an object to hold all important information about an Observation.
 

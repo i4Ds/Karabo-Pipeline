@@ -7,15 +7,17 @@
 - Windows 10+ (21H1+) with the Hypervisor based Windows Subsystem for Linux (WSL)
 
 ### Tools
-- Conda
+- Miniconda / Anaconda
 
 ### CUDA (if you want to use your Nvidia GPU)
 - The proprietary Nvidia driver
 
 ## Install Conda
 
-1. Go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
-2. Follow the instructions for Miniconda until step 6. 
+We have noticed that dependency-resolving with conda's native solver can take a while. Therefore, we recommend installing Miniconda and use the libmamba solver for installation.
+
+1. Go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html and follow the steps.
+2. Install libmamba with `conda install -n base conda-libmamba-solver` and `conda config --set solver libmamba`
 
 ## Karabo Pipeline installation with Conda
 

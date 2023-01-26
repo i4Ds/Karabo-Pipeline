@@ -14,13 +14,13 @@ build:
 
 requirements:
   build:
-    - python
+    - python=3.9
     - pip
   host:
-    - python
+    - python=3.9
     - pip
   run:
-    - python
+    - python=3.9
     - numpy
     - matplotlib
     - oskarpy=2.8.3
@@ -31,7 +31,8 @@ requirements:
     - pinocchio # [linux]
     - katbeam
     - eidos
-    - cuda-toolkit
+    - libcufft
+    - cuda-cudart
     - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
 
 

@@ -20,14 +20,6 @@ def get_module_path_of_module(module: ModuleType) -> str:
     path_elements.pop()
     return os.path.sep.join(path_elements)
 
-def image_header_has_parameters(image: Image, parameters: List[str]) -> bool:
-    fitsfile=fits.open(image.file.path)
-    header=fitsfile[0].header
-    for parameter in parameters:
-        if parameter not in header:
-            return False
-    return True
-
 def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
     import csv
     sources = []
