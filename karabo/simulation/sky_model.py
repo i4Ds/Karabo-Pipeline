@@ -173,10 +173,11 @@ class SkyModel:
                     position_angle,
                     source_id,
                 ]
-            ], dtype=object,
+            ],
+            dtype=object,
         )
         if self.sources is not None:
-            self.sources = np.vstack(self.sources, new_sources) # pyright: ignore
+            self.sources = np.vstack(self.sources, new_sources)  # pyright: ignore
         else:
             self.sources = new_sources
         self.__update_sky_model()
@@ -242,9 +243,9 @@ class SkyModel:
         :return: the sources of the SkyModel as np.ndarray
         """
         if with_obj_ids:
-            return self[:] # pyright: ignore
+            return self[:]  # pyright: ignore
         else:
-            return self[:, :-1] # pyright: ignore
+            return self[:, :-1]  # pyright: ignore
 
     def filter_by_radius(
         self,
@@ -252,7 +253,7 @@ class SkyModel:
         outer_radius_deg: float,
         ra0_deg: float,
         dec0_deg: float,
-        indices: bool = False
+        indices: bool = False,
     ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int64]]]:
         """
         Filters the sky according to an inner and outer circle from the phase center
@@ -266,10 +267,12 @@ class SkyModel:
         """
         copied_sky = copy.deepcopy(self)
         inner_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg), inner_radius_deg * u.deg # pyright: ignore
+            (ra0_deg * u.deg, dec0_deg * u.deg),
+            inner_radius_deg * u.deg,  # pyright: ignore
         )
         outer_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg), outer_radius_deg * u.deg # pyright: ignore
+            (ra0_deg * u.deg, dec0_deg * u.deg),
+            outer_radius_deg * u.deg,  # pyright: ignore
         )
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype("int")
         inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype("int")
@@ -340,7 +343,7 @@ class SkyModel:
 
     def setup_default_wcs(
         self,
-        phase_center: List[float] = [0,0],
+        phase_center: List[float] = [0, 0],
     ) -> WCS:
         """
         Defines a default world coordinate system astropy.wcs
@@ -411,22 +414,26 @@ class SkyModel:
         if wcs is None and wcs_enabled:
             wcs = self.setup_default_wcs(phase_center)
         if wcs_enabled:
-            px, py = wcs.wcs_world2pix(self[:, 0], self[:, 1], 0)  # ra-dec transformation
+            px, py = wcs.wcs_world2pix(
+                self[:, 0], self[:, 1], 0
+            )  # ra-dec transformation
         else:
             px, py = self[:, 0], self[:, 1]
 
-        if wcs_enabled: # create dummy xlim or ylim if only one is set for conversion
+        if wcs_enabled:  # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
             if xlim is None and ylim is not None:
-                xlim = (-1,1)
+                xlim = (-1, 1)
                 xlim_reset = True
             elif xlim is not None and ylim is None:
-                ylim = (-1,1)
+                ylim = (-1, 1)
                 ylim_reset = True
             if xlim is not None and ylim is not None:
                 xlim, ylim = wcs.wcs_world2pix(xlim, ylim, 0)
-            if xlim_reset: xlim = None
-            if ylim_reset: ylim = None
+            if xlim_reset:
+                xlim = None
+            if ylim_reset:
+                ylim = None
 
         flux = None
         if cmap is not None:
@@ -435,12 +442,16 @@ class SkyModel:
                 flux = cfun(flux)
 
         # handle matplotlib kwargs (not set as normal args because default assignment depends on args)
-        if 'vmin' not in kwargs: kwargs['vmin'] = np.min(flux)
-        if 'vmax' not in kwargs: kwargs['vmax'] = np.max(flux)
+        if "vmin" not in kwargs:
+            kwargs["vmin"] = np.min(flux)
+        if "vmax" not in kwargs:
+            kwargs["vmax"] = np.max(flux)
 
         if wcs_enabled:
             slices = get_slices(wcs)
-            fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
+            fig, ax = plt.subplots(
+                figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices)
+            )
         else:
             fig, ax = plt.subplots(figsize=figsize)
         sc = ax.scatter(px, py, c=flux, cmap=cmap, **kwargs)
@@ -453,13 +464,19 @@ class SkyModel:
                     ax.annotate(txt, (px, py))
 
         plt.axis("equal")
-        if cbar_label is None: cbar_label = ''
+        if cbar_label is None:
+            cbar_label = ""
         plt.colorbar(sc, label=cbar_label)
-        if title is not None: plt.title(title)
-        if xlim is not None: plt.xlim(xlim)
-        if ylim is not None: plt.ylim(ylim)
-        if xlabel is not None: plt.xlabel(xlabel)
-        if ylabel is not None: plt.ylabel(ylabel)
+        if title is not None:
+            plt.title(title)
+        if xlim is not None:
+            plt.xlim(xlim)
+        if ylim is not None:
+            plt.ylim(ylim)
+        if xlabel is not None:
+            plt.xlabel(xlabel)
+        if ylabel is not None:
+            plt.ylabel(ylabel)
         plt.show(block=False)
         plt.pause(1)
 
@@ -476,9 +493,7 @@ class SkyModel:
 
     @staticmethod
     def read_healpix_file_to_sky_model_array(
-        file: str,
-        channel: int,
-        polarisation: Polarisation
+        file: str, channel: int, polarisation: Polarisation
     ) -> Tuple[NDArray[np.float64], int]:
         """
         Read a healpix file in hdf5 format.
@@ -555,7 +570,8 @@ class SkyModel:
         )
 
     def save_sky_model_to_txt(
-        self, path: str,
+        self,
+        path: str,
         cols: List[int] = [0, 1, 2, 3, 4, 5, 6, 7],
     ) -> None:
         numpy.savetxt(path, self.sources[:, cols])

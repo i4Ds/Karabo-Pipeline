@@ -11,7 +11,15 @@ class EastNorthCoordinate:
 
     """
 
-    def __init__(self, x: float, y: float, z: float = 0, x_error: float = 0, y_error: float = 0, z_error: float = 0):
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        z: float = 0,
+        x_error: float = 0,
+        y_error: float = 0,
+        z_error: float = 0,
+    ):
         self.x: float = x
         self.y: float = y
         self.z: float = z

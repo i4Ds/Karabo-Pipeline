@@ -16,7 +16,6 @@ from karabo.util.math_util import long_lat_to_cartesian
 
 
 class ObservationPlotter:
-
     def __init__(self, sky, tel, observation, imager=None):
         """
         WIP
@@ -29,10 +28,12 @@ class ObservationPlotter:
 
     def plot(self):
 
-        self.plotter.add_slider_widget(self.__plot_time_dependent,
-                                       [0, 24],
-                                       value=12,
-                                       title="Time of the Day in Minutes")
+        self.plotter.add_slider_widget(
+            self.__plot_time_dependent,
+            [0, 24],
+            value=12,
+            title="Time of the Day in Minutes",
+        )
 
         # sky
         self.__plot_sky()
@@ -42,8 +43,10 @@ class ObservationPlotter:
 
     def __plot_time_dependent(self, hour):
 
-        hour_str = f'{math.floor(hour):.0f}'
-        daytime = Time(f"2022-08-26 {math.floor(hour)}:00:00.5", scale='utc', format='iso')
+        hour_str = f"{math.floor(hour):.0f}"
+        daytime = Time(
+            f"2022-08-26 {math.floor(hour)}:00:00.5", scale="utc", format="iso"
+        )
         # daytime = Time('2006-01-15 21:24:37.5', scale='utc', location=('120d', '45d'))
         # earth
         self.__plot_earth()
@@ -66,17 +69,20 @@ class ObservationPlotter:
         return pos_tel
 
     def __plot_earth(self):
-        earth = pyvista.Sphere(0.99,
-                               (0, 0, 0),
-                               theta_resolution=120,
-                               phi_resolution=120,
-                               start_theta=270.01,
-                               end_theta=270)
-        self.plotter.add_mesh(earth,
-                              name="earth")
+        earth = pyvista.Sphere(
+            0.99,
+            (0, 0, 0),
+            theta_resolution=120,
+            phi_resolution=120,
+            start_theta=270.01,
+            end_theta=270,
+        )
+        self.plotter.add_mesh(earth, name="earth")
 
     def __plot_observation(self, pos_tel):
-        phase_centre = np.array([self.obs.phase_centre_ra_deg, self.obs.phase_centre_dec_deg])
+        phase_centre = np.array(
+            [self.obs.phase_centre_ra_deg, self.obs.phase_centre_dec_deg]
+        )
         scale = 10
         if self.imager:
             halfsize = self.imager.imaging_npixel / 2
@@ -87,25 +93,43 @@ class ObservationPlotter:
             topleft = phase_centre - offset_ra + offset_dec
             botright = phase_centre + offset_ra - offset_dec
             botleft = phase_centre - offset_ra - offset_dec
-            topright_cart = self.__convert_ra_dec_to_cartesian(topright[0], topright[1]) * scale
-            topleft_cart = self.__convert_ra_dec_to_cartesian(topleft[0], topleft[1]) * scale
-            botright_cart = self.__convert_ra_dec_to_cartesian(botright[0], botright[1]) * scale
-            botleft_cart = self.__convert_ra_dec_to_cartesian(botleft[0], botleft[1]) * scale
+            topright_cart = (
+                self.__convert_ra_dec_to_cartesian(topright[0], topright[1]) * scale
+            )
+            topleft_cart = (
+                self.__convert_ra_dec_to_cartesian(topleft[0], topleft[1]) * scale
+            )
+            botright_cart = (
+                self.__convert_ra_dec_to_cartesian(botright[0], botright[1]) * scale
+            )
+            botleft_cart = (
+                self.__convert_ra_dec_to_cartesian(botleft[0], botleft[1]) * scale
+            )
 
             topright_line = pyvista.lines_from_points([pos_tel, topright_cart])
             topleft_line = pyvista.lines_from_points([pos_tel, topleft_cart])
             botright_line = pyvista.lines_from_points([pos_tel, botright_cart])
             botleft_line = pyvista.lines_from_points([pos_tel, botleft_cart])
-            outer = pyvista.lines_from_points([topright_cart, topleft_cart, botleft_cart, botright_cart, topright_cart])
+            outer = pyvista.lines_from_points(
+                [
+                    topright_cart,
+                    topleft_cart,
+                    botleft_cart,
+                    botright_cart,
+                    topright_cart,
+                ]
+            )
             self.plotter.add_mesh(topright_line, "#00ff00")
             self.plotter.add_mesh(topleft_line, "#00ff00")
             self.plotter.add_mesh(botright_line, "#00ff00")
             self.plotter.add_mesh(botleft_line, "#00ff00")
             self.plotter.add_mesh(outer, "#00ff00")
-        look_at = self.__convert_ra_dec_to_cartesian(self.obs.phase_centre_ra_deg, self.obs.phase_centre_dec_deg)
+        look_at = self.__convert_ra_dec_to_cartesian(
+            self.obs.phase_centre_ra_deg, self.obs.phase_centre_dec_deg
+        )
         look_at *= scale
         view_line = pyvista.lines_from_points([pos_tel, look_at])
-        self.plotter.add_mesh(view_line, color='#ffff00')
+        self.plotter.add_mesh(view_line, color="#ffff00")
 
     def __plot_sky(self):
         if self.sky.sources is None:
@@ -114,10 +138,10 @@ class ObservationPlotter:
         sky_coords = self.sky.get_cartesian_sky() * 10
         pdata = pyvista.PolyData(sky_coords)
         flux_data = np.array(fluxes, dtype=float).transpose()
-        pdata['Data'] = flux_data
+        pdata["Data"] = flux_data
         sphere = pyvista.Sphere(0.01, phi_resolution=5, theta_resolution=5)
         pc = pdata.glyph(scale=False, geom=sphere, orient=False)
-        self.plotter.add_mesh(pc, colormap='viridis')
+        self.plotter.add_mesh(pc, colormap="viridis")
 
     def __plot_long_lat_lines(self, daytime: Time):
 
@@ -126,7 +150,9 @@ class ObservationPlotter:
         plotting_lats = np.linspace(-180, 180, 180)
 
         plotting_longs = np.linspace(-90, 90, 180)
-        plotting_longs = [daytime.earth_rotation_angle(long).value * 15 for long in plotting_longs]
+        plotting_longs = [
+            daytime.earth_rotation_angle(long).value * 15 for long in plotting_longs
+        ]
         lats = np.linspace(-180, 180, 18, endpoint=False)
 
         name_counter = 0
@@ -136,7 +162,7 @@ class ObservationPlotter:
             coord = np.vstack((plotting_longs, locally)).transpose()
             carts = [long_lat_to_cartesian(row[0], row[1]) for row in coord]
             lines = pyvista.lines_from_points(carts)
-            self.plotter.add_mesh(lines, opacity=0.5, name=f'lat_lines{name_counter}')
+            self.plotter.add_mesh(lines, opacity=0.5, name=f"lat_lines{name_counter}")
             name_counter += 1
 
         name_counter = 0
@@ -148,16 +174,26 @@ class ObservationPlotter:
             coord = np.vstack((longs, locally)).transpose()
             carts = [long_lat_to_cartesian(row[0], row[1]) for row in coord]
             lines = pyvista.lines_from_points(carts)
-            lines["labels"] = ["lon={long:.0f}°, lat={lat:.0f}°".format(long=x[1], lat=x[0]) for x in coord]
-            mapper = self.plotter.add_point_labels(lines, "labels", point_size=1, font_size=10, name=f"lat_label{label_counter}")
+            lines["labels"] = [
+                "lon={long:.0f}°, lat={lat:.0f}°".format(long=x[1], lat=x[0])
+                for x in coord
+            ]
+            mapper = self.plotter.add_point_labels(
+                lines,
+                "labels",
+                point_size=1,
+                font_size=10,
+                name=f"lat_label{label_counter}",
+            )
             label_counter += 1
             mapper.SetVisibility(False)
             self.plotter.add_mesh(lines, opacity=0, name=f"lat_labels{name_counter}")
             name_counter += 1
             callback.add_actor(mapper)
 
-        self.plotter.add_checkbox_button_widget(callback, position=(10, 70), value=False, color_on='red',
-                                                color_off='grey')
+        self.plotter.add_checkbox_button_widget(
+            callback, position=(10, 70), value=False, color_on="red", color_off="grey"
+        )
 
         name_counter = 0
         # draw long lines
@@ -166,7 +202,9 @@ class ObservationPlotter:
             coord = np.vstack((plotting_lats, locally)).transpose()
             carts = [long_lat_to_cartesian(row[1], row[0]) for row in coord]
             lines = pyvista.lines_from_points(carts)
-            self.plotter.add_mesh(lines, color="#ff0000", opacity=0.5, name=f"long_lines{name_counter}")
+            self.plotter.add_mesh(
+                lines, color="#ff0000", opacity=0.5, name=f"long_lines{name_counter}"
+            )
             name_counter += 1
 
     def __plot_sky_lines(self, ra_limit=(0, 360), dec_limit=(-90, 90)):
@@ -184,7 +222,15 @@ class ObservationPlotter:
         for dec in decs:
             locally = np.repeat(dec, len(plotting_ras))
             coord = np.vstack((plotting_ras, locally)).transpose()
-            carts = np.array([self.__convert_ra_dec_to_cartesian(row[0], row[1]) for row in coord]) * scale
+            carts = (
+                np.array(
+                    [
+                        self.__convert_ra_dec_to_cartesian(row[0], row[1])
+                        for row in coord
+                    ]
+                )
+                * scale
+            )
             lines = pyvista.lines_from_points(carts)
             self.plotter.add_mesh(lines, color="#00ffff")
 
@@ -193,28 +239,53 @@ class ObservationPlotter:
         for dec in decs:
             locally = np.repeat(dec, len(ras))
             coord = np.vstack((ras, locally)).transpose()
-            carts = np.array([self.__convert_ra_dec_to_cartesian(row[0], row[1]) for row in coord]) * scale
+            carts = (
+                np.array(
+                    [
+                        self.__convert_ra_dec_to_cartesian(row[0], row[1])
+                        for row in coord
+                    ]
+                )
+                * scale
+            )
             lines = pyvista.lines_from_points(carts)
-            lines["labels"] = ["ra={long:.2f}°, dec={lat:.0f}°".format(long=x[0], lat=x[1]) for x in coord]
-            mapper = self.plotter.add_point_labels(lines, "labels", point_size=1, font_size=10)
+            lines["labels"] = [
+                "ra={long:.2f}°, dec={lat:.0f}°".format(long=x[0], lat=x[1])
+                for x in coord
+            ]
+            mapper = self.plotter.add_point_labels(
+                lines, "labels", point_size=1, font_size=10
+            )
             mapper.SetVisibility(False)
             self.plotter.add_mesh(lines, opacity=0)
             callback.add_actor(mapper)
 
-        self.plotter.add_checkbox_button_widget(callback, value=False, color_on='blue', color_off='grey')
+        self.plotter.add_checkbox_button_widget(
+            callback, value=False, color_on="blue", color_off="grey"
+        )
 
         # draw ra lines
         for ra in ras:
             locally = np.repeat(ra, len(plotting_decs))
             coord = np.vstack((plotting_decs, locally)).transpose()
-            carts = np.array([self.__convert_ra_dec_to_cartesian(row[1], row[0]) for row in coord]) * scale
+            carts = (
+                np.array(
+                    [
+                        self.__convert_ra_dec_to_cartesian(row[1], row[0])
+                        for row in coord
+                    ]
+                )
+                * scale
+            )
             lines = pyvista.lines_from_points(carts)
             self.plotter.add_mesh(lines, color="#0000ff")
 
     @staticmethod
     def __convert_ra_dec_to_cartesian(ra, dec):
-        coordinate = SkyCoord(ra * u.degree, dec * u.degree, frame='icrs')
-        return np.array([coordinate.cartesian.x, coordinate.cartesian.y, coordinate.cartesian.z])
+        coordinate = SkyCoord(ra * u.degree, dec * u.degree, frame="icrs")
+        return np.array(
+            [coordinate.cartesian.x, coordinate.cartesian.y, coordinate.cartesian.z]
+        )
 
 
 class SetVisibilityCallback:
@@ -237,14 +308,15 @@ def main():
     #
     # sky = SkyModel()
     tel = Telescope.get_MEERKAT_Telescope()
-    simulation = InterferometerSimulation(channel_bandwidth_hz=1e6,
-                                          time_average_sec=10)
-    observation = Observation(100e6,
-                              phase_centre_ra_deg=240,
-                              phase_centre_dec_deg=-70,
-                              number_of_time_steps=24,
-                              frequency_increment_hz=20e6,
-                              number_of_channels=64)
+    simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=10)
+    observation = Observation(
+        100e6,
+        phase_centre_ra_deg=240,
+        phase_centre_dec_deg=-70,
+        number_of_time_steps=24,
+        frequency_increment_hz=20e6,
+        number_of_channels=64,
+    )
 
     imager = Imager(None, imaging_cellsize=0.03, imaging_npixel=512)
 

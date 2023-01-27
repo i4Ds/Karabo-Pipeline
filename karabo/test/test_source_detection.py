@@ -9,13 +9,17 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
-from karabo.sourcedetection.result import SourceDetectionResult, PyBDSFSourceDetectionResult
+from karabo.sourcedetection.result import (
+    SourceDetectionResult,
+    PyBDSFSourceDetectionResult,
+)
 from karabo.simulation.interferometer import InterferometerSimulation
 
 from karabo.test import data_path
 
 # import wagg as wg #This gives an ImportError if no GPU is available
 import numpy as np
+
 
 class TestSourceDetection(unittest.TestCase):
     @classmethod
@@ -26,7 +30,7 @@ class TestSourceDetection(unittest.TestCase):
 
         if not os.path.exists("result/test_dec"):
             os.makedirs("result/test_dec")
-            
+
     def test_source_detection_plot(self):
         phase_center = [250, -80]
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
@@ -35,7 +39,7 @@ class TestSourceDetection(unittest.TestCase):
         detection.write_to_file("./result/detection.zip")
 
         img = detection.get_source_image()
-        imaging_npixel = img.header['NAXIS1']
+        imaging_npixel = img.header["NAXIS1"]
         imaging_cellsize = img.get_cellsize()
 
         ground_truth, sky_idxs = Imager.project_sky_to_image(
@@ -75,7 +79,7 @@ class TestSourceDetection(unittest.TestCase):
         """
         phase_center = [250, -80]
         gleam_sky = SkyModel.get_GLEAM_Sky()
-        sky = gleam_sky.filter_by_radius(0, .01, phase_center[0], phase_center[1])
+        sky = gleam_sky.filter_by_radius(0, 0.01, phase_center[0], phase_center[1])
         sky.setup_default_wcs(phase_center=phase_center)
         askap_tel = Telescope.get_ASKAP_Telescope()
         observation_settings = Observation(
@@ -86,20 +90,26 @@ class TestSourceDetection(unittest.TestCase):
             number_of_time_steps=24,
         )
         interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
-        visibility_askap = interferometer_sim.run_simulation(askap_tel, sky, observation_settings)
+        visibility_askap = interferometer_sim.run_simulation(
+            askap_tel, sky, observation_settings
+        )
         imaging_npixel = 2048
         imaging_cellsize = 3.878509448876288e-05
         imager_askap = Imager(
             visibility_askap,
-            imaging_npixel = imaging_npixel,
-            imaging_cellsize = imaging_cellsize,
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
         )
         image_blanked = imager_askap.get_dirty_image()
         beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
-        ret = PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked, beam=beam_guess)
+        ret = PyBDSFSourceDetectionResult.detect_sources_in_image(
+            image=image_blanked, beam=beam_guess
+        )
         if ret is not None:
-            raise Exception("The return value is not None as expected due to PyBDSF RuntimeError!")
-        
+            raise Exception(
+                "The return value is not None as expected due to PyBDSF RuntimeError!"
+            )
+
     def test_automatic_assignment_of_ground_truth_and_prediction(self):
         ## Test that the automatic assignment of ground truth and prediction works
         # Create matrices of ground truth and prediction
@@ -107,35 +117,31 @@ class TestSourceDetection(unittest.TestCase):
         detected = np.flipud(gtruth)
 
         # Calculate result
-        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(gtruth, detected, 0.5, top_k=3)
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+            gtruth, detected, 0.5, top_k=3
+        )
 
         # Check that the result is correct by flipping the assigment and checking that it is equal
-        assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
+        assert np.all(
+            assigment[:, 0] == np.flipud(assigment[:, 1])
+        ), "Automatic assignment of ground truth and detected is not correct"
 
         ## Check reassigment of detected points, i.e. that the same detected point is not assigned to multiple ground truth points
         # Create matrices of ground truth and prediction
-        gtruth = np.array([
-            [1.0, 0.0],
-            [2.0, 0.0],
-            [3.0, 0.0],
-            [4.0, 0.0]
-            ]
-        )
+        gtruth = np.array([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]])
 
-        detected = np.array([
-            [0.0, 0.0],
-            [0.1, 0.0],
-            [0.2, 0.0],
-            [0.3, 0.0]
-            ]
-        )
+        detected = np.array([[0.0, 0.0], [0.1, 0.0], [0.2, 0.0], [0.3, 0.0]])
 
         # Calculate result
-        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(gtruth, detected, np.inf, top_k=4)
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+            gtruth, detected, np.inf, top_k=4
+        )
 
         # Check that the result is correct by flipping the assigment and checking that it is equal
-        assert np.all(assigment[:,0]==np.flipud(assigment[:,1])), "Automatic assignment of ground truth and detected is not correct"
-        
+        assert np.all(
+            assigment[:, 0] == np.flipud(assigment[:, 1])
+        ), "Automatic assignment of ground truth and detected is not correct"
+
     # # # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_detection(self):
     #     image = Image(path=f"{data_path}/restored.fits")
@@ -144,9 +150,8 @@ class TestSourceDetection(unittest.TestCase):
     #     # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
     #     pixels = detection.get_pixel_position_of_sources()
     #     print(pixels)
-    
-    
-    #TODO: Investigate why this error sometimes fails and sometimes doesn't, especially when running it on github hosted instances.
+
+    # TODO: Investigate why this error sometimes fails and sometimes doesn't, especially when running it on github hosted instances.
     """
     def test_create_detection_from_ms_small(self):
         phasecenter = np.array([225, -65])
@@ -402,6 +407,3 @@ class TestSourceDetection(unittest.TestCase):
         assert type(image_gpu) == np.ndarray
         assert MAE < 1.e-02, "WAGG does not correctly reconstruct the image" 
         """
-
-        
-        

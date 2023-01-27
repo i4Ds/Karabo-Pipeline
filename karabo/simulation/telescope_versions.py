@@ -3,10 +3,12 @@ import enum
 
 # when adding new versions make sure the string for the enum value is the string used in the telescope file name
 
+
 class ALMAVersions(enum.Enum):
     """
     ALMA Cycle 0 configuration : {link}
     """
+
     ALL = "all"
     CYCLE_0_COMPACT = "cycle0.compact"
     CYCLE_0_EXTENDED = "cycle0.extended"
@@ -212,5 +214,6 @@ class MWAVersion(enum.Enum):
     ONE = "1"
     TWO_COMPACT = "2compact"
     TWO_EXTENDED = "2ext"
+
 
 # ska low revision 02 2016-05-31
