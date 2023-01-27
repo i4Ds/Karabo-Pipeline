@@ -71,17 +71,17 @@ class Image(KaraboResource):
 
     def plot(
         self,
-        title: str,
+        title: Optional[str] = None,
         xlim: Optional[Tuple[float, float]] = None,
         ylim: Optional[Tuple[float, float]] = None,
         figsize: Optional[Tuple[float, float]] = None,
-        plot_title: Optional[str] = None,
+        colobar_label: Optional[str] = None,
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
         cmap: Optional[str] = "jet",
         origin: Optional[str] = 'lower',
         wcs_enabled: bool = True,
-        invert_xaxis: bool = True,
+        invert_xaxis: bool = False,
         filename: Optional[str] = None,
         **kwargs
     ) -> None:
@@ -92,7 +92,7 @@ class Image(KaraboResource):
         :param xlim: RA-limit of plot
         :param ylim: DEC-limit of plot
         :param figsize: figsize as tuple
-        :param plot_title: plot title
+        :param title: plot title
         :param xlabel: xlabel
         :param ylabel: ylabel
         :param cmap: matplotlib color map
@@ -133,15 +133,18 @@ class Image(KaraboResource):
         else:
             fig, ax = plt.subplots(figsize=figsize)
 
-        plt.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
-        plt.colorbar(label=title)
-        if plot_title is not None: plt.title(plot_title)
-        if xlim is not None: plt.xlim(xlim)
-        if ylim is not None: plt.ylim(ylim)
-        if xlabel is not None: plt.xlabel(xlabel)
-        if ylabel is not None: plt.ylabel(ylabel)
+
+        im=ax.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
+        ax.grid()
+        fig.colorbar(im, label=colobar_label)
+        
+        if title is not None: ax.set_title(title)
+        if xlim is not None: ax.set_xlim(xlim)
+        if ylim is not None: ax.set_ylim(ylim)
+        if xlabel is not None: ax.set_xlabel(xlabel)
+        if ylabel is not None: ax.set_ylabel(ylabel)
         if invert_xaxis: ax.invert_xaxis()
-        if filename is not None: plt.savefig(filename)
+        if filename is not None: fig.savefig(filename)
         plt.show(block=False)
         plt.pause(1)
 

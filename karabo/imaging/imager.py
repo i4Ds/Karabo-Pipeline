@@ -62,6 +62,8 @@ class Imager:
         Number of pixels in ra, dec: Should be a composite of 2, 3, 5
     imaging_cellsize : float, default=None
         Cellsize (radians). Default is to calculate
+    override_cellsize : bool, default=None
+        Override the cellsize if it is above the critical cellsize
     imaging_weighting : str, default="uniform"
         Type of weighting uniform or robust or natural
     imaging_robustness : float, default=0.0
@@ -102,6 +104,7 @@ class Imager:
         imaging_flat_sky: Union[bool, str] = False, 
         imaging_npixel: Optional[int] =  None,
         imaging_cellsize: Optional[float] = None,
+        override_cellsize: Optional[bool] = None,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,
         imaging_gaussian_taper: Optional[float] = None,
@@ -124,21 +127,13 @@ class Imager:
         self.imaging_flat_sky = imaging_flat_sky
         self.imaging_npixel = imaging_npixel
         self.imaging_cellsize = imaging_cellsize
+        self.override_cellsize = override_cellsize
         self.imaging_weighting = imaging_weighting
         self.imaging_robustness = imaging_robustness
         self.imaging_gaussian_taper = imaging_gaussian_taper
         self.imaging_dopsf = imaging_dopsf
         self.imaging_dft_kernel = imaging_dft_kernel
 
-    def __getattribute__(self, name: str) -> Any:
-        """
-        Ensures that the variable access of bool are casted to str since RASCIL defined their bool to be str
-        """
-        value = object.__getattribute__(self, name)
-        if isinstance(value, bool):
-            return str(value)
-        else:
-            return value
 
     def get_dirty_image(self) -> Image:
         """
@@ -151,7 +146,10 @@ class Imager:
         visibility = block_visibilities[0]
         file_handle = FileHandle()
         model = create_image_from_visibility(
-            visibility, cellsize=self.imaging_cellsize, npixel=self.imaging_npixel
+            visibility, 
+            npixel=self.imaging_npixel, 
+            cellsize=self.imaging_cellsize, 
+            override_cellsize=self.override_cellsize
         )
         dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
         export_image_to_fits(dirty, f"{file_handle.path}")
@@ -226,14 +224,14 @@ class Imager:
             rsexecute.execute(convert_blockvisibility_to_stokesI)(bv)
             for bv in blockviss
         ]
-
-        cellsize = self.imaging_cellsize
+        
         models = [
             rsexecute.execute(create_image_from_visibility)(
                 bvis,
                 npixel=self.imaging_npixel,
                 nchan=self.imaging_nchan,
-                cellsize=cellsize,
+                cellsize=self.imaging_cellsize,
+                override_cellsize=self.override_cellsize,
                 polarisation_frame=PolarisationFrame("stokesI"),
             )
             for bvis in blockviss
