@@ -62,7 +62,7 @@ class Imager:
         Number of pixels in ra, dec: Should be a composite of 2, 3, 5
     imaging_cellsize : float, default=None
         Cellsize (radians). Default is to calculate
-    override_cellsize : bool, default=None
+    override_cellsize : bool, default=False
         Override the cellsize if it is above the critical cellsize
     imaging_weighting : str, default="uniform"
         Type of weighting uniform or robust or natural
@@ -104,7 +104,7 @@ class Imager:
         imaging_flat_sky: Union[bool, str] = False, 
         imaging_npixel: Optional[int] =  None,
         imaging_cellsize: Optional[float] = None,
-        override_cellsize: Optional[bool] = None,
+        override_cellsize: bool = False,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,
         imaging_gaussian_taper: Optional[float] = None,
