@@ -39,7 +39,7 @@ https://i4ds.github.io/Karabo-Pipeline/installation_user.html
 
 License
 -------
-© Contributors, 2022. Licensed under an [MIT License](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) license.
+© Contributors, 2023. Licensed under an [MIT License](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) license.
 
 Contribute to Karabo
 ---------------------
