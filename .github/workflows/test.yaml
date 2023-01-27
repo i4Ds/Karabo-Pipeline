@@ -15,11 +15,6 @@ jobs:
           conda activate karabo_dev_env
           export IS_GITHUB_RUNNER=true
           python -m xmlrunner -o ./test-reports/junit
-      - name: Upload Test Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: Test-Results
-          path: result
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
