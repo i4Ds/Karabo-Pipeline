@@ -53,4 +53,6 @@ class FileHandle:
 def check_ending(path: str, ending: str) -> None:
     if not path.endswith(ending):
         fname = path.split(os.path.sep)[-1]
-        raise ValueError(f"Invalid file-ending, file {fname} must have {ending} extension!")
+        raise ValueError(
+            f"Invalid file-ending, file {fname} must have {ending} extension!"
+        )

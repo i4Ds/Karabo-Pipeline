@@ -6,7 +6,6 @@ from karabo.util.FileHandle import FileHandle
 
 
 class TestFileHandle(unittest.TestCase):
-
     def test_create(self):
         handle = FileHandle()
         path = handle.path
@@ -30,7 +29,9 @@ class TestFileHandle(unittest.TestCase):
         self.assertTrue(os.path.exists(f"{data_path}/detection.csv"))
 
     def test_existing_folder(self):
-        handle = FileHandle(existing_file_path=f"{data_path}/poisson_vis.ms", is_dir=True)
+        handle = FileHandle(
+            existing_file_path=f"{data_path}/poisson_vis.ms", is_dir=True
+        )
         path = handle.path
         self.assertTrue(os.path.exists(path))
         del handle

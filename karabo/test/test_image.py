@@ -24,12 +24,12 @@ class TestImage(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/dirty.fits", overwrite=True)
         dirty.plot(title="Dirty Image")
-        
+
     def test_cellsize_overwrite(self):
         vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
         imager = Imager(
             vis,
-            imaging_npixel=2048, 
+            imaging_npixel=2048,
             imaging_cellsize=10,
             override_cellsize=True,
         )
@@ -40,7 +40,7 @@ class TestImage(unittest.TestCase):
 
         imager = Imager(
             vis,
-            imaging_npixel=2048, 
+            imaging_npixel=2048,
             imaging_cellsize=1,
             override_cellsize=True,
         )
@@ -49,7 +49,7 @@ class TestImage(unittest.TestCase):
         cdelt_overwrite_cellsize_true = header["CDELT1"]
 
         assert cdelt_overwrite_cellsize_false == cdelt_overwrite_cellsize_true
-        
+
     def test_cellsize_overwrite_false(self):
         vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
         imager = Imager(
@@ -63,19 +63,18 @@ class TestImage(unittest.TestCase):
 
         imager = Imager(
             vis,
-            imaging_npixel=2048, 
+            imaging_npixel=2048,
             imaging_cellsize=1,
             override_cellsize=False,
         )
         dirty = imager.get_dirty_image()
         cdelt_overwrite_cellsize_true = dirty.header["CDELT1"]
-        
+
         assert cdelt_overwrite_cellsize_false != cdelt_overwrite_cellsize_true
-    
-        
+
     def test_explore_sky(self):
         sky = SkyModel.get_GLEAM_Sky()
-        sky.explore_sky([250, -80], s=.1)
+        sky.explore_sky([250, -80], s=0.1)
 
     # # TODO: move these on to CSCS Test Infrastructure once we have it.
     # def test_clean(self):

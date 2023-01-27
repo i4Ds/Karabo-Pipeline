@@ -28,7 +28,9 @@ class MyTestCase(unittest.TestCase):
         beam.fit_elements(tel, freq_hz=1.0e08, avg_frac_error=0.5)
 
     def test_katbeam(self):
-        beampixels = BeamPattern.get_meerkat_uhfbeam(f=800, pol="I", beamextentx=40, beamextenty=40)
+        beampixels = BeamPattern.get_meerkat_uhfbeam(
+            f=800, pol="I", beamextentx=40, beamextenty=40
+        )
         BeamPattern.show_kat_beam(
             beampixels[0], 40, 800, "I", path="./result/katbeam_beam.png"
         )
@@ -38,41 +40,47 @@ class MyTestCase(unittest.TestCase):
         dia = 10
         thres = 0
         ch = 0
-        B_ah = BeamPattern.get_eidos_holographic_beam(npix=npix, ch=ch, dia=dia, thres=thres, mode="AH")
+        B_ah = BeamPattern.get_eidos_holographic_beam(
+            npix=npix, ch=ch, dia=dia, thres=thres, mode="AH"
+        )
         BeamPattern.show_eidos_beam(B_ah, path="./result/eidos_AH_beam.png")
-        B_em = BeamPattern.get_eidos_holographic_beam(npix=npix, ch=ch, dia=dia, thres=thres, mode="EM")
+        B_em = BeamPattern.get_eidos_holographic_beam(
+            npix=npix, ch=ch, dia=dia, thres=thres, mode="EM"
+        )
         BeamPattern.show_eidos_beam(B_em, path="./result/eidos_EM_beam.png")
         BeamPattern.eidos_lineplot(
             B_ah, B_em, npix, path="./result/eidos_residual_beam.png"
         )
 
-
-
-
     def test_long_observations(self):
-        os.environ['SKIP_INPUT'] = str(True) # skips `input` during unit tests if using `karabo.util.data_util.input_wrapper`
-        number_of_days=2
-        hours_per_day=4
-        enable_array_beam=True
-        vis_path = './karabo/test/data'
-        combined_vis_filepath = os.path.join(vis_path, 'combined_vis.ms')
-        xcstfile_path = os.path.join(vis_path, 'cst_like_beam_port_1.txt')
-        ycstfile_path = os.path.join(vis_path, 'cst_like_beam_port_2.txt')
+        os.environ["SKIP_INPUT"] = str(
+            True
+        )  # skips `input` during unit tests if using `karabo.util.data_util.input_wrapper`
+        number_of_days = 2
+        hours_per_day = 4
+        enable_array_beam = True
+        vis_path = "./karabo/test/data"
+        combined_vis_filepath = os.path.join(vis_path, "combined_vis.ms")
+        xcstfile_path = os.path.join(vis_path, "cst_like_beam_port_1.txt")
+        ycstfile_path = os.path.join(vis_path, "cst_like_beam_port_2.txt")
         sky = SkyModel()
-        sky_data = np.array([
-        [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
-        [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45],
-        [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10]])
+        sky_data = np.array(
+            [
+                [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
+                [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45],
+                [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10],
+            ]
+        )
         sky.add_point_sources(sky_data)
         telescope = Telescope.get_MEERKAT_Telescope()
         observation_long = ObservationLong(
-            mode='Tracking',
+            mode="Tracking",
             phase_centre_ra_deg=20.0,
             start_date_and_time=datetime(2000, 1, 1, 11, 00, 00, 521489),
             length=timedelta(hours=hours_per_day, minutes=0, seconds=0, milliseconds=0),
             phase_centre_dec_deg=-30.0,
             number_of_time_steps=1,
-            start_frequency_hz=1.e9,
+            start_frequency_hz=1.0e9,
             frequency_increment_hz=1e6,
             number_of_channels=1,
             number_of_days=number_of_days,
@@ -81,17 +89,17 @@ class MyTestCase(unittest.TestCase):
             cst_file_path=xcstfile_path,
             telescope=telescope,
             freq_hz=observation_long.start_frequency_hz,
-            pol='X',
-            avg_frac_error=.8,
-            beam_method='Gaussian Beam',
+            pol="X",
+            avg_frac_error=0.8,
+            beam_method="Gaussian Beam",
         )
         beam_polY = BeamPattern(
             cst_file_path=ycstfile_path,
             telescope=telescope,
             freq_hz=observation_long.start_frequency_hz,
-            pol='Y',
-            avg_frac_error=.8,
-            beam_method='Gaussian Beam',
+            pol="Y",
+            avg_frac_error=0.8,
+            beam_method="Gaussian Beam",
         )
         simulation = InterferometerSimulation(
             vis_path=vis_path,
@@ -101,8 +109,8 @@ class MyTestCase(unittest.TestCase):
             noise_seed="time",
             noise_freq="Range",
             noise_rms="Range",
-            noise_start_freq=1.e9,
-            noise_inc_freq=1.e6,
+            noise_start_freq=1.0e9,
+            noise_inc_freq=1.0e6,
             noise_number_freq=1,
             noise_rms_start=0.1,
             noise_rms_end=1,
@@ -111,25 +119,23 @@ class MyTestCase(unittest.TestCase):
             beam_polX=beam_polX,
             beam_polY=beam_polY,
         )
-        #-------- Iterate over days
+        # -------- Iterate over days
         visiblity_files = simulation.run_simulation(
             telescope=telescope,
             sky=sky,
             observation=observation_long,
         )
 
-        #visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
-        #---------- Combine the Visibilties --------------
-        #visiblity_files= ['./karabo/test/data/beam_vis_1.vis', './karabo/test/data/beam_vis_2.vis', './karabo/test/data/beam_vis_3.vis']
-        Visibility.combine_vis(number_of_days,visiblity_files, combined_vis_filepath)
-        #imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
-        #dirty = imager.get_dirty_image()
-        #dirty.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits")
-        #dirty.plot(title='Flux Density (Jy)')
-        #aa=fits.open('./result/beam/beam_vis.fits');bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
-        #print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))
-
-
+        # visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
+        # ---------- Combine the Visibilties --------------
+        # visiblity_files= ['./karabo/test/data/beam_vis_1.vis', './karabo/test/data/beam_vis_2.vis', './karabo/test/data/beam_vis_3.vis']
+        Visibility.combine_vis(number_of_days, visiblity_files, combined_vis_filepath)
+        # imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
+        # dirty = imager.get_dirty_image()
+        # dirty.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits")
+        # dirty.plot(title='Flux Density (Jy)')
+        # aa=fits.open('./result/beam/beam_vis.fits');bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
+        # print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))
 
 
 if __name__ == "__main__":

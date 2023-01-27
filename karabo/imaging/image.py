@@ -21,7 +21,6 @@ matplotlib.use(previous_backend)
 
 
 class Image(KaraboResource):
-
     def __init__(
         self,
         path: Union[str, FileHandle],
@@ -30,7 +29,9 @@ class Image(KaraboResource):
         """
         Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
         """
-        if isinstance(path, FileHandle): # save FileHandle if used to not lose reference and call it's __del__
+        if isinstance(
+            path, FileHandle
+        ):  # save FileHandle if used to not lose reference and call it's __del__
             self.__file_handle = path
             path_ = path.path
         else:
@@ -49,7 +50,7 @@ class Image(KaraboResource):
         overwrite: bool = False,
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
-        check_ending(path=path, ending='.fits')
+        check_ending(path=path, ending=".fits")
         fits.writeto(
             filename=path,
             data=self.data,
@@ -79,11 +80,11 @@ class Image(KaraboResource):
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
         cmap: Optional[str] = "jet",
-        origin: Optional[str] = 'lower',
+        origin: Optional[str] = "lower",
         wcs_enabled: bool = True,
         invert_xaxis: bool = False,
         filename: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Plots the image
@@ -109,42 +110,52 @@ class Image(KaraboResource):
             slices = []
             for i in range(wcs.pixel_n_dim):
                 if i == 0:
-                    slices.append('x')
+                    slices.append("x")
                 elif i == 1:
-                    slices.append('y')
+                    slices.append("y")
                 else:
                     slices.append(0)
 
             # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
             if xlim is None and ylim is not None:
-                xlim = (-1,1)
+                xlim = (-1, 1)
                 xlim_reset = True
             elif xlim is not None and ylim is None:
-                ylim = (-1,1)
+                ylim = (-1, 1)
                 ylim_reset = True
             if xlim is not None and ylim is not None:
                 xlim, ylim = wcs.wcs_world2pix(xlim, ylim, 0)
-            if xlim_reset: xlim = None
-            if ylim_reset: ylim = None
+            if xlim_reset:
+                xlim = None
+            if ylim_reset:
+                ylim = None
 
         if wcs_enabled:
-            fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices))
+            fig, ax = plt.subplots(
+                figsize=figsize, subplot_kw=dict(projection=wcs, slices=slices)
+            )
         else:
             fig, ax = plt.subplots(figsize=figsize)
 
-
-        im=ax.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
+        im = ax.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
         ax.grid()
         fig.colorbar(im, label=colobar_label)
-        
-        if title is not None: ax.set_title(title)
-        if xlim is not None: ax.set_xlim(xlim)
-        if ylim is not None: ax.set_ylim(ylim)
-        if xlabel is not None: ax.set_xlabel(xlabel)
-        if ylabel is not None: ax.set_ylabel(ylabel)
-        if invert_xaxis: ax.invert_xaxis()
-        if filename is not None: fig.savefig(filename)
+
+        if title is not None:
+            ax.set_title(title)
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
+        if invert_xaxis:
+            ax.invert_xaxis()
+        if filename is not None:
+            fig.savefig(filename)
         plt.show(block=False)
         plt.pause(1)
 
@@ -156,7 +167,7 @@ class Image(KaraboResource):
         result = []
         dimensions = self.header["NAXIS"]
         for dim in np.arange(0, dimensions, 1):
-            result.append(self.header[f'NAXIS{dim + 1}'])
+            result.append(self.header[f"NAXIS{dim + 1}"])
         return result
 
     def get_phase_center(self) -> Tuple[float, float]:
@@ -172,7 +183,7 @@ class Image(KaraboResource):
             ["BMAJ", "BMIN", "BPA"],
         )
 
-    def get_quality_metric(self) -> Dict[str,Any]:
+    def get_quality_metric(self) -> Dict[str, Any]:
         """
         Get image statistics.
         Statistics include :
@@ -199,7 +210,9 @@ class Image(KaraboResource):
             "rms": np.std(self.data),
             "sum": np.sum(self.data),
             "median-abs": np.median(np.abs(self.data)),
-            "median-abs-dev-median": np.median(np.abs(self.data - np.median(self.data))),
+            "median-abs-dev-median": np.median(
+                np.abs(self.data - np.median(self.data))
+            ),
             "median": np.median(self.data),
             "mean": np.mean(self.data),
         }
@@ -241,7 +254,9 @@ class Image(KaraboResource):
         plt.clf()
 
         plt.plot(theta, profile)
-        plt.gca().set_title(f"Power spectrum of {self.__name if self.__name is not None else ''} image")
+        plt.gca().set_title(
+            f"Power spectrum of {self.__name if self.__name is not None else ''} image"
+        )
         plt.gca().set_xlabel("Angular scale [degrees]")
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
@@ -250,7 +265,9 @@ class Image(KaraboResource):
         plt.tight_layout()
 
         if save_png:
-            plt.savefig(f"./power_spectrum_{self.__name if self.__name is not None else uuid.uuid4()}")
+            plt.savefig(
+                f"./power_spectrum_{self.__name if self.__name is not None else uuid.uuid4()}"
+            )
         plt.show(block=False)
         plt.pause(1)
 
@@ -258,7 +275,9 @@ class Image(KaraboResource):
         cdelt1 = self.header["CDELT1"]
         cdelt2 = self.header["CDELT2"]
         if abs(cdelt1) != abs(cdelt2):
-            logging.warning("The Images's cdelt1 and cdelt2 are not the same in absolute value. Continuing with cdelt1")
+            logging.warning(
+                "The Images's cdelt1 and cdelt2 are not the same in absolute value. Continuing with cdelt1"
+            )
         return np.deg2rad(np.abs(cdelt1))
 
     def get_wcs(self) -> WCS:
@@ -274,7 +293,7 @@ class Image(KaraboResource):
         crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
         wcs.wcs.crpix = np.array([crpix, crpix])
         ra_sign = -1 if invert_ra else 1
-        wcs.wcs.cdelt = np.array([ra_sign*cdelt, cdelt])
+        wcs.wcs.cdelt = np.array([ra_sign * cdelt, cdelt])
         wcs.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
         wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
         return wcs

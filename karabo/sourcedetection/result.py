@@ -16,6 +16,7 @@ from karabo.util.data_util import read_CSV_to_ndarray
 
 from karabo.warning import KaraboWarning
 
+
 class SourceDetectionResult(KaraboResource):
     def __init__(
         self,
@@ -48,25 +49,27 @@ class SourceDetectionResult(KaraboResource):
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
         **kwargs,
-    ) -> Optional[PyBDSFSourceDetectionResult]: # could maybe be changed using `TypeVar`, but this is more specific atm
+    ) -> Optional[
+        PyBDSFSourceDetectionResult
+    ]:  # could maybe be changed using `TypeVar`, but this is more specific atm
         """
         Detecting sources in an image. The Source detection is implemented with the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
 
         :param image: Image to perform source detection on.
-        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N). 
+        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N).
             None means it will try to be extracted from the Image data.
         :return: Source Detection Result containing the found sources
         """
         if beam is None:
             if image.has_beam_parameters():
-                beam = (
-                    image.header["BMAJ"],
-                    image.header["BMIN"],
-                    image.header["BPA"]
-                )
+                beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
             else:
-                warn(KaraboWarning("No beam parameter found. Source detection might fail!"))
+                warn(
+                    KaraboWarning(
+                        "No beam parameter found. Source detection might fail!"
+                    )
+                )
 
         try:
             detection = bdsf.process_image(
@@ -77,12 +80,14 @@ class SourceDetectionResult(KaraboResource):
                 **kwargs,
             )
         except RuntimeError as e:
-            wmsg = 'All pixels in the image are blanked.'
-            if str(e) == wmsg: return None # no need to create additional warnings since `bdsf` already prints an according Error message
-            else: raise e
-        
+            wmsg = "All pixels in the image are blanked."
+            if str(e) == wmsg:
+                return None  # no need to create additional warnings since `bdsf` already prints an according Error message
+            else:
+                raise e
+
         return cls(detection)
-            
+
     def write_to_file(self, path: str) -> None:
         """
         Save Source Detection Result to ZIP Archive containing the .fits source image and source-finding catalog.
@@ -94,11 +99,11 @@ class SourceDetectionResult(KaraboResource):
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, "zip", tempdir.path)
-        
+
     @staticmethod
     def guess_beam_parameters(
         imager: Imager,
-        method: str = 'rascil_1_iter',
+        method: str = "rascil_1_iter",
     ) -> Tuple[float, float, float]:
         """
         Guess the beam parameters from the image header.
@@ -106,17 +111,17 @@ class SourceDetectionResult(KaraboResource):
         :param method: Method to use for guessing the beam parameters.
         :return: (BMAJ, BMIN, BPA)
         """
-        if method == 'rascil_1_iter':
+        if method == "rascil_1_iter":
             # TODO: Investigate why those parameters need to be set.
             imager.ingest_chan_per_blockvis = 1
             imager.ingest_vis_nchan = 16
-            # Run 
+            # Run
             _, restored, _ = imager.imaging_rascil(
                 clean_niter=1,
                 clean_nmajor=1,
             )
         else:
-            raise NotImplementedError('Only rascil_1_iter is implemented')
+            raise NotImplementedError("Only rascil_1_iter is implemented")
 
         return (
             restored.header["BMAJ"],
@@ -195,7 +200,10 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def __transform_bdsf_to_reduced_result_array(
         bdsf_detected_sources: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        if len(bdsf_detected_sources.shape) == 2 and bdsf_detected_sources.shape[1] > 14:
+        if (
+            len(bdsf_detected_sources.shape) == 2
+            and bdsf_detected_sources.shape[1] > 14
+        ):
             sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         else:
             wmsg = f"Got unexpected shape of `bdsf_detected_sources` of {bdsf_detected_sources.shape}, \

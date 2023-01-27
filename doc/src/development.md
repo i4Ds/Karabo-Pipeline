@@ -15,6 +15,9 @@ Then you can simply run your code inside that environment. To tell Python to tre
 [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
 [how to use conda develop?](https://github.com/conda/conda-build/issues/1992)
 
+## Formatting
+We use [black](https://github.com/psf/black) as a formatter. Here is a [short guide](https://www.freecodecamp.org/news/auto-format-your-python-code-with-black/) on how to use it. You can also add it to your IDE and make it format on save. Here is a [guide for VSCode](https://dev.to/adamlombard/how-to-use-the-black-python-code-formatter-in-vscode-3lo0) on how to do that.
+
 ## Upload Objects to CSCS
 
 Make objects available through CSCS object-storage REST-API. The GET-request URI follows the following format: `{CSCS-object-store-prefix}/{container}/{object}` where the prefix comes from [CSCS API access](https://castor.cscs.ch/dashboard/project/api_access/).

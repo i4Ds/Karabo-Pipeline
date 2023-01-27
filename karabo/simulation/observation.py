@@ -1,11 +1,12 @@
 import datetime
-from typing import Union 
+from typing import Union
 from operator import mod
 from datetime import timedelta, datetime
 from karabo.error import KaraboError
 from karabo.warning import KaraboWarning
 
 from karabo.util.gpu_util import is_cuda_available
+
 
 class Observation:
     """
@@ -29,26 +30,29 @@ class Observation:
     """
 
     def __init__(
-        self, mode:str='Tracking',
-        start_frequency_hz:float=0,
+        self,
+        mode: str = "Tracking",
+        start_frequency_hz: float = 0,
         start_date_and_time: Union[datetime, str] = datetime.utcnow(),
-        length:timedelta=timedelta(hours=4),
-        use_gpu:bool=None,
-        number_of_channels:float=1,
-        frequency_increment_hz:float=0,
-        phase_centre_ra_deg:float=0,
-        phase_centre_dec_deg:float=0,
-        number_of_time_steps:float=1,
+        length: timedelta = timedelta(hours=4),
+        use_gpu: bool = None,
+        number_of_channels: float = 1,
+        frequency_increment_hz: float = 0,
+        phase_centre_ra_deg: float = 0,
+        phase_centre_dec_deg: float = 0,
+        number_of_time_steps: float = 1,
     ) -> None:
 
         # required
         self.start_frequency_hz: float = start_frequency_hz
-        
+
         if isinstance(start_date_and_time, str):
-            self.start_date_and_time: datetime = datetime.fromisoformat(start_date_and_time)
+            self.start_date_and_time: datetime = datetime.fromisoformat(
+                start_date_and_time
+            )
         else:
             self.start_date_and_time: datetime = start_date_and_time
-        
+
         self.length: timedelta = length
         self.mode: str = mode
 
@@ -58,20 +62,24 @@ class Observation:
         self.phase_centre_ra_deg: float = phase_centre_ra_deg
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
-        
+
         # set use_gpu
         if use_gpu is None:
-            print(KaraboWarning(f'use_gpu is None, using is_cuda_available() to set use_gpu to {is_cuda_available()}'))
+            print(
+                KaraboWarning(
+                    f"use_gpu is None, using is_cuda_available() to set use_gpu to {is_cuda_available()}"
+                )
+            )
             self.use_gpu = is_cuda_available()
         else:
             self.use_gpu = use_gpu
 
     def set_length_of_observation(
         self,
-        hours:float,
-        minutes:float,
-        seconds:float,
-        milliseconds:float,
+        hours: float,
+        minutes: float,
+        seconds: float,
+        milliseconds: float,
     ) -> None:
         """
         Set a new length for the observation. Overriding the observation length set in the constructor.
@@ -81,7 +89,9 @@ class Observation:
         :param seconds: seconds
         :param milliseconds: milliseconds
         """
-        self.length = timedelta(hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds)
+        self.length = timedelta(
+            hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds
+        )
 
     def get_OSKAR_settings_tree(self):
         """
@@ -92,27 +102,27 @@ class Observation:
         :return: Dictionary containing the full configuration in the OSKAR Settings Tree format.
         """
         settings = {
-            "simulator": {
-                "use_gpus": self.use_gpu
-            },
+            "simulator": {"use_gpus": self.use_gpu},
             "observation": {
                 "start_frequency_hz": str(self.start_frequency_hz),
-                "mode":self.mode,
+                "mode": self.mode,
                 # remove last three digits from milliseconds
-                "start_time_utc": self.start_date_and_time.strftime("%d-%m-%Y %H:%M:%S.%f")[:-3],
+                "start_time_utc": self.start_date_and_time.strftime(
+                    "%d-%m-%Y %H:%M:%S.%f"
+                )[:-3],
                 "length": self.__strfdelta(self.length),
                 "num_channels": str(self.number_of_channels),
                 "frequency_inc_hz": str(self.frequency_increment_hz),
                 "phase_centre_ra_deg": str(self.phase_centre_ra_deg),
                 "phase_centre_dec_deg": str(self.phase_centre_dec_deg),
-                "num_time_steps": str(self.number_of_time_steps)
-            }
+                "num_time_steps": str(self.number_of_time_steps),
+            },
         }
         return settings
 
     def __strfdelta(
         self,
-        tdelta:timedelta,
+        tdelta: timedelta,
     ):
         hours = tdelta.seconds // 3600 + tdelta.days * 24
         rm = tdelta.seconds % 3600
@@ -137,16 +147,16 @@ class ObservationLong(Observation):
 
     def __init__(
         self,
-        mode:str='Tracking',
-        start_frequency_hz:float=0,
-        start_date_and_time: Union[datetime, str] =datetime.utcnow(),
-        length:timedelta=timedelta(hours=4),
-        number_of_channels:float=1,
-        frequency_increment_hz:float=0,
-        phase_centre_ra_deg:float=0,
-        phase_centre_dec_deg:float=0,
-        number_of_time_steps:float=1,
-        number_of_days:int=1,
+        mode: str = "Tracking",
+        start_frequency_hz: float = 0,
+        start_date_and_time: Union[datetime, str] = datetime.utcnow(),
+        length: timedelta = timedelta(hours=4),
+        number_of_channels: float = 1,
+        frequency_increment_hz: float = 0,
+        phase_centre_ra_deg: float = 0,
+        phase_centre_dec_deg: float = 0,
+        number_of_time_steps: float = 1,
+        number_of_days: int = 1,
     ) -> None:
 
         self.enable_check = False
@@ -161,14 +171,17 @@ class ObservationLong(Observation):
             phase_centre_dec_deg=phase_centre_dec_deg,
             number_of_time_steps=number_of_time_steps,
         )
-        self.number_of_days : int = number_of_days
+        self.number_of_days: int = number_of_days
         self.__check_attrs()
-
 
     def __check_attrs(self) -> None:
         if not isinstance(self.number_of_days, int):
-            raise KaraboError(f'`number_of_days` must be of type int but is of type {type(self.number_of_days)}!')
+            raise KaraboError(
+                f"`number_of_days` must be of type int but is of type {type(self.number_of_days)}!"
+            )
         if self.number_of_days <= 1:
-            raise KaraboError(f'`number_of_days` must be >=2 but is {self.number_of_days}!')
+            raise KaraboError(
+                f"`number_of_days` must be >=2 but is {self.number_of_days}!"
+            )
         if self.length > timedelta(hours=12):
-            raise KaraboError(f'`length` should be max 4 hours but is {self.length}!')
+            raise KaraboError(f"`length` should be max 4 hours but is {self.length}!")

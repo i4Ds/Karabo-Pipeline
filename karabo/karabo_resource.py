@@ -1,7 +1,7 @@
 from typing import Any
 
-class KaraboResource:
 
+class KaraboResource:
     def write_to_file(self, path: str) -> None:
         """
         Save the specified resource to disk (in format specified by resource itself)
