@@ -32,7 +32,7 @@ class Observation:
         self, mode:str='Tracking',
         start_frequency_hz:float=0,
         start_date_and_time: Union[datetime, str] = datetime.utcnow(),
-        length:timedelta=timedelta(hours=12),
+        length:timedelta=timedelta(hours=4),
         use_gpu:bool=None,
         number_of_channels:float=1,
         frequency_increment_hz:float=0,
@@ -140,13 +140,13 @@ class ObservationLong(Observation):
         mode:str='Tracking',
         start_frequency_hz:float=0,
         start_date_and_time: Union[datetime, str] =datetime.utcnow(),
-        length:timedelta=timedelta(hours=12),
+        length:timedelta=timedelta(hours=4),
         number_of_channels:float=1,
         frequency_increment_hz:float=0,
         phase_centre_ra_deg:float=0,
         phase_centre_dec_deg:float=0,
         number_of_time_steps:float=1,
-        number_of_days:int=None,
+        number_of_days:int=1,
     ) -> None:
 
         self.enable_check = False
@@ -171,4 +171,4 @@ class ObservationLong(Observation):
         if self.number_of_days <= 1:
             raise KaraboError(f'`number_of_days` must be >=2 but is {self.number_of_days}!')
         if self.length > timedelta(hours=12):
-            raise KaraboError(f'`length` should be max 12 hours but is {self.length}!')
+            raise KaraboError(f'`length` should be max 4 hours but is {self.length}!')

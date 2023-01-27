@@ -52,7 +52,7 @@ class MyTestCase(unittest.TestCase):
     def test_long_observations(self):
         os.environ['SKIP_INPUT'] = str(True) # skips `input` during unit tests if using `karabo.util.data_util.input_wrapper`
         number_of_days=2
-        hours_per_day=1
+        hours_per_day=4
         enable_array_beam=True
         vis_path = './karabo/test/data'
         combined_vis_filepath = os.path.join(vis_path, 'combined_vis.ms')
