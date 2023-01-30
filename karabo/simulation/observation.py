@@ -156,7 +156,7 @@ class ObservationLong(Observation):
         phase_centre_ra_deg: float = 0,
         phase_centre_dec_deg: float = 0,
         number_of_time_steps: float = 1,
-        number_of_days: int = 1,
+        number_of_days: int = 2,
     ) -> None:
 
         self.enable_check = False
