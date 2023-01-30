@@ -48,6 +48,17 @@ Sometimes Oskar is not correctly installed.
 
 Please also have a look at [Other installation methods](installation_no_conda.md) to see how to install Oskar manually.
 
+### Canceled future for execute_request message before replies were done
+This happens certain IDEs on WSL when using a jupyter notebook. To fix this, you need to export a variable manually: 
+`LD_LIBRARY_PATH` has to include `/usr/lib/wsl/lib`. 
+In the beginning of the notebook, you can add the variable (before importing karabo) as follows:
+
+```python
+import os
+os.environ['LD_LIBRARY_PATH'] = '/usr/lib/wsl/lib'
+import karabo
+```
+
 ### undefined symbol: H5Pset_*
 Sometimes, the package causes an error similar to `undefined symbol: H5Pset_fapl_ros3`. 
 
