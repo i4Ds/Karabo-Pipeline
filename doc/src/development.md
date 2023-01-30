@@ -16,7 +16,56 @@ Then you can simply run your code inside that environment. To tell Python to tre
 [how to use conda develop?](https://github.com/conda/conda-build/issues/1992)
 
 ## Formatting
-We use [black](https://github.com/psf/black) as a formatter. Here is a [short guide](https://www.freecodecamp.org/news/auto-format-your-python-code-with-black/) on how to use it. You can also add it to your IDE and make it format on save. Here is a [guide for VSCode](https://dev.to/adamlombard/how-to-use-the-black-python-code-formatter-in-vscode-3lo0) on how to do that.
+
+To increase the readability of the code and to better detect potential errors already during development, a number of tools are used. These tools must first be installed in the virtual environment using `pip install -r requirements.txt`. If possible use the versions defined in `requirements.txt`, so that all developers work with the same versions. The configurations of the tools are handled in `setup.cfg`. If changes to the configurations are desired, the team members should agree to this (e.g. via a meeting).
+
+We recommend the setup using [pre-commit-hooks](https://github.com/pre-commit/pre-commit-hooks), so that some (not all) tools can detect the made "mistakes" early and you can fix them. The hook can be easily initialized using `pre-commit install` in the root directory of the repository. If absolutely necessary, the hooks can be ignored using the `--no-verify` flag in the git-commands. The [pre-commit-configs](https://pre-commit.com/) used for this are defined in `.pre-commit-config.yaml`.
+
+The following sections list the tools to be used and their function & usage.
+
+### black
+
+[https://github.com/psf/black](black) is a Python [PEP 8](https://peps.python.org/pep-0008/) compliant opinionated code formatter. It formats entire Python files with the CLI command `black {source_file_or_directory}`. For specific options, see [command line options](https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html) or `black --help`.
+
+### isort
+
+[isort](https://pycqa.github.io/isort/) organizes Python imports alphabetically and automatically separated into sections and by type. The command can be called via `isort {source_file}`. There are further possibilities in the [documentation](https://pycqa.github.io/isort/) to apply isort to multiple files at once.
+
+### mypy
+
+[mypy](https://mypy.readthedocs.io/en/stable/) is a static type checker for Python. It ensures that variables and functions are used correctly in the code. It warns the developer if type hints ([PEP 484](https://peps.python.org/pep-0484/)) are not used correctly. The CLI `mypy --strict {source_file_or_directory}` makes it easy to use mypy (although it may take a while). For specific options, see [command line options](https://mypy.readthedocs.io/en/stable/command_line.html?highlight=--strict-concatenate) or `mypy --help`.
+
+We recommend using the `--strict` flag wherever possible. Since mypy can sometimes be very strict, its use is not enforced. However, we strongly recommend to use it as much as possible and to correct errors that are not too difficult to fix.
+
+In the beginning, there may be a lot of type errors because the files and their dependencies have not yet been checked with mypy. To prevent dependencies of other files from the same repository from producing errors, `disallow_untyped_calls = false` was defined in `setup.cfg`. However, as soon as a Python file is changed, the typehints of the entire file should be corrected as far as possible (even if you have not changed anything in other places).
+
+### pydocstyle
+
+[pydocstyle](http://www.pydocstyle.org/en/stable/) supports docstring checking out of the box. The check can be used via CLI `pydocstyle {source_file_or_directory}. Further options can be found in the [documentation](http://www.pydocstyle.org/en/stable/usage.html) or via `pydocstyle --help`.
+
+In our project we use the [google convention](http://www.pydocstyle.org/en/stable/error_codes.html?highlight=google#default-conventions). Python files, classes as well as functions need corresponding docstrings. There are autocompletion tools for IDE's that create docstrings in the correct format (e.g. VSCode [autoDocstring](https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring)). Below is an example of a dummy function with the corresponding docstring template:
+
+```
+def fun(arg1: int, arg2: int) -> int:
+    """__summary__
+
+    __detailed_description_if_needed__
+
+    Args:
+        some_arg: __description__
+
+    Returns:
+        __description__
+    """
+    arg_added = arg1 + arg2
+    return arg_added
+```
+
+### falke8
+
+[flake8](https://flake8.pycqa.org/en/latest/) is a tool for style guide enforcement. It checks various style errors such as unused import, variables, maximum line length and others. The style-checker can be used via the CLI `flake8 {source_file_or_directory}`. However, it should be sufficient to set the **Linter to flake8** in your own IDE, so that the errors are displayed directly without running any CLI command.
+
+It is recommended to run *black* before checking with *flake8* because *black* max fix some *flake8* related issues.
 
 ## Upload Objects to CSCS
 
