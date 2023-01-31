@@ -63,9 +63,9 @@ def fun(arg1: int, arg2: int) -> int:
 
 ### falke8
 
-[flake8](https://flake8.pycqa.org/en/latest/) is a tool for style guide enforcement. It checks various style errors such as unused import, variables, maximum line length and others. The style-checker can be used via the CLI `flake8 {source_file_or_directory}`. However, it should be sufficient to set the **Linter to flake8** in your own IDE, so that the errors are displayed directly without running any CLI command.
+[flake8](https://flake8.pycqa.org/en/latest/) is a tool for style guide enforcement. It checks various style errors such as unused import, variables, maximum line length, spacing and others. The style-checker can be used via the CLI `flake8 {source_file_or_directory}`. However, it should be sufficient to set the **Linter to flake8** in your own IDE, so that the errors are displayed directly without running any CLI command.
 
-It is recommended to run *black* before checking with *flake8* because *black* max fix some *flake8* related issues.
+It is recommended to run *black* before manually checking with *flake8* because *black* might fix a lot of *flake8* related issues. It is possible that the settings of *isort* and *black* are not compatible with *flake8* and therefore should get changed.
 
 ## Upload Objects to CSCS
 
