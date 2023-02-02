@@ -6,6 +6,17 @@
 - Linux 
 - Windows 10+ (21H1+) with the Hypervisor based Windows Subsystem for Linux (WSL)
 
+### Memory Requirements
+- 8GB RAM
+
+### Disk Space Requirements
+#### Recommended - For installation
+-  10GB
+
+#### Cleaned Installation Size (description below)
+-  Karabo: ~2.5GB
+-  Miniconda with Libmamba: ~1GB
+
 ### Tools
 - Miniconda / Anaconda
 
@@ -16,8 +27,22 @@
 
 We have noticed that dependency-resolving with conda's native solver can take a while. Therefore, we recommend installing Miniconda and use the libmamba solver for installation.
 
-1. Go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html and follow the steps.
-2. Install libmamba with `conda install -n base conda-libmamba-solver` and `conda config --set solver libmamba`
+1. Go to [MiniConda install guide](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) and follow the steps.
+
+### Install libmamba with the following steps:
+
+Update your base environment
+- `conda update -n base -c defaults conda`
+
+Install the LibMamba Solver
+- `conda install -n base conda-libmamba-solver`
+
+Libmamba can be set as the standard solver for conda. If you do not wish to have it as standard but want to use it in some workloads, add the following parameter at the end of your conda install statement `--experimental-solver=libmamba`
+
+Example: `conda install python=3.10 --experimental-solver=libmamba`
+
+If you want to use it everywhere, use the following statement to declare it as the standard solver
+- `conda config --set solver libmamba`
 
 ## Karabo Pipeline installation with Conda
 
@@ -34,6 +59,9 @@ conda activate karabo-env
 # karabo-pipeline
 conda install -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 ```
+
+Run this command to free disk space after the installation. This will remove all temporary and cached packages - after this you get the installation size described in the requirements.
+- `conda clean --all -y`
 
 ## MacOS Support
 
