@@ -27,7 +27,20 @@
 
 We have noticed that dependency-resolving with conda's native solver can take a while. Therefore, we recommend installing Miniconda and use the libmamba solver for installation.
 
-1. Go to [MiniConda install guide](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) and follow the steps.
+### Install miniconda
+
+The following steps will install miniconda for python 3.9. Those steps are also explained in the [MiniConda install guide](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html). If any links are broken on our side please report this on the issue tracker. 
+
+1. Get the miniconda installer
+- `wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh`
+
+2. Start the installer 
+- `bash bash Miniconda3-latest-Linux-x86_64.sh`
+
+3. Confirm the default settings. 
+4. Reopen the terminal. There should be a `(base)` in front of your path.
+5. Verify your base environment by printing the installed base packages with
+- `conda list`
 
 ### Install libmamba with the following steps:
 
