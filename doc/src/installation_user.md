@@ -35,7 +35,7 @@ The following steps will install miniconda for python 3.9. Those steps are also 
 - `wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh`
 
 2. Start the installer 
-- `bash bash Miniconda3-latest-Linux-x86_64.sh`
+- `bash Miniconda3-latest-Linux-x86_64.sh`
 
 3. Confirm the default settings. 
 4. Reopen the terminal. There should be a `(base)` in front of your path.
