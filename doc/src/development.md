@@ -61,7 +61,7 @@ def fun(arg1: int, arg2: int) -> int:
     return arg_added
 ```
 
-### falke8
+### flake8
 
 [flake8](https://flake8.pycqa.org/en/latest/) is a tool for style guide enforcement. It checks various style errors such as unused import, variables, maximum line length, spacing and others. The style-checker can be used via the CLI `flake8 {source_file_or_directory}`. However, it should be sufficient to set the **Linter to flake8** in your own IDE, so that the errors are displayed directly without running any CLI command.
 
