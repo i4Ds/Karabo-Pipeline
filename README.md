@@ -21,7 +21,7 @@ Two specific radio telescope packages are used:
 Requirements
 ------------
 
-- Linux or Windows with WSL. 
+- Linux or Windows with WSL ([Windows Susbsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux)). 
 - Conda
 
 Installation
