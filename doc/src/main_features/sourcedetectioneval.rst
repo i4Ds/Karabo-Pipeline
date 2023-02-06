@@ -1,7 +1,7 @@
-Sourcedetection Evaluation
-============
+Sourcedetection Result
+======================
 
-.. autoclass:: karabo.simulation.sourcedetection.evaluation.SourceDetectionEvaluation
+.. autoclass:: karabo.sourcedetection.evaluation.SourceDetectionEvaluation
    :members:
    :special-members: __init__
    :exclude-members: __strfdelta

@@ -21,14 +21,13 @@ class SourceDetectionEvaluation:
         sky_idxs: NDArray[np.int64],
         source_detection: SourceDetectionResult,
     ) -> None:
-        """
-        Class that holds the mapping of a source detection to truth mapping.
+        """Class that holds the mapping of a source detection to truth mapping.
         :param sky: `SkyModel` where the `assignment` comes from
         :param ground_truth: 2xn array of pixel positions of ground truth
-        :param assignments: jx3 np.ndarray where each row represents an assignment
-            - first column represents the `ground_truth` index
-            - second column represents the predicted `source_detection.detected_sources` index
-            - third column represents the euclidean distance between the assignment
+        :param assignments: jx3 np.ndarray where each row represents an assignment:
+        - first column represents the `ground_truth` index
+        - second column represents the predicted `source_detection.detected_sources` index
+        - third column represents the euclidean distance between the assignment
         :param sky_idxs: Sky sources indices of `SkyModel` from `assignment`
         :param source_detection: Source Detection Result from a previous source detection
         """
@@ -97,7 +96,7 @@ class SourceDetectionEvaluation:
     ) -> NDArray[np.float64]:
         """Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
         The strategy is the following:
-        (similar to AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61, Marc MASIAS MOYSET, 2014):
+        (similar to `AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61, Marc MASIAS MOYSET, 2014`):
         Each distance between the predicted and the ground truth sources is calculated.
         Any distances > `max_dist` are not considered.
         Assign the closest distance from the predicted and ground truth.
@@ -117,7 +116,7 @@ class SourceDetectionEvaluation:
             a minus index means a predicted source with no allocated ground-truth
         - third column represents the euclidean distance between the assignment
             a "inf" means no allocation between ground-truth and prediction of that source
-            
+
         """
         # With scipy.spatial.KDTree get the closest detection point for each ground truth point
         tree = KDTree(ground_truth)
