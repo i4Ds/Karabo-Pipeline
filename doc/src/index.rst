@@ -29,7 +29,8 @@ API Reference
    :maxdepth: 1
    :caption: API Reference
 
-   api/index.rst
+   api/python_module_index.rst
+   api/python_general_index.rst
 
 Development
 ==================
