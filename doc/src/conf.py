@@ -16,7 +16,7 @@ import sphinx_rtd_theme
 
 # We need to add the parent directory to the path so that Sphinx can find the
 # modules to document.
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
 
@@ -51,7 +51,11 @@ templates_path = ["_templates"]
 # List of patterns, relative to doc directory, that match files and
 # directories to ignore when looking for doc files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = [
+    "examples/_example_scripts",
+    "examples/combine_examples.py",
+    "examples/example_structure.md",
+]
 
 add_module_names = False
 

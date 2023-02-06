@@ -31,22 +31,43 @@ from astropy.stats import gaussian_fwhm_to_sigma
 
 
 class Telescope(KaraboResource):
+    """Telescope
+
+    WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre. A telescope is described as follows.
+    Each row represents one station, with the elements being the horizontal x (east), horizontal y (north), and horizontal z (up) coordinates,
+    followed by the errors in horizontal y (east), horizontal y (north), and horizontal z (up).
+    Example: [[x, y, z, error_x, error_y, error_z], [...]]
+
+    centre_longitude : float
+        WGS84 longitude at the center of the telescope.
+    centre_latitude : float
+        WGS84 latitude at the center of the telescope.
+    centre_altitude : float
+        Altitude (in meters) at the center of the telescope.
+    temp_dir : None
+        Temporary directory.
+    path : None
+        Hotfix for issue #59.
+    """
+
     def __init__(self, longitude: float, latitude: float, altitude: float = 0):
-        """
-        WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
+        """__init__ method
+
+        Parameters
+        ----------
+        longitude : float
+            WGS84 longitude at the center of the telescope.
+        latitude : float
+            WGS84 latitude at the center of the telescope.
+        altitude : float, optional
+            Altitude (in meters) at the center of the telescope, default is 0.
         """
         self.temp_dir = None
-        self.path = None  # hotfix #59
-        self.centre_longitude: float = longitude
-        self.centre_latitude: float = latitude
-        self.centre_altitude: float = altitude
-        """
-        Telescope Layout format
-        Each row is one station
-        [[  horizontal x (east), horizontal y (north), horizontal z (up) = 0,
-            horizontal y (east) error = 0, horizontal y (north) error = 0, horizontal z (up) error ],
-         [ ... ]]
-        """
+        self.path = None
+        self.centre_longitude = longitude
+        self.centre_latitude = latitude
+        self.centre_altitude = altitude
+
         self.stations: List[Station] = []
 
     def add_station(

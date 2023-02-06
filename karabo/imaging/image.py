@@ -86,8 +86,7 @@ class Image(KaraboResource):
         filename: Optional[str] = None,
         **kwargs,
     ) -> None:
-        """
-        Plots the image
+        """Plots the image
 
         :param title: the title of the colormap
         :param xlim: RA-limit of plot
@@ -103,6 +102,7 @@ class Image(KaraboResource):
         :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
         """
+
         if wcs_enabled:
             wcs = WCS(self.header)
             print(wcs)

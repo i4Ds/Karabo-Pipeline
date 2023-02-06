@@ -75,7 +75,7 @@ class TestSourceDetection(unittest.TestCase):
         Tests if bdsf error message in `PyBDSFSourceDetectionResult.detect_sources_in_image` has changed
         If it has changed, it will throw a `RuntimeError`
         Test could maybe be changed if .fits file with blanked pixels is available and
-            therefore you can just create an `Image` from that file
+        therefore you can just create an `Image` from that file
         """
         phase_center = [250, -80]
         gleam_sky = SkyModel.get_GLEAM_Sky()
