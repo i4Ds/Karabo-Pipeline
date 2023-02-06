@@ -1,4 +1,4 @@
-Observation
+BeamPattern
 ============
 
 .. autoclass:: karabo.simulation.simulation.BeamPattern
