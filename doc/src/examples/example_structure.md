@@ -15,5 +15,4 @@ Please look at the karabo.package documentation for specifics on the individual 
 <example_tel_set.py>
 ```
 
-Output of plot_telescope() on the OSKAR Example Telescope
 ![Image](../images/telescope.png)

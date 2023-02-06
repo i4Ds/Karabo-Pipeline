@@ -47,5 +47,4 @@ telescope = Telescope.get_OSKAR_Example_Telescope()
 telescope.plot_telescope(file="example_telescope.png")
 ```
 
-Output of plot_telescope() on the OSKAR Example Telescope
 ![Image](../images/telescope.png)
