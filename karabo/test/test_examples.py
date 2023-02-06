@@ -1,5 +1,5 @@
 import unittest
-import os, sys, subprocess, glob
+import glob
 
 
 class TestDocExamples(unittest.TestCase):
@@ -10,15 +10,8 @@ class TestDocExamples(unittest.TestCase):
         # run all example scripts
         for example_script in example_scripts:
             try:
-                output = subprocess.check_output(
-                    [sys.executable, example_script], stderr=subprocess.STDOUT
-                )
-            except subprocess.CalledProcessError as e:
-                output = e.output
-                if b"Traceback" in output:
-                    error = output[output.index(b"Traceback") :].decode()
-                else:
-                    error = "Unknown error"
-                raise RuntimeError(
-                    f'Example script "{example_script}" failed with error: {error}'
+                exec(open(example_script).read())
+            except Exception as e:
+                self.fail(
+                    "Example script {} failed with error: {}".format(example_script, e)
                 )
