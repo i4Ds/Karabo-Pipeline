@@ -49,9 +49,6 @@ The following steps will install miniconda for python 3.9. Those steps are also 
 
 ### Install libmamba with the following steps:
 
-Update your base environment
-- `conda update -n base -c defaults conda`
-
 Install the LibMamba Solver
 - `conda install -n base conda-libmamba-solver`
 
@@ -127,3 +124,11 @@ feature:|@/linux-64::__glibc==2.31=0
 ```
 
 This is usually fixable when fixing the python version to 3.9 when creating the environment.
+
+### Conda update breaks libmamba 
+
+If the base environment got updatet to conda 23.xxx with the following command:
+- `conda update -n base -c defaults conda`
+
+Libmamba is not installable - the issue was reported to the creators of mamba. Use the conda 22 release, this command will reset conda to version 22:
+- `conda install --rev 0 --name base`
