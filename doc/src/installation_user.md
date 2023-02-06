@@ -35,12 +35,17 @@ The following steps will install miniconda for python 3.9. Those steps are also 
 - `wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh`
 
 2. Start the installer 
-- `bash Miniconda3-latest-Linux-x86_64.sh`
+- `bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh`
 
-3. Confirm the default settings. 
-4. Reopen the terminal. There should be a `(base)` in front of your path.
-5. Verify your base environment by printing the installed base packages with
+3. [During Installation] Press 'enter' to open the licence agreement. Close it again with 'q'
+4. [During Installation] Confirm it with a 'yes' if you agree - if you want to use Karabo, you have to agree. 
+5. [During Installation] Confirm the conda installation path with 'enter'
+6. [During Installation] Confirm the conda init question with a 'yes'
+7. Reopen the terminal. There should be a `(base)` in front of your path.
+8. Verify your base environment by printing the installed base packages with
 - `conda list`
+9. If the command went through - the installation was successful 
+
 
 ### Install libmamba with the following steps:
 
