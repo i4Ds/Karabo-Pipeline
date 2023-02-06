@@ -12,10 +12,15 @@ class TestDocExamples(unittest.TestCase):
         # run all example scripts
         for example_script in example_scripts:
             try:
-                subprocess.run([sys.executable, example_script], check=True)
+                output = subprocess.check_output(
+                    [sys.executable, example_script], stderr=subprocess.STDOUT
+                )
             except subprocess.CalledProcessError as e:
+                output = e.output
+                if b"Traceback" in output:
+                    error = output[output.index(b"Traceback") :].decode()
+                else:
+                    error = "Unknown error"
                 raise RuntimeError(
-                    "command '{}' return with error (code {}): {}".format(
-                        e.cmd, e.returncode, e.output
-                    )
+                    f'Example script "{example_script}" failed with error: {error}'
                 )
