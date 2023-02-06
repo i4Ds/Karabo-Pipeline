@@ -1,4 +1,4 @@
-Observation
+ObservationLong
 ============
 
 .. autoclass:: karabo.simulation.observation.ObservationLong
