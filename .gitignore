@@ -76,8 +76,11 @@ visibilities_task_stream.html
 
 # Dask
 dask-worker-space
-.tmp
 *.vis
+
+# Karabo folder
+**/karabo_folder/**
+**/.tmp/**
 
 # Configs
 config.yaml

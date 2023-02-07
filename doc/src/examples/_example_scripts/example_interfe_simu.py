@@ -28,3 +28,9 @@ observation = Observation(start_frequency_hz=1e6)
 
 # run a single simulation with the provided configuration
 simulation.run_simulation(telescope, sky, observation)
+
+# clean up
+from karabo.util import FileHandle
+
+fh = FileHandle()
+fh.clean_up()
