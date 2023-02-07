@@ -16,7 +16,8 @@ sky_data = np.array(
 )
 sky.add_point_sources(sky_data)
 
-# get different predefined telescopes, like here the OSKAR example telescope.png, with a handy functions
+# get different predefined telescopes,
+# like here the OSKAR example telescope.png, with a handy functions
 telescope = Telescope.get_OSKAR_Example_Telescope()
 
 # overwrite or set any of the implemented configuration values
@@ -24,7 +25,8 @@ telescope.centre_longitude = 3
 
 simulation = InterferometerSimulation("./test_result.ms")
 
-# create new observational settings with most settings set to default except the start frequency set to 1e6
+# create new observational settings with most settings set to default
+# except the start frequency set to 1e6
 observation = Observation(start_frequency_hz=1e6)
 
 # run a single simulation with the provided configuration

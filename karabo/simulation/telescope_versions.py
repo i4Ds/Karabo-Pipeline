@@ -1,6 +1,7 @@
 import enum
 
-# when adding new versions make sure the string for the enum value is the string used in the telescope file name
+# when adding new versions make sure the string for the enum value
+# is the string used in the telescope file name
 
 
 class ALMAVersions(enum.Enum):
@@ -155,7 +156,8 @@ class ATCAVersions(enum.Enum):
 
 class CARMAVersions(enum.Enum):
     """
-    Combined Array for Research in Millimeter-wave Astronomy telescope configuration names
+    Combined Array for Research in Millimeter-wave Astronomy
+    telescope configuration names
     """
 
     A = "a"

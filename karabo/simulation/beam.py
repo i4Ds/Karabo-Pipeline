@@ -1,7 +1,5 @@
 import enum
-import os
 import subprocess
-from typing import Callable
 
 import eidos
 import numpy as np
@@ -68,7 +66,8 @@ class BeamPattern:
             self.telescope: Telescope = telescope
         if not isinstance(self.telescope, Telescope):
             raise KaraboError(
-                f"`telescope` is {type(self.telescope)} but must be of type `Telescope`!"
+                f"`telescope` is {type(self.telescope)} "
+                + "but must be of type `Telescope`!"
             )
         if freq_hz is not None:
             self.freq_hz: float = freq_hz
@@ -94,7 +93,8 @@ class BeamPattern:
             f"frequency_hz={self.freq_hz} \n"
             f"average_fractional_error={self.avg_frac_error} \n"
             f"pol_type={self.pol} \n"
-            f"average_fractional_error_factor_increase={self.average_fractional_error_factor_increase} \n"
+            "average_fractional_error_factor_increase="
+            + f"{self.average_fractional_error_factor_increase} \n"
             f"ignore_data_at_pole={self.ignore_data_at_pole} \n"
             f"element_type_index={self.element_type_index}\n"
             f"output_directory={self.telescope.path} \n"
@@ -121,8 +121,12 @@ class BeamPattern:
         :param arr:
         :return:  cst file with given output filename
         """
-        line1 = "Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Horiz(Abs)[dBi   ]  Horiz(Phase)[deg.]  Vert(Abs)[dBi   ]  Vert(Phase )[deg. ]  Ax.Ratio[dB    ]  "
-        line2 = "------------------------------------------------------------------------------------------------------------------------------------------------------"
+        line1 = (
+            "Theta [deg.]  Phi   [deg.]  Abs(Dir.)[dBi   ]   Horiz(Abs)[dBi   ]  "
+            + "Horiz(Phase)[deg.]  Vert(Abs)[dBi   ]  Vert(Phase )[deg. ]  "
+            + "Ax.Ratio[dB    ]  "
+        )
+        line2 = "-" * 150
         np.savetxt(
             str(output_file_path) + ".cst",
             arr,
@@ -168,11 +172,17 @@ class BeamPattern:
         """
         B = None
         if mode == "AH":
-            meerkat_beam_coeff_ah = f"{get_module_path_of_module(eidos)}/data/meerkat_beam_coeffs_ah_zp_dct.npy"
+            meerkat_beam_coeff_ah = (
+                f"{get_module_path_of_module(eidos)}"
+                + "/data/meerkat_beam_coeffs_ah_zp_dct.npy"
+            )
             params, freqs = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres)
             B = recon_par(params[ch, :])
         if mode == "EM":
-            meerkat_beam_coeff_em = f"{get_module_path_of_module(eidos)}/data/meerkat_beam_coeffs_em_zp_dct.npy"
+            meerkat_beam_coeff_em = (
+                f"{get_module_path_of_module(eidos)}"
+                + "/data/meerkat_beam_coeffs_em_zp_dct.npy"
+            )
             params, freqs = zernike_parameters(meerkat_beam_coeff_em, npix, dia, thres)
             B = recon_par(params[ch, :])
         return B
@@ -347,10 +357,11 @@ class BeamPattern:
 
     @staticmethod
     def get_scaled_theta_phi(theta, theta_em, phi_em, beam0):
-        beam_em = interp.griddata(
-            [theta_em, phi_em], beam0, (theta, phi), method="cubic"
-        )
-        return beam_em
+        raise NotImplementedError()
+        # beam_em = interpolate.griddata(
+        #     [theta_em, phi_em], beam0, (theta, phi), method="cubic"
+        # )
+        # return beam_em
 
     @staticmethod
     def cart2pol(x, y):
@@ -407,7 +418,7 @@ class BeamPattern:
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
             theta_ah, phi_ah = self.cart2pol(xy[0], xy[1])
             phi_ah = phi_ah * 180.0 / np.pi + 180
-            theta_phi_ah = np.meshgrid(theta_ah, phi_ah)
+            #  theta_phi_ah = np.meshgrid(theta_ah, phi_ah)
             vcopol_x = interpolate.griddata(
                 (theta_ah.flatten(), phi_ah.flatten()),
                 np.abs(B[0][0]).flatten(),
@@ -443,7 +454,7 @@ class BeamPattern:
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
             theta_em, phi_em = self.cart2pol(xy[0], xy[1])
             phi_em = phi_em * 180.0 / np.pi + 180
-            theta_phi_em = np.meshgrid(theta_em, phi_em)
+            #  theta_phi_em = np.meshgrid(theta_em, phi_em)
             vcopol_x = interpolate.griddata(
                 (theta_em.flatten(), phi_em.flatten()),
                 np.abs(B[0][0]).flatten(),
@@ -474,29 +485,30 @@ class BeamPattern:
                 fill_value=0,
             )
         if self.beam_method == "KatBeam":
-            beampixel = get_meerkat_uhfbeam(f, "H", 30, 30)
-            theta_kb, phi_kb = self.cart2pol(beampixel[0], beampixel[1])
-            katb_H = beampixel[2]
-            phi_kb = phi_kb * 180.0 / np.pi + 180
-            vcopol_x = interpolate.griddata(
-                (theta_kb.flatten(), phi_kb.flatten()),
-                katb_H.flatten(),
-                (theta, phi),
-                method="cubic",
-                fill_value=0,
-            )
-            vcrpol_x = quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
-            beampixel = get_meerkat_uhfbeam(f, "V", 30, 30)
-            theta_kb = beampixel[0] + 15
-            phi_kb = beampixel[1] + 15
-            katb_V = beampixel[2]
-            vcopol_y = interpolate.griddata(
-                (theta_kb.flatten(), phi_kb.flatten()),
-                katb_V.flatten(),
-                (theta, phi),
-                method="cubic",
-            )
-            vcrpol_y = quad_crosspol(theta, phi, vcopol_y, **crpol_kwargs)
+            raise NotImplementedError()
+            # beampixel = BeamPattern.get_meerkat_uhfbeam(f, "H", 30, 30)
+            # theta_kb, phi_kb = self.cart2pol(beampixel[0], beampixel[1])
+            # katb_H = beampixel[2]
+            # phi_kb = phi_kb * 180.0 / np.pi + 180
+            # vcopol_x = interpolate.griddata(
+            #     (theta_kb.flatten(), phi_kb.flatten()),
+            #     katb_H.flatten(),
+            #     (theta, phi),
+            #     method="cubic",
+            #     fill_value=0,
+            # )
+            # vcrpol_x = self.quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
+            # beampixel = BeamPattern.get_meerkat_uhfbeam(f, "V", 30, 30)
+            # theta_kb = beampixel[0] + 15
+            # phi_kb = beampixel[1] + 15
+            # katb_V = beampixel[2]
+            # vcopol_y = interpolate.griddata(
+            #     (theta_kb.flatten(), phi_kb.flatten()),
+            #     katb_V.flatten(),
+            #     (theta, phi),
+            #     method="cubic",
+            # )
+            # vcrpol_y = self.quad_crosspol(theta, phi, vcopol_y, **crpol_kwargs)
         vcopol_x[np.where(theta.value > 5)] = 0
         vcrpol_x[np.where(theta.value > 5)] = 0
         vcopol_y[np.where(theta.value > 5)] = 0
@@ -528,60 +540,60 @@ class BeamPattern:
         )
         return grid_th_phi, vcopol_x, vcopol_y, data_x, data_y
 
-    def plot_beam(savefile):
-        grid_th_phi, vcopol_x, vcopol_y, data_x, data_y = sim_beam("EIDOS_AH")
-        fig = plt.figure(figsize=(9, 4))
-        co_vmin, co_vmax = -1, 1
-        cr_vmin, cr_vmax = -1.0e-2, 1.0e-2
-        fig, axs = plt.subplots(
-            2, 2, subplot_kw={"projection": "polar"}, figsize=(8, 8)
-        )
-        XX_ax, XY_ax, YX_ax, YY_ax = axs.flat
-        for ax in axs.flat:
-            ax.set_rticks(np.arange(0, max_theta.value, 10))
-            ax.grid(False)  # For deprecation warning
-        XX_ax.set_title(r"$V_{\rm XX}$")
-        XY_ax.set_title(r"$V_{\rm XY}$")
-        YX_ax.set_title(r"$V_{\rm YX}$")
-        YY_ax.set_title(r"$V_{\rm YY}$")
-        im = XX_ax.pcolormesh(
-            grid_th_phi[1].to("rad").value,
-            grid_th_phi[0].value,
-            vcopol_x.reshape(grid_th_phi[0].shape),
-            vmin=co_vmin,
-            vmax=co_vmax,
-        )
-        plt.colorbar(im, ax=XX_ax, pad=0.1)
-        im = XY_ax.pcolormesh(
-            grid_th_phi[1].to("rad").value,
-            grid_th_phi[0].value,
-            vcrpol_x.reshape(grid_th_phi[0].shape),
-            vmin=cr_vmin,
-            vmax=cr_vmax,
-        )
-        plt.colorbar(im, ax=XY_ax, pad=0.1)
+    # def plot_beam(self, savefile):
+    #     grid_th_phi, vcopol_x, vcopol_y, data_x, data_y = self.sim_beam("EIDOS_AH")
+    #     fig = plt.figure(figsize=(9, 4))
+    #     co_vmin, co_vmax = -1, 1
+    #     cr_vmin, cr_vmax = -1.0e-2, 1.0e-2
+    #     fig, axs = plt.subplots(
+    #         2, 2, subplot_kw={"projection": "polar"}, figsize=(8, 8)
+    #     )
+    #     XX_ax, XY_ax, YX_ax, YY_ax = axs.flat
+    #     for ax in axs.flat:
+    #         ax.set_rticks(np.arange(0, max_theta.value, 10))
+    #         ax.grid(False)  # For deprecation warning
+    #     XX_ax.set_title(r"$V_{\rm XX}$")
+    #     XY_ax.set_title(r"$V_{\rm XY}$")
+    #     YX_ax.set_title(r"$V_{\rm YX}$")
+    #     YY_ax.set_title(r"$V_{\rm YY}$")
+    #     im = XX_ax.pcolormesh(
+    #         grid_th_phi[1].to("rad").value,
+    #         grid_th_phi[0].value,
+    #         vcopol_x.reshape(grid_th_phi[0].shape),
+    #         vmin=co_vmin,
+    #         vmax=co_vmax,
+    #     )
+    #     plt.colorbar(im, ax=XX_ax, pad=0.1)
+    #     im = XY_ax.pcolormesh(
+    #         grid_th_phi[1].to("rad").value,
+    #         grid_th_phi[0].value,
+    #         vcrpol_x.reshape(grid_th_phi[0].shape),
+    #         vmin=cr_vmin,
+    #         vmax=cr_vmax,
+    #     )
+    #     plt.colorbar(im, ax=XY_ax, pad=0.1)
 
-        im = YY_ax.pcolormesh(
-            grid_th_phi[1].to("rad").value,
-            grid_th_phi[0].value,
-            vcopol_y.reshape(grid_th_phi[0].shape),
-            vmin=co_vmin,
-            vmax=co_vmax,
-        )
-        plt.colorbar(im, ax=YY_ax, pad=0.1)
-        im = YX_ax.pcolormesh(
-            grid_th_phi[1].to("rad").value,
-            grid_th_phi[0].value,
-            vcrpol_y.reshape(grid_th_phi[0].shape),
-            vmin=cr_vmin,
-            vmax=cr_vmax,
-        )
-        plt.colorbar(im, ax=YX_ax, pad=0.1)
-        for ax in axs.flat:
-            ax.grid(True)
-        fig.tight_layout()
-        plt.savefig(savefile)
-        plt.close()
+    #     im = YY_ax.pcolormesh(
+    #         grid_th_phi[1].to("rad").value,
+    #         grid_th_phi[0].value,
+    #         vcopol_y.reshape(grid_th_phi[0].shape),
+    #         vmin=co_vmin,
+    #         vmax=co_vmax,
+    #     )
+    #     plt.colorbar(im, ax=YY_ax, pad=0.1)
+    #     im = YX_ax.pcolormesh(
+    #         grid_th_phi[1].to("rad").value,
+    #         grid_th_phi[0].value,
+    #         vcrpol_y.reshape(grid_th_phi[0].shape),
+    #         vmin=cr_vmin,
+    #         vmax=cr_vmax,
+    #     )
+    #     plt.colorbar(im, ax=YX_ax, pad=0.1)
+    #     for ax in axs.flat:
+    #         ax.grid(True)
+    #     fig.tight_layout()
+    #     plt.savefig(savefile)
+    #     plt.close()
 
     def save_meerkat_cst_file(
         self,

@@ -30,7 +30,8 @@ class Visibility(KaraboResource):
     ):
         """
         This function combines the visibilities of foreground and spectral lines
-        Inputs: foreground visibility file, list of spectral line vis files, output path & name of combined vis file
+        Inputs: foreground visibility file, list of spectral line vis files,
+        output path & name of combined vis file
         """
         print("#--- Performing visibilities combination...")
         (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
@@ -92,7 +93,7 @@ class Visibility(KaraboResource):
         print("### Writing combined visibilities in ", combined_vis_filepath)
         start_row = 0
         exposure_sec = fg_header.get_time_average_sec()
-        sc = [0] * len(foreground_cross_correlation)
+        #  sc = [0] * len(foreground_cross_correlation)
         fg_chan = [0] * len(foreground_cross_correlation)
         time_stamp = fg_header.get_time_start_mjd_utc()
         ms.write_coords(
@@ -184,8 +185,12 @@ class Visibility(KaraboResource):
         uu = np.array(uui).swapaxes(0, 1)
         uushape = uu.shape
         uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
-        # vv = np.array(vvi).swapaxes(0, 1);vvshape = vv.shape;vv = vv.reshape(vvshape[0], vvshape[1] * vvshape[2])
-        # ww = np.array(wwi).swapaxes(0, 1);wwshape = ww.shape;ww = ww.reshape(wwshape[0], wwshape[1] * wwshape[2])
+        # vv = np.array(vvi).swapaxes(0, 1)
+        # vvshape = vv.shape
+        # vv = vv.reshape(vvshape[0], vvshape[1] * vvshape[2])
+        # ww = np.array(wwi).swapaxes(0, 1)
+        # wwshape = ww.shape
+        # ww = ww.reshape(wwshape[0], wwshape[1] * wwshape[2])
         # --------- Combining the Visibilities
         os.system("rm -rf " + combined_vis_filepath)
         ms = oskar.MeasurementSet.create(

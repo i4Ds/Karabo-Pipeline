@@ -3,20 +3,17 @@ import glob
 import os
 import sys
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Dict, List, Union
 
-import numpy as np
 import oskar
 
-import karabo.error
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util.data_util import input_wrapper
-from karabo.util.FileHandle import FileHandle
 
 
 class CorrelationType(enum.Enum):
@@ -48,22 +45,30 @@ class InterferometerSimulation:
     Class containing all configuration for the Interferometer Simulation.
 
     :ivar ms_path: Path where the resulting measurement set will be stored.
-    :ivar vis_path: Path of the visibility output file containing results of the simulation.
-    :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth smearing.
-                                (Note that this can be different to the frequency increment if channels do not cover a contiguous frequency range.)
-    :ivar time_average_sec: The correlator time-average duration, in seconds, used to simulate time averaging smearing.
-    :ivar max_time_per_samples: The maximum number of time samples held in memory before being written to disk.
-    :ivar correlation_type: The type of correlations to produce. Any value of Enum CorrelationType
-    :ivar uv_filter_min: The minimum value of the baseline UV length allowed by the filter.
-                         Values outside this range are not evaluated
-    :ivar uv_filter_max: The maximum value of the baseline UV length allowed by the filter.
-                         Values outside this range are not evaluated.
-    :ivar uv_filter_units: The units of the baseline UV length filter values. Any value of Enum FilterUnits
-    :ivar force_polarised_ms: If True, always write the Measurment Set in polarised format even if the simulation
-                              was run in the single polarisation 'Scalar' (or Stokes-I) mode. If False, the size of
-                              the polarisation dimension in the the Measurement Set will be determined by the simulation mode.
-    :ivar ignore_w_components: If enabled, baseline W-coordinate component values will be set to 0. This will disable
-                               W-smearing. Use only if you know what you're doing!
+    :ivar vis_path: Path of the visibility output file
+    containing results of the simulation.
+    :ivar channel_bandwidth_hz: The channel width, in Hz, used to
+    simulate bandwidth smearing. (Note that this can be different to the frequency
+    increment if channels do not cover a contiguous frequency range.)
+    :ivar time_average_sec: The correlator time-average duration,
+    in seconds, used to simulate time averaging smearing.
+    :ivar max_time_per_samples: The maximum number of time samples held in memory
+    before being written to disk.
+    :ivar correlation_type: The type of correlations to produce.
+    Any value of Enum CorrelationType
+    :ivar uv_filter_min: The minimum value of the baseline UV length allowed
+    by the filter. Values outside this range are not evaluated.
+    :ivar uv_filter_max: The maximum value of the baseline UV length allowed
+    by the filter. Values outside this range are not evaluated.
+    :ivar uv_filter_units: The units of the baseline UV length filter values.
+    Any value of Enum FilterUnits
+    :ivar force_polarised_ms: If True, always write the Measurment Set in polarised
+    format even if the simulation was run in the single polarisation 'Scalar'
+    (or Stokes-I) mode. If False, the size of the polarisation dimension
+    in the Measurement Set will be determined by the simulation mode.
+    :ivar ignore_w_components: If enabled, baseline W-coordinate component
+    values will be set to 0. This will disable W-smearing.
+    Use only if you know what you're doing!
     """
 
     def __init__(
@@ -89,8 +94,10 @@ class InterferometerSimulation:
         noise_freq: str = "Range",
         enable_array_beam: bool = False,
         enable_numerical_beam: bool = False,
-        beam_polX: BeamPattern = None,  # currently only considered for `ObservationLong`
-        beam_polY: BeamPattern = None,  # currently only considered for `ObservationLong`
+        # currently only considered for `ObservationLong`
+        beam_polX: BeamPattern = None,
+        # currently only considered for `ObservationLong`
+        beam_polY: BeamPattern = None,
     ) -> None:
 
         self.ms_file: Visibility = Visibility()
@@ -122,7 +129,8 @@ class InterferometerSimulation:
         self, telescope: Telescope, sky: SkyModel, observation: Observation
     ) -> Union[Visibility, List[str]]:
         """
-        Run a single interferometer simulation with the given sky, telescope.png and observation settings.
+        Run a single interferometer simulation with the given sky,
+        telescope.png and observation settings.
         :param telescope: telescope.png model defining the telescope.png configuration
         :param sky: sky model defining the sky sources
         :param observation: observation settings
@@ -147,7 +155,8 @@ class InterferometerSimulation:
         observation: Observation,
     ) -> Visibility:
         """
-        Run a single interferometer simulation with a given sky, telescope and observation settings.
+        Run a single interferometer simulation with a given sky,
+        telescope and observation settings.
         :param telescope: telescope model defining it's configuration
         :param sky: sky model defining the sources
         :param observation: observation settings
@@ -160,7 +169,8 @@ class InterferometerSimulation:
         )
         telescope.get_OSKAR_telescope()
         settings1 = {**interferometer_settings, **observation_settings}
-        # settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
+        # settings["telescope"] = {"input_directory": telescope.path, "station_type":
+        # 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings1)
         # settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
@@ -193,8 +203,11 @@ class InterferometerSimulation:
                 if len(files_existing) > 0:
                     print("Some example files to remove/replace:")
                     print(f"{[*vis_files_existing[:3],*ms_files_existing[:3]]}")
-                    msg = f'Found already existing "beam_vis_*.vis" and "beam_vis_*.ms" files inside {self.vis_path}, \
-                        Do you want to replace remove/replace them? [y/N]'
+                    msg = (
+                        'Found already existing "beam_vis_*.vis" and '
+                        + f'beam_vis_*.ms" files inside {self.vis_path}, \
+                        + Do you want to replace remove/replace them? [y/N]'
+                    )
                     ans = input_wrapper(msg=msg, ret="y")
                     if ans != "y":
                         sys.exit(0)
@@ -204,7 +217,8 @@ class InterferometerSimulation:
                             for file_name in files_existing
                         ]
                         print(
-                            f'Removed {len(files_existing)} file(s) matching the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!'
+                            f"Removed {len(files_existing)} file(s) matching the "
+                            + 'glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!'
                         )
             else:
                 os.makedirs(self.vis_path, exist_ok=True)
@@ -289,7 +303,7 @@ class InterferometerSimulation:
                 "station_type": "Aperture array",
                 "aperture_array/array_pattern/enable": self.enable_array_beam,
                 "aperture_array/array_pattern/normalise": True,
-                "aperture_array/element_pattern/enable_numerical": self.enable_numerical_beam,
+                "aperture_array/element_pattern/enable_numerical": self.enable_numerical_beam,  # noqa
                 "aperture_array/element_pattern/normalise": True,
                 "aperture_array/element_pattern/taper/type": "None",
             },

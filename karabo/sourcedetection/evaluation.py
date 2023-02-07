@@ -28,11 +28,11 @@ class SourceDetectionEvaluation:
         :param sky: `SkyModel` where the `assignment` comes from
         :param ground_truth: 2xn array of pixel positions of ground truth
         :param assignments: jx3 np.ndarray where each row represents an assignment:
-        - first column represents the `ground_truth` index
-        - second column represents the predicted `source_detection.detected_sources` index
-        - third column represents the euclidean distance between the assignment
+        - first column is the `ground_truth` index
+        - second column is the predicted `source_detection.detected_sources` index
+        - third column is the euclidean distance between the assignment
         :param sky_idxs: Sky sources indices of `SkyModel` from `assignment`
-        :param source_detection: Source Detection Result from a previous source detection
+        :param source_detection: SourceDetectionResult from a previous source-detection
         """
         self.sky = sky
         self.ground_truth = ground_truth
@@ -79,12 +79,14 @@ class SourceDetectionEvaluation:
         assigments: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """
-        Returns the indices of the predicted sources that are assigned to more than one ground truth source.
+        Returns the indices of the predicted sources that are assigned
+        to more than one ground truth source.
         """
         # Check if a ground truth point is assigned to more than one predicted point
         unique_counts = np.unique(assigments[:, 0], return_counts=True)  # O(nlogn)
         pred_multiple_assignment = unique_counts[0][unique_counts[1] > 1]
-        # Don't check unassigned points (When no points are below the max distance by kdtree, they are assigned to input.shape, which we replace to -1).
+        # Don't check unassigned points (When no points are below the max distance by
+        # kdtree, they are assigned to input.shape, which we replace to -1).
         pred_multiple_assignment = pred_multiple_assignment[
             pred_multiple_assignment != -1
         ]
@@ -97,31 +99,40 @@ class SourceDetectionEvaluation:
         max_dist: float,
         top_k: int = 3,
     ) -> NDArray[np.float64]:
-        """Automatic assignment of the predicted sources `predicted` to the ground truth `gtruth`.
-        The strategy is the following:
-        (similar to `AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61, Marc MASIAS MOYSET, 2014`):
+        """Automatic assignment of the predicted sources `predicted` to the
+        ground truth `gtruth`. The strategy is the following (similar to
+        `AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61,
+        Marc MASIAS MOYSET, 2014`):
         Each distance between the predicted and the ground truth sources is calculated.
         Any distances > `max_dist` are not considered.
         Assign the closest distance from the predicted and ground truth.
-        Repeat the assignment, until every source from the gtruth has an assigment if possible,
-        not allowing any double assignments from the predicted sources to the ground truth and vice versa.
-        So each ground truth source should be assigned with a predicted source if at least one was in range
+        Repeat the assignment, until every source from the gtruth has an
+        assigment if possible, not allowing any double assignments from the predicted
+        sources to the ground truth and vice versa. So each ground truth source
+        should be assigned with a predicted source if at least one was in range
         and the predicted source assigned to another ground truth source before.
 
-        :param ground_truth: nx2 np.ndarray with the ground truth pixel coordinates of the catalog
-        :param detected: kx2 np.ndarray with the predicted pixel coordinates of the image
-        :param max_dist: maximal allowed euclidean distance for assignment (in pixel domain)
-        :param top_k: number of top predictions to be considered in scipy.spatial.KDTree. A small value could lead to inperfect results.
+        :param ground_truth: nx2 np.ndarray with the ground truth pixel
+        coordinates of the catalog
+        :param detected: kx2 np.ndarray with the predicted pixel
+        coordinates of the image
+        :param max_dist: maximal allowed euclidean distance for assignment
+        (in pixel domain)
+        :param top_k: number of top predictions to be considered in scipy.spatial.
+        KDTree. A small value could lead to inperfect results.
         :return: nx3 np.ndarray where each row represents an assignment
-        - first column represents the ground truth index (return is sorted by this column)
-            a minus index means a ground-truth source with no allocated prediction
+        - first column represents the ground truth index
+            (return is sorted by this column) a minus index means a ground-truth
+            source with no allocated prediction
         - second column represents the predicted index
             a minus index means a predicted source with no allocated ground-truth
         - third column represents the euclidean distance between the assignment
-            a "inf" means no allocation between ground-truth and prediction of that source
+            a "inf" means no allocation between ground-truth and prediction
+            of that source
 
         """
-        # With scipy.spatial.KDTree get the closest detection point for each ground truth point
+        # With scipy.spatial.KDTree get the closest detection point
+        # for each ground truth point
         tree = KDTree(ground_truth)
         distance, idx_assigment_pred = tree.query(
             detected, k=top_k, distance_upper_bound=max_dist
@@ -146,7 +157,8 @@ class SourceDetectionEvaluation:
                 idx_max_distance_multiple_assigment = idx_pred_multiple_assigment[0][
                     idx_max_distance_multiple_assigment
                 ]
-                # Switch the assignment to the next closest point by rolling the row with the highest distance one to the left
+                # Switch the assignment to the next closest point by
+                # rolling the row with the highest distance one to the left
                 distance[idx_max_distance_multiple_assigment, :] = np.roll(
                     distance[idx_max_distance_multiple_assigment, :], -1
                 )
@@ -157,8 +169,9 @@ class SourceDetectionEvaluation:
                 )
                 # Update points with no assignment with -1
                 idx_assigment_pred[distance == np.inf] = -1
-                # Check if a ground truth point is assigned to more than one predicted point
-                pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(
+                # Check if a ground truth point is assigned to more
+                # than one predicted point
+                pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(  # noqa
                     idx_assigment_pred
                 )
 
@@ -185,13 +198,15 @@ class SourceDetectionEvaluation:
         assignments: NDArray[np.float64],
     ) -> Tuple[int, int, int]:
         """
-        Calculates the True Positive (TP), False Positive (FP) and False Negative (FN) of the ground truth and predictions.
+        Calculates the True Positive (TP), False Positive (FP)
+        and False Negative (FN) of the ground truth and predictions.
         - TP are the detections associated with a source
         - FP are detections without any associated source
         - FN are sources with no associations with a detection
 
         :param assignments: nx3 did np.ndarray where each row represents an assignment
-            The `assignments` is expected to be as `automatic_assignment_of_ground_truth_and_prediction` return.
+            The `assignments` is expected to be as
+            `automatic_assignment_of_ground_truth_and_prediction` return.
             Therefore, the non-assigned sources must have a value of "-1".
 
         :return: TP, FP, FN
@@ -210,8 +225,8 @@ class SourceDetectionEvaluation:
         filename: Optional[str] = None,
     ) -> None:
         """
-        Plot the found sources as green x's and the source truth as red 'o' on the original image,
-         that the source detection was performed on.
+        Plot the found sources as green x's and the source truth as red 'o' on the
+        original image, that the source detection was performed on.
         """
 
         if self.source_detection.has_source_image() and not exclude_img:
@@ -354,11 +369,11 @@ class SourceDetectionEvaluation:
             self.detected_sources_array_pred_assigned[:, [1, 2, 5]].astype(np.float64).T
         )
         ra_dec_pred = truth[[0, 1]]
-        ra_ref = truth[0]
-        dec_ref = truth[1]
+        # ra_ref = truth[0]
+        # dec_ref = truth[1]
         flux_ref = truth[2]
-        ra_pred = pred[0]
-        dec_pred = pred[1]
+        # ra_pred = pred[0]
+        # dec_pred = pred[1]
         flux_pred = pred[2]
         phase_center = self.source_detection.get_source_image().get_phase_center()
 

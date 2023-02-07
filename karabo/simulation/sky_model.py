@@ -12,7 +12,6 @@ import numpy as np
 import oskar
 import pandas as pd
 from astropy import units as u
-from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
@@ -91,29 +90,31 @@ class SkyModel:
         """
         Add new point sources to the sky model.
 
-        :param sources: Array-like with shape (number of sources, 13). Each row representing one source.
-                        The indices in the second dimension of the array correspond to:
+        :param sources: Array-like with shape (number of sources, 13), each row
+        representing one source. The indices in the second dimension of the array
+        correspond to:
 
-                        - [0] right ascension (deg)-
-                        - [1] declination (deg)
-                        - [2] stokes I Flux (Jy)
-                        - [3] stokes Q Flux (Jy): defaults to 0
-                        - [4] stokes U Flux (Jy): defaults to 0
-                        - [5] stokes V Flux (Jy): defaults to 0
-                        - [6] reference_frequency (Hz): defaults to 0
-                        - [7] spectral index (N/A): defaults to 0
-                        - [8] rotation measure (rad / m^2): defaults to 0
-                        - [9] major axis FWHM (arcsec): defaults to 0
-                        - [10] minor axis FWHM (arcsec): defaults to 0
-                        - [11] position angle (deg): defaults to 0
-                        - [12] source id (object): defaults to None
+            - [0] right ascension (deg)-
+            - [1] declination (deg)
+            - [2] stokes I Flux (Jy)
+            - [3] stokes Q Flux (Jy): defaults to 0
+            - [4] stokes U Flux (Jy): defaults to 0
+            - [5] stokes V Flux (Jy): defaults to 0
+            - [6] reference_frequency (Hz): defaults to 0
+            - [7] spectral index (N/A): defaults to 0
+            - [8] rotation measure (rad / m^2): defaults to 0
+            - [9] major axis FWHM (arcsec): defaults to 0
+            - [10] minor axis FWHM (arcsec): defaults to 0
+            - [11] position angle (deg): defaults to 0
+            - [12] source id (object): defaults to None
 
         """
         if len(sources.shape) > 2:
             return
         if 2 < sources.shape[1] < self.sources_m + 1:
             if sources.shape[1] < self.sources_m:
-                # if some elements are missing fill them up with zeros except `source_id`
+                # if some elements are missing,
+                # fill them up with zeros except `source_id`
                 missing_shape = self.sources_m - sources.shape[1]
                 fill = self.__get_empty_sources(sources.shape[0])
                 fill[:, :-missing_shape] = sources
@@ -212,23 +213,26 @@ class SkyModel:
         dataframe = pd.read_csv(path)
         if dataframe.ndim < 2:
             raise KaraboError(
-                f"CSV doesnt have enough dimensions to hold the necessary information: Dimensions: {dataframe.ndim}"
+                "CSV doesnt have enough dimensions to hold the necessary "
+                + f"information: Dimensions: {dataframe.ndim}"
             )
 
         if dataframe.shape[1] < 3:
             raise KaraboError(
-                f"CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)"
+                "CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)"
             )
 
         if dataframe.shape[1] < 13:
             logging.info(
                 f"The CSV only holds {dataframe.shape[1]} columns."
-                f" Extra {13 - dataframe.shape[1]} columns will be filled with defaults."
+                f" Extra {13 - dataframe.shape[1]} "
+                + "columns will be filled with defaults."
             )
 
         if dataframe.shape[1] >= 13:
             logging.info(
-                f"CSV has {dataframe.shape[1] - 13} too many rows. The extra rows will be cut off."
+                f"CSV has {dataframe.shape[1] - 13} too many rows. "
+                + "The extra rows will be cut off."
             )
 
         sources = dataframe.to_numpy()
@@ -263,7 +267,8 @@ class SkyModel:
         :param outer_radius_deg: Outer radius in degrees
         :param ra0_deg: Phase center right ascension
         :param dec0_deg: Phase center declination
-        :param indices: Optional parameter, if set to True, we also return the indices of the filtered sky copy
+        :param indices: Optional parameter, if set to True,
+        we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
         copied_sky = copy.deepcopy(self)
@@ -278,7 +283,7 @@ class SkyModel:
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype("int")
         inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype("int")
         filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
-        filtered_sources_idxs = np.where(filtered_sources == True)[0]
+        filtered_sources_idxs = np.where(filtered_sources is True)[0]
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
         copied_sky.__update_sky_model()
 
@@ -393,12 +398,13 @@ class SkyModel:
         **kwargs,
     ) -> None:
         """
-        A scatter plot of the `SkyModel` (self) where the sources are projected according to the `phase_center`
+        A scatter plot of the `SkyModel` (self) where the sources
+        are projected according to the `phase_center`
 
         :param phase_center: [RA,DEC]
         :param flux_idx: `SkyModel` flux index, default is "Stokes I" flux with index 2
-        :param xlim: RA-limit of plot (switch position of `xlim` to mirror along x-axis)
-        :param ylim: DEC-limit of plot (switch position of `ylim` to mirror along y-axis)
+        :param xlim: RA-limit of plot
+        :param ylim: DEC-limit of plot
         :param figsize: figsize as tuple
         :param title: plot title
         :param xlabel: xlabel
@@ -407,10 +413,13 @@ class SkyModel:
         :param cmap: matplotlib color map
         :param cbar_label: color bar label
         :param with_labels: Plots object ID's if set?
-        :param wcs: If you want to use a custom astropy.wcs, ignores `phase_center` if set
+        :param wcs: If you want to use a custom astropy.wcs,
+        ignores `phase_center` if set
         :param wcs_enabled: Use wcs transformation?
-        :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
-        :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
+        :param filename: Set to path/fname to save figure
+        (set extension to fname to overwrite .png default)
+        :param kwargs: matplotlib kwargs for scatter & Collections,
+        e.g. customize `s`, `vmin` or `vmax`
         """
         if wcs is None and wcs_enabled:
             wcs = self.setup_default_wcs(phase_center)
@@ -442,7 +451,8 @@ class SkyModel:
             if cfun is not None:
                 flux = cfun(flux)
 
-        # handle matplotlib kwargs (not set as normal args because default assignment depends on args)
+        # handle matplotlib kwargs
+        # not set as normal args because default assignment depends on args
         if "vmin" not in kwargs:
             kwargs["vmin"] = np.min(flux)
         if "vmax" not in kwargs:
@@ -501,14 +511,15 @@ class SkyModel:
         The file should have the map keywords:
 
         :param file: hdf5 file path (healpix format)
-        :param channel: Channels of observation (between 0 and maximum numbers of channels of observation)
+        :param channel: Channels of observation
+        (between 0 and maximum numbers of channels of observation)
         :param polarisation: 0 = Stokes I, 1 = Stokes Q, 2 = Stokes U, 3 = Stokes  V
         :return:
         """
         arr = get_healpix_image(file)
         filtered = arr[channel][polarisation.value]
         ra, dec, nside = convert_healpix_2_radec(filtered)
-        size = len(ra)
+        #  size = len(ra)
         return np.vstack((ra, dec, filtered)).transpose(), nside
 
     def __update_sky_model(self) -> None:
@@ -521,7 +532,8 @@ class SkyModel:
     def __getitem__(self, key):
         """
         Allows to get access to self.sources in an np.ndarray like manner
-        If casts the selected array/scalar to float64 if possible (usually if source_id is not selected)
+        If casts the selected array/scalar to float64 if possible
+        (usually if source_id is not selected)
 
         :param key: slice key
 

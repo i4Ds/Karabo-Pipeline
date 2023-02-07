@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from astropy.wcs import WCS
@@ -23,12 +23,15 @@ from rascil.workflows.rsexecute.execution_support import rsexecute
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
+from karabo.sourcedetection.result import PyBDSFSourceDetectionResult  # used in docstr
 from karabo.util.dask import get_global_client
 from karabo.util.FileHandle import FileHandle
 
 
 class Imager:
-    """Imager class provides imaging functionality using the visibilities of an observation with the help of RASCIL.
+    """Imager class provides imaging functionality using the visibilities
+    of an observation with the help of RASCIL.
+
     In addition, it provides the calculation of the pixel coordinates of point sources.
 
     Parameters
@@ -166,42 +169,51 @@ class Imager:
         use_dask: bool = False,
         n_threads: int = 1,
         use_cuda: bool = False,  # If True, use CUDA for Nifty Gridder
-        img_context: str = "ng",  # Imaging context: Which nifty gridder to use. See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
+        # Imaging context: Which nifty gridder to use.
+        # See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
+        img_context: str = "ng",
+        # Number of brightest sources to select for initial SkyModel
+        # (if None, use all sources from input file)
         num_bright_sources: Optional[int] = None,
-        # Number of brightest sources to select for initial SkyModel (if None, use all sources from input file)
-        clean_algorithm: str = "hogbom",
         # Type of deconvolution algorithm (hogbom or msclean or mmclean)
+        clean_algorithm: str = "hogbom",
+        # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args.
         clean_beam: Optional[Dict[str, float]] = None,
-        # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args. NEEDS TESTING!!
-        clean_scales: List[int] = [
-            0
-        ],  # Scales for multiscale clean (pixels) e.g. [0, 6, 10]
-        clean_nmoment: int = 4,
+        # Scales for multiscale clean (pixels) e.g. [0, 6, 10]
+        clean_scales: List[int] = [0],
         # Number of frequency moments in mmclean (1 is a constant, 2 is linear, etc.)
+        clean_nmoment: int = 4,
         clean_nmajor: int = 5,  # Number of major cycles in cip or ical
-        clean_niter: int = 1000,  # Number of minor cycles in CLEAN (i.e. clean iterations)
+        # Number of minor cycles in CLEAN (i.e. clean iterations)
+        clean_niter: int = 1000,
         clean_psf_support: int = 256,  # Half-width of psf used in cleaning (pixels)
         clean_gain: float = 0.1,  # Clean loop gain
         clean_threshold: float = 1e-4,  # Clean stopping threshold (Jy/beam)
+        # Sources with absolute flux > this level (Jy)
+        # are fit or extracted using skycomponents
         clean_component_threshold: Optional[float] = None,
-        # Sources with absolute flux > this level (Jy) are fit or extracted using skycomponents
+        # Method to convert sources in image to skycomponents:
+        # 'fit' in frequency or 'extract' actual values
         clean_component_method: str = "fit",
-        # Method to convert sources in image to skycomponents: 'fit' in frequency or 'extract' actual values
-        clean_fractional_threshold: float = 0.3,  # Fractional stopping threshold for major cycle
-        clean_facets: int = 1,  # Number of overlapping facets in faceted clean (along each axis)
+        # Fractional stopping threshold for major cycle
+        clean_fractional_threshold: float = 0.3,
+        # Number of overlapping facets in faceted clean (along each axis)
+        clean_facets: int = 1,
         clean_overlap: int = 32,  # Overlap of facets in clean (pixels)
+        # Type of interpolation between facets in deconvolution:
+        # (none or linear or tukey)
         clean_taper: str = "tukey",
-        # Type of interpolation between facets in deconvolution (none or linear or tukey)
-        clean_restore_facets: int = 1,  # Number of overlapping facets in restore step (along each axis)
+        # Number of overlapping facets in restore step (along each axis)
+        clean_restore_facets: int = 1,
         clean_restore_overlap: int = 32,  # Overlap of facets in restore step (pixels)
+        # Type of interpolation between facets in restore step (none, linear or tukey)
         clean_restore_taper: str = "tukey",
-        # Type of interpolation between facets in restore step (none or linear or tukey)
-        clean_restored_output: str = "list",
         # Type of restored image output: taylor, list, or integrated
+        clean_restored_output: str = "list",
     ) -> Tuple[Image, Image, Image]:
         """
-        Starts imaging process using RASCIL, will run a CLEAN algorithm on the passed visibilities to the
-        Imager.
+        Starts imaging process using RASCIL, will run a CLEAN algorithm
+        on the passed visibilities to the Imager.
 
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
@@ -322,10 +334,13 @@ class Imager:
         :param filter_outlier: Exclude source outside of image?
         :param invert_ra: Invert RA axis?
 
-        :return: image-coordinates as np.ndarray[px,py] and `SkyModel` sources indices as np.ndarray[idxs]
+        :return: image-coordinates as np.ndarray[px,py] and
+        `SkyModel` sources indices as np.ndarray[idxs]
         """
         # calc WCS args
-        radian_degree = lambda rad: rad * (180 / np.pi)
+        def radian_degree(rad: float) -> float:
+            return rad * (180 / np.pi)
+
         cdelt = radian_degree(imaging_cellsize)
         crpix = np.floor((imaging_npixel / 2)) + 1
 
@@ -346,7 +361,9 @@ class Imager:
         if len(px.shape) == 0 and len(py.shape) == 0:
             px, py = [px], [py]
             idxs = np.arange(sky.num_sources)
-        # post processing, pre filtering before calling wcs.wcs_world2pix would be more efficient, however this has to be done in the ra-dec space. maybe for future work
+        # post processing, pre filtering before calling wcs.wcs_world2pix would be
+        # more efficient, however this has to be done in the ra-dec space.
+        # Maybe for future work!?
         elif filter_outlier:
             px_idxs = np.where(np.logical_and(px <= imaging_npixel, px >= 0))[0]
             py_idxs = np.where(np.logical_and(py <= imaging_npixel, py >= 0))[0]

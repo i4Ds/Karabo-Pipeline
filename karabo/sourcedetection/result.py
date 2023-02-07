@@ -25,7 +25,7 @@ class SourceDetectionResult(KaraboResource):
     ) -> None:
         """
         Generic Source Detection Result Class.
-        Inputting your Source Detection Result as an Array with specified shape and columns
+        Inputting your Source Detection Result as an array
 
         +-------+----+-----+----------------+--------------+------------+-----------+
         | index | ra | dec | pos X (pixel) | pos Y (pixel) | total_flux | peak_flux |
@@ -33,8 +33,9 @@ class SourceDetectionResult(KaraboResource):
         | 0     | 30 | 200 | 400           | 500           | 0.345     |    0.34540 |
         +-------+----+-----+----------------+--------------+------------+-----------+
 
-        Rows can also be left empty if the specified value is not found by your source detection algorithm.
-        More rows can also be added at the end. As they are not used for any internal algorithm.
+        Rows can also be left empty if the specified value is not found by your source
+        detection algorithm. More rows can also be added at the end. As they are not
+        used for any internal algorithm.
 
         :param detected_sources: detected sources in array
         :param source_image: Image, where the source detection was performed on
@@ -53,7 +54,8 @@ class SourceDetectionResult(KaraboResource):
         PyBDSFSourceDetectionResult
     ]:  # could maybe be changed using `TypeVar`, but this is more specific atm
         """
-        Detecting sources in an image. The Source detection is implemented with the PyBDSF.process_image function.
+        Detecting sources in an image. The Source detection is implemented with
+        the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
 
         :param image: Image to perform source detection on.
@@ -82,7 +84,9 @@ class SourceDetectionResult(KaraboResource):
         except RuntimeError as e:
             wmsg = "All pixels in the image are blanked."
             if str(e) == wmsg:
-                return None  # no need to create additional warnings since `bdsf` already prints an according Error message
+                # no need to create additional warnings since `bdsf`
+                # already prints an according Error message
+                return None
             else:
                 raise e
 
@@ -90,7 +94,8 @@ class SourceDetectionResult(KaraboResource):
 
     def write_to_file(self, path: str) -> None:
         """
-        Save Source Detection Result to ZIP Archive containing the .fits source image and source-finding catalog.
+        Save Source Detection Result to ZIP Archive containing the .fits source image
+        and source-finding catalog.
         :param path: path to save the zip archive as.
         """
         if path.endswith(".zip"):
@@ -178,7 +183,8 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     ) -> None:
         """
         Source Detection Result Wrapper for source detection results from PyBDSF.
-        The Object allows the use of all Karabo-Source Detection functions on PyBDSF results
+        The Object allows the use of all Karabo-Source Detection
+        functions on PyBDSF results
         :param bdsf_detection: PyBDSF result image
         """
         sources_file = FileHandle()
