@@ -31,7 +31,7 @@ class Imager:
     In addition, it provides the calculation of the pixel coordinates of point sources.
 
     Parameters
-    ----------
+    ---------------------------------------------
     visibility : Visibility, required
         Visibility object containing the visibilities of an observation.
     logfile : str, default=None,
@@ -74,13 +74,14 @@ class Imager:
         Make the PSF instead of the dirty image?
     imaging_dft_kernel : str, default=None
         DFT kernel: cpu_looped | cpu_numba | gpu_raw
+
     Attributes
-    ----------
+    ---------------------------------------------
     TODO: Add attributes
-    -----
+    ---------------------------------------------
     See [Rascil](https://gitlab.com/ska-telescope/external/rascil) for more information.
     Examples
-    --------
+    ---------------------------------------------
     >>> imager = Imager()
     >>> convolved, restored, residual = imager.imaging_rascil()
     ...
@@ -138,10 +139,10 @@ class Imager:
         self.imaging_dft_kernel = imaging_dft_kernel
 
     def get_dirty_image(self) -> Image:
-        """
-        Get Dirty Image of visibilities passed to the Imager.
+        """Get Dirty Image of visibilities passed to the Imager.
         :return: dirty image of visibilities.
         """
+
         block_visibilities = create_blockvisibility_from_ms(self.visibility.file.path)
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")

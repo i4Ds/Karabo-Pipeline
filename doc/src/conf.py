@@ -51,7 +51,11 @@ templates_path = ["_templates"]
 # List of patterns, relative to doc directory, that match files and
 # directories to ignore when looking for doc files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = [
+    "examples/_example_scripts",
+    "examples/combine_examples.py",
+    "examples/example_structure.md",
+]
 
 add_module_names = False
 
