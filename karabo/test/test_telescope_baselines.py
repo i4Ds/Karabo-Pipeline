@@ -1,17 +1,18 @@
 import os
 import unittest
-from karabo.simulation.telescope import Telescope
-from karabo.simulation.telescope import create_baseline_cut_telelescope
+from datetime import datetime, timedelta
+from math import comb
+
 import numpy as np
-from karabo.simulation.sky_model import SkyModel
+
+from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
-from datetime import timedelta, datetime
-from karabo.imaging.imager import Imager
-from math import comb
+from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import Telescope, create_baseline_cut_telelescope
 from karabo.simulation.telescope_versions import (
-    ALMAVersions,
     ACAVersions,
+    ALMAVersions,
     CARMAVersions,
     NGVLAVersions,
     PDBIVersions,

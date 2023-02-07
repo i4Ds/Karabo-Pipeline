@@ -1,5 +1,5 @@
-from distutils.core import setup
 import os
+from distutils.core import setup
 
 __version__ = {}
 with open(os.path.join("karabo", "_version.txt")) as version_file:

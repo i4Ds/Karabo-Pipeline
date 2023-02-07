@@ -2,9 +2,9 @@ import copy
 from typing import Callable, List
 
 import dask
+import psutil
 from dask import delayed
 from distributed import Client, LocalCluster
-import psutil
 
 client = None
 

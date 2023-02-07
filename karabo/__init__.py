@@ -1,5 +1,7 @@
 # set shared library if WSL to detect GPU drivers
-import os, platform, sys
+import os
+import platform
+import sys
 
 if "WSL" in platform.release() and (
     os.environ.get("LD_LIBRARY_PATH") is None
@@ -16,10 +18,12 @@ if "WSL" in platform.release() and (
     # https://stackoverflow.com/questions/6543847/setting-ld-library-path-from-inside-python
     os.execv(sys.executable, ["python"] + sys.argv)
 
+import sys
+
+from karabo.util.data_util import get_module_absolute_path
+
 # set rascil data directory environment variable (see https://ska-telescope.gitlab.io/external/rascil/RASCIL_install.html)
 from karabo.util.jupyter import set_rascil_data_directory_env
-from karabo.util.data_util import get_module_absolute_path
-import sys
 
 set_rascil_data_directory_env()
 

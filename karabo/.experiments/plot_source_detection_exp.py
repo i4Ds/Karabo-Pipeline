@@ -1,15 +1,15 @@
 import numpy as np
 
+from karabo.Imaging.image import open_fits_image
 from karabo.simulation.sky_model import SkyModel
-from karabo.sourcedetection.source_detection import (
-    read_detection_from_sources_file_csv,
-    evaluate_result_with_sky,
-)
 from karabo.sourcedetection.evaluation import (
     SourceDetectionEvaluation,
     SourceDetectionEvaluationBlock,
 )
-from karabo.Imaging.image import open_fits_image
+from karabo.sourcedetection.source_detection import (
+    evaluate_result_with_sky,
+    read_detection_from_sources_file_csv,
+)
 
 
 def plot_result():

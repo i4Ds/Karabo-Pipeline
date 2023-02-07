@@ -1,19 +1,19 @@
 from __future__ import annotations
-import shutil
-from typing import Tuple, Optional, Type
 
-import numpy as np
-from numpy.typing import NDArray
-import bdsf
-from bdsf import image as bdsf_image
+import shutil
+from typing import Optional, Tuple, Type
 from warnings import warn
+
+import bdsf
+import numpy as np
+from bdsf import image as bdsf_image
+from numpy.typing import NDArray
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import read_CSV_to_ndarray
-
+from karabo.util.FileHandle import FileHandle
 from karabo.warning import KaraboWarning
 
 

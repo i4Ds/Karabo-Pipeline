@@ -1,11 +1,11 @@
 import datetime
-from typing import Union
+from datetime import datetime, timedelta
 from operator import mod
-from datetime import timedelta, datetime
-from karabo.error import KaraboError
-from karabo.warning import KaraboWarning
+from typing import Union
 
+from karabo.error import KaraboError
 from karabo.util.gpu_util import is_cuda_available
+from karabo.warning import KaraboWarning
 
 
 class Observation:

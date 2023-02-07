@@ -1,28 +1,29 @@
 from __future__ import annotations
+
 import copy
 import enum
 import logging
 import math
-from typing import Callable, Tuple, Optional, List, Any, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy
 import numpy as np
-from numpy.typing import NDArray
 import oskar
 import pandas as pd
 from astropy import units as u
-from astropy.wcs import WCS
+from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
-from astropy.coordinates import SkyCoord
+from astropy.wcs import WCS
+from numpy.typing import NDArray
 
 from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboError
-from karabo.util.hdf5_util import get_healpix_image, convert_healpix_2_radec
+from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
 

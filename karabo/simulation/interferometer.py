@@ -1,18 +1,22 @@
-import enum, os, sys, glob
+import enum
+import glob
+import os
+import sys
 from copy import deepcopy
-from typing import Dict, List, Union, Any
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Union
 
-import oskar
 import numpy as np
+import oskar
+
 import karabo.error
-from karabo.simulation.visibility import Visibility
+from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.beam import BeamPattern
-from karabo.util.FileHandle import FileHandle
+from karabo.simulation.visibility import Visibility
 from karabo.util.data_util import input_wrapper
-from datetime import timedelta, datetime
+from karabo.util.FileHandle import FileHandle
 
 
 class CorrelationType(enum.Enum):

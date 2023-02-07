@@ -1,6 +1,5 @@
 import enum
 
-
 # when adding new versions make sure the string for the enum value is the string used in the telescope file name
 
 

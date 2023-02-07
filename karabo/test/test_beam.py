@@ -1,15 +1,17 @@
 import os
 import unittest
-from karabo.simulation.interferometer import InterferometerSimulation
+from datetime import datetime, timedelta
+
+import numpy as np
+from astropy.io import fits
+
+from karabo.imaging.imager import Imager
 from karabo.simulation.beam import BeamPattern
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
+from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test import data_path
-from karabo.simulation.sky_model import SkyModel
-import numpy as np
-from karabo.simulation.observation import Observation
-from datetime import timedelta, datetime
-from karabo.imaging.imager import Imager
-from astropy.io import fits
 
 
 class MyTestCase(unittest.TestCase):

@@ -1,19 +1,24 @@
 from __future__ import annotations
+
 import logging
 import os
 import re
 import shutil
+from math import comb
 from typing import List, Optional
 
 import numpy as np
 import oskar.telescope as os_telescope
-from math import comb
+from astropy import units
+from astropy.stats import gaussian_fwhm_to_sigma
+
 import karabo.error
 from karabo.karabo_resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import (
+    ACAVersions,
     ALMAVersions,
     ATCAVersions,
     CARMAVersions,
@@ -21,13 +26,10 @@ from karabo.simulation.telescope_versions import (
     PDBIVersions,
     SMAVersions,
     VLAVersions,
-    ACAVersions,
 )
-from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_absolute_path
+from karabo.util.FileHandle import FileHandle
 from karabo.util.math_util import long_lat_to_cartesian
-from astropy import units
-from astropy.stats import gaussian_fwhm_to_sigma
 
 
 class Telescope(KaraboResource):

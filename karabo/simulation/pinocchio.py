@@ -1,11 +1,11 @@
 import os
-import subprocess
 import shutil
-import numpy as np
-import matplotlib.pyplot as plt
-
+import subprocess
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import Dict, List
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle

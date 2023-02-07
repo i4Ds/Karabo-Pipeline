@@ -1,24 +1,22 @@
-import os, pickle
+import os
+import pickle
 import unittest
-
-import numpy as np
-
-from karabo.imaging.imager import Imager
-from karabo.imaging.image import Image
-from karabo.simulation.telescope import Telescope
-from karabo.simulation.observation import Observation
-from karabo.simulation.sky_model import SkyModel
-from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
-from karabo.sourcedetection.result import (
-    SourceDetectionResult,
-    PyBDSFSourceDetectionResult,
-)
-from karabo.simulation.interferometer import InterferometerSimulation
-
-from karabo.test import data_path
 
 # import wagg as wg #This gives an ImportError if no GPU is available
 import numpy as np
+
+from karabo.imaging.image import Image
+from karabo.imaging.imager import Imager
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
+from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import Telescope
+from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
+from karabo.sourcedetection.result import (
+    PyBDSFSourceDetectionResult,
+    SourceDetectionResult,
+)
+from karabo.test import data_path
 
 
 class TestSourceDetection(unittest.TestCase):

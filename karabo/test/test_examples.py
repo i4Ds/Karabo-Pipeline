@@ -1,5 +1,5 @@
-import unittest
 import glob
+import unittest
 
 
 class TestDocExamples(unittest.TestCase):

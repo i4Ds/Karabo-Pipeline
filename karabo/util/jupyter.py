@@ -8,8 +8,8 @@ def set_rascil_data_directory_env():
     This function is idempotent (running it more than once brings no side effects).
 
     """
-    from distutils.sysconfig import get_python_lib
     import os
+    from distutils.sysconfig import get_python_lib
 
     data_folder = f"{get_python_lib()}/../../../data"
     os.environ["RASCIL_DATA"] = data_folder

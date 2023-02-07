@@ -1,17 +1,21 @@
 from __future__ import annotations
-import logging, os, shutil, uuid
-from typing import Tuple, Dict, List, Any, Optional, Union
+
+import logging
+import os
+import shutil
+import uuid
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy
 import numpy as np
-from numpy.typing import NDArray
 from astropy.io import fits
 from astropy.wcs import WCS
-import matplotlib.pyplot as plt
+from numpy.typing import NDArray
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import check_ending, FileHandle
+from karabo.util.FileHandle import FileHandle, check_ending
 
 # store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
 previous_backend = matplotlib.get_backend()

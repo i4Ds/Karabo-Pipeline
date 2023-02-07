@@ -5,17 +5,18 @@ from typing import Callable
 
 import eidos
 import numpy as np
+from astropy import units
+from astropy.stats import gaussian_fwhm_to_sigma
 from eidos.create_beam import zernike_parameters
 from eidos.spatial import recon_par
 from katbeam import JimBeam
 from matplotlib import pyplot as plt
-from astropy.stats import gaussian_fwhm_to_sigma
+from scipy import interpolate
+
 from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
-from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_path_of_module
-from scipy import interpolate
-from astropy import units
+from karabo.util.FileHandle import FileHandle
 
 
 class PolType(enum.Enum):

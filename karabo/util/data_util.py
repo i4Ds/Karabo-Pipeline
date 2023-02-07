@@ -1,12 +1,14 @@
 import os
+from types import ModuleType
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
+from astropy.io import fits
+from numpy.typing import NDArray
+from scipy.special import wofz
+
 import karabo
 from karabo.imaging.image import Image
-from typing import List, Dict, Any, Tuple
-from types import ModuleType
-from numpy.typing import NDArray
-from astropy.io import fits
-from scipy.special import wofz
 
 
 def get_module_absolute_path() -> str:

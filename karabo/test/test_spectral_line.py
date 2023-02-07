@@ -1,19 +1,20 @@
 import os
 import unittest
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
+
+import matplotlib.pyplot as plt
 import numpy as np
+import oskar
+from scipy.optimize import curve_fit
+from scipy.special import wofz
+
 from karabo.imaging.imager import Imager
+from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.interferometer import InterferometerSimulation
-from scipy.optimize import curve_fit
-import numpy as np
-from scipy.special import wofz
-import oskar
-import matplotlib.pyplot as plt
-from karabo.util.data_util import Gauss, resample_spectral_lines
 from karabo.simulation.visibility import Visibility
+from karabo.util.data_util import Gauss, resample_spectral_lines
 
 
 class TestSystemNoise(unittest.TestCase):

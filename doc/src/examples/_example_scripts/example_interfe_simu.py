@@ -1,8 +1,9 @@
-from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope
+import numpy as np
+
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
-import numpy as np
+from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import Telescope
 
 # create a simple sky model with three point sources
 sky = SkyModel()

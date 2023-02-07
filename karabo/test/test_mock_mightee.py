@@ -1,23 +1,25 @@
-import os
-import unittest
-from datetime import timedelta, datetime
-import numpy as np
-from karabo.imaging.imager import Imager
-from karabo.simulation.observation import Observation
-from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope
-from karabo.simulation.interferometer import InterferometerSimulation
-from astropy.io import fits
-import time
 import glob
+import os
+import time
+import unittest
+from datetime import datetime, timedelta
+
+import matplotlib.pyplot as plt
+import numpy as np
+import rascil.processing_components.simulation.rfi as rf
+from astropy.io import fits
 from reproject import reproject_interp
 from reproject.mosaicking import reproject_and_coadd
-import matplotlib.pyplot as plt
-import rascil.processing_components.simulation.rfi as rf
+
 from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
+from karabo.imaging.imager import Imager
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
+from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import Telescope
 
 
 class TestSystemNoise(unittest.TestCase):

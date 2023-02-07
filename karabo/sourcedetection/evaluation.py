@@ -1,15 +1,18 @@
 from __future__ import annotations
+
+from typing import Optional, Tuple, Union
+
+import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
-import astropy.units as u
 from matplotlib import pyplot as plt
+from numpy.typing import NDArray
 from scipy.spatial import KDTree
+
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.result import SourceDetectionResult
 from karabo.util.plotting_util import get_slices
-from typing import Union, Tuple, Optional
-from numpy.typing import NDArray
 
 
 class SourceDetectionEvaluation:

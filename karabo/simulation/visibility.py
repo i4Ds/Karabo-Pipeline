@@ -1,11 +1,12 @@
+import os
 import os.path
 import shutil
-import os
-from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
-import oskar
 
 import numpy as np
+import oskar
+
+from karabo.karabo_resource import KaraboResource
+from karabo.util.FileHandle import FileHandle
 
 
 class Visibility(KaraboResource):
