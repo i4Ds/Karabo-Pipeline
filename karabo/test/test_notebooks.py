@@ -1,4 +1,7 @@
 import unittest
+import os
+
+RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
 
 
 class TestJupyterNotebooks(unittest.TestCase):
@@ -28,8 +31,10 @@ class TestJupyterNotebooks(unittest.TestCase):
     def test_meerKAT_data_access_notebook(self):
         self._test_notebook("MeerKAT_data_access.ipynb")
 
+    @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
     def test_source_detection_notebook(self):
         self._test_notebook("source_detection.ipynb")
 
+    @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
     def test_source_detection_assesment_notebook(self):
         self._test_notebook("source_detection_assessment.ipynb")
