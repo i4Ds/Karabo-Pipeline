@@ -63,8 +63,8 @@ class MyTestCase(unittest.TestCase):
         # telescope.centre_longitude = 3
         xcstfile_path = "./karabo/test/data/cst_like_beam_port_1.txt"
         ycstfile_path = "./karabo/test/data/cst_like_beam_port_2.txt"
-        # xcstfile_path = '/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_1.txt'
-        # ycstfile_path = '/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_2.txt'
+        #xcstfile_path = '/home/jennifer/Karabo-Pipeline/karabo/test/data/cst_like_beam_port_1.txt'
+        #ycstfile_path = '/home/jennifer/Karabo-Pipeline/karabo/test/data/cst_like_beam_port_2.txt'
         enable_array_beam = True
         # Remove beam if already present
         test = os.listdir(telescope.path)
@@ -74,15 +74,15 @@ class MyTestCase(unittest.TestCase):
         if enable_array_beam:
             # ------------ X-coordinate
             pb = BeamPattern(xcstfile_path)  # Instance of the Beam class
-            beam = pb.sim_beam(beam_method="EIDOS_AH")  # Computing beam
+            beam = pb.sim_beam(beam_method="KatBeam", f=1000,fov=30)  # Computing beam
             pb.save_meerkat_cst_file(beam[3])  # Saving the beam cst file
             pb.fit_elements(
-                telescope, freq_hz=1.0e9, avg_frac_error=0.8, pol="X"
+                telescope, freq_hz=1.0e9, avg_frac_error=0.005, pol="X"
             )  # Fitting the beam using cst file
             # ------------ Y-coordinate
             pb = BeamPattern(ycstfile_path)
             pb.save_meerkat_cst_file(beam[4])
-            pb.fit_elements(telescope, freq_hz=1.0e9, avg_frac_error=0.8, pol="Y")
+            pb.fit_elements(telescope, freq_hz=1.0e9, avg_frac_error=0.005, pol="Y")
         # ------------- Simulation Begins
         simulation = InterferometerSimulation(
             vis_path="./karabo/test/data/beam_vis.vis",

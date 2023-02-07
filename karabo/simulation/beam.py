@@ -5,6 +5,7 @@ from typing import Callable
 
 import eidos
 import numpy as np
+import scipy.ndimage
 from eidos.create_beam import zernike_parameters
 from eidos.spatial import recon_par
 from katbeam import JimBeam
@@ -366,7 +367,8 @@ class BeamPattern:
     def sim_beam(
         self,
         beam_method: str = None,
-            f: float = None
+            f: float = None,
+            fov: float = 30
     ):
         """
         Simulates the primary beam
@@ -484,34 +486,42 @@ class BeamPattern:
                 method="cubic",
                 fill_value=0,
             )
+            vcopol_x[np.where(theta.value > 5)] = 0
+            vcrpol_x[np.where(theta.value > 5)] = 0
+            vcopol_y[np.where(theta.value > 5)] = 0
+            vcrpol_y[np.where(theta.value > 5)] = 0
         if self.beam_method == "KatBeam":
-            beampixel = self.get_meerkat_uhfbeam(f, "H", 30, 30)
-            theta_kb, phi_kb = self.cart2pol(beampixel[0], beampixel[1])
+            beampixel = self.get_meerkat_uhfbeam(f, "H", fov, fov)
+            theta_kb = beampixel[0] + fov/2
+            phi_kb = beampixel[1] + fov/2
             katb_H = beampixel[2]
-            phi_kb = phi_kb * 180.0 / np.pi + 180
-            vcopol_x = interpolate.griddata(
-                (theta_kb.flatten(), phi_kb.flatten()),
-                katb_H.flatten(),
-                (theta, phi),
-                method="cubic",
-                fill_value=0,
-            )
-            vcrpol_x = self.quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
-            beampixel = self.get_meerkat_uhfbeam(f, "V", 30, 30)
-            theta_kb = beampixel[0] + 15
-            phi_kb = beampixel[1] + 15
+            print(theta_kb.shape,katb_H.shape)
+            #phi_kb = phi_kb * 180.0 / np.pi + 180
+            vcopol_x = katb_H #scipy.ndimage.map_coordinates(katb_H, [theta, phi], order=3)
+            theta=theta_kb.flatten()*units.deg;phi=phi_kb.flatten()*units.deg
+            #vcopol_x = interpolate.griddata(
+            #    (theta_kb.flatten(), phi_kb.flatten()),
+            #    katb_H.flatten(),
+            #    (theta, phi),
+            #    method="cubic",
+            #    fill_value=0,
+            #)
+            vcrpol_x = self.quad_crosspol(theta_kb, phi_kb, vcopol_x)
+            vcrpol_x = vcrpol_x.flatten()
+            vcopol_x = vcopol_x.flatten()
+            beampixel = self.get_meerkat_uhfbeam(f, "V", fov, fov)
             katb_V = beampixel[2]
-            vcopol_y = interpolate.griddata(
-                (theta_kb.flatten(), phi_kb.flatten()),
-                katb_V.flatten(),
-                (theta, phi),
-                method="cubic",
-            )
-            vcrpol_y = self.quad_crosspol(theta, phi, vcopol_y, **crpol_kwargs)
-        vcopol_x[np.where(theta.value > 5)] = 0
-        vcrpol_x[np.where(theta.value > 5)] = 0
-        vcopol_y[np.where(theta.value > 5)] = 0
-        vcrpol_y[np.where(theta.value > 5)] = 0
+            vcopol_y = katb_V
+            #vcopol_y = interpolate.griddata(
+            #    (theta_kb.flatten(), phi_kb.flatten()),
+            #    katb_V.flatten(),
+            #    (theta, phi),
+            #    method="cubic",
+            #)
+            vcrpol_y = self.quad_crosspol(theta_kb, phi_kb, vcopol_y)
+            vcopol_y = vcopol_y.flatten()
+            vcrpol_y = vcrpol_y.flatten()
+            print(theta.shape, phi.shape,)
         data_x = np.column_stack(
             [
                 theta.value,  # Theta [deg]
