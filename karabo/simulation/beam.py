@@ -365,11 +365,23 @@ class BeamPattern:
 
     def sim_beam(
         self,
-        beam_method=None,
+        beam_method: str = None,
+            f: float = None
     ):
+        """
+        Simulates the primary beam
+
+        :param beam_method: you can choose as beams: "Gaussian Beam", "Eidos_AH", "Eidos_EM", "KatBeam"
+        :param f: the frequency for which the beam is simulated
+        """
         if beam_method is not None:
             self.beam_method = beam_method
-        print("Computing Primary Beam from " + str(self.beam_method))
+        if f is not None:
+            self.f = f
+            print("Computing Primary Beam from " + str(self.beam_method) + "for frequency" + str(self.f))
+        else:
+            print("Computing Primary Beam from " + str(self.beam_method))
+
         max_theta = 20 * units.deg
         n_theta = 180
         n_phi = 360
@@ -473,7 +485,7 @@ class BeamPattern:
                 fill_value=0,
             )
         if self.beam_method == "KatBeam":
-            beampixel = get_meerkat_uhfbeam(f, "H", 30, 30)
+            beampixel = self.get_meerkat_uhfbeam(f, "H", 30, 30)
             theta_kb, phi_kb = self.cart2pol(beampixel[0], beampixel[1])
             katb_H = beampixel[2]
             phi_kb = phi_kb * 180.0 / np.pi + 180
@@ -484,8 +496,8 @@ class BeamPattern:
                 method="cubic",
                 fill_value=0,
             )
-            vcrpol_x = quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
-            beampixel = get_meerkat_uhfbeam(f, "V", 30, 30)
+            vcrpol_x = self.quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
+            beampixel = self.get_meerkat_uhfbeam(f, "V", 30, 30)
             theta_kb = beampixel[0] + 15
             phi_kb = beampixel[1] + 15
             katb_V = beampixel[2]
@@ -495,7 +507,7 @@ class BeamPattern:
                 (theta, phi),
                 method="cubic",
             )
-            vcrpol_y = quad_crosspol(theta, phi, vcopol_y, **crpol_kwargs)
+            vcrpol_y = self.quad_crosspol(theta, phi, vcopol_y, **crpol_kwargs)
         vcopol_x[np.where(theta.value > 5)] = 0
         vcrpol_x[np.where(theta.value > 5)] = 0
         vcopol_y[np.where(theta.value > 5)] = 0
