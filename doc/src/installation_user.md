@@ -6,6 +6,17 @@
 - Linux 
 - Windows 10+ (21H1+) with the Hypervisor based Windows Subsystem for Linux (WSL)
 
+### Memory Requirements
+- 8GB RAM
+
+### Disk Space Requirements
+#### Recommended - For installation
+-  10GB
+
+#### Cleaned Installation Size (description below)
+-  Karabo: ~2.5GB
+-  Miniconda with Libmamba: ~1GB
+
 ### Tools
 - Miniconda / Anaconda
 
@@ -16,8 +27,37 @@
 
 We have noticed that dependency-resolving with conda's native solver can take a while. Therefore, we recommend installing Miniconda and use the libmamba solver for installation.
 
-1. Go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html and follow the steps.
-2. Install libmamba with `conda install -n base conda-libmamba-solver` and `conda config --set solver libmamba`
+### Install miniconda
+
+The following steps will install miniconda for python 3.9. Those steps are also explained in the [MiniConda install guide](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html). If any links are broken on our side please report this on the issue tracker. 
+
+1. Get the miniconda installer
+- `wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh`
+
+2. Start the installer 
+- `bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh`
+
+3. [During Installation] Press 'enter' to open the licence agreement. Close it again with 'q'
+4. [During Installation] Confirm it with a 'yes' if you agree - if you want to use Karabo, you have to agree. 
+5. [During Installation] Confirm the conda installation path with 'enter'
+6. [During Installation] Confirm the conda init question with a 'yes'
+7. Reopen the terminal. There should be a `(base)` in front of your path.
+8. Verify your base environment by printing the installed base packages with
+- `conda list`
+9. If the command went through - the installation was successful 
+
+
+### Install libmamba with the following steps:
+
+Install the LibMamba Solver
+- `conda install -n base conda-libmamba-solver`
+
+Libmamba can be set as the standard solver for conda. If you do not wish to have it as standard but want to use it in some workloads, add the following parameter at the end of your conda install statement `--experimental-solver=libmamba`
+
+Example: `conda install python=3.10 --experimental-solver=libmamba`
+
+If you want to use it everywhere, use the following statement to declare it as the standard solver
+- `conda config --set solver libmamba`
 
 ## Karabo Pipeline installation with Conda
 
@@ -34,6 +74,9 @@ conda activate karabo-env
 # karabo-pipeline
 conda install -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 ```
+
+Run this command to free disk space after the installation. This will remove all temporary and cached packages - after this you get the installation size described in the requirements.
+- `conda clean --all -y`
 
 ## MacOS Support
 
@@ -81,3 +124,11 @@ feature:|@/linux-64::__glibc==2.31=0
 ```
 
 This is usually fixable when fixing the python version to 3.9 when creating the environment.
+
+### Conda update breaks libmamba 
+
+If the base environment got updatet to conda 23.xxx with the following command:
+- `conda update -n base -c defaults conda`
+
+Libmamba is not installable - the issue was reported to the creators of mamba. Use the conda 22 release, this command will reset conda to version 22:
+- `conda install --rev 0 --name base`
