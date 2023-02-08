@@ -283,7 +283,7 @@ class SkyModel:
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype("int")
         inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype("int")
         filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
-        filtered_sources_idxs = np.where(filtered_sources is True)[0]
+        filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
         copied_sky.__update_sky_model()
 
