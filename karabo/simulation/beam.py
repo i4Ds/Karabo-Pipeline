@@ -367,14 +367,15 @@ class BeamPattern:
     def sim_beam(
         self,
         beam_method: str = None,
-            f: float = None,
-            fov: float = 30
+        f: float = None,
+        fov: float = 30
     ):
         """
         Simulates the primary beam
 
         :param beam_method: you can choose as beams: "Gaussian Beam", "Eidos_AH", "Eidos_EM", "KatBeam"
         :param f: the frequency for which the beam is simulated
+        :param fov: when using "KatBeam" the beam will be simulated for this size of fov (radius)
         """
         if beam_method is not None:
             self.beam_method = beam_method
