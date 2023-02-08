@@ -23,7 +23,6 @@ from rascil.workflows.rsexecute.execution_support import rsexecute
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
-from karabo.sourcedetection.result import PyBDSFSourceDetectionResult  # used in docstr
 from karabo.util.dask import get_global_client
 from karabo.util.FileHandle import FileHandle
 
@@ -78,18 +77,6 @@ class Imager:
         Make the PSF instead of the dirty image?
     imaging_dft_kernel : str, default=None
         DFT kernel: cpu_looped | cpu_numba | gpu_raw
-
-    Attributes
-    ---------------------------------------------
-    TODO: Add attributes
-    ---------------------------------------------
-    See [Rascil](https://gitlab.com/ska-telescope/external/rascil) for more information.
-    Examples
-    ---------------------------------------------
-    >>> imager = Imager()
-    >>> convolved, restored, residual = imager.imaging_rascil()
-    ...
-    >>> PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
     """
 
     def __init__(
