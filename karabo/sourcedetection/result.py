@@ -212,8 +212,11 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         ):
             sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         else:
-            wmsg = f"Got unexpected shape of `bdsf_detected_sources` of {bdsf_detected_sources.shape}, \
-                expected 2-dimensional array with sources!"
+            wmsg = (
+                "Got unexpected shape of `bdsf_detected_sources` of "
+                + f"{bdsf_detected_sources.shape}, expected 2-dimensional "
+                + "array with sources!"
+            )
             warn(KaraboWarning(wmsg))
             sources = bdsf_detected_sources
         return sources

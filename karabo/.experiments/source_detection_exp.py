@@ -1,6 +1,5 @@
 import os
 
-import dask
 import numpy as np
 from dask.distributed import Client
 
@@ -10,7 +9,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection import SourceDetectionEvaluation, SourceDetectionResult
-from karabo.util.dask import get_global_client, parallel_for, parallel_for_each
+from karabo.util.dask import parallel_for_each
 
 
 def one_expirement(flux):

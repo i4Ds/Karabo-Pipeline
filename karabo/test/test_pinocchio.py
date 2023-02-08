@@ -2,8 +2,6 @@ import datetime
 import os
 import unittest
 
-from astropy import units as u
-
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation

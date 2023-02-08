@@ -1,14 +1,12 @@
 import os
 from types import ModuleType
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Tuple
 
 import numpy as np
-from astropy.io import fits
 from numpy.typing import NDArray
 from scipy.special import wofz
 
 import karabo
-from karabo.imaging.image import Image
 
 
 def get_module_absolute_path() -> str:
@@ -74,7 +72,7 @@ def get_spectral_sky_data(
 ) -> NDArray[np.float64]:
     dfreq_arr = np.linspace(-0.1, 0.1, 100)
     y_voigt = Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01)
-    y_gauss = Gauss(dfreq_arr, 0, 0, 1, 0.01)
+    # y_gauss = Gauss(dfreq_arr, 0, 0, 1, 0.01)
     dfreq_sample = dfreq_arr[::nfreq]
     flux_sample = y_voigt[::nfreq]
     freq_sample = freq0 + dfreq_sample * freq0
@@ -103,8 +101,10 @@ def input_wrapper(
     ret: str = "y",
 ) -> str:
     """
-    Wrapper of standard `input` to define what return `ret` it will get during Unit-tests, since the test just stops oterwise.
-    The environment variable 'SKIP_INPUT' or 'UNIT_TEST' must be set with an arbitrary value to return `ret`.
+    Wrapper of standard `input` to define what return `ret` it will get during
+    Unit-tests, since the test just stops oterwise.
+    The environment variable 'SKIP_INPUT' or 'UNIT_TEST' must be set
+    with an arbitrary value to return `ret`.
 
     :param msg: input message
     :param ret: return value if 'SKIP_INPUT' or 'UNIT_TEST' is set, default='y'

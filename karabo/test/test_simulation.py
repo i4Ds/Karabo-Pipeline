@@ -3,7 +3,6 @@ import unittest
 
 import numpy as np
 
-from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel

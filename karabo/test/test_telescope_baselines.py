@@ -1,7 +1,5 @@
-import os
 import unittest
 from datetime import datetime, timedelta
-from math import comb
 
 import numpy as np
 
@@ -10,15 +8,6 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope, create_baseline_cut_telelescope
-from karabo.simulation.telescope_versions import (
-    ACAVersions,
-    ALMAVersions,
-    CARMAVersions,
-    NGVLAVersions,
-    PDBIVersions,
-    SMAVersions,
-    VLAVersions,
-)
 
 
 class MyTestCase(unittest.TestCase):

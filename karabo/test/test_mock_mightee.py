@@ -1,20 +1,14 @@
 import glob
 import os
-import time
 import unittest
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import numpy as np
-import rascil.processing_components.simulation.rfi as rf
 from astropy.io import fits
 from reproject import reproject_interp
-from reproject.mosaicking import reproject_and_coadd
 
-from karabo.data.external_data import (
-    GLEAMSurveyDownloadObject,
-    MIGHTEESurveyDownloadObject,
-)
+from karabo.data.external_data import MIGHTEESurveyDownloadObject
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -30,14 +24,13 @@ class TestSystemNoise(unittest.TestCase):
             os.makedirs("result/system_noise")
 
     def test_mightee_download(self):
-        mightee1 = SkyModel.get_MIGHTEE_Sky()
+        _ = SkyModel.get_MIGHTEE_Sky()
         survey = MIGHTEESurveyDownloadObject()
         path = survey.get()
-        mightee = SkyModel.get_fits_catalog(path)
+        _ = SkyModel.get_fits_catalog(path)
 
     def test_mock_mightee(self):
         sky = SkyModel()
-        start_time = time.time()
         mightee1 = SkyModel.get_MIGHTEE_Sky()
         # mightee0=fits.open('https://object.cscs.ch:443/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits');mightee_continuum=mightee0[1].data
         mightee_continuum = mightee1.to_array()
@@ -98,9 +91,8 @@ class TestSystemNoise(unittest.TestCase):
                     + str(phase_dec)
                     + ".ms"
                 )
-                imager = Imager(
-                    visibility, imaging_npixel=4096, imaging_cellsize=50
-                )  # imaging cellsize is over-written in the Imager based on max uv dist.
+                # imaging cellsize is over-written in the Imager based on max uv dist.
+                imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)
                 dirty = imager.get_dirty_image()
                 dirty.write_to_file(
                     "result/mock_mightee/noise_dirty"
@@ -123,7 +115,10 @@ class TestSystemNoise(unittest.TestCase):
             i = i + 1
         mc_hdu = hdu[0]
         mc_array, footprint = reproject_interp(ff[1], mc_hdu)
-        # mc_array, footprint = reproject_and_coadd((data[0], hdu[0]), mc_hdu, reproject_function=reproject_interp)
+        # mc_array, footprint = reproject_and_coadd(
+        #     (data[0], hdu[0]),
+        #     mc_hdu, reproject_function=reproject_interp,
+        # )
         mosaic_hdu = fits.PrimaryHDU(data=mc_array, header=mc_hdu)
         mosaic_hdu.writeto("result/mock_mightee/mosaic.fits", overwrite=True)
         f, ax = plt.subplots(2, 1)
@@ -135,17 +130,27 @@ class TestSystemNoise(unittest.TestCase):
 
         # cc=reproject_and_coadd(imglist[1:2],output_projection=hdu[0],reproject_function=reproject_interp)
 
-        """      
+        """
         time_vis_write=(time.time() - start_time)
-        imager = Imager(visibility,
-                         imaging_npixel=4096,
-                         imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
+        imager = Imager(
+            visibility,
+            imaging_npixel=4096,
+            imaging_cellsize=50,
+        ) # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/mock_mightee/noise_dirty.fits")
         time_end=(time.time() - start_time)
         print(time_vis,time_vis_write,time_end)
         dirty.plot(title='Flux Density (Jy)',vmin=0,vmax=0.5)
-        plt.plot([1,10,30,60,80,100],[20.5,22.4,30.2,40.3,42.2,44.4],'o-',label='Vis Run')
-        plt.plot([1, 10, 30, 60, 80, 100], [24.3,46.5,148.2,247.2,373.6,537.7], 'o-', label='Vis + Image Run')
+        plt.plot(
+            [1, 10, 30, 60, 80, 100],
+            [20.5, 22.4, 30.2, 40.3, 42.2, 44.4],
+            'o-', label='Vis Run',
+        )
+        plt.plot(
+            [1, 10, 30, 60, 80, 100],
+            [24.3, 46.5, 148.2, 247.2, 373.6, 537.7],
+            'o-', label='Vis + Image Run',
+        )
         plt.xlabel('Number of Channels');plt.ylabel('Execution Time (sec)')
         plt.legend();plt.show()"""
