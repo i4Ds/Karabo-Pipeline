@@ -13,6 +13,8 @@
 import os
 import sys
 
+import sphinx_rtd_theme  # noqa
+
 # We need to add the parent directory to the path so that Sphinx can find the
 # modules to document.
 sys.path.insert(0, os.path.abspath(".."))
