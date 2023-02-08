@@ -369,11 +369,7 @@ class SourceDetectionEvaluation:
             self.detected_sources_array_pred_assigned[:, [1, 2, 5]].astype(np.float64).T
         )
         ra_dec_pred = truth[[0, 1]]
-        # ra_ref = truth[0]
-        # dec_ref = truth[1]
         flux_ref = truth[2]
-        # ra_pred = pred[0]
-        # dec_pred = pred[1]
         flux_pred = pred[2]
         phase_center = self.source_detection.get_source_image().get_phase_center()
 

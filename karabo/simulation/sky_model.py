@@ -519,7 +519,6 @@ class SkyModel:
         arr = get_healpix_image(file)
         filtered = arr[channel][polarisation.value]
         ra, dec, nside = convert_healpix_2_radec(filtered)
-        #  size = len(ra)
         return np.vstack((ra, dec, filtered)).transpose(), nside
 
     def __update_sky_model(self) -> None:

@@ -93,7 +93,6 @@ class Visibility(KaraboResource):
         print("### Writing combined visibilities in ", combined_vis_filepath)
         start_row = 0
         exposure_sec = fg_header.get_time_average_sec()
-        #  sc = [0] * len(foreground_cross_correlation)
         fg_chan = [0] * len(foreground_cross_correlation)
         time_stamp = fg_header.get_time_start_mjd_utc()
         ms.write_coords(
