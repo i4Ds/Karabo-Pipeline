@@ -1,0 +1,27 @@
+name: Tests
+
+on:
+  schedule: # Every night at 5am
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+
+jobs:
+  Test_Karabo:
+    runs-on: ubuntu-20.04
+    container: ghcr.io/i4ds/karabo-pipeline:development
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Test Code
+        shell: bash -l {0}
+        run: |
+          conda activate karabo_dev_env
+          export IS_GITHUB_RUNNER=true
+          export RUN_SLOW_TESTS=true
+          python -m xmlrunner -o ./test-reports/junit
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: test-reports/**/*.xml

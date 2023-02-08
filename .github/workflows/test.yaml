@@ -31,6 +31,7 @@ jobs:
         run: |
           conda activate karabo_dev_env
           export IS_GITHUB_RUNNER=true
+          export RUN_SLOW_TESTS=false
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1

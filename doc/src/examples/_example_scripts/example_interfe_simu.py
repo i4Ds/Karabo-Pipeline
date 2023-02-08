@@ -4,6 +4,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.util.FileHandle import FileHandle
 
 # create a simple sky model with three point sources
 sky = SkyModel()
@@ -31,3 +32,7 @@ observation = Observation(start_frequency_hz=1e6)
 
 # run a single simulation with the provided configuration
 simulation.run_simulation(telescope, sky, observation)
+
+# clean up
+fh = FileHandle()
+fh.clean_up()
