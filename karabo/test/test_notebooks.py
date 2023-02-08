@@ -5,7 +5,6 @@ RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
 
 
 class TestJupyterNotebooks(unittest.TestCase):
-    # Change working directory to the folder containing the notebooks
     @classmethod
     def setUpClass(cls):
         import os
