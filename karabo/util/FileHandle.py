@@ -5,11 +5,9 @@ import uuid
 
 class FileHandle:
     path: str
-    __temp_path = "./.tmp/"
+    __temp_path = os.path.join(os.getcwd(), "karabo_folder" + os.path.sep)
 
-    def __init__(
-        self, existing_file_path: str = None, is_dir: bool = False, mode="rt", suffix=""
-    ):
+    def __init__(self, existing_file_path: str = None, is_dir: bool = False, suffix=""):
 
         tmp_path = os.path.abspath(self.__temp_path + str(uuid.uuid4()) + suffix)
 
@@ -40,14 +38,12 @@ class FileHandle:
                 open(tmp_path, "x")
                 self.path = tmp_path
 
-    def __del__(self):
-        if os.path.isdir(self.path):
-            shutil.rmtree(self.path)
-        else:
-            os.remove(self.path)
-        # remove temp dir if it was the last temporary file
-        if len(os.listdir(self.__temp_path)) == 0:
-            os.rmdir(self.__temp_path)
+    def clean_up(self):
+        # remove temp folder and everything inside it
+        shutil.rmtree(self.__temp_path)
+
+    def remove_file(self, file_path: str):
+        os.remove(file_path)
 
 
 def check_ending(path: str, ending: str) -> None:
