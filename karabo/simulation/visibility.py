@@ -177,13 +177,13 @@ class Visibility(KaraboResource):
                 block.read(header, handle, k)
             out_vis[j] = block.cross_correlations()
             uui[j] = block.baseline_uu_metres()
-            vvi[j] = block.baseline_uu_metres()
-            wwi[j] = block.baseline_uu_metres()
+            vvi[j] = block.baseline_vv_metres()
+            wwi[j] = block.baseline_ww_metres()
             time_inc[j] = header.time_inc_sec
             time_start[j] = header.time_start_mjd_utc
         uu = np.array(uui).swapaxes(0, 1)
-        uushape = uu.shape
-        uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
+        #uushape = uu.shape
+        #uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
         # vv = np.array(vvi).swapaxes(0, 1)
         # vvshape = vv.shape
         # vv = vv.reshape(vvshape[0], vvshape[1] * vvshape[2])
@@ -202,24 +202,26 @@ class Visibility(KaraboResource):
         )
         ms.set_phase_centre(header.phase_centre_ra_deg, header.phase_centre_dec_deg)
         # Write data one block at a time.
-        num_times = number_of_days
         print("### Writing combined visibilities in ", combined_vis_filepath)
-        for t in range(num_times):
-            # Dummy data to write.
-            time_stamp = time_inc[t] * time_start[t]
-            # Write coordinates and visibilities.
-            start_row = t * block.num_baselines
-            exposure_sec = time_inc[t]
-            ms.write_coords(
-                start_row,
-                block.num_baselines,
-                uui[t],
-                vvi[t],
-                wwi[t],
-                exposure_sec,
-                time_inc[t],
-                time_stamp,
-            )
-            ms.write_vis(
-                start_row, 0, block.num_channels, block.num_baselines, out_vis[t]
-            )
+        for j in range(number_of_days):
+            num_times = out_vis[j].shape[0]
+            for t in range(num_times):
+                # Dummy data to write.
+                time_stamp = time_inc[j] * time_start[j]
+                # Write coordinates and visibilities.
+                start_row = t * block.num_baselines
+                exposure_sec = time_inc[j]
+                #print(uui[j][t].shape,out_vis[j][t].shape,block.num_channels,block.num_baselines)
+                ms.write_coords(
+                    start_row,
+                    block.num_baselines,
+                    uui[j][t],
+                    vvi[j][t],
+                    wwi[j][t],
+                    exposure_sec,
+                    time_inc[j],
+                    time_stamp,
+                    )
+                ms.write_vis(
+                    start_row, 0, block.num_channels, block.num_baselines, out_vis[j][t]
+                )

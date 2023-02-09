@@ -267,7 +267,7 @@ class InterferometerSimulation:
             return visiblity_files
 
         except BaseException as exp:
-            self.vis_path = vis_path_long
+            #self.vis_path = vis_path_long
             raise exp
 
     def __get_OSKAR_settings_tree(
