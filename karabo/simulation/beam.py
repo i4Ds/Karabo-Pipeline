@@ -374,7 +374,7 @@ class BeamPattern:
         Simulates the primary beam
 
         :param beam_method: you can choose as beams: "Gaussian Beam", "Eidos_AH", "Eidos_EM", "KatBeam"
-        :param f: the frequency for which the beam is simulated
+        :param f: the frequency for which the beam is simulated (MHz)
         :param fov: when using "KatBeam" the beam will be simulated for this size of fov (radius)
         """
         if beam_method is not None:
