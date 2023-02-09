@@ -77,12 +77,12 @@ class MyTestCase(unittest.TestCase):
             beam = pb.sim_beam(beam_method="KatBeam", f=1000,fov=30)  # Computing beam
             pb.save_meerkat_cst_file(beam[3])  # Saving the beam cst file
             pb.fit_elements(
-                telescope, freq_hz=1.0e9, avg_frac_error=0.005, pol="X"
+                telescope, freq_hz=1.0e9, avg_frac_error=0.001, pol="X"
             )  # Fitting the beam using cst file
             # ------------ Y-coordinate
             pb = BeamPattern(ycstfile_path)
             pb.save_meerkat_cst_file(beam[4])
-            pb.fit_elements(telescope, freq_hz=1.0e9, avg_frac_error=0.005, pol="Y")
+            pb.fit_elements(telescope, freq_hz=1.0e9, avg_frac_error=0.001, pol="Y")
         # ------------- Simulation Begins
         simulation = InterferometerSimulation(
             vis_path="./karabo/test/data/beam_vis.vis",
