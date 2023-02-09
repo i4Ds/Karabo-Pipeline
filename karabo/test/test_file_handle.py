@@ -28,7 +28,7 @@ class TestFileHandle(unittest.TestCase):
         path = handle.path
         self.assertTrue(os.path.exists(path))
         del handle
-        
+
     def test_cleanup(self):
         handle = FileHandle()
         path = handle.path

@@ -1,9 +1,10 @@
 import os
 import unittest
+
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.telescope_versions import (
-    ALMAVersions,
     ACAVersions,
+    ALMAVersions,
     CARMAVersions,
     NGVLAVersions,
     PDBIVersions,

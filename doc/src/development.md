@@ -19,7 +19,9 @@ Then you can simply run your code inside that environment. To tell Python to tre
 
 To increase the readability of the code and to better detect potential errors already during development, a number of tools are used. These tools must first be installed in the virtual environment using `pip install -r requirements.txt`. If possible use the versions defined in `requirements.txt`, so that all developers work with the same versions. The configurations of the tools are handled in `setup.cfg`. If changes to the configurations are desired, the team members should agree to this (e.g. via a meeting).
 
-We recommend the setup using [pre-commit-hooks](https://github.com/pre-commit/pre-commit-hooks), so that some (not all) tools can detect the made "mistakes" early and you can fix them. The hook can be easily initialized using `pre-commit install` in the root directory of the repository. If absolutely necessary, the hooks can be ignored using the `--no-verify` flag in the git-commands. The [pre-commit-configs](https://pre-commit.com/) used for this are defined in `.pre-commit-config.yaml`.
+It is possible that certain tools complain about something that is not easy or even impossible to fix. ONLY then, there are options to ignore certain lines of code or even whole files for the checker. E.g. `# noqa` ignores inline flake8 complaints. But be careful not to accidentally ignore the whole file (e.g. with `# flake8: noqa`). Please refer to the documentation of the respective tool to learn how to ignore the errors.
+
+We recommend the setup using [pre-commit-hooks](https://github.com/pre-commit/pre-commit-hooks), so that the in `.pre-commit-config.yaml` specified tools prevent commits if the checks on the added files fail. The hook can be easily initialized using `pre-commit install` in the root directory of the repository. If absolutely necessary, the hooks can be ignored using the `--no-verify` flag in the git-commands. However, some checks are included in the CI-tests (see `.github/test.yaml TEST_FORMATTING`), so you have to check your files anyway. The [pre-commit-configs](https://pre-commit.com/) used for this are defined in `.pre-commit-config.yaml`.
 
 The following sections list the tools to be used and their function & usage.
 
@@ -33,9 +35,9 @@ The following sections list the tools to be used and their function & usage.
 
 ### mypy
 
-[mypy](https://mypy.readthedocs.io/en/stable/) is a static type checker for Python. It ensures that variables and functions are used correctly in the code. It warns the developer if type hints ([PEP 484](https://peps.python.org/pep-0484/)) are not used correctly. The CLI `mypy --strict {source_file_or_directory}` makes it easy to use mypy (although it may take a while). For specific options, see [command line options](https://mypy.readthedocs.io/en/stable/command_line.html?highlight=--strict-concatenate) or `mypy --help`.
+[mypy](https://mypy.readthedocs.io/en/stable/) is a static type checker for Python. It ensures that variables and functions are used correctly in the code. It warns the developer if type hints ([PEP 484](https://peps.python.org/pep-0484/)) are not used correctly. The CLI `mypy {source_file_or_directory}` makes it easy to use mypy (although it may take a while). For specific options, see [command line options](https://mypy.readthedocs.io/en/stable/command_line.html) or `mypy --help`. The configs set in `setup.cfg` are `--strict`, so there is no need to set the flag by yourself.
 
-We recommend using the `--strict` flag wherever possible. Since mypy can sometimes be very strict, its use is not enforced. However, we strongly recommend to use it as much as possible and to correct errors that are not too difficult to fix.
+If you run mypy several times for the same file(s) and it takes a while, you can launch the mypy daemon `dmypy start` and then check your file(s) using `dmypy check {file_or_directory}`. The first time you check might still take a while. However, once the check is done and you want to check a file again, the check will only take into account the changes you have made, so it will be much faster.
 
 In the beginning, there may be a lot of type errors because the files and their dependencies have not yet been checked with mypy. To prevent dependencies of other files from the same repository from producing errors, `disallow_untyped_calls = false` was defined in `setup.cfg`. However, as soon as a Python file is changed, the typehints of the entire file should be corrected as far as possible (even if you have not changed anything in other places).
 
@@ -63,7 +65,7 @@ def fun(arg1: int, arg2: int) -> int:
 
 ### flake8
 
-[flake8](https://flake8.pycqa.org/en/latest/) is a tool for style guide enforcement. It checks various style errors such as unused import, variables, maximum line length, spacing and others. The style-checker can be used via the CLI `flake8 {source_file_or_directory}`. However, it should be sufficient to set the **Linter to flake8** in your own IDE, so that the errors are displayed directly without running any CLI command.
+[flake8](https://flake8.pycqa.org/en/latest/) is a tool for style guide enforcement. It checks various style errors such as unused import, variables, maximum line length, spacing and others. The style-checker can be used via the CLI `flake8 {source_file_or_directory}`. In addition, you can set your IDE's **Linter to flake8**, so that the errors are displayed directly (it might be necessary to install an extension to do so).
 
 It is recommended to run *black* before manually checking with *flake8* because *black* might fix a lot of *flake8* related issues. It is possible that the settings of *isort* and *black* are not compatible with *flake8* and therefore should get changed.
 

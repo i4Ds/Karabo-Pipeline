@@ -142,7 +142,9 @@ class TestImage(unittest.TestCase):
     #
     # def test_source_detection_on_deconvolved(self):
     #     deconvolved = open_fits_image("./data/deconvolved.fits")
-    #     sources = detect_sources_in_image(deconvolved,
-    #                                       # beam=(0.05425680530067645, 0.05047422298502832, -205.3215315790252))
-    #                                       beam=(0.06, 0.02, 13.3))
+    # sources = detect_sources_in_image(
+    #     deconvolved,
+    #     # beam=(0.05425680530067645, 0.05047422298502832, -205.3215315790252))
+    #     beam=(0.06, 0.02, 13.3),
+    # )
     #     print(sources.sources)

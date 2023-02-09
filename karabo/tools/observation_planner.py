@@ -43,7 +43,7 @@ class ObservationPlotter:
 
     def __plot_time_dependent(self, hour):
 
-        hour_str = f"{math.floor(hour):.0f}"
+        #  hour_str = f"{math.floor(hour):.0f}"
         daytime = Time(
             f"2022-08-26 {math.floor(hour)}:00:00.5", scale="utc", format="iso"
         )
@@ -305,10 +305,8 @@ class SetVisibilityCallback:
 def main():
     # sky = SkyModel.get_random_poisson_disk_sky((-10, -10), (-5, -5), 0.5, 1, 0.5)
     sky = SkyModel.get_GLEAM_Sky()
-    #
-    # sky = SkyModel()
     tel = Telescope.get_MEERKAT_Telescope()
-    simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=10)
+    _ = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=10)
     observation = Observation(
         100e6,
         phase_centre_ra_deg=240,

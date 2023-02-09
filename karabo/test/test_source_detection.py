@@ -1,23 +1,21 @@
-import os, pickle
+import os
 import unittest
 
 import numpy as np
 
-from karabo.imaging.imager import Imager
 from karabo.imaging.image import Image
-from karabo.simulation.telescope import Telescope
+from karabo.imaging.imager import Imager
+from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import (
-    SourceDetectionResult,
     PyBDSFSourceDetectionResult,
+    SourceDetectionResult,
 )
-from karabo.simulation.interferometer import InterferometerSimulation
-from karabo.util.dask import get_global_client
 from karabo.test import data_path
-
-import numpy as np
+from karabo.util.dask import get_global_client
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 
@@ -51,7 +49,7 @@ class TestSourceDetection(unittest.TestCase):
             filter_outlier=True,
             invert_ra=True,
         )
-        assignments = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+        assignments = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
             ground_truth=ground_truth.T,
             detected=detection.get_pixel_position_of_sources().T,
             max_dist=10,
@@ -73,7 +71,8 @@ class TestSourceDetection(unittest.TestCase):
 
     def test_bdsf_image_blanked(self):
         """
-        Tests if bdsf error message in `PyBDSFSourceDetectionResult.detect_sources_in_image` has changed
+        Tests if bdsf error message in
+        `PyBDSFSourceDetectionResult.detect_sources_in_image` has changed.
         If it has changed, it will throw a `RuntimeError`
         Test could maybe be changed if .fits file with blanked pixels is available and
         therefore you can just create an `Image` from that file
@@ -112,33 +111,36 @@ class TestSourceDetection(unittest.TestCase):
             )
 
     def test_automatic_assignment_of_ground_truth_and_prediction(self):
-        ## Test that the automatic assignment of ground truth and prediction works
+        # Test that the automatic assignment of ground truth and prediction works
         # Create matrices of ground truth and prediction
         gtruth = np.random.randn(5000, 2) * 100
         detected = np.flipud(gtruth)
 
         # Calculate result
-        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
             gtruth, detected, 0.5, top_k=3
         )
 
-        # Check that the result is correct by flipping the assigment and checking that it is equal
+        # Check that the result is correct by flipping the assigment
+        # and checking that it is equal
         assert np.all(
             assigment[:, 0] == np.flipud(assigment[:, 1])
         ), "Automatic assignment of ground truth and detected is not correct"
 
-        ## Check reassigment of detected points, i.e. that the same detected point is not assigned to multiple ground truth points
+        # Check reassigment of detected points, i.e. that the same detected point is
+        # not assigned to multiple ground truth points
         # Create matrices of ground truth and prediction
         gtruth = np.array([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]])
 
         detected = np.array([[0.0, 0.0], [0.1, 0.0], [0.2, 0.0], [0.3, 0.0]])
 
         # Calculate result
-        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+        assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
             gtruth, detected, np.inf, top_k=4
         )
 
-        # Check that the result is correct by flipping the assigment and checking that it is equal
+        # Check that the result is correct by flipping the assigment
+        # and checking that it is equal
         assert np.all(
             assigment[:, 0] == np.flipud(assigment[:, 1])
         ), "Automatic assignment of ground truth and detected is not correct"
@@ -148,7 +150,7 @@ class TestSourceDetection(unittest.TestCase):
         image = Image(path=f"{data_path}/restored.fits")
         detection = PyBDSFSourceDetectionResult.detect_sources_in_image(image)
         detection.write_to_file("result/result.zip")
-        # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')
+        # detection_read = PyBDSFSourceDetectionResult.open_from_file('result/result.zip')  # noqa
         pixels = detection.get_pixel_position_of_sources()
         print(pixels)
 
@@ -210,7 +212,7 @@ class TestSourceDetection(unittest.TestCase):
         result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
 
-        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(  # DOESN't WORK ANYMORE
+        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
             result, sky, 1
         )
         evaluation.plot(filename="result/test_dec/matching_plot.png")
@@ -280,7 +282,7 @@ class TestSourceDetection(unittest.TestCase):
         result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
         result.write_to_file("result/test_dec/sources.zip")
 
-        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(  # DOESN't WORK ANYMORE
+        evaluation = SourceDetectionEvaluation.evaluate_result_with_sky_in_pixel_space(
             result, sky, 1
         )
         evaluation.plot(filename="result/test_dec/matching_plot.png")
@@ -350,7 +352,7 @@ class TestSourceDetection(unittest.TestCase):
             np.shape(image_gpu)[0] * np.shape(image_gpu)[1]
         )
 
-        ## Asserts
+        # Asserts
         assert np.sum(np.isinf(image_gpu)) == 0
         assert np.sum(np.isnan(image_gpu)) == 0
         assert type(image_gpu) == np.ndarray

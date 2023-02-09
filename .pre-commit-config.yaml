@@ -3,14 +3,14 @@ repos:
     rev: v4.4.0
     hooks:
     -   id: check-added-large-files
+        additional_dependencies: [tomli]
     -   id: no-commit-to-branch
         args: [--branch, main]
 
--   repo: https://github.com/pycqa/pydocstyle
-    rev: 6.3.0
-    hooks:
-    -   id: pydocstyle
-        additional_dependencies: [tomli]
+# -   repo: https://github.com/pycqa/pydocstyle
+#     rev: 6.3.0
+#     hooks:
+#     -   id: pydocstyle
 
 -   repo: https://github.com/psf/black
     rev: 22.12.0

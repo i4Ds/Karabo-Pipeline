@@ -3,13 +3,14 @@ from IPython import get_ipython
 
 def set_rascil_data_directory_env():
     """
-    Sets specific environment variables that the jupyter kernel is not loading by default.
+    Sets specific environment variables
+    that the jupyter kernel is not loading by default.
 
     This function is idempotent (running it more than once brings no side effects).
 
     """
-    from distutils.sysconfig import get_python_lib
     import os
+    from distutils.sysconfig import get_python_lib
 
     data_folder = f"{get_python_lib()}/../../../data"
     os.environ["RASCIL_DATA"] = data_folder
@@ -22,7 +23,8 @@ def isNotebook():
         shell = get_ipython().__class__.__name__
         if shell == "ZMQInteractiveShell":
             print(
-                "Detecting to be running in Jupyter Notebook --> Settings RASCIL Environment Variable"
+                "Detecting to be running in Jupyter Notebook"
+                + "--> Settings RASCIL Environment Variable"
             )
             return True  # Jupyter notebook or qtconsole
         elif shell == "TerminalInteractiveShell":

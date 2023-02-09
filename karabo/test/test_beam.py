@@ -1,15 +1,15 @@
 import os
 import unittest
-from karabo.simulation.interferometer import InterferometerSimulation
+from datetime import datetime, timedelta
+
+import numpy as np
+
 from karabo.simulation.beam import BeamPattern
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
+from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test import data_path
-from karabo.simulation.sky_model import SkyModel
-import numpy as np
-from karabo.simulation.observation import Observation
-from datetime import timedelta, datetime
-from karabo.imaging.imager import Imager
-from astropy.io import fits
 
 
 class MyTestCase(unittest.TestCase):
@@ -63,8 +63,6 @@ class MyTestCase(unittest.TestCase):
         # telescope.centre_longitude = 3
         xcstfile_path = "./karabo/test/data/cst_like_beam_port_1.txt"
         ycstfile_path = "./karabo/test/data/cst_like_beam_port_2.txt"
-        # xcstfile_path = '/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_1.txt'
-        # ycstfile_path = '/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_like_beam_port_2.txt'
         enable_array_beam = True
         # Remove beam if already present
         test = os.listdir(telescope.path)
@@ -111,11 +109,10 @@ class MyTestCase(unittest.TestCase):
             frequency_increment_hz=1e6,
             number_of_channels=1,
         )
-        #
-        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility = simulation.run_simulation(telescope, sky, observation)  # noqa
         # visibility.write_to_file("./test/result/beam/beam_vis.ms")
 
-        # imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
+        # imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50)
         # dirty = imager.get_dirty_image()
         # dirty.write_to_file("./test/result/beam/beam_vis.fits")
         # dirty.plot(title='Flux Density (Jy)')

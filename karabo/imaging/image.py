@@ -1,21 +1,25 @@
 from __future__ import annotations
-import logging, os, shutil, uuid
-from typing import Tuple, Dict, List, Any, Optional, Union
+
+import logging
+import os
+import uuid
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy
 import numpy as np
-from numpy.typing import NDArray
 from astropy.io import fits
 from astropy.wcs import WCS
-import matplotlib.pyplot as plt
+from numpy.typing import NDArray
+from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import check_ending, FileHandle
+from karabo.util.FileHandle import FileHandle, check_ending
 
-# store and restore the previously set matplotlib backend, because rascil sets it to Agg (non-GUI)
+# store and restore the previously set matplotlib backend,
+# because rascil sets it to Agg (non-GUI)
 previous_backend = matplotlib.get_backend()
-from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
 
 matplotlib.use(previous_backend)
 
@@ -27,7 +31,8 @@ class Image(KaraboResource):
         **kwargs,
     ) -> None:
         """
-        Proxy Object Class for Images. Dirty, Cleaned or any other type of image in a fits format
+        Proxy object class for images.
+        Dirty, cleaned or any other type of image in a fits format.
         """
         if isinstance(
             path, FileHandle
@@ -96,11 +101,14 @@ class Image(KaraboResource):
         :param xlabel: xlabel
         :param ylabel: ylabel
         :param cmap: matplotlib color map
-        :param origin: place the [0, 0] index of the array in the upper left or lower left corner of the Axes
+        :param origin: place the [0, 0] index of the array in
+        the upper left or lower left corner of the Axes
         :param wcs_enabled: Use wcs transformation?
         :param invert_xaxis: Do you want to invert the xaxis?
-        :param filename: Set to path/fname to save figure (set extension to fname to overwrite .png default)
-        :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`, `vmin` or `vmax`
+        :param filename: Set to path/fname to save figure
+        (set extension to fname to overwrite .png default)
+        :param kwargs: matplotlib kwargs for scatter & Collections,
+        e.g. customize `s`, `vmin` or `vmax`
         """
 
         if wcs_enabled:
@@ -228,7 +236,8 @@ class Image(KaraboResource):
         Calculate the power spectrum of this image.
 
         :param resolution: Resolution in radians needed for conversion from Jy to Kelvin
-        :param signal_channel: channel containing both signal and noise (arr of same shape as nchan of Image), optional
+        :param signal_channel: channel containing both signal and noise
+        (arr of same shape as nchan of Image), optional
         :return (profile, theta_axis)
             profile: Brightness temperature for each angular scale in Kelvin
             theta_axis: Angular scale data in degrees
@@ -247,7 +256,8 @@ class Image(KaraboResource):
         Plot the power spectrum of this image.
 
         :param resolution: Resolution in radians needed for conversion from Jy to Kelvin
-        :param signal_channel: channel containing both signal and noise (arr of same shape as nchan of Image), optional
+        :param signal_channel: channel containing both signal and noise
+        (arr of same shape as nchan of Image), optional
         :param save_png: True if result should be saved, default = False
         """
         profile, theta = self.get_power_spectrum(resolution, signal_channel)
@@ -265,9 +275,10 @@ class Image(KaraboResource):
         plt.tight_layout()
 
         if save_png:
-            plt.savefig(
-                f"./power_spectrum_{self.__name if self.__name is not None else uuid.uuid4()}"
+            power_spectrum_name = (
+                self.__name if self.__name is not None else uuid.uuid4()
             )
+            plt.savefig(f"./power_spectrum_{power_spectrum_name}")
         plt.show(block=False)
         plt.pause(1)
 
@@ -276,7 +287,8 @@ class Image(KaraboResource):
         cdelt2 = self.header["CDELT2"]
         if abs(cdelt1) != abs(cdelt2):
             logging.warning(
-                "The Images's cdelt1 and cdelt2 are not the same in absolute value. Continuing with cdelt1"
+                "The Images's cdelt1 and cdelt2 are not the same in absolute value."
+                + "Continuing with cdelt1"
             )
         return np.deg2rad(np.abs(cdelt1))
 
@@ -288,7 +300,10 @@ class Image(KaraboResource):
         invert_ra: bool = True,
     ) -> WCS:
         wcs = WCS(naxis=2)
-        radian_degree = lambda rad: rad * (180 / np.pi)
+
+        def radian_degree(rad: float) -> float:
+            return rad * (180 / np.pi)
+
         cdelt = radian_degree(self.get_cellsize())
         crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
         wcs.wcs.crpix = np.array([crpix, crpix])

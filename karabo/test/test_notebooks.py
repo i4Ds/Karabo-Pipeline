@@ -1,5 +1,5 @@
-import unittest
 import os
+import unittest
 
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
 
