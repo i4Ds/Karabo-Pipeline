@@ -95,3 +95,4 @@ karabo/result/*
 
 # Vscode
 .vscode/*
+/.vs
