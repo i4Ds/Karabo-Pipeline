@@ -7,9 +7,7 @@
 - GPU-acceleration requires proprietary nVidia drivers/CUDA
 
 ## Install Karabo
-The following steps will install Karabo and its prerequisites (miniconda, libmamba).
-
-1. Execute the following commands in a bash terminal
+The following steps will install Karabo and its prerequisites (miniconda, libmamba):
 ```
 wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh
 bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -b
@@ -18,10 +16,7 @@ conda config --set solver libmamba
 conda update -y -n base -c defaults conda
 conda create -y -n karabo-env python=3.9
 conda init bash
-```
-2. Close and reopen the terminal
-3. Execute the following commands in a bash terminal
-```
+source ~/.bashrc
 conda activate karabo-env
 conda install -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 conda clean --all -y
