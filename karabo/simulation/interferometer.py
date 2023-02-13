@@ -99,7 +99,6 @@ class InterferometerSimulation:
         # currently only considered for `ObservationLong`
         beam_polY: BeamPattern = None,
     ) -> None:
-
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
@@ -208,7 +207,7 @@ class InterferometerSimulation:
                         + f'beam_vis_*.ms" files inside {self.vis_path}, \
                         + Do you want to replace remove/replace them? [y/N]'
                     )
-                    ans = input_wrapper(msg=msg, ret="y")
+                    ans = "y"  # input_wrapper(msg=msg, ret="y")
                     if ans != "y":
                         sys.exit(0)
                     else:
