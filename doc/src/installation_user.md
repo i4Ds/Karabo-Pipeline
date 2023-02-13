@@ -1,72 +1,34 @@
 # Installation (User)
 
-## Requirements
+## System Requirements
+- Linux or Windows with WSL. For macOS we recommend you use [Docker](container.html).
+- 8GB RAM
+- 10GB disk space
+- GPU-acceleration requires proprietary nVidia drivers/CUDA
 
-### Operating System
-- Linux 
-- Windows 10+ (21H1+) with the Hypervisor based Windows Subsystem for Linux (WSL)
-
-### Tools
-- Miniconda / Anaconda
-
-### CUDA (if you want to use your Nvidia GPU)
-- The proprietary Nvidia driver
-
-## Install Conda
-
-We have noticed that dependency-resolving with conda's native solver can take a while. Therefore, we recommend installing Miniconda and use the libmamba solver for installation.
-
-1. Go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html and follow the steps.
-2. Install libmamba with `conda install -n base conda-libmamba-solver` and `conda config --set solver libmamba`
-
-## Karabo Pipeline installation with Conda
-
-We support the installation via the conda package manager.
-Currently, Python 3.9 is fully supported.
-
-Python 3.10 will follow in the future - if you need it right now, contact us :) 
-
-Full command sequence for installation may look like this.
-
-```shell
-conda create -n karabo-env python=3.9
+## Install Karabo
+The following steps will install Karabo and its prerequisites (miniconda, libmamba):
+```
+wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh
+bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -b
+conda install -y -n base conda-libmamba-solver
+conda config --set solver libmamba
+conda update -y -n base -c defaults conda
+conda create -y -n karabo-env python=3.9
+conda init bash
+source ~/.bashrc
 conda activate karabo-env
-# karabo-pipeline
-conda install -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
+conda install -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
+conda clean --all -y
 ```
 
-## MacOS Support
-
-MacOS is not supported natively. Even though macOS is similar to Linux, the native libraries are not (ARM based macs) or very hard (x86 macs) to build on macOS. 
-
-Please use Docker with Ubuntu to run Karabo on macOS. Prepared Docker files are in KaraboRoot/docker. This also works on ARM based macs (M1, M2, ..., Mx)
-
-##  Known Issues
-
-### Oskar
-Sometimes Oskar is not correctly installed. 
-
-Please also have a look at [Other installation methods](installation_no_conda.md) to see how to install Oskar manually.
-
-### undefined symbol: H5Pset_*
-Sometimes, the package causes an error similar to `undefined symbol: H5Pset_fapl_ros3`. 
-
-Downgrading `h5py` to 3.1 with the following command fixes it:
-
-```shell
-pip install h5py==3.1
+## Update to the current Karabo version
+A Karabo installation can be updated the following way:
+```
+conda update -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
+conda clean --all -y
 ```
 
-### UnsatisfiableError: The following specifications were *
-
-```python
-UnsatisfiableError: The following specifications were found to be incompatible with each other:
-Output in format: Requested package -> Available versionsThe following specifications were found to be incompatible with your system:
-
-feature:/linux-64::__glibc==2.31=0
-feature:|@/linux-64::__glibc==2.31=0
-
-	Your installed version is: 2.3
-```
-
-This is usually fixable when fixing the python version to 3.9 when creating the environment.
+## Additional Notes and Troubleshooting
+- If the base environment was updated, Libmamba might fail to install. In that case, reset conda to version 22 using `conda install --rev 0 --name base` or you can try installing Karabo without `libmamba`. Using `libmamba` is not strictly required, but strongly recommended, because it makes the installation much faster and more reliable.
+- You can install miniconda into a different path, use ```bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -b -p YourDesiredPath``` instead

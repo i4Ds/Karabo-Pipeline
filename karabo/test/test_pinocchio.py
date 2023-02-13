@@ -1,12 +1,12 @@
+import datetime
 import os
 import unittest
-import datetime
-from karabo.simulation.pinocchio import Pinocchio
-from karabo.simulation.observation import Observation
-from karabo.simulation.telescope import Telescope
-from karabo.simulation.interferometer import InterferometerSimulation
+
 from karabo.imaging.imager import Imager
-from astropy import units as u
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
+from karabo.simulation.pinocchio import Pinocchio
+from karabo.simulation.telescope import Telescope
 
 
 class TestPinocchio(unittest.TestCase):

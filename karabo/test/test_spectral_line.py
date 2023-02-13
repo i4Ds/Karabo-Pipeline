@@ -1,19 +1,16 @@
 import os
 import unittest
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
+
 import numpy as np
+
 from karabo.imaging.imager import Imager
+from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.interferometer import InterferometerSimulation
-from scipy.optimize import curve_fit
-import numpy as np
-from scipy.special import wofz
-import oskar
-import matplotlib.pyplot as plt
-from karabo.util.data_util import Gauss, resample_spectral_lines
 from karabo.simulation.visibility import Visibility
+from karabo.util.data_util import Gauss, resample_spectral_lines
 
 
 class TestSystemNoise(unittest.TestCase):
@@ -24,12 +21,20 @@ class TestSystemNoise(unittest.TestCase):
             os.makedirs("result/system_noise")
 
     # def disabled_plot_spectral_profiles(self):
-    #     #popt, pcov = curve_fit(Voigt, x, y, p0=[8, np.max(y), -(np.max(y) - np.min(y)), sigma, gamma])
-    #     plt.plot(dfreq_arr,y_voigt,label='Voigt');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
-    #     plt.plot(dfreq_arr,y_gauss,label='Gaussian');plt.xlabel('$\\frac{f-f_0}{f_0}$');plt.ylabel('Flux Density (Jy)')
+    #    # popt, pcov = curve_fit(
+    #    #     Voigt, x, y,
+    #    #     p0=[8, np.max(y), -(np.max(y) - np.min(y)), sigma, gamma],
+    #    # )
+    #     plt.plot(dfreq_arr,y_voigt,label='Voigt')
+    #     plt.xlabel('$\\frac{f-f_0}{f_0}$')
+    #     plt.ylabel('Flux Density (Jy)')
+    #     plt.plot(dfreq_arr,y_gauss,label='Gaussian')
+    #     plt.xlabel('$\\frac{f-f_0}{f_0}$')
+    #     plt.ylabel('Flux Density (Jy)')
     #     for i in range(nfreq):
     #         plt.axvline(x=dfreq_sample[i],color='red')
-    #     plt.legend();plt.show()
+    #     plt.legend()
+    #     plt.show()
 
     def simulate_spectral_vis(
         self,
@@ -202,7 +207,7 @@ class TestSystemNoise(unittest.TestCase):
             )  # imaging cellsize is over-written in the Imager based on max uv dist.
             dirty = imager.get_dirty_image()
             dirty.write_to_file(
-                "./result/spectral_line/spectral_line_" + str(i) + ".fits",
+                "./result/spectral_line/spectral_line_" + str(i) + ".fits",  # noqa
                 overwrite=True,
             )
             dirty.plot(title="Flux Density (Jy)")
@@ -224,9 +229,11 @@ class TestSystemNoise(unittest.TestCase):
         )
 
         # -------- Imaging ---------------------#
-        # imager = Imager(visibility,
-        #                 imaging_npixel=4096*1,
-        #                 imaging_cellsize=50) # imaging cellsize is over-written in the Imager based on max uv dist.
+        # imager = Imager(
+        #     visibility,
+        #     imaging_npixel=4096 * 1,
+        #     imaging_cellsize=50,
+        # )  # imaging cellsize is over-written in the Imager based on max uv dist.
         # dirty = imager.get_dirty_image()
         # dirty.write_to_file("result/system_noise/noise_dirty.fits")
         # dirty.plot(title='Flux Density (Jy)')
@@ -237,4 +244,10 @@ class TestSystemNoise(unittest.TestCase):
         #    sc[k]=fg_block.get_start_channel_index()
         # for k in range(len(foreground_cross_correlation)):
         #    print(k)
-        #    ms.write_vis(start_row, sc[k], fg_chan[k], fg_block.num_baselines, foreground_cross_correlation[k])
+        #    ms.write_vis(
+        #        start_row,
+        #        sc[k],
+        #        fg_chan[k],
+        #        fg_block.num_baselines,
+        #        foreground_cross_correlation[k],
+        #    )

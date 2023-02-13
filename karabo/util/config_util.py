@@ -1,9 +1,6 @@
 import numpy as np
-import os
-import sys
 import pyproj
 import scipy.spatial.transform as te
-import glob
 
 tel_param = {
     "alma": [-23.0234, -67.7538, 5050],
@@ -39,9 +36,9 @@ def read_cfg(filename):
     x = [0] * len(lines)
     y = [0] * len(lines)
     z = [0] * len(lines)
-    for l in lines:
-        if l[0] != "#":
-            line = l.replace("\t", " ").split(" ")
+    for line in lines:
+        if line[0] != "#":
+            line = line.replace("\t", " ").split(" ")
             line = [i for i in line if i != ""]
             x[i] = np.float(line[0])
             y[i] = np.float(line[1])

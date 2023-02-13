@@ -1,4 +1,5 @@
 import unittest
+
 from karabo.util.data_util import get_module_absolute_path
 
 

@@ -12,36 +12,16 @@
 
 Karabo is a starting point for the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment.
 
-Two specific radio telescope packages are used:
-
-- OSKAR: Simulates the sky and the telescope https://github.com/OxfordSKA/OSKAR
-	- OSKAR telescope files telescope.tm are from https://github.com/OxfordSKA/OSKAR/releases -> Example Data
-- RASCIL: Provides imaging functionality https://gitlab.com/ska-telescope/external/rascil
-
-Requirements
-------------
-
-- Linux or Windows with WSL ([Windows Susbsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux)). 
-- Conda
-
 Installation
 ------------
+Please see our [documentation](https://i4ds.github.io/Karabo-Pipeline/installation_user.html) for installation instructions, or how to use it in [Docker](https://i4ds.github.io/Karabo-Pipeline/container.html).
 
-```shell
-conda create -n karabo-env python=3.9
-conda activate karabo-env
-conda install -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
-```
-We have noticed that dependency-resolving with conda's native solver can take a while. Therefore, we recommend using the libmamba solver for installation.
-
-For further details check our documentation:
-https://i4ds.github.io/Karabo-Pipeline/installation_user.html
+Contribute to Karabo
+---------------------
+We're very happy to accept contributions, either as code or even just bug reports! When writing code,
+please make sure you have a quick look at our [Developer Documentation](https://i4ds.github.io/Karabo-Pipeline/development.html).
+Also, feel free to file [bug reports or suggestions](https://github.com/i4Ds/Karabo-Pipeline/issues).
 
 License
 -------
 © Contributors, 2023. Licensed under an [MIT License](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) license.
-
-Contribute to Karabo
----------------------
-Please have a look at our [issues](https://github.com/i4Ds/Karabo-Pipeline/issues).
-

@@ -1,11 +1,14 @@
+from typing import Tuple
+
 import numpy as np
 
 
 def east_north_to_long_lat(
     east_relative: float, north_relative: float, long: float, lat: float
-) -> (float, float):
+) -> Tuple[float, float]:
     """
-    Calculate the longitude and latitude of an east-north coordinate based on some reference location.
+    Calculate the longitude and latitude of an east-north coordinate
+    based on some reference location.
 
     :param east_relative: east coordinate in meters
     :param north_relative: north coordinate in meters

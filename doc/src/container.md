@@ -30,14 +30,6 @@ docker run -p 8888:8888 -v ska_pipeline_code:/home/jovyan/work/persistent ghcr.i
 Inside the Image:
 
 Choose the Karabo Kernel to run your Karabo pipeline.
-Also use the function `setup_jupyter_env()` at the start of your .ipynb file. It sets a crucial environment variable for our imaging. This is only needed when running karabo in a jupyter environment. When running the pipeline from the Command line this variable is already set.
-
-```python
-# run this at the top of your .ipynb
-from karabo.util.jupyter import set_rascil_data_directory_env
-
-set_rascil_data_directory_env()
-```
 
 #### Compose
 

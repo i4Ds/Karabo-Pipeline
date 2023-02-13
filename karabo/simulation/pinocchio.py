@@ -1,11 +1,11 @@
 import os
-import subprocess
 import shutil
-import numpy as np
-import matplotlib.pyplot as plt
-
+import subprocess
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import Dict, List
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.FileHandle import FileHandle
@@ -107,7 +107,11 @@ class Pinocchio:
 
         with open(path) as redShifts:
 
-            rsr.header = f"{Pinocchio.PRMS_CMNT} Generated redshift output request file for Pinocchio by Karabo Framework (https://github.com/i4Ds/Karabo-Pipeline)\n"
+            rsr.header = (
+                f"{Pinocchio.PRMS_CMNT} Generated redshift output request "
+                + "file for Pinocchio by Karabo Framework "
+                + "(https://github.com/i4Ds/Karabo-Pipeline)\n"
+            )
 
             # skip and save header
             line: str = redShifts.readline()
@@ -321,9 +325,10 @@ class Pinocchio:
         """
         run pinocchio in a temp folder
 
-        :param printLiveOutput: specify if pinocchio should print the stdout and stderror to the console
-                                otherwise it gets written into memory and can be retrieved by calling
-                                getPinocchioStdOutput and getPinocchioStdError, defaults to True
+        :param printLiveOutput: specify if pinocchio should print the stdout
+        and stderror to the console otherwise it gets written into memory
+        and can be retrieved by calling getPinocchioStdOutput and getPinocchioStdError,
+        defaults to True
         :type printLiveOutput: bool, optional
         """
 
@@ -380,7 +385,8 @@ class Pinocchio:
 
     def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
         """
-        run the pinocchio runPlanner tool to check hardware requirements for given config
+        run the pinocchio runPlanner tool to check
+        hardware requirements for given config
 
         :param gbPerNode: defines how many GByte a node has
         :type gbPerNode: int
@@ -400,7 +406,8 @@ class Pinocchio:
 
     def getPinocchioStdOutput(self) -> str:
         """
-        get the std output created during run, only available if live output was disabled
+        get the std output created during run,
+        only available if live output was disabled
 
         :return: pinocchio std output
         :rtype: str
@@ -458,7 +465,8 @@ class Pinocchio:
         lines: List[str] = []
         # add header
         lines.append(
-            f"{Pinocchio.PRMS_CMNT} Generated param file for Pinocchio by Karabo Framework (https://github.com/i4Ds/Karabo-Pipeline)"
+            f"{Pinocchio.PRMS_CMNT} Generated param file for Pinocchio by Karabo "
+            + "Framework (https://github.com/i4Ds/Karabo-Pipeline)"
         )
         lines.append("")
 
@@ -687,9 +695,10 @@ class Pinocchio:
     @staticmethod
     def getSkyModelFromFiles(path: str, near: float = 0, far: float = 100) -> SkyModel:
         """
-        Create a sky model from the pinocchio simulation cone. All halos from the near to
-        far plane (euclid distance) will be translated into the RA (right ascension - [0,360] in deg) and
-        DEC (declination - [0, 90] in deg) format.
+        Create a sky model from the pinocchio simulation cone. All halos from the near
+        to far plane (euclid distance) will be translated into the
+        RA (right ascension - [0,360] in deg)
+        and DEC (declination - [0, 90] in deg) format.
 
         example in 1D - this function will do the same on pinocchios 3D cone:
 
@@ -698,8 +707,8 @@ class Pinocchio:
 
         and translated into RA DEC
 
-        :param path: path to the past light cone file, if there is no file, use the a pinocchio run
-                     to create such a file.
+        :param path: path to the past light cone file, if there is no file,
+        use the a pinocchio run to create such a file.
         :type path: str
         :param near: starting distance from the (0,0,0) point in [Mpc/h], defaults to 0
         :type near: float, optional
