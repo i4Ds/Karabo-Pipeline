@@ -62,8 +62,8 @@ class MyTestCase(unittest.TestCase):
         sky.add_point_sources(sky_data)
         telescope = Telescope.get_MEERKAT_Telescope()
         # telescope.centre_longitude = 3
-        xcstfile_path = "./data/cst_like_beam_port_1.txt"
-        ycstfile_path = "./data/cst_like_beam_port_2.txt"
+        xcstfile_path = "./karabo/test/data/cst_like_beam_port_1.txt"
+        ycstfile_path = "./karabo/test/data/cst_like_beam_port_2.txt"
         enable_array_beam = True
         # Remove beam if already present
         test = os.listdir(telescope.path)
@@ -84,7 +84,7 @@ class MyTestCase(unittest.TestCase):
             pb.fit_elements(telescope, freq_hz=1.0e9, avg_frac_error=0.001, pol="Y")
         # ------------- Simulation Begins
         simulation = InterferometerSimulation(
-            vis_path="./data/beam_vis.vis",
+            vis_path="./karabo/test/data/beam_vis.vis",
             channel_bandwidth_hz=2e7,
             time_average_sec=1,
             noise_enable=False,
@@ -112,7 +112,7 @@ class MyTestCase(unittest.TestCase):
         )
         #
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.write_to_file("./test/result/beam/beam_vis.ms")
+        visibility.write_to_file("./karabo/test/result/beam/beam_vis.ms")
 
         imager = Imager(
             visibility,
@@ -121,7 +121,7 @@ class MyTestCase(unittest.TestCase):
             imaging_dopsf=True,
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("./test/result/beam/beam_vis.fits", overwrite=True)
+        dirty.write_to_file("./karabo/test/result/beam/beam_vis.fits", overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
 
 
