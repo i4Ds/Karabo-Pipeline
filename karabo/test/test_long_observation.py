@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta
 
 import numpy as np
-
+import oskar
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import ObservationLong
@@ -11,6 +11,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test import data_path
+from karabo.imaging.imager import Imager
 
 
 class MyTestCase(unittest.TestCase):
@@ -131,11 +132,12 @@ class MyTestCase(unittest.TestCase):
         #     './karabo/test/data/beam_vis_3.vis',
         # ]
         Visibility.combine_vis(number_of_days, visiblity_files, combined_vis_filepath)
+        visibilties = Visibility.read_from_file(combined_vis_filepath)
         # imaging cellsize is over-written in the Imager based on max uv dist.
-        # imager = Imager(visibility, imaging_npixel=4096,imaging_cellsize=50)
-        # dirty = imager.get_dirty_image()
+        imager = Imager(visibilties, imaging_npixel=4096,imaging_cellsize=50)
+        dirty = imager.get_dirty_image()
         # dirty.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits")
-        # dirty.plot(title='Flux Density (Jy)')
+        dirty.plot(title='Flux Density (Jy)')
         # aa=fits.open('./result/beam/beam_vis.fits')
         # bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
         # print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))

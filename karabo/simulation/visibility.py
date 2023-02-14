@@ -200,7 +200,8 @@ class Visibility(KaraboResource):
             header.freq_start_hz,
             header.freq_inc_hz,
         )
-        ms.set_phase_centre(header.phase_centre_ra_deg, header.phase_centre_dec_deg)
+        deg2rad=np.pi/180
+        ms.set_phase_centre(header.phase_centre_ra_deg*deg2rad, header.phase_centre_dec_deg*deg2rad)
         # Write data one block at a time.
         print("### Writing combined visibilities in ", combined_vis_filepath)
         for j in range(number_of_days):
