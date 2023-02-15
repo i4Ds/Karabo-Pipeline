@@ -2,6 +2,7 @@ import os
 import unittest
 from datetime import datetime, timedelta
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from karabo.imaging.imager import Imager
@@ -11,6 +12,9 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test import data_path
+from astropy.io import fits
+import matplotlib.pyplot as plt
+from astropy.wcs import WCS
 
 
 class MyTestCase(unittest.TestCase):
@@ -73,7 +77,7 @@ class MyTestCase(unittest.TestCase):
         if enable_array_beam:
             # ------------ X-coordinate
             pb = BeamPattern(xcstfile_path)  # Instance of the Beam class
-            beam = pb.sim_beam(beam_method="KatBeam", f=1000, fov=30)  # Computing beam
+            beam = pb.sim_beam(beam_method="EIDOS_AH", f=1000, fov=30)  # Computing beam
             pb.save_meerkat_cst_file(beam[3])  # Saving the beam cst file
             pb.fit_elements(
                 telescope, freq_hz=1.0e9, avg_frac_error=0.001, pol="X"
@@ -123,6 +127,15 @@ class MyTestCase(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.write_to_file("./karabo/test/result/beam/beam_vis.fits", overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
+        ab=fits.open("./karabo/test/result/beam/beam_vis.fits")
+        a = fits.open("./karabo/test/result/beam/beam_vis_no_beam.fits")
+        adiff=ab[0].data[0][0]-a[0].data[0][0]
+        wcs=WCS(a[0].header)
+        f,ax=plt.subplots(subplot_kw=dict(projection=wcs,slices=['x','y',0,0]))
+        im=ax.imshow(adiff,aspect='auto',origin='lower',vmin=-1.e-2,vmax=1.e-2)
+        f.colorbar(im)
+        f.show()
+
 
 
 if __name__ == "__main__":

@@ -415,6 +415,31 @@ class BeamPattern:
             vcrpol_x = self.quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
             vcopol_y = self.sym_gaussian(theta, phi_y, **copol_kwargs)
             vcrpol_y = self.quad_crosspol(theta, phi_y, vcopol_y, **crpol_kwargs)
+            data_x = np.column_stack(
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.log10(np.abs(vcopol_x)) * 10,  # Abs horizontal
+                    np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
+                    np.log10(np.abs(vcrpol_x)) * 10,  # Abs vertical
+                    np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
+            )
+
+            data_y = np.column_stack(
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.abs(vcrpol_y),  # Abs horizontal
+                    np.angle(vcrpol_y, deg=True),  # Phase horizontal [deg]
+                    np.abs(vcopol_y),  # Abs vertical
+                    np.angle(vcopol_y, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
+            )
         if self.beam_method == "EIDOS_AH":
             npix = 100
             B = self.get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
@@ -450,6 +475,31 @@ class BeamPattern:
                 (theta, phi),
                 method="cubic",
                 fill_value=0,
+            )
+            data_x = np.column_stack(
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.log10(np.abs(vcopol_x)) * 10,  # Abs horizontal
+                    np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
+                    np.log10(np.abs(vcrpol_x)) * 10,  # Abs vertical
+                    np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
+            )
+
+            data_y = np.column_stack(
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.abs(vcrpol_y),  # Abs horizontal
+                    np.angle(vcrpol_y, deg=True),  # Phase horizontal [deg]
+                    np.abs(vcopol_y),  # Abs vertical
+                    np.angle(vcopol_y, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
             )
         if self.beam_method == "EIDOS_EM":
             npix = 100
@@ -491,6 +541,31 @@ class BeamPattern:
             vcrpol_x[np.where(theta.value > 5)] = 0
             vcopol_y[np.where(theta.value > 5)] = 0
             vcrpol_y[np.where(theta.value > 5)] = 0
+            data_x = np.column_stack(
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.log10(np.abs(vcopol_x)) * 10,  # Abs horizontal
+                    np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
+                    np.log10(np.abs(vcrpol_x)) * 10,  # Abs vertical
+                    np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
+            )
+
+            data_y = np.column_stack(
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.abs(vcrpol_y),  # Abs horizontal
+                    np.angle(vcrpol_y, deg=True),  # Phase horizontal [deg]
+                    np.abs(vcopol_y),  # Abs vertical
+                    np.angle(vcopol_y, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
+            )
         if self.beam_method == "KatBeam":
             beampixel = self.get_meerkat_uhfbeam(f, "H", fov, fov)
             theta_kb = beampixel[0] + fov/2
@@ -523,20 +598,20 @@ class BeamPattern:
             vcopol_y = vcopol_y.flatten()
             vcrpol_y = vcrpol_y.flatten()
             print(theta.shape, phi.shape,)
-        data_x = np.column_stack(
+            data_x = np.column_stack(
             [
                 theta.value,  # Theta [deg]
                 phi.value,  # Phi [deg]
                 np.zeros_like(theta).value,  # Abs dir * / Unused
-                np.abs(vcopol_x),  # Abs horizontal
+                np.log10(np.abs(vcopol_x))*10,  # Abs horizontal
                 np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
-                np.abs(vcrpol_x),  # Abs vertical
+                np.log10(np.abs(vcrpol_x))*10,  # Abs vertical
                 np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
                 np.zeros_like(theta).value,  # Ax. ratio * / Unused
             ]
-        )
+            )
 
-        data_y = np.column_stack(
+            data_y = np.column_stack(
             [
                 theta.value,  # Theta [deg]
                 phi.value,  # Phi [deg]
@@ -547,7 +622,7 @@ class BeamPattern:
                 np.angle(vcopol_y, deg=True),  # Phase vertical [deg]
                 np.zeros_like(theta).value,  # Ax. ratio * / Unused
             ]
-        )
+            )
         return grid_th_phi, vcopol_x, vcopol_y, data_x, data_y
 
     def plot_beam(savefile):
