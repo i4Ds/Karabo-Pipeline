@@ -99,7 +99,6 @@ class InterferometerSimulation:
         # currently only considered for `ObservationLong`
         beam_polY: BeamPattern = None,
     ) -> None:
-
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
@@ -267,7 +266,7 @@ class InterferometerSimulation:
             return visiblity_files
 
         except BaseException as exp:
-            #self.vis_path = vis_path_long
+            # self.vis_path = vis_path_long
             raise exp
 
     def __get_OSKAR_settings_tree(

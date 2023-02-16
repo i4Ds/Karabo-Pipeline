@@ -3,7 +3,6 @@ import unittest
 from datetime import datetime, timedelta
 
 import numpy as np
-import oskar
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import ObservationLong
@@ -132,20 +131,24 @@ class MyTestCase(unittest.TestCase):
         #     './karabo/test/data/beam_vis_2.vis',
         #     './karabo/test/data/beam_vis_3.vis',
         # ]
-        Visibility.combine_vis(number_of_days, visiblity_files, combined_vis_filepath,day_comb=False)
+        Visibility.combine_vis(
+            number_of_days, visiblity_files, combined_vis_filepath, day_comb=False
+        )
         visibilties = Visibility.read_from_file(combined_vis_filepath)
-        visibilties1=Visibility.read_from_file(visiblity_files[0].split('.vi')[0]+'.ms')
         # imaging cellsize is over-written in the Imager based on max uv dist.
-        imager = Imager(visibilties, imaging_npixel=4096,imaging_cellsize=1.e-5)
+        imager = Imager(visibilties, imaging_npixel=4096, imaging_cellsize=1.0e-5)
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits",overwrite=True)
-        dirty.plot(colobar_label='Flux Density (Jy)',filename='combine_vis.png')
-        aa=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits')
+        dirty.write_to_file(
+            "/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits",
+            overwrite=True,
+        )
+        dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
+        aa = fits.open(
+            "/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits"
+        )
         # bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
         # print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))
         print(np.nanmax(aa[0].data))
-
-
 
 
 if __name__ == "__main__":
