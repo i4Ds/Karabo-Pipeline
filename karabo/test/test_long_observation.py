@@ -140,16 +140,14 @@ class MyTestCase(unittest.TestCase):
         imager = Imager(visibilties, imaging_npixel=4096, imaging_cellsize=1.0e-5)
         dirty = imager.get_dirty_image()
         dirty.write_to_file(
-            "/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits",
+            "./karabo/test/result/beam/beam_vis.fits",
             overwrite=True,
         )
         dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
-        aa = fits.open(
-            "/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.fits"
-        )
+        #aa = fits.open( "./karabo/test/result/beam/beam_vis.fits")
         # bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
         # print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))
-        print(np.nanmax(aa[0].data))
+        #print(np.nanmax(aa[0].data))
 
 
 if __name__ == "__main__":
