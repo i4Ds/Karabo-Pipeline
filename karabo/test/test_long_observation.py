@@ -3,7 +3,6 @@ import unittest
 from datetime import datetime, timedelta
 
 import numpy as np
-from astropy.io import fits
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.beam import BeamPattern
@@ -144,10 +143,7 @@ class MyTestCase(unittest.TestCase):
             overwrite=True,
         )
         dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
-        #aa = fits.open( "./karabo/test/result/beam/beam_vis.fits")
-        # bb=fits.open('/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis_aperture.fits')
-        # print(np.nanmax(aa[0].data-bb[0].data),np.nanmax(aa[0].data),np.nanmax(bb[0].data))
-        #print(np.nanmax(aa[0].data))
+
 
 
 if __name__ == "__main__":
