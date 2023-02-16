@@ -1,9 +1,7 @@
 import os
 import unittest
 from datetime import datetime, timedelta
-
 import numpy as np
-
 from karabo.imaging.imager import Imager
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -143,7 +141,6 @@ class MyTestCase(unittest.TestCase):
             overwrite=True,
         )
         dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
-
 
 
 if __name__ == "__main__":
