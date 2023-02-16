@@ -137,12 +137,9 @@ class MyTestCase(unittest.TestCase):
         visibilties = Visibility.read_from_file(combined_vis_filepath)
         # imaging cellsize is over-written in the Imager based on max uv dist.
         imager = Imager(visibilties, imaging_npixel=4096, imaging_cellsize=1.0e-5)
-        dirty = imager.get_dirty_image()
-        dirty.write_to_file(
-            "./karabo/test/result/beam/beam_vis.fits",
-            overwrite=True,
-        )
-        dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
+        imager.get_dirty_image()
+        # dirty.write_to_file("./test/result/beam/beam_vis.fits",overwrite=True)
+        # dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
 
 
 if __name__ == "__main__":
