@@ -603,9 +603,9 @@ class BeamPattern:
                 theta.value,  # Theta [deg]
                 phi.value,  # Phi [deg]
                 np.zeros_like(theta).value,  # Abs dir * / Unused
-                np.log10(np.abs(vcopol_x))*10,  # Abs horizontal
+                np.abs(vcopol_x),  # Abs horizontal
                 np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
-                np.log10(np.abs(vcrpol_x))*10,  # Abs vertical
+                np.abs(vcrpol_x),  # Abs vertical
                 np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
                 np.zeros_like(theta).value,  # Ax. ratio * / Unused
             ]

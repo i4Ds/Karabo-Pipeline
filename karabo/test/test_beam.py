@@ -15,6 +15,7 @@ from karabo.test import data_path
 from astropy.io import fits
 import matplotlib.pyplot as plt
 from astropy.wcs import WCS
+from matplotlib.patches import Ellipse
 
 
 class MyTestCase(unittest.TestCase):
@@ -56,13 +57,12 @@ class MyTestCase(unittest.TestCase):
 
     def test_beam(self):
         sky = SkyModel()
-        sky_data = np.array(
-            [
-                [20.0, -30.0, 10, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
-                [20.0, -30.5, 30, 2, 2, 0, 100.0e6, -0.7, 0.0, 0, 0, 45],
-                [20.5, -30.5, 30, 0, 0, 2, 100.0e6, -0.7, 0.0, 0, 0, -10],
-            ]
-        )
+        freq=8.2e8
+        nsource=16;nsource_side=int(np.sqrt(nsource))
+        ra_array_side=np.linspace(19,21,nsource_side);dec_array_side=np.linspace(-31,-29,nsource_side);radec_grid=np.meshgrid(ra_array_side,dec_array_side)
+        ra_array=radec_grid[0].flatten();dec_array=radec_grid[1].flatten()
+        s_array=np.ones(nsource)*10;freq_array=freq*np.ones(nsource)
+        sky_data=np.zeros((nsource,8));sky_data[:,0] = ra_array;sky_data[:,1] = dec_array;sky_data[:,2] = s_array;sky_data[:,6] = freq_array
         sky.add_point_sources(sky_data)
         telescope = Telescope.get_MEERKAT_Telescope()
         # telescope.centre_longitude = 3
@@ -77,31 +77,21 @@ class MyTestCase(unittest.TestCase):
         if enable_array_beam:
             # ------------ X-coordinate
             pb = BeamPattern(xcstfile_path)  # Instance of the Beam class
-            beam = pb.sim_beam(beam_method="EIDOS_AH", f=1000, fov=30)  # Computing beam
+            beam = pb.sim_beam(beam_method="KatBeam", f=freq/1.e6, fov=30)  # Computing beam
             pb.save_meerkat_cst_file(beam[3])  # Saving the beam cst file
             pb.fit_elements(
-                telescope, freq_hz=1.0e9, avg_frac_error=0.001, pol="X"
+                telescope, freq_hz=freq, avg_frac_error=0.005, pol="X"
             )  # Fitting the beam using cst file
             # ------------ Y-coordinate
             pb = BeamPattern(ycstfile_path)
             pb.save_meerkat_cst_file(beam[4])
-            pb.fit_elements(telescope, freq_hz=1.0e9, avg_frac_error=0.001, pol="Y")
+            pb.fit_elements(telescope, freq_hz=freq, avg_frac_error=0.005, pol="Y")
         # ------------- Simulation Begins
         simulation = InterferometerSimulation(
             vis_path="./karabo/test/data/beam_vis.vis",
             channel_bandwidth_hz=2e7,
             time_average_sec=1,
-            noise_enable=False,
-            noise_seed="time",
-            noise_freq="Range",
-            noise_rms="Range",
-            noise_start_freq=1.0e9,
-            noise_inc_freq=1.0e8,
-            noise_number_freq=24,
-            noise_rms_start=0,
-            noise_rms_end=0,
-            enable_numerical_beam=enable_array_beam,
-            enable_array_beam=enable_array_beam,
+            noise_enable=False
         )
         observation = Observation(
             mode="Tracking",
@@ -110,7 +100,7 @@ class MyTestCase(unittest.TestCase):
             length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
             phase_centre_dec_deg=-30.0,
             number_of_time_steps=1,
-            start_frequency_hz=1.0e9,
+            start_frequency_hz=freq,
             frequency_increment_hz=1e6,
             number_of_channels=1,
         )
@@ -120,7 +110,7 @@ class MyTestCase(unittest.TestCase):
 
         imager = Imager(
             visibility,
-            imaging_npixel=2048 * 2,
+            imaging_npixel=2048,
             imaging_cellsize=4.3e-5,
             imaging_dopsf=True,
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
@@ -128,11 +118,14 @@ class MyTestCase(unittest.TestCase):
         dirty.write_to_file("./karabo/test/result/beam/beam_vis.fits", overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
         ab=fits.open("./karabo/test/result/beam/beam_vis.fits")
-        a = fits.open("./karabo/test/result/beam/beam_vis_no_beam.fits")
+        a = fits.open("./karabo/test/result/beam/beam_vis_no_beam_2048.fits")
         adiff=ab[0].data[0][0]-a[0].data[0][0]
         wcs=WCS(a[0].header)
         f,ax=plt.subplots(subplot_kw=dict(projection=wcs,slices=['x','y',0,0]))
-        im=ax.imshow(adiff,aspect='auto',origin='lower',vmin=-1.e-2,vmax=1.e-2)
+        im=ax.imshow(adiff,aspect='auto',origin='lower',vmin=-2e0,vmax=2.e0)
+        ellipse = Ellipse(xy=(400 , 400), width=405, height=405,
+                          edgecolor='r', fc='None', lw=2,alpha=0.5)
+        ax.add_patch(ellipse)
         f.colorbar(im)
         f.show()
 
