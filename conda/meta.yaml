@@ -30,6 +30,7 @@ requirements:
     - healpy
     - pinocchio # [linux]
     - katbeam
+    - pyvista
     - eidos
     - libcufft
     - cuda-cudart

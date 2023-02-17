@@ -17,6 +17,7 @@ dependencies:
   - requests
   - pinocchio # [linux]
   - katbeam
+  - pyvista
   - eidos
   - libcufft
   - cuda-cudart
