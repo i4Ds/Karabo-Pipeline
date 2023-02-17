@@ -175,7 +175,7 @@ class ObservationPlotter:
             carts = [long_lat_to_cartesian(row[0], row[1]) for row in coord]
             lines = pyvista.lines_from_points(carts)
             lines["labels"] = [
-                "lon={long:.0f}°, lat={lat:.0f}°".format(long=x[1], lat=x[0])
+                "lon={long:.0f} deg, lat={lat:.0f} deg".format(long=x[1], lat=x[0])
                 for x in coord
             ]
             mapper = self.plotter.add_point_labels(
@@ -250,7 +250,7 @@ class ObservationPlotter:
             )
             lines = pyvista.lines_from_points(carts)
             lines["labels"] = [
-                "ra={long:.2f}°, dec={lat:.0f}°".format(long=x[0], lat=x[1])
+                "ra={long:.2f} deg, dec={lat:.0f} deg".format(long=x[0], lat=x[1])
                 for x in coord
             ]
             mapper = self.plotter.add_point_labels(
