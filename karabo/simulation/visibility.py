@@ -247,41 +247,6 @@ class Visibility(KaraboResource):
                         block.num_baselines,
                         out_vis[j][t],
                     )
-        test = 0
-        if test:
-            num_times = out_vis[j].shape[0]
-            for t in range(num_times):
-                # Dummy data to write.
-                time_stamp = time_start[0] + t * time_inc[0] / 86400.0
-                # Write coordinates and visibilities.
-                start_row = t * block.num_baselines
-                exposure_sec = time_ave[0]
-                interval_sec = time_ave[0]
-                print(
-                    time_stamp,
-                    interval_sec,
-                    exposure_sec,
-                    start_row,
-                    np.array(uui[0]).shape,
-                    np.array(out_vis[0]).shape,
-                )
-                ms.write_coords(
-                    start_row,
-                    block.num_baselines,
-                    uui[0][0],
-                    vvi[0][0],
-                    wwi[0][0],
-                    exposure_sec,
-                    interval_sec,
-                    time_stamp,
-                )
-                ms.write_vis(
-                    start_row,
-                    0,
-                    block.num_channels,
-                    block.num_baselines,
-                    out_vis[0][t, :, :, :],
-                )
 
         if day_comb is not True:
             num_times = out_vis[j].shape[0] * number_of_days
