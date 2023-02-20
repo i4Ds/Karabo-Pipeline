@@ -1,4 +1,4 @@
-name: Tests
+name: Test Slow Tests
 
 on:
   schedule: # Every night at 5am
