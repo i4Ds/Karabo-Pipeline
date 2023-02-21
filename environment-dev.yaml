@@ -17,11 +17,13 @@ dependencies:
   - requests
   - pinocchio # [linux]
   - katbeam
-  - pyvista
   - eidos
   - libcufft
   - cuda-cudart
   - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
+  # pyvista and dependencies
+  - pyvista
+  - libglib
   # For testing
   - nbconvert
   - nbformat
