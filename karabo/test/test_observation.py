@@ -43,7 +43,6 @@ class TestObservation(unittest.TestCase):
         )
 
     def test_observation_planer(self):
-        # sky = SkyModel.get_random_poisson_disk_sky((-10, -10), (-5, -5), 0.5, 1, 0.5)
         sky = SkyModel.get_GLEAM_Sky()
         tel = Telescope.get_MEERKAT_Telescope()
         _ = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=10)
