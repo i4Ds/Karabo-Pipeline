@@ -8,7 +8,7 @@
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
 [Example](karabo/examples/how_to_use_karabo_example.ipynb) |
-[Contributors](CONTRIBUTORS.md) |
+[Contributors](CONTRIBUTORS.md)
 
 Karabo is the name of a software system that we ambitiously call a digital twin pipeline.
 It reproduces in an accessible way the path of sky observation data through processing modules that mimic conceptually
