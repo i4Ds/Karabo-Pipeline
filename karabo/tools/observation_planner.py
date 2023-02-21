@@ -26,7 +26,7 @@ class ObservationPlotter:
         self.imager = imager
         self.plotter = pyvista.Plotter()
 
-    def plot(self):
+    def plot(self, interactive: bool = True) -> None:
 
         self.plotter.add_slider_widget(
             self.__plot_time_dependent,
@@ -39,9 +39,9 @@ class ObservationPlotter:
         self.__plot_sky()
         self.__plot_sky_lines()
 
-        self.plotter.show()
+        self.plotter.show(interactive=interactive)
 
-    def __plot_time_dependent(self, hour):
+    def __plot_time_dependent(self, hour) -> None:
 
         #  hour_str = f"{math.floor(hour):.0f}"
         daytime = Time(
@@ -175,7 +175,7 @@ class ObservationPlotter:
             carts = [long_lat_to_cartesian(row[0], row[1]) for row in coord]
             lines = pyvista.lines_from_points(carts)
             lines["labels"] = [
-                "lon={long:.0f}°, lat={lat:.0f}°".format(long=x[1], lat=x[0])
+                "lon={long:.0f} deg, lat={lat:.0f} deg".format(long=x[1], lat=x[0])
                 for x in coord
             ]
             mapper = self.plotter.add_point_labels(
@@ -250,7 +250,7 @@ class ObservationPlotter:
             )
             lines = pyvista.lines_from_points(carts)
             lines["labels"] = [
-                "ra={long:.2f}°, dec={lat:.0f}°".format(long=x[0], lat=x[1])
+                "ra={long:.2f} deg, dec={lat:.0f} deg".format(long=x[0], lat=x[1])
                 for x in coord
             ]
             mapper = self.plotter.add_point_labels(
