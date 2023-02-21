@@ -62,4 +62,4 @@ class TestObservation(unittest.TestCase):
         if os.getenv("GITHUB_ACTIONS") == "true":
             # start virtual framebufferto prevent segfaults on GitHub runners
             pyvista.start_xvfb()
-        ObservationPlotter(sky, tel, observation, imager).plot()
+        ObservationPlotter(sky, tel, observation, imager).plot(interactive=False)

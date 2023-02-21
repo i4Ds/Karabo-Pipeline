@@ -26,7 +26,7 @@ class ObservationPlotter:
         self.imager = imager
         self.plotter = pyvista.Plotter()
 
-    def plot(self):
+    def plot(self, interactive: bool = True) -> None:
 
         self.plotter.add_slider_widget(
             self.__plot_time_dependent,
@@ -39,9 +39,9 @@ class ObservationPlotter:
         self.__plot_sky()
         self.__plot_sky_lines()
 
-        self.plotter.show()
+        self.plotter.show(interactive=interactive)
 
-    def __plot_time_dependent(self, hour):
+    def __plot_time_dependent(self, hour) -> None:
 
         #  hour_str = f"{math.floor(hour):.0f}"
         daytime = Time(
