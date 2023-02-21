@@ -59,7 +59,7 @@ class TestObservation(unittest.TestCase):
         )
 
         imager = Imager(None, imaging_cellsize=0.03, imaging_npixel=512)
-        if os.getenv("GITHUB_ACTIONS") is True:
+        if os.getenv("GITHUB_ACTIONS") == "True":
             # start virtual framebufferto prevent segfaults on GitHub runners
             pyvista.start_xvfb()
         ObservationPlotter(sky, tel, observation, imager).plot()
