@@ -11,27 +11,28 @@
 [Contributors](CONTRIBUTORS.md) |
 
 Karabo is the name of a software system that we ambitiously call a digital twin pipeline.
-It reproduces in 
-a simple way the path of sky observation data through processing modules that mimic conceptually
-the pipeline of the
-future [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/).
+It reproduces in an accessible way the path of sky observation data through processing modules that mimic conceptually
+the pipeline of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/).
 
 It should serve as a tool to learn and possibly also benchmark some of the processing steps
 from a sky simulation to the science products. 
 
-Karabo is written in Python, composed of modules that can be 
-set up in an interactive Jupyter Notebook environment.
+Karabo has multiple skies ready available for experimentation, such as 
+
+- [MIGHTEE](https://arxiv.org/abs/2211.05741)
+- [GLEAM](https://www.mwatelescope.org/science/galactic-science/gleam/)
+
+Karabo is written in Python, composed of modules that can be set up in an interactive Jupyter Notebook environment.
 
 Installation
 ------------
 
-The software can be installed on a normal laptop, but you will need Windows or Linux. 
-On a Mac, you will need to use the [Docker](https://i4ds.github.io/Karabo-Pipeline/container.html)
-version.
+The software can be installed on Linux, Windows or Windows WSL.
 
 Please see our [documentation](https://i4ds.github.io/Karabo-Pipeline/installation_user.html) 
 for the full installation instructions.
 
+We also offer a [Docker](https://i4ds.github.io/Karabo-Pipeline/container.html) version.
 
 Contribute to Karabo
 ---------------------
