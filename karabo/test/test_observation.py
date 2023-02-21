@@ -1,6 +1,8 @@
 import unittest
 from datetime import datetime
 
+import pyvista
+
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationLong
@@ -57,4 +59,6 @@ class TestObservation(unittest.TestCase):
 
         imager = Imager(None, imaging_cellsize=0.03, imaging_npixel=512)
 
+        # start virtual framebufferto prevent segfaults on GitHub runners
+        pyvista.start_xvfb()
         ObservationPlotter(sky, tel, observation, imager).plot()
