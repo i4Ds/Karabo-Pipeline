@@ -142,7 +142,9 @@ if __name__ == "__main__":
         timedelta(hours=1000),
     ]
     N_POINTS = [512, 1024, 2048]
-    timings = pd.DataFrame()
+    # Create logging dataframe
+    timings = pd.DataFrame(columns=["n_points", "obs_time", "time"])
+    timings.to_csv("timings.csv", index=False)
     for n_points in N_POINTS:
         for obs_time in OBSERVATIONAL_TIMES:
             time_start = time.time()
@@ -150,9 +152,11 @@ if __name__ == "__main__":
                 n_random_sources=n_points,
                 total_observational_length=obs_time,
                 integration_time=timedelta(seconds=10),
-                daily_observational_length=timedelta(hours=4),
+                daily_observational_length=timedelta(hours=10),
             )
             time_end = time.time()
+            # Read in CSV and append new row
+            timings = pd.read_csv("timings.csv")
             timings = timings.append(
                 {
                     "n_points": n_points,
@@ -161,5 +165,7 @@ if __name__ == "__main__":
                 },
                 ignore_index=True,
             )
+            # Close all plots
             plt.close("all")
-    pd.DataFrame(timings).to_csv("timings.csv")
+            # Write out CSV
+            timings.to_csv("timings.csv", index=False)
