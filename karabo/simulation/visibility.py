@@ -157,10 +157,21 @@ class Visibility(KaraboResource):
 
     @staticmethod
     def combine_vis(
-        number_of_days: int, visiblity_files: list, combined_vis_filepath: str
+        number_of_days: int,
+        visiblity_files: list,
+        combined_vis_filepath: str,
+        day_comb: bool,
     ):
         """
         Combine visibilities by reading visiblity_files into combined_vis_filepath
+        Args:
+        some_arg:
+                number_of_days: int,
+                visiblity_files: list,
+                combined_vis_filepath: str,
+                day_comb: bool,
+        Returns:
+        Combined vis
         """
         print("### Combining the visibilities for ", visiblity_files)
         out_vis = [0] * number_of_days
@@ -169,6 +180,7 @@ class Visibility(KaraboResource):
         wwi = [0] * number_of_days
         time_start = [0] * number_of_days
         time_inc = [0] * number_of_days
+        time_ave = [0] * number_of_days
         # for j in tqdm(range(number_of_days)):
         for j in range(number_of_days):
             (header, handle) = oskar.VisHeader.read(visiblity_files[j])
@@ -177,13 +189,14 @@ class Visibility(KaraboResource):
                 block.read(header, handle, k)
             out_vis[j] = block.cross_correlations()
             uui[j] = block.baseline_uu_metres()
-            vvi[j] = block.baseline_uu_metres()
-            wwi[j] = block.baseline_uu_metres()
+            vvi[j] = block.baseline_vv_metres()
+            wwi[j] = block.baseline_ww_metres()
             time_inc[j] = header.time_inc_sec
             time_start[j] = header.time_start_mjd_utc
-        uu = np.array(uui).swapaxes(0, 1)
-        uushape = uu.shape
-        uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
+            time_ave[j] = header.get_time_average_sec()
+            print(uui[j].shape, out_vis[j].shape, number_of_days)
+        # uushape = uu.shape
+        # uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
         # vv = np.array(vvi).swapaxes(0, 1)
         # vvshape = vv.shape
         # vv = vv.reshape(vvshape[0], vvshape[1] * vvshape[2])
@@ -200,26 +213,76 @@ class Visibility(KaraboResource):
             header.freq_start_hz,
             header.freq_inc_hz,
         )
-        ms.set_phase_centre(header.phase_centre_ra_deg, header.phase_centre_dec_deg)
+        deg2rad = np.pi / 180
+        ms.set_phase_centre(
+            header.phase_centre_ra_deg * deg2rad, header.phase_centre_dec_deg * deg2rad
+        )
         # Write data one block at a time.
-        num_times = number_of_days
         print("### Writing combined visibilities in ", combined_vis_filepath)
-        for t in range(num_times):
-            # Dummy data to write.
-            time_stamp = time_inc[t] * time_start[t]
-            # Write coordinates and visibilities.
-            start_row = t * block.num_baselines
-            exposure_sec = time_inc[t]
-            ms.write_coords(
-                start_row,
+        if day_comb:
+            for j in range(number_of_days):
+                num_times = out_vis[j].shape[0]
+                print(num_times, out_vis[j].shape, uui[j].shape, block.num_baselines)
+                for t in range(num_times):
+                    # Dummy data to write.
+                    time_stamp = time_inc[j] * time_start[j]
+                    # Write coordinates and visibilities.
+                    start_row = t * block.num_baselines
+                    exposure_sec = time_ave[0]
+                    # print(uui[j][t].shape,out_vis[j][t].shape,block.num_channels,block.num_baselines)
+                    ms.write_coords(
+                        start_row,
+                        block.num_baselines,
+                        uui[j][t],
+                        vvi[j][t],
+                        wwi[j][t],
+                        exposure_sec,
+                        time_ave[j],
+                        time_stamp,
+                    )
+                    ms.write_vis(
+                        start_row,
+                        0,
+                        block.num_channels,
+                        block.num_baselines,
+                        out_vis[j][t],
+                    )
+
+        if day_comb is not True:
+            num_times = out_vis[j].shape[0] * number_of_days
+            print(
+                num_times,
+                out_vis[j].shape,
+                uui[j].shape,
                 block.num_baselines,
-                uui[t],
-                vvi[t],
-                wwi[t],
-                exposure_sec,
-                time_inc[t],
-                time_stamp,
+                np.array(time_inc).shape,
             )
-            ms.write_vis(
-                start_row, 0, block.num_channels, block.num_baselines, out_vis[t]
+            us = np.array(uui).shape
+            outs = np.array(out_vis).shape
+            uuf = np.array(uui).reshape(us[0] * us[1], us[2])
+            vvf = np.array(vvi).reshape(us[0] * us[1], us[2])
+            wwf = np.array(wwi).reshape(us[0] * us[1], us[2])
+            out_vis = np.array(out_vis).reshape(
+                outs[0] * outs[1], outs[2], outs[3], outs[4]
             )
+            for t in range(num_times):
+                # Dummy data to write.
+                time_stamp = time_start[0] + t * time_inc[0] / 86400.0
+                # Write coordinates and visibilities.
+                start_row = t * block.num_baselines
+                exposure_sec = time_ave[0]
+                interval_sec = time_ave[0]
+                # print(time_stamp,interval_sec,exposure_sec,start_row)
+                ms.write_coords(
+                    start_row,
+                    block.num_baselines,
+                    uuf.mean(axis=0),
+                    vvf.mean(axis=0),
+                    wwf.mean(axis=0),
+                    exposure_sec,
+                    interval_sec,
+                    time_stamp,
+                )
+                ms.write_vis(
+                    start_row, 0, block.num_channels, block.num_baselines, out_vis[t]
+                )
