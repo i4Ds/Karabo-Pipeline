@@ -45,7 +45,6 @@ class Observation:
         phase_centre_dec_deg: float = 0,
         number_of_time_steps: float = 1,
     ) -> None:
-
         # required
         self.start_frequency_hz: float = start_frequency_hz
 
@@ -169,7 +168,6 @@ class ObservationLong(Observation):
         number_of_time_steps: float = 1,
         number_of_days: int = 2,
     ) -> None:
-
         self.enable_check = False
         super().__init__(
             mode=mode,

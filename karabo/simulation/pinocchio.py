@@ -33,7 +33,6 @@ class PinocchioRedShiftRequest:
 
 
 class Pinocchio:
-
     PIN_EXEC_MPI = "mpirun"
     PIN_EXEC_MPI_NO_NODES = "-np"
     PIN_EXEC_MPI_AS_ROOT = "--allow-run-as-root"
@@ -106,7 +105,6 @@ class Pinocchio:
         rsr = PinocchioRedShiftRequest()
 
         with open(path) as redShifts:
-
             rsr.header = (
                 f"{Pinocchio.PRMS_CMNT} Generated redshift output request "
                 + "file for Pinocchio by Karabo Framework "
@@ -178,7 +176,6 @@ class Pinocchio:
         c: PinocchioConfig = PinocchioConfig()
 
         with open(path) as configF:
-
             # remove header
             line: str = configF.readline()
             if line[0] != Pinocchio.PRMS_CMNT:
@@ -276,7 +273,7 @@ class Pinocchio:
 
         k: str
         v: list[PinocchioParams]
-        for (k, v) in self.currConfig.confDict.items():
+        for k, v in self.currConfig.confDict.items():
             for i in v:
                 desc: str = "is a flag" if i.isFlag else f"has value = {i.value}"
                 status: str = "is active" if i.active else "is inactive"
@@ -473,7 +470,7 @@ class Pinocchio:
         # write entries
         k: str
         v: List[PinocchioParams]
-        for (k, v) in self.currConfig.confDict.items():
+        for k, v in self.currConfig.confDict.items():
             # write header
             lines.append(f"{Pinocchio.PRMS_CMNT} {k}")
 
