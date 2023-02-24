@@ -21,6 +21,7 @@ from rascil.workflows import (
 from rascil.workflows.rsexecute.execution_support import rsexecute
 
 from karabo.imaging.image import Image
+from karabo.karabo_resource import NumpyAssertionsDisabled
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util.dask import get_global_client
@@ -133,8 +134,11 @@ class Imager:
         """Get Dirty Image of visibilities passed to the Imager.
         :return: dirty image of visibilities.
         """
-
-        block_visibilities = create_blockvisibility_from_ms(self.visibility.file.path)
+        # Code that triggers assertion statements
+        with NumpyAssertionsDisabled():
+            block_visibilities = create_blockvisibility_from_ms(
+                self.visibility.file.path
+            )
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
@@ -145,7 +149,8 @@ class Imager:
             cellsize=self.imaging_cellsize,
             override_cellsize=self.override_cellsize,
         )
-        dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
+        with NumpyAssertionsDisabled():
+            dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
         export_image_to_fits(dirty, f"{file_handle.path}")
         image = Image(path=file_handle)
         return image
