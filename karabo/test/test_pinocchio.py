@@ -10,7 +10,6 @@ from karabo.simulation.telescope import Telescope
 
 
 class TestPinocchio(unittest.TestCase):
-
     RESULT_FOLDER = "./result"
 
     @classmethod

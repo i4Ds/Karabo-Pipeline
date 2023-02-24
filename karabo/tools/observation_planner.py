@@ -27,7 +27,6 @@ class ObservationPlotter:
         self.plotter = pyvista.Plotter()
 
     def plot(self, interactive: bool = True) -> None:
-
         self.plotter.add_slider_widget(
             self.__plot_time_dependent,
             [0, 24],
@@ -42,7 +41,6 @@ class ObservationPlotter:
         self.plotter.show(interactive=interactive)
 
     def __plot_time_dependent(self, hour) -> None:
-
         #  hour_str = f"{math.floor(hour):.0f}"
         daytime = Time(
             f"2022-08-26 {math.floor(hour)}:00:00.5", scale="utc", format="iso"
@@ -144,7 +142,6 @@ class ObservationPlotter:
         self.plotter.add_mesh(pc, colormap="viridis")
 
     def __plot_long_lat_lines(self, daytime: Time):
-
         longs = np.linspace(-90, 90, 9, endpoint=False)
         longs = [daytime.earth_rotation_angle(long).value * 15 for long in longs]
         plotting_lats = np.linspace(-180, 180, 180)

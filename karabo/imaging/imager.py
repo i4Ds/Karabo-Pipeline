@@ -324,6 +324,7 @@ class Imager:
         :return: image-coordinates as np.ndarray[px,py] and
         `SkyModel` sources indices as np.ndarray[idxs]
         """
+
         # calc WCS args
         def radian_degree(rad: float) -> float:
             return rad * (180 / np.pi)
