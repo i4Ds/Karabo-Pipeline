@@ -31,6 +31,7 @@ requirements:
     - pinocchio # [linux]
     - katbeam
     - pyvista
+    - tools21cm
     - eidos
     - libcufft
     - cuda-cudart
