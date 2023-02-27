@@ -23,9 +23,9 @@ jobs:
           echo "IMAGE_NAME: $IMAGE_NAME"
       - name: Install conda build
         run: |
-          conda config --append channels conda-forge
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels conda-forge
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Build Conda
