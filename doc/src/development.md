@@ -3,10 +3,10 @@
 ## Setup local dev environment
 
 First clone the code via git.
-Then create a local development environment with the provided `environment-dev.yaml` file.
+Then create a local development environment with the provided `environment.yaml` file.
 
 ```shell
-conda env create -f environment-dev.yaml
+conda env create -n <your-env-name> -f environment.yaml
 ```
 
 With this only the dependencies but not the current version of karabo will be installed into a conda environment.
