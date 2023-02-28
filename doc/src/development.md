@@ -9,6 +9,13 @@ Then create a local development environment with the provided `environment.yaml`
 conda env create -n <your-env-name> -f environment.yaml
 ```
 
+Then install the development dependencies using `requirements.txt`.
+
+```shell
+conda activate <your-env-name>
+pip install -r requirements.txt
+```
+
 With this only the dependencies but not the current version of karabo will be installed into a conda environment.
 Then you can simply run your code inside that environment. To tell Python to treat the reposity as a package, the following links can be helpful:
 
