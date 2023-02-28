@@ -122,7 +122,7 @@ There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that
 If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, use the following commands to generate the documentation:
 
 ```shell
-conda install -c conda-forge -y --file doc/doc_packages.txt
+pip install -r requirements.txt
 make html
 ```
 
