@@ -13,7 +13,7 @@ COPY --from=build requirements.txt requirements.txt
 RUN conda update -y conda && \
     conda clean --all --yes && \
     conda install mamba -y -c conda-forge
-RUN mamba env update --file environment.yaml --prune
+RUN mamba env update --file environment.yaml
 RUN pip install -r requirements.txt
 RUN rm environment.yaml requirements.txt
 RUN pip install unittest-xml-reporting
