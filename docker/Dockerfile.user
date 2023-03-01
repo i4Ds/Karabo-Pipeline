@@ -1,10 +1,12 @@
-FROM --platform=amd64 continuumio/miniconda3
+FROM --platform=amd64 continuumio/miniconda3:4.12.0
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN apt-get update && apt-get install -y curl && apt-get autoclean && rm -rf /var/lib/apt/lists/*
-RUN conda update conda
-RUN conda install -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
+RUN conda update -y conda && \
+    conda clean --all --yes && \
+    conda install mamba -y -c conda-forge
+RUN mamba install -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 RUN pip install jupyterlab ipykernel
-RUN python -m ipykernel install --user --name=karabo-kernel
+RUN python -m ipykernel install --user --name=karabo
 RUN mkdir /workspace
 WORKDIR /workspace
 COPY karabo/examples/ /workspace/examples/
