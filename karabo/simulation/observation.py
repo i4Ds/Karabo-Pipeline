@@ -102,7 +102,6 @@ class Observation:
         :return: Dictionary containing the full configuration in the OSKAR Settings Tree format.
         """
         settings = {
-            "simulator": {"use_gpus": self.use_gpu},
             "observation": {
                 "start_frequency_hz": str(self.start_frequency_hz),
                 "mode": self.mode,

@@ -87,6 +87,12 @@ class InterferometerSimulation:
         enable_numerical_beam: bool = False,
         beam_polX: BeamPattern = None,  # currently only considered for `ObservationLong`
         beam_polY: BeamPattern = None,  # currently only considered for `ObservationLong`
+        use_gpus: bool = False,
+        precision: str = "single",
+        station_type: str = "Isotropic beam",
+        gauss_beam_fwhm_deg: float = 0.0,
+        gauss_ref_freq_hz: float = 0.0,
+
     ) -> None:
 
         self.ms_file: Visibility = Visibility()
@@ -113,6 +119,11 @@ class InterferometerSimulation:
         self.enable_numerical_beam = enable_numerical_beam
         self.beam_polX: BeamPattern = beam_polX
         self.beam_polY: BeamPattern = beam_polY
+        self.use_gpus = use_gpus
+        self.precision = precision
+        self.station_type = station_type
+        self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
+        self.gauss_ref_freq_hz = gauss_ref_freq_hz
 
     def run_simulation(
         self, telescope: Telescope, sky: SkyModel, observation: Observation
@@ -148,21 +159,24 @@ class InterferometerSimulation:
         :param sky: sky model defining the sources
         :param observation: observation settings
         """
-        os_sky = sky.get_OSKAR_sky()
         observation_settings = observation.get_OSKAR_settings_tree()
         input_telpath = telescope.path
         interferometer_settings = self.__get_OSKAR_settings_tree(
             input_telpath=input_telpath
         )
-        telescope.get_OSKAR_telescope()
+        #print(interferometer_settings)
         settings1 = {**interferometer_settings, **observation_settings}
-        # settings["telescope"] = {"input_directory": telescope.path, "station_type": 'Aperture array', "aperture_array/element_pattern/enable_numerical": True}
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(settings1)
         # settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
         simulation = oskar.Interferometer(settings=setting_tree)
+        #print('####################################################################################')
+        #print(settings1)
         # simulation.set_telescope_model( # outcommented by hotfix #59
-        simulation.set_sky_model(os_sky)
+        #os_sky = oskar.Sky.load('/home/rohit/simulations/primary_beam/jennifer_sky_model.txt',precision)
+        os_sky = sky.get_OSKAR_sky()
+        os_sky_with_precision=os_sky.from_array(os_sky.to_array(),precision=self.precision)
+        simulation.set_sky_model(os_sky_with_precision)
         simulation.run()
         return self.ms_file
 
@@ -252,10 +266,21 @@ class InterferometerSimulation:
             self.vis_path = vis_path_long
             raise exp
 
+    def yes_double_precision(self):
+        if(self.precision=='single'):
+            pres=False
+        else:
+            pres=True
+        return pres
+
+
     def __get_OSKAR_settings_tree(
         self, input_telpath
     ) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
+            "simulator":{"use_gpus":self.use_gpus,
+                "double_precision":self.yes_double_precision()
+            },
             "interferometer": {
                 "ms_filename": self.ms_file.file.path,
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
@@ -282,12 +307,14 @@ class InterferometerSimulation:
                 "normalise_beams_at_phase_centre": True,
                 "allow_station_beam_duplication": True,
                 "pol_mode": "Full",
-                "station_type": "Aperture array",
+                "station_type": self.station_type,
                 "aperture_array/array_pattern/enable": self.enable_array_beam,
                 "aperture_array/array_pattern/normalise": True,
                 "aperture_array/element_pattern/enable_numerical": self.enable_numerical_beam,
                 "aperture_array/element_pattern/normalise": True,
                 "aperture_array/element_pattern/taper/type": "None",
+                "gaussian_beam/fwhm_deg":self.gauss_beam_fwhm_deg,
+                "gaussian_beam/ref_freq_hz":self.gauss_ref_freq_hz
             },
         }
         if self.vis_path:

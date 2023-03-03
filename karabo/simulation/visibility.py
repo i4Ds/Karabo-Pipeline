@@ -4,7 +4,6 @@ import os
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
 import oskar
-
 import numpy as np
 
 
