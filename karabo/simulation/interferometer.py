@@ -1,18 +1,19 @@
-import enum, os, sys, glob
+import enum
+import glob
+import os
+import sys
 from copy import deepcopy
-from typing import Dict, List, Union, Any
+from datetime import timedelta
+from typing import Any, Dict, List, Union
 
 import oskar
-import numpy as np
-import karabo.error
-from karabo.simulation.visibility import Visibility
+
+from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.beam import BeamPattern
-from karabo.util.FileHandle import FileHandle
+from karabo.simulation.visibility import Visibility
 from karabo.util.data_util import input_wrapper
-from datetime import timedelta, datetime
 
 
 class CorrelationType(enum.Enum):
@@ -44,22 +45,84 @@ class InterferometerSimulation:
     Class containing all configuration for the Interferometer Simulation.
 
     :ivar ms_path: Path where the resulting measurement set will be stored.
-    :ivar vis_path: Path of the visibility output file containing results of the simulation.
-    :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth smearing.
-                                (Note that this can be different to the frequency increment if channels do not cover a contiguous frequency range.)
-    :ivar time_average_sec: The correlator time-average duration, in seconds, used to simulate time averaging smearing.
-    :ivar max_time_per_samples: The maximum number of time samples held in memory before being written to disk.
-    :ivar correlation_type: The type of correlations to produce. Any value of Enum CorrelationType
-    :ivar uv_filter_min: The minimum value of the baseline UV length allowed by the filter.
-                         Values outside this range are not evaluated
-    :ivar uv_filter_max: The maximum value of the baseline UV length allowed by the filter.
-                         Values outside this range are not evaluated.
-    :ivar uv_filter_units: The units of the baseline UV length filter values. Any value of Enum FilterUnits
-    :ivar force_polarised_ms: If True, always write the Measurment Set in polarised format even if the simulation
-                              was run in the single polarisation 'Scalar' (or Stokes-I) mode. If False, the size of
-                              the polarisation dimension in the the Measurement Set will be determined by the simulation mode.
-    :ivar ignore_w_components: If enabled, baseline W-coordinate component values will be set to 0. This will disable
-                               W-smearing. Use only if you know what you're doing!
+    :ivar vis_path: Path of the visibility output file containing results of the
+                    simulation.
+    :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
+                                smearing. (Note that this can be different to the
+                                frequency increment if channels do not cover a
+                                contiguous frequency range.)
+    :ivar time_average_sec: The correlator time-average duration, in seconds, used
+                            to simulate time averaging smearing.
+    :ivar max_time_per_samples: The maximum number of time samples held in memory
+                                before being written to disk.
+    :ivar correlation_type: The type of correlations to produce. Any value of Enum
+                            CorrelationType
+    :ivar uv_filter_min: The minimum value of the baseline UV length allowed by the
+                         filter. Values outside this range are not evaluated
+    :ivar uv_filter_max: The maximum value of the baseline UV length allowed by the
+                         filter. Values outside this range are not evaluated.
+    :ivar uv_filter_units: The units of the baseline UV length filter values.
+                           Any value of Enum FilterUnits
+    :ivar force_polarised_ms: If True, always write the Measurement Set in polarised
+                              format even if the simulation was run in the single
+                              polarisation 'Scalar' (or Stokes-I) mode. If False,
+                              the size of the polarisation dimension in the
+                              Measurement Set will be determined by the simulation
+                              mode.
+    :ivar ignore_w_components: If enabled, baseline W-coordinate component values will
+                               be set to 0. This will disable W-smearing. Use only if
+                               you know what you're doing!
+    :ivar noise_enable: If true, noise is added.
+    :ivar noise_seed: Random number generator seed.
+    :ivar noise_start_freq: The start frequency in Hz for which noise is included, if
+                            noise is set to true.
+    :ivar noise_inc_freq: The frequency increment in Hz, if noise is set to true.
+    :ivar noise_number_freq: The number of frequency taken into account, if noise is set
+                             to true.
+    :ivar noise_rms_start: Station RMS (noise) flux density range start value, in Jy.
+                           The range is expanded linearly over the number of frequencies
+                           for which noise is defined.
+    :ivar noise_rms_end: Station RMS (noise) flux density range end value, in Jy. The
+                         range is expanded linearly over the number of frequencies for
+                         which noise is defined.
+    :ivar noise_rms: The specifications for the RMS noise value:
+                        Telescope model: values are loaded from files in the telescope
+                                         model directory.
+                        Data file: values are loaded from the specified file.
+                        Range: values are evaluated according to the specified range
+                               parameters (Default).
+                     The noise values are specified in Jy and represent the RMS noise of
+                     an unpolarised source in terms of flux measured in a single
+                     polarisation of the detector.
+    :ivar noise_freq: The list of frequencies for which noise values are defined:
+                        Telescope model: frequencies are loaded from a data file in
+                                         the telescope model directory.
+                        Observation settings: frequencies are defined by the observation
+                                              settings.
+                        Data file: frequencies are loaded from the specified data file.
+                        Range: frequencies are specified by the range parameters
+                               (Default).
+    :ivar enable_array_beam: If true, then the contribution to the station beam from
+                             the array pattern (given by beam-forming the antennas in
+                             the station) is evaluated.
+    :ivar enable_numerical_beam: If true, make use of any available numerical element
+                                 pattern files. If numerical pattern data are missing,
+                                 the functional type will be used instead.
+    :ivar beam_polX: currently only considered for `ObservationLong`
+    :ivar beam_polX: currently only considered for `ObservationLong`
+    :ivar use_gpus: Set to true if you want to use gpus for the simulation
+    :ivar precision: For the arithmetic use you can choose between "single" or
+                     "double" precision
+    :ivar station_type: Here you can choose the type of each station in the
+                        interferometer. You can either disable all station beam
+                        effects by choosing "Isotropic beam". Or select one of the
+                        following beam types:
+                        "Gaussian beam", "Aperture array" or "VLA (PBCOR)"
+    :ivar gauss_beam_fwhm_deg: If you choose "Gaussian beam" as station type you need
+                               specify the full-width half maximum value at the
+                               reference frequency of the Gaussian beam here.
+                               Units = degrees.
+    :ivar gauss_ref_freq_hz: IThe reference frequency of the specified FWHM, in Hz.
     """
 
     def __init__(
@@ -85,14 +148,15 @@ class InterferometerSimulation:
         noise_freq: str = "Range",
         enable_array_beam: bool = False,
         enable_numerical_beam: bool = False,
-        beam_polX: BeamPattern = None,  # currently only considered for `ObservationLong`
-        beam_polY: BeamPattern = None,  # currently only considered for `ObservationLong`
+        beam_polX: BeamPattern = None,  # currently only considered
+        # for `ObservationLong`
+        beam_polY: BeamPattern = None,  # currently only considered
+        # for `ObservationLong`
         use_gpus: bool = False,
         precision: str = "single",
         station_type: str = "Isotropic beam",
         gauss_beam_fwhm_deg: float = 0.0,
         gauss_ref_freq_hz: float = 0.0,
-
     ) -> None:
 
         self.ms_file: Visibility = Visibility()
@@ -129,7 +193,8 @@ class InterferometerSimulation:
         self, telescope: Telescope, sky: SkyModel, observation: Observation
     ) -> Union[Visibility, List[str]]:
         """
-        Run a single interferometer simulation with the given sky, telescope.png and observation settings.
+        Run a single interferometer simulation with the given sky, telescope.png and
+        observation settings.
         :param telescope: telescope.png model defining the telescope.png configuration
         :param sky: sky model defining the sky sources
         :param observation: observation settings
@@ -154,30 +219,30 @@ class InterferometerSimulation:
         observation: Observation,
     ) -> Visibility:
         """
-        Run a single interferometer simulation with a given sky, telescope and observation settings.
+        Run a single interferometer simulation with a given sky,
+        telescope and observation settings.
         :param telescope: telescope model defining it's configuration
         :param sky: sky model defining the sources
         :param observation: observation settings
         """
-        observation_settings = observation.get_OSKAR_settings_tree()
+        observation_params = observation.get_OSKAR_settings_tree()
         input_telpath = telescope.path
-        interferometer_settings = self.__get_OSKAR_settings_tree(
+        interferometer_params = self.__get_OSKAR_settings_tree(
             input_telpath=input_telpath
         )
-        #print(interferometer_settings)
-        settings1 = {**interferometer_settings, **observation_settings}
+        # print(interferometer_settings)
+        params_total = {**interferometer_params, **observation_params}
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
-        setting_tree.from_dict(settings1)
-        # settings["telescope"] = {"input_directory":telescope.path} # hotfix #59
+        setting_tree.from_dict(params_total)
+
+        # The following line depends on the mode with which we're loading
+        # the sky (explained in documentation)
+        os_sky = sky.get_OSKAR_sky(precision=self.precision)
+
         simulation = oskar.Interferometer(settings=setting_tree)
-        #print('####################################################################################')
-        #print(settings1)
-        # simulation.set_telescope_model( # outcommented by hotfix #59
-        #os_sky = oskar.Sky.load('/home/rohit/simulations/primary_beam/jennifer_sky_model.txt',precision)
-        os_sky = sky.get_OSKAR_sky()
-        os_sky_with_precision=os_sky.from_array(os_sky.to_array(),precision=self.precision)
-        simulation.set_sky_model(os_sky_with_precision)
+        simulation.set_sky_model(os_sky)
         simulation.run()
+
         return self.ms_file
 
     def __run_simulation_long(
@@ -203,7 +268,8 @@ class InterferometerSimulation:
                 if len(files_existing) > 0:
                     print("Some example files to remove/replace:")
                     print(f"{[*vis_files_existing[:3],*ms_files_existing[:3]]}")
-                    msg = f'Found already existing "beam_vis_*.vis" and "beam_vis_*.ms" files inside {self.vis_path}, \
+                    msg = f'Found already existing "beam_vis_*.vis" and ' \
+                          f'"beam_vis_*.ms" files inside {self.vis_path}, \
                         Do you want to replace remove/replace them? [y/N]'
                     ans = input_wrapper(msg=msg, ret="y")
                     if ans != "y":
@@ -214,7 +280,8 @@ class InterferometerSimulation:
                             for file_name in files_existing
                         ]
                         print(
-                            f'Removed {len(files_existing)} file(s) matching the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!'
+                            f'Removed {len(files_existing)} file(s) matching '
+                            f'the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!'
                         )
             else:
                 os.makedirs(self.vis_path, exist_ok=True)
@@ -267,19 +334,19 @@ class InterferometerSimulation:
             raise exp
 
     def yes_double_precision(self):
-        if(self.precision=='single'):
-            pres=False
+        if self.precision == "single":
+            pres = False
         else:
-            pres=True
+            pres = True
         return pres
-
 
     def __get_OSKAR_settings_tree(
         self, input_telpath
     ) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
-            "simulator":{"use_gpus":self.use_gpus,
-                "double_precision":self.yes_double_precision()
+            "simulator": {
+                "use_gpus": self.use_gpus,
+                "double_precision": self.yes_double_precision(),
             },
             "interferometer": {
                 "ms_filename": self.ms_file.file.path,
@@ -310,11 +377,12 @@ class InterferometerSimulation:
                 "station_type": self.station_type,
                 "aperture_array/array_pattern/enable": self.enable_array_beam,
                 "aperture_array/array_pattern/normalise": True,
-                "aperture_array/element_pattern/enable_numerical": self.enable_numerical_beam,
+                "aperture_array/element_pattern/enable_numerical":
+                    self.enable_numerical_beam,
                 "aperture_array/element_pattern/normalise": True,
                 "aperture_array/element_pattern/taper/type": "None",
-                "gaussian_beam/fwhm_deg":self.gauss_beam_fwhm_deg,
-                "gaussian_beam/ref_freq_hz":self.gauss_ref_freq_hz
+                "gaussian_beam/fwhm_deg": self.gauss_beam_fwhm_deg,
+                "gaussian_beam/ref_freq_hz": self.gauss_ref_freq_hz,
             },
         }
         if self.vis_path:
