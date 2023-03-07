@@ -11,6 +11,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      imageid: ${{steps.image.outputs.imageid}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -31,7 +33,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           name: ${{ github.event.repository.name }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          untagged-keep-latest: 5  # required to use correct image for testing if tag-collision during test-time happens.
+          untagged-keep-latest: 5
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -54,7 +56,7 @@ jobs:
   Test_Formatting:
     needs: Build_Dev_Image
     runs-on: ubuntu-latest
-    container: ghcr.io/${{ steps.image.outputs.imageid }}  # using image-id instead of tag ensures collision-free contaner usage.
+    container: ghcr.io/${{ needs.Build_Dev_Image.outputs.imageid }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -70,7 +72,7 @@ jobs:
   Test_Karabo:
     needs: Test_Formatting
     runs-on: ubuntu-latest
-    container: ghcr.io/${{ steps.image.outputs.imageid }}  # using image-id instead of tag ensures collision-free contaner usage.
+    container: ghcr.io/${{ needs.Build_Dev_Image.outputs.imageid }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
