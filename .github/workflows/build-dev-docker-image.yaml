@@ -2,6 +2,8 @@ name: Build Dev Image
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [build-dev-image]
 
 env:
   REGISTRY: ghcr.io

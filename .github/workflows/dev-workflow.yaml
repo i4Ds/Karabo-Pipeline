@@ -2,8 +2,8 @@
 # DO NOT CHANGE THIS WORKFLOW when you merge your branch to the default branch!
 name: Dev Workflow
 
-on:
-  workflow_dispatch:
+# on:
+#   workflow_dispatch:
 
 # jobs:
 #   job-name:
@@ -11,6 +11,11 @@ on:
 #     steps:
 #       - name: Checkout repository
 #         uses: actions/checkout@v3
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [build-dev-image]
 
 env:
   REGISTRY: ghcr.io

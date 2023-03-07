@@ -3,15 +3,16 @@ name: Tests
 on: [ push ]
 
 jobs:
-  BUILD_DEV_IMAGE:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Call "Build Dev Image" workflow
+  Build_Dev_Image:
+    - name: Repository Dispatch
         uses: peter-evans/repository-dispatch@v2
         with:
-          event-type: Dev Workflow
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          event-type: build-dev-image
 
-  TEST_FORMATTING:
+  Test_Formatting:
+    needs: Build_Dev_Image
     runs-on: ubuntu-latest
     container: ghcr.io/i4ds/karabo-pipeline:dev
     steps:
@@ -26,9 +27,8 @@ jobs:
       - name: check-isort
         run: isort --check .
 
-      
   Test_Karabo:
-    needs: TEST_FORMATTING
+    needs: Test_Formatting
     runs-on: ubuntu-latest
     container: ghcr.io/i4ds/karabo-pipeline:dev
     steps:
