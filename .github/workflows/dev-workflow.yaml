@@ -1,11 +1,6 @@
 name: Dev Workflow
 
 on:
-  workflow_run:
-    workflows: ["Conda Build"]
-    types:
-      - completed
-
   workflow_dispatch:
 
 env:
@@ -25,11 +20,6 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
-      # Aussumes that current repo-tag matches karabo:latest on anaconda.org
-      - name: Get Previous tag
-        uses: actions-ecosystem/action-get-latest-tag@v1
-        id: get-latest-tag
-
       - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
@@ -43,13 +33,17 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
-            type=raw, value=latest
-            type=pep440, pattern={{version}}, value=v0.15.0
+            type=raw, value=dev
+
+      - name: Delete untagged images
+        uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          untagged-keep-latest: 3
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: docker/Dockerfile.user
+          file: docker/Dockerfile.dev
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
