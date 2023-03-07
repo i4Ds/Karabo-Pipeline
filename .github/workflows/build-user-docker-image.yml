@@ -1,4 +1,4 @@
-name: Dev Workflow
+name: Build User Image
 
 on:
   workflow_run:
@@ -7,6 +7,9 @@ on:
       - completed
 
   workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
   build-and-push-image:
@@ -27,7 +30,7 @@ jobs:
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
 
-      - name: Login to container registry
+      - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
@@ -38,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
             type=raw, value=latest
             type=pep440, pattern={{version}}, value=${{ steps.get-latest-tag.outputs.tag }}
