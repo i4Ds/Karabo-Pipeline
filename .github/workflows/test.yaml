@@ -31,7 +31,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           name: ${{ github.event.repository.name }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          untagged-keep-latest: 2
+          untagged-keep-latest: 5  # required to use correct image for testing if tag-collision during test-time happens.
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -42,6 +42,7 @@ jobs:
             type=raw, value=dev
 
       - name: Build and push Docker image
+        id: image
         uses: docker/build-push-action@v4
         with:
           file: docker/Dockerfile.dev
@@ -53,7 +54,7 @@ jobs:
   Test_Formatting:
     needs: Build_Dev_Image
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:dev
+    container: ghcr.io/${{ steps.image.outputs.imageid }}  # using image-id instead of tag ensures collision-free contaner usage.
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -69,7 +70,7 @@ jobs:
   Test_Karabo:
     needs: Test_Formatting
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:dev
+    container: ghcr.io/${{ steps.image.outputs.imageid }}  # using image-id instead of tag ensures collision-free contaner usage.
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
