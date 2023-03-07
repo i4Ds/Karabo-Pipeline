@@ -9,7 +9,7 @@ jobs:
       - name: Call "Build Dev Image" workflow
         uses: peter-evans/repository-dispatch@v2
         with:
-          event-type: Build Dev Image
+          event-type: Dev Workflow
 
   TEST_FORMATTING:
     runs-on: ubuntu-latest
