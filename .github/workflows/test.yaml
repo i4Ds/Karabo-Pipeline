@@ -7,10 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Call "Build Dev Image" workflow
-          uses: peter-evans/workflow-dispatch@v1
-          with:
-            workflow: 'Build Dev Image.yml'
-            ref: ${{ github.head_ref }}
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          event-type: Build Dev Image
 
   TEST_FORMATTING:
     runs-on: ubuntu-latest
