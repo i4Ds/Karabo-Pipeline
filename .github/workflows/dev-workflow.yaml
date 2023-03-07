@@ -27,6 +27,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Delete untagged images
+        uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          owner: i4Ds
+          name: Karabo-Pipeline
+          token: ${{ secrets.GITHUB_TOKEN }}
+          untagged-keep-latest: 3
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4
@@ -34,14 +42,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
             type=raw, value=dev
-
-      - name: Delete untagged images
-        uses: bots-house/ghcr-delete-image-action@v1.1.0
-        with:
-          owner: ${{ github.actor }}
-          name: ${{ github.repository }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          untagged-keep-latest: 3
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
