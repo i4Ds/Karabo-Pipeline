@@ -4,6 +4,7 @@ on: [ push ]
 
 env:
   REGISTRY: ghcr.io
+  IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}
 
 jobs:
   Build_Dev_Image:
@@ -39,7 +40,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          images: ${{ env.IMAGE }}
           tags: |
             type=raw, value=dev
 
@@ -56,7 +57,7 @@ jobs:
   Test_Formatting:
     needs: Build_Dev_Image
     runs-on: ubuntu-latest
-    container: ghcr.io/${{ needs.Build_Dev_Image.outputs.imageid }}
+    container: ${{ env.IMAGE }}@${{ needs.Build_Dev_Image.outputs.imageid }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -72,7 +73,7 @@ jobs:
   Test_Karabo:
     needs: Test_Formatting
     runs-on: ubuntu-latest
-    container: ghcr.io/${{ needs.Build_Dev_Image.outputs.imageid }}
+    container: ${{ env.IMAGE }}@${{ needs.Build_Dev_Image.outputs.imageid }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
