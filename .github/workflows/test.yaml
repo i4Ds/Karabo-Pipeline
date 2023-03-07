@@ -13,7 +13,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      imageid: ${{ steps.image.outputs.imageid }}
+      tag: ${{ steps.image-tag.outputs.tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -36,16 +36,22 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           untagged-keep-latest: 5
 
+      - name: Create image tag
+        id: image-tag
+        shell: bash -l {0}
+        run: |
+          export IMAGE_TAG=dev-"${$(uuidgen):0:8}"
+          echo "::set-output name=tag::$IMAGE_TAG"
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw, value=dev
+            type=raw, value=${{ steps.image-tag.outputs.tag }}
 
       - name: Build and push Docker image
-        id: image
         uses: docker/build-push-action@v4
         with:
           file: docker/Dockerfile.dev
@@ -57,7 +63,7 @@ jobs:
   Test_Formatting:
     needs: Build_Dev_Image
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline@${{ needs.Build_Dev_Image.outputs.imageid }}
+    container: ghcr.io/i4ds/karabo-pipeline@${{ needs.Build_Dev_Image.outputs.tag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -88,3 +94,7 @@ jobs:
         if: always()
         with:
           files: test-reports/**/*.xml
+
+  Clean_Image:
+    needs: [Build_Dev_Image, Test_Formatting, Test_Karabo]
+    if: "always()&&(needs.Build_Dev_Image.outputs.job_status=='success')"
