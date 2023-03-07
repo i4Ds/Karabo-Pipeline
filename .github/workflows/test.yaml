@@ -1,6 +1,7 @@
 name: Tests
 
 on: [ push ]
+on:
   workflow_run:
       workflows: ["Build Dev Image"]
       types:
