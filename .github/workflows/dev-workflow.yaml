@@ -30,10 +30,10 @@ jobs:
       - name: Delete untagged images
         uses: bots-house/ghcr-delete-image-action@v1.1.0
         with:
-          owner: i4Ds
-          name: Karabo-Pipeline
+          owner: ${{ env.GITHUB_REPOSITORY_OWNER }}
+          name: ${{ env.GITHUB_ACTION_REPOSITORY }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          untagged-keep-latest: 3
+          untagged-keep-latest: 2
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
