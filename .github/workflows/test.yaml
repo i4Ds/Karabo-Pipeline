@@ -3,9 +3,17 @@ name: Tests
 on: [ push ]
 
 jobs:
+  BUILD_DEV_IMAGE:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call "Build Dev Image" workflow
+          uses: peter-evans/workflow-dispatch@v1
+          with:
+            workflow: 'Build Dev Image.yml'
+            ref: ${{ github.head_ref }}
+
   TEST_FORMATTING:
     runs-on: ubuntu-latest
-    needs: Build Dev Image
     container: ghcr.io/i4ds/karabo-pipeline:dev
     steps:
       - name: Checkout Code
