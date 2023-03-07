@@ -77,7 +77,6 @@ jobs:
       - name: Test Code
         shell: bash -l {0}
         run: |
-          conda activate karabo_dev_env
           export IS_GITHUB_RUNNER=true
           export RUN_SLOW_TESTS=false
           python -m xmlrunner -o ./test-reports/junit

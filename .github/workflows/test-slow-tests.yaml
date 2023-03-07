@@ -9,14 +9,13 @@ on:
 jobs:
   Test_Karabo:
     runs-on: ubuntu-20.04
-    container: ghcr.io/i4ds/karabo-pipeline:development
+    container: ghcr.io/i4ds/karabo-pipeline:dev
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Test Code
         shell: bash -l {0}
         run: |
-          conda activate karabo_dev_env
           export IS_GITHUB_RUNNER=true
           export RUN_SLOW_TESTS=true
           python -m xmlrunner -o ./test-reports/junit
