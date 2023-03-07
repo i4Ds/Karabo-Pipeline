@@ -1,11 +1,15 @@
 name: Tests
 
 on: [ push ]
+  workflow_run:
+      workflows: ["Build Dev Image"]
+      types:
+        - completed
 
 jobs:
   TEST_FORMATTING:
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:development
+    container: ghcr.io/i4ds/karabo-pipeline:dev
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -22,7 +26,7 @@ jobs:
   Test_Karabo:
     needs: TEST_FORMATTING
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:development
+    container: ghcr.io/i4ds/karabo-pipeline:dev
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2

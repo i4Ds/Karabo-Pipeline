@@ -8,14 +8,14 @@ SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 # Adding libgl1-mesa-glx & xvfb because GitHub runners complain about pyvista import and test:
 # ImportError: libGL.so.1: cannot open shared object file: No such file or directory
 RUN apt-get update && apt-get install -y curl libgl1-mesa-glx xvfb && apt-get autoclean && rm -rf /var/lib/apt/lists/*
-# COPY --from=build environment.yaml environment.yaml
-# COPY --from=build requirements.txt requirements.txt
-# RUN conda update -y conda && \
-#     conda clean --all --yes && \
-#     conda install mamba -y -c conda-forge
-# RUN mamba env update --file environment.yaml
-# RUN pip install -r requirements.txt
-# RUN rm environment.yaml requirements.txt
-# RUN pip install unittest-xml-reporting
-# RUN mkdir /workspace
-# WORKDIR /workspace
+COPY --from=build environment.yaml environment.yaml
+COPY --from=build requirements.txt requirements.txt
+RUN conda update -y conda && \
+    conda clean --all --yes && \
+    conda install mamba -y -c conda-forge
+RUN mamba env update --file environment.yaml
+RUN pip install -r requirements.txt
+RUN rm environment.yaml requirements.txt
+RUN pip install unittest-xml-reporting
+RUN mkdir /workspace
+WORKDIR /workspace
