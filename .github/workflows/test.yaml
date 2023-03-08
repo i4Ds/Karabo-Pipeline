@@ -80,7 +80,7 @@ jobs:
 
   Test_Karabo:
     if: always()
-    needs: Test_Formatting
+    needs: [ Test_Formatting, Build_Dev_Image ]
     runs-on: ubuntu-latest
     container: ghcr.io/i4ds/karabo-pipeline:${{ needs.Build_Dev_Image.outputs.tag }}
     steps:
