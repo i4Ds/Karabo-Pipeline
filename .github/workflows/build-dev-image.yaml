@@ -1,4 +1,4 @@
-name: Tests
+name: Build Dev Image
 
 on:
   workflow_call:
@@ -36,7 +36,7 @@ jobs:
         uses: bots-house/ghcr-delete-image-action@v1.1.0
         with:
           owner: ${{ github.repository_owner }}
-          name: ${{ github.event.repository.name }}
+          name: ${{ inputs.IMAGE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
           untagged-keep-latest: 3
 

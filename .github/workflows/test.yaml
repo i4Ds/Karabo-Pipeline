@@ -4,7 +4,7 @@ on: [ push ]
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: karabo-pipeline
 
 jobs:
   Build_Dev_Image:
@@ -32,7 +32,7 @@ jobs:
         uses: bots-house/ghcr-delete-image-action@v1.1.0
         with:
           owner: ${{ github.repository_owner }}
-          name: ${{ github.event.repository.name }}
+          name: ${{ env.IMAGE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
           untagged-keep-latest: 3
 
@@ -48,7 +48,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw, value=${{ steps.imagetag.outputs.tag }}
 
@@ -62,9 +62,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   Test_Formatting:
+    if: always()
     needs: Build_Dev_Image
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:${{ needs.Build_Dev_Image.outputs.tag }}
+    container: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ needs.Build_Dev_Image.outputs.tag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -78,9 +79,10 @@ jobs:
         run: isort --check .
 
   Test_Karabo:
+    if: always()
     needs: Test_Formatting
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:${{ needs.Build_Dev_Image.outputs.tag }}
+    container: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ needs.Build_Dev_Image.outputs.tag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -105,6 +107,6 @@ jobs:
         uses: bots-house/ghcr-delete-image-action@v1.1.0
         with:
           owner: ${{ github.repository_owner }}
-          name: ${{ github.event.repository.name }}
+          name: ${{ env.IMAGE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.Build_Dev_Image.outputs.tag }}
