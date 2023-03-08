@@ -13,7 +13,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      tag: ${{ steps.image-tag.outputs.tag }}
+      tag: ${{ steps.imagetag.outputs.tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -34,10 +34,10 @@ jobs:
           owner: ${{ github.repository_owner }}
           name: ${{ github.event.repository.name }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          untagged-keep-latest: 5
+          untagged-keep-latest: 3
 
       - name: Create image tag
-        id: image-tag
+        id: imagetag
         shell: bash -l {0}
         run: |
           export IMAGE_TAG=dev-"${$(uuidgen):0:8}"
@@ -49,7 +49,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw, value=${{ steps.image-tag.outputs.tag }}
+            type=raw, value=${{ steps.imagetag.outputs.tag }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -79,7 +79,7 @@ jobs:
   Test_Karabo:
     needs: Test_Formatting
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline@${{ needs.Build_Dev_Image.outputs.imageid }}
+    container: ghcr.io/i4ds/karabo-pipeline@${{ needs.Build_Dev_Image.outputs.tag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -95,6 +95,15 @@ jobs:
         with:
           files: test-reports/**/*.xml
 
-  Clean_Image:
+  Purge_Image:
     needs: [Build_Dev_Image, Test_Formatting, Test_Karabo]
+    runs-on: ubuntu-latest
     if: "always()&&(needs.Build_Dev_Image.outputs.job_status=='success')"
+    steps:
+      - name: Delete image
+        uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          owner: ${{ github.repository_owner }}
+          name: ${{ github.event.repository.name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.Build_Dev_Image.outputs.tag }}
