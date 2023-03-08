@@ -97,9 +97,9 @@ jobs:
           files: test-reports/**/*.xml
 
   Purge_Image:
+    if: always()
     needs: [Build_Dev_Image, Test_Formatting, Test_Karabo]
     runs-on: ubuntu-latest
-    if: "always()&&(needs.Build_Dev_Image.outputs.job_status=='success')"
     steps:
       - name: Delete image
         uses: bots-house/ghcr-delete-image-action@v1.1.0
