@@ -40,8 +40,9 @@ jobs:
         id: imagetag
         shell: bash -l {0}
         run: |
-          export IMAGE_TAG=dev-"${$(uuidgen):0:8}"
-          echo "::set-output name=tag::$IMAGE_TAG"
+          UUID=$(uuidgen)
+          IMAGE_TAG=dev-"${UUID:0:8}"
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
