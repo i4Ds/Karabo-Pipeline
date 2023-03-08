@@ -11,7 +11,7 @@ jobs:
     id: build-dev-image
     outputs:
       imagetag: ${{ build-dev-image.outputs.imagetag }}
-    uses: .github/workflows/build-dev-image.yaml
+    uses: Build Dev Image
     with:
       REGISTRY: ${{ env.REGISTRY }}
       IMAGE_NAME: ${{ env.IMAGE_NAME }}
@@ -57,7 +57,7 @@ jobs:
   Purge_Dev_Image:
     if: always()
     needs: [ Build_Dev_Image, Test_Formatting, Test_Karabo ]
-    uses: .github/workflows/dev-workflow.yaml
+    uses: Purge Image
     with:
       IMAGE_NAME: ${{ env.IMAGE_NAME }}
       IMAGE_TAG: ${{ needs.Build_Dev_Image.outputs.imagetag }}
