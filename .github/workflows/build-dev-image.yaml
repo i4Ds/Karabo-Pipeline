@@ -9,6 +9,11 @@ on:
       IMAGE_NAME:
         required: true
         type: string
+    outputs:
+      imagetag:
+        description: "Image tag"
+        value: ${{ jobs.Build_Dev_Image.outputs.tag }}
+
 
 jobs:
   Build_Dev_Image:
