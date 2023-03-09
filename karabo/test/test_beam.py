@@ -259,15 +259,17 @@ class MyTestCase(unittest.TestCase):
         # --------------------------
         freq = 8.0e8
         precision = "double"
-        # visibility = karabo_visibility(freq, precision, beam_type="Gaussian beam",
-        #               vis_path="data/beam_vis.vis")
-        visibility = karabo_visibility(freq, precision)
+        visibility = karabo_visibility(
+            freq, precision, beam_type="Gaussian beam", vis_path="data/beam_vis.vis"
+        )
+        # visibility = karabo_visibility(freq, precision)
 
         # -------------------------------------
         # OSKAR IMAGING
-        # oskar_imager = oskar_imaging(precision, vis_path="data/beam_vis.vis",
-        #                               out_path="result/beam_vis")
-        oskar_imager = oskar_imaging(precision)
+        oskar_imager = oskar_imaging(
+            precision, vis_path="data/beam_vis.vis", ut_path="result/beam_vis"
+        )
+        # oskar_imager = oskar_imaging(precision)
         plt.imshow(oskar_imager, aspect="auto", origin="lower", cmap="jet")
         plt.colorbar()
         plt.title("Imager from Oskar")
