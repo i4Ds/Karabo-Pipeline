@@ -1,6 +1,7 @@
 import os
 import os.path
 import shutil
+
 import numpy as np
 import oskar
 
