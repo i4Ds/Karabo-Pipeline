@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 
-from karabo.imaging.imager import Imager
+# from karabo.imaging.imager import Imager
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -205,6 +205,9 @@ class MyTestCase(unittest.TestCase):
         precision = "single"
         beam_type = "Isotropic beam"
         vis_path = "./karabo/test/data/beam_vis"
+        out_path = "./karabo/test/result/beam_vis"
+        sky_txt = "./karabo/test/data/sky_model.txt"
+        telescope_tm = "./karabo/data/meerkat.tm"
 
         sky = SkyModel()
         sky_data = np.zeros((81, 12))
@@ -250,40 +253,86 @@ class MyTestCase(unittest.TestCase):
         visibility = simulation.run_simulation(telescope, sky, observation)
         visibility.write_to_file(path=vis_path + ".ms")
 
-        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
-        imager = Imager(
-            visibility,
-            imaging_npixel=4096,
-            imaging_cellsize=2.13e-5,
-            imaging_dopsf=True,
-            imaging_weighting="uniform",
-            imaging_uvmax=uvmax,
-            imaging_uvmin=1,
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
-
-        """
-        # visibility_kb = karabo_visibility(freq, precision,
-        #                  vis_path="data/beam_vis.vis")
-        karabo_visibility(freq, precision)
-        # Imaging with the oskar imager
-        # image_karabo = oskar_imaging(precision, vis_path="data/beam_vis.vis",
-        #                 out_path="result/beam_vis")
-        image_karabo = oskar_imaging(precision)
+        # Use the imager from oskar
+        imager = oskar.Imager(precision)
+        imager.set(
+            input_file=vis_path,
+            output_root=out_path,
+            image_size=4096,
+            fov_deg=5,
+            weighting="Uniform",
+            uv_filter_max=3000,
+        )
+        output = imager.run(return_images=1)
+        image_karabo = output["images"][0]
 
         # OSKAR -------------------------------------
-        # oskar_visibility(freq, precision, vis_path="./data/beam_vis.vis",
-        #                   sky_txt='./data/sky_model.txt',
-        #                   telescope_tm="../data/meerkat.tm")
-        oskar_visibility(freq, precision)
-        # Imaging
-        # image_oskar = oskar_imaging(precision, vis_path="data/beam_vis.vis",
-        #                              out_path="result/beam_vis")
-        image_oskar = oskar_imaging(precision)
-        """
+
+        # Setting tree
+        params = {
+            "simulator": {"use_gpus": True},
+            "observation": {
+                "num_channels": 1,
+                "start_frequency_hz": freq,
+                "frequency_inc_hz": 2e7,
+                "phase_centre_ra_deg": 20,
+                "phase_centre_dec_deg": -30,
+                "num_time_steps": 10,
+                "start_time_utc": "2000-03-20 12:06:39",
+                "length": "03:05:00.000",
+            },
+            "telescope": {
+                "input_directory": telescope_tm,
+                "normalise_beams_at_phase_centre": True,
+                "pol_mode": "Full",
+                "allow_station_beam_duplication": True,
+                "station_type": beam_type,
+                "gaussian_beam/fwhm_deg": 1,
+                "gaussian_beam/ref_freq_hz": 1.5e9,  # Mid-frequency in
+                # the redshift range
+            },
+            "interferometer": {
+                "oskar_vis_filename": vis_path + ".vis",
+                "channel_bandwidth_hz": 2e7,
+                "time_average_sec": 8,
+                "ignore_w_components": True,
+            },
+        }
+
+        settings = oskar.SettingsTree("oskar_sim_interferometer")
+        settings.from_dict(params)
+
+        # Choose the numerical precision
+        if precision == "single":
+            settings["simulator/double_precision"] = False
+
+        # The following line depends on the mode with which we're loading the sky
+        # (explained in documentation)
+        np.savetxt(sky_txt, sky.sources[:, :3])
+        sky_sim = oskar.Sky.load(sky_txt, precision)
+
+        sim = oskar.Interferometer(settings=settings)
+        sim.set_sky_model(sky_sim)
+        sim.run()
+
+        # Use the imager from oskar
+        imager = oskar.Imager(precision)
+        imager.set(
+            input_file=vis_path,
+            output_root=out_path,
+            image_size=4096,
+            fov_deg=5,
+            weighting="Uniform",
+            uv_filter_max=3000,
+        )
+        output = imager.run(return_images=1)
+        image_oskar = output["images"][0]
+
         # Plotting the difference between karabo and oskar using oskar imager
         # -> should be zero everywhere
-        plt.imshow(dirty.data[0][0], aspect="auto", origin="lower", cmap="jet")
+        plt.imshow(
+            image_karabo - image_oskar, aspect="auto", origin="lower", cmap="jet"
+        )
         plt.colorbar()
         plt.show()
 
