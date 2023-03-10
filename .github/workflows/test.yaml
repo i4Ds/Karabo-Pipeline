@@ -17,7 +17,7 @@ jobs:
   Test_Formatting:
     needs: [ Build_Dev_Image ]
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:${{ needs.Build_Dev_Image.outputs.imagetag }}
+    container: ghcr.io/i4ds/karabo-pipeline-dev:${{ needs.Build_Dev_Image.outputs.imagetag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -31,7 +31,7 @@ jobs:
   Test_Karabo:
     needs: [ Test_Formatting, Build_Dev_Image ]
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline:${{ needs.Build_Dev_Image.outputs.imagetag }}
+    container: ghcr.io/i4ds/karabo-pipeline-dev:${{ needs.Build_Dev_Image.outputs.imagetag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
