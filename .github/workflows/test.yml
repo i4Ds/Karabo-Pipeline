@@ -47,6 +47,7 @@ jobs:
             export RUN_SLOW_TESTS=false
           fi
           export IS_GITHUB_RUNNER=true
+          conda activate base
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
