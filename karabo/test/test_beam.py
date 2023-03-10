@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 
-# from karabo.imaging.imager import Imager
+from karabo.imaging.imager import Imager
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -205,7 +205,6 @@ class MyTestCase(unittest.TestCase):
         precision = "single"
         beam_type = "Isotropic beam"
         vis_path = "./karabo/test/data/beam_vis"
-        out_path = "./karabo/test/result/beam_vis"
         sky_txt = "./karabo/test/data/sky_model.txt"
         telescope_tm = "./karabo/data/meerkat.tm"
 
@@ -253,18 +252,19 @@ class MyTestCase(unittest.TestCase):
         visibility = simulation.run_simulation(telescope, sky, observation)
         visibility.write_to_file(path=vis_path + ".ms")
 
-        # Use the imager from oskar
-        imager = oskar.Imager(precision)
-        imager.set(
-            input_file=vis_path,
-            output_root=out_path,
-            image_size=4096,
-            fov_deg=5,
-            weighting="Uniform",
-            uv_filter_max=3000,
-        )
-        output = imager.run(return_images=1)
-        image_karabo = output["images"][0]
+        # RASCIL IMAGING
+        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
+        imager = Imager(
+            visibility,
+            imaging_npixel=4096,
+            imaging_cellsize=2.13e-5,
+            imaging_dopsf=True,
+            imaging_weighting="uniform",
+            imaging_uvmax=uvmax,
+            imaging_uvmin=1,
+        )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        dirty = imager.get_dirty_image()
+        image_karabo = dirty.data[0][0]
 
         # OSKAR -------------------------------------
 
@@ -315,18 +315,19 @@ class MyTestCase(unittest.TestCase):
         sim.set_sky_model(sky_sim)
         sim.run()
 
-        # Use the imager from oskar
-        imager = oskar.Imager(precision)
-        imager.set(
-            input_file=vis_path,
-            output_root=out_path,
-            image_size=4096,
-            fov_deg=5,
-            weighting="Uniform",
-            uv_filter_max=3000,
-        )
-        output = imager.run(return_images=1)
-        image_oskar = output["images"][0]
+        # RASCIL IMAGING
+        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
+        imager = Imager(
+            visibility,
+            imaging_npixel=4096,
+            imaging_cellsize=2.13e-5,
+            imaging_dopsf=True,
+            imaging_weighting="uniform",
+            imaging_uvmax=uvmax,
+            imaging_uvmin=1,
+        )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        dirty = imager.get_dirty_image()
+        image_oskar = dirty.data[0][0]
 
         # Plotting the difference between karabo and oskar using oskar imager
         # -> should be zero everywhere
@@ -401,22 +402,6 @@ class MyTestCase(unittest.TestCase):
         # dirty.write_to_file("./karabo/test/result/beam/beam_vis_rascil.fits",
         #                      overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
-        # -------------------------------------
-
-        plot_diff = 0
-        if (plot_diff):
-            ab = fits.open("./karabo/test/result/beam/beam_vis.fits")
-            a = fits.open("./karabo/test/result/beam/beam_vis_no_beam_4096.fits")
-            adiff = ab[0].data[0][0] - a[0].data[0][0]
-            wcs = WCS(a[0].header)
-            f, ax = plt.subplots(subplot_kw=dict(projection=wcs,
-                                                 slices=['x', 'y', 0, 0]))
-            im = ax.imshow(adiff, aspect='auto', origin='lower', vmin=-2e0, vmax=2.e0)
-            ellipse = Ellipse(xy=(400, 400), width=405, height=405,
-                              edgecolor='r', fc='None', lw=2, alpha=0.5)
-            ax.add_patch(ellipse)
-            f.colorbar(im)
-            f.show()
 
 """
 
