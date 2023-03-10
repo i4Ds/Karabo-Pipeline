@@ -1,19 +1,19 @@
 from __future__ import annotations
-import shutil
-from typing import Tuple, Optional, Type
 
-import numpy as np
-from numpy.typing import NDArray
-import bdsf
-from bdsf import image as bdsf_image
+import shutil
+from typing import Optional, Tuple, Type
 from warnings import warn
+
+import bdsf
+import numpy as np
+from bdsf import image as bdsf_image
+from numpy.typing import NDArray
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import read_CSV_to_ndarray
-
+from karabo.util.FileHandle import FileHandle
 from karabo.warning import KaraboWarning
 
 
@@ -25,7 +25,7 @@ class SourceDetectionResult(KaraboResource):
     ) -> None:
         """
         Generic Source Detection Result Class.
-        Inputting your Source Detection Result as an Array with specified shape and columns
+        Inputting your Source Detection Result as an array
 
         +-------+----+-----+----------------+--------------+------------+-----------+
         | index | ra | dec | pos X (pixel) | pos Y (pixel) | total_flux | peak_flux |
@@ -33,8 +33,9 @@ class SourceDetectionResult(KaraboResource):
         | 0     | 30 | 200 | 400           | 500           | 0.345     |    0.34540 |
         +-------+----+-----+----------------+--------------+------------+-----------+
 
-        Rows can also be left empty if the specified value is not found by your source detection algorithm.
-        More rows can also be added at the end. As they are not used for any internal algorithm.
+        Rows can also be left empty if the specified value is not found by your source
+        detection algorithm. More rows can also be added at the end. As they are not
+        used for any internal algorithm.
 
         :param detected_sources: detected sources in array
         :param source_image: Image, where the source detection was performed on
@@ -53,7 +54,8 @@ class SourceDetectionResult(KaraboResource):
         PyBDSFSourceDetectionResult
     ]:  # could maybe be changed using `TypeVar`, but this is more specific atm
         """
-        Detecting sources in an image. The Source detection is implemented with the PyBDSF.process_image function.
+        Detecting sources in an image. The Source detection is implemented with
+        the PyBDSF.process_image function.
         See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
 
         :param image: Image to perform source detection on.
@@ -82,7 +84,9 @@ class SourceDetectionResult(KaraboResource):
         except RuntimeError as e:
             wmsg = "All pixels in the image are blanked."
             if str(e) == wmsg:
-                return None  # no need to create additional warnings since `bdsf` already prints an according Error message
+                # no need to create additional warnings since `bdsf`
+                # already prints an according Error message
+                return None
             else:
                 raise e
 
@@ -90,7 +94,8 @@ class SourceDetectionResult(KaraboResource):
 
     def write_to_file(self, path: str) -> None:
         """
-        Save Source Detection Result to ZIP Archive containing the .fits source image and source-finding catalog.
+        Save Source Detection Result to ZIP Archive containing the .fits source image
+        and source-finding catalog.
         :param path: path to save the zip archive as.
         """
         if path.endswith(".zip"):
@@ -178,7 +183,8 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     ) -> None:
         """
         Source Detection Result Wrapper for source detection results from PyBDSF.
-        The Object allows the use of all Karabo-Source Detection functions on PyBDSF results
+        The Object allows the use of all Karabo-Source Detection
+        functions on PyBDSF results
         :param bdsf_detection: PyBDSF result image
         """
         sources_file = FileHandle()
@@ -206,8 +212,11 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         ):
             sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         else:
-            wmsg = f"Got unexpected shape of `bdsf_detected_sources` of {bdsf_detected_sources.shape}, \
-                expected 2-dimensional array with sources!"
+            wmsg = (
+                "Got unexpected shape of `bdsf_detected_sources` of "
+                + f"{bdsf_detected_sources.shape}, expected 2-dimensional "
+                + "array with sources!"
+            )
             warn(KaraboWarning(wmsg))
             sources = bdsf_detected_sources
         return sources

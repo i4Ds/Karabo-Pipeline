@@ -158,7 +158,6 @@ class InterferometerSimulation:
         gauss_beam_fwhm_deg: float = 0.0,
         gauss_ref_freq_hz: float = 0.0,
     ) -> None:
-
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
@@ -271,6 +270,11 @@ class InterferometerSimulation:
                     msg = f'Found already existing "beam_vis_*.vis" and ' \
                           f'"beam_vis_*.ms" files inside {self.vis_path}, \
                         Do you want to replace remove/replace them? [y/N]'
+                    msg = (
+                        'Found already existing "beam_vis_*.vis" and '
+                        + f'beam_vis_*.ms" files inside {self.vis_path}, \
+                        + Do you want to replace remove/replace them? [y/N]'
+                    )
                     ans = input_wrapper(msg=msg, ret="y")
                     if ans != "y":
                         sys.exit(0)
@@ -280,8 +284,8 @@ class InterferometerSimulation:
                             for file_name in files_existing
                         ]
                         print(
-                            f'Removed {len(files_existing)} file(s) matching '
-                            f'the glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!'
+                            f"Removed {len(files_existing)} file(s) matching the "
+                            + 'glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!'
                         )
             else:
                 os.makedirs(self.vis_path, exist_ok=True)
@@ -330,7 +334,7 @@ class InterferometerSimulation:
             return visiblity_files
 
         except BaseException as exp:
-            self.vis_path = vis_path_long
+            # self.vis_path = vis_path_long
             raise exp
 
     def yes_double_precision(self):
@@ -377,8 +381,7 @@ class InterferometerSimulation:
                 "station_type": self.station_type,
                 "aperture_array/array_pattern/enable": self.enable_array_beam,
                 "aperture_array/array_pattern/normalise": True,
-                "aperture_array/element_pattern/enable_numerical":
-                    self.enable_numerical_beam,
+                "aperture_array/element_pattern/enable_numerical": self.enable_numerical_beam,  # noqa
                 "aperture_array/element_pattern/normalise": True,
                 "aperture_array/element_pattern/taper/type": "None",
                 "gaussian_beam/fwhm_deg": self.gauss_beam_fwhm_deg,

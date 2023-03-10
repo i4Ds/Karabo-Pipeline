@@ -1,19 +1,22 @@
 from __future__ import annotations
+
 import logging
 import os
 import re
 import shutil
+from math import comb
 from typing import List, Optional
 
 import numpy as np
 import oskar.telescope as os_telescope
-from math import comb
+
 import karabo.error
 from karabo.karabo_resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import (
+    ACAVersions,
     ALMAVersions,
     ATCAVersions,
     CARMAVersions,
@@ -21,32 +24,54 @@ from karabo.simulation.telescope_versions import (
     PDBIVersions,
     SMAVersions,
     VLAVersions,
-    ACAVersions,
 )
-from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_absolute_path
+from karabo.util.FileHandle import FileHandle
 from karabo.util.math_util import long_lat_to_cartesian
-from astropy import units
-from astropy.stats import gaussian_fwhm_to_sigma
 
 
 class Telescope(KaraboResource):
+    """Telescope
+
+    WGS84 longitude and latitude and altitude in metres centre of the telescope.png
+    centre. A telescope is described as follows:
+
+    Each row represents one station, with the elements being the horizontal x (east),
+    horizontal y (north), and horizontal z (up) coordinates,
+    followed by the errors in horizontal y (east), horizontal y (north),
+    and horizontal z (up).
+    Example: [[x, y, z, error_x, error_y, error_z], [...]]
+
+    centre_longitude : float
+        WGS84 longitude at the center of the telescope.
+    centre_latitude : float
+        WGS84 latitude at the center of the telescope.
+    centre_altitude : float
+        Altitude (in meters) at the center of the telescope.
+    temp_dir : None
+        Temporary directory.
+    path : None
+        Hotfix for issue #59.
+    """
+
     def __init__(self, longitude: float, latitude: float, altitude: float = 0):
-        """
-        WGS84 longitude and latitude and altitude in metres centre of the telescope.png centre
+        """__init__ method
+
+        Parameters
+        ----------
+        longitude : float
+            WGS84 longitude at the center of the telescope.
+        latitude : float
+            WGS84 latitude at the center of the telescope.
+        altitude : float, optional
+            Altitude (in meters) at the center of the telescope, default is 0.
         """
         self.temp_dir = None
-        self.path = None  # hotfix #59
-        self.centre_longitude: float = longitude
-        self.centre_latitude: float = latitude
-        self.centre_altitude: float = altitude
-        """
-        Telescope Layout format
-        Each row is one station
-        [[  horizontal x (east), horizontal y (north), horizontal z (up) = 0,
-            horizontal y (east) error = 0, horizontal y (north) error = 0, horizontal z (up) error ],
-         [ ... ]]
-        """
+        self.path = None
+        self.centre_longitude = longitude
+        self.centre_latitude = latitude
+        self.centre_altitude = altitude
+
         self.stations: List[Station] = []
 
     def add_station(
@@ -100,8 +125,10 @@ class Telescope(KaraboResource):
         :param horizontal_x: east coordinate relative to the station center in metres
         :param horizontal_y: north coordinate relative to the station center in metres
         :param horizontal_z: altitude of antenna
-        :param horizontal_x_coordinate_error: east coordinate error relative to the station center in metres
-        :param horizontal_y_coordinate_error: north coordinate error relative to the station center in metres
+        :param horizontal_x_coordinate_error: east coordinate error
+        relative to the station center in metres
+        :param horizontal_y_coordinate_error: north coordinate error
+        relative to the station center in metres
         :param horizontal_z_coordinate_error: altitude of antenna error
         :return:
         """
@@ -199,7 +226,8 @@ class Telescope(KaraboResource):
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
-                f"{element.x}, {element.y}, {element.z}, {element.x_error}, {element.y_error}, {element.z_error} \n"
+                f"{element.x}, {element.y}, {element.z}, {element.x_error}, "
+                + f"{element.y_error}, {element.z_error} \n"
             )
         layout_file.close()
 
@@ -320,9 +348,11 @@ class Telescope(KaraboResource):
 
         if station_layout_file is None:
             raise karabo.error.KaraboError(
-                "Missing layout.txt file in station directory. Only Layout.txt is support. "
+                "Missing layout.txt file in station directory. "
+                "Only Layout.txt is support. "
                 "The layout_ecef.txt and layout_wgs84.txt as "
-                "defined in the OSKAR Telescope .tm specification are not currently supported."
+                "defined in the OSKAR Telescope .tm specification are not "
+                "supported currently."
             )
 
         telescope = None
@@ -438,7 +468,7 @@ def create_baseline_cut_telelescope(lcut, hcut, tel):
     output_path = tel.path.split("data/")[0] + "data/" + "tel_baseline_cut.tm"
     os.system("rm -rf " + output_path)
     os.system("mkdir " + output_path)
-    l = 0
+    count = 0
     for ns in cut_station_list:
         os.system("cp -r " + tel.path + "/station0" + str(int(ns)) + " " + output_path)
         os.system(
@@ -449,9 +479,9 @@ def create_baseline_cut_telelescope(lcut, hcut, tel):
             + " "
             + output_path
             + "/station0"
-            + "%02d" % (int(l))
+            + "%02d" % (int(count))
         )
-        l = l + 1
+        count = count + 1
     cut_stations = stations[cut_station_list.astype(int)]
     os.system("cp -r " + tel.path + "/position.txt " + output_path)
     np.savetxt(output_path + "/layout.txt", cut_stations)

@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 from scipy import interpolate
 from scipy.interpolate import RectBivariateSpline
 
+
 from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
 from karabo.util.data_util import get_module_path_of_module
@@ -69,8 +70,8 @@ class BeamPattern:
             self.telescope: Telescope = telescope
         if not isinstance(self.telescope, Telescope):
             raise KaraboError(
-                f"`telescope` is {type(self.telescope)} but must be of "
-                f"type `Telescope`!"
+                f"`telescope` is {type(self.telescope)} "
+                + "but must be of type `Telescope`!"
             )
         if freq_hz is not None:
             self.freq_hz: float = freq_hz
@@ -96,8 +97,8 @@ class BeamPattern:
             f"frequency_hz={self.freq_hz} \n"
             f"average_fractional_error={self.avg_frac_error} \n"
             f"pol_type={self.pol} \n"
-            f"average_fractional_error_factor_increase"
-            f"={self.average_fractional_error_factor_increase} \n"
+            "average_fractional_error_factor_increase="
+            + f"{self.average_fractional_error_factor_increase} \n"
             f"ignore_data_at_pole={self.ignore_data_at_pole} \n"
             f"element_type_index={self.element_type_index}\n"
             f"output_directory={self.telescope.path} \n"
@@ -177,14 +178,14 @@ class BeamPattern:
         if mode == "AH":
             meerkat_beam_coeff_ah = (
                 f"{get_module_path_of_module(eidos)}"
-                f"/data/meerkat_beam_coeffs_ah_zp_dct.npy"
+                + "/data/meerkat_beam_coeffs_ah_zp_dct.npy"
             )
             params, freqs = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres)
             B = recon_par(params[ch, :])
         if mode == "EM":
             meerkat_beam_coeff_em = (
                 f"{get_module_path_of_module(eidos)}"
-                f"/data/meerkat_beam_coeffs_em_zp_dct.npy"
+                + "/data/meerkat_beam_coeffs_em_zp_dct.npy"
             )
             params, freqs = zernike_parameters(meerkat_beam_coeff_em, npix, dia, thres)
             B = recon_par(params[ch, :])

@@ -11,6 +11,7 @@ class KaraboResource:
     @staticmethod
     def read_from_file(path: str) -> Any:
         """
-        Read the specified resource from disk into Karabo. (format specified by resource itself)
+        Read the specified resource from disk into Karabo.
+        (format specified by resource itself)
         """
         raise NotImplementedError()

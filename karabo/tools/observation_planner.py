@@ -26,8 +26,7 @@ class ObservationPlotter:
         self.imager = imager
         self.plotter = pyvista.Plotter()
 
-    def plot(self):
-
+    def plot(self, interactive: bool = True) -> None:
         self.plotter.add_slider_widget(
             self.__plot_time_dependent,
             [0, 24],
@@ -39,11 +38,10 @@ class ObservationPlotter:
         self.__plot_sky()
         self.__plot_sky_lines()
 
-        self.plotter.show()
+        self.plotter.show(interactive=interactive)
 
-    def __plot_time_dependent(self, hour):
-
-        hour_str = f"{math.floor(hour):.0f}"
+    def __plot_time_dependent(self, hour) -> None:
+        #  hour_str = f"{math.floor(hour):.0f}"
         daytime = Time(
             f"2022-08-26 {math.floor(hour)}:00:00.5", scale="utc", format="iso"
         )
@@ -144,7 +142,6 @@ class ObservationPlotter:
         self.plotter.add_mesh(pc, colormap="viridis")
 
     def __plot_long_lat_lines(self, daytime: Time):
-
         longs = np.linspace(-90, 90, 9, endpoint=False)
         longs = [daytime.earth_rotation_angle(long).value * 15 for long in longs]
         plotting_lats = np.linspace(-180, 180, 180)
@@ -175,7 +172,7 @@ class ObservationPlotter:
             carts = [long_lat_to_cartesian(row[0], row[1]) for row in coord]
             lines = pyvista.lines_from_points(carts)
             lines["labels"] = [
-                "lon={long:.0f}°, lat={lat:.0f}°".format(long=x[1], lat=x[0])
+                "lon={long:.0f} deg, lat={lat:.0f} deg".format(long=x[1], lat=x[0])
                 for x in coord
             ]
             mapper = self.plotter.add_point_labels(
@@ -250,7 +247,7 @@ class ObservationPlotter:
             )
             lines = pyvista.lines_from_points(carts)
             lines["labels"] = [
-                "ra={long:.2f}°, dec={lat:.0f}°".format(long=x[0], lat=x[1])
+                "ra={long:.2f} deg, dec={lat:.0f} deg".format(long=x[0], lat=x[1])
                 for x in coord
             ]
             mapper = self.plotter.add_point_labels(
@@ -305,10 +302,8 @@ class SetVisibilityCallback:
 def main():
     # sky = SkyModel.get_random_poisson_disk_sky((-10, -10), (-5, -5), 0.5, 1, 0.5)
     sky = SkyModel.get_GLEAM_Sky()
-    #
-    # sky = SkyModel()
     tel = Telescope.get_MEERKAT_Telescope()
-    simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=10)
+    _ = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=10)
     observation = Observation(
         100e6,
         phase_centre_ra_deg=240,

@@ -2,11 +2,11 @@ import os
 import unittest
 
 import numpy as np
-from karabo.imaging.imager import Imager
+
+from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.interferometer import InterferometerSimulation
 
 
 class TestSimulation(unittest.TestCase):

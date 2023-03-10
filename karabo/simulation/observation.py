@@ -1,32 +1,35 @@
-import datetime
+from datetime import datetime, timedelta
 from typing import Union
-from operator import mod
-from datetime import timedelta, datetime
-from karabo.error import KaraboError
-from karabo.warning import KaraboWarning
 
+from karabo.error import KaraboError
 from karabo.util.gpu_util import is_cuda_available
+from karabo.warning import KaraboWarning
 
 
 class Observation:
     """
-    The Observation class acts as an object to hold all important information about an Observation.
+    The Observation class acts as an object to hold all
+    important information about an Observation.
 
     Required parameters for running a simulation with these observational settings.
 
-    :ivar start_frequency_hz: The frequency at the midpoint of the first channel, in Hz.
-    :ivar start_date_and_time: The start time and date for the observation. Default is datetime.utcnow().
+    :ivar start_frequency_hz: The frequency at the midpoint of the first channel in Hz.
+    :ivar start_date_and_time: The start time and date for the observation.
+    Default is datetime.utcnow().
     :ivar length: Length of observation. Default is 12 hours.
 
     Optional parameters for running a simulation with these observational settings.
 
     :ivar number_of_channels: Number of channels / bands to use
-    :ivar frequency_increment_hz: The frequency increment between successive channels, in Hz.
-    :ivar phase_centre_ra_deg: Right Ascension of the observation pointing (phase centre), in degrees.
-    :ivar phase_centre_dec_deg: Declination of the observation pointing (phase centre), in degrees.
-    :ivar number_of_time_steps: Number of time steps in the output data during the observation length.
-                                This corresponds to the number of correlator dumps for interferometer simulations,
-                                and the number of beam pattern snapshots for beam pattern simulations.
+    :ivar frequency_increment_hz: Frequency increment between successive channels in Hz.
+    :ivar phase_centre_ra_deg: Right Ascension of the observation pointing
+    (phase centre) in degrees.
+    :ivar phase_centre_dec_deg: Declination of the observation pointing
+    (phase centre) in degrees.
+    :ivar number_of_time_steps: Number of time steps in the output data during the
+    observation length. This corresponds to the number of correlator dumps for
+    interferometer simulations, and the number of beam pattern snapshots for
+    beam pattern simulations.
     """
 
     def __init__(
@@ -42,7 +45,6 @@ class Observation:
         phase_centre_dec_deg: float = 0,
         number_of_time_steps: float = 1,
     ) -> None:
-
         # required
         self.start_frequency_hz: float = start_frequency_hz
 
@@ -67,7 +69,8 @@ class Observation:
         if use_gpu is None:
             print(
                 KaraboWarning(
-                    f"use_gpu is None, using is_cuda_available() to set use_gpu to {is_cuda_available()}"
+                    "use_gpu is None, using is_cuda_available() "
+                    + f"to set use_gpu to {is_cuda_available()}"
                 )
             )
             self.use_gpu = is_cuda_available()
@@ -82,7 +85,8 @@ class Observation:
         milliseconds: float,
     ) -> None:
         """
-        Set a new length for the observation. Overriding the observation length set in the constructor.
+        Set a new length for the observation.
+        Overriding the observation length set in the constructor.
 
         :param hours: hours
         :param minutes: minutes
@@ -96,10 +100,12 @@ class Observation:
     def get_OSKAR_settings_tree(self):
         """
         Get the settings of this observation as an oskar setting tree.
-        This function returns a python dictionary formatted according to the OSKAR documentation.
-        `OSKAR Documentation <https://fdulwich.github.io/oskarpy-doc/settings_tree.html>`_.
+        This function returns a python dictionary formatted
+        according to the OSKAR documentation.
+        `<https://fdulwich.github.io/oskarpy-doc/settings_tree.html>`.
 
-        :return: Dictionary containing the full configuration in the OSKAR Settings Tree format.
+        :return: Dictionary containing the full configuration
+        in the OSKAR Settings Tree format.
         """
         settings = {
             "observation": {
@@ -136,10 +142,14 @@ class Observation:
 
 class ObservationLong(Observation):
     """
-    This class allows the use of several observations on different days over a certain period of time within one day.
-    If only ONE observation is desired, even if it takes a little longer, this is already possible using `Observation`.
-    This class extends `Observation` so its parameters (except `length`) are not discussed here.
-    `length` is little different, which describes the duration of ONE observation, whose maximum duration for `ObservationLong` is 24h.
+    This class allows the use of several observations on different
+    days over a certain period of time within one day.
+    If only ONE observation is desired, even if it takes a little longer,
+    this is already possible using `Observation`.
+    This class extends `Observation` so its parameters (except `length`)
+    are not discussed here.
+    `length` is little different, which describes the duration of ONE observation,
+    whose maximum duration for `ObservationLong` is 24h.
 
     :ivar number_of_days: Number of successive days to observe
     """
@@ -157,7 +167,6 @@ class ObservationLong(Observation):
         number_of_time_steps: float = 1,
         number_of_days: int = 2,
     ) -> None:
-
         self.enable_check = False
         super().__init__(
             mode=mode,
@@ -176,7 +185,8 @@ class ObservationLong(Observation):
     def __check_attrs(self) -> None:
         if not isinstance(self.number_of_days, int):
             raise KaraboError(
-                f"`number_of_days` must be of type int but is of type {type(self.number_of_days)}!"
+                "`number_of_days` must be of type int but "
+                + f"is of type {type(self.number_of_days)}!"
             )
         if self.number_of_days <= 1:
             raise KaraboError(
