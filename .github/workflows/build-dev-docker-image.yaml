@@ -37,14 +37,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Delete untagged images
-        uses: bots-house/ghcr-delete-image-action@v1.1.0
-        with:
-          owner: ${{ github.repository_owner }}
-          name: ${{ inputs.IMAGE_NAME }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          untagged-keep-latest: 3
-
       - name: Create image tag
         id: imagetag
         shell: bash -l {0}
