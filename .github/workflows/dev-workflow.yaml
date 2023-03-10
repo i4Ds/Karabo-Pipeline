@@ -30,9 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Purge image
-      uses: bots-house/ghcr-delete-image-action@v1.1.0
-      with:
-        owner: ${{ github.repository_owner }}
-        name: ${{ inputs.IMAGE_NAME }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ inputs.IMAGE_TAG }}
+        uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          owner: ${{ github.repository_owner }}
+          name: ${{ inputs.IMAGE_NAME }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ inputs.IMAGE_TAG }}
