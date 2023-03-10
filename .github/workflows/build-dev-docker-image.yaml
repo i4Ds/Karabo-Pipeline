@@ -57,7 +57,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ inputs.REGISTRY }}/${{ inputs.IMAGE_NAME }}
+          images: ${{ inputs.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.IMAGE_NAME }}
           tags: |
             type=raw, value=${{ steps.imagetag.outputs.tag }}
 
