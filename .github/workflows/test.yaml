@@ -7,7 +7,7 @@ jobs:
     uses: ./.github/workflows/build-dev-docker-image.yaml
     with:
       REGISTRY: ghcr.io
-      IMAGE_NAME: karabo-pipeline
+      IMAGE_NAME: karabo-pipeline-dev
 
 
   Test_Formatting:
@@ -48,7 +48,7 @@ jobs:
   Purge_Dev_Image:
     if: always()
     needs: [ Build_Dev_Image, Test_Formatting, Test_Karabo ]
-    uses: ./.github/workflows/dev-workflow.yaml
+    uses: ./.github/workflows/purge-dev-image.yaml
     with:
-      IMAGE_NAME: karabo-pipeline
+      IMAGE_NAME: karabo-pipeline-dev
       IMAGE_TAG: ${{ needs.Build_Dev_Image.outputs.imagetag }}
