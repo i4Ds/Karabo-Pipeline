@@ -102,6 +102,8 @@ class Imager:
         imaging_robustness: float = 0.0,
         imaging_gaussian_taper: Optional[float] = None,
         imaging_dopsf: Union[bool, str] = False,
+        imaging_uvmax: float = None,
+        imaging_uvmin: float = 0,
         imaging_dft_kernel: Optional[
             str
         ] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
@@ -128,6 +130,8 @@ class Imager:
         self.imaging_gaussian_taper = imaging_gaussian_taper
         self.imaging_dopsf = imaging_dopsf
         self.imaging_dft_kernel = imaging_dft_kernel
+        self.imaging_uvmax = imaging_uvmax
+        self.imaging_uvmin = imaging_uvmin
 
     def get_dirty_image(self) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
@@ -274,6 +278,8 @@ class Imager:
             flat_sky=self.imaging_flat_sky,
             clean_beam=clean_beam,
             clean_algorithm=clean_algorithm,
+            imaging_uvmax=self.imaging_uvmax,
+            imaging_uvmin=self.imaging_uvmin,
         )
 
         result = rsexecute.compute(result, sync=True)
