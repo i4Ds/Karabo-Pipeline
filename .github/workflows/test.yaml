@@ -2,23 +2,16 @@ name: Tests
 
 on: [ push ]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: karabo-pipeline
-
 jobs:
   Build_Dev_Image:
-    id: build-dev-image
-    outputs:
-      imagetag: ${{ build-dev-image.outputs.imagetag }}
     uses: ./.github/workflows/build-dev-docker-image.yaml
     with:
-      REGISTRY: ${{ env.REGISTRY }}
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
+      REGISTRY: ghcr.io
+      IMAGE_NAME: karabo-pipeline
 
 
   Test_Formatting:
-    needs: Build_Dev_Image
+    needs: [ Build_Dev_Image ]
     runs-on: ubuntu-latest
     container: ghcr.io/i4ds/karabo-pipeline:${{ needs.Build_Dev_Image.outputs.imagetag }}
     steps:
@@ -57,5 +50,5 @@ jobs:
     needs: [ Build_Dev_Image, Test_Formatting, Test_Karabo ]
     uses: ./.github/workflows/dev-workflow.yaml
     with:
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
+      IMAGE_NAME: karabo-pipeline
       IMAGE_TAG: ${{ needs.Build_Dev_Image.outputs.imagetag }}

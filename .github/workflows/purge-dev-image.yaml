@@ -1,4 +1,4 @@
-name: Purge Dev Image
+name: Purge Image
 
 on:
   workflow_call:
@@ -6,18 +6,18 @@ on:
       IMAGE_NAME:
         required: true
         type: string
+      IMAGE_TAG:
+        required: true
+        type: string
 
 jobs:
-
-  Purge_Dev_Image:
-    if: always()
-    needs: [ Build_Dev_Image ]
+  Purge_Image:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete image
+      - name: Purge image
         uses: bots-house/ghcr-delete-image-action@v1.1.0
         with:
           owner: ${{ github.repository_owner }}
           name: ${{ inputs.IMAGE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.Build_Dev_Image.outputs.tag }}
+          tag: ${{ inputs.IMAGE_TAG }}
