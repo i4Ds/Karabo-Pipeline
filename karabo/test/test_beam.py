@@ -39,7 +39,7 @@ def karabo_visibility(
     freq,
     precision,
     beam_type: str = "Isotropic beam",
-    vis_path="./karabo/test/data/beam_vis.vis",
+    vis_path="./karabo/test/data/beam_vis",
 ):
     """
     Simulation of the visibilities using karabo and the test sky
@@ -53,7 +53,7 @@ def karabo_visibility(
             os.remove(os.path.join(telescope.path, item))
     # ------------- Simulation Begins
     simulation = InterferometerSimulation(
-        vis_path=vis_path,
+        vis_path=vis_path + ".vis",
         channel_bandwidth_hz=2e7,
         time_average_sec=8,
         noise_enable=False,
@@ -76,6 +76,7 @@ def karabo_visibility(
         number_of_channels=1,
     )
     visibility = simulation.run_simulation(telescope, sky, observation)
+    visibility.write_to_file(path=vis_path + ".ms")
     return visibility
 
 
