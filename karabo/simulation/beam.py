@@ -1,23 +1,21 @@
 import enum
-import os
 import subprocess
-from typing import Callable
 
 import eidos
 import numpy as np
-import scipy.ndimage
+from astropy import units
+from astropy.stats import gaussian_fwhm_to_sigma
 from eidos.create_beam import zernike_parameters
 from eidos.spatial import recon_par
 from katbeam import JimBeam
 from matplotlib import pyplot as plt
-from astropy.stats import gaussian_fwhm_to_sigma
+from scipy import interpolate
+from scipy.interpolate import RectBivariateSpline
+
 from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
-from karabo.util.FileHandle import FileHandle
 from karabo.util.data_util import get_module_path_of_module
-from scipy import interpolate
-from astropy import units
-from scipy.interpolate import RectBivariateSpline
+from karabo.util.FileHandle import FileHandle
 
 
 class PolType(enum.Enum):
@@ -42,7 +40,7 @@ class BeamPattern:
         ignore_data_at_pole: bool = True,
         avg_frac_error: float = 0.8,
         beam_method: str = "Gaussian Beam",
-        interpol: str = 'RectBivariateSpline',
+        interpol: str = "RectBivariateSpline",
     ) -> None:
         self.cst_file_path: str = cst_file_path
         self.telescope: Telescope = telescope
@@ -55,7 +53,7 @@ class BeamPattern:
         self.ignore_data_at_pole: bool = ignore_data_at_pole
         self.avg_frac_error: float = avg_frac_error
         self.beam_method: str = beam_method
-        self.interpol:str=interpol
+        self.interpol: str = interpol
 
     def fit_elements(
         self,
@@ -71,7 +69,8 @@ class BeamPattern:
             self.telescope: Telescope = telescope
         if not isinstance(self.telescope, Telescope):
             raise KaraboError(
-                f"`telescope` is {type(self.telescope)} but must be of type `Telescope`!"
+                f"`telescope` is {type(self.telescope)} but must be of "
+                f"type `Telescope`!"
             )
         if freq_hz is not None:
             self.freq_hz: float = freq_hz
@@ -97,7 +96,8 @@ class BeamPattern:
             f"frequency_hz={self.freq_hz} \n"
             f"average_fractional_error={self.avg_frac_error} \n"
             f"pol_type={self.pol} \n"
-            f"average_fractional_error_factor_increase={self.average_fractional_error_factor_increase} \n"
+            f"average_fractional_error_factor_increase"
+            f"={self.average_fractional_error_factor_increase} \n"
             f"ignore_data_at_pole={self.ignore_data_at_pole} \n"
             f"element_type_index={self.element_type_index}\n"
             f"output_directory={self.telescope.path} \n"
@@ -124,8 +124,15 @@ class BeamPattern:
         :param arr:
         :return:  cst file with given output filename
         """
-        line1 = "Theta [deg.]  Phi   [deg.]  Abs(Dir.)   Horiz(Abs)  Horiz(Phase)[deg.]  Vert(Abs)  Vert(Phase )[deg. ]  Ax.Ratio  "
-        line2 = "------------------------------------------------------------------------------------------------------------------------------------------------------"
+        line1 = (
+            "Theta [deg.]  Phi   [deg.]  Abs(Dir.)   Horiz(Abs)  "
+            "Horiz(Phase)[deg.]  Vert(Abs)  Vert(Phase )[deg. ]  Ax.Ratio  "
+        )
+        line2 = (
+            "--------------------------------------------------"
+            "-------------------------------------------------------"
+            "---------------------------------------------"
+        )
         np.savetxt(
             str(output_file_path) + ".cst",
             arr,
@@ -135,7 +142,7 @@ class BeamPattern:
         )
 
     @staticmethod
-    def get_meerkat_uhfbeam(f, pol, beamextentx, beamextenty,sampling_step):
+    def get_meerkat_uhfbeam(f, pol, beamextentx, beamextenty, sampling_step: int = 80):
         """
 
         :param pol:
@@ -144,14 +151,10 @@ class BeamPattern:
         """
         beam = JimBeam("MKAT-AA-UHF-JIM-2020")
         freqlist = beam.freqMHzlist
-        marginx = np.linspace(
-            -beamextentx / 2.0, beamextentx / 2.0, sampling_step
-        )
-        marginy = np.linspace(
-            -beamextenty / 2.0, beamextenty / 2.0, sampling_step
-        )
+        marginx = np.linspace(-beamextentx / 2.0, beamextentx / 2.0, sampling_step)
+        marginy = np.linspace(-beamextenty / 2.0, beamextenty / 2.0, sampling_step)
         x, y = np.meshgrid(marginx, marginy)
-        print('Frequency: '+str(f)+' MHz',freqlist)
+        print("Frequency: " + str(f) + " MHz", freqlist)
         freqMHz_idx = np.where(
             freqlist == freqlist.flat[np.abs(freqlist - f).argmin()]
         )[0][0]
@@ -172,11 +175,17 @@ class BeamPattern:
         """
         B = None
         if mode == "AH":
-            meerkat_beam_coeff_ah = f"{get_module_path_of_module(eidos)}/data/meerkat_beam_coeffs_ah_zp_dct.npy"
+            meerkat_beam_coeff_ah = (
+                f"{get_module_path_of_module(eidos)}"
+                f"/data/meerkat_beam_coeffs_ah_zp_dct.npy"
+            )
             params, freqs = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres)
             B = recon_par(params[ch, :])
         if mode == "EM":
-            meerkat_beam_coeff_em = f"{get_module_path_of_module(eidos)}/data/meerkat_beam_coeffs_em_zp_dct.npy"
+            meerkat_beam_coeff_em = (
+                f"{get_module_path_of_module(eidos)}"
+                f"/data/meerkat_beam_coeffs_em_zp_dct.npy"
+            )
             params, freqs = zernike_parameters(meerkat_beam_coeff_em, npix, dia, thres)
             B = recon_par(params[ch, :])
         return B
@@ -350,8 +359,8 @@ class BeamPattern:
             return voltage_beam**2
 
     @staticmethod
-    def get_scaled_theta_phi(theta, theta_em, phi_em, beam0):
-        beam_em = interp.griddata(
+    def get_scaled_theta_phi(theta, phi, theta_em, phi_em, beam0):
+        beam_em = interpolate.griddata(
             [theta_em, phi_em], beam0, (theta, phi), method="cubic"
         )
         return beam_em
@@ -364,11 +373,13 @@ class BeamPattern:
 
     @staticmethod
     def pol2cart(rho, phi):
-        x=[0]*len(rho);y=[0]*len(rho)
+        x = [0] * len(rho)
+        y = [0] * len(rho)
         for i in range(len(rho)):
             x[i] = rho[i] * np.cos(phi)
             y[i] = rho[i] * np.sin(phi)
-        x=np.array(x);y=np.array(y)
+        x = np.array(x)
+        y = np.array(y)
         return (x, y)
 
     def sim_beam(
@@ -376,20 +387,27 @@ class BeamPattern:
         beam_method: str = None,
         f: float = None,
         fov: float = 30,
-        interpol:str = 'RectBivariateSpline'
+        interpol: str = "RectBivariateSpline",
     ):
         """
         Simulates the primary beam
 
-        :param beam_method: you can choose as beams: "Gaussian Beam", "Eidos_AH", "Eidos_EM", "KatBeam"
+        :param beam_method: you can choose as beams: "Gaussian Beam",
+                            "Eidos_AH", "Eidos_EM", "KatBeam"
         :param f: the frequency for which the beam is simulated (MHz)
-        :param fov: when using "KatBeam" the beam will be simulated for this size of fov (radius)
+        :param fov: when using "KatBeam" the beam will be simulated
+                    for this size of fov (radius)
         """
         if beam_method is not None:
             self.beam_method = beam_method
         if f is not None:
             self.f = f
-            print("Computing Primary Beam from " + str(self.beam_method) + "for frequency " + str(self.f))
+            print(
+                "Computing Primary Beam from "
+                + str(self.beam_method)
+                + "for frequency "
+                + str(self.f)
+            )
         else:
             print("Computing Primary Beam from " + str(self.beam_method))
 
@@ -454,7 +472,7 @@ class BeamPattern:
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
             theta_ah, phi_ah = self.cart2pol(xy[0], xy[1])
             phi_ah = phi_ah * 180.0 / np.pi + 180
-            theta_phi_ah = np.meshgrid(theta_ah, phi_ah)
+            # theta_phi_ah = np.meshgrid(theta_ah, phi_ah)
             vcopol_x = interpolate.griddata(
                 (theta_ah.flatten(), phi_ah.flatten()),
                 np.abs(B[0][0]).flatten(),
@@ -515,7 +533,7 @@ class BeamPattern:
             xy = np.meshgrid(np.linspace(-5, 5, npix), np.linspace(-5, 5, npix))
             theta_em, phi_em = self.cart2pol(xy[0], xy[1])
             phi_em = phi_em * 180.0 / np.pi + 180
-            theta_phi_em = np.meshgrid(theta_em, phi_em)
+            # theta_phi_em = np.meshgrid(theta_em, phi_em)
             vcopol_x = interpolate.griddata(
                 (theta_em.flatten(), phi_em.flatten()),
                 np.abs(B[0][0]).flatten(),
@@ -575,99 +593,124 @@ class BeamPattern:
                 ]
             )
         if self.beam_method == "KatBeam":
-            #f=800;fov=30
-            beampixel = self.get_meerkat_uhfbeam(f, "H", fov, fov,300)
-            xkat=beampixel[0];ykat=beampixel[1]
+            # f=800;fov=30
+            beampixel = self.get_meerkat_uhfbeam(f, "H", fov, fov, 300)
+            xkat = beampixel[0]
+            ykat = beampixel[1]
             theta_kat, phi_kat = self.cart2pol(xkat, ykat)
-            theta_kat=np.deg2rad(theta_kat);phi_kat=phi_kat+np.pi
+            theta_kat = np.deg2rad(theta_kat)
+            phi_kat = phi_kat + np.pi
             katb_H = beampixel[2]
-            ff = interpolate.interp2d(theta_kat, phi_kat, katb_H, kind='cubic')
-            theta_arr_deg = np.linspace(0, 50, 360);
+            ff = interpolate.interp2d(theta_kat, phi_kat, katb_H, kind="cubic")
+            theta_arr_deg = np.linspace(0, 50, 360)
             phi_arr_deg = np.linspace(0, 360, 360)
-            theta_arr_rad = np.deg2rad(theta_arr_deg);
+            theta_arr_rad = np.deg2rad(theta_arr_deg)
             phi_arr_rad = np.deg2rad(phi_arr_deg)
-            katb_H_pol=ff(theta_arr_rad,phi_arr_rad)
-            #plt.imshow(katb_H_pol,aspect='auto',origin='lower');plt.show()
-            #-----------------------------------------------------------
-            #f=800;fov=30;interpol='RectBivariateSpline' # inter2d or RectBivariateSpline
-            beampixel = self.get_meerkat_uhfbeam(f, "H", fov, fov,300)
+            katb_H_pol = ff(theta_arr_rad, phi_arr_rad)
+            # plt.imshow(katb_H_pol,aspect='auto',origin='lower');plt.show()
+            # -----------------------------------------------------------
+            # f=800;fov=30;interpol='RectBivariateSpline' # inter2d or
+            # RectBivariateSpline
+            beampixel = self.get_meerkat_uhfbeam(f, "H", fov, fov, 300)
             beampixel_v = self.get_meerkat_uhfbeam(f, "V", fov, fov, 300)
-            xkat=beampixel[0];ykat=beampixel[1];katb_H = beampixel[2];katb_V = beampixel_v[2]
-            xkat_1D=xkat[0];ykat_1D=ykat[:,0]
-            theta_arr_deg = np.linspace(0, 50, 100);theta_arr_rad=np.deg2rad(theta_arr_deg)
-            phi_arr_deg = np.linspace(0, 360, 360);phi_arr_rad=np.deg2rad(phi_arr_deg)
-            theta_phi_grid_deg=np.meshgrid(theta_arr_deg,phi_arr_deg)
-            xkat_arr,ykat_arr=self.pol2cart(theta_arr_deg,phi_arr_deg)
-            if(interpol=='inter2d'):
-                ff = interpolate.interp2d(xkat, ykat, katb_H, kind='cubic')
-                katb_H_pol=ff(xkat_arr,ykat_arr)
-            if (interpol == 'RectBivariateSpline'):
+            xkat = beampixel[0]
+            ykat = beampixel[1]
+            katb_H = beampixel[2]
+            katb_V = beampixel_v[2]
+            xkat_1D = xkat[0]
+            ykat_1D = ykat[:, 0]
+            theta_arr_deg = np.linspace(0, 50, 100)
+            theta_arr_rad = np.deg2rad(theta_arr_deg)
+            phi_arr_deg = np.linspace(0, 360, 360)
+            phi_arr_rad = np.deg2rad(phi_arr_deg)
+            theta_phi_grid_deg = np.meshgrid(theta_arr_deg, phi_arr_deg)
+            xkat_arr, ykat_arr = self.pol2cart(theta_arr_deg, phi_arr_deg)
+            if interpol == "inter2d":
+                ff = interpolate.interp2d(xkat, ykat, katb_H, kind="cubic")
+                katb_H_pol = ff(xkat_arr, ykat_arr)
+            if interpol == "RectBivariateSpline":
                 ff = RectBivariateSpline(xkat_1D, ykat_1D, katb_H, s=3.5)
-                katb_H_pol=ff(xkat_arr,ykat_arr,grid=False)
+                katb_H_pol = ff(xkat_arr, ykat_arr, grid=False)
                 ff = RectBivariateSpline(xkat_1D, ykat_1D, katb_V, s=3.5)
-                katb_V_pol=ff(xkat_arr,ykat_arr,grid=False)
+                katb_V_pol = ff(xkat_arr, ykat_arr, grid=False)
             else:
-                assert 0, "Choose Cartisean Interpolation Method 'inter2d' or 'RectBivariateSpline'"
-            #plt.imshow(katb_H_pol,aspect='auto',origin='lower');plt.show()
+                assert 0, (
+                    "Choose Cartisean Interpolation Method 'inter2d' or "
+                    "'RectBivariateSpline'"
+                )
+            # plt.imshow(katb_H_pol,aspect='auto',origin='lower');plt.show()
 
-            #------------------------------------------------------------
+            # ------------------------------------------------------------
             print(theta_phi_grid_deg[0].shape, katb_H_pol.shape)
-            vcopol_x = katb_H_pol.swapaxes(0,1) #scipy.ndimage.map_coordinates(katb_H, [theta, phi], order=3)
-            theta=theta_phi_grid_deg[0].flatten()*units.deg;phi=theta_phi_grid_deg[1].flatten()*units.deg
-            vcrpol_x = self.quad_crosspol(theta_phi_grid_deg[0], theta_phi_grid_deg[1], vcopol_x)
+            vcopol_x = katb_H_pol.swapaxes(
+                0, 1
+            )  # scipy.ndimage.map_coordinates(katb_H, [theta, phi], order=3)
+            theta = theta_phi_grid_deg[0].flatten() * units.deg
+            phi = theta_phi_grid_deg[1].flatten() * units.deg
+            vcrpol_x = self.quad_crosspol(
+                theta_phi_grid_deg[0], theta_phi_grid_deg[1], vcopol_x
+            )
             vcrpol_x = vcrpol_x.flatten()
             vcopol_x = vcopol_x.flatten()
-            #-------------------------------------------------------------
-            #beampixel = self.get_meerkat_uhfbeam(f, "V", fov, fov)
-            vcopol_y = katb_V_pol.swapaxes(0,1)
-            #vcopol_y = interpolate.griddata(
+            # -------------------------------------------------------------
+            # beampixel = self.get_meerkat_uhfbeam(f, "V", fov, fov)
+            vcopol_y = katb_V_pol.swapaxes(0, 1)
+            # vcopol_y = interpolate.griddata(
             #    (theta_kb.flatten(), phi_kb.flatten()),
             #    katb_V.flatten(),
             #    (theta, phi),
             #    method="cubic",
-            #)
-            vcrpol_y = self.quad_crosspol(theta_phi_grid_deg[0], theta_phi_grid_deg[1], vcopol_y)
+            # )
+            vcrpol_y = self.quad_crosspol(
+                theta_phi_grid_deg[0], theta_phi_grid_deg[1], vcopol_y
+            )
             vcopol_y = vcopol_y.flatten()
             vcrpol_y = vcrpol_y.flatten()
-            print(theta.value.shape,phi.value.shape,)
+            print(
+                theta.value.shape,
+                phi.value.shape,
+            )
             data_x = np.column_stack(
-            [
-                theta.value,  # Theta [deg]
-                phi.value,  # Phi [deg]
-                np.zeros_like(theta).value,  # Abs dir * / Unused
-                np.abs(vcopol_x),  # Abs horizontal
-                np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
-                np.abs(vcopol_y),  # Abs vertical
-                np.angle(vcopol_y, deg=True),  # Phase vertical [deg]
-                np.zeros_like(theta).value,  # Ax. ratio * / Unused
-            ]
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.abs(vcopol_x),  # Abs horizontal
+                    np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
+                    np.abs(vcrpol_x),  # Abs vertical
+                    np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
             )
 
             data_y = np.column_stack(
-            [
-                theta.value,  # Theta [deg]
-                phi.value,  # Phi [deg]
-                np.zeros_like(theta).value,  # Abs dir * / Unused
-                np.abs(vcrpol_y),  # Abs horizontal
-                np.angle(vcrpol_y, deg=True),  # Phase horizontal [deg]
-                np.abs(vcopol_y),  # Abs vertical
-                np.angle(vcopol_y, deg=True),  # Phase vertical [deg]
-                np.zeros_like(theta).value,  # Ax. ratio * / Unused
-            ]
+                [
+                    theta.value,  # Theta [deg]
+                    phi.value,  # Phi [deg]
+                    np.zeros_like(theta).value,  # Abs dir * / Unused
+                    np.abs(vcrpol_y),  # Abs horizontal
+                    np.angle(vcrpol_y, deg=True),  # Phase horizontal [deg]
+                    np.abs(vcopol_y),  # Abs vertical
+                    np.angle(vcopol_y, deg=True),  # Phase vertical [deg]
+                    np.zeros_like(theta).value,  # Ax. ratio * / Unused
+                ]
             )
         return grid_th_phi, vcopol_x, vcopol_y, data_x, data_y
 
-    def plot_beam(savefile):
-        grid_th_phi, vcopol_x, vcopol_y, data_x, data_y = sim_beam("EIDOS_AH")
+    def plot_eidos_beam(self, savefile):
+        grid_th_phi, vcopol_x, vcopol_y, data_x, data_y = self.sim_beam("EIDOS_AH")
+        vcrpol_x = data_x[5]
+        vcrpol_y = data_y[3]
         fig = plt.figure(figsize=(9, 4))
         co_vmin, co_vmax = -1, 1
         cr_vmin, cr_vmax = -1.0e-2, 1.0e-2
+        max_theta = max(data_x[0])
         fig, axs = plt.subplots(
             2, 2, subplot_kw={"projection": "polar"}, figsize=(8, 8)
         )
         XX_ax, XY_ax, YX_ax, YY_ax = axs.flat
         for ax in axs.flat:
-            ax.set_rticks(np.arange(0, max_theta.value, 10))
+            ax.set_rticks(np.arange(0, max_theta, 10))
             ax.grid(False)  # For deprecation warning
         XX_ax.set_title(r"$V_{\rm XX}$")
         XY_ax.set_title(r"$V_{\rm XY}$")
