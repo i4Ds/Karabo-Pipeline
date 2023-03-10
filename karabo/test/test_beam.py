@@ -209,7 +209,21 @@ class MyTestCase(unittest.TestCase):
         # Imaging with the oskar imager
         # image_karabo = oskar_imaging(precision, vis_path="data/beam_vis.vis",
         #                 out_path="result/beam_vis")
-        image_karabo = oskar_imaging(precision)
+        # image_karabo = oskar_imaging(precision)
+        # RASCIL IMAGING
+        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
+        imager_kb = Imager(
+            karabo_visibility,
+            imaging_npixel=4096,
+            imaging_cellsize=2.13e-5,
+            imaging_dopsf=True,
+            imaging_weighting="uniform",
+            imaging_uvmax=uvmax,
+            imaging_uvmin=1,
+        )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        dirty_kb = imager_kb.get_dirty_image()
+        image_karabo = dirty_kb.data[0][0]
+
         # OSKAR -------------------------------------
         # oskar_visibility(freq, precision, vis_path="./data/beam_vis.vis",
         #                   sky_txt='./data/sky_model.txt',
@@ -218,7 +232,20 @@ class MyTestCase(unittest.TestCase):
         # Imaging
         # image_oskar = oskar_imaging(precision, vis_path="data/beam_vis.vis",
         #                              out_path="result/beam_vis")
-        image_oskar = oskar_imaging(precision)
+        # image_oskar = oskar_imaging(precision)
+        # RASCIL IMAGING
+        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
+        imager_o = Imager(
+            oskar_visibility,
+            imaging_npixel=4096,
+            imaging_cellsize=2.13e-5,
+            imaging_dopsf=True,
+            imaging_weighting="uniform",
+            imaging_uvmax=uvmax,
+            imaging_uvmin=1,
+        )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        dirty_o = imager_o.get_dirty_image()
+        image_oskar = dirty_o.data[0][0]
 
         # Plotting the difference between karabo and oskar using oskar imager
         # -> should be zero everywhere
