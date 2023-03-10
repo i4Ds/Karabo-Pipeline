@@ -15,149 +15,6 @@ from karabo.simulation.telescope import Telescope
 from karabo.test import data_path
 
 
-def sky_test():
-    """
-    Construction of a test sky model with equal distributed point
-    sources around the phase center ra=20, deg=-30.
-    :return: The sky model.
-    """
-    sky = SkyModel()
-    sky_data = np.zeros((81, 12))
-    a = np.arange(-32, -27.5, 0.5)
-    b = np.arange(18, 22.5, 0.5)
-    dec_arr, ra_arr = np.meshgrid(a, b)
-    sky_data[:, 0] = ra_arr.flatten()
-    sky_data[:, 1] = dec_arr.flatten()
-    sky_data[:, 2] = 1
-
-    sky.add_point_sources(sky_data)
-
-    return sky
-
-
-def karabo_visibility(
-    freq,
-    precision,
-    beam_type: str = "Isotropic beam",
-    vis_path="./karabo/test/data/beam_vis",
-):
-    """
-    Simulation of the visibilities using karabo and the test sky
-    """
-    sky = sky_test()
-    telescope = Telescope.get_MEERKAT_Telescope()
-    # Remove beam if already present
-    test = os.listdir(telescope.path)
-    for item in test:
-        if item.endswith(".bin"):
-            os.remove(os.path.join(telescope.path, item))
-    # ------------- Simulation Begins
-    simulation = InterferometerSimulation(
-        vis_path=vis_path + ".vis",
-        channel_bandwidth_hz=2e7,
-        time_average_sec=8,
-        noise_enable=False,
-        ignore_w_components=True,
-        precision=precision,
-        use_gpus=False,
-        station_type=beam_type,
-        gauss_beam_fwhm_deg=1.0,
-        gauss_ref_freq_hz=1.5e9,
-    )
-    observation = Observation(
-        mode="Tracking",
-        phase_centre_ra_deg=20.0,
-        start_date_and_time=datetime(2000, 3, 20, 12, 6, 39, 0),
-        length=timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
-        phase_centre_dec_deg=-30.0,
-        number_of_time_steps=10,
-        start_frequency_hz=freq,
-        frequency_increment_hz=2e7,
-        number_of_channels=1,
-    )
-    visibility = simulation.run_simulation(telescope, sky, observation)
-    visibility.write_to_file(path=vis_path + ".ms")
-    return visibility
-
-
-def oskar_visibility(
-    freq,
-    precision,
-    beam_type: str = "Isotropic beam",
-    vis_path="./karabo/test/data/beam_vis.vis",
-    sky_txt="./karabo/test/data/sky_model.txt",
-    telescope_tm="./karabo/data/meerkat.tm",
-):
-    """
-    Simulation of the visibilities using oskar and the test sky
-    """
-    sky = sky_test()
-    # Setting tree
-    params = {
-        "simulator": {"use_gpus": True},
-        "observation": {
-            "num_channels": 1,
-            "start_frequency_hz": freq,
-            "frequency_inc_hz": 2e7,
-            "phase_centre_ra_deg": 20,
-            "phase_centre_dec_deg": -30,
-            "num_time_steps": 10,
-            "start_time_utc": "2000-03-20 12:06:39",
-            "length": "03:05:00.000",
-        },
-        "telescope": {
-            "input_directory": telescope_tm,
-            "normalise_beams_at_phase_centre": True,
-            "pol_mode": "Full",
-            "allow_station_beam_duplication": True,
-            "station_type": beam_type,
-            "gaussian_beam/fwhm_deg": 1,
-            "gaussian_beam/ref_freq_hz": 1.5e9,  # Mid-frequency in the redshift range
-        },
-        "interferometer": {
-            "oskar_vis_filename": vis_path,
-            "channel_bandwidth_hz": 2e7,
-            "time_average_sec": 8,
-            "ignore_w_components": True,
-        },
-    }
-
-    settings = oskar.SettingsTree("oskar_sim_interferometer")
-    settings.from_dict(params)
-
-    # Choose the numerical precision
-    if precision == "single":
-        settings["simulator/double_precision"] = False
-
-    # The following line depends on the mode with which we're loading the sky
-    # (explained in documentation)
-    np.savetxt(sky_txt, sky.sources[:, :3])
-    sky_sim = oskar.Sky.load(sky_txt, precision)
-
-    sim = oskar.Interferometer(settings=settings)
-    sim.set_sky_model(sky_sim)
-    sim.run()
-
-
-def oskar_imaging(
-    precision,
-    vis_path="./karabo/test/data/beam_vis.vis",
-    out_path="./karabo/test/result/beam_vis",
-):
-    imager = oskar.Imager(precision)
-    imager.set(
-        input_file=vis_path,
-        output_root=out_path,
-        image_size=4096,
-        fov_deg=5,
-        weighting="Uniform",
-        uv_filter_max=3000,
-    )
-    output = imager.run(return_images=1)
-    image = output["images"][0]
-    return image
-
-
 class MyTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -361,32 +218,61 @@ class MyTestCase(unittest.TestCase):
         # sky.add_point_sources(sky_data)
         return sky_data
 
-
-"""
     def test_gaussian_beam(self):
-
+        """
         We test that image reconstruction works also with a Gaussian beam and
         test both Imagers: Oskar and Rascil.
-
+        """
         # --------------------------
         freq = 8.0e8
         precision = "double"
-        # visibility = karabo_visibility(
-        #    freq, precision, beam_type="Gaussian beam", vis_path="data/beam_vis.vis"
-        # )
-        visibility = karabo_visibility(freq, precision)
+        beam_type = "Gaussian beam"
+        vis_path = "./karabo/test/data/beam_vis"
 
-        # -------------------------------------
-        # OSKAR IMAGING
-        # oskar_imager = oskar_imaging(
-        #     precision, vis_path="data/beam_vis.vis", ut_path="result/beam_vis"
-        # )
-        oskar_imager = oskar_imaging(precision)
-        plt.imshow(oskar_imager, aspect="auto", origin="lower", cmap="jet")
-        plt.colorbar()
-        plt.title("Imager from Oskar")
-        plt.show()
-        # -------------------------------------
+        sky = SkyModel()
+        sky_data = np.zeros((81, 12))
+        a = np.arange(-32, -27.5, 0.5)
+        b = np.arange(18, 22.5, 0.5)
+        dec_arr, ra_arr = np.meshgrid(a, b)
+        sky_data[:, 0] = ra_arr.flatten()
+        sky_data[:, 1] = dec_arr.flatten()
+        sky_data[:, 2] = 1
+
+        sky.add_point_sources(sky_data)
+
+        telescope = Telescope.get_MEERKAT_Telescope()
+        # Remove beam if already present
+        test = os.listdir(telescope.path)
+        for item in test:
+            if item.endswith(".bin"):
+                os.remove(os.path.join(telescope.path, item))
+        # ------------- Simulation Begins
+        simulation = InterferometerSimulation(
+            vis_path=vis_path + ".vis",
+            channel_bandwidth_hz=2e7,
+            time_average_sec=8,
+            noise_enable=False,
+            ignore_w_components=True,
+            precision=precision,
+            use_gpus=False,
+            station_type=beam_type,
+            gauss_beam_fwhm_deg=1.0,
+            gauss_ref_freq_hz=1.5e9,
+        )
+        observation = Observation(
+            mode="Tracking",
+            phase_centre_ra_deg=20.0,
+            start_date_and_time=datetime(2000, 3, 20, 12, 6, 39, 0),
+            length=timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+            phase_centre_dec_deg=-30.0,
+            number_of_time_steps=10,
+            start_frequency_hz=freq,
+            frequency_increment_hz=2e7,
+            number_of_channels=1,
+        )
+        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility.write_to_file(path=vis_path + ".ms")
+
         # RASCIL IMAGING
         uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
         imager = Imager(
@@ -399,11 +285,8 @@ class MyTestCase(unittest.TestCase):
             imaging_uvmin=1,
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        # dirty.write_to_file("./karabo/test/result/beam/beam_vis_rascil.fits",
-        #                      overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
 
-"""
 
 if __name__ == "__main__":
     unittest.main()
