@@ -1,6 +1,13 @@
 name: Tests
 
-on: [ push ]
+on:
+  schedule: # Every night at 5am
+    - cron: '0 5 * * *'
+  push:
+  workflow_dispatch:
+    inputs:
+      slow-test:
+        default: false
 
 jobs:
   Build_Dev_Image:
@@ -36,8 +43,15 @@ jobs:
       - name: Test Code
         shell: bash -l {0}
         run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            export RUN_SLOW_TESTS=false
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "Starting scheduled full test!"
+            export RUN_SLOW_TESTS=true
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            export RUN_SLOW_TESTS=false
+          fi
           export IS_GITHUB_RUNNER=true
-          export RUN_SLOW_TESTS=false
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
