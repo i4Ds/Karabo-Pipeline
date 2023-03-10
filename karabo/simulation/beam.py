@@ -193,34 +193,35 @@ class BeamPattern:
     @staticmethod
     def show_eidos_beam(B_ah, path=None):
         f, ax = plt.subplots(2, 2)
+        log10_notzero = 10 ** (-10)
         ax00 = ax[0, 0]
         ax01 = ax[0, 1]
         ax10 = ax[1, 0]
         ax11 = ax[1, 1]
         B_ah[np.where(np.abs(B_ah) == 0)] = 1 + 1j
         ax00.imshow(
-            10 * np.log10(np.abs(B_ah[0, 0])),
+            10 * np.log10(np.abs(B_ah[0, 0]) + log10_notzero),
             aspect="auto",
             origin="lower",
             extent=[-5, 5, -5, 5],
         )
         ax00.set_title("E$_{00}^{h}$")
         ax01.imshow(
-            10 * np.log10(np.abs(B_ah[0, 1])),
+            10 * np.log10(np.abs(B_ah[0, 1]) + log10_notzero),
             aspect="auto",
             origin="lower",
             extent=[-5, 5, -5, 5],
         )
         ax01.set_title("E$_{01}^{h}$")
         ax10.imshow(
-            10 * np.log10(np.abs(B_ah[1, 0])),
+            10 * np.log10(np.abs(B_ah[1, 0]) + log10_notzero),
             aspect="auto",
             origin="lower",
             extent=[-5, 5, -5, 5],
         )
         ax10.set_title("E$_{10}^{h}$")
         im = ax11.imshow(
-            10 * np.log10(np.abs(B_ah[1, 1])),
+            10 * np.log10(np.abs(B_ah[1, 1]) + log10_notzero),
             aspect="auto",
             origin="lower",
             extent=[-5, 5, -5, 5],
@@ -239,24 +240,25 @@ class BeamPattern:
     @staticmethod
     def eidos_lineplot(B_ah, B_em, npix, path=None):
         f, ax = plt.subplots(2, 1)
+        log10_notzero = 10 ** (-12)
         ax0 = ax[0]
         ax1 = ax[1]
         ax0.plot(
             np.linspace(-5, 5, npix),
-            10 * np.log10(np.abs(B_ah[0, 0]))[250],
+            10 * np.log10(np.abs(B_ah[0, 0]) + log10_notzero)[250],
             "o-",
             label="AH",
         )
         ax0.plot(
             np.linspace(-5, 5, npix),
-            10 * np.log10(np.abs(B_em[0, 0]))[250],
+            10 * np.log10(np.abs(B_em[0, 0]) + log10_notzero)[250],
             "o-",
             label="EM",
         )
         ax1.plot(
             np.linspace(-5, 5, npix),
-            10 * np.log10(np.abs(B_em[0, 0]))[250]
-            - 10 * np.log10(np.abs(B_ah[0, 0]))[250],
+            10 * np.log10(np.abs(B_em[0, 0]) + log10_notzero)[250]
+            - 10 * np.log10(np.abs(B_ah[0, 0]) + log10_notzero)[250],
             "o-",
             label="Residual",
         )
@@ -446,9 +448,9 @@ class BeamPattern:
                     theta.value,  # Theta [deg]
                     phi.value,  # Phi [deg]
                     np.zeros_like(theta).value,  # Abs dir * / Unused
-                    np.log10(np.abs(vcopol_x)) * 10,  # Abs horizontal
+                    np.abs(vcopol_x),  # Abs horizontal
                     np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
-                    np.log10(np.abs(vcrpol_x)) * 10,  # Abs vertical
+                    np.abs(vcrpol_x),  # Abs vertical
                     np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
                     np.zeros_like(theta).value,  # Ax. ratio * / Unused
                 ]
@@ -507,9 +509,9 @@ class BeamPattern:
                     theta.value,  # Theta [deg]
                     phi.value,  # Phi [deg]
                     np.zeros_like(theta).value,  # Abs dir * / Unused
-                    np.log10(np.abs(vcopol_x)) * 10,  # Abs horizontal
+                    np.abs(vcopol_x),  # Abs horizontal
                     np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
-                    np.log10(np.abs(vcrpol_x)) * 10,  # Abs vertical
+                    np.abs(vcrpol_x),  # Abs vertical
                     np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
                     np.zeros_like(theta).value,  # Ax. ratio * / Unused
                 ]
@@ -572,9 +574,9 @@ class BeamPattern:
                     theta.value,  # Theta [deg]
                     phi.value,  # Phi [deg]
                     np.zeros_like(theta).value,  # Abs dir * / Unused
-                    np.log10(np.abs(vcopol_x)) * 10,  # Abs horizontal
+                    np.abs(vcopol_x),  # Abs horizontal
                     np.angle(vcopol_x, deg=True),  # Phase horizontal [deg]
-                    np.log10(np.abs(vcrpol_x)) * 10,  # Abs vertical
+                    np.abs(vcrpol_x),  # Abs vertical
                     np.angle(vcrpol_x, deg=True),  # Phase vertical [deg]
                     np.zeros_like(theta).value,  # Ax. ratio * / Unused
                 ]
