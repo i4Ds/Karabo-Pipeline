@@ -278,8 +278,8 @@ class Imager:
             flat_sky=self.imaging_flat_sky,
             clean_beam=clean_beam,
             clean_algorithm=clean_algorithm,
-            imaging_uvmax = self.imaging_uvmax,
-            imaging_uvmin = self.imaging_uvmin
+            imaging_uvmax=self.imaging_uvmax,
+            imaging_uvmin=self.imaging_uvmin,
         )
 
         result = rsexecute.compute(result, sync=True)
