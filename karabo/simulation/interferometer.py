@@ -267,9 +267,11 @@ class InterferometerSimulation:
                 if len(files_existing) > 0:
                     print("Some example files to remove/replace:")
                     print(f"{[*vis_files_existing[:3],*ms_files_existing[:3]]}")
-                    msg = f'Found already existing "beam_vis_*.vis" and ' \
-                          f'"beam_vis_*.ms" files inside {self.vis_path}, \
+                    msg = (
+                        f'Found already existing "beam_vis_*.vis" and '
+                        f'"beam_vis_*.ms" files inside {self.vis_path}, \
                         Do you want to replace remove/replace them? [y/N]'
+                    )
                     msg = (
                         'Found already existing "beam_vis_*.vis" and '
                         + f'beam_vis_*.ms" files inside {self.vis_path}, \
