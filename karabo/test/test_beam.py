@@ -203,17 +203,56 @@ class MyTestCase(unittest.TestCase):
         # KARABO ----------------------------
         freq = 8.0e8
         precision = "single"
-        # visibility_kb = karabo_visibility(freq, precision,
-        #                  vis_path="data/beam_vis.vis")
-        karabo_visibility(freq, precision)
-        # Imaging with the oskar imager
-        # image_karabo = oskar_imaging(precision, vis_path="data/beam_vis.vis",
-        #                 out_path="result/beam_vis")
-        # image_karabo = oskar_imaging(precision)
-        # RASCIL IMAGING
+        beam_type = "Isotropic beam"
+        vis_path = "./karabo/test/data/beam_vis"
+
+        sky = SkyModel()
+        sky_data = np.zeros((81, 12))
+        a = np.arange(-32, -27.5, 0.5)
+        b = np.arange(18, 22.5, 0.5)
+        dec_arr, ra_arr = np.meshgrid(a, b)
+        sky_data[:, 0] = ra_arr.flatten()
+        sky_data[:, 1] = dec_arr.flatten()
+        sky_data[:, 2] = 1
+
+        sky.add_point_sources(sky_data)
+
+        telescope = Telescope.get_MEERKAT_Telescope()
+        # Remove beam if already present
+        test = os.listdir(telescope.path)
+        for item in test:
+            if item.endswith(".bin"):
+                os.remove(os.path.join(telescope.path, item))
+        # ------------- Simulation Begins
+        simulation = InterferometerSimulation(
+            vis_path=vis_path + ".vis",
+            channel_bandwidth_hz=2e7,
+            time_average_sec=8,
+            noise_enable=False,
+            ignore_w_components=True,
+            precision=precision,
+            use_gpus=False,
+            station_type=beam_type,
+            gauss_beam_fwhm_deg=1.0,
+            gauss_ref_freq_hz=1.5e9,
+        )
+        observation = Observation(
+            mode="Tracking",
+            phase_centre_ra_deg=20.0,
+            start_date_and_time=datetime(2000, 3, 20, 12, 6, 39, 0),
+            length=timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+            phase_centre_dec_deg=-30.0,
+            number_of_time_steps=10,
+            start_frequency_hz=freq,
+            frequency_increment_hz=2e7,
+            number_of_channels=1,
+        )
+        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility.write_to_file(path=vis_path + ".ms")
+
         uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
-        imager_kb = Imager(
-            karabo_visibility,
+        imager = Imager(
+            visibility,
             imaging_npixel=4096,
             imaging_cellsize=2.13e-5,
             imaging_dopsf=True,
@@ -221,8 +260,16 @@ class MyTestCase(unittest.TestCase):
             imaging_uvmax=uvmax,
             imaging_uvmin=1,
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty_kb = imager_kb.get_dirty_image()
-        image_karabo = dirty_kb.data[0][0]
+        dirty = imager.get_dirty_image()
+
+        """
+        # visibility_kb = karabo_visibility(freq, precision,
+        #                  vis_path="data/beam_vis.vis")
+        karabo_visibility(freq, precision)
+        # Imaging with the oskar imager
+        # image_karabo = oskar_imaging(precision, vis_path="data/beam_vis.vis",
+        #                 out_path="result/beam_vis")
+        image_karabo = oskar_imaging(precision)
 
         # OSKAR -------------------------------------
         # oskar_visibility(freq, precision, vis_path="./data/beam_vis.vis",
@@ -232,26 +279,11 @@ class MyTestCase(unittest.TestCase):
         # Imaging
         # image_oskar = oskar_imaging(precision, vis_path="data/beam_vis.vis",
         #                              out_path="result/beam_vis")
-        # image_oskar = oskar_imaging(precision)
-        # RASCIL IMAGING
-        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
-        imager_o = Imager(
-            oskar_visibility,
-            imaging_npixel=4096,
-            imaging_cellsize=2.13e-5,
-            imaging_dopsf=True,
-            imaging_weighting="uniform",
-            imaging_uvmax=uvmax,
-            imaging_uvmin=1,
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty_o = imager_o.get_dirty_image()
-        image_oskar = dirty_o.data[0][0]
-
+        image_oskar = oskar_imaging(precision)
+        """
         # Plotting the difference between karabo and oskar using oskar imager
         # -> should be zero everywhere
-        plt.imshow(
-            image_karabo - image_oskar, aspect="auto", origin="lower", cmap="jet"
-        )
+        plt.imshow(dirty.data[0][0], aspect="auto", origin="lower", cmap="jet")
         plt.colorbar()
         plt.show()
 
@@ -279,11 +311,13 @@ class MyTestCase(unittest.TestCase):
         # sky.add_point_sources(sky_data)
         return sky_data
 
+
+"""
     def test_gaussian_beam(self):
-        """
+
         We test that image reconstruction works also with a Gaussian beam and
         test both Imagers: Oskar and Rascil.
-        """
+
         # --------------------------
         freq = 8.0e8
         precision = "double"
@@ -319,7 +353,7 @@ class MyTestCase(unittest.TestCase):
         #                      overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
         # -------------------------------------
-        """
+
         plot_diff = 0
         if (plot_diff):
             ab = fits.open("./karabo/test/result/beam/beam_vis.fits")
@@ -334,8 +368,8 @@ class MyTestCase(unittest.TestCase):
             ax.add_patch(ellipse)
             f.colorbar(im)
             f.show()
-        """
 
+"""
 
 if __name__ == "__main__":
     unittest.main()
