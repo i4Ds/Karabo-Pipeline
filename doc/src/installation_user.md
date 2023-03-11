@@ -1,4 +1,4 @@
-# Installation (User)
+# Installation for Users
 
 ## System Requirements
 - Linux or Windows with WSL. For macOS we recommend you use [Docker](container.html).
@@ -28,6 +28,25 @@ A Karabo installation can be updated the following way:
 conda update -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
 conda clean --all -y
 ```
+
+## Next steps: run the examples
+Now that you have a working installation, 
+you can try out the [examples](examples/examples.md). For this, start a python session 
+from the command line 
+or, better, use a jupyter notebook. 
+Jupyter is not installed by default by Karabo, but you
+can install it with:
+```
+conda install jupyter
+```
+and call it with 
+```
+jupyter notebook
+```
+It can get a bit tricky if you are on a cloud environment, such as the amazon cloud. 
+There are 
+[instructions](https://towardsdatascience.com/setting-up-and-using-jupyter-notebooks-on-aws-61a9648db6c5) on how to use jupyter with an EC2 instances that should help setting
+it up correctly. 
 
 ## Additional Notes and Troubleshooting
 - If the base environment was updated, *libmamba* might fail to install. In that case, reset conda to version 22 using `conda install --rev 0 --name base` or you can try installing Karabo without *libmamba*. Using *libmamba* is not strictly required, but strongly recommended, because it makes the installation much faster and more reliable.

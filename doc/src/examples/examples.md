@@ -2,7 +2,7 @@
 
 ## Running an interferometer simulation
 
-Running an interferometer simulation is really easy.
+Running an interferometer simulation is easy.
 Please look at the karabo.package documentation for specifics on the individual functions.
 
 ```python
@@ -37,6 +37,7 @@ observation = Observation(start_frequency_hz=1e6)
 # run a single simulation with the provided configuration
 simulation.run_simulation(telescope, sky, observation)
 ```
+This script generates a measurement set in a file called `test_result.ms`.
 
 ## Show telescope config
 
