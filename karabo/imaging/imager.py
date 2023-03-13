@@ -5,18 +5,18 @@ from astropy.wcs import WCS
 from distributed import Client
 from numpy.typing import NDArray
 from ska_sdp_datamodels.science_data_model import PolarisationFrame
+from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
+from ska_sdp_func_python.imaging import create_image_from_visibility
 from rascil.processing_components import (
-    convert_blockvisibility_to_stokesI,
-    create_blockvisibility_from_ms,
-    create_image_from_visibility,
-    export_image_to_fits,
+    create_visibility_from_ms,
+    export_image_to_fits, # `export_to_fits`` object method of ska_sdp_datamodels.image.image_model.ImageAccessor
     image_gather_channels,
     invert_blockvisibility,
     remove_sumwt,
 )
 from rascil.workflows import (
     continuum_imaging_skymodel_list_rsexecute_workflow,
-    create_blockvisibility_from_ms_rsexecute,
+    create_visibility_from_ms_rsexecute,
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
 
@@ -138,7 +138,7 @@ class Imager:
         :return: dirty image of visibilities.
         """
 
-        block_visibilities = create_blockvisibility_from_ms(self.visibility.file.path)
+        block_visibilities = create_visibility_from_ms(self.visibility.file.path)
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
@@ -221,7 +221,7 @@ class Imager:
             img_context = "wg"
         rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
-        blockviss = create_blockvisibility_from_ms_rsexecute(
+        blockviss = create_visibility_from_ms_rsexecute(
             msname=self.visibility.file.path,
             nchan_per_blockvis=self.ingest_chan_per_blockvis,
             nout=self.ingest_vis_nchan
@@ -231,7 +231,7 @@ class Imager:
         )
 
         blockviss = [
-            rsexecute.execute(convert_blockvisibility_to_stokesI)(bv)
+            rsexecute.execute(convert_visibility_to_stokesI)(bv)
             for bv in blockviss
         ]
 
