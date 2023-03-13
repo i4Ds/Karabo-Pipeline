@@ -4,7 +4,7 @@ import numpy as np
 from astropy.wcs import WCS
 from distributed import Client
 from numpy.typing import NDArray
-from rascil.data_models import PolarisationFrame
+from ska_sdp_datamodels.science_data_model import PolarisationFrame
 from rascil.processing_components import (
     convert_blockvisibility_to_stokesI,
     create_blockvisibility_from_ms,
