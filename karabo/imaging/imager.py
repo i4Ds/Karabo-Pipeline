@@ -4,20 +4,20 @@ import numpy as np
 from astropy.wcs import WCS
 from distributed import Client
 from numpy.typing import NDArray
-from ska_sdp_datamodels.science_data_model import PolarisationFrame
-from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
-from ska_sdp_func_python.imaging import (
-    create_image_from_visibility,
-    invert_visibility,
-    remove_sumwt,
-)
-from ska_sdp_func_python.image import image_gather_channels
 from rascil.processing_components import create_visibility_from_ms
 from rascil.workflows import (
     continuum_imaging_skymodel_list_rsexecute_workflow,
     create_visibility_from_ms_rsexecute,
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
+from ska_sdp_datamodels.science_data_model import PolarisationFrame
+from ska_sdp_func_python.image import image_gather_channels
+from ska_sdp_func_python.imaging import (
+    create_image_from_visibility,
+    invert_visibility,
+    remove_sumwt,
+)
+from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
