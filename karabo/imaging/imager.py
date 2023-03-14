@@ -149,7 +149,7 @@ class Imager:
             override_cellsize=self.override_cellsize,
         )
         dirty, sumwt = invert_visibility(visibility, model, context="2d")
-        dirty.export_to_fits(fits_file=f"{file_handle.path}")
+        dirty.image_acc.export_to_fits(fits_file=f"{file_handle.path}")
         image = Image(path=file_handle)
         return image
 
@@ -287,20 +287,22 @@ class Imager:
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
         file_handle_deconvolved = FileHandle()
-        deconvolved_image_rascil.export_to_fits(fits_file=file_handle_deconvolved.path)
+        deconvolved_image_rascil.image_acc.export_to_fits(
+            fits_file=file_handle_deconvolved.path
+        )
         deconvolved_image = Image(path=file_handle_deconvolved.path)
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
         file_handle_restored = FileHandle()
-        restored.export_to_fits(fits_file=file_handle_restored.path)
+        restored.image_acc.export_to_fits(fits_file=file_handle_restored.path)
         restored_image = Image(path=file_handle_restored.path)
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
         file_handle_residual = FileHandle()
-        residual.export_to_fits(fits_file=file_handle_residual.path)
+        residual.image_acc.export_to_fits(fits_file=file_handle_residual.path)
         residual_image = Image(path=file_handle_residual.path)
 
         return deconvolved_image, restored_image, residual_image
