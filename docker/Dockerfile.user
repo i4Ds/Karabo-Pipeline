@@ -1,12 +1,39 @@
-FROM --platform=amd64 continuumio/miniconda3:4.12.0
+# Create build container to not have copied filed in real container afterwards
+FROM --platform=amd64 ghcr.io/i4ds/continuumio/miniconda3:4.12.0 as build
+ARG KARABO_TAG
+RUN apt-get update && apt-get install -y git
+RUN git clone --branch ${KARABO_TAG} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
+
+FROM --platform=amd64 ghcr.io/i4ds/continuumio/miniconda3:4.12.0
+ARG KARABO_TAG
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN apt-get update && apt-get install -y curl && apt-get autoclean && rm -rf /var/lib/apt/lists/*
+# Adding libgl1-mesa-glx & xvfb because GitHub runners complain about pyvista import and test:
+# ImportError: libGL.so.1: cannot open shared object file: No such file or directory
+RUN apt-get update && apt-get install -y curl libgl1-mesa-glx xvfb && apt-get autoclean && rm -rf /var/lib/apt/lists/*
 RUN conda update -y conda && \
     conda clean --all --yes && \
     conda install mamba -y -c conda-forge
-RUN mamba install -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
+# here the assumption is that `KARABO_TAG` has a leading "v", e.g. v0.14.0
+RUN mamba install -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline="${KARABO_TAG:1}"
 RUN pip install jupyterlab ipykernel
 RUN python -m ipykernel install --user --name=karabo
 RUN mkdir /workspace
 WORKDIR /workspace
 COPY karabo/examples/ /workspace/examples/
+
+# test karabo
+# GITHUB_ACTIONS=true starts the virtual framebuffer xvfb to prevent segfault of `pyvista`
+ARG GITHUB_ACTIONS=true
+COPY --from=build Karabo-Pipeline/ repo/
+# reorganize for testing necessary files and dirs to ensure that karabo from conda and not from repo is tested
+RUN mkdir tmp && \
+    mkdir tmp/karabo && \
+    cp -r repo/karabo/test/ tmp/karabo/test && \
+    cp -r repo/karabo/examples tmp/karabo/examples && \
+    pip install -r repo/requirements.txt
+# docker build fails if pytest fails as intended
+RUN cd tmp && \
+    pytest karabo/test/ && \
+    cd .. && \
+    pip uninstall -r repo/requirements.txt && \
+    rm -rf repo/ tmp/

@@ -52,5 +52,6 @@ jobs:
           file: docker/Dockerfile.user
           context: .
           push: true
+          build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
