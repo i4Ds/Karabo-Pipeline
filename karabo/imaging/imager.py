@@ -6,14 +6,13 @@ from distributed import Client
 from numpy.typing import NDArray
 from ska_sdp_datamodels.science_data_model import PolarisationFrame
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
-from ska_sdp_func_python.imaging import create_image_from_visibility
-from rascil.processing_components import (
-    create_visibility_from_ms,
-    export_image_to_fits, # `export_to_fits`` object method of ska_sdp_datamodels.image.image_model.ImageAccessor
-    image_gather_channels,
-    invert_blockvisibility,
+from ska_sdp_func_python.imaging import (
+    create_image_from_visibility,
+    invert_visibility,
     remove_sumwt,
 )
+from ska_sdp_func_python.image import image_gather_channels
+from rascil.processing_components import create_visibility_from_ms
 from rascil.workflows import (
     continuum_imaging_skymodel_list_rsexecute_workflow,
     create_visibility_from_ms_rsexecute,
@@ -149,8 +148,8 @@ class Imager:
             cellsize=self.imaging_cellsize,
             override_cellsize=self.override_cellsize,
         )
-        dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
-        export_image_to_fits(dirty, f"{file_handle.path}")
+        dirty, sumwt = invert_visibility(visibility, model, context="2d")
+        dirty.export_to_fits(fits_file=f"{file_handle.path}")
         image = Image(path=file_handle)
         return image
 
@@ -231,8 +230,7 @@ class Imager:
         )
 
         blockviss = [
-            rsexecute.execute(convert_visibility_to_stokesI)(bv)
-            for bv in blockviss
+            rsexecute.execute(convert_visibility_to_stokesI)(bv) for bv in blockviss
         ]
 
         models = [
@@ -289,20 +287,20 @@ class Imager:
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
         file_handle_deconvolved = FileHandle()
-        export_image_to_fits(deconvolved_image_rascil, file_handle_deconvolved.path)
+        deconvolved_image_rascil.export_to_fits(fits_file=file_handle_deconvolved.path)
         deconvolved_image = Image(path=file_handle_deconvolved.path)
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
         file_handle_restored = FileHandle()
-        export_image_to_fits(restored, file_handle_restored.path)
+        restored.export_to_fits(fits_file=file_handle_restored.path)
         restored_image = Image(path=file_handle_restored.path)
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
         file_handle_residual = FileHandle()
-        export_image_to_fits(residual, file_handle_residual.path)
+        residual.export_to_fits(fits_file=file_handle_residual.path)
         residual_image = Image(path=file_handle_residual.path)
 
         return deconvolved_image, restored_image, residual_image
