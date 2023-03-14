@@ -219,7 +219,8 @@ class SkyModel:
 
         if dataframe.shape[1] < 3:
             raise KaraboError(
-                "CSV does not have the necessary 3 basic columns (RA, DEC and STOKES I)"
+                f"CSV does not have the necessary 3 basic columns (RA, DEC and "
+                f"STOKES I), but only {dataframe.shape[1]} columns."
             )
 
         if dataframe.shape[1] < 13:
@@ -413,13 +414,13 @@ class SkyModel:
         :param cmap: matplotlib color map
         :param cbar_label: color bar label
         :param with_labels: Plots object ID's if set?
-        :param wcs: If you want to use a custom astropy.wcs,
-        ignores `phase_center` if set
+        :param wcs: If you want to use a custom astropy.wcs, ignores `phase_center` if
+                    set
         :param wcs_enabled: Use wcs transformation?
-        :param filename: Set to path/fname to save figure
-        (set extension to fname to overwrite .png default)
-        :param kwargs: matplotlib kwargs for scatter & Collections,
-        e.g. customize `s`, `vmin` or `vmax`
+        :param filename: Set to path/fname to save figure (set extension to fname to
+                         overwrite .png default)
+        :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`,
+                       `vmin` or `vmax`
         """
         if wcs is None and wcs_enabled:
             wcs = self.setup_default_wcs(phase_center)
@@ -494,13 +495,13 @@ class SkyModel:
         if isinstance(filename, str):
             fig.savefig(fname=filename)
 
-    def get_OSKAR_sky(self) -> oskar.Sky:
+    def get_OSKAR_sky(self, precision: Any = "double") -> oskar.Sky:
         """
         Get OSKAR sky model object from the defined Sky Model
 
         :return: oskar sky model
         """
-        return oskar.Sky.from_array(self[:, :-1])
+        return oskar.Sky.from_array(self[:, :-1], precision)
 
     @staticmethod
     def read_healpix_file_to_sky_model_array(
@@ -511,8 +512,8 @@ class SkyModel:
         The file should have the map keywords:
 
         :param file: hdf5 file path (healpix format)
-        :param channel: Channels of observation
-        (between 0 and maximum numbers of channels of observation)
+        :param channel: Channels of observation (between 0 and maximum numbers of
+                        channels of observation)
         :param polarisation: 0 = Stokes I, 1 = Stokes Q, 2 = Stokes U, 3 = Stokes  V
         :return:
         """
