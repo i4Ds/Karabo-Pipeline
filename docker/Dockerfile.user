@@ -19,12 +19,12 @@ RUN pip install jupyterlab ipykernel
 RUN python -m ipykernel install --user --name=karabo
 RUN mkdir /workspace
 WORKDIR /workspace
-COPY karabo/examples/ /workspace/examples/
+COPY --from=build Karabo-Pipeline/ repo/
+RUN cp -r repo/karabo/examples /workspace/examples/
 
 # test karabo
 # GITHUB_ACTIONS=true starts the virtual framebuffer xvfb to prevent segfault of `pyvista`
 ARG GITHUB_ACTIONS=true
-COPY --from=build Karabo-Pipeline/ repo/
 # reorganize for testing necessary files and dirs to ensure that karabo from conda and not from repo is tested
 # comment out ONLY the next layer to disable testing
 RUN mkdir tmp && \
