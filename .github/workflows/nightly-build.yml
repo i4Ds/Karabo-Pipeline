@@ -21,6 +21,7 @@ jobs:
           conda config --append channels conda-forge
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels i4ds
+          conda config --append channels i4ds/label/rel_v14
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Build Conda

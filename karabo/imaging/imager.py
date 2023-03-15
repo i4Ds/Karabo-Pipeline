@@ -4,21 +4,20 @@ import numpy as np
 from astropy.wcs import WCS
 from distributed import Client
 from numpy.typing import NDArray
-from rascil.data_models import PolarisationFrame
-from rascil.processing_components import (
-    convert_blockvisibility_to_stokesI,
-    create_blockvisibility_from_ms,
-    create_image_from_visibility,
-    export_image_to_fits,
-    image_gather_channels,
-    invert_blockvisibility,
-    remove_sumwt,
-)
+from rascil.processing_components import create_visibility_from_ms
 from rascil.workflows import (
     continuum_imaging_skymodel_list_rsexecute_workflow,
-    create_blockvisibility_from_ms_rsexecute,
+    create_visibility_from_ms_rsexecute,
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
+from ska_sdp_datamodels.science_data_model import PolarisationFrame
+from ska_sdp_func_python.image import image_gather_channels
+from ska_sdp_func_python.imaging import (
+    create_image_from_visibility,
+    invert_visibility,
+    remove_sumwt,
+)
+from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
 from karabo.imaging.image import Image
 from karabo.karabo_resource import NumpyAssertionsDisabled
@@ -103,6 +102,8 @@ class Imager:
         imaging_robustness: float = 0.0,
         imaging_gaussian_taper: Optional[float] = None,
         imaging_dopsf: Union[bool, str] = False,
+        imaging_uvmax: float = None,
+        imaging_uvmin: float = 0,
         imaging_dft_kernel: Optional[
             str
         ] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
@@ -129,6 +130,8 @@ class Imager:
         self.imaging_gaussian_taper = imaging_gaussian_taper
         self.imaging_dopsf = imaging_dopsf
         self.imaging_dft_kernel = imaging_dft_kernel
+        self.imaging_uvmax = imaging_uvmax
+        self.imaging_uvmin = imaging_uvmin
 
     def get_dirty_image(self) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
@@ -136,9 +139,8 @@ class Imager:
         """
         # Code that triggers assertion statements
         with NumpyAssertionsDisabled():
-            block_visibilities = create_blockvisibility_from_ms(
-                self.visibility.file.path
-            )
+            block_visibilities = create_visibility_from_ms(self.visibility.file.path)
+
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
@@ -150,8 +152,9 @@ class Imager:
             override_cellsize=self.override_cellsize,
         )
         with NumpyAssertionsDisabled():
-            dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
-        export_image_to_fits(dirty, f"{file_handle.path}")
+            dirty, sumwt = invert_visibility(visibility, model, context="2d")
+        dirty.image_acc.export_to_fits(fits_file=f"{file_handle.path}")
+
         image = Image(path=file_handle)
         return image
 
@@ -222,7 +225,7 @@ class Imager:
             img_context = "wg"
         rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
-        blockviss = create_blockvisibility_from_ms_rsexecute(
+        blockviss = create_visibility_from_ms_rsexecute(
             msname=self.visibility.file.path,
             nchan_per_blockvis=self.ingest_chan_per_blockvis,
             nout=self.ingest_vis_nchan
@@ -232,8 +235,7 @@ class Imager:
         )
 
         blockviss = [
-            rsexecute.execute(convert_blockvisibility_to_stokesI)(bv)
-            for bv in blockviss
+            rsexecute.execute(convert_visibility_to_stokesI)(bv) for bv in blockviss
         ]
 
         models = [
@@ -279,6 +281,8 @@ class Imager:
             flat_sky=self.imaging_flat_sky,
             clean_beam=clean_beam,
             clean_algorithm=clean_algorithm,
+            imaging_uvmax=self.imaging_uvmax,
+            imaging_uvmin=self.imaging_uvmin,
         )
 
         result = rsexecute.compute(result, sync=True)
@@ -288,20 +292,22 @@ class Imager:
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
         file_handle_deconvolved = FileHandle()
-        export_image_to_fits(deconvolved_image_rascil, file_handle_deconvolved.path)
+        deconvolved_image_rascil.image_acc.export_to_fits(
+            fits_file=file_handle_deconvolved.path
+        )
         deconvolved_image = Image(path=file_handle_deconvolved.path)
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
         file_handle_restored = FileHandle()
-        export_image_to_fits(restored, file_handle_restored.path)
+        restored.image_acc.export_to_fits(fits_file=file_handle_restored.path)
         restored_image = Image(path=file_handle_restored.path)
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
         file_handle_residual = FileHandle()
-        export_image_to_fits(residual, file_handle_residual.path)
+        residual.image_acc.export_to_fits(fits_file=file_handle_residual.path)
         residual_image = Image(path=file_handle_residual.path)
 
         return deconvolved_image, restored_image, residual_image
