@@ -26,14 +26,15 @@ COPY karabo/examples/ /workspace/examples/
 ARG GITHUB_ACTIONS=true
 COPY --from=build Karabo-Pipeline/ repo/
 # reorganize for testing necessary files and dirs to ensure that karabo from conda and not from repo is tested
+# comment out ONLY the next layer to disable testing
 RUN mkdir tmp && \
     mkdir tmp/karabo && \
     cp -r repo/karabo/test/ tmp/karabo/test && \
     cp -r repo/karabo/examples tmp/karabo/examples && \
-    pip install -r repo/requirements.txt
-# docker build fails if pytest fails as intended
-RUN cd tmp && \
+    pip install -r repo/requirements.txt && \
+    cd tmp && \
     pytest karabo/test/ && \
     cd .. && \
-    pip uninstall -r repo/requirements.txt && \
-    rm -rf repo/ tmp/
+    rm -rf tmp/ && \
+    pip uninstall -r repo/requirements.txt
+RUN rm -rf repo/
