@@ -45,7 +45,7 @@ class Imager:
         Data descriptors in MS to read (all must have the same number of channels)
     ingest_vis_nchan : int, default=None,
         Number of channels in a single data descriptor in the MS
-    ingest_chan_per_blockvis : int, defualt=1,
+    ingest_chan_per_vis : int, defualt=1,
         Number of channels per blockvis (before any average)
     ingest_average_blockvis : Union[bool, str], default=False,
         Average all channels in blockvis.
@@ -86,7 +86,7 @@ class Imager:
         performance_file: Optional[str] = None,
         ingest_dd: List[int] = [0],
         ingest_vis_nchan: Optional[int] = None,
-        ingest_chan_per_blockvis: int = 1,
+        ingest_chan_per_vis: int = 1,
         ingest_average_blockvis: Union[bool, str] = False,
         imaging_phasecentre: Optional[str] = None,
         imaging_pol: str = "stokesI",
@@ -113,7 +113,7 @@ class Imager:
         self.performance_file = performance_file
         self.ingest_dd = ingest_dd
         self.ingest_vis_nchan = ingest_vis_nchan
-        self.ingest_chan_per_blockvis = ingest_chan_per_blockvis
+        self.ingest_chan_per_vis = ingest_chan_per_vis
         self.ingest_average_blockvis = ingest_average_blockvis
         self.imaging_phasecentre = imaging_phasecentre
         self.imaging_pol = imaging_pol
@@ -212,8 +212,6 @@ class Imager:
 
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
-        if (use_cuda and use_dask) or (use_cuda and client is not None):
-            raise EnvironmentError("Cannot use CUDA and Dask at the same time")
         if client and not use_dask:
             raise EnvironmentError("Client passed but use_dask is False")
         if use_dask and not client:
@@ -227,9 +225,8 @@ class Imager:
 
         blockviss = create_visibility_from_ms_rsexecute(
             msname=self.visibility.file.path,
-            nchan_per_blockvis=self.ingest_chan_per_blockvis,
-            nout=self.ingest_vis_nchan
-            // self.ingest_chan_per_blockvis,  # pyright: ignore
+            nchan_per_vis=self.ingest_chan_per_vis,
+            nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,  # pyright: ignore
             dds=self.ingest_dd,
             average_channels=True,
         )
