@@ -8,10 +8,8 @@ def is_cuda_available():
         if "GPU" in output and "CUDA" in output:
             return True
         else:
-            print("No GPU is available")
             return False
-    except Exception as e:
-        print("Error with nvidia-smi: ", e)
+    except Exception:
         return False
 
 
