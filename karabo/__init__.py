@@ -18,7 +18,6 @@ if "WSL" in platform.release() and (
     # https://stackoverflow.com/questions/6543847/setting-ld-library-path-from-inside-python
     os.execv(sys.executable, ["python"] + sys.argv)
 
-import sys
 
 from karabo.util.data_util import get_module_absolute_path
 
