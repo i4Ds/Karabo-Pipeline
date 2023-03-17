@@ -21,7 +21,6 @@ dependencies:
   - libcufft
   - cuda-cudart
   - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
-  - pyvista
   - tools21cm
   # For testing
   - nbconvert
