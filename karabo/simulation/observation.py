@@ -69,8 +69,9 @@ class Observation:
         if use_gpu is None:
             print(
                 KaraboWarning(
-                    "use_gpu is None, using is_cuda_available() "
-                    + f"to set use_gpu to {is_cuda_available()}"
+                    "Parameter 'use_gpu' is None! Using function "
+                    "'karabo.util.is_cuda_available()' to overwrite parameter "
+                    f"'use_gpu' to {is_cuda_available()}."
                 )
             )
             self.use_gpu = is_cuda_available()

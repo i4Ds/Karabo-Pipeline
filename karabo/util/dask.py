@@ -93,3 +93,29 @@ def parallel_for_each(arr: List[any], function: Callable, *args):
         res = delayed(function)(value, *[copy.deepcopy(arg) for arg in args])
         results.append(res)
     return dask.compute(*results)
+
+
+def setup_dask_for_slurm():
+    import os
+
+    # Detect if we are on a slurm cluster
+    if "SLURM_JOB_ID" in os.environ:
+        from dask.distributed import Client
+        from dask_mpi import initialize
+        from mpi4py import MPI
+
+        num_threads = int(
+            os.environ.get("SLURM_CPUS_PER_TASK", os.environ.get("OMP_NUM_THREADS", 1))
+        )
+        initialize(nthreads=num_threads, comm=MPI.COMM_WORLD)
+
+        # Only create the client in the main process
+        client = Client()
+    else:
+        print("SLURM cluster not detected. Using a standard daks setup")
+        from karabo.util.dask import get_global_client
+
+        # Only create the client in the main process
+        client = get_global_client()
+
+    return client

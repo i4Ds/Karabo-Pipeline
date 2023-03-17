@@ -43,7 +43,7 @@ class Imager:
         Name of json file to contain performance information
     ingest_dd : List[int], default=[0],
         Data descriptors in MS to read (all must have the same number of channels)
-    ingest_vis_nchan : int, default=None,
+    ingest_vis_nchan : int, default=3,
         Number of channels in a single data descriptor in the MS
     ingest_chan_per_vis : int, defualt=1,
         Number of channels per blockvis (before any average)
@@ -85,7 +85,7 @@ class Imager:
         logfile: Optional[str] = None,
         performance_file: Optional[str] = None,
         ingest_dd: List[int] = [0],
-        ingest_vis_nchan: Optional[int] = None,
+        ingest_vis_nchan: Optional[int] = 3,
         ingest_chan_per_vis: int = 1,
         ingest_average_blockvis: Union[bool, str] = False,
         imaging_phasecentre: Optional[str] = None,
