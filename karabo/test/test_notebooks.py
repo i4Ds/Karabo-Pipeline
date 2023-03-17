@@ -2,6 +2,7 @@ import os
 import unittest
 
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
+KERNEL_NAME = os.environ.get("KERNEL_NAME", "karabo")
 
 
 class TestJupyterNotebooks(unittest.TestCase):
@@ -18,7 +19,7 @@ class TestJupyterNotebooks(unittest.TestCase):
 
         with open(notebook) as f:
             nb = nbformat.read(f, as_version=4)
-            ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
+            ep = ExecutePreprocessor(timeout=600, kernel_name=KERNEL_NAME)
             try:
                 assert (
                     ep.preprocess(nb) is not None

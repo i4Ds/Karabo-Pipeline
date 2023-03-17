@@ -3,7 +3,8 @@ name: Tests
 on:
   schedule: # Every night at 5am
     - cron: '0 5 * * *'
-  push:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
   workflow_dispatch:
 
 jobs:
@@ -34,16 +35,10 @@ jobs:
       - name: Test Code
         shell: bash -l {0}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            export RUN_SLOW_TESTS=false
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "Starting scheduled full test!"
-            export RUN_SLOW_TESTS=true
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            export RUN_SLOW_TESTS=false
-          fi
-          export IS_GITHUB_RUNNER=true
           conda activate test_karabo
+          pip install ipykernel
+          python -m ipykernel install --user --name=karabo
+          export IS_GITHUB_RUNNER=true RUN_SLOW_TESTS=true KERNEL_NAME=karabo
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
