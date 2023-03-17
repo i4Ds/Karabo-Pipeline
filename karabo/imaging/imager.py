@@ -138,8 +138,7 @@ class Imager:
         :return: dirty image of visibilities.
         """
         # Code that triggers assertion statements
-        with NumpyAssertionsDisabled():
-            block_visibilities = create_visibility_from_ms(self.visibility.file.path)
+        block_visibilities = create_visibility_from_ms(self.visibility.file.path)
 
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
@@ -151,8 +150,7 @@ class Imager:
             cellsize=self.imaging_cellsize,
             override_cellsize=self.override_cellsize,
         )
-        with NumpyAssertionsDisabled():
-            dirty, sumwt = invert_visibility(visibility, model, context="2d")
+        dirty, sumwt = invert_visibility(visibility, model, context="2d")
         dirty.image_acc.export_to_fits(fits_file=f"{file_handle.path}")
 
         image = Image(path=file_handle)
