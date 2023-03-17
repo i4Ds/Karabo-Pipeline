@@ -6,6 +6,7 @@ on:
   push:
   workflow_dispatch:
 
+jobs:
   Test_Karabo:
     runs-on: ubuntu-latest
     steps:
