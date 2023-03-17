@@ -20,7 +20,6 @@ from ska_sdp_func_python.imaging import (
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
 from karabo.imaging.image import Image
-from karabo.karabo_resource import NumpyAssertionsDisabled
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util.dask import get_global_client
