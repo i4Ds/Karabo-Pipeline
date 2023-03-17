@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y curl libgl1-mesa-glx xvfb && apt-get au
 RUN conda update -y conda && \
     conda clean --all --yes && \
     conda install mamba -y -c conda-forge
-# here the assumption is that `KARABO_TAG` has a leading "v", e.g. v0.14.0
+# here the assumption is that `KARABO_TAG` has a leading "v", e.g. v0.15.0
 RUN mamba install -y -c i4ds -c "i4ds/label/old" -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline="${KARABO_TAG:1}"
 RUN pip install jupyterlab ipykernel
 RUN python -m ipykernel install --user --name=karabo
@@ -26,6 +26,7 @@ RUN cp -r repo/karabo/examples /workspace/examples/
 # GITHUB_ACTIONS=true starts the virtual framebuffer xvfb to prevent segfault of `pyvista`
 ARG GITHUB_ACTIONS=true
 # reorganize for testing necessary files and dirs to ensure that karabo from conda and not from repo is tested
+# as soon as the tests don't produce any permanent files anymore, call the tests through a helper-function
 # comment out ONLY the next layer to disable testing
 RUN mkdir tmp && \
     mkdir tmp/karabo && \

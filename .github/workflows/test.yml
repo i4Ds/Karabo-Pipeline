@@ -6,35 +6,29 @@ on:
   push:
   workflow_dispatch:
 
-jobs:
-  Build_Dev_Image:
-    uses: ./.github/workflows/build-dev-image.yml
-    with:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: karabo-pipeline-dev
-
-
-  Test_Formatting:
-    needs: [ Build_Dev_Image ]
-    runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline-dev:${{ needs.Build_Dev_Image.outputs.imagetag }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
-      - name: Check-flake8
-        run: flake8 .
-      - name: check-black
-        run: black --check .
-      - name: check-isort
-        run: isort --check .
-
   Test_Karabo:
-    needs: [ Test_Formatting, Build_Dev_Image ]
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/karabo-pipeline-dev:${{ needs.Build_Dev_Image.outputs.imagetag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniforge-variant: Mambaforge
+      - name: Install Deps
+        shell: bash -el {0}
+        run: |
+          mamba create -n test_karabo
+          conda activate test_karabo
+          mamba env update --file environment.yaml
+          pip install -r requirements.txt
+          pip install unittest-xml-reporting
+      - name: Test Formatting
+        shell: bash -l {0}
+        run: |
+          flake8 .
+          black --check .
+          isort --check .
       - name: Test Code
         shell: bash -l {0}
         run: |
@@ -47,18 +41,10 @@ jobs:
             export RUN_SLOW_TESTS=false
           fi
           export IS_GITHUB_RUNNER=true
-          conda activate base
+          conda activate test_karabo
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
           files: test-reports/**/*.xml
-
-  Purge_Dev_Image:
-    if: always()
-    needs: [ Build_Dev_Image, Test_Formatting, Test_Karabo ]
-    uses: ./.github/workflows/purge-image.yml
-    with:
-      IMAGE_NAME: karabo-pipeline-dev
-      IMAGE_TAG: ${{ needs.Build_Dev_Image.outputs.imagetag }}
