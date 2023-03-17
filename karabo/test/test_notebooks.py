@@ -1,8 +1,12 @@
 import os
+import sys
 import unittest
 
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
 KERNEL_NAME = os.environ.get("KERNEL_NAME", "karabo")
+KARABO_PATH = os.environ.get("KARABO_PATH")
+if KARABO_PATH is not None:
+    sys.path.insert(0, KARABO_PATH)
 
 
 class TestJupyterNotebooks(unittest.TestCase):
