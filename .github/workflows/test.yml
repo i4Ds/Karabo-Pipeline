@@ -21,6 +21,8 @@ jobs:
         run: |
           mamba create -n test_karabo
           conda activate test_karabo
+          conda install conda-build
+          conda develop .
           mamba env update --file environment.yaml
           pip install -r requirements.txt
           pip install unittest-xml-reporting
@@ -35,7 +37,6 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate test_karabo
-          conda develop .
           pip install ipykernel
           python -m ipykernel install --user --name=karabo
           export IS_GITHUB_RUNNER=true RUN_SLOW_TESTS=true KERNEL_NAME=karabo
