@@ -243,6 +243,10 @@ class Imager:
             )
             for bvis in blockviss
         ]
+        # WAGG support for rascil does currently not work: https://github.com/i4Ds/Karabo-Pipeline/issues/360
+        if img_context == "wg":
+            raise NotImplementedError("WAGG support for rascil does currently not work")
+
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
             vis_list=blockviss,  # List of BlockVisibilitys
             model_imagelist=models,  # List of model images
