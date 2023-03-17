@@ -6,6 +6,7 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
   workflow_dispatch:
+  push:
 
 jobs:
   Test_Karabo:
