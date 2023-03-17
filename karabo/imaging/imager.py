@@ -85,7 +85,7 @@ class Imager:
         logfile: Optional[str] = None,
         performance_file: Optional[str] = None,
         ingest_dd: List[int] = [0],
-        ingest_vis_nchan: Optional[int] = 3,
+        ingest_vis_nchan: Optional[int] = None,
         ingest_chan_per_vis: int = 1,
         ingest_average_blockvis: Union[bool, str] = False,
         imaging_phasecentre: Optional[str] = None,
@@ -167,9 +167,6 @@ class Imager:
         # Imaging context: Which nifty gridder to use.
         # See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
         img_context: str = "ng",
-        # Number of brightest sources to select for initial SkyModel
-        # (if None, use all sources from input file)
-        num_bright_sources: Optional[int] = None,
         # Type of deconvolution algorithm (hogbom or msclean or mmclean)
         clean_algorithm: str = "hogbom",
         # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args.
