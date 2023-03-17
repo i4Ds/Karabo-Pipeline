@@ -35,6 +35,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate test_karabo
+          conda develop .
           pip install ipykernel
           python -m ipykernel install --user --name=karabo
           export IS_GITHUB_RUNNER=true RUN_SLOW_TESTS=true KERNEL_NAME=karabo
