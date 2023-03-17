@@ -4,9 +4,7 @@ on:
   schedule: # Every night at 5am
     - cron: '0 5 * * *'
   pull_request:
-    types: [opened, edited, synchronize, reopened]
   workflow_dispatch:
-  push:
 
 jobs:
   Test_Karabo:
