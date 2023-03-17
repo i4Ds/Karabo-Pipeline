@@ -1,7 +1,7 @@
 import os
 
 
-def is_cuda_available():
+def is_cuda_available() -> bool:
     # Check available GPU by invoking nvidia-smi
     try:
         output = os.popen("nvidia-smi").read()
@@ -14,6 +14,7 @@ def is_cuda_available():
             return False
         else:
             print("Unexpected output from nvidia-smi: ", output)
+            return False
     except Exception:
         return False
 
