@@ -27,6 +27,7 @@ jobs:
       - name: Test Formatting
         shell: bash -l {0}
         run: |
+          conda activate test_karabo
           flake8 .
           black --check .
           isort --check .
