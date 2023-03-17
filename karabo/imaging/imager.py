@@ -42,9 +42,9 @@ class Imager:
         Name of json file to contain performance information
     ingest_dd : List[int], default=[0],
         Data descriptors in MS to read (all must have the same number of channels)
-    ingest_vis_nchan : int, default=None,
+    ingest_vis_nchan : int, default=3,
         Number of channels in a single data descriptor in the MS
-    ingest_chan_per_blockvis : int, defualt=1,
+    ingest_chan_per_vis : int, defualt=1,
         Number of channels per blockvis (before any average)
     ingest_average_blockvis : Union[bool, str], default=False,
         Average all channels in blockvis.
@@ -85,7 +85,7 @@ class Imager:
         performance_file: Optional[str] = None,
         ingest_dd: List[int] = [0],
         ingest_vis_nchan: Optional[int] = None,
-        ingest_chan_per_blockvis: int = 1,
+        ingest_chan_per_vis: int = 1,
         ingest_average_blockvis: Union[bool, str] = False,
         imaging_phasecentre: Optional[str] = None,
         imaging_pol: str = "stokesI",
@@ -112,7 +112,7 @@ class Imager:
         self.performance_file = performance_file
         self.ingest_dd = ingest_dd
         self.ingest_vis_nchan = ingest_vis_nchan
-        self.ingest_chan_per_blockvis = ingest_chan_per_blockvis
+        self.ingest_chan_per_vis = ingest_chan_per_vis
         self.ingest_average_blockvis = ingest_average_blockvis
         self.imaging_phasecentre = imaging_phasecentre
         self.imaging_pol = imaging_pol
@@ -136,8 +136,9 @@ class Imager:
         """Get Dirty Image of visibilities passed to the Imager.
         :return: dirty image of visibilities.
         """
-
+        # Code that triggers assertion statements
         block_visibilities = create_visibility_from_ms(self.visibility.file.path)
+
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
@@ -150,6 +151,7 @@ class Imager:
         )
         dirty, sumwt = invert_visibility(visibility, model, context="2d")
         dirty.image_acc.export_to_fits(fits_file=f"{file_handle.path}")
+
         image = Image(path=file_handle)
         return image
 
@@ -162,9 +164,6 @@ class Imager:
         # Imaging context: Which nifty gridder to use.
         # See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
         img_context: str = "ng",
-        # Number of brightest sources to select for initial SkyModel
-        # (if None, use all sources from input file)
-        num_bright_sources: Optional[int] = None,
         # Type of deconvolution algorithm (hogbom or msclean or mmclean)
         clean_algorithm: str = "hogbom",
         # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args.
@@ -207,8 +206,6 @@ class Imager:
 
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
-        if (use_cuda and use_dask) or (use_cuda and client is not None):
-            raise EnvironmentError("Cannot use CUDA and Dask at the same time")
         if client and not use_dask:
             raise EnvironmentError("Client passed but use_dask is False")
         if use_dask and not client:
@@ -222,9 +219,8 @@ class Imager:
 
         blockviss = create_visibility_from_ms_rsexecute(
             msname=self.visibility.file.path,
-            nchan_per_blockvis=self.ingest_chan_per_blockvis,
-            nout=self.ingest_vis_nchan
-            // self.ingest_chan_per_blockvis,  # pyright: ignore
+            nchan_per_vis=self.ingest_chan_per_vis,
+            nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,  # pyright: ignore
             dds=self.ingest_dd,
             average_channels=True,
         )
@@ -244,6 +240,10 @@ class Imager:
             )
             for bvis in blockviss
         ]
+        # WAGG support for rascil does currently not work: https://github.com/i4Ds/Karabo-Pipeline/issues/360
+        if img_context == "wg":
+            raise NotImplementedError("WAGG support for rascil does currently not work")
+
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
             vis_list=blockviss,  # List of BlockVisibilitys
             model_imagelist=models,  # List of model images
