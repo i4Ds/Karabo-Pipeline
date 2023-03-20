@@ -31,15 +31,9 @@ class TestJupyterNotebooks(unittest.TestCase):
             except Exception:
                 assert False, f"Failed executing {notebook}"
 
-    @unittest.skip("Test needs a new dependency and a access code")
-    def test_meerKAT_data_access_notebook(self):
-        self._test_notebook(notebook="MeerKAT_data_access.ipynb")
-
-    @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
     def test_source_detection_notebook(self):
         self._test_notebook(notebook="source_detection.ipynb")
 
-    @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
     def test_source_detection_assesment_notebook(self):
         self._test_notebook(notebook="source_detection_assessment.ipynb")
 
