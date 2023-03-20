@@ -3,7 +3,8 @@ import os
 
 def is_cuda_available() -> bool:
     # Check available GPU by invoking nvidia-smi
-    output = os.popen("nvidia-smi").read()
+    # "2> /dev/null" surpresses stderr if command not found and returns ""
+    output = os.popen("nvidia-smi 2> /dev/null").read()
     if "GPU" in output and "CUDA" in output:
         return True
     elif (
