@@ -9,6 +9,7 @@ def is_cuda_available() -> bool:
     elif (
         "nvidia-smi: not found" in output
         or "NVIDIA-SMI has failed because it couldn't communicate" in output
+        or "" == output
     ):
         return False
     else:
