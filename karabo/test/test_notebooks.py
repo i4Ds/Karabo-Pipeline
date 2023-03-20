@@ -1,6 +1,8 @@
 import os
 import unittest
 
+from karabo.util.plotting_util import Font
+
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
 KERNEL_NAME = os.environ.get("KERNEL_NAME", "karabo")
 
@@ -17,6 +19,8 @@ class TestJupyterNotebooks(unittest.TestCase):
         import nbformat
         from nbconvert.preprocessors import ExecutePreprocessor
 
+        print(Font.BOLD + Font.BLUE + "Testing notebook " + notebook + Font.END)
+
         with open(notebook) as f:
             nb = nbformat.read(f, as_version=4)
             ep = ExecutePreprocessor(timeout=-1, kernel_name=KERNEL_NAME)
@@ -29,18 +33,16 @@ class TestJupyterNotebooks(unittest.TestCase):
 
     @unittest.skip("Test needs a new dependency and a access code")
     def test_meerKAT_data_access_notebook(self):
-        notebook = "MeerKAT_data_access.ipynb"
-        print("Testing notebook", notebook)
-        self._test_notebook(notebook=notebook)
+        self._test_notebook(notebook="MeerKAT_data_access.ipynb")
 
     @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
     def test_source_detection_notebook(self):
-        notebook = "source_detection.ipynb"
-        print("Testing notebook", notebook)
-        self._test_notebook(notebook=notebook)
+        self._test_notebook(notebook="source_detection.ipynb")
 
     @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
     def test_source_detection_assesment_notebook(self):
-        notebook = "source_detection_assessment.ipynb"
-        print("Testing notebook", notebook)
-        self._test_notebook(notebook=notebook)
+        self._test_notebook(notebook="source_detection_assessment.ipynb")
+
+    @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
+    def test_HIIM_Img_Recovery_notebook(self):
+        self._test_notebook(notebook="HIIM_Img_Recovery.ipynb")
