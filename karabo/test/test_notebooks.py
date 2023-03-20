@@ -32,14 +32,16 @@ class TestJupyterNotebooks(unittest.TestCase):
             except Exception:
                 assert False, f"Failed executing {notebook}"
 
-    @unittest.skipIf(IS_GITHUB_RUNNER or not RUN_SLOW_TESTS)
+    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
+    @unittest.skipIf(not RUN_SLOW_TESTS, "SLOW_TESTS")
     def test_source_detection_notebook(self):
         self._test_notebook(notebook="source_detection.ipynb")
 
-    @unittest.skipIf(IS_GITHUB_RUNNER)
+    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
     def test_source_detection_assesment_notebook(self):
         self._test_notebook(notebook="source_detection_assessment.ipynb")
 
-    @unittest.skipIf(IS_GITHUB_RUNNER or not RUN_SLOW_TESTS)
+    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
+    @unittest.skipIf(not RUN_SLOW_TESTS, "SLOW_TESTS")
     def test_HIIM_Img_Recovery_notebook(self):
         self._test_notebook(notebook="HIIM_Img_Recovery.ipynb")
