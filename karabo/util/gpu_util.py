@@ -12,7 +12,7 @@ def is_cuda_available() -> bool:
     ):
         return False
     else:
-        print("Unexpected output from nvidia-smi: ", output)
+        print("Unexpected output from nvidia-smi:", f'"{output}"')
         return False
 
 
