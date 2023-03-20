@@ -4,8 +4,7 @@ import unittest
 from karabo.util.plotting_util import Font
 
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
-IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER").lower() == "true"
-KERNEL_NAME = os.environ.get("KERNEL_NAME", "karabo")
+IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
 
 
 class TestJupyterNotebooks(unittest.TestCase):
@@ -24,7 +23,7 @@ class TestJupyterNotebooks(unittest.TestCase):
 
         with open(notebook) as f:
             nb = nbformat.read(f, as_version=4)
-            ep = ExecutePreprocessor(timeout=-1, kernel_name=KERNEL_NAME)
+            ep = ExecutePreprocessor(timeout=-1)
             try:
                 assert (
                     ep.preprocess(nb) is not None
@@ -33,7 +32,6 @@ class TestJupyterNotebooks(unittest.TestCase):
                 assert False, f"Failed executing {notebook}"
 
     @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
-    @unittest.skipIf(not RUN_SLOW_TESTS, "SLOW_TESTS")
     def test_source_detection_notebook(self):
         self._test_notebook(notebook="source_detection.ipynb")
 

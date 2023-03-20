@@ -43,9 +43,7 @@ jobs:
             export RUN_SLOW_TESTS=false
           fi
           conda activate test_karabo
-          pip install ipykernel
-          python -m ipykernel install --user --name=karabo
-          export IS_GITHUB_RUNNER=true KERNEL_NAME=karabo
+          export IS_GITHUB_RUNNER=true
           pip install -e . --no-deps
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
