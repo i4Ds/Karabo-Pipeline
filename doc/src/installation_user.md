@@ -4,7 +4,7 @@
 - Linux or Windows with WSL. For macOS we recommend you use [Docker](container.html).
 - 8GB RAM
 - 10GB disk space
-- GPU-acceleration requires proprietary nVidia drivers/CUDA
+- GPU-acceleration requires proprietary nVidia drivers/CUDA >= 11.7
 
 ## Install Karabo
 The following steps will install Karabo and its prerequisites (miniconda):
@@ -25,7 +25,7 @@ conda install -y -c "i4ds/label/{REL_LABEL}" -c conda-forge -c nvidia/label/cuda
 conda clean --all -y
 ```
 
-Karabo releases older than `v0.15.0` are deprecated and therefore we can't guarantee a successful installation. They don't follow the above depicted label convention for `conda install`.
+Karabo releases older than `v0.15.0` are deprecated and therefore we don't guarantee a successful installation. They don't follow the above depicted label convention for `conda install`.
 
 ## Update to the current Karabo version
 A Karabo installation can be updated the following way:
@@ -35,5 +35,5 @@ conda clean --all -y
 ```
 
 ## Additional Notes and Troubleshooting
-- If the base environment was updated, *libmamba* might fail to install. In that case, reset conda to version 22 using `conda install --rev 0 --name base` or you can try installing Karabo without *libmamba*. Using *libmamba* is not strictly required, but strongly recommended, because it makes the installation much faster and more reliable.
+- If the base environment was updated, *libmamba* might fail to install. In that case, reset conda to version 22 using `conda install --rev 0 --name base` or you can try installing Karabo without *libmamba*. Using *libmamba* is not strictly required, but strongly recommended, because it should make the installation much faster and more reliable.
 - You can install miniconda into a different path, use ```bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -b -p YourDesiredPath``` instead
