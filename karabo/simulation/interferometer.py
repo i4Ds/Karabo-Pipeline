@@ -146,8 +146,8 @@ class InterferometerSimulation:
         noise_rms_end: float = 0,
         noise_rms: str = "Range",
         noise_freq: str = "Range",
-        enable_array_beam: bool = False,
-        enable_numerical_beam: bool = False,
+        enable_array_beam: bool = False, # For beamforming beam
+        enable_numerical_beam: bool = False, # For primary beams and CST files
         beam_polX: BeamPattern = None,  # currently only considered
         # for `ObservationLong`
         beam_polY: BeamPattern = None,  # currently only considered
@@ -187,6 +187,9 @@ class InterferometerSimulation:
         self.station_type = station_type
         self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
         self.gauss_ref_freq_hz = gauss_ref_freq_hz
+
+        if(self.station_type=='CST Gaussian'):
+            self.station_type='Aperture array'
 
     def run_simulation(
         self, telescope: Telescope, sky: SkyModel, observation: Observation

@@ -41,6 +41,8 @@ class BeamPattern:
         avg_frac_error: float = 0.8,
         beam_method: str = "Gaussian Beam",
         interpol: str = "RectBivariateSpline",
+        savecstx:bool = False,
+            savecsty: bool = False
     ) -> None:
         self.cst_file_path: str = cst_file_path
         self.telescope: Telescope = telescope
@@ -54,6 +56,8 @@ class BeamPattern:
         self.avg_frac_error: float = avg_frac_error
         self.beam_method: str = beam_method
         self.interpol: str = interpol
+        self.savecstx:bool = savecstx
+        self.savecsty:bool = savecsty
 
     def fit_elements(
         self,
@@ -321,7 +325,7 @@ class BeamPattern:
         return np.sum(dsa * integrand)
 
     def sym_gaussian(
-        self, theta, phi, freq, diameter, fwhm_fac=1, voltage=False, power_norm=1
+        self, theta, phi, freq, diameter, fwhm_fac=2*1.7e-2, voltage=False, power_norm=1
     ):
         theta = units.Quantity(theta, unit=units.deg).to("rad")
         phi = units.Quantity(phi, unit=units.deg).to("rad")
@@ -413,7 +417,7 @@ class BeamPattern:
         else:
             print("Computing Primary Beam from " + str(self.beam_method))
 
-        max_theta = 20 * units.deg
+        max_theta = 180 * units.deg
         n_theta = 180
         n_phi = 360
         copol_kwargs = {
@@ -430,15 +434,15 @@ class BeamPattern:
         )  # Don't double count 0 and 360
         # x_range,y_range=pol2cart(theta_range.value, phi_range.value)
         grid_th_phi = np.meshgrid(theta_range, phi_range, indexing="ij")
-        theta = np.ravel(grid_th_phi[0])
-        phi = np.ravel(grid_th_phi[1])
+        theta = np.ravel(grid_th_phi[0].T)
+        phi = np.ravel(grid_th_phi[1].T)
         phi_y = (
             phi + 90 * units.deg
         )  # y is just 90 deg azimuthal rotation in this example
         over_360 = phi_y[phi_y >= 360 * units.deg]
         over_360 = over_360 - 360 * units.deg
         # %%
-        if self.beam_method == "Gaussian Beam":
+        if self.beam_method == "Gaussian CST Beam":
             vcopol_x = self.sym_gaussian(theta, phi, **copol_kwargs)
             vcrpol_x = self.quad_crosspol(theta, phi, vcopol_x, **crpol_kwargs)
             vcopol_y = self.sym_gaussian(theta, phi_y, **copol_kwargs)
@@ -468,6 +472,10 @@ class BeamPattern:
                     np.zeros_like(theta).value,  # Ax. ratio * / Unused
                 ]
             )
+            if(self.savecstx==True):
+                self.save_cstfile(data_x)
+            if(self.savecsty==True):
+                self.save_cstfile(data_y)
         if self.beam_method == "EIDOS_AH":
             npix = 100
             B = self.get_eidos_holographic_beam(npix, 0, 10, 20, mode="AH")
@@ -757,7 +765,7 @@ class BeamPattern:
         plt.savefig(savefile)
         plt.close()
 
-    def save_meerkat_cst_file(
+    def save_cstfile(
         self,
         cstdata: np.ndarray,
     ) -> None:
