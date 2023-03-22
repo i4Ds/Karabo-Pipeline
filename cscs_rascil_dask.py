@@ -13,7 +13,7 @@ from karabo.util.dask import setup_dask_for_slurm
 def main():
     start = time.time()
     # Setup Dask
-    # client = setup_dask_for_slurm()
+    client = setup_dask_for_slurm()
     # Get GLEAM Survey Sky
     phase_center = [250, -80]
     gleam_sky = SkyModel.get_GLEAM_Sky()
@@ -59,7 +59,8 @@ def main():
         clean_psf_support=640,
         clean_restored_output="integrated",
         use_cuda=False,
-        use_dask=False,
+        use_dask=True,
+        client=client,
     )
 
     # Source detection
