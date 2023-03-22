@@ -12,9 +12,8 @@ RUN conda update -y conda && \
     conda clean --all --yes && \
     conda install mamba -y -c conda-forge
 # here the assumption is that `KARABO_TAG` has a leading "v", e.g. v0.15.0
-# RUN export label=rel_$(echo $KARABO_TAG | cut -d '.' -f 1-2)  # if major also should be included in label
-RUN export REL_LABEL=rel_v$(echo $KARABO_TAG | cut -d '.' -f 2)
-RUN mamba install -y -c "i4ds/label/old" -c "i4ds/label/$REL_LABEL" -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline="${KARABO_TAG:1}"
+RUN export REL_LABEL=rel_v$(echo $KARABO_TAG | cut -d '.' -f 1-2)
+RUN mamba install -y "i4ds/label/$REL_LABEL" -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline="${KARABO_TAG:1}"
 RUN pip install jupyterlab ipykernel
 RUN python -m ipykernel install --user --name=karabo
 RUN mkdir /workspace
