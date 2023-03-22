@@ -22,7 +22,7 @@ jobs:
           export KARABO_VERSION="${KARABO_TAG:1}"
           export CHANNEL_LABEL=rel_$(echo $KARABO_TAG | cut -d '.' -f 1-2)
           echo "label=$CHANNEL_LABEL" >> $GITHUB_OUTPUT
-          conda config --append channels $CHANNEL_LABEL
+          conda config --append channels "i4ds/label/$CHANNEL_LABEL"
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
       - name: Checkout repository
