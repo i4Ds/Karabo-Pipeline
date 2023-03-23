@@ -17,6 +17,7 @@ def main():
 
     # Print out the slurm node name this scirpt is running on
     print(f'Node Name for main script: {os.getenv("SLURMD_NODENAME")}')
+    
     start = time.time()
     # Get GLEAM Survey Sky
     phase_center = [250, -80]
