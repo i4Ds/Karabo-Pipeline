@@ -19,20 +19,21 @@ requirements:
     - pip
   run:
     - python=3.9
-    - numpy<=1.22
-    - matplotlib
-    - oskarpy
-    - rascil
+    - oskarpy=2.8.3
+    - rascil=1.0.0
+    - numpy=1.22
     - astropy
-    - requests
+    - dask
+    - matplotlib
     - healpy
-    - pinocchio # [linux]
+    - requests
+    - pinocchio
     - katbeam
-    - tools21cm
     - eidos
     - libcufft
     - cuda-cudart
-    - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
+    - ska-gridder-nifty-cuda=0.0.11
+    - tools21cm
 
 
 test:
