@@ -22,7 +22,6 @@ jobs:
         id: channels
         run: |
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          export KARABO_VERSION="${KARABO_TAG:1}"
           export CHANNEL_LABEL=rel_$(echo $KARABO_TAG | cut -d '.' -f 1-2)
           echo "label=$CHANNEL_LABEL" >> $GITHUB_OUTPUT
           conda config --append channels "i4ds/label/$CHANNEL_LABEL"
@@ -31,6 +30,9 @@ jobs:
       - name: Build Conda
         run: |
           cd conda
+          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          export KARABO_VERSION="${KARABO_TAG:1}"
+          export CHANNEL_LABEL={{ steps.channels.outputs.label }}
           conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}
