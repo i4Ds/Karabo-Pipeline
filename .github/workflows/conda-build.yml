@@ -12,6 +12,8 @@ jobs:
     container: ghcr.io/i4ds/mambabuild-docker:latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
       - name: Get Previous tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
@@ -25,8 +27,6 @@ jobs:
           conda config --append channels "i4ds/label/$CHANNEL_LABEL"
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
-      - name: Checkout repository
-        uses: actions/checkout@v2
       - name: Build Conda
         run: |
           cd conda
