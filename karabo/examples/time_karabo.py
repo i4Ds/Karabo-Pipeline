@@ -60,7 +60,6 @@ def main(
     integration_time,
     daily_observational_length=timedelta(hours=4),
 ):
-
     sky = SkyModel()
     sky_data = create_random_sources(
         n_random_sources,
@@ -68,9 +67,9 @@ def main(
             [-1, 1],
             [-29, -31],
             [1, 3],
-            [0, 2],
-            [0, 2],
-            [0, 2],
+            [0, 0],
+            [0, 0],
+            [0, 0],
             [100.0e6, 100.0e6],
             [-0.7, -0.7],
             [0.0, 0.0],
@@ -137,9 +136,9 @@ if __name__ == "__main__":
     np.random.seed(0)
     OBSERVATIONAL_TIMES = [
         timedelta(hours=100),
-        # timedelta(hours=500),
-        # timedelta(hours=750),
-        # timedelta(hours=1000),
+        timedelta(hours=500),
+        timedelta(hours=750),
+        timedelta(hours=1000),
     ]
     N_POINTS = [1024, 2048]
     # Create logging dataframe
