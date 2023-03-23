@@ -354,20 +354,20 @@ class MyTestCase(unittest.TestCase):
         dirty.write_to_file(path=vis_path+'.fits',overwrite=True)
 
 
-    def convert_thetaphi_2_HV(self,theta,phi,amp_theta,amp_phi):
-        H=amp_theta*np.cos(theta)-amp_phi*np.sin(theta)
-        V=amp_theta*np.sin(theta)+amp_phi*np.cos(theta)
+    def convert_thetaphi_2_HV(theta,phi,amp_theta,amp_phi):
+        H=amp_theta*np.cos(phi)-amp_phi*np.sin(phi)
+        V=amp_theta*np.sin(phi)+amp_phi*np.cos(phi)
         return H,V
-    def convert_HV_2_thetaphi(self,theta,phi,H,V):
-        amp_theta=H*np.cos(theta) + V*np.sin(theta)
-        amp_phi= V*np.sin(theta) - H*np.cos(theta)
+    def convert_HV_2_thetaphi(theta,phi,H,V):
+        amp_theta=H*np.cos(phi) + V*np.sin(phi)
+        amp_phi= V*np.sin(phi) - H*np.cos(phi)
         return amp_theta,amp_phi
 
     def make_cst_file(self):
         grid_th_phi=np.meshgrid(np.linspace(0,np.pi,180),np.linspace(0,2*np.pi,360))
         theta = np.ravel(grid_th_phi[0])
         phi = np.ravel(grid_th_phi[1])
-        sigma = np.deg2rad(50)
+        sigma = np.deg2rad(30)
         power_beam = np.exp(-(theta**2) / 2 / sigma**2)
         dtheta = np.max(np.diff(theta))
         dphi = phi[180] - phi[0]
@@ -379,16 +379,21 @@ class MyTestCase(unittest.TestCase):
         power_norm=np.sum(dsa*cross_power**2)
         rel_power_dB = -10
         cross_power *= (10 ** (rel_power_dB / 10) * int_power_beam2 / power_norm) ** 0.5
+        ####--------------------
+        #amp_theta,amp_phi=convert_HV_2_thetaphi(theta,phi,norm_power_beam,cross_power)
         cst_arr=np.zeros((len(power_beam),8))
         theta_deg=np.rad2deg(theta);phi_deg=np.rad2deg(phi)
+        ####--------------------
         cst_arr[:,0] = theta_deg;cst_arr[:,1]=phi_deg
         cst_arr[:,3] = norm_power_beam; cst_arr[:,5] = cross_power
-        cst_arr[:,4] = 205; cst_arr[:,6] = 45
-        str1='Theta [deg.]  Phi   [deg.]  Abs(E   )[      ]   Abs(Theta)[      ]  Phase(Theta)[deg.]  Abs(Phi  )[      ]  Phase(Phi  )[deg.]  Ax.Ratio[      ] \n'
+        cst_arr[:,4] = 0; cst_arr[:,6] = 0
+        str1='Theta [deg.]  Phi   [deg.]  Abs(E   )[      ]   Abs(Horiz.)[      ]  Phase(Horiz.)[deg.]  Abs(Vert. )[      ]  Phase(Vert.)[deg.]  Ax.Ratio[      ] \n'
+        #str1='Theta [deg.]  Phi   [deg.]  Abs(E   )[      ]   Abs(theta)[      ]  Phase(theta)[deg]  Abs(phi )[      ]  Phase(phi)[deg.]  Ax.Ratio[      ] \n'
         str2='----------------------------------------------------------'
         filename='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_X.txt'
         np.savetxt(filename,cst_arr,header=str1+str2,
                    comments='',fmt=['%12.4f', '%12.4f', '%20.6e', '%20.6e','%12.4f','%20.6e','%12.4f','%12.4f'])
+        #cst_arr[:, 3] = 0;cst_arr[:, 5] = cross_power
         filename='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_Y.txt'
         np.savetxt(filename,cst_arr,header=str1+str2,
                    comments='',fmt=['%12.4f', '%12.4f', '%20.6e', '%20.6e','%12.4f','%20.6e','%12.4f','%12.4f'])
