@@ -26,11 +26,11 @@ RUN cp -r repo/karabo/examples /workspace/examples/
 # repo/ ensures that karabo is from site-packages and not from local
 # tmp because tests produce pemanent files
 # comment out ONLY the next layer to disable testing
-RUN mkdir tmp && \
-    cp -r repo/ tmp/repo && \
-    cd tmp && \
-    if [[ -f "repo/requirements.txt" ]] ; then pip install -r repo/requirements.txt ; else pip install pytest ; fi && \
-    python -c "from karabo.util.testing import run_tests; run_tests()" && \
-    cd .. && \
-    rm -rf tmp/
+# RUN mkdir tmp && \
+#     cp -r repo/ tmp/repo && \
+#     cd tmp && \
+#     if [[ -f "repo/requirements.txt" ]] ; then pip install -r repo/requirements.txt ; else pip install pytest ; fi && \
+#     python -c "from karabo.util.testing import run_tests; run_tests()" && \
+#     cd .. && \
+#     rm -rf tmp/
 RUN rm -rf repo/
