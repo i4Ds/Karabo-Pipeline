@@ -5,38 +5,87 @@ on:
     types: [published]
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
 
 jobs:
-  conda-build:
+  build-and-push-image:
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/mambabuild-docker:latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      # Aussumes that current repo-tag matches karabo:latest on anaconda.org
       - name: Get Previous tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
-      - name: Install conda build
-        shell: bash -l {0}
-        id: channels
-        run: |
-          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          export CHANNEL_LABEL=rel_$(echo $KARABO_TAG | cut -d '.' -f 1-2)
-          echo "label=$CHANNEL_LABEL" >> $GITHUB_OUTPUT
-          conda config --append channels "i4ds/label/$CHANNEL_LABEL"
-          conda config --append channels nvidia/label/cuda-11.7.0
-          conda config --append channels conda-forge
-      - name: Build Conda
-        shell: bash -l {0}
-        run: |
-          cd conda
-          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          export KARABO_VERSION="${KARABO_TAG:1}"
-          export CHANNEL_LABEL=${{ steps.channels.outputs.label }}
-          conda mambabuild .
-      - name: Publish to Conda
-        shell: bash -l {0}
-        run: |
-          conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --label ${{ steps.channels.outputs.label }} --force
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: |
+            type=raw, value=latest
+            type=pep440, pattern={{version}}, value=${{ steps.get-latest-tag.outputs.tag }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        env:
+          IS_GITHUB_RUNNER: true
+        with:
+          file: docker/Dockerfile.user
+          context: .
+          push: true
+          build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+# jobs:
+#   conda-build:
+#     runs-on: ubuntu-latest
+#     container: ghcr.io/i4ds/mambabuild-docker:latest
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v2
+#       - name: Get Previous tag
+#         uses: actions-ecosystem/action-get-latest-tag@v1
+#         id: get-latest-tag
+#       - name: Install conda build
+#         shell: bash -l {0}
+#         id: channels
+#         run: |
+#           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+#           export CHANNEL_LABEL=rel_$(echo $KARABO_TAG | cut -d '.' -f 1-2)
+#           echo "label=$CHANNEL_LABEL" >> $GITHUB_OUTPUT
+#           conda config --append channels "i4ds/label/$CHANNEL_LABEL"
+#           conda config --append channels nvidia/label/cuda-11.7.0
+#           conda config --append channels conda-forge
+#       - name: Build Conda
+#         shell: bash -l {0}
+#         run: |
+#           cd conda
+#           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+#           export KARABO_VERSION="${KARABO_TAG:1}"
+#           export CHANNEL_LABEL=${{ steps.channels.outputs.label }}
+#           conda mambabuild .
+#       - name: Publish to Conda
+#         shell: bash -l {0}
+#         run: |
+#           conda activate base
+#           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --label ${{ steps.channels.outputs.label }} --force
