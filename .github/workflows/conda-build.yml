@@ -18,6 +18,7 @@ jobs:
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
       - name: Install conda build
+        shell: bash -l {0}
         id: channels
         run: |
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
