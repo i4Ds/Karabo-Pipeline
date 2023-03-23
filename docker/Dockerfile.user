@@ -29,8 +29,6 @@ RUN cp -r repo/karabo/examples /workspace/examples/
 RUN mkdir tmp && \
     cp -r repo/ tmp/repo && \
     if [[ -f "repo/requirements.txt" ]] ; then pip install -r repo/requirements.txt ; else pip install pytest ; fi && \
-    cd tmp && \
-    pytest repo/ && \
-    cd .. && \
+    pytest tmp/repo/ && \
     rm -rf tmp/
 RUN rm -rf repo/
