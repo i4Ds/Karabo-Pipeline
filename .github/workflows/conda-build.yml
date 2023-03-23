@@ -48,7 +48,7 @@ jobs:
         env:
           IS_GITHUB_RUNNER: true
         with:
-          file: docker/Dockerfile.user
+          file: docker/user/Dockerfile
           context: .
           push: true
           build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
