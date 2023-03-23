@@ -1,11 +1,11 @@
 # Create build container to not have copied filed in real container afterwards
-FROM --platform=amd64 ghcr.io/i4ds/continuumio/miniconda3:4.12.0 as build
+FROM --platform=amd64 continuumio/miniconda3:4.12.0 as build
 ARG KARABO_TAG
 RUN apt-get update && apt-get install -y git
 # RUN git clone --branch ${KARABO_TAG} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
 RUN git clone --branch LG_298_docker --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
 
-FROM --platform=amd64 ghcr.io/i4ds/continuumio/miniconda3:4.12.0
+FROM --platform=amd64 continuumio/miniconda3:4.12.0
 ARG KARABO_TAG
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN apt-get update && apt-get install -y curl && apt-get autoclean && rm -rf /var/lib/apt/lists/*
