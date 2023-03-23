@@ -39,4 +39,4 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2 --label ${{ steps.channels.outputs.label }} --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --label ${{ steps.channels.outputs.label }} --force
