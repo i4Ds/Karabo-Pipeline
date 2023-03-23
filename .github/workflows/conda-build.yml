@@ -45,13 +45,12 @@ jobs:
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
-        env:
-          IS_GITHUB_RUNNER: true
         with:
           file: docker/user/Dockerfile
           context: .
           push: true
-          build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          # build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          build-args: KARABO_TAG=v0.14.0
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
