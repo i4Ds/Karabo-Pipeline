@@ -1,9 +1,12 @@
-name: Build Dev Image
+name: Build User Image
 
 on:
+  workflow_run:
+    workflows: ["Conda Build"]
+    types:
+      - completed
+
   workflow_dispatch:
-  repository_dispatch:
-    types: [build-dev-image]
 
 env:
   REGISTRY: ghcr.io
@@ -22,6 +25,11 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      # Aussumes that current repo-tag matches karabo:latest on anaconda.org
+      - name: Get Previous tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+
       - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
@@ -29,27 +37,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Delete untagged images
-        uses: bots-house/ghcr-delete-image-action@v1.1.0
-        with:
-          owner: ${{ github.repository_owner }}
-          name: ${{ github.event.repository.name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          untagged-keep-latest: 2
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
-            type=raw, value=dev
+            type=raw, value=latest
+            type=pep440, pattern={{version}}, value=${{ steps.get-latest-tag.outputs.tag }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: docker/Dockerfile.dev
+          file: docker/user/Dockerfile
           context: .
           push: true
+          build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

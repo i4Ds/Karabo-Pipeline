@@ -1,4 +1,6 @@
-# dev tool dependencies
+# dev & test dependencies
+
+# formatting tools
 mypy==1.0.1
 mypy-extensions==1.0.0
 flake8==6.0.0
@@ -7,3 +9,12 @@ black[jupyter]==23.1.0
 pydocstyle==6.3.0
 pytest==7.2.1
 pre-commit==3.0.2
+
+# testing tools
+nbconvert
+nbformat
+
+# doc tools
+myst-parser
+sphinx
+sphinx_rtd_theme

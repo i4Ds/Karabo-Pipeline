@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  schedule: # Every night at 5am
+    - cron: '0 5 * * *'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  Test_Karabo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniforge-variant: Mambaforge
+      - name: Install Deps
+        shell: bash -el {0}
+        run: |
+          mamba create -n test_karabo
+          conda activate test_karabo
+          mamba env update --file environment.yaml
+          pip install -r requirements.txt
+          pip install unittest-xml-reporting
+      - name: Test Formatting
+        shell: bash -l {0}
+        run: |
+          conda activate test_karabo
+          flake8 .
+          black --check .
+          isort --check .
+      - name: Test Code
+        shell: bash -l {0}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            export RUN_SLOW_TESTS=false
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "Starting scheduled full test!"
+            export RUN_SLOW_TESTS=true
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            export RUN_SLOW_TESTS=false
+          fi
+          conda activate test_karabo
+          export IS_GITHUB_RUNNER=true
+          pip install -e . --no-deps
+          python -m xmlrunner -o ./test-reports/junit
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: test-reports/**/*.xml

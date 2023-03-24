@@ -3,10 +3,17 @@
 ## Setup local dev environment
 
 First clone the code via git.
-Then create a local development environment with the provided `environment-dev.yaml` file.
+Then create a local development environment with the provided `environment.yaml` file.
 
 ```shell
-conda env create -f environment-dev.yaml
+conda env create -n <your-env-name> -f environment.yaml
+```
+
+Then install the development dependencies using `requirements.txt`.
+
+```shell
+conda activate <your-env-name>
+pip install -r requirements.txt
 ```
 
 With this only the dependencies but not the current version of karabo will be installed into a conda environment.
@@ -122,7 +129,7 @@ There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that
 If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, use the following commands to generate the documentation:
 
 ```shell
-conda install -c conda-forge -y --file doc/doc_packages.txt
+pip install -r requirements.txt
 make html
 ```
 

@@ -240,7 +240,8 @@ class Imager:
             )
             for bvis in blockviss
         ]
-        # WAGG support for rascil does currently not work: https://github.com/i4Ds/Karabo-Pipeline/issues/360
+        # WAGG support for rascil does currently not work:
+        # https://github.com/i4Ds/Karabo-Pipeline/issues/360
         if img_context == "wg":
             raise NotImplementedError("WAGG support for rascil does currently not work")
 
