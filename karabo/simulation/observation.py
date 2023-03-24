@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Union
 
-from distributed import Client
-
 from karabo.error import KaraboError
 from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
