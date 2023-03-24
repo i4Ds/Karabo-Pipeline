@@ -1,4 +1,3 @@
-name: karabo_dev_env
 channels:
   - i4ds/label/rel_v14
   - nvidia/label/cuda-11.7.0 # Here we define the version of CUDA to use
@@ -20,6 +19,3 @@ dependencies:
   - cuda-cudart
   - ska-gridder-nifty-cuda=0.0.11
   - tools21cm
-  # For testing
-  - nbconvert
-  - nbformat

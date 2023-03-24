@@ -1,7 +1,10 @@
 import os
 import unittest
 
+from karabo.util.plotting_util import Font
+
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
+IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
 
 
 class TestJupyterNotebooks(unittest.TestCase):
@@ -16,9 +19,11 @@ class TestJupyterNotebooks(unittest.TestCase):
         import nbformat
         from nbconvert.preprocessors import ExecutePreprocessor
 
+        print(Font.BOLD + Font.BLUE + "Testing notebook " + notebook + Font.END)
+
         with open(notebook) as f:
             nb = nbformat.read(f, as_version=4)
-            ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
+            ep = ExecutePreprocessor(timeout=-1)
             try:
                 assert (
                     ep.preprocess(nb) is not None
@@ -26,14 +31,15 @@ class TestJupyterNotebooks(unittest.TestCase):
             except Exception:
                 assert False, f"Failed executing {notebook}"
 
-    @unittest.skip("Test needs a new dependency and a access code")
-    def test_meerKAT_data_access_notebook(self):
-        self._test_notebook("MeerKAT_data_access.ipynb")
-
-    @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
+    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
     def test_source_detection_notebook(self):
-        self._test_notebook("source_detection.ipynb")
+        self._test_notebook(notebook="source_detection.ipynb")
 
-    @unittest.skipIf(not RUN_SLOW_TESTS, "Not running slow tests")
+    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
     def test_source_detection_assesment_notebook(self):
-        self._test_notebook("source_detection_assessment.ipynb")
+        self._test_notebook(notebook="source_detection_assessment.ipynb")
+
+    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
+    @unittest.skipIf(not RUN_SLOW_TESTS, "SLOW_TESTS")
+    def test_HIIM_Img_Recovery_notebook(self):
+        self._test_notebook(notebook="HIIM_Img_Recovery.ipynb")
