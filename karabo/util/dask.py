@@ -99,70 +99,41 @@ def parallel_for_each(arr: List[any], function: Callable, *args):
     return dask.compute(*results)
 
 
-def setup_dask_for_slurm():
-    # Detect if we are on a slurm cluster
-    if not "SLURM_JOB_ID" in os.environ or os.getenv('SLURM_JOB_NUM_NODES') == '1':
-        print('Not on a SLURM cluster or only 1 node. Not setting up dask.')
-        return None
+def get_min_max_of_node_id():
+    """
+    Returns the min max from SLURM_JOB_NODELIST. Can handle if it runs only on two
+    nodes (separated with a comma) of if it runs on more than two nodes (separated with a dash).
+    """
+    node_list = os.getenv("SLURM_JOB_NODELIST").split("[")[1].split("]")[0]
+    if "," in node_list:
+        return int(node_list.split(",")[0]), int(node_list.split(",")[1])
     else:
-        if is_first_node():
-            # Remove old scheduler file
-            try:
-                os.remove('scheduler.txt')
-            except FileNotFoundError:
-                pass
-
-            # Create client and scheduler
-            cluster = LocalCluster(ip=get_lowest_node_name())
-            client = Client(cluster)
-
-            # Write the scheduler address to a file
-            with open('scheduler.txt', 'w') as f:
-                f.write(cluster.scheduler_address)
-
-            print(f'Main Node. Name = {os.getenv("SLURMD_NODENAME")}. Client = {client}')
-                
-            while len(client.scheduler_info()['workers']) < int(os.getenv('SLURM_JOB_NUM_NODES'))+1:
-                print(f'Waiting for all workers to connect. Current number of workers: {len(client.scheduler_info()["workers"])}. NNodes: {os.getenv("SLURM_JOB_NUM_NODES")}')
-                time.sleep(3)
-
-            # Print the number of workers
-            print(f'Number of workers: {len(client.scheduler_info()["workers"])}')   
-            return client
-
-        else:
-            # Sleep first to make sure no old scheduler file is read
-            time.sleep(5)
-            # Read the scheduler address from the file
-            scheduler_address = None
-            while scheduler_address is None:
-                try:
-                    with open('scheduler.txt', 'r') as f:
-                        scheduler_address = f.read()
-                except FileNotFoundError:
-                    print('Scheduler file not found. Waiting for 1 seconds and trying again.')
-                    time.sleep(1)
-            print(f'Worker Node. Name = {os.getenv("SLURMD_NODENAME")}. Scheduler Address = {scheduler_address}')
-            call(['dask', 'worker', scheduler_address])
-
+        return int(node_list.split("-")[0]), int(node_list.split("-")[1])
 
 
 def get_lowest_node_id():
-    return int(os.getenv('SLURM_JOB_NODELIST').split('[')[1].split('-')[0])
+    return get_min_max_of_node_id()[0]
+
 
 def get_lowest_node_name():
-    return os.getenv('SLURM_JOB_NODELIST').split('[')[0] + str(get_lowest_node_id())
+    return os.getenv("SLURM_JOB_NODELIST").split("[")[0] + str(get_lowest_node_id())
+
 
 def create_list_of_node_names():
-    return [os.getenv('SLURM_JOB_NODELIST').split('[')[0] + str(i) for i in range(get_lowest_node_id(), get_lowest_node_id() + int(os.getenv('SLURM_JOB_NUM_NODES')))]
+    return [
+        os.getenv("SLURM_JOB_NODELIST").split("[")[0] + str(i)
+        for i in range(get_min_max_of_node_id()[0], get_min_max_of_node_id()[1] + 1)
+    ]
+
 
 def get_node_id():
     len_id = len(str(get_lowest_node_id()))
-    return int(os.getenv('SLURMD_NODENAME')[-len_id:])
+    return int(os.getenv("SLURMD_NODENAME")[-len_id:])
+
 
 def is_first_node():
     return get_node_id() == get_lowest_node_id()
 
+
 def get_current_time():
     return time.strftime("%H:%M:%S", time.localtime())
-
