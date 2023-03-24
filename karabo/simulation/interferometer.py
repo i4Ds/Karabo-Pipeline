@@ -122,7 +122,11 @@ class InterferometerSimulation:
                                specify the full-width half maximum value at the
                                reference frequency of the Gaussian beam here.
                                Units = degrees.
-    :ivar gauss_ref_freq_hz: IThe reference frequency of the specified FWHM, in Hz.
+    :ivar gauss_ref_freq_hz: The reference frequency of the specified FWHM, in Hz.
+    :ivar ionosphere_fits_path: The path to a fits file containing an ionospheric screen
+                                generated with ARatmospy. The file parameters
+                                (times/frequencies) should coincide with the planned
+                                observation.
     """
 
     def __init__(
@@ -157,6 +161,7 @@ class InterferometerSimulation:
         station_type: str = "Isotropic beam",
         gauss_beam_fwhm_deg: float = 0.0,
         gauss_ref_freq_hz: float = 0.0,
+        ionosphere_fits_path: str = None,
     ) -> None:
         self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
@@ -187,6 +192,7 @@ class InterferometerSimulation:
         self.station_type = station_type
         self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
         self.gauss_ref_freq_hz = gauss_ref_freq_hz
+        self.ionosphere_fits_path = ionosphere_fits_path
 
     def run_simulation(
         self, telescope: Telescope, sky: SkyModel, observation: Observation
@@ -208,6 +214,16 @@ class InterferometerSimulation:
             return self.__run_simulation_oskar(
                 telescope=telescope, sky=sky, observation=observation
             )
+
+    def set_ionosphere(self, file_path: str) -> None:
+        """
+        Set the path to an ionosphere screen file generated with ARatmospy. The file
+        parameters (times/frequencies) should coincide with the planned observation.
+        see https://github.com/timcornwell/ARatmospy
+
+        :param file_path: file path to fits file.
+        """
+        self.ionosphere_fits_path = file_path
 
     def __run_simulation_oskar(
         self,
@@ -388,6 +404,17 @@ class InterferometerSimulation:
                 "gaussian_beam/ref_freq_hz": self.gauss_ref_freq_hz,
             },
         }
+
+        if self.ionosphere_fits_path:
+            settings["telescope"].update(
+                {
+                    "ionosphere_screen_type": "External",
+                    "external_tec_screen/input_fits_file": str(
+                        self.ionosphere_fits_path
+                    ),
+                }
+            )
+
         if self.vis_path:
             settings["interferometer"]["oskar_vis_filename"] = self.vis_path
         return settings
