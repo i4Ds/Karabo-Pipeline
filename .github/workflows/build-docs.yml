@@ -18,9 +18,9 @@ jobs:
       - name: Create Environment
         shell: bash -l {0}
         run: |
-          conda env create -f environment-dev.yaml
+          conda env create -n karabo_dev_env -f environment.yaml
           conda activate karabo_dev_env
-          conda install -c conda-forge -y --file doc/doc_packages.txt
+          pip install -r requirements.txt
       - name: Build Docs
         shell: bash -l {0}
         run: |

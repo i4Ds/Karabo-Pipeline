@@ -1,16 +1,14 @@
 {% set name = "Karabo-Pipeline" %}
-{% set data = load_setup_py_data() %}
 
 package:
   name: {{ name|lower }}
-  version: {{ data.get('version') }}
+  version: {{ KARABO_VERSION }}
 
 source:
   path: ../
 
 build:
-  noarch: python
-  number: 0
+  string: {{ CHANNEL_LABEL }}
 
 requirements:
   build:
@@ -21,20 +19,21 @@ requirements:
     - pip
   run:
     - python=3.9
-    - numpy
-    - matplotlib
     - oskarpy=2.8.3
-    - rascil=0.7.0
+    - rascil=1.0.0
+    - numpy=1.22
     - astropy
-    - requests
+    - dask=2022.12.1
+    - matplotlib
     - healpy
-    - pinocchio # [linux]
+    - requests
+    - pinocchio
     - katbeam
-    - tools21cm
     - eidos
     - libcufft
     - cuda-cudart
-    - ska-gridder-nifty-cuda=0.0.11 # Depends on cuda-toolkit
+    - ska-gridder-nifty-cuda=0.0.11
+    - tools21cm
 
 
 test:
@@ -54,4 +53,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - Christoph Vögele
+    - lukas.gehrig@fhnw.ch
