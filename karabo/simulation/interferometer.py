@@ -206,9 +206,7 @@ class InterferometerSimulation:
             )
         else:
             return self.__run_simulation_oskar(
-                telescope=telescope,
-                sky=sky,
-                observation=observation,
+                telescope=telescope, sky=sky, observation=observation
             )
 
     def __run_simulation_oskar(
@@ -237,6 +235,10 @@ class InterferometerSimulation:
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
         os_sky = sky.get_OSKAR_sky(precision=self.precision)
+        print(os_sky)
+        print(type(os_sky))
+        print(os_sky.num_sources)
+        print(os_sky.to_array().shape)
 
         simulation = oskar.Interferometer(settings=setting_tree)
         simulation.set_sky_model(os_sky)

@@ -17,7 +17,7 @@ def main():
 
     # Print out the slurm node name this scirpt is running on
     print(f'Node Name for main script: {os.getenv("SLURMD_NODENAME")}')
-    
+
     start = time.time()
     # Get GLEAM Survey Sky
     phase_center = [250, -80]
@@ -34,6 +34,7 @@ def main():
         phase_centre_dec_deg=phase_center[1],
         number_of_channels=64,
         number_of_time_steps=24,
+        client=client,
     )
 
     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
