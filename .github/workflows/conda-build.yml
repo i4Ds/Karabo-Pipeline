@@ -22,9 +22,7 @@ jobs:
         id: channels
         run: |
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          export CHANNEL_LABEL=rel_$(echo $KARABO_TAG | cut -d '.' -f 1-2)
-          echo "label=$CHANNEL_LABEL" >> $GITHUB_OUTPUT
-          conda config --append channels "i4ds/label/$CHANNEL_LABEL"
+          conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
       - name: Build Conda
@@ -33,10 +31,9 @@ jobs:
           cd conda
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
           export KARABO_VERSION="${KARABO_TAG:1}"
-          export CHANNEL_LABEL=${{ steps.channels.outputs.label }}
           conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --label ${{ steps.channels.outputs.label }} --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
