@@ -46,7 +46,6 @@ class Observation:
         phase_centre_ra_deg: float = 0,
         phase_centre_dec_deg: float = 0,
         number_of_time_steps: float = 1,
-        client: Client = None,
     ) -> None:
         # required
         self.start_frequency_hz: float = start_frequency_hz
@@ -67,9 +66,6 @@ class Observation:
         self.phase_centre_ra_deg: float = phase_centre_ra_deg
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
-
-        # set client
-        self.client = client
 
         # set use_gpu
         if use_gpu is None:

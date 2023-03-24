@@ -14,7 +14,7 @@ client = None
 
 
 def get_global_client(
-    min_ram_gb_per_worker: int = 20, threads_per_worker: int = 1
+    min_ram_gb_per_worker: int = 2, threads_per_worker: int = 1
 ) -> Client:
     global client
     if client is None:
