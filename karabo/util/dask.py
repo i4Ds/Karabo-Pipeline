@@ -85,8 +85,6 @@ def parallel_for(n: int, function: Callable, *args):
 
 def parallel_for_each(arr: List[any], function: Callable, *args):
     """
-
-
     :param arr:
     :param function:
     :param args:
@@ -166,7 +164,8 @@ def setup_dask_for_slurm():
 def get_min_max_of_node_id():
     """
     Returns the min max from SLURM_JOB_NODELIST. Can handle if it runs only on two
-    nodes (separated with a comma) of if it runs on more than two nodes (separated with a dash).
+    nodes (separated with a comma) of if it runs on more than two nodes (separated with
+    a dash).
     """
     node_list = os.getenv("SLURM_JOB_NODELIST").split("[")[1].split("]")[0]
     if "," in node_list:
