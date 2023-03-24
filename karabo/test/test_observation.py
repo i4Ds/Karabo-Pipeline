@@ -1,12 +1,7 @@
-import os
 import unittest
 from datetime import datetime
 
-from karabo.imaging.imager import Imager
-from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationLong
-from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope
 
 
 class TestObservation(unittest.TestCase):
