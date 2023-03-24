@@ -7,7 +7,7 @@
 [![Build Docker Jupyter](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-jupyter-docker-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-jupyter-docker-image.yml)
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
-[Example](karabo/examples/how_to_use_karabo_example.ipynb) |
+[Example](karabo/examples/source_detection.ipynb) |
 [Contributors](CONTRIBUTORS.md)
 
 Karabo is the name of a software system that we ambitiously call a digital twin pipeline.
