@@ -23,7 +23,7 @@ requirements:
     - rascil=1.0.0
     - numpy=1.22
     - astropy
-    - dask
+    - dask=2022.12.1
     - matplotlib
     - healpy
     - requests
