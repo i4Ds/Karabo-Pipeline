@@ -8,7 +8,7 @@ source:
   path: ../
 
 build:
-  string: {{ CHANNEL_LABEL }}
+  string: {{ KARABO_VERSION }}
 
 requirements:
   build:
@@ -27,13 +27,13 @@ requirements:
     - matplotlib
     - healpy
     - requests
-    - pinocchio
-    - katbeam
-    - eidos
+    - pinocchio=5.0.0
+    - katbeam=0.1.1
+    - eidos=1.1.0
     - libcufft
     - cuda-cudart
     - ska-gridder-nifty-cuda=0.0.11
-    - tools21cm
+    - tools21cm=2.0.2
 
 
 test:
