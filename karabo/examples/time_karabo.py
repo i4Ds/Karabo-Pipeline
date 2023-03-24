@@ -135,12 +135,9 @@ if __name__ == "__main__":
     # Set numpy seed
     np.random.seed(0)
     OBSERVATIONAL_TIMES = [
-        timedelta(hours=100),
-        timedelta(hours=500),
-        timedelta(hours=750),
         timedelta(hours=1000),
     ]
-    N_POINTS = [1024, 2048]
+    N_POINTS = [1024]
     # Create logging dataframe
     timings = pd.DataFrame(columns=["n_points", "obs_time", "time"])
     timings.to_csv("timings.csv", index=False)
