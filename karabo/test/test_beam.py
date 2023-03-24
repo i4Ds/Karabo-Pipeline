@@ -367,7 +367,7 @@ class MyTestCase(unittest.TestCase):
         grid_th_phi=np.meshgrid(np.linspace(0,np.pi,180),np.linspace(0,2*np.pi,360))
         theta = np.ravel(grid_th_phi[0])
         phi = np.ravel(grid_th_phi[1])
-        sigma = np.deg2rad(30)
+        sigma = np.deg2rad(5)
         power_beam = np.exp(-(theta**2) / 2 / sigma**2)
         dtheta = np.max(np.diff(theta))
         dphi = phi[180] - phi[0]
@@ -385,16 +385,16 @@ class MyTestCase(unittest.TestCase):
         theta_deg=np.rad2deg(theta);phi_deg=np.rad2deg(phi)
         ####--------------------
         cst_arr[:,0] = theta_deg;cst_arr[:,1]=phi_deg
-        cst_arr[:,3] = norm_power_beam; cst_arr[:,5] = cross_power
+        cst_arr[:,3] = norm_power_beam; cst_arr[:,5] = 0#cross_power
         cst_arr[:,4] = 0; cst_arr[:,6] = 0
         str1='Theta [deg.]  Phi   [deg.]  Abs(E   )[      ]   Abs(Horiz.)[      ]  Phase(Horiz.)[deg.]  Abs(Vert. )[      ]  Phase(Vert.)[deg.]  Ax.Ratio[      ] \n'
         #str1='Theta [deg.]  Phi   [deg.]  Abs(E   )[      ]   Abs(theta)[      ]  Phase(theta)[deg]  Abs(phi )[      ]  Phase(phi)[deg.]  Ax.Ratio[      ] \n'
         str2='----------------------------------------------------------'
-        filename='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_X.txt'
+        filename='/home/rohit/karabo/karabo-pipeline/karabo/test/cstfile_test/cst_X.txt'
         np.savetxt(filename,cst_arr,header=str1+str2,
                    comments='',fmt=['%12.4f', '%12.4f', '%20.6e', '%20.6e','%12.4f','%20.6e','%12.4f','%12.4f'])
         #cst_arr[:, 3] = 0;cst_arr[:, 5] = cross_power
-        filename='/home/rohit/karabo/karabo-pipeline/karabo/test/data/cst_Y.txt'
+        filename='/home/rohit/karabo/karabo-pipeline/karabo/test/cstfile_test/cst_Y.txt'
         np.savetxt(filename,cst_arr,header=str1+str2,
                    comments='',fmt=['%12.4f', '%12.4f', '%20.6e', '%20.6e','%12.4f','%20.6e','%12.4f','%12.4f'])
 
