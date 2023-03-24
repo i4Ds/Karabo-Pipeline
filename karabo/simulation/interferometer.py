@@ -212,9 +212,7 @@ class InterferometerSimulation:
             )
         else:
             return self.__run_simulation_oskar(
-                telescope=telescope,
-                sky=sky,
-                observation=observation,
+                telescope=telescope, sky=sky, observation=observation
             )
 
     def set_ionosphere(self, file_path: str) -> None:
