@@ -23,7 +23,7 @@ def print_hd5_object_and_keys(hdffile):
     Returns: HDF Object, relavent keys
     """
     with h5.File(hdffile, "r") as f:
-        for (path, dset) in h5_diter(f):
+        for path, dset in h5_diter(f):
             print(path)
     return f, f.keys()
 
@@ -33,7 +33,7 @@ def get_healpix_image(hdffile):
     Get index maps, maps and frequency from HDF5 file
     """
     with h5.File(hdffile, "r") as f:
-        for (path, dset) in h5_diter(f):
+        for path, dset in h5_diter(f):
             pass
         print(f.keys())
         mapp = f["map"][:]
@@ -47,7 +47,7 @@ def get_vis_from_hdf5(hdffile):
     Get index maps, maps and frequency from HDF5 file
     """
     with h5.File(hdffile, "r") as f:
-        for (path, dset) in h5_diter(f):
+        for path, dset in h5_diter(f):
             pass
         print(f.keys())
         vis = f["vis"][:]

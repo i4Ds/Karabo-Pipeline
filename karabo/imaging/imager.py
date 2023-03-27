@@ -4,21 +4,20 @@ import numpy as np
 from astropy.wcs import WCS
 from distributed import Client
 from numpy.typing import NDArray
-from rascil.data_models import PolarisationFrame
-from rascil.processing_components import (
-    convert_blockvisibility_to_stokesI,
-    create_blockvisibility_from_ms,
-    create_image_from_visibility,
-    export_image_to_fits,
-    image_gather_channels,
-    invert_blockvisibility,
-    remove_sumwt,
-)
+from rascil.processing_components import create_visibility_from_ms
 from rascil.workflows import (
     continuum_imaging_skymodel_list_rsexecute_workflow,
-    create_blockvisibility_from_ms_rsexecute,
+    create_visibility_from_ms_rsexecute,
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
+from ska_sdp_datamodels.science_data_model import PolarisationFrame
+from ska_sdp_func_python.image import image_gather_channels
+from ska_sdp_func_python.imaging import (
+    create_image_from_visibility,
+    invert_visibility,
+    remove_sumwt,
+)
+from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
@@ -43,9 +42,9 @@ class Imager:
         Name of json file to contain performance information
     ingest_dd : List[int], default=[0],
         Data descriptors in MS to read (all must have the same number of channels)
-    ingest_vis_nchan : int, default=None,
+    ingest_vis_nchan : int, default=3,
         Number of channels in a single data descriptor in the MS
-    ingest_chan_per_blockvis : int, defualt=1,
+    ingest_chan_per_vis : int, defualt=1,
         Number of channels per blockvis (before any average)
     ingest_average_blockvis : Union[bool, str], default=False,
         Average all channels in blockvis.
@@ -86,7 +85,7 @@ class Imager:
         performance_file: Optional[str] = None,
         ingest_dd: List[int] = [0],
         ingest_vis_nchan: Optional[int] = None,
-        ingest_chan_per_blockvis: int = 1,
+        ingest_chan_per_vis: int = 1,
         ingest_average_blockvis: Union[bool, str] = False,
         imaging_phasecentre: Optional[str] = None,
         imaging_pol: str = "stokesI",
@@ -102,6 +101,8 @@ class Imager:
         imaging_robustness: float = 0.0,
         imaging_gaussian_taper: Optional[float] = None,
         imaging_dopsf: Union[bool, str] = False,
+        imaging_uvmax: float = None,
+        imaging_uvmin: float = 0,
         imaging_dft_kernel: Optional[
             str
         ] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
@@ -111,7 +112,7 @@ class Imager:
         self.performance_file = performance_file
         self.ingest_dd = ingest_dd
         self.ingest_vis_nchan = ingest_vis_nchan
-        self.ingest_chan_per_blockvis = ingest_chan_per_blockvis
+        self.ingest_chan_per_vis = ingest_chan_per_vis
         self.ingest_average_blockvis = ingest_average_blockvis
         self.imaging_phasecentre = imaging_phasecentre
         self.imaging_pol = imaging_pol
@@ -128,13 +129,16 @@ class Imager:
         self.imaging_gaussian_taper = imaging_gaussian_taper
         self.imaging_dopsf = imaging_dopsf
         self.imaging_dft_kernel = imaging_dft_kernel
+        self.imaging_uvmax = imaging_uvmax
+        self.imaging_uvmin = imaging_uvmin
 
     def get_dirty_image(self) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
         :return: dirty image of visibilities.
         """
+        # Code that triggers assertion statements
+        block_visibilities = create_visibility_from_ms(self.visibility.file.path)
 
-        block_visibilities = create_blockvisibility_from_ms(self.visibility.file.path)
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
@@ -145,8 +149,9 @@ class Imager:
             cellsize=self.imaging_cellsize,
             override_cellsize=self.override_cellsize,
         )
-        dirty, sumwt = invert_blockvisibility(visibility, model, context="2d")
-        export_image_to_fits(dirty, f"{file_handle.path}")
+        dirty, sumwt = invert_visibility(visibility, model, context="2d")
+        dirty.image_acc.export_to_fits(fits_file=f"{file_handle.path}")
+
         image = Image(path=file_handle)
         return image
 
@@ -159,9 +164,6 @@ class Imager:
         # Imaging context: Which nifty gridder to use.
         # See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
         img_context: str = "ng",
-        # Number of brightest sources to select for initial SkyModel
-        # (if None, use all sources from input file)
-        num_bright_sources: Optional[int] = None,
         # Type of deconvolution algorithm (hogbom or msclean or mmclean)
         clean_algorithm: str = "hogbom",
         # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args.
@@ -204,8 +206,6 @@ class Imager:
 
         :returns (Deconvolved Image, Restored Image, Residual Image)
         """
-        if (use_cuda and use_dask) or (use_cuda and client is not None):
-            raise EnvironmentError("Cannot use CUDA and Dask at the same time")
         if client and not use_dask:
             raise EnvironmentError("Client passed but use_dask is False")
         if use_dask and not client:
@@ -217,18 +217,16 @@ class Imager:
             img_context = "wg"
         rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
-        blockviss = create_blockvisibility_from_ms_rsexecute(
+        blockviss = create_visibility_from_ms_rsexecute(
             msname=self.visibility.file.path,
-            nchan_per_blockvis=self.ingest_chan_per_blockvis,
-            nout=self.ingest_vis_nchan
-            // self.ingest_chan_per_blockvis,  # pyright: ignore
+            nchan_per_vis=self.ingest_chan_per_vis,
+            nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,  # pyright: ignore
             dds=self.ingest_dd,
             average_channels=True,
         )
 
         blockviss = [
-            rsexecute.execute(convert_blockvisibility_to_stokesI)(bv)
-            for bv in blockviss
+            rsexecute.execute(convert_visibility_to_stokesI)(bv) for bv in blockviss
         ]
 
         models = [
@@ -242,6 +240,11 @@ class Imager:
             )
             for bvis in blockviss
         ]
+        # WAGG support for rascil does currently not work:
+        # https://github.com/i4Ds/Karabo-Pipeline/issues/360
+        if img_context == "wg":
+            raise NotImplementedError("WAGG support for rascil does currently not work")
+
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
             vis_list=blockviss,  # List of BlockVisibilitys
             model_imagelist=models,  # List of model images
@@ -274,6 +277,8 @@ class Imager:
             flat_sky=self.imaging_flat_sky,
             clean_beam=clean_beam,
             clean_algorithm=clean_algorithm,
+            imaging_uvmax=self.imaging_uvmax,
+            imaging_uvmin=self.imaging_uvmin,
         )
 
         result = rsexecute.compute(result, sync=True)
@@ -283,20 +288,22 @@ class Imager:
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
         file_handle_deconvolved = FileHandle()
-        export_image_to_fits(deconvolved_image_rascil, file_handle_deconvolved.path)
+        deconvolved_image_rascil.image_acc.export_to_fits(
+            fits_file=file_handle_deconvolved.path
+        )
         deconvolved_image = Image(path=file_handle_deconvolved.path)
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
         file_handle_restored = FileHandle()
-        export_image_to_fits(restored, file_handle_restored.path)
+        restored.image_acc.export_to_fits(fits_file=file_handle_restored.path)
         restored_image = Image(path=file_handle_restored.path)
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
         file_handle_residual = FileHandle()
-        export_image_to_fits(residual, file_handle_residual.path)
+        residual.image_acc.export_to_fits(fits_file=file_handle_residual.path)
         residual_image = Image(path=file_handle_residual.path)
 
         return deconvolved_image, restored_image, residual_image
@@ -324,6 +331,7 @@ class Imager:
         :return: image-coordinates as np.ndarray[px,py] and
         `SkyModel` sources indices as np.ndarray[idxs]
         """
+
         # calc WCS args
         def radian_degree(rad: float) -> float:
             return rad * (180 / np.pi)

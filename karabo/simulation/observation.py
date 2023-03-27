@@ -45,7 +45,6 @@ class Observation:
         phase_centre_dec_deg: float = 0,
         number_of_time_steps: float = 1,
     ) -> None:
-
         # required
         self.start_frequency_hz: float = start_frequency_hz
 
@@ -70,8 +69,9 @@ class Observation:
         if use_gpu is None:
             print(
                 KaraboWarning(
-                    "use_gpu is None, using is_cuda_available() "
-                    + f"to set use_gpu to {is_cuda_available()}"
+                    "Parameter 'use_gpu' is None! Using function "
+                    "'karabo.util.is_cuda_available()' to overwrite parameter "
+                    f"'use_gpu' to {is_cuda_available()}."
                 )
             )
             self.use_gpu = is_cuda_available()
@@ -109,7 +109,6 @@ class Observation:
         in the OSKAR Settings Tree format.
         """
         settings = {
-            "simulator": {"use_gpus": self.use_gpu},
             "observation": {
                 "start_frequency_hz": str(self.start_frequency_hz),
                 "mode": self.mode,
@@ -169,7 +168,6 @@ class ObservationLong(Observation):
         number_of_time_steps: float = 1,
         number_of_days: int = 2,
     ) -> None:
-
         self.enable_check = False
         super().__init__(
             mode=mode,

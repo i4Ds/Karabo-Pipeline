@@ -1,0 +1,43 @@
+name: Build Docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Create Environment
+        shell: bash -l {0}
+        run: |
+          conda env create -n karabo_dev_env -f environment.yaml
+          conda activate karabo_dev_env
+          pip install -r requirements.txt
+      - name: Build Docs
+        shell: bash -l {0}
+        run: |
+          conda activate karabo_dev_env
+          python doc/src/examples/combine_examples.py
+          cp -a doc/src/ _build
+          sphinx-apidoc . -o _build
+          make html
+      - name: Archive doc build
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs_built
+          path: _deploy
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _deploy/html
+          force_orphan: true

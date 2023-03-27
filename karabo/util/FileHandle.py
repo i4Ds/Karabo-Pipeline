@@ -8,7 +8,6 @@ class FileHandle:
     __temp_path = os.path.join(os.getcwd(), "karabo_folder" + os.path.sep)
 
     def __init__(self, existing_file_path: str = None, is_dir: bool = False, suffix=""):
-
         tmp_path = os.path.abspath(self.__temp_path + str(uuid.uuid4()) + suffix)
 
         # make temp folder if not present

@@ -1,0 +1,63 @@
+name: Build Dev Image
+
+on:
+  workflow_call:
+    inputs:
+      REGISTRY:
+        required: true
+        type: string
+      IMAGE_NAME:
+        required: true
+        type: string
+    outputs:
+      imagetag:
+        description: "Image tag"
+        value: ${{ jobs.Build_Dev_Image.outputs.tag }}
+
+
+jobs:
+  Build_Dev_Image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.imagetag.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ inputs.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create image tag
+        id: imagetag
+        shell: bash -l {0}
+        run: |
+          UUID=$(uuidgen)
+          IMAGE_TAG=dev-"${UUID:0:8}"
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ inputs.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.IMAGE_NAME }}
+          tags: |
+            type=raw, value=${{ steps.imagetag.outputs.tag }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          file: docker/dev/Dockerfile
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
