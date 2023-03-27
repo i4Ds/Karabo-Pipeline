@@ -1,26 +1,17 @@
-import os
 import time
-from datetime import timedelta
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
-from karabo.simulation.beam import BeamPattern
+from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
-from karabo.simulation.observation import ObservationLong
+from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.visibility import Visibility
+from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
+from karabo.sourcedetection.result import PyBDSFSourceDetectionResult
 
 
-def observation_length_integration_time_to_time_steps(
-    observation_length, integration_time
-):
-    return int(observation_length.total_seconds() / integration_time.total_seconds())
-
-
-def create_random_sources(num_sources, ranges):
+def create_random_sources(num_sources, ranges=None):
     """
     Create a random set of sources.
 
@@ -43,27 +34,8 @@ def create_random_sources(num_sources, ranges):
     - [11] position angle (deg): defaults to 0
     - [12] source id (object): defaults to None
     """
-
-    sources = np.column_stack(
-        (
-            np.random.uniform(min_val, max_val, num_sources)
-            for min_val, max_val in ranges
-        ),
-    )
-
-    return sources
-
-
-def main(
-    n_random_sources,
-    total_observational_length,
-    integration_time,
-    daily_observational_length=timedelta(hours=4),
-):
-    sky = SkyModel()
-    sky_data = create_random_sources(
-        n_random_sources,
-        [
+    if not ranges:
+        ranges = [
             [-1, 1],
             [-29, -31],
             [1, 3],
@@ -76,92 +48,110 @@ def main(
             [0, 600],
             [50, 50],
             [45, 45],
-        ],
-    )
-    sky.add_point_sources(sky_data)
-    sky.explore_sky([0, -30], s=10)
+        ]
 
-    telescope = Telescope.get_OSKAR_Example_Telescope()
-    telescope.plot_telescope()
-
-    number_of_days = int(
-        total_observational_length.total_seconds()
-        / daily_observational_length.total_seconds()
-    )
-
-    observation_long = ObservationLong(
-        start_frequency_hz=100e6,
-        phase_centre_ra_deg=0,
-        phase_centre_dec_deg=-30,
-        number_of_channels=2,
-        number_of_time_steps=observation_length_integration_time_to_time_steps(
-            daily_observational_length, integration_time
+    sources = np.column_stack(
+        (
+            np.random.uniform(min_val, max_val, num_sources)
+            for min_val, max_val in ranges
         ),
-        number_of_days=number_of_days,
-        length=daily_observational_length,
-    )
-    xcstfile_path = "cst_like_beam_port_1.txt"
-
-    ycstfile_path = "cst_like_beam_port_2.txt"
-    beam_polX = BeamPattern(
-        cst_file_path=xcstfile_path,
-        telescope=telescope,
-        freq_hz=observation_long.start_frequency_hz,
-        pol="X",
-        avg_frac_error=0.8,
-        beam_method="Gaussian Beam",
-    )
-    beam_polY = BeamPattern(
-        cst_file_path=ycstfile_path,
-        telescope=telescope,
-        freq_hz=observation_long.start_frequency_hz,
-        pol="Y",
-        avg_frac_error=0.8,
-        beam_method="Gaussian Beam",
     )
 
-    interferometer_sim = InterferometerSimulation(
-        channel_bandwidth_hz=1e5,
-        vis_path="./data/visibilities.ms",
-        beam_polX=beam_polX,
-        beam_polY=beam_polY,
+    return sources
+
+
+def main(n_random_sources):
+    start = time.time()
+
+    sky = SkyModel()
+    sky_data = create_random_sources(
+        n_random_sources,
     )
-    visibilities = interferometer_sim.run_simulation(telescope, sky, observation_long)
-    combined_vis_filepath = os.path.join("data", "combined_vis.ms")
-    Visibility.combine_vis(number_of_days, visibilities, combined_vis_filepath, True)
+
+    sky.add_point_sources(sky_data)
+    phase_center = [0, -30]
+    sky.explore_sky(phase_center, s=0.1)
+
+    sky.setup_default_wcs(phase_center=phase_center)
+    telescope = Telescope.get_OSKAR_Example_Telescope()
+
+    observation_settings = Observation(
+        start_frequency_hz=100e6,
+        phase_centre_ra_deg=phase_center[0],
+        phase_centre_dec_deg=phase_center[1],
+        number_of_channels=64,
+        number_of_time_steps=24,
+    )
+
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    visibility_askap = interferometer_sim.run_simulation(
+        telescope, sky, observation_settings
+    )
+
+    imaging_npixel = 2048
+    imaging_cellsize = 3.878509448876288e-05
+
+    imager_askap = Imager(
+        visibility_askap,
+        ingest_chan_per_vis=1,
+        ingest_vis_nchan=16,
+        imaging_npixel=imaging_npixel,
+        imaging_cellsize=imaging_cellsize,
+    )
+
+    # Try differnet algorithm
+    # More sources
+    deconvolved, restored, residual = imager_askap.imaging_rascil(
+        clean_nmajor=0,
+        clean_algorithm="mmclean",
+        clean_scales=[0, 6, 10, 30, 60],
+        clean_fractional_threshold=0.3,
+        clean_threshold=0.12e-3,
+        clean_nmoment=5,
+        clean_psf_support=640,
+        clean_restored_output="integrated",
+        use_cuda=False,
+        use_dask=False,
+    )
+
+    # Source detection
+    detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
+
+    ground_truth, sky_idxs = Imager.project_sky_to_image(
+        sky=sky,
+        phase_center=phase_center,
+        imaging_cellsize=imaging_cellsize,
+        imaging_npixel=imaging_npixel,
+        filter_outlier=True,
+        invert_ra=True,
+    )
+
+    # Eval
+    assignments_restored = (
+        SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
+            ground_truth=ground_truth.T,
+            detected=detection_result.get_pixel_position_of_sources().T,
+            max_dist=10,
+            top_k=3,
+        )
+    )
+    print(assignments_restored)
+
+    # Plot
+    # Create mapping plots
+    sde_restored = SourceDetectionEvaluation(
+        sky=sky,
+        ground_truth=ground_truth,
+        assignments=assignments_restored,
+        sky_idxs=sky_idxs,
+        source_detection=detection_result,
+    )
+
+    sde_restored.plot(filename="sources_restored.png")
+
+    # Give out time
+    print("Time taken: (minutes)", (time.time() - start) / 60)
 
 
 if __name__ == "__main__":
-    # Set numpy seed
-    np.random.seed(0)
-    OBSERVATIONAL_TIMES = [
-        timedelta(hours=1000),
-    ]
-    N_POINTS = [1024]
-    # Create logging dataframe
-    timings = pd.DataFrame(columns=["n_points", "obs_time", "time"])
-    timings.to_csv("timings.csv", index=False)
-    for n_points in N_POINTS:
-        for obs_time in OBSERVATIONAL_TIMES:
-            time_start = time.time()
-            main(
-                n_random_sources=n_points,
-                total_observational_length=obs_time,
-                integration_time=timedelta(seconds=10),
-                daily_observational_length=timedelta(hours=4),
-            )
-            time_end = time.time()
-            # Read in CSV and append new row
-            timings = pd.read_csv("timings.csv")
-            timings = timings.append(
-                {
-                    "n_points": n_points,
-                    "obs_time": obs_time,
-                    "time": time_end - time_start,
-                },
-                ignore_index=True,
-            )
-            # Close all plots
-            plt.close("all")
-            # Write out CSV
-            timings.to_csv("timings.csv", index=False)
+    main(n_random_sources=2)
