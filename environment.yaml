@@ -13,9 +13,9 @@ dependencies:
   - healpy
   - requests
   - pinocchio=5.0.0
-  - katbeam=0.1.1
+  - katbeam=0.1.0
   - eidos=1.1.0
   - libcufft
   - cuda-cudart
-  - ska-gridder-nifty-cuda=0.0.11
+  - ska-gridder-nifty-cuda=0.3.0
   - tools21cm=2.0.2
