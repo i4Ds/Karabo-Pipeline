@@ -9,6 +9,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import PyBDSFSourceDetectionResult
+from karabo.util.dask import setup_dask_for_slurm
 
 
 def create_random_sources(num_sources, ranges=None):
@@ -36,13 +37,13 @@ def create_random_sources(num_sources, ranges=None):
     """
     if not ranges:
         ranges = [
-            [-1, 1],
-            [-29, -31],
+            [-0.1, 1.1],
+            [-29.5, -30.5],
             [1, 3],
             [0, 0],
             [0, 0],
             [0, 0],
-            [100.0e6, 100.0e6],
+            [80.0e6, 100.0e6],
             [-0.7, -0.7],
             [0.0, 0.0],
             [0, 600],
@@ -61,8 +62,9 @@ def create_random_sources(num_sources, ranges=None):
 
 
 def main(n_random_sources):
-    start = time.time()
+    client = setup_dask_for_slurm()
 
+    start = time.time()
     sky = SkyModel()
     sky_data = create_random_sources(
         n_random_sources,
@@ -83,10 +85,14 @@ def main(n_random_sources):
         number_of_time_steps=24,
     )
 
-    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    interferometer_sim = InterferometerSimulation(
+        channel_bandwidth_hz=1e6, client=client, split_sky_for_dask_by="frequency"
+    )
     visibility_askap = interferometer_sim.run_simulation(
         telescope, sky, observation_settings
     )
+
+    print(f"Time take for simulation: {(time.time() - start) / 60} minutes")
 
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
@@ -110,9 +116,11 @@ def main(n_random_sources):
         clean_nmoment=5,
         clean_psf_support=640,
         clean_restored_output="integrated",
-        use_cuda=False,
-        use_dask=False,
+        use_dask=True,
+        client=client,
     )
+
+    print(f"Time take for imaging: {(time.time() - start) / 60} minutes")
 
     # Source detection
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
@@ -149,8 +157,8 @@ def main(n_random_sources):
     sde_restored.plot(filename="sources_restored.png")
 
     # Give out time
-    print("Time taken: (minutes)", (time.time() - start) / 60)
+    print("Total time taken: (minutes)", (time.time() - start) / 60)
 
 
 if __name__ == "__main__":
-    main(n_random_sources=2)
+    main(n_random_sources=30)

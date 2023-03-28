@@ -6,7 +6,10 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Dict, List, Union
 
+import numpy as np
 import oskar
+from dask import array as da
+from distributed import Client
 
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
@@ -111,6 +114,8 @@ class InterferometerSimulation:
     :ivar beam_polX: currently only considered for `ObservationLong`
     :ivar beam_polX: currently only considered for `ObservationLong`
     :ivar use_gpus: Set to true if you want to use gpus for the simulation
+    :ivar client: The dask client to use for the simulation
+    :ivar split_sky_for_dask_by: How to split the sky model for the dask simulation.
     :ivar precision: For the arithmetic use you can choose between "single" or
                      "double" precision
     :ivar station_type: Here you can choose the type of each station in the
@@ -157,6 +162,8 @@ class InterferometerSimulation:
         beam_polY: BeamPattern = None,  # currently only considered
         # for `ObservationLong`
         use_gpus: bool = False,
+        client: Client = None,
+        split_sky_for_dask_by: str = "frequency",
         precision: str = "single",
         station_type: str = "Isotropic beam",
         gauss_beam_fwhm_deg: float = 0.0,
@@ -188,6 +195,8 @@ class InterferometerSimulation:
         self.beam_polX: BeamPattern = beam_polX
         self.beam_polY: BeamPattern = beam_polY
         self.use_gpus = use_gpus
+        self.client = client
+        self.split_sky_for_dask_by = split_sky_for_dask_by
         self.precision = precision
         self.station_type = station_type
         self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
@@ -195,7 +204,10 @@ class InterferometerSimulation:
         self.ionosphere_fits_path = ionosphere_fits_path
 
     def run_simulation(
-        self, telescope: Telescope, sky: SkyModel, observation: Observation
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: Observation,
     ) -> Union[Visibility, List[str]]:
         """
         Run a single interferometer simulation with the given sky, telescope.png and
@@ -251,6 +263,41 @@ class InterferometerSimulation:
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
         os_sky = sky.get_OSKAR_sky(precision=self.precision)
+
+        if self.client is not None:
+            array_sky = os_sky.to_array()
+            print(array_sky.shape)
+            if self.split_sky_for_dask_by == "frequency":
+                # Sort the array by frequency
+                array_sky = array_sky[array_sky[:, 6].argsort()]
+
+                # Extract the frequencies from the sky model
+                frequencies = array_sky[:, 6]
+
+                # Extract N by the number of workers
+                N = len(self.client.scheduler_info()["workers"])
+
+                print(N)
+
+                # Split the data into chunks along the frequency axis with the help of quantiles
+                freq_bins = np.quantile(frequencies, np.linspace(0, 1, N))
+                freq_bins = np.append(freq_bins, np.inf)
+
+                print(array_sky[:, 6])
+                print(freq_bins)
+                # Create sizes of chunks along the frequency axis to be passed to dask
+                freq_bins_idx = np.searchsorted(
+                    array_sky[:, 6], freq_bins, side="right"
+                )
+
+                print(freq_bins)
+                print(freq_bins_idx)
+
+                # Split the data into chunks along the frequency axis with the bins we just found
+                freq_chunks = da.from_array(array_sky, chunks=freq_bins)
+
+                print(freq_chunks)
+                print(freq_chunks)
 
         simulation = oskar.Interferometer(settings=setting_tree)
         simulation.set_sky_model(os_sky)
