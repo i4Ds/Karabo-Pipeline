@@ -23,9 +23,9 @@ How to use Singularity containers can be seen in the [Singularity documentation]
 
 ## Docker Container
 
-What is possible with Docker is far too extensive to describe here. We refer to the official [docker reference](https://docs.docker.com/reference/) for this. We only show here a minimal example of how Docker could be used, so you can use a [Jupyter Notebook](https://jupyter.org/) with sample code and working Karabo environment.
+What is possible with Docker is far too extensive to describe here. We refer to the official [Docker reference](https://docs.docker.com/reference/) for this. We only show here a minimal example of how Docker could be used, so you can use a [Jupyter Notebook](https://jupyter.org/) with sample code and working Karabo environment.
 
-``shell
+```shell
 docker run -it --rm -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest
 ```
 
