@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -28,7 +27,7 @@ class Image(KaraboResource):
     def __init__(
         self,
         path: Union[str, FileHandle],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         Proxy object class for images.
@@ -43,6 +42,8 @@ class Image(KaraboResource):
             path_ = path
         self.path = path_
         self.__name = self.path.split(os.path.sep)[-1]
+        self.data: NDArray[np.float64]
+        self.header: fits.header.Header
         self.data, self.header = fits.getdata(self.path, ext=0, header=True, **kwargs)
 
     @staticmethod
@@ -73,7 +74,7 @@ class Image(KaraboResource):
         return True
 
     def get_squeezed_data(self) -> NDArray[np.float64]:
-        return numpy.squeeze(self.data[:1, :1, :, :])
+        return np.squeeze(self.data[:1, :1, :, :])
 
     def plot(
         self,
@@ -89,7 +90,7 @@ class Image(KaraboResource):
         wcs_enabled: bool = True,
         invert_xaxis: bool = False,
         filename: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Plots the image
 
@@ -115,14 +116,14 @@ class Image(KaraboResource):
             wcs = WCS(self.header)
             print(wcs)
 
-            slices = []
+            slices: List[str] = []
             for i in range(wcs.pixel_n_dim):
                 if i == 0:
                     slices.append("x")
                 elif i == 1:
                     slices.append("y")
                 else:
-                    slices.append(0)
+                    slices.append(0)  # type: ignore
 
             # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
@@ -271,7 +272,7 @@ class Image(KaraboResource):
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
         plt.gca().set_yscale("log")
-        plt.gca().set_ylim(1e-6 * numpy.max(profile), 2.0 * numpy.max(profile))
+        plt.gca().set_ylim(1e-6 * np.max(profile), 2.0 * np.max(profile))
         plt.tight_layout()
 
         if save_png:
