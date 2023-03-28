@@ -101,7 +101,7 @@ def setup_dask_for_slurm():
     # Detect if we are on a slurm cluster
     if "SLURM_JOB_ID" not in os.environ or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
-        return None
+        return get_global_client(min_ram_gb_per_worker=14)
     else:
         if is_first_node():
             # Remove old scheduler file
