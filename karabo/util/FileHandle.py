@@ -1,13 +1,19 @@
 import os
 import shutil
 import uuid
+from typing import Optional
 
 
 class FileHandle:
     path: str
     __temp_path = os.path.join(os.getcwd(), "karabo_folder" + os.path.sep)
 
-    def __init__(self, existing_file_path: str = None, is_dir: bool = False, suffix=""):
+    def __init__(
+        self,
+        existing_file_path: Optional[str] = None,
+        is_dir: bool = False,
+        suffix: str = "",
+    ) -> None:
         tmp_path = os.path.abspath(self.__temp_path + str(uuid.uuid4()) + suffix)
 
         # make temp folder if not present
@@ -37,11 +43,11 @@ class FileHandle:
                 open(tmp_path, "x")
                 self.path = tmp_path
 
-    def clean_up(self):
+    def clean_up(self) -> None:
         # remove temp folder and everything inside it
         shutil.rmtree(self.__temp_path)
 
-    def remove_file(self, file_path: str):
+    def remove_file(self, file_path: str) -> None:
         os.remove(file_path)
 
 
