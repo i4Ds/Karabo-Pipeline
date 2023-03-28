@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from scipy.special import wofz
 
 import karabo
-from karabo.util.my_types import NPUnk
+from karabo.util.my_types import NPInp, NPOutp
 
 
 def get_module_absolute_path() -> str:
@@ -56,27 +56,29 @@ def full_getter(self: object) -> Dict[str, Any]:
 
 
 def Gauss(
-    x: NPUnk,
-    x0: NPUnk,
-    y0: NPUnk,
-    a: NPUnk,
-    sigma: NPUnk,
-) -> NPUnk:
-    return y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))
+    x: NPInp,
+    x0: NPInp,
+    y0: NPInp,
+    a: NPInp,
+    sigma: NPInp,
+) -> NPOutp:
+    gauss = y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))  # type: ignore
+    return cast(NPOutp, gauss)
 
 
 def Voigt(
-    x: NPUnk,
-    x0: NPUnk,
-    y0: NPUnk,
-    a: NPUnk,
-    sigma: NPUnk,
-    gamma: NPUnk,
-) -> NPUnk:
+    x: NPInp,
+    x0: NPInp,
+    y0: NPInp,
+    a: NPInp,
+    sigma: NPInp,
+    gamma: NPInp,
+) -> NPOutp:
     # sigma = alpha / np.sqrt(2 * np.log(2))
-    return y0 + a * np.real(
+    voigt = y0 + a * np.real(
         wofz((x - x0 + 1j * gamma) / sigma / np.sqrt(2))
     ) / sigma / np.sqrt(2 * np.pi)
+    return cast(NPOutp, voigt)
 
 
 def get_spectral_sky_data(

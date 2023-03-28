@@ -4,11 +4,14 @@ import numpy as np
 from numpy.typing import NDArray
 from typing_extensions import TypeAlias
 
-NPUnk: TypeAlias = Union[
-    float,
+NPInp: TypeAlias = Union[
     int,
-    np.float64,
-    np.int64,
+    float,
+    NDArray[np.float64],
+    NDArray[np.int64],
+]
+
+NPOutp: TypeAlias = Union[
     NDArray[np.float64],
     NDArray[np.int64],
 ]
