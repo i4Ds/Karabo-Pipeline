@@ -13,7 +13,7 @@ dependencies:
   - healpy
   - requests
   - pinocchio=5.0.0
-  - katbeam=0.1.1
+  - katbeam=0.1.0
   - eidos=1.1.0
   - libcufft
   - cuda-cudart
