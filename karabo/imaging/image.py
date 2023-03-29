@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -232,7 +232,7 @@ class Image(KaraboResource):
         self,
         resolution: float = 5.0e-4,
         signal_channel: Optional[int] = None,
-    ) -> Tuple[NDArray[np.float64], NDArray[np.floating]]:
+    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Calculate the power spectrum of this image.
 
@@ -243,7 +243,6 @@ class Image(KaraboResource):
             profile: Brightness temperature for each angular scale in Kelvin
             theta_axis: Angular scale data in degrees
         """
-        # use RASCIL for power spectrum
         profile, theta = power_spectrum(self.path, resolution, signal_channel)
         return profile, theta
 
@@ -283,15 +282,19 @@ class Image(KaraboResource):
         plt.show(block=False)
         plt.pause(1)
 
-    def get_cellsize(self) -> float:
+    def get_cellsize(self) -> np.float64:
         cdelt1 = self.header["CDELT1"]
         cdelt2 = self.header["CDELT2"]
-        if abs(cdelt1) != abs(cdelt2):
-            logging.warning(
-                "The Images's cdelt1 and cdelt2 are not the same in absolute value."
-                + "Continuing with cdelt1"
+        if not isinstance(cdelt1, float) or not isinstance(cdelt2, float):
+            raise ValueError(
+                "CDELT1 & CDELT2 in header are expected to be of type float."
             )
-        return np.deg2rad(np.abs(cdelt1))
+        if np.abs(cdelt1) != np.abs(cdelt2):
+            logging.warning(
+                "Non-square pixels are not supported, continue with `cdelt1`."
+            )
+        cellsize = cast(np.float64, np.deg2rad(np.abs(cdelt1)))
+        return cellsize
 
     def get_wcs(self) -> WCS:
         return WCS(self.header)
@@ -302,7 +305,7 @@ class Image(KaraboResource):
     ) -> WCS:
         wcs = WCS(naxis=2)
 
-        def radian_degree(rad: float) -> float:
+        def radian_degree(rad: np.float64) -> np.float64:
             return rad * (180 / np.pi)
 
         cdelt = radian_degree(self.get_cellsize())
