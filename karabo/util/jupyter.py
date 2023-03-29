@@ -1,7 +1,10 @@
-from IPython import get_ipython
+import os
+from distutils.sysconfig import get_python_lib
+
+from IPython.core.getipython import get_ipython
 
 
-def set_rascil_data_directory_env():
+def set_rascil_data_directory_env() -> None:
     """
     Sets specific environment variables
     that the jupyter kernel is not loading by default.
@@ -9,14 +12,12 @@ def set_rascil_data_directory_env():
     This function is idempotent (running it more than once brings no side effects).
 
     """
-    import os
-    from distutils.sysconfig import get_python_lib
 
     data_folder = f"{get_python_lib()}/../../../data"
     os.environ["RASCIL_DATA"] = data_folder
 
 
-def isNotebook():
+def isNotebook() -> bool:
     # based on this.:
     # https://stackoverflow.com/questions/15411967/how-can-i-check-if-code-is-executed-in-the-ipython-notebook
     try:

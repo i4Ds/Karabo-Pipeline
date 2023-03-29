@@ -1,12 +1,13 @@
 import os
 from types import ModuleType
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, cast
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.special import wofz
 
 import karabo
+from karabo.util.my_types import NPInp, NPOutp
 
 
 def get_module_absolute_path() -> str:
@@ -16,7 +17,8 @@ def get_module_absolute_path() -> str:
 
 
 def get_module_path_of_module(module: ModuleType) -> str:
-    path_elements = os.path.abspath(module.__file__).split(os.path.sep)
+    module_file = cast(str, module.__file__)
+    path_elements = os.path.abspath(module_file).split(os.path.sep)
     path_elements.pop()
     return os.path.sep.join(path_elements)
 
@@ -44,24 +46,39 @@ def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
     return np.array(sources, dtype=float)
 
 
-def full_setter(self, state: Dict[str, Any]) -> None:
+def full_setter(self: object, state: Dict[str, Any]) -> None:
     self.__dict__ = state
 
 
-def full_getter(self) -> Dict[str, Any]:
+def full_getter(self: object) -> Dict[str, Any]:
     state = self.__dict__
     return state
 
 
-def Gauss(x, x0, y0, a, sigma):
-    return y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))
+def Gauss(
+    x: NPInp,
+    x0: NPInp,
+    y0: NPInp,
+    a: NPInp,
+    sigma: NPInp,
+) -> NPOutp:
+    gauss = y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))  # type: ignore
+    return cast(NPOutp, gauss)
 
 
-def Voigt(x, x0, y0, a, sigma, gamma):
+def Voigt(
+    x: NPInp,
+    x0: NPInp,
+    y0: NPInp,
+    a: NPInp,
+    sigma: NPInp,
+    gamma: NPInp,
+) -> NPOutp:
     # sigma = alpha / np.sqrt(2 * np.log(2))
-    return y0 + a * np.real(
+    voigt = y0 + a * np.real(
         wofz((x - x0 + 1j * gamma) / sigma / np.sqrt(2))
     ) / sigma / np.sqrt(2 * np.pi)
+    return cast(NPOutp, voigt)
 
 
 def get_spectral_sky_data(
