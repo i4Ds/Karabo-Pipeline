@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -28,7 +27,7 @@ class Image(KaraboResource):
     def __init__(
         self,
         path: Union[str, FileHandle],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         Proxy object class for images.
@@ -43,6 +42,8 @@ class Image(KaraboResource):
             path_ = path
         self.path = path_
         self.__name = self.path.split(os.path.sep)[-1]
+        self.data: NDArray[np.float64]
+        self.header: fits.header.Header
         self.data, self.header = fits.getdata(self.path, ext=0, header=True, **kwargs)
 
     @staticmethod
@@ -73,7 +74,7 @@ class Image(KaraboResource):
         return True
 
     def get_squeezed_data(self) -> NDArray[np.float64]:
-        return numpy.squeeze(self.data[:1, :1, :, :])
+        return np.squeeze(self.data[:1, :1, :, :])
 
     def plot(
         self,
@@ -89,7 +90,7 @@ class Image(KaraboResource):
         wcs_enabled: bool = True,
         invert_xaxis: bool = False,
         filename: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Plots the image
 
@@ -115,14 +116,14 @@ class Image(KaraboResource):
             wcs = WCS(self.header)
             print(wcs)
 
-            slices = []
+            slices: List[str] = []
             for i in range(wcs.pixel_n_dim):
                 if i == 0:
                     slices.append("x")
                 elif i == 1:
                     slices.append("y")
                 else:
-                    slices.append(0)
+                    slices.append(0)  # type: ignore
 
             # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
@@ -231,7 +232,7 @@ class Image(KaraboResource):
         self,
         resolution: float = 5.0e-4,
         signal_channel: Optional[int] = None,
-    ) -> Tuple[NDArray[np.float64], NDArray[np.floating]]:
+    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Calculate the power spectrum of this image.
 
@@ -242,7 +243,6 @@ class Image(KaraboResource):
             profile: Brightness temperature for each angular scale in Kelvin
             theta_axis: Angular scale data in degrees
         """
-        # use RASCIL for power spectrum
         profile, theta = power_spectrum(self.path, resolution, signal_channel)
         return profile, theta
 
@@ -271,7 +271,7 @@ class Image(KaraboResource):
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
         plt.gca().set_yscale("log")
-        plt.gca().set_ylim(1e-6 * numpy.max(profile), 2.0 * numpy.max(profile))
+        plt.gca().set_ylim(1e-6 * np.max(profile), 2.0 * np.max(profile))
         plt.tight_layout()
 
         if save_png:
@@ -282,15 +282,19 @@ class Image(KaraboResource):
         plt.show(block=False)
         plt.pause(1)
 
-    def get_cellsize(self) -> float:
+    def get_cellsize(self) -> np.float64:
         cdelt1 = self.header["CDELT1"]
         cdelt2 = self.header["CDELT2"]
-        if abs(cdelt1) != abs(cdelt2):
-            logging.warning(
-                "The Images's cdelt1 and cdelt2 are not the same in absolute value."
-                + "Continuing with cdelt1"
+        if not isinstance(cdelt1, float) or not isinstance(cdelt2, float):
+            raise ValueError(
+                "CDELT1 & CDELT2 in header are expected to be of type float."
             )
-        return np.deg2rad(np.abs(cdelt1))
+        if np.abs(cdelt1) != np.abs(cdelt2):
+            logging.warning(
+                "Non-square pixels are not supported, continue with `cdelt1`."
+            )
+        cellsize = cast(np.float64, np.deg2rad(np.abs(cdelt1)))
+        return cellsize
 
     def get_wcs(self) -> WCS:
         return WCS(self.header)
@@ -301,7 +305,7 @@ class Image(KaraboResource):
     ) -> WCS:
         wcs = WCS(naxis=2)
 
-        def radian_degree(rad: float) -> float:
+        def radian_degree(rad: np.float64) -> np.float64:
             return rad * (180 / np.pi)
 
         cdelt = radian_degree(self.get_cellsize())
