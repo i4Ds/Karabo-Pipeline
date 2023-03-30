@@ -474,10 +474,10 @@ class SkyModel:
         flux = None
         if cmap is not None:
             flux = self[:, flux_idx]
-            if cfun in [np.log10, np.log] and any(flux < 0):
+            if cfun in [np.log10, np.log] and any(flux <= 0):
                 warn(
                     KaraboWarning(
-                        "Warning: flux with value < 0 found, setting"
+                        "Warning: flux with value <= 0 found, setting"
                         "those to np.nan to avoid "
                         "logarithmic errors (only affects the colorbar)"
                     )
