@@ -78,7 +78,7 @@ class TestSourceDetection(unittest.TestCase):
         therefore you can just create an `Image` from that file
         """
         phase_center = [250, -80]
-        gleam_sky = SkyModel.get_GLEAM_Sky()
+        gleam_sky = SkyModel.get_GLEAM_Sky([76])
         sky = gleam_sky.filter_by_radius(0, 0.01, phase_center[0], phase_center[1])
         sky.setup_default_wcs(phase_center=phase_center)
         askap_tel = Telescope.get_ASKAP_Telescope()
@@ -165,7 +165,7 @@ class TestSourceDetection(unittest.TestCase):
             0.4,
         )
 
-        # sky = SkyModel.get_GLEAM_Sky()
+        # sky = SkyModel.get_GLEAM_Sky([76])
         # sky.filter_by_flux(0.4, 1)
         sky.explore_sky(phasecenter)
 
@@ -237,7 +237,7 @@ class TestSourceDetection(unittest.TestCase):
             0.4,
         )
 
-        # sky = SkyModel.get_GLEAM_Sky()
+        # sky = SkyModel.get_GLEAM_Sky([76])
         # sky.filter_by_flux(0.4, 1)
         sky.explore_sky(phasecenter)
 

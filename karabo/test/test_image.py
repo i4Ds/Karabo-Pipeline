@@ -73,7 +73,7 @@ class TestImage(unittest.TestCase):
         assert cdelt_overwrite_cellsize_false != cdelt_overwrite_cellsize_true
 
     def test_explore_sky(self):
-        sky = SkyModel.get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky([76])
         sky.explore_sky([250, -80], s=0.1)
 
     # # TODO: move these on to CSCS Test Infrastructure once we have it.
