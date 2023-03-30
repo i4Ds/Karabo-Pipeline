@@ -713,10 +713,9 @@ class SkyModel:
         survey = MIGHTEESurveyDownloadObject()
         path = survey.get()
         mightee = SkyModel.get_fits_catalog(path)
-        print(mightee)
         df_mightee = mightee.to_pandas()
         ref_freq = 76e6
-        ra, dec, fp = df_mightee["RA"], df_mightee["DEC"], df_mightee["NU_EFdf[F"]
+        ra, dec, fp = df_mightee["RA"], df_mightee["DEC"], df_mightee["NU_EFF"]
         sky_array = np.column_stack(
             (
                 ra,
