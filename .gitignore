@@ -96,5 +96,3 @@ karabo/result/*
 # Vscode
 .vscode/*
 /.vs
-karabo/examples/data/*
-data/*
