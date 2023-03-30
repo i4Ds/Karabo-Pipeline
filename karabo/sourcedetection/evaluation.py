@@ -134,9 +134,14 @@ class SourceDetectionEvaluation:
 
         """
         # Check if there are duplicate sources and if yes, remove them
-        # (this would lead to problems with the assignment)
-        ground_truth = np.unique(ground_truth, axis=0)
-        detected = np.unique(detected, axis=0)
+        # Do it via index because otherwise the order is changed
+        # by np.unique.
+        _, gidx = np.unique(ground_truth, axis=0, return_index=True)
+        _, didx = np.unique(detected, axis=0, return_index=True)
+
+        ground_truth = ground_truth[np.sort(gidx)]
+        detected = detected[np.sort(didx)]
+
         # With scipy.spatial.KDTree get the closest detection point
         # for each ground truth point
         tree = KDTree(ground_truth)
