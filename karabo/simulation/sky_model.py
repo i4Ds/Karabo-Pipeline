@@ -477,7 +477,8 @@ class SkyModel:
             if cfun in [np.log10, np.log] and any(flux < 0):
                 warn(
                     KaraboWarning(
-                        "Warning: flux with value < 0 found, setting those to np.nan to avoid "
+                        "Warning: flux with value < 0 found, setting"
+                        "those to np.nan to avoid "
                         "logarithmic errors (only affects the colorbar)"
                     )
                 )
@@ -654,19 +655,22 @@ class SkyModel:
     @staticmethod
     def get_GLEAM_Sky(frequencies: List[GLEAM_freq_lit]) -> SkyModel:
         """
-        get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities at the specified frequencies
-        from the GLEAM survey.
+        get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities
+        at the specified frequencies from the GLEAM survey.
 
         Parameters:
-            frequencies (list): A list of frequencies in MHz for which the flux densities are required. Available
-            frequencies are: [76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204, 212,
+            frequencies (list): A list of frequencies in MHz for which the flux
+            densities are required. Available frequencies are:
+            [76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166,
+            174, 181, 189, 197, 204, 212,
             220, 227]. Default is to return all frequencies.
 
         Returns:
-            SkyModel: A SkyModel object containing sources with flux densities at the specified frequencies (Hz).
+            SkyModel: A SkyModel object containing sources with flux densities
+            at the specified frequencies (Hz).
 
         Example:
-            >>> gleam_sky = get_GLEAM_Sky([76, 107, 143])
+            >>> gleam_sky = SkyModel.get_GLEAM_Sky([76, 107, 143])
             >>> print(gleam_sky)
             <SkyModel object at 0x7f8a1545fc10>
             >>> print(gleam_sky.num_sources)
