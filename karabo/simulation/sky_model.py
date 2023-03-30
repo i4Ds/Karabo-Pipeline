@@ -4,7 +4,8 @@ import copy
 import enum
 import logging
 import math
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Literal, Optional, Tuple, Union
+from warnings import warn
 
 import matplotlib.pyplot as plt
 import numpy
@@ -25,6 +26,30 @@ from karabo.error import KaraboError
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
+from karabo.warning import KaraboWarning
+
+GLEAM_freq_lit = Literal[
+    76,
+    84,
+    92,
+    99,
+    107,
+    115,
+    122,
+    130,
+    143,
+    151,
+    158,
+    166,
+    174,
+    181,
+    189,
+    197,
+    204,
+    212,
+    220,
+    227,
+]
 
 
 class Polarisation(enum.Enum):
@@ -449,15 +474,24 @@ class SkyModel:
         flux = None
         if cmap is not None:
             flux = self[:, flux_idx]
+            if cfun in [np.log10, np.log] and any(flux < 0):
+                warn(
+                    KaraboWarning(
+                        "Warning: flux with value < 0 found, setting those to np.nan to avoid "
+                        "logarithmic errors (only affects the colorbar)"
+                    )
+                )
+
+                flux = np.where(flux > 0, flux, np.nan)
             if cfun is not None:
                 flux = cfun(flux)
 
         # handle matplotlib kwargs
         # not set as normal args because default assignment depends on args
         if "vmin" not in kwargs:
-            kwargs["vmin"] = np.min(flux)
+            kwargs["vmin"] = np.nanmin(flux)
         if "vmax" not in kwargs:
-            kwargs["vmax"] = np.max(flux)
+            kwargs["vmax"] = np.nanmax(flux)
 
         if wcs_enabled:
             slices = get_slices(wcs)
@@ -469,12 +503,17 @@ class SkyModel:
         sc = ax.scatter(px, py, c=flux, cmap=cmap, **kwargs)
 
         if with_labels:
-            for i, txt in enumerate(self[:, -1]):
+            unique_keys, indices = np.unique(self[:, -1], return_index=True)
+            for i, txt in enumerate(unique_keys):
                 if self.shape[0] > 1:
-                    ax.annotate(txt, (px[i], py[i]))
+                    ax.annotate(
+                        txt,
+                        (px[indices][i], py[indices][i]),
+                    )
                 else:
                     ax.annotate(txt, (px, py))
-
+        # Add grid
+        ax.grid()
         plt.axis("equal")
         if cbar_label is None:
             cbar_label = ""
@@ -613,38 +652,67 @@ class SkyModel:
         return cartesian_sky
 
     @staticmethod
-    def get_GLEAM_Sky() -> SkyModel:
+    def get_GLEAM_Sky(frequencies: List[GLEAM_freq_lit]) -> SkyModel:
+        """
+        get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities at the specified frequencies
+        from the GLEAM survey.
+
+        Parameters:
+            frequencies (list): A list of frequencies in MHz for which the flux densities are required. Available
+            frequencies are: [76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166, 174, 181, 189, 197, 204, 212,
+            220, 227]. Default is to return all frequencies.
+
+        Returns:
+            SkyModel: A SkyModel object containing sources with flux densities at the specified frequencies (Hz).
+
+        Example:
+            >>> gleam_sky = get_GLEAM_Sky([76, 107, 143])
+            >>> print(gleam_sky)
+            <SkyModel object at 0x7f8a1545fc10>
+            >>> print(gleam_sky.num_sources)
+            921259
+        """
+
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
-        gleam = SkyModel.get_fits_catalog(path)
-        df_gleam = gleam.to_pandas()
-        ref_freq = 76e6
-        df_gleam = df_gleam[~df_gleam["Fp076"].isna()]
-        ra, dec, fp = df_gleam["RAJ2000"], df_gleam["DEJ2000"], df_gleam["Fp076"]
-        sky_array = np.column_stack(
-            (
-                ra,
-                dec,
-                fp,
-                np.zeros(ra.shape[0]),
-                np.zeros(ra.shape[0]),
-                np.zeros(ra.shape[0]),
-                [ref_freq] * ra.shape[0],
+        df_gleam = SkyModel.get_fits_catalog(path).to_pandas()
+        sky_arrays = []
+        for freq in frequencies:
+            freq_str = str(freq).zfill(3)
+            df = df_gleam[~df_gleam[f"Fp{freq_str}"].isna()].copy()
+            sky_array = (
+                np.column_stack(
+                    (
+                        df["RAJ2000"],
+                        df["DEJ2000"],
+                        df[f"Fp{freq_str}"],
+                        np.zeros(len(df)),
+                        np.zeros(len(df)),
+                        np.zeros(len(df)),
+                        [freq * 1e6] * len(df),
+                        np.zeros(len(df)),
+                        np.zeros(len(df)),
+                        df[f"a{freq_str}"],
+                        df[f"b{freq_str}"],
+                        df[f"pa{freq_str}"],
+                    )
+                )
+                .astype(np.float64)
+                .astype(object)
             )
-        ).astype("float64")
-        sky = SkyModel(sky_array)
-        # major axis FWHM, minor axis FWHM, position angle, object id
-        sky[:, [9, 10, 11, 12]] = df_gleam[["a076", "b076", "pa076", "GLEAM"]]
-        return sky
+            sky_array = np.hstack((sky_array, df["GLEAM"].values[:, None]))
+            sky_arrays.append(sky_array)
+        return SkyModel(np.vstack(sky_arrays))
 
     @staticmethod
     def get_MIGHTEE_Sky() -> SkyModel:
         survey = MIGHTEESurveyDownloadObject()
         path = survey.get()
         mightee = SkyModel.get_fits_catalog(path)
+        print(mightee)
         df_mightee = mightee.to_pandas()
         ref_freq = 76e6
-        ra, dec, fp = df_mightee["RA"], df_mightee["DEC"], df_mightee["NU_EFF"]
+        ra, dec, fp = df_mightee["RA"], df_mightee["DEC"], df_mightee["NU_EFdf[F"]
         sky_array = np.column_stack(
             (
                 ra,
