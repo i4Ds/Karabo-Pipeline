@@ -4,7 +4,7 @@ import copy
 import enum
 import logging
 import math
-from typing import Any, Callable, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 from warnings import warn
 
 import matplotlib.pyplot as plt
@@ -28,7 +28,7 @@ from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
 from karabo.warning import KaraboWarning
 
-GLEAM_freq_lit = Literal[
+GLEAM_freq_lit = [
     76,
     84,
     92,
@@ -477,7 +477,7 @@ class SkyModel:
             if cfun in [np.log10, np.log] and any(flux <= 0):
                 warn(
                     KaraboWarning(
-                        "Warning: flux with value <= 0 found, setting"
+                        "Warning: flux with value <= 0 found, setting "
                         "those to np.nan to avoid "
                         "logarithmic errors (only affects the colorbar)"
                     )
@@ -653,7 +653,7 @@ class SkyModel:
         return cartesian_sky
 
     @staticmethod
-    def get_GLEAM_Sky(frequencies: List[GLEAM_freq_lit]) -> SkyModel:
+    def get_GLEAM_Sky(frequencies: List[int] = None) -> SkyModel:
         """
         get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities
         at the specified frequencies from the GLEAM survey.
@@ -676,7 +676,8 @@ class SkyModel:
             >>> print(gleam_sky.num_sources)
             921259
         """
-
+        if frequencies is None:
+            frequencies = GLEAM_freq_lit
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
         df_gleam = SkyModel.get_fits_catalog(path).to_pandas()
