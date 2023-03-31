@@ -97,7 +97,7 @@ def parallel_for_each(arr: List[any], function: Callable, *args):
     return dask.compute(*results)
 
 
-def setup_dask_for_slurm():
+def setup_dask_for_slurm(n_workers_main_node: int = 1):
     # Detect if we are on a slurm cluster
     if "SLURM_JOB_ID" not in os.environ or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
@@ -111,7 +111,9 @@ def setup_dask_for_slurm():
                 pass
 
             # Create client and scheduler
-            cluster = LocalCluster(ip=get_lowest_node_name())
+            cluster = LocalCluster(
+                ip=get_lowest_node_name(), n_workers=n_workers_main_node
+            )
             client = Client(cluster)
 
             # Write the scheduler address to a file
