@@ -111,6 +111,8 @@ class SourceDetectionEvaluation:
         sources to the ground truth and vice versa. So each ground truth source
         should be assigned with a predicted source if at least one was in range
         and the predicted source assigned to another ground truth source before.
+        If there are duplicate sources (e.g. same source, different frequency), the
+        duplicate sources are removed and the assignment is done on the remaining.
 
         :param ground_truth: nx2 np.ndarray with the ground truth pixel
         coordinates of the catalog
@@ -131,6 +133,15 @@ class SourceDetectionEvaluation:
             of that source
 
         """
+        # Check if there are duplicate sources and if yes, remove them
+        # Do it via index because otherwise the order is changed
+        # by np.unique.
+        _, gidx = np.unique(ground_truth, axis=0, return_index=True)
+        _, didx = np.unique(detected, axis=0, return_index=True)
+
+        ground_truth = ground_truth[np.sort(gidx)]
+        detected = detected[np.sort(didx)]
+
         # With scipy.spatial.KDTree get the closest detection point
         # for each ground truth point
         tree = KDTree(ground_truth)
