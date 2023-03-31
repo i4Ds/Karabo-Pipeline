@@ -13,6 +13,7 @@ class TestGpuUtils(unittest.TestCase):
         assert isinstance(memory, int)
         assert memory > 0
 
+    @unittest.skipIf(RUN_GPU_TESTS, "Does does not fail when GPU is available")
     def test_gpu_memory_error(self):
         with self.assertRaises(RuntimeError):
             get_gpu_memory()
