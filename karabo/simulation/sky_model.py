@@ -4,7 +4,7 @@ import copy
 import enum
 import logging
 import math
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Literal, Optional, Tuple, Union
 from warnings import warn
 
 import matplotlib.pyplot as plt
@@ -28,7 +28,7 @@ from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
 from karabo.warning import KaraboWarning
 
-GLEAM_freq_lit = [
+GLEAM_freq = Literal[
     76,
     84,
     92,
@@ -653,7 +653,7 @@ class SkyModel:
         return cartesian_sky
 
     @staticmethod
-    def get_GLEAM_Sky(frequencies: List[int] = None) -> SkyModel:
+    def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
         """
         get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities
         at the specified frequencies from the GLEAM survey.
@@ -662,8 +662,8 @@ class SkyModel:
             frequencies (list): A list of frequencies in MHz for which the flux
             densities are required. Available frequencies are:
             [76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166,
-            174, 181, 189, 197, 204, 212,
-            220, 227]. Default is to return all frequencies.
+            174, 181, 189, 197, 204, 212, 220, 227]. Default is to return
+            all frequencies.
 
         Returns:
             SkyModel: A SkyModel object containing sources with flux densities
@@ -677,7 +677,28 @@ class SkyModel:
             921259
         """
         if frequencies is None:
-            frequencies = GLEAM_freq_lit
+            frequencies = [
+                76,
+                84,
+                92,
+                99,
+                107,
+                115,
+                122,
+                130,
+                143,
+                151,
+                158,
+                166,
+                174,
+                181,
+                189,
+                197,
+                204,
+                212,
+                220,
+                227,
+            ]
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
         df_gleam = SkyModel.get_fits_catalog(path).to_pandas()
