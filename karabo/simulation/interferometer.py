@@ -7,7 +7,7 @@ from datetime import timedelta
 from typing import Any, Dict, List, Union
 
 import oskar
-
+from distributed import Client
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
@@ -195,7 +195,7 @@ class InterferometerSimulation:
         self.ionosphere_fits_path = ionosphere_fits_path
 
     def run_simulation(
-        self, telescope: Telescope, sky: SkyModel, observation: Observation
+        self, telescope: Telescope, sky: SkyModel, observation: Observation, client: Client = None
     ) -> Union[Visibility, List[str]]:
         """
         Run a single interferometer simulation with the given sky, telescope.png and
@@ -208,11 +208,13 @@ class InterferometerSimulation:
             return self.__run_simulation_long(
                 telescope=telescope,
                 sky=sky,
-                observation=observation,
+                observation=observation
             )
         else:
             return self.__run_simulation_oskar(
-                telescope=telescope, sky=sky, observation=observation
+                telescope=telescope,
+                sky=sky,
+                observation=observation
             )
 
     def set_ionosphere(self, file_path: str) -> None:
@@ -229,7 +231,7 @@ class InterferometerSimulation:
         self,
         telescope: Telescope,
         sky: SkyModel,
-        observation: Observation,
+        observation: Observation
     ) -> Visibility:
         """
         Run a single interferometer simulation with a given sky,
