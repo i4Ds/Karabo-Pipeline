@@ -45,59 +45,6 @@ def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
         )
     return client
 
-
-def parallel_for(n: int, function: Callable, *args):
-    """
-    Execute a function ``n`` times in parallel with DASK.
-
-    For example creating many simulations at once for running in parallel::
-
-        # we pass telescope as we want to use the same in every simulation,
-        # and so we only need to setup one.
-        # pass flux so we can use a different one in each iteration.
-        def my_simulation_code(telescope, flux):
-            # setup simulation settings and observation settings
-            simulation = InterferometerSimulation(...)
-            observation = Observation(...)
-            sky = SkyModel(np.array([[20, -30, flux]]))
-            sim_result = simulation.run_simulation(telescope, sky, observation)
-            return sim_result
-
-        flux = 0.001
-        telescope = get_ASKAP_telescope()
-        results = parallel_for(10, # how many iterations the loop will do.
-            my_simluation_code, # code to execute 10 times
-            telescope, # param 1 for passed function
-            flux + flux + 0.001) # param 2 for passed function
-        # Start compute to actually start the computation.
-        results = compute(*results)
-
-    :param n: number of iterations
-    :param function: function to execute n times
-    :param args: arguments that will be passed to the passed function
-    :return: list of delayed objects. Need to be calculated with dask.compute() later
-    """
-    results = []
-    for i in range(0, n):
-        res = delayed(function)(*[copy.deepcopy(arg) for arg in args])
-        results.append(res)
-    return dask.compute(*results)
-
-
-def parallel_for_each(arr: List[any], function: Callable, *args):
-    """
-    :param arr:
-    :param function:
-    :param args:
-    :return:
-    """
-    results = []
-    for value in arr:
-        res = delayed(function)(value, *[copy.deepcopy(arg) for arg in args])
-        results.append(res)
-    return dask.compute(*results)
-
-
 def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
     # Detect if we are on a slurm cluster
     if "SLURM_JOB_ID" not in os.environ or os.getenv("SLURM_JOB_NUM_NODES") == "1":
