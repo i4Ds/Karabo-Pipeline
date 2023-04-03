@@ -13,4 +13,4 @@
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export CRAY_CUDA_MPS=1
 conda activate karabo_dev_env
-srun python3 cscs_rascil_dask.py
+srun python3 time_karabo_slurm.py

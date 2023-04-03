@@ -96,3 +96,6 @@ karabo/result/*
 # Vscode
 .vscode/*
 /.vs
+
+# Slurm logs
+**.out

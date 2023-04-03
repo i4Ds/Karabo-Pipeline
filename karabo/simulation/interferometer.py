@@ -6,7 +6,9 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Dict, List, Union
 
+import numpy as np
 import oskar
+import pandas as pd
 from distributed import Client
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
@@ -14,6 +16,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util.data_util import input_wrapper
+from karabo.warning import KaraboWarning
 
 
 class CorrelationType(enum.Enum):
@@ -111,6 +114,12 @@ class InterferometerSimulation:
     :ivar beam_polX: currently only considered for `ObservationLong`
     :ivar beam_polX: currently only considered for `ObservationLong`
     :ivar use_gpus: Set to true if you want to use gpus for the simulation
+    :ivar client: The dask client to use for the simulation
+    :ivar split_idxs_per_group: The a list of list of indices to split the groups by
+    :ivar split_sky_for_dask_by: The attribute to split the data by for dask. Can be
+                        "frequency"
+    :ivar max_vram_usage_gpu: The maximum vram usage per gpu in GB. Used to split the
+                                data into chunks for the simulation on the gpu.
     :ivar precision: For the arithmetic use you can choose between "single" or
                      "double" precision
     :ivar station_type: Here you can choose the type of each station in the
@@ -157,6 +166,10 @@ class InterferometerSimulation:
         beam_polY: BeamPattern = None,  # currently only considered
         # for `ObservationLong`
         use_gpus: bool = False,
+        client: Union[Client, None] = None,
+        split_idxs_per_group: Union[List[List[int]], None] = None, 
+        split_sky_for_dask_by: str = "frequency",
+        max_vram_usage_gpu: float = 0.8,
         precision: str = "single",
         station_type: str = "Isotropic beam",
         gauss_beam_fwhm_deg: float = 0.0,
@@ -188,6 +201,10 @@ class InterferometerSimulation:
         self.beam_polX: BeamPattern = beam_polX
         self.beam_polY: BeamPattern = beam_polY
         self.use_gpus = use_gpus
+        self.client = client
+        self.split_idxs_per_group = split_idxs_per_group
+        self.split_sky_for_dask_by = split_sky_for_dask_by
+        self.max_vram_usage_gpu = max_vram_usage_gpu
         self.precision = precision
         self.station_type = station_type
         self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
@@ -195,7 +212,7 @@ class InterferometerSimulation:
         self.ionosphere_fits_path = ionosphere_fits_path
 
     def run_simulation(
-        self, telescope: Telescope, sky: SkyModel, observation: Observation, client: Client = None
+        self, telescope: Telescope, sky: SkyModel, observation: Observation
     ) -> Union[Visibility, List[str]]:
         """
         Run a single interferometer simulation with the given sky, telescope.png and
@@ -231,7 +248,7 @@ class InterferometerSimulation:
         self,
         telescope: Telescope,
         sky: SkyModel,
-        observation: Observation
+        observation: Observation,
     ) -> Visibility:
         """
         Run a single interferometer simulation with a given sky,
@@ -253,7 +270,49 @@ class InterferometerSimulation:
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
         os_sky = sky.get_OSKAR_sky(precision=self.precision)
+        if self.client is not None:
+            array_sky = os_sky.to_array()
+            print(array_sky.shape)
+            if self.split_sky_for_dask_by == "frequency":
+                # Sort the array by frequency
+                array_sky = array_sky[array_sky[:, 6].argsort()]
 
+                # Extract the frequencies from the sky model
+                frequencies = array_sky[:, 6]
+
+                # Create dataframe for groupby operations
+                frequencies = pd.DataFrame(frequencies, columns=['freq'])
+
+                # Create a column with the rank of the frequency
+                frequencies['rank'] = frequencies['freq'].rank(method='dense')
+
+                # Extract N by the number of workers
+                N = len(self.client.scheduler_info()["workers"])
+
+                # Print warning if N > number of unique frequencies
+                if N > frequencies['rank'].unique().shape[0]:
+                    print(
+                        KaraboWarning(
+                        "Number of workers is greater than the number of unique frequencies. "
+                        "Some Workers wont be used"
+                        )
+                        )
+
+                # Create list with the ranks to split on
+                spacing = np.ceil(frequencies['freq'].iloc[-1] / N).astype(int)
+                split_ranks = [0 + spacing * i for i in range(N)]
+
+                # Split idxs
+                split_idxs = []
+                for i in range(len(split_ranks) - 1):
+                    split_idxs.append(
+                        frequencies[frequencies['rank'] == split_ranks[i + 1]].index[0]
+                    )
+
+                # Split the array
+                split_array_sky = np.split(array_sky, split_idxs)
+
+                print(split_ranks)
         simulation = oskar.Interferometer(settings=setting_tree)
         simulation.set_sky_model(os_sky)
         simulation.run()

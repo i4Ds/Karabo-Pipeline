@@ -11,8 +11,6 @@ import psutil
 from dask import delayed
 from distributed import Client, LocalCluster
 
-client = None
-
 
 def get_global_client(
     min_ram_gb_per_worker: int = 2, threads_per_worker: int = 1
@@ -120,7 +118,10 @@ def get_lowest_node_name():
 
 
 def create_list_of_node_names():
-    return [os.getenv('SLURM_JOB_NODELIST').split('[')[0] + str(i) for i in range(get_min_max_of_node_id()[0], get_min_max_of_node_id()[1]+1)]
+    return [
+        os.getenv("SLURM_JOB_NODELIST").split("[")[0] + str(i)
+        for i in range(get_min_max_of_node_id()[0], get_min_max_of_node_id()[1] + 1)
+    ]
 
 def get_node_id():
     len_id = len(str(get_lowest_node_id()))
