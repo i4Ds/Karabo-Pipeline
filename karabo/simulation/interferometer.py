@@ -10,6 +10,7 @@ import numpy as np
 import oskar
 import pandas as pd
 from distributed import Client
+
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
@@ -228,7 +229,7 @@ class InterferometerSimulation:
                 observation=observation
             )
         else:
-            return self.__run_simulation_oskar(
+            return self.__setup_run_simulation_oskar(
                 telescope=telescope,
                 sky=sky,
                 observation=observation
@@ -244,7 +245,12 @@ class InterferometerSimulation:
         """
         self.ionosphere_fits_path = file_path
 
-    def __run_simulation_oskar(
+    def __run_simulation_oskar(sky: SkyModel, simulation: oskar.Interferometer):
+        simulation.set_sky_model(sky)
+        simulation.run()
+        
+
+    def __setup_run_simulation_oskar(
         self,
         telescope: Telescope,
         sky: SkyModel,
@@ -270,10 +276,15 @@ class InterferometerSimulation:
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
         os_sky = sky.get_OSKAR_sky(precision=self.precision)
+
+        # To convert to a numpy array
+        array_sky = os_sky.to_array()
+
         if self.client is not None:
-            array_sky = os_sky.to_array()
             print(array_sky.shape)
-            if self.split_sky_for_dask_by == "frequency":
+            if self.split_idxs_per_group:
+                split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
+            elif self.split_sky_for_dask_by == "frequency":
                 # Sort the array by frequency
                 array_sky = array_sky[array_sky[:, 6].argsort()]
 
@@ -289,15 +300,6 @@ class InterferometerSimulation:
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
 
-                # Print warning if N > number of unique frequencies
-                if N > frequencies['rank'].unique().shape[0]:
-                    print(
-                        KaraboWarning(
-                        "Number of workers is greater than the number of unique frequencies. "
-                        "Some Workers wont be used"
-                        )
-                        )
-
                 # Create list with the ranks to split on
                 spacing = np.ceil(frequencies['freq'].iloc[-1] / N).astype(int)
                 split_ranks = [0 + spacing * i for i in range(N)]
@@ -311,11 +313,13 @@ class InterferometerSimulation:
 
                 # Split the array
                 split_array_sky = np.split(array_sky, split_idxs)
+            else:
+                raise ValueError("Unknown split_sky_for_dask_by value. Please use 'frequency' or 'group'.")
+        
 
-                print(split_ranks)
+
         simulation = oskar.Interferometer(settings=setting_tree)
-        simulation.set_sky_model(os_sky)
-        simulation.run()
+        visibility = self.__run_simulation_oskar(sky=split_array_sky[0], Simulation=oskar.Interferometer(settings=setting_tree))
 
         return self.ms_file
 
@@ -402,7 +406,7 @@ class InterferometerSimulation:
                 # ------------- Design Observation
                 observation_run = deepcopy(observation)
                 observation_run.start_date_and_time = current_date
-                visibility = self.__run_simulation_oskar(
+                visibility = self.__setup_run_simulation_oskar(
                     telescope_run, sky_run, observation_run
                 )
                 visibility.write_to_file(ms_files[i])
