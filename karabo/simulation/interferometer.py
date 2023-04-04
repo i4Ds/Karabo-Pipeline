@@ -1,7 +1,6 @@
 import enum
 import glob
 import os
-import sys
 from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Dict, List, Union
@@ -17,6 +16,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util.data_util import input_wrapper
+from karabo.util.FileHandle import FileHandle
 from karabo.warning import KaraboWarning
 
 
@@ -301,7 +301,7 @@ class InterferometerSimulation:
                 N = len(self.client.scheduler_info()["workers"])
 
                 # Create list with the ranks to split on
-                spacing = np.ceil(frequencies['freq'].iloc[-1] / N).astype(int)
+                spacing = np.ceil(frequencies['rank'].iloc[-1] / N).astype(int)
                 split_ranks = [0 + spacing * i for i in range(N)]
 
                 # Split idxs
@@ -329,101 +329,51 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationLong,
     ) -> List[str]:
-        try:
-            visiblity_files = [0] * observation.number_of_days
-            ms_files = [0] * observation.number_of_days  # ms_files is out of range!!!!
-            current_date = observation.start_date_and_time
-            beam_vis_prefix = "beam_vis_"
-            files_existing = []
-            if os.path.exists(self.vis_path):
-                vis_files_existing = glob.glob(
-                    os.path.join(self.vis_path, beam_vis_prefix + "*.vis")
-                )
-                ms_files_existing = glob.glob(
-                    os.path.join(self.vis_path, beam_vis_prefix + "*.ms")
-                )
-                files_existing = [*vis_files_existing, *ms_files_existing]
-                if len(files_existing) > 0:
-                    print("Some example files to remove/replace:")
-                    print(f"{[*vis_files_existing[:3],*ms_files_existing[:3]]}")
-                    msg = (
-                        f'Found already existing "beam_vis_*.vis" and '
-                        f'"beam_vis_*.ms" files inside {self.vis_path}, \
-                        Do you want to replace remove/replace them? [y/N]'
-                    )
-                    msg = (
-                        'Found already existing "beam_vis_*.vis" and '
-                        + f'beam_vis_*.ms" files inside {self.vis_path}, \
-                        + Do you want to replace remove/replace them? [y/N]'
-                    )
-                    ans = input_wrapper(msg=msg, ret="y")
-                    if ans != "y":
-                        sys.exit(0)
-                    else:
-                        [
-                            os.system("rm -rf " + file_name)
-                            for file_name in files_existing
-                        ]
-                        print(
-                            f"Removed {len(files_existing)} file(s) matching the "
-                            + 'glob pattern "beam_vis_*.vis" and "beam_vis_*.ms"!'
-                        )
-            else:
-                os.makedirs(self.vis_path, exist_ok=True)
-                print(f"Created dirs {self.vis_path}")
-            vis_path_long = self.vis_path
-            for i in range(observation.number_of_days):
-                sky_run = SkyModel(
-                    sources=deepcopy(sky.sources)
-                )  # is deepcopy or copy needed?
-                telescope_run = Telescope.read_OSKAR_tm_file(telescope.path)
-                # telescope.centre_longitude = 3
-                # Remove beam if already present
-                test = os.listdir(telescope.path)
-                for item in test:
-                    if item.endswith(".bin"):
-                        os.remove(os.path.join(telescope.path, item))
-                if self.enable_array_beam:
-                    # ------------ X-coordinate
-                    pb = deepcopy(self.beam_polX)
-                    beam = pb.sim_beam()
-                    pb.save_cst_file(
-                        beam[3], telescope=telescope_run
-                    )  # Saving the beam cst file
-                    pb.fit_elements(telescope_run)
-                    # ------------ Y-coordinate
-                    pb = deepcopy(self.beam_polY)
-                    pb.save_cst_file(beam[4], telescope=telescope_run)
-                    pb.fit_elements(telescope_run)
-                print("Observing Day: " + str(i) + " the " + str(current_date))
-                # ------------- Simulation Begins
-                visiblity_files[i] = os.path.join(
-                    vis_path_long, beam_vis_prefix + str(i) + ".vis"
-                )
-                print(visiblity_files[i])
-                ms_files[i] = visiblity_files[i].split(".vis")[0] + ".ms"
-                self.vis_path = visiblity_files[i]
-                # ------------- Design Observation
-                observation_run = deepcopy(observation)
-                observation_run.start_date_and_time = current_date
-                visibility = self.__setup_run_simulation_oskar(
-                    telescope_run, sky_run, observation_run
-                )
-                visibility.write_to_file(ms_files[i])
-                current_date + timedelta(days=1)
-            self.vis_path = vis_path_long
-            return visiblity_files
+        # Setup visiblity paths
+        visiblity_files = []
+        beam_vis_prefix = "beam_vis_"
 
-        except BaseException as exp:
-            # self.vis_path = vis_path_long
-            raise exp
+        # Create vis path
+        fh = FileHandle(self.vis_path, is_dir=True)
+        vis_dir_path = fh.path
+
+        # Loop over days
+        for i, current_date in enumerate(pd.date_range(observation.start_date_and_time, periods=observation.number_of_days), 1):
+            print(f"Observing Day: {i}. Date: {current_date}")
+            # Copy sky model and initiate new telescope
+            sky_run = SkyModel(sources=deepcopy(sky.sources))
+            telescope_run = Telescope.read_OSKAR_tm_file(telescope.path)
+            vis_name = beam_vis_prefix + str(i) 
+
+            # Remove old beam files if they exist
+            for item in os.listdir(telescope.path):
+                if item.endswith(".bin"):
+                    os.remove(os.path.join(telescope.path, item))
+
+            if self.enable_array_beam:
+                # ------------ X-coordinate
+                pb = deepcopy(self.beam_polX)
+                beam = pb.sim_beam()
+                pb.save_cst_file(beam[3], telescope=telescope_run)
+                pb.fit_elements(telescope_run)
+                # ------------ Y-coordinate
+                pb = deepcopy(self.beam_polY)
+                pb.save_cst_file(beam[4], telescope=telescope_run)
+                pb.fit_elements(telescope_run)
+
+            visiblity_files.append(os.path.join(vis_dir_path, vis_name + ".vis"))
+            ms_files = os.path.join(vis_dir_path, vis_name + ".ms")
+            self.vis_path = ms_files
+
+            observation_run = deepcopy(observation)
+            observation_run.start_date_and_time = current_date
+            visibility = self.__setup_run_simulation_oskar(telescope_run, sky_run, observation_run)
+            visibility.write_to_file(ms_files)
+
+        return visiblity_files
 
     def yes_double_precision(self):
-        if self.precision == "single":
-            pres = False
-        else:
-            pres = True
-        return pres
+        return self.precision != "single"
 
     def __get_OSKAR_settings_tree(
         self, input_telpath

@@ -86,7 +86,7 @@ def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
             # Read the scheduler address from the file
             scheduler_address = None
             timeout_time = datetime.now().timestamp() + 60
-            while scheduler_address is None:
+            while scheduler_address is None and datetime.now().timestamp() < timeout_time:
                 try:
                     with open("scheduler.txt", "r") as f:
                         scheduler_address = f.read()
