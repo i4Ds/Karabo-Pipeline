@@ -11,16 +11,20 @@ from karabo.util.FileHandle import FileHandle
 
 class Visibility(KaraboResource):
     def __init__(self):
-        self.file = FileHandle(is_dir=True, suffix=".ms")
+        self.file = FileHandle(suffix=".ms")
 
     def write_to_file(self, path: str) -> None:
+        # Remove if file or folder already exists
         if os.path.exists(path):
-            shutil.rmtree(path)
-        shutil.copytree(self.file.path, path)
+            if os.path.isfile(path):
+                os.remove(path)
+            else:
+                shutil.rmtree(path)
+        shutil.copytree(self.file.path, path, dirs_exist_ok=True)
 
     @staticmethod
     def read_from_file(path: str) -> any:
-        file = FileHandle(path, is_dir=True)
+        file = FileHandle(path)
         vis = Visibility()
         vis.file = file
         return vis

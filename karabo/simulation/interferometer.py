@@ -1,8 +1,6 @@
 import enum
-import glob
 import os
 from copy import deepcopy
-from datetime import timedelta
 from typing import Any, Dict, List, Union
 
 import numpy as np
@@ -15,9 +13,7 @@ from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util.data_util import input_wrapper
 from karabo.util.FileHandle import FileHandle
-from karabo.warning import KaraboWarning
 
 
 class CorrelationType(enum.Enum):
@@ -168,7 +164,7 @@ class InterferometerSimulation:
         # for `ObservationLong`
         use_gpus: bool = False,
         client: Union[Client, None] = None,
-        split_idxs_per_group: Union[List[List[int]], None] = None, 
+        split_idxs_per_group: Union[List[List[int]], None] = None,
         split_sky_for_dask_by: str = "frequency",
         max_vram_usage_gpu: float = 0.8,
         precision: str = "single",
@@ -224,15 +220,11 @@ class InterferometerSimulation:
         """
         if isinstance(observation, ObservationLong):
             return self.__run_simulation_long(
-                telescope=telescope,
-                sky=sky,
-                observation=observation
+                telescope=telescope, sky=sky, observation=observation
             )
         else:
             return self.__setup_run_simulation_oskar(
-                telescope=telescope,
-                sky=sky,
-                observation=observation
+                telescope=telescope, sky=sky, observation=observation
             )
 
     def set_ionosphere(self, file_path: str) -> None:
@@ -244,11 +236,6 @@ class InterferometerSimulation:
         :param file_path: file path to fits file.
         """
         self.ionosphere_fits_path = file_path
-
-    def __run_simulation_oskar(sky: SkyModel, simulation: oskar.Interferometer):
-        simulation.set_sky_model(sky)
-        simulation.run()
-        
 
     def __setup_run_simulation_oskar(
         self,
@@ -279,6 +266,7 @@ class InterferometerSimulation:
 
         # To convert to a numpy array
         array_sky = os_sky.to_array()
+        split_array_sky = None
 
         if self.client is not None:
             print(array_sky.shape)
@@ -292,34 +280,41 @@ class InterferometerSimulation:
                 frequencies = array_sky[:, 6]
 
                 # Create dataframe for groupby operations
-                frequencies = pd.DataFrame(frequencies, columns=['freq'])
+                frequencies = pd.DataFrame(frequencies, columns=["freq"])
 
                 # Create a column with the rank of the frequency
-                frequencies['rank'] = frequencies['freq'].rank(method='dense')
+                frequencies["rank"] = frequencies["freq"].rank(method="dense")
 
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
 
                 # Create list with the ranks to split on
-                spacing = np.ceil(frequencies['rank'].iloc[-1] / N).astype(int)
+                spacing = np.ceil(frequencies["rank"].iloc[-1] / N).astype(int)
                 split_ranks = [0 + spacing * i for i in range(N)]
 
                 # Split idxs
                 split_idxs = []
                 for i in range(len(split_ranks) - 1):
                     split_idxs.append(
-                        frequencies[frequencies['rank'] == split_ranks[i + 1]].index[0]
+                        frequencies[frequencies["rank"] == split_ranks[i + 1]].index[0]
                     )
 
                 # Split the array
                 split_array_sky = np.split(array_sky, split_idxs)
             else:
-                raise ValueError("Unknown split_sky_for_dask_by value. Please use 'frequency' or 'group'.")
-        
+                raise ValueError(
+                    "Unknown split_sky_for_dask_by value. "
+                    "Please use 'frequency' or 'group'."
+                )
 
+        if split_array_sky is None:
+            split_array_sky = [array_sky]
 
-        simulation = oskar.Interferometer(settings=setting_tree)
-        visibility = self.__run_simulation_oskar(sky=split_array_sky[0], Simulation=oskar.Interferometer(settings=setting_tree))
+        for sky_ in split_array_sky:
+            sky_ = oskar.Sky.from_array(sky_, precision=self.precision)
+            simulation = oskar.Interferometer(settings=setting_tree)
+            simulation.set_sky_model(sky_)
+            simulation.run()
 
         return self.ms_file
 
@@ -334,16 +329,24 @@ class InterferometerSimulation:
         beam_vis_prefix = "beam_vis_"
 
         # Create vis path
-        fh = FileHandle(self.vis_path, is_dir=True)
+        fh = FileHandle()
         vis_dir_path = fh.path
+        print(f"Visibilities will be saved in: {vis_dir_path}")
 
         # Loop over days
-        for i, current_date in enumerate(pd.date_range(observation.start_date_and_time, periods=observation.number_of_days), 1):
+        for i, current_date in enumerate(
+            pd.date_range(
+                observation.start_date_and_time, periods=observation.number_of_days
+            ).to_pydatetime(),
+            1,
+        ):
+            # Convert to datetime
             print(f"Observing Day: {i}. Date: {current_date}")
+
             # Copy sky model and initiate new telescope
             sky_run = SkyModel(sources=deepcopy(sky.sources))
             telescope_run = Telescope.read_OSKAR_tm_file(telescope.path)
-            vis_name = beam_vis_prefix + str(i) 
+            vis_name = beam_vis_prefix + str(i)
 
             # Remove old beam files if they exist
             for item in os.listdir(telescope.path):
@@ -362,14 +365,18 @@ class InterferometerSimulation:
                 pb.fit_elements(telescope_run)
 
             visiblity_files.append(os.path.join(vis_dir_path, vis_name + ".vis"))
+            self.vis_path = visiblity_files[-1]
+            print(visiblity_files[-1])
             ms_files = os.path.join(vis_dir_path, vis_name + ".ms")
-            self.vis_path = ms_files
 
             observation_run = deepcopy(observation)
             observation_run.start_date_and_time = current_date
-            visibility = self.__setup_run_simulation_oskar(telescope_run, sky_run, observation_run)
+            visibility = self.__setup_run_simulation_oskar(
+                telescope_run, sky_run, observation_run
+            )
+            print(f"Writing to file: {ms_files}")
             visibility.write_to_file(ms_files)
-
+        print("Done with simulation.")
         return visiblity_files
 
     def yes_double_precision(self):

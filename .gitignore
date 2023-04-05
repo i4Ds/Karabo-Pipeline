@@ -99,3 +99,4 @@ karabo/result/*
 
 # Slurm logs
 **.out
+karabo_folder.MS/table.dat
