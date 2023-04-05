@@ -1,6 +1,7 @@
 import time
 
 import numpy as np
+
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -62,7 +63,7 @@ def create_random_sources(num_sources, ranges=None):
 
 def main(n_random_sources):
     DASK_CLIENT = setup_dask_for_slurm()
-    
+
     start = time.time()
     sky = SkyModel()
     sky_data = create_random_sources(
