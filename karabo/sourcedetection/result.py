@@ -100,7 +100,7 @@ class SourceDetectionResult(KaraboResource):
         """
         if path.endswith(".zip"):
             path = path[0 : len(path) - 4]
-        tempdir = FileHandle(is_dir=True)
+        tempdir = FileHandle()
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, "zip", tempdir.path)
@@ -136,7 +136,7 @@ class SourceDetectionResult(KaraboResource):
 
     @staticmethod
     def read_from_file(path: str) -> SourceDetectionResult:
-        tempdir = FileHandle(is_dir=True)
+        tempdir = FileHandle()
         shutil.unpack_archive(path, tempdir.path)
         source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
         source_catalouge = np.loadtxt(

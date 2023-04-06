@@ -66,7 +66,7 @@ class Pinocchio:
         Creates temp directory (wd) for the pinocchio run.
         Load default file paths for config files, load default config files
         """
-        self.wd = FileHandle(is_dir=True)
+        self.wd = FileHandle()
 
         # get default input files
         inputFilesPath = os.environ["CONDA_PREFIX"] + "/etc/"

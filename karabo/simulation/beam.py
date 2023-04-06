@@ -108,7 +108,7 @@ class BeamPattern:
         #    if item.endswith(".bin"):
         #        os.remove(os.path.join(telescope.path, item))
 
-        settings_file = FileHandle()
+        settings_file = FileHandle(file_name="settings.txt")
         file = open(settings_file.path, "wt")
         file.write(content)
         file.flush()

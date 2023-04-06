@@ -92,6 +92,7 @@ karabo/test/data/*
 # Results
 result/*
 karabo/result/*
+karabo/examples/result/*
 
 # Vscode
 .vscode/*
@@ -99,4 +100,4 @@ karabo/result/*
 
 # Slurm logs
 **.out
-karabo_folder.MS/table.dat
+
