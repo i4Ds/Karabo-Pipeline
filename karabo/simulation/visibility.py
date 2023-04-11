@@ -7,6 +7,7 @@ from typing import List
 
 import numpy as np
 import oskar
+from numpy.typing import NDArray
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
@@ -28,6 +29,7 @@ class Visibility(KaraboResource):
         vis.file = file
         return vis
 
+    @staticmethod
     def combine_spectral_foreground_vis(
         foreground_vis_file: str,
         spectral_vis_output: List[str],
@@ -40,19 +42,19 @@ class Visibility(KaraboResource):
         """
         print("#--- Performing visibilities combination...")
         (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
-        foreground_cross_correlation = [0] * fg_header.num_blocks
+        foreground_cross_correlation: List[NDArray[np.complex64]] = list()
         fg_chan = [0] * fg_header.num_blocks
         foreground_freq = fg_header.freq_start_hz + fg_header.freq_inc_hz * np.arange(
             fg_header.num_channels_total
         )
         nvis = len(spectral_vis_output)
-        out_vis = [0] * nvis
+        out_vis: List[List[NDArray[np.complex64]]] = list()
         # fg_max_channel=fg_header.max_channels_per_block;
         for i in range(fg_header.num_blocks):
             fg_block = oskar.VisBlock.create_from_header(fg_header)
             fg_block.read(fg_header, fg_handle, i)
             fg_chan[i] = fg_block.num_channels
-            foreground_cross_correlation[i] = fg_block.cross_correlations()
+            foreground_cross_correlation.append(fg_block.cross_correlations())
         ff_uu = fg_block.baseline_uu_metres()
         ff_vv = fg_block.baseline_vv_metres()
         ff_ww = fg_block.baseline_ww_metres()
@@ -67,11 +69,11 @@ class Visibility(KaraboResource):
                 )[0]
             )
             print(spec_freq, spec_idx)
-            out_vis[j] = [0] * sp_header.num_blocks
+            out_vis.append(list())
             for k in range(sp_header.num_blocks):
                 sp_block = oskar.VisBlock.create_from_header(sp_header)
                 sp_block.read(sp_header, sp_handle, k)
-                out_vis[j][k] = sp_block.cross_correlations()
+                out_vis[j].append(sp_block.cross_correlations())
             block_num = int(spec_idx / fg_header.max_channels_per_block)
             chan_block_num = int(
                 spec_idx - block_num * fg_header.max_channels_per_block
@@ -124,20 +126,17 @@ class Visibility(KaraboResource):
     @staticmethod
     def combine_vis(
         number_of_days: int,
-        visiblity_files: list,
+        visiblity_files: List[str],
         combined_vis_filepath: str,
         day_comb: bool,
-    ):
+    ) -> None:
         """
-        Combine visibilities by reading visiblity_files into combined_vis_filepath
+        Combines visibilities and writes them into into `combined_vis_filepath`.
         Args:
-        some_arg:
-                number_of_days: int,
-                visiblity_files: list,
-                combined_vis_filepath: str,
-                day_comb: bool,
-        Returns:
-        Combined vis
+            number_of_days: int,
+            visiblity_files: list,
+            combined_vis_filepath: str,
+            day_comb: bool,
         """
         print("### Combining the visibilities for ", visiblity_files)
         out_vis = [0] * number_of_days
