@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import os
 import os.path
 import shutil
+from typing import List
 
 import numpy as np
 import oskar
@@ -10,7 +13,7 @@ from karabo.util.FileHandle import FileHandle
 
 
 class Visibility(KaraboResource):
-    def __init__(self):
+    def __init__(self) -> None:
         self.file = FileHandle(is_dir=True, suffix=".ms")
 
     def write_to_file(self, path: str) -> None:
@@ -19,15 +22,17 @@ class Visibility(KaraboResource):
         shutil.copytree(self.file.path, path)
 
     @staticmethod
-    def read_from_file(path: str) -> any:
+    def read_from_file(path: str) -> Visibility:
         file = FileHandle(path, is_dir=True)
         vis = Visibility()
         vis.file = file
         return vis
 
     def combine_spectral_foreground_vis(
-        foreground_vis_file, spectral_vis_output, combined_vis_filepath
-    ):
+        foreground_vis_file: str,
+        spectral_vis_output: List[str],
+        combined_vis_filepath: str,
+    ) -> None:
         """
         This function combines the visibilities of foreground and spectral lines
         Inputs: foreground visibility file, list of spectral line vis files,
@@ -114,45 +119,6 @@ class Visibility(KaraboResource):
             fg_header.num_channels_total,
             fg_block.num_baselines,
             fcc_array,
-        )
-
-    def simulate_foreground_vis(
-        simulation,
-        telescope,
-        foreground,
-        foreground_observation,
-        foreground_vis_file,
-        write_ms,
-        foreground_ms_file,
-    ):
-        """
-        Simulates foreground sources
-        """
-        print("### Simulating foreground source....")
-        visibility = simulation.run_simulation(
-            telescope, foreground, foreground_observation
-        )
-        (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
-        foreground_cross_correlation = [0] * fg_header.num_blocks
-        # fg_max_channel=fg_header.max_channels_per_block;
-        for i in range(fg_header.num_blocks):
-            fg_block = oskar.VisBlock.create_from_header(fg_header)
-            fg_block.read(fg_header, fg_handle, i)
-            foreground_cross_correlation[i] = fg_block.cross_correlations()
-        ff_uu = fg_block.baseline_uu_metres()
-        ff_vv = fg_block.baseline_vv_metres()
-        ff_ww = fg_block.baseline_ww_metres()
-        if write_ms:
-            visibility.write_to_file(foreground_ms_file)
-        return (
-            visibility,
-            foreground_cross_correlation,
-            fg_header,
-            fg_handle,
-            fg_block,
-            ff_uu,
-            ff_vv,
-            ff_ww,
         )
 
     @staticmethod
