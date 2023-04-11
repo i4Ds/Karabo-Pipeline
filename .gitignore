@@ -93,6 +93,7 @@ karabo/test/data/*
 result/*
 karabo/result/*
 karabo/examples/result/*
+karabo/examples/karabo/test/data/results/*
 
 # Vscode
 .vscode/*
@@ -100,4 +101,3 @@ karabo/examples/result/*
 
 # Slurm logs
 **.out
-
