@@ -1,9 +1,16 @@
+from typing import Any, Dict, Generator, Tuple, Union
+
 import h5py as h5
 import healpy as hp
 import numpy as np
+from h5py._hl.base import KeysViewHDF5
+from numpy.typing import NDArray
 
 
-def h5_diter(g, prefix=""):
+def h5_diter(
+    g: Dict[str, Union[h5.Dataset, h5.Group]],
+    prefix: str = "",
+) -> Generator[Tuple[str, h5.Dataset], Any, Any]:
     """
     Get the data elements from the hdf5 datasets and groups
     Input: HDF5 file
@@ -17,7 +24,7 @@ def h5_diter(g, prefix=""):
             yield from h5_diter(item, path)
 
 
-def print_hd5_object_and_keys(hdffile):
+def print_hd5_object_and_keys(hdffile: Any) -> Tuple[h5.File, KeysViewHDF5]:
     """
     Read HDF5 file
     Returns: HDF Object, relavent keys
@@ -28,7 +35,7 @@ def print_hd5_object_and_keys(hdffile):
     return f, f.keys()
 
 
-def get_healpix_image(hdffile):
+def get_healpix_image(hdffile: Any) -> Any:
     """
     Get index maps, maps and frequency from HDF5 file
     """
@@ -42,7 +49,7 @@ def get_healpix_image(hdffile):
     return mapp
 
 
-def get_vis_from_hdf5(hdffile):
+def get_vis_from_hdf5(hdffile: Any) -> Any:
     """
     Get index maps, maps and frequency from HDF5 file
     """
@@ -54,7 +61,7 @@ def get_vis_from_hdf5(hdffile):
     return vis
 
 
-def convert_healpix_2_radec(arr):
+def convert_healpix_2_radec(arr: NDArray[Any]) -> Tuple[np.float64, np.float64, int]:
     """
     Convert array from healpix to 2-D array of RADEC
     :param arr:
