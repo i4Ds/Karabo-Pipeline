@@ -148,7 +148,9 @@ if __name__ == "__main__":
     number_of_days = 3
     hours_per_day = 4
     enable_array_beam = False
-    vis_path = "./karabo/test/data"
+    vis_path = "./karabo/test/data/results"
+    if not os.path.exists(vis_path):
+        os.makedirs(vis_path)
     combined_vis_filepath = os.path.join(vis_path, "combined_vis.ms")
     xcstfile_path = os.path.join(vis_path, "cst_like_beam_port_1.txt")
     ycstfile_path = os.path.join(vis_path, "cst_like_beam_port_2.txt")
@@ -165,7 +167,7 @@ if __name__ == "__main__":
     observation_long = ObservationLong(
         mode="Tracking",
         phase_centre_ra_deg=20.0,
-        start_date_and_time=datetime(2000, 1, 1, 11, 00, 00, 521489),
+        start_date_and_time=datetime(2001, 1, 1, 11, 00, 00, 521489),
         length=timedelta(hours=hours_per_day, minutes=0, seconds=0, milliseconds=0),
         phase_centre_dec_deg=-30.0,
         number_of_time_steps=7,
@@ -215,6 +217,7 @@ if __name__ == "__main__":
         observation=observation_long,
     )
 
+    print(visiblity_files)
     # visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
     # ---------- Combine the Visibilties --------------
     # visiblity_files= [

@@ -14,6 +14,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util.FileHandle import FileHandle
+from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
 
 
 class CorrelationType(enum.Enum):
@@ -262,14 +263,14 @@ class InterferometerSimulation:
 
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
+
         os_sky = sky.get_OSKAR_sky(precision=self.precision)
 
-        # To convert to a numpy array
-        array_sky = os_sky.to_array()
-        split_array_sky = None
-
         if self.client is not None:
-            print(array_sky.shape)
+            # To convert to a numpy array
+            array_sky = os_sky.to_array()
+            split_array_sky = None
+
             if self.split_idxs_per_group:
                 split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
             elif self.split_sky_for_dask_by == "frequency":
@@ -288,34 +289,76 @@ class InterferometerSimulation:
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
 
-                # Create list with the ranks to split on
-                spacing = np.ceil(frequencies["rank"].iloc[-1] / N).astype(int)
-                split_ranks = [0 + spacing * i for i in range(N)]
+                while True:
+                    # Create list with the ranks to split on
+                    spacing = np.ceil(frequencies["rank"].iloc[-1] / N).astype(int)
+                    split_ranks = [0 + spacing * i for i in range(N)]
 
-                # Split idxs
-                split_idxs = []
-                for i in range(len(split_ranks) - 1):
-                    split_idxs.append(
-                        frequencies[frequencies["rank"] == split_ranks[i + 1]].index[0]
-                    )
+                    # Split idxs
+                    split_idxs = []
+                    for i in range(len(split_ranks) - 1):
+                        split_idxs.append(
+                            frequencies[
+                                frequencies["rank"] == split_ranks[i + 1]
+                            ].index[0]
+                        )
 
-                # Split the array
-                split_array_sky = np.split(array_sky, split_idxs)
+                    # Split the array
+                    split_array_sky = np.split(array_sky, split_idxs)
+
+                    # Check that a split still fits in gpu memory and if not
+                    # increase the number of splits
+                    if is_cuda_available() and self.max_vram_usage_gpu:
+                        max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
+                        # Check if the first split is bigger than the max vram usage
+                        if split_array_sky[0].nbytes / 1024**2 > max_vram_usage_gpu:
+                            N += 1
+                        else:
+                            break
+                    else:
+                        break
+
             else:
                 raise ValueError(
                     "Unknown split_sky_for_dask_by value. "
                     "Please use 'frequency' or 'group'."
                 )
 
-        if split_array_sky is None:
-            split_array_sky = [array_sky]
+        # Run the simulation on the dask cluster
+        if self.client is not None:
+            futures = []
+            for sky_ in split_array_sky:
+                sky_ = oskar.Sky.from_array(sky_, precision=self.precision)
+                futures.append(
+                    self.client.submit(
+                        self.__run_simulation_oskar,
+                        setting_tree,
+                        sky_,
+                    )
+                )
+            results = self.client.gather(futures)
+            # TODO: Combine visibilities here
+            return results
 
-        for sky_ in split_array_sky:
-            sky_ = oskar.Sky.from_array(sky_, precision=self.precision)
-            simulation = oskar.Interferometer(settings=setting_tree)
-            simulation.set_sky_model(sky_)
-            simulation.run()
+        # Run the simulation on the local machine
+        else:
+            return self.__run_simulation_oskar(setting_tree, os_sky)
 
+    def __run_simulation_oskar(self, setting_tree, os_sky):
+        """
+        Run a single interferometer simulation with a given sky,
+        telescope and observation settings.
+        :param setting_tree: OSKAR settings tree
+        :param os_sky: OSKAR sky model as np.array or oskar.Sky
+        """
+        # Create a visibility object
+        simulation = oskar.Interferometer(settings=setting_tree)
+        if isinstance(os_sky, np.ndarray):
+            os_sky = oskar.Sky.from_array(os_sky, precision=self.precision)
+        simulation.set_sky_model(os_sky)
+        simulation.run()
+
+        # Convert to a Visibility object
         return self.ms_file
 
     def __run_simulation_long(
@@ -337,10 +380,11 @@ class InterferometerSimulation:
         for i, current_date in enumerate(
             pd.date_range(
                 observation.start_date_and_time, periods=observation.number_of_days
-            ).to_pydatetime(),
+            ),
             1,
         ):
-            # Convert to datetime
+            # Convert to date
+            current_date = current_date.date()
             print(f"Observing Day: {i}. Date: {current_date}")
 
             # Copy sky model and initiate new telescope
