@@ -9,7 +9,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import PyBDSFSourceDetectionResult
-from karabo.util.dask import setup_dask_for_slurm
+from karabo.util.dask import dask_cleanup, setup_dask_for_slurm
 
 
 def create_random_sources(num_sources, ranges=None):
@@ -158,7 +158,7 @@ def main(n_random_sources):
 
     # Give out time
     print("Total time taken: (minutes)", (time.time() - start) / 60)
-
+    dask_cleanup
 
 if __name__ == "__main__":
     main(n_random_sources=30)

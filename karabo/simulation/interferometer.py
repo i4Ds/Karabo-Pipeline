@@ -310,9 +310,13 @@ class InterferometerSimulation:
                     # increase the number of splits
                     if is_cuda_available() and self.max_vram_usage_gpu:
                         max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
+
                         # Check if the first split is bigger than the max vram usage
-                        if split_array_sky[0].nbytes / 1024**2 > max_vram_usage_gpu:
-                            N += 1
+                        ratio_vram_usage = split_array_sky[0].nbytes / 1024**2 > max_vram_usage_gpu
+
+                        # If that is the case, increase the number of splits
+                        if ratio_vram_usage > 1:
+                            N += int(np.ceil(ratio_vram_usage))
                         else:
                             break
                     else:

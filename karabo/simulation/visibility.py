@@ -198,7 +198,6 @@ class Visibility(KaraboResource):
             time_inc[j] = header.time_inc_sec
             time_start[j] = header.time_start_mjd_utc
             time_ave[j] = header.get_time_average_sec()
-            print(uui[j].shape, out_vis[j].shape, number_of_days)
         # uushape = uu.shape
         # uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
         # vv = np.array(vvi).swapaxes(0, 1)
@@ -254,13 +253,6 @@ class Visibility(KaraboResource):
 
         if day_comb is not True:
             num_times = out_vis[j].shape[0] * number_of_days
-            print(
-                num_times,
-                out_vis[j].shape,
-                uui[j].shape,
-                block.num_baselines,
-                np.array(time_inc).shape,
-            )
             us = np.array(uui).shape
             outs = np.array(out_vis).shape
             uuf = np.array(uui).reshape(us[0] * us[1], us[2])

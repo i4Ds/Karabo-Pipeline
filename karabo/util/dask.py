@@ -1,14 +1,13 @@
 import os
 import sys
 import time
-from datetime import datetime
-from subprocess import PIPE, Popen, call
+from subprocess import call
 
 import psutil
 from distributed import Client, LocalCluster
 
-from karabo.error import NodeTermination
-
+SCHEDULER_ADDRESS = "scheduler_address.json"
+STOP_WORKER_FILE = "stop_workers"
 
 def get_global_client(
     min_ram_gb_per_worker: int = 2, threads_per_worker: int = 1
@@ -44,15 +43,20 @@ def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
 
 def dask_cleanup(client: Client):
     # Create the stop_workers file
-    with open("stop_workers", "w") as f:
+    with open(STOP_WORKER_FILE, "w") as f:
         pass
 
     # Give some time for the workers to exit before closing the client
     time.sleep(10)
 
     # Remove the stop_workers file
-    if os.path.exists("stop_workers"):
-        os.remove("stop_workers")
+    if os.path.exists(STOP_WORKER_FILE):
+        os.remove(STOP_WORKER_FILE)
+
+    # Remove the scheduler file
+    if os.path.exists(SCHEDULER_ADDRESS):
+        os.remove(SCHEDULER_ADDRESS)
+
     client.close()
 
 def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
@@ -64,18 +68,17 @@ def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
     else:
         if is_first_node():
             # Remove old scheduler file
-            if os.path.exists("scheduler.json"):
-                os.remove("scheduler.json")
+            if os.path.exists(SCHEDULER_ADDRESS):
+                os.remove(SCHEDULER_ADDRESS)
 
             # Create client and scheduler
-            print(create_node_list_except_first())
             cluster = LocalCluster(
                 ip=get_lowest_node_name(), n_workers=number_of_workers_on_scheduler_node
             )
             client = Client(cluster)
 
             # Write scheduler file
-            with open("scheduler.json", "w") as f:
+            with open(SCHEDULER_ADDRESS, "w") as f:
                 f.write(cluster.scheduler_address)
 
             # Wait until all workers are connected
@@ -91,12 +94,12 @@ def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
             time.sleep(5)
 
             # Wait until scheduler file is created
-            while not os.path.exists("scheduler.json"):
+            while not os.path.exists(SCHEDULER_ADDRESS):
                 print("Waiting for scheduler file to be created.")
                 time.sleep(5)
 
             # Read scheduler file
-            with open("scheduler.json", "r") as f:
+            with open(SCHEDULER_ADDRESS, "r") as f:
                 scheduler_address = f.read()
 
             # Create client
@@ -104,7 +107,7 @@ def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
             
             # Run until stop_workers file is created
             while True:
-                if os.path.exists("stop_workers"):
+                if os.path.exists(STOP_WORKER_FILE):
                     print("Stop workers file detected. Exiting.")
                     sys.exit(0)
                 time.sleep(5)
