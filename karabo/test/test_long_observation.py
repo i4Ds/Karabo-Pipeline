@@ -140,4 +140,3 @@ class TestOskarLongObservation(unittest.TestCase):
         imager.get_dirty_image()
         # dirty.write_to_file("./test/result/beam/beam_vis.fits",overwrite=True)
         # dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
-
