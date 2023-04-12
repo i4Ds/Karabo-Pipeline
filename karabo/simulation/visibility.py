@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import os
 import os.path
 import shutil
+from typing import List
 
 import numpy as np
 import oskar
+from numpy.typing import NDArray
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle
@@ -12,6 +16,7 @@ from karabo.util.FileHandle import FileHandle
 class Visibility(KaraboResource):
     def __init__(self, path: str = None):
         self.file = FileHandle(dir=path, suffix=".ms")
+
 
     def write_to_file(self, path: str) -> None:
         # Remove if file or folder already exists
@@ -29,9 +34,12 @@ class Visibility(KaraboResource):
         vis.file = file
         return vis
 
+    @staticmethod
     def combine_spectral_foreground_vis(
-        foreground_vis_file, spectral_vis_output, combined_vis_filepath
-    ):
+        foreground_vis_file: str,
+        spectral_vis_output: List[str],
+        combined_vis_filepath: str,
+    ) -> None:
         """
         This function combines the visibilities of foreground and spectral lines
         Inputs: foreground visibility file, list of spectral line vis files,
@@ -39,19 +47,19 @@ class Visibility(KaraboResource):
         """
         print("#--- Performing visibilities combination...")
         (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
-        foreground_cross_correlation = [0] * fg_header.num_blocks
+        foreground_cross_correlation: List[NDArray[np.complex64]] = list()
         fg_chan = [0] * fg_header.num_blocks
         foreground_freq = fg_header.freq_start_hz + fg_header.freq_inc_hz * np.arange(
             fg_header.num_channels_total
         )
         nvis = len(spectral_vis_output)
-        out_vis = [0] * nvis
+        out_vis: List[List[NDArray[np.complex64]]] = list()
         # fg_max_channel=fg_header.max_channels_per_block;
         for i in range(fg_header.num_blocks):
             fg_block = oskar.VisBlock.create_from_header(fg_header)
             fg_block.read(fg_header, fg_handle, i)
             fg_chan[i] = fg_block.num_channels
-            foreground_cross_correlation[i] = fg_block.cross_correlations()
+            foreground_cross_correlation.append(fg_block.cross_correlations())
         ff_uu = fg_block.baseline_uu_metres()
         ff_vv = fg_block.baseline_vv_metres()
         ff_ww = fg_block.baseline_ww_metres()
@@ -66,11 +74,11 @@ class Visibility(KaraboResource):
                 )[0]
             )
             print(spec_freq, spec_idx)
-            out_vis[j] = [0] * sp_header.num_blocks
+            out_vis.append(list())
             for k in range(sp_header.num_blocks):
                 sp_block = oskar.VisBlock.create_from_header(sp_header)
                 sp_block.read(sp_header, sp_handle, k)
-                out_vis[j][k] = sp_block.cross_correlations()
+                out_vis[j].append(sp_block.cross_correlations())
             block_num = int(spec_idx / fg_header.max_channels_per_block)
             chan_block_num = int(
                 spec_idx - block_num * fg_header.max_channels_per_block
@@ -120,84 +128,43 @@ class Visibility(KaraboResource):
             fcc_array,
         )
 
-    def simulate_foreground_vis(
-        simulation,
-        telescope,
-        foreground,
-        foreground_observation,
-        foreground_vis_file,
-        write_ms,
-        foreground_ms_file,
-    ):
-        """
-        Simulates foreground sources
-        """
-        print("### Simulating foreground source....")
-        visibility = simulation.run_simulation(
-            telescope, foreground, foreground_observation
-        )
-        (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
-        foreground_cross_correlation = [0] * fg_header.num_blocks
-        # fg_max_channel=fg_header.max_channels_per_block;
-        for i in range(fg_header.num_blocks):
-            fg_block = oskar.VisBlock.create_from_header(fg_header)
-            fg_block.read(fg_header, fg_handle, i)
-            foreground_cross_correlation[i] = fg_block.cross_correlations()
-        ff_uu = fg_block.baseline_uu_metres()
-        ff_vv = fg_block.baseline_vv_metres()
-        ff_ww = fg_block.baseline_ww_metres()
-        if write_ms:
-            visibility.write_to_file(foreground_ms_file)
-        return (
-            visibility,
-            foreground_cross_correlation,
-            fg_header,
-            fg_handle,
-            fg_block,
-            ff_uu,
-            ff_vv,
-            ff_ww,
-        )
-
     @staticmethod
     def combine_vis(
         number_of_days: int,
-        visiblity_files: list,
+        visiblity_files: List[str],
         combined_vis_filepath: str,
         day_comb: bool,
-    ):
+    ) -> None:
         """
-        Combine visibilities by reading visiblity_files into combined_vis_filepath
+        Combines visibilities and writes them into into `combined_vis_filepath`.
         Args:
-        some_arg:
-                number_of_days: int,
-                visiblity_files: list,
-                combined_vis_filepath: str,
-                day_comb: bool,
-        Returns:
-        Combined vis
+            number_of_days: int,
+            visiblity_files: list,
+            combined_vis_filepath: str,
+            day_comb: bool,
         """
         print("### Combining the visibilities for ", visiblity_files)
-        out_vis = [0] * number_of_days
-        uui = [0] * number_of_days
-        vvi = [0] * number_of_days
-        wwi = [0] * number_of_days
-        time_start = [0] * number_of_days
-        time_inc = [0] * number_of_days
-        time_ave = [0] * number_of_days
-        # for j in tqdm(range(number_of_days)):
+
+        out_vis: List[NDArray[np.complex_]] = list()
+        uui: List[NDArray[np.float_]] = list()
+        vvi: List[NDArray[np.float_]] = list()
+        wwi: List[NDArray[np.float_]] = list()
+        time_start = list()
+        time_inc = list()
+        time_ave = list()
         for j in range(number_of_days):
             (header, handle) = oskar.VisHeader.read(visiblity_files[j])
             block = oskar.VisBlock.create_from_header(header)
             for k in range(header.num_blocks):
                 block.read(header, handle, k)
-            out_vis[j] = block.cross_correlations()
-            uui[j] = block.baseline_uu_metres()
-            vvi[j] = block.baseline_vv_metres()
-            wwi[j] = block.baseline_ww_metres()
-            time_inc[j] = header.time_inc_sec
-            time_start[j] = header.time_start_mjd_utc
-            time_ave[j] = header.get_time_average_sec()
+            out_vis.append(block.cross_correlations())
+            uui.append(block.baseline_uu_metres())
+            vvi.append(block.baseline_vv_metres())
+            wwi.append(block.baseline_ww_metres())
+            time_inc.append(header.time_inc_sec)
+            time_start.append(header.time_start_mjd_utc)
+            time_ave.append(header.get_time_average_sec())
+            print(uui[j].shape, out_vis[j].shape, number_of_days)
         # uushape = uu.shape
         # uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
         # vv = np.array(vvi).swapaxes(0, 1)
@@ -258,7 +225,7 @@ class Visibility(KaraboResource):
             uuf = np.array(uui).reshape(us[0] * us[1], us[2])
             vvf = np.array(vvi).reshape(us[0] * us[1], us[2])
             wwf = np.array(wwi).reshape(us[0] * us[1], us[2])
-            out_vis = np.array(out_vis).reshape(
+            out_vis_reshaped = np.array(out_vis).reshape(
                 outs[0] * outs[1], outs[2], outs[3], outs[4]
             )
             for t in range(num_times):
@@ -280,5 +247,9 @@ class Visibility(KaraboResource):
                     time_stamp,
                 )
                 ms.write_vis(
-                    start_row, 0, block.num_channels, block.num_baselines, out_vis[t]
+                    start_row,
+                    0,
+                    block.num_channels,
+                    block.num_baselines,
+                    out_vis_reshaped[t],
                 )

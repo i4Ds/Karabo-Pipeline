@@ -161,8 +161,7 @@ class TestSystemNoise(unittest.TestCase):
             ff_uu,
             ff_vv,
             ff_ww,
-        ) = Visibility.simulate_foreground_vis(
-            simulation,
+        ) = simulation.simulate_foreground_vis(
             telescope,
             foreground,
             foreground_observation,

@@ -15,6 +15,7 @@ from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle, check_ending
+from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,
 # because rascil sets it to Agg (non-GUI)
@@ -115,14 +116,7 @@ class Image(KaraboResource):
             wcs = WCS(self.header)
             print(wcs)
 
-            slices: List[str] = []
-            for i in range(wcs.pixel_n_dim):
-                if i == 0:
-                    slices.append("x")
-                elif i == 1:
-                    slices.append("y")
-                else:
-                    slices.append(0)  # type: ignore
+            slices = get_slices(wcs=wcs)
 
             # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
