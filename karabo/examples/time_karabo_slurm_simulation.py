@@ -2,13 +2,10 @@ import time
 
 import numpy as np
 
-from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
-from karabo.sourcedetection.result import PyBDSFSourceDetectionResult
 from karabo.util.dask import dask_cleanup, setup_dask_for_slurm
 
 
@@ -88,12 +85,9 @@ def main(n_random_sources):
     interferometer_sim = InterferometerSimulation(
         channel_bandwidth_hz=1e6, client=DASK_CLIENT, split_sky_for_dask_by="frequency"
     )
-    visibility_askap = interferometer_sim.run_simulation(
-        telescope, sky, observation_settings
-    )
+    _ = interferometer_sim.run_simulation(telescope, sky, observation_settings)
 
     print(f"Time take for simulation: {(time.time() - start) / 60} minutes")
-
 
     # Cleanups
     dask_cleanup(DASK_CLIENT)

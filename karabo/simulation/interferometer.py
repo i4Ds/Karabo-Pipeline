@@ -1,12 +1,13 @@
 import enum
 import os
 from copy import deepcopy
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import oskar
 import pandas as pd
-from distributed import Client
+from dask.distributed import Client
+from numpy.typing import NDArray
 
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
@@ -439,6 +440,52 @@ class InterferometerSimulation:
             visibility.write_to_file(ms_files)
         print("Done with simulation.")
         return visiblity_files
+
+    def simulate_foreground_vis(
+        self,
+        telescope: Telescope,
+        foreground: SkyModel,
+        foreground_observation: Observation,
+        foreground_vis_file: str,
+        write_ms: bool,
+        foreground_ms_file: str,
+    ) -> Tuple[
+        Visibility,
+        List[NDArray[np.complex64]],
+        oskar.VisHeader,
+        oskar.Binary,
+        oskar.VisBlock,
+        NDArray[np.float32],
+        NDArray[np.float32],
+        NDArray[np.float32],
+    ]:
+        """
+        Simulates foreground sources
+        """
+        print("### Simulating foreground source....")
+        visibility = self.run_simulation(telescope, foreground, foreground_observation)
+        (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
+        foreground_cross_correlation = [0.0] * fg_header.num_blocks
+        # fg_max_channel=fg_header.max_channels_per_block;
+        for i in range(fg_header.num_blocks):
+            fg_block = oskar.VisBlock.create_from_header(fg_header)
+            fg_block.read(fg_header, fg_handle, i)
+            foreground_cross_correlation[i] = fg_block.cross_correlations()
+        ff_uu = fg_block.baseline_uu_metres()
+        ff_vv = fg_block.baseline_vv_metres()
+        ff_ww = fg_block.baseline_ww_metres()
+        if write_ms:
+            visibility.write_to_file(foreground_ms_file)
+        return (
+            visibility,
+            foreground_cross_correlation,
+            fg_header,
+            fg_handle,
+            fg_block,
+            ff_uu,
+            ff_vv,
+            ff_ww,
+        )
 
     def yes_double_precision(self):
         return self.precision != "single"
