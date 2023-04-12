@@ -1,4 +1,3 @@
-import sys
 import time
 
 import numpy as np
@@ -160,6 +159,7 @@ def main(n_random_sources):
     # Give out time
     print("Total time taken: (minutes)", (time.time() - start) / 60)
     dask_cleanup
+
 
 if __name__ == "__main__":
     main(n_random_sources=30)
