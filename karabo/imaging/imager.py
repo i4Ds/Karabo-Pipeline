@@ -287,7 +287,7 @@ class Imager:
 
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
-        file_handle_deconvolved = FileHandle()
+        file_handle_deconvolved = FileHandle(file_name="deconvolved", suffix=".fits")
         deconvolved_image_rascil.image_acc.export_to_fits(
             fits_file=file_handle_deconvolved.path
         )
@@ -295,14 +295,14 @@ class Imager:
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
-        file_handle_restored = FileHandle()
+        file_handle_restored = FileHandle(file_name="restored", suffix=".fits")
         restored.image_acc.export_to_fits(fits_file=file_handle_restored.path)
         restored_image = Image(path=file_handle_restored.path)
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
-        file_handle_residual = FileHandle()
+        file_handle_residual = FileHandle(file_name="residual", suffix=".fits")
         residual.image_acc.export_to_fits(fits_file=file_handle_residual.path)
         residual_image = Image(path=file_handle_residual.path)
 

@@ -187,7 +187,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         functions on PyBDSF results
         :param bdsf_detection: PyBDSF result image
         """
-        sources_file = FileHandle()
+        sources_file = FileHandle(file_name="sources", suffix=".csv")
         bdsf_detection.write_catalog(
             outfile=sources_file.path, catalog_type="gaul", format="csv", clobber=True
         )
@@ -222,7 +222,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         return sources
 
     def __get_result_image(self, image_type: str, **kwargs) -> Image:
-        file_handle = FileHandle()
+        file_handle = FileHandle(file_name="result", suffix=".fits")
         self.bdsf_result.export_image(
             outfile=file_handle.path,
             img_format="fits",
