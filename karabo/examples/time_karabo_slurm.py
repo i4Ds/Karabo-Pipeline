@@ -1,4 +1,3 @@
-import sys
 import time
 
 import numpy as np
@@ -162,6 +161,7 @@ def main(n_random_sources):
 
     # Cleanup
     dask_cleanup()
+
 
 if __name__ == "__main__":
     main(n_random_sources=30)

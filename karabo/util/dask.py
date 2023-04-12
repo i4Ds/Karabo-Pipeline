@@ -9,6 +9,7 @@ from dask.distributed import Client, LocalCluster
 SCHEDULER_ADDRESS = "scheduler_address.json"
 STOP_WORKER_FILE = "stop_workers"
 
+
 def get_global_client(
     min_ram_gb_per_worker: int = 2, threads_per_worker: int = 1
 ) -> Client:
@@ -43,7 +44,7 @@ def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
 
 def dask_cleanup(client: Client):
     # Create the stop_workers file
-    with open(STOP_WORKER_FILE, "w") as f:
+    with open(STOP_WORKER_FILE, "w") as _:
         pass
 
     # Give some time for the workers to exit before closing the client
@@ -62,10 +63,10 @@ def dask_cleanup(client: Client):
 
 def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
     # Detect if we are on a slurm cluster
-    if not is_on_slurm_cluster or os.getenv("SLURM_JOB_NUM_NODES") == "1":
+    if not is_on_slurm_cluster() or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
         return None
-    
+
     else:
         if is_first_node():
             # Remove old scheduler file
@@ -88,7 +89,8 @@ def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
                 print(
                     f"Waiting for all workers to connect. Currently "
                     f"{len(client.scheduler_info()['workers'])} "
-                    f"workers connected of {n_workers_requested} requested.")
+                    f"workers connected of {n_workers_requested} requested."
+                )
                 time.sleep(5)
 
             print(f"All {len(client.scheduler_info()['workers'])} workers connected!")
@@ -108,15 +110,14 @@ def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
                 scheduler_address = f.read()
 
             # Create client
-            call(['dask', 'worker', scheduler_address])
-            
+            call(["dask", "worker", scheduler_address])
+
             # Run until stop_workers file is created
             while True:
                 if os.path.exists(STOP_WORKER_FILE):
                     print("Stop workers file detected. Exiting.")
                     sys.exit(0)
                 time.sleep(5)
-            
 
 
 def get_min_max_of_node_id():
@@ -150,14 +151,22 @@ def get_number_of_nodes():
 
 def create_node_list_except_first():
     """
-    Returns a list of all nodes except the first one to pass to SLURM 
+    Returns a list of all nodes except the first one to pass to SLURM
     Example: node[2-4] if there are 4 nodes or node[2] if there are 2 nodes
     """
     min_node, max_node = get_min_max_of_node_id()
     if get_number_of_nodes() == 2:
         return get_base_string_node_list() + "[" + str(min_node + 1) + "]"
-    
-    return get_base_string_node_list() + "[" + str(min_node + 1) + "-" + str(max_node) + "]"
+
+    return (
+        get_base_string_node_list()
+        + "["
+        + str(min_node + 1)
+        + "-"
+        + str(max_node)
+        + "]"
+    )
+
 
 def get_node_id():
     len_id = len(str(get_lowest_node_id()))
