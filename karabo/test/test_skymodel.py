@@ -93,7 +93,7 @@ class TestSkyModel(unittest.TestCase):
             0,
             Polarisation.STOKES_I,
         )
-        sky = SkyModel(source_array, nside=nside)
+        sky = SkyModel(source_array)
         sky.explore_sky([250, -80])
 
     def test_get_poisson_sky(self):

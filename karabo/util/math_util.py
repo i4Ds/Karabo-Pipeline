@@ -1,35 +1,42 @@
 import math
 from math import ceil, cos, floor, pi, sin, sqrt
-from typing import Tuple
+from typing import List, Literal, Tuple, Union, cast
 
 import numpy as np
+from numpy.typing import NDArray
+
+from karabo.util.my_types import FloatLike, NPFloatLike
 
 
-def euclidean_distance(a, b):
-    dx = a[0] - b[0]
-    dy = a[1] - b[1]
-    return sqrt(dx * dx + dy * dy)
-
-
-def poisson_disc_samples(width, height, r, k=5, distance=euclidean_distance):
+def poisson_disc_samples(
+    width: FloatLike,
+    height: FloatLike,
+    r: int,
+    k: int = 5,
+    ord: Union[None, float, Literal["fro", "nuc"]] = None,
+) -> List[Tuple[float, float]]:
     tau = 2 * pi
     cellsize = r / sqrt(2)
     random = np.random.rand
     grid_width = int(ceil(width / cellsize))
     grid_height = int(ceil(height / cellsize))
-    grid = [None] * (grid_width * grid_height)
+    grid = [(np.inf, np.inf)] * (grid_width * grid_height)
 
-    def grid_coords(p):
+    def grid_coords(p: Tuple[float, float]) -> Tuple[int, int]:
         return int(floor(p[0] / cellsize)), int(floor(p[1] / cellsize))
 
-    def fits(p, gx, gy):
+    def fits(
+        p: Tuple[float, float],
+        gx: int,
+        gy: int,
+    ) -> bool:
         yrange = list(range(max(gy - 2, 0), min(gy + 3, grid_height)))
         for x in range(max(gx - 2, 0), min(gx + 3, grid_width)):
             for y in yrange:
                 g = grid[x + y * grid_width]
-                if g is None:
+                if g == (np.inf, np.inf):
                     continue
-                if distance(p, g) <= r:
+                if np.linalg.norm(np.array(p) - np.array(g), ord=ord) <= r:
                     return False
         return True
 
@@ -56,23 +63,24 @@ def poisson_disc_samples(width, height, r, k=5, distance=euclidean_distance):
                 continue
             queue.append(p)
             grid[grid_x + grid_y * grid_width] = p
-    return [p for p in grid if p is not None]
+    grid = [p for p in grid if p != (np.inf, np.inf)]
+    return grid
 
 
 def get_poisson_disk_sky(
-    min_size: Tuple[float, float],
-    max_size: Tuple[float, float],
-    flux_min: float,
-    flux_max: float,
-    r=10,
-):
+    min_size: Tuple[FloatLike, FloatLike],
+    max_size: Tuple[FloatLike, FloatLike],
+    flux_min: FloatLike,
+    flux_max: FloatLike,
+    r: int = 10,
+) -> NDArray[np.float_]:
     assert flux_max >= flux_min
     x = min_size[0]
     y = min_size[1]
     X = max_size[0]
     Y = max_size[1]
-    width = abs(X - x)
-    height = abs(Y - y)
+    width = cast(FloatLike, abs(X - x))
+    height = cast(FloatLike, abs(Y - y))
     center_x = x + (X - x) * 0.5
     center_y = y + (Y - y) * 0.5
     samples = poisson_disc_samples(width, height, r)
@@ -88,12 +96,15 @@ def get_poisson_disk_sky(
 
 
 #
-def long_lat_to_cartesian(lat, lon):
-    lat, lon = np.deg2rad(lat), np.deg2rad(lon)
-    x = R * cos(lat) * cos(lon)
-    y = R * cos(lat) * sin(lon)
-    z = R * sin(lat)
-    return np.array([x, y, z]) / np.linalg.norm(np.array([x, y, z]))
+def long_lat_to_cartesian(lat: NPFloatLike, lon: NPFloatLike) -> NDArray[np.float_]:
+    lat_, lon_ = np.deg2rad(lat), np.deg2rad(lon)
+    x = R * cos(lat_) * cos(lon_)
+    y = R * cos(lat_) * sin(lon_)
+    z = R * sin(lat_)
+    out = cast(
+        NDArray[np.float_], np.array([x, y, z]) / np.linalg.norm(np.array([x, y, z]))
+    )
+    return out
 
 
 #
@@ -107,7 +118,11 @@ def long_lat_to_cartesian(lat, lon):
 R = 6360000  # earth radius
 
 
-def cartesian_to_ll(x, y, z=0):
+def cartesian_to_ll(
+    x: FloatLike,
+    y: FloatLike,
+    z: int = 0,
+) -> Tuple[float, float]:
     # does not use `z`
     r = math.sqrt(x**2 + y**2)
     long = 180 * math.atan2(y, x) / math.pi

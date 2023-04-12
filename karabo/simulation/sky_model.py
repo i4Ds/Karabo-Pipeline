@@ -4,11 +4,10 @@ import copy
 import enum
 import logging
 import math
-from typing import Any, Callable, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
 import matplotlib.pyplot as plt
-import numpy
 import numpy as np
 import oskar
 import pandas as pd
@@ -25,6 +24,7 @@ from karabo.data.external_data import (
 from karabo.error import KaraboError
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
+from karabo.util.my_types import FloatLike, NPBroadcType
 from karabo.util.plotting_util import get_slices
 from karabo.warning import KaraboWarning
 
@@ -50,6 +50,9 @@ GLEAM_freq = Literal[
     220,
     227,
 ]
+
+SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_]]
+SetSkyItemType = Union[NPBroadcType, str]
 
 
 class Polarisation(enum.Enum):
@@ -82,11 +85,12 @@ class SkyModel:
 
     """
 
+    SOURCES_COLS = 13
+
     def __init__(
         self,
-        sources: Optional[NDArray[Any]] = None,
+        sources: Optional[SkySourcesType] = None,
         wcs: Optional[WCS] = None,
-        nside: int = 0,
     ) -> None:
         """
         Initialization of a new SkyModel
@@ -94,24 +98,21 @@ class SkyModel:
         :param sources: Adds point sources
         :param wcs: world coordinate system
         """
-        self.num_sources = 0
-        self.shape = (0, 0)
-        self.sources = None
+        self.sources: Optional[SkySourcesType] = None
         self.wcs = wcs
-        self.sources_m = 13
         if sources is not None:
             self.add_point_sources(sources)
 
-    def __get_empty_sources(self, n_sources: int) -> NDArray[Any]:
+    def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
         empty_sources = np.hstack(
             (
-                np.zeros((n_sources, self.sources_m - 1)),
+                np.zeros((n_sources, SkyModel.SOURCES_COLS - 1)),
                 np.array([[None] * n_sources]).reshape(-1, 1),
             )
         )
         return empty_sources
 
-    def add_point_sources(self, sources: NDArray[Any]) -> None:
+    def add_point_sources(self, sources: SkySourcesType) -> None:
         """
         Add new point sources to the sky model.
 
@@ -134,21 +135,32 @@ class SkyModel:
             - [12] source id (object): defaults to None
 
         """
-        if len(sources.shape) > 2:
-            return
-        if 2 < sources.shape[1] < self.sources_m + 1:
-            if sources.shape[1] < self.sources_m:
-                # if some elements are missing,
-                # fill them up with zeros except `source_id`
-                missing_shape = self.sources_m - sources.shape[1]
-                fill = self.__get_empty_sources(sources.shape[0])
-                fill[:, :-missing_shape] = sources
-                sources = fill
-            if self.sources is not None:
-                self.sources = np.vstack((self.sources, sources))
-            else:
-                self.sources = sources
-            self.__update_sky_model()
+        if len(sources.shape) != 2:
+            raise ValueError(
+                "`sources` must be 2-dimensional but "
+                + f"is {len(sources.shape)}-dimensional."
+            )
+        if sources.shape[1] < 3:
+            raise ValueError(
+                "`sources` requires min 3 cols: `right_ascension`, "
+                + "`declination` and `stokes I Flux`."
+            )
+        if sources.shape[1] > SkyModel.SOURCES_COLS:
+            raise ValueError(
+                f"Max cols of `sources` is {SkyModel.SOURCES_COLS} "
+                + f"but got {sources.shape[1]}."
+            )
+        if sources.shape[1] < SkyModel.SOURCES_COLS:
+            # if some elements are missing,
+            # fill them up with zeros except `source_id`
+            missing_shape = SkyModel.SOURCES_COLS - sources.shape[1]
+            fill = self.__get_empty_sources(sources.shape[0])
+            fill[:, :-missing_shape] = sources
+            sources = fill
+        if self.sources is not None:
+            self.sources = np.vstack((self.sources, sources))  # type: ignore
+        else:
+            self.sources = sources
 
     def add_point_source(
         self,
@@ -165,7 +177,7 @@ class SkyModel:
         minor_axis_FWHM: float = 0,
         position_angle: float = 0,
         source_id: Optional[object] = None,
-    ):
+    ) -> None:
         """
         Add a single new point source to the sky model.
 
@@ -201,13 +213,12 @@ class SkyModel:
                     source_id,
                 ]
             ],
-            dtype=object,
+            dtype=np.object_,
         )
         if self.sources is not None:
-            self.sources = np.vstack(self.sources, new_sources)  # pyright: ignore
+            self.sources = np.vstack(self.sources, new_sources)  # type: ignore
         else:
             self.sources = new_sources
-        self.__update_sky_model()
 
     def write_to_file(self, path: str) -> None:
         self.save_sky_model_as_csv(path)
@@ -265,7 +276,7 @@ class SkyModel:
         sky = SkyModel(sources)
         return sky
 
-    def to_array(self, with_obj_ids: bool = False) -> NDArray[Any]:
+    def to_array(self, with_obj_ids: bool = False) -> SkySourcesType:
         """
         Gets the sources as np.ndarray
 
@@ -273,10 +284,14 @@ class SkyModel:
 
         :return: the sources of the SkyModel as np.ndarray
         """
+        if self.sources is None:
+            raise KaraboError(
+                "`sources` is None, add sources before calling `to_array`."
+            )
         if with_obj_ids:
-            return self[:]  # pyright: ignore
+            return self.sources
         else:
-            return self[:, :-1]  # pyright: ignore
+            return self.sources[:, :-1]
 
     def filter_by_radius(
         self,
@@ -298,6 +313,10 @@ class SkyModel:
         :return sky: Filtered copy of the sky
         """
         copied_sky = copy.deepcopy(self)
+        if copied_sky.sources is None:
+            raise KaraboError(
+                "`sources` is None, add sources before calling `filter_by_radius`."
+            )
         inner_circle = SphericalCircle(
             (ra0_deg * u.deg, dec0_deg * u.deg),
             inner_radius_deg * u.deg,  # pyright: ignore
@@ -311,7 +330,6 @@ class SkyModel:
         filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
         filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
-        copied_sky.__update_sky_model()
 
         if indices is True:
             return copied_sky, filtered_sources_idxs
@@ -322,38 +340,50 @@ class SkyModel:
         self,
         min_flux_jy: float,
         max_flux_jy: float,
-    ) -> None:
+    ) -> SkyModel:
         """
         Filters the sky using the Stokes-I-flux
         Values outside the range are removed
 
         :param min_flux_jy: Minimum flux in Jy
         :param max_flux_jy: Maximum flux in Jy
+        :return sky: Filtered copy of the sky
         """
-        stokes_I_flux = self[:, 2]
+        copied_sky = copy.deepcopy(self)
+        if copied_sky.sources is None:
+            raise KaraboError(
+                "`sources` is None, add sources before calling `filter_by_flux`."
+            )
+        stokes_I_flux = copied_sky[:, 2]
         filtered_sources_idxs = np.where(
             np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy)
         )[0]
-        self.sources = self.sources[filtered_sources_idxs]
-        self.__update_sky_model()
+        copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
+        return copied_sky
 
     def filter_by_frequency(
         self,
         min_freq: float,
         max_freq: float,
-    ) -> None:
+    ) -> SkyModel:
         """
         Filters the sky using the referency frequency in Hz
 
         :param min_freq: Minimum frequency in Hz
         :param max_freq: Maximum frequency in Hz
+        :return sky: Filtered copy of the sky
         """
-        freq = self[:, 6]
+        copied_sky = copy.deepcopy(self)
+        if copied_sky.sources is None:
+            raise KaraboError(
+                "`sources` is None, add sources before calling `filter_by_frequency`."
+            )
+        freq = copied_sky[:, 6]
         filtered_sources_idxs = np.where(
             np.logical_and(freq <= max_freq, freq >= min_freq)
         )[0]
-        self.sources = self.sources[filtered_sources_idxs]
-        self.__update_sky_model()
+        copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
+        return copied_sky
 
     def get_wcs(self) -> WCS:
         """
@@ -414,14 +444,14 @@ class SkyModel:
         title: Optional[str] = None,
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
-        cfun: Optional[Callable] = np.log10,
+        cfun: Optional[Callable[..., NPBroadcType]] = np.log10,
         cmap: Optional[str] = "plasma",
         cbar_label: Optional[str] = None,
         with_labels: bool = False,
         wcs: Optional[WCS] = None,
         wcs_enabled: bool = True,
         filename: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         A scatter plot of the `SkyModel` (self) where the sources
@@ -447,16 +477,12 @@ class SkyModel:
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`,
                        `vmin` or `vmax`
         """
-        if wcs is None and wcs_enabled:
-            wcs = self.setup_default_wcs(phase_center)
         if wcs_enabled:
+            if wcs is None:
+                wcs = self.setup_default_wcs(phase_center)
             px, py = wcs.wcs_world2pix(
                 self[:, 0], self[:, 1], 0
             )  # ra-dec transformation
-        else:
-            px, py = self[:, 0], self[:, 1]
-
-        if wcs_enabled:  # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
             if xlim is None and ylim is not None:
                 xlim = (-1, 1)
@@ -470,29 +496,31 @@ class SkyModel:
                 xlim = None
             if ylim_reset:
                 ylim = None
+        else:
+            px, py = self[:, 0], self[:, 1]
 
         flux = None
         if cmap is not None:
             flux = self[:, flux_idx]
-            if cfun in [np.log10, np.log] and any(flux <= 0):
-                warn(
-                    KaraboWarning(
-                        "Warning: flux with value <= 0 found, setting "
-                        "those to np.nan to avoid "
-                        "logarithmic errors (only affects the colorbar)"
-                    )
-                )
-
-                flux = np.where(flux > 0, flux, np.nan)
             if cfun is not None:
-                flux = cfun(flux)
+                if cfun in [np.log10, np.log] and any(flux <= 0):
+                    warn(
+                        KaraboWarning(
+                            "Warning: flux with value <= 0 found, setting "
+                            "those to np.nan to avoid "
+                            "logarithmic errors (only affects the colorbar)"
+                        )
+                    )
+
+                    flux = np.where(flux > 0, flux, np.nan)
+                flux = cfun(flux)  # type: ignore
 
         # handle matplotlib kwargs
         # not set as normal args because default assignment depends on args
         if "vmin" not in kwargs:
-            kwargs["vmin"] = np.nanmin(flux)
+            kwargs["vmin"] = np.nanmin(flux)  # type: ignore
         if "vmax" not in kwargs:
-            kwargs["vmax"] = np.nanmax(flux)
+            kwargs["vmax"] = np.nanmax(flux)  # type: ignore
 
         if wcs_enabled:
             slices = get_slices(wcs)
@@ -535,7 +563,7 @@ class SkyModel:
         if isinstance(filename, str):
             fig.savefig(fname=filename)
 
-    def get_OSKAR_sky(self, precision: Any = "double") -> oskar.Sky:
+    def get_OSKAR_sky(self, precision: str = "double") -> oskar.Sky:
         """
         Get OSKAR sky model object from the defined Sky Model
 
@@ -546,7 +574,7 @@ class SkyModel:
     @staticmethod
     def read_healpix_file_to_sky_model_array(
         file: str, channel: int, polarisation: Polarisation
-    ) -> Tuple[NDArray[np.float64], int]:
+    ) -> Tuple[NDArray[np.float_], int]:
         """
         Read a healpix file in hdf5 format.
         The file should have the map keywords:
@@ -562,14 +590,22 @@ class SkyModel:
         ra, dec, nside = convert_healpix_2_radec(filtered)
         return np.vstack((ra, dec, filtered)).transpose(), nside
 
-    def __update_sky_model(self) -> None:
-        """
-        Updates instance variables of the SkyModel
-        """
-        self.num_sources = self.sources.shape[0]
-        self.shape = self.sources.shape
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        if self.sources is None:
+            raise AttributeError(
+                "`sources` is None and therefore has no `shape` attribute."
+            )
+        return self.sources.shape
 
-    def __getitem__(self, key):
+    @property
+    def num_sources(self) -> int:
+        if self.sources is None:
+            return 0
+        else:
+            return self.shape[0]
+
+    def __getitem__(self, key: Any) -> SkySourcesType:
         """
         Allows to get access to self.sources in an np.ndarray like manner
         If casts the selected array/scalar to float64 if possible
@@ -579,14 +615,16 @@ class SkyModel:
 
         :return: sliced self.sources
         """
-        sources = self.sources[key]
+        if self.sources is None:
+            raise AttributeError("`sources` is None and therefore can't be accessed.")
+        sources = cast(SkySourcesType, self.sources[key])
         try:
-            sources = np.float64(sources)
+            sources = sources.astype(np.float64)
         except ValueError:
             pass  # nothing toDo here
         return sources
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: SetSkyItemType) -> None:
         """
         Allows to set values in an np.ndarray like manner
 
@@ -594,10 +632,12 @@ class SkyModel:
         :param value: values to store
         """
         if self.sources is None:
-            self.sources = self.__get_empty_sources(len(value))
-        self.sources[key] = value
+            value_ = cast(SkySourcesType, value)
+            self.add_point_sources(sources=value_)
+        else:
+            self.sources[key] = value
 
-    def save_sky_model_as_csv(self, path: str):
+    def save_sky_model_as_csv(self, path: str) -> None:
         """
         Save source array into a csv.
         :param path: path to save the csv file in.
@@ -627,20 +667,24 @@ class SkyModel:
         path: str,
         cols: List[int] = [0, 1, 2, 3, 4, 5, 6, 7],
     ) -> None:
-        numpy.savetxt(path, self.sources[:, cols])
+        if self.sources is None:
+            raise AttributeError("Can't save sky-model because `sources` is None.")
+        np.savetxt(path, self.sources[:, cols])
 
     @staticmethod
-    def __convert_ra_dec_to_cartesian(ra: float, dec: float) -> float:
+    def __convert_ra_dec_to_cartesian(ra: float, dec: float) -> NDArray[np.float_]:
         x = math.cos(math.radians(ra)) * math.cos(math.radians(dec))
         y = math.sin(math.radians(ra)) * math.cos(math.radians(dec))
         z = math.sin(math.radians(dec))
         r = np.array([x, y, z])
-        norm = np.linalg.norm(r)
+        norm = cast(np.float_, np.linalg.norm(r))
         if norm == 0:
             return r
         return r / norm
 
-    def get_cartesian_sky(self) -> NDArray[np.float64]:
+    def get_cartesian_sky(self) -> NDArray[np.float_]:
+        if self.sources is None:
+            raise AttributeError("Can't create cartesian-sky when `sources` is None.")
         cartesian_sky = np.squeeze(
             np.apply_along_axis(
                 lambda row: [
@@ -748,7 +792,7 @@ class SkyModel:
                 np.zeros(ra.shape[0]),
                 [ref_freq] * ra.shape[0],
             )
-        ).astype("float64")
+        ).astype(np.float64)
         sky = SkyModel(sky_array)
         # major axis FWHM, minor axis FWHM, position angle, object id
         sky[:, [9, 10, 11, 12]] = df_mightee[["IM_MAJ", "IM_MIN", "IM_PA", "NAME"]]
@@ -756,10 +800,10 @@ class SkyModel:
 
     @staticmethod
     def get_random_poisson_disk_sky(
-        min_size: Tuple[float, float],
-        max_size: Tuple[float, float],
-        flux_min: float,
-        flux_max: float,
+        min_size: Tuple[FloatLike, FloatLike],
+        max_size: Tuple[FloatLike, FloatLike],
+        flux_min: FloatLike,
+        flux_max: FloatLike,
         r: int = 3,
     ) -> SkyModel:
         sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
