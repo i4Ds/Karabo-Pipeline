@@ -275,8 +275,6 @@ class InterferometerSimulation:
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
 
-
-
                 while True:
                     # Create list with the ranks to split on
                     spacing = np.ceil(frequencies["rank"].iloc[-1] / N).astype(int)
@@ -300,7 +298,9 @@ class InterferometerSimulation:
                         max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
 
                         # Check if the first split is bigger than the max vram usage
-                        ratio_vram_usage = split_array_sky[0].nbytes / 1024**2 > max_vram_usage_gpu
+                        ratio_vram_usage = (
+                            split_array_sky[0].nbytes / 1024**2 > max_vram_usage_gpu
+                        )
 
                         # If that is the case, increase the number of splits
                         if ratio_vram_usage > 1:
@@ -315,20 +315,19 @@ class InterferometerSimulation:
                     "Unknown split_sky_for_dask_by value. "
                     "Please use 'frequency' or 'group'."
                 )
+        # Create the settings tree
+        observation_params = observation.get_OSKAR_settings_tree()
+        input_telpath = telescope.path
 
         # Run the simulation on the dask cluster
         if self.client is not None:
             futures = []
             for sky_ in split_array_sky:
-                # Create the settings tree
-                observation_params = observation.get_OSKAR_settings_tree()
-                input_telpath = telescope.path
-
                 # Create visiblity object
                 visibility = Visibility()
                 interferometer_params = self.__get_OSKAR_settings_tree(
-                input_telpath=input_telpath, ms_file_path=visibility.file.path
-        )
+                    input_telpath=input_telpath, ms_file_path=visibility.file.path
+                )
                 # Create params for the interferometer
                 params_total = {**interferometer_params, **observation_params}
                 futures.append(
@@ -346,7 +345,16 @@ class InterferometerSimulation:
 
         # Run the simulation on the local machine
         else:
-            path_to_vis = InterferometerSimulation.__run_simulation_oskar(params_total, array_sky, self.precision)
+            # Create the visibility object
+            visibility = Visibility()
+            # Create params for the interferometer
+            interferometer_params = self.__get_OSKAR_settings_tree(
+                input_telpath=input_telpath, ms_file_path=visibility.file.path
+            )
+            params_total = {**interferometer_params, **observation_params}
+            path_to_vis = InterferometerSimulation.__run_simulation_oskar(
+                params_total, array_sky, self.precision
+            )
             return Visibility(path_to_vis)
 
     @staticmethod
