@@ -139,26 +139,26 @@ class Visibility(KaraboResource):
             day_comb: bool,
         """
         print("### Combining the visibilities for ", visiblity_files)
-        out_vis = [0] * number_of_days
-        uui = [0] * number_of_days
-        vvi = [0] * number_of_days
-        wwi = [0] * number_of_days
-        time_start = [0] * number_of_days
-        time_inc = [0] * number_of_days
-        time_ave = [0] * number_of_days
-        # for j in tqdm(range(number_of_days)):
+
+        out_vis: List[NDArray[np.complex_]] = list()
+        uui: List[NDArray[np.float_]] = list()
+        vvi: List[NDArray[np.float_]] = list()
+        wwi: List[NDArray[np.float_]] = list()
+        time_start = list()
+        time_inc = list()
+        time_ave = list()
         for j in range(number_of_days):
             (header, handle) = oskar.VisHeader.read(visiblity_files[j])
             block = oskar.VisBlock.create_from_header(header)
             for k in range(header.num_blocks):
                 block.read(header, handle, k)
-            out_vis[j] = block.cross_correlations()
-            uui[j] = block.baseline_uu_metres()
-            vvi[j] = block.baseline_vv_metres()
-            wwi[j] = block.baseline_ww_metres()
-            time_inc[j] = header.time_inc_sec
-            time_start[j] = header.time_start_mjd_utc
-            time_ave[j] = header.get_time_average_sec()
+            out_vis.append(block.cross_correlations())
+            uui.append(block.baseline_uu_metres())
+            vvi.append(block.baseline_vv_metres())
+            wwi.append(block.baseline_ww_metres())
+            time_inc.append(header.time_inc_sec)
+            time_start.append(header.time_start_mjd_utc)
+            time_ave.append(header.get_time_average_sec())
             print(uui[j].shape, out_vis[j].shape, number_of_days)
         # uushape = uu.shape
         # uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
@@ -227,7 +227,7 @@ class Visibility(KaraboResource):
             uuf = np.array(uui).reshape(us[0] * us[1], us[2])
             vvf = np.array(vvi).reshape(us[0] * us[1], us[2])
             wwf = np.array(wwi).reshape(us[0] * us[1], us[2])
-            out_vis = np.array(out_vis).reshape(
+            out_vis_reshaped = np.array(out_vis).reshape(
                 outs[0] * outs[1], outs[2], outs[3], outs[4]
             )
             for t in range(num_times):
@@ -249,5 +249,9 @@ class Visibility(KaraboResource):
                     time_stamp,
                 )
                 ms.write_vis(
-                    start_row, 0, block.num_channels, block.num_baselines, out_vis[t]
+                    start_row,
+                    0,
+                    block.num_channels,
+                    block.num_baselines,
+                    out_vis_reshaped[t],
                 )
