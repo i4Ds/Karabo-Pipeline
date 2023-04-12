@@ -61,7 +61,7 @@ def get_vis_from_hdf5(hdffile: Any) -> Any:
     return vis
 
 
-def convert_healpix_2_radec(arr: NDArray[Any]) -> Tuple[np.float64, np.float64, int]:
+def convert_healpix_2_radec(arr: NDArray[Any]) -> Tuple[np.float_, np.float_, int]:
     """
     Convert array from healpix to 2-D array of RADEC
     :param arr:

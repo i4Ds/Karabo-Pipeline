@@ -73,7 +73,7 @@ def get_poisson_disk_sky(
     flux_min: FloatLike,
     flux_max: FloatLike,
     r: int = 10,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float_]:
     assert flux_max >= flux_min
     x = min_size[0]
     y = min_size[1]
@@ -96,13 +96,13 @@ def get_poisson_disk_sky(
 
 
 #
-def long_lat_to_cartesian(lat: NPFloatLike, lon: NPFloatLike) -> NDArray[np.float64]:
+def long_lat_to_cartesian(lat: NPFloatLike, lon: NPFloatLike) -> NDArray[np.float_]:
     lat_, lon_ = np.deg2rad(lat), np.deg2rad(lon)
     x = R * cos(lat_) * cos(lon_)
     y = R * cos(lat_) * sin(lon_)
     z = R * sin(lat_)
     out = cast(
-        NDArray[np.float64], np.array([x, y, z]) / np.linalg.norm(np.array([x, y, z]))
+        NDArray[np.float_], np.array([x, y, z]) / np.linalg.norm(np.array([x, y, z]))
     )
     return out
 
