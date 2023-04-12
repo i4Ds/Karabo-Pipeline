@@ -57,8 +57,8 @@ def dask_cleanup(client: Client):
     # Remove the scheduler file
     if os.path.exists(SCHEDULER_ADDRESS):
         os.remove(SCHEDULER_ADDRESS)
-
-    client.close()
+    if client is not None:
+        client.close()
 
 
 def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
