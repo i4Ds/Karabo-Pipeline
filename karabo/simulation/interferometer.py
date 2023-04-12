@@ -1,15 +1,12 @@
 import enum
 import os
 from copy import deepcopy
-
-import oskar
-import pandas as pd
-from dask.distributed import Client
-from datetime import timedelta
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import oskar
+import pandas as pd
+from dask.distributed import Client
 from numpy.typing import NDArray
 
 from karabo.simulation.beam import BeamPattern
