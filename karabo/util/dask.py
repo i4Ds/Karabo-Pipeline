@@ -59,7 +59,8 @@ def dask_cleanup(client: Client):
 
     client.close()
 
-def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
+
+def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
     # Detect if we are on a slurm cluster
     if not is_on_slurm_cluster or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
@@ -73,7 +74,7 @@ def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
 
             # Create client and scheduler
             cluster = LocalCluster(
-                ip=get_lowest_node_name(), n_workers=number_of_workers_on_scheduler_node
+                ip=get_lowest_node_name(), n_workers=n_workers_scheduler_node
             )
             client = Client(cluster)
 
@@ -82,9 +83,12 @@ def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
                 f.write(cluster.scheduler_address)
 
             # Wait until all workers are connected
-            n_workers_requested = get_number_of_nodes() - 1 + number_of_workers_on_scheduler_node
+            n_workers_requested = get_number_of_nodes() - 1 + n_workers_scheduler_node
             while len(client.scheduler_info()["workers"]) < n_workers_requested:
-                print(f"Waiting for all workers to connect. Currently {len(client.scheduler_info()['workers'])} workers connected of {n_workers_requested} requested.")
+                print(
+                    f"Waiting for all workers to connect. Currently "
+                    f"{len(client.scheduler_info()['workers'])} "
+                    f"workers connected of {n_workers_requested} requested.")
                 time.sleep(5)
 
             print(f"All {len(client.scheduler_info()['workers'])} workers connected!")
@@ -131,14 +135,18 @@ def get_min_max_of_node_id():
 def get_lowest_node_id():
     return get_min_max_of_node_id()[0]
 
+
 def get_base_string_node_list():
     return os.getenv("SLURM_JOB_NODELIST").split("[")[0]
+
 
 def get_lowest_node_name():
     return get_base_string_node_list() + str(get_lowest_node_id())
 
+
 def get_number_of_nodes():
     return get_min_max_of_node_id()[1] - get_min_max_of_node_id()[0] + 1
+
 
 def create_node_list_except_first():
     """
@@ -162,6 +170,7 @@ def is_first_node():
 
 def get_current_time():
     return time.strftime("%H:%M:%S", time.localtime())
+
 
 def is_on_slurm_cluster():
     return "SLURM_JOB_ID" in os.environ

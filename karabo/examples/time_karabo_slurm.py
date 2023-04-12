@@ -106,8 +106,6 @@ def main(n_random_sources):
         imaging_cellsize=imaging_cellsize,
     )
 
-    sys.exit(0)
-
     # Try differnet algorithm
     # More sources
     deconvolved, restored, residual = imager_askap.imaging_rascil(

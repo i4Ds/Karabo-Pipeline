@@ -2,7 +2,7 @@
 #SBATCH --job-name="slurm_dask_timing"
 #SBATCH --account="sk05"
 #SBATCH --nodes=2
-#SBATCH --time=00:05:00
+#SBATCH --time=00:30:00
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
