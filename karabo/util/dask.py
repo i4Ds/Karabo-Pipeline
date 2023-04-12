@@ -63,7 +63,7 @@ def dask_cleanup(client: Client):
 
 def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
     # Detect if we are on a slurm cluster
-    if not is_on_slurm_cluster or os.getenv("SLURM_JOB_NUM_NODES") == "1":
+    if not is_on_slurm_cluster() or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
         return None
 
