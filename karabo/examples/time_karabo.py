@@ -51,10 +51,10 @@ def create_random_sources(num_sources, ranges=None):
         ]
 
     sources = np.column_stack(
-        (
+        [
             np.random.uniform(min_val, max_val, num_sources)
             for min_val, max_val in ranges
-        ),
+        ]
     )
 
     return sources

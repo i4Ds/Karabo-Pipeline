@@ -1,3 +1,4 @@
+import sys
 import time
 
 import numpy as np
@@ -52,10 +53,10 @@ def create_random_sources(num_sources, ranges=None):
         ]
 
     sources = np.column_stack(
-        (
+        [
             np.random.uniform(min_val, max_val, num_sources)
             for min_val, max_val in ranges
-        ),
+        ]
     )
 
     return sources
@@ -104,6 +105,8 @@ def main(n_random_sources):
         imaging_npixel=imaging_npixel,
         imaging_cellsize=imaging_cellsize,
     )
+
+    sys.exit(0)
 
     # Try differnet algorithm
     # More sources

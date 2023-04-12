@@ -4,7 +4,7 @@ import time
 from subprocess import call
 
 import psutil
-from distributed import Client, LocalCluster
+from dask.distributed import Client, LocalCluster
 
 SCHEDULER_ADDRESS = "scheduler_address.json"
 STOP_WORKER_FILE = "stop_workers"
@@ -87,6 +87,7 @@ def setup_dask_for_slurm(number_of_workers_on_scheduler_node: int = 1):
                 print(f"Waiting for all workers to connect. Currently {len(client.scheduler_info()['workers'])} workers connected of {n_workers_requested} requested.")
                 time.sleep(5)
 
+            print(f"All {len(client.scheduler_info()['workers'])} workers connected!")
             return client
 
         else:

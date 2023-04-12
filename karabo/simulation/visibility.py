@@ -10,8 +10,8 @@ from karabo.util.FileHandle import FileHandle
 
 
 class Visibility(KaraboResource):
-    def __init__(self):
-        self.file = FileHandle(suffix=".ms")
+    def __init__(self, path: str = None):
+        self.file = FileHandle(dir = path, suffix=".ms")
 
     def write_to_file(self, path: str) -> None:
         # Remove if file or folder already exists

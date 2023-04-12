@@ -45,7 +45,6 @@ class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
 
-    :ivar ms_path: Path where the resulting measurement set will be stored.
     :ivar vis_path: Path of the visibility output file containing results of the
                     simulation.
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
@@ -174,7 +173,6 @@ class InterferometerSimulation:
         gauss_ref_freq_hz: float = 0.0,
         ionosphere_fits_path: str = None,
     ) -> None:
-        self.ms_file: Visibility = Visibility()
         self.vis_path: str = vis_path
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
         self.time_average_sec: float = time_average_sec
@@ -251,24 +249,12 @@ class InterferometerSimulation:
         :param sky: sky model defining the sources
         :param observation: observation settings
         """
-        observation_params = observation.get_OSKAR_settings_tree()
-        input_telpath = telescope.path
-        interferometer_params = self.__get_OSKAR_settings_tree(
-            input_telpath=input_telpath
-        )
-        # print(interferometer_settings)
-        params_total = {**interferometer_params, **observation_params}
-        setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
-        setting_tree.from_dict(params_total)
-
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
-
-        os_sky = sky.get_OSKAR_sky(precision=self.precision)
+        array_sky = sky.get_OSKAR_sky(precision=self.precision).to_array()
 
         if self.client is not None:
             # To convert to a numpy array
-            array_sky = os_sky.to_array()
             split_array_sky = None
 
             if self.split_idxs_per_group:
@@ -288,6 +274,8 @@ class InterferometerSimulation:
 
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
+
+
 
                 while True:
                     # Create list with the ranks to split on
@@ -332,38 +320,55 @@ class InterferometerSimulation:
         if self.client is not None:
             futures = []
             for sky_ in split_array_sky:
-                sky_ = oskar.Sky.from_array(sky_, precision=self.precision)
+                # Create the settings tree
+                observation_params = observation.get_OSKAR_settings_tree()
+                input_telpath = telescope.path
+
+                # Create visiblity object
+                visibility = Visibility()
+                interferometer_params = self.__get_OSKAR_settings_tree(
+                input_telpath=input_telpath, ms_file_path=visibility.file.path
+        )
+                # Create params for the interferometer
+                params_total = {**interferometer_params, **observation_params}
                 futures.append(
                     self.client.submit(
-                        self.__run_simulation_oskar,
-                        setting_tree,
+                        InterferometerSimulation.__run_simulation_oskar,
+                        params_total,
                         sky_,
+                        self.precision,
                     )
                 )
             results = self.client.gather(futures)
-            # TODO: Combine visibilities here
-            return results
+            # TODO: Combine visibilities here. Currently, it just returns the first
+            # result contains the list of paths to the visibilities
+            return Visibility(results[0])
 
         # Run the simulation on the local machine
         else:
-            return self.__run_simulation_oskar(setting_tree, os_sky)
+            path_to_vis = InterferometerSimulation.__run_simulation_oskar(params_total, array_sky, self.precision)
+            return Visibility(path_to_vis)
 
-    def __run_simulation_oskar(self, setting_tree, os_sky):
+    @staticmethod
+    def __run_simulation_oskar(params_total, os_sky, precision):
         """
         Run a single interferometer simulation with a given sky,
         telescope and observation settings.
-        :param setting_tree: OSKAR settings tree
+        :param params_total: Combined parameters for the interferometer
         :param os_sky: OSKAR sky model as np.array or oskar.Sky
+        :param precision: precision of the simulation
         """
         # Create a visibility object
+        setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
+        setting_tree.from_dict(params_total)
         simulation = oskar.Interferometer(settings=setting_tree)
         if isinstance(os_sky, np.ndarray):
-            os_sky = oskar.Sky.from_array(os_sky, precision=self.precision)
+            os_sky = oskar.Sky.from_array(os_sky, precision=precision)
         simulation.set_sky_model(os_sky)
         simulation.run()
 
-        # Convert to a Visibility object
-        return self.ms_file
+        # Return the path to the visibility file
+        return params_total["interferometer"]["ms_filename"]
 
     def __run_simulation_long(
         self,
@@ -431,7 +436,7 @@ class InterferometerSimulation:
         return self.precision != "single"
 
     def __get_OSKAR_settings_tree(
-        self, input_telpath
+        self, input_telpath, ms_file_path
     ) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "simulator": {
@@ -439,7 +444,7 @@ class InterferometerSimulation:
                 "double_precision": self.yes_double_precision(),
             },
             "interferometer": {
-                "ms_filename": self.ms_file.file.path,
+                "ms_filename": ms_file_path,
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
                 "time_average_sec": str(self.time_average_sec),
                 "max_time_samples_per_block": str(self.max_time_per_samples),
