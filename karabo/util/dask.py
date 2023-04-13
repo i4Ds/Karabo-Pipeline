@@ -48,7 +48,7 @@ def dask_cleanup(client: Client):
         pass
 
     # Give some time for the workers to exit before closing the client
-    time.sleep(10)
+    time.sleep(3)
 
     # Remove the stop_workers file
     if os.path.exists(STOP_WORKER_FILE):
@@ -91,19 +91,19 @@ def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
                     f"{len(client.scheduler_info()['workers'])} "
                     f"workers connected of {n_workers_requested} requested."
                 )
-                time.sleep(5)
+                time.sleep(1)
 
             print(f"All {len(client.scheduler_info()['workers'])} workers connected!")
             return client
 
         else:
-            # Wait some time to make sure the scheduler file is created
+            # Wait some time to make sure the scheduler file is new
             time.sleep(5)
 
             # Wait until scheduler file is created
             while not os.path.exists(SCHEDULER_ADDRESS):
                 print("Waiting for scheduler file to be created.")
-                time.sleep(5)
+                time.sleep(1)
 
             # Read scheduler file
             with open(SCHEDULER_ADDRESS, "r") as f:

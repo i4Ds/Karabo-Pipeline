@@ -27,7 +27,7 @@ class Visibility(KaraboResource):
         shutil.copytree(self.file.path, path, dirs_exist_ok=True)
 
     @staticmethod
-    def read_from_file(path: str) -> any:
+    def read_from_file(path: str) -> Visibility:
         file = FileHandle(path)
         vis = Visibility()
         vis.file = file
