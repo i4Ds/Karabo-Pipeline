@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy
 from astropy.io import fits
 from astropy.wcs import WCS
 from numpy.typing import NDArray
@@ -75,6 +76,58 @@ class Image(KaraboResource):
 
     def get_squeezed_data(self) -> NDArray[np.float64]:
         return np.squeeze(self.data[:1, :1, :, :])
+
+    def reshape(
+        self,
+        shape: Tuple[int, ...],
+        interpolation_f: Callable[
+            [np.ndarray], np.ndarray
+        ] = scipy.interpolate.RegularGridInterpolator,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Reshape the image to the given shape using SciPy's RegularGridInterpolator
+        for bilinear interpolation. You can use other interpolation functions by
+        passing them as interpolation_f.
+
+        :param shape: The desired shape of the image
+        :param interpolation_f: The interpolation function to use
+        :param kwargs: Keyword arguments for the interpolation function
+        """
+        new_data = np.empty(
+            (self.data.shape[0], 1, shape[0], shape[1]), dtype=self.data.dtype
+        )
+
+        for c in range(self.data.shape[0]):
+            y = np.arange(self.data.shape[2])
+            x = np.arange(self.data.shape[3])
+            interpolator = interpolation_f(
+                (y, x),
+                self.data[c, 0],
+                bounds_error=False,
+                fill_value=None,
+                **kwargs,
+            )
+
+            new_x = np.linspace(0, self.data.shape[3] - 1, shape[1])
+            new_y = np.linspace(0, self.data.shape[2] - 1, shape[0])
+            new_points = np.array(np.meshgrid(new_y, new_x)).T.reshape(-1, 2)
+            new_data[c] = interpolator(new_points).reshape(shape[0], shape[1])
+
+        self.data = new_data
+        self.reshape_header(shape)
+
+    def reshape_header(self, new_shape: Tuple[int, ...]) -> None:
+        """Reshape the header to the given shape"""
+        old_shape = (self.header["NAXIS2"], self.header["NAXIS1"])
+        self.header["NAXIS1"] = new_shape[1]
+        self.header["NAXIS2"] = new_shape[0]
+
+        self.header["CRPIX1"] = (new_shape[1] + 1) / 2
+        self.header["CRPIX2"] = (new_shape[0] + 1) / 2
+
+        self.header["CDELT1"] = self.header["CDELT1"] * old_shape[1] / new_shape[1]
+        self.header["CDELT2"] = self.header["CDELT2"] * old_shape[0] / new_shape[0]
 
     def plot(
         self,
