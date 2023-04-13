@@ -192,7 +192,7 @@ class Telescope(KaraboResource):
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-        self.temp_dir = FileHandle(is_dir=True)
+        self.temp_dir = FileHandle()
         self.__create_telescope_tm_file(self.temp_dir.path)
         tel = os_telescope.Telescope()
         tel.load(self.temp_dir.path)

@@ -14,7 +14,7 @@ from karabo.simulation.visibility import Visibility
 from karabo.test import data_path
 
 
-class MyTestCase(unittest.TestCase):
+class TestOskarLongObservation(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         # make dir for result files
@@ -140,7 +140,3 @@ class MyTestCase(unittest.TestCase):
         imager.get_dirty_image()
         # dirty.write_to_file("./test/result/beam/beam_vis.fits",overwrite=True)
         # dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")
-
-
-if __name__ == "__main__":
-    unittest.main()

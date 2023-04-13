@@ -12,18 +12,19 @@ class TestFileHandle(unittest.TestCase):
         self.assertTrue(os.path.exists(path))
 
     def test_folder(self):
-        handle = FileHandle(is_dir=True)
+        handle = FileHandle()
         path = handle.path
         self.assertTrue(os.path.exists(path))
 
     def test_existing_file(self):
-        handle = FileHandle(existing_file_path=f"{data_path}/detection.csv")
+        handle = FileHandle(dir=data_path, file_name="detection.csv")
         path = handle.path
         self.assertTrue(os.path.exists(path))
 
     def test_existing_folder(self):
         handle = FileHandle(
-            existing_file_path=f"{data_path}/poisson_vis.ms", is_dir=True
+            dir=data_path,
+            file_name="detection.csv",
         )
         path = handle.path
         self.assertTrue(os.path.exists(path))

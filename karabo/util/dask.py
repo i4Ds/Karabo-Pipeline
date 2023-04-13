@@ -1,16 +1,13 @@
-import copy
 import os
+import sys
 import time
-from datetime import datetime
 from subprocess import call
-from typing import Callable, List
 
-import dask
 import psutil
-from dask import delayed
-from distributed import Client, LocalCluster
+from dask.distributed import Client, LocalCluster
 
-client = None
+SCHEDULER_ADDRESS = "scheduler_address.json"
+STOP_WORKER_FILE = "stop_workers"
 
 
 def get_global_client(
@@ -45,127 +42,89 @@ def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
     return client
 
 
-def parallel_for(n: int, function: Callable, *args):
-    """
-    Execute a function ``n`` times in parallel with DASK.
+def dask_cleanup(client: Client):
+    # Create the stop_workers file
+    with open(STOP_WORKER_FILE, "w") as _:
+        pass
 
-    For example creating many simulations at once for running in parallel::
+    # Give some time for the workers to exit before closing the client
+    time.sleep(3)
 
-        # we pass telescope as we want to use the same in every simulation,
-        # and so we only need to setup one.
-        # pass flux so we can use a different one in each iteration.
-        def my_simulation_code(telescope, flux):
-            # setup simulation settings and observation settings
-            simulation = InterferometerSimulation(...)
-            observation = Observation(...)
-            sky = SkyModel(np.array([[20, -30, flux]]))
-            sim_result = simulation.run_simulation(telescope, sky, observation)
-            return sim_result
+    # Remove the stop_workers file
+    if os.path.exists(STOP_WORKER_FILE):
+        os.remove(STOP_WORKER_FILE)
 
-        flux = 0.001
-        telescope = get_ASKAP_telescope()
-        results = parallel_for(10, # how many iterations the loop will do.
-            my_simluation_code, # code to execute 10 times
-            telescope, # param 1 for passed function
-            flux + flux + 0.001) # param 2 for passed function
-        # Start compute to actually start the computation.
-        results = compute(*results)
-
-    :param n: number of iterations
-    :param function: function to execute n times
-    :param args: arguments that will be passed to the passed function
-    :return: list of delayed objects. Need to be calculated with dask.compute() later
-    """
-    results = []
-    for i in range(0, n):
-        res = delayed(function)(*[copy.deepcopy(arg) for arg in args])
-        results.append(res)
-    return dask.compute(*results)
+    # Remove the scheduler file
+    if os.path.exists(SCHEDULER_ADDRESS):
+        os.remove(SCHEDULER_ADDRESS)
+    if client is not None:
+        client.close()
 
 
-def parallel_for_each(arr: List[any], function: Callable, *args):
-    """
-    :param arr:
-    :param function:
-    :param args:
-    :return:
-    """
-    results = []
-    for value in arr:
-        res = delayed(function)(value, *[copy.deepcopy(arg) for arg in args])
-        results.append(res)
-    return dask.compute(*results)
-
-
-def setup_dask_for_slurm():
+def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
     # Detect if we are on a slurm cluster
-    if "SLURM_JOB_ID" not in os.environ or os.getenv("SLURM_JOB_NUM_NODES") == "1":
+    if not is_on_slurm_cluster() or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
         return None
+
     else:
         if is_first_node():
             # Remove old scheduler file
-            try:
-                os.remove("scheduler.txt")
-            except FileNotFoundError:
-                pass
+            if os.path.exists(SCHEDULER_ADDRESS):
+                os.remove(SCHEDULER_ADDRESS)
 
             # Create client and scheduler
-            cluster = LocalCluster(ip=get_lowest_node_name())
+            cluster = LocalCluster(
+                ip=get_lowest_node_name(), n_workers=n_workers_scheduler_node
+            )
             client = Client(cluster)
 
-            # Write the scheduler address to a file
-            with open("scheduler.txt", "w") as f:
+            # Write scheduler file
+            with open(SCHEDULER_ADDRESS, "w") as f:
                 f.write(cluster.scheduler_address)
 
-            print(
-                f'Main Node. Name = {os.getenv("SLURMD_NODENAME")}. Client = {client}'
-            )
-
-            while (
-                len(client.scheduler_info()["workers"])
-                < int(os.getenv("SLURM_JOB_NUM_NODES")) + 1
-            ):
+            # Wait until all workers are connected
+            n_workers_requested = get_number_of_nodes() - 1 + n_workers_scheduler_node
+            while len(client.scheduler_info()["workers"]) < n_workers_requested:
                 print(
-                    f"Waiting for all workers to connect. Current number of workers: "
-                    f"{len(client.scheduler_info()['workers'])}. "
-                    f"NNodes: {os.getenv('SLURM_JOB_NUM_NODES')}"
+                    f"Waiting for all workers to connect. Currently "
+                    f"{len(client.scheduler_info()['workers'])} "
+                    f"workers connected of {n_workers_requested} requested."
                 )
-                time.sleep(3)
+                time.sleep(1)
 
-            # Print the number of workers
-            print(f'Number of workers: {len(client.scheduler_info()["workers"])}')
+            print(f"All {len(client.scheduler_info()['workers'])} workers connected!")
             return client
 
         else:
-            # Sleep first to make sure no old scheduler file is read
+            # Wait some time to make sure the scheduler file is new
             time.sleep(5)
 
-            # Read the scheduler address from the file
-            scheduler_address = None
-            timeout_time = datetime.now().timestamp() + 60
-            while scheduler_address is None:
-                try:
-                    with open("scheduler.txt", "r") as f:
-                        scheduler_address = f.read()
-                except FileNotFoundError:
-                    time.sleep(1)
-                if datetime.now().timestamp() > timeout_time:
-                    raise TimeoutError(
-                        "Timeout while waiting for scheduler file to appear."
-                    )
-            print(
-                f"Worker Node. Name = {os.getenv('SLURMD_NODENAME')}."
-                f"Scheduler Address = {scheduler_address}"
-            )
+            # Wait until scheduler file is created
+            while not os.path.exists(SCHEDULER_ADDRESS):
+                print("Waiting for scheduler file to be created.")
+                time.sleep(1)
+
+            # Read scheduler file
+            with open(SCHEDULER_ADDRESS, "r") as f:
+                scheduler_address = f.read()
+
+            # Create client
             call(["dask", "worker", scheduler_address])
+
+            # Run until stop_workers file is created
+            while True:
+                if os.path.exists(STOP_WORKER_FILE):
+                    print("Stop workers file detected. Exiting.")
+                    sys.exit(0)
+                time.sleep(5)
 
 
 def get_min_max_of_node_id():
     """
-    Returns the min max from SLURM_JOB_NODELIST. Can handle if it runs only on two
-    nodes (separated with a comma) of if it runs on more than two nodes (separated with
-    a dash).
+    Returns the min max from SLURM_JOB_NODELIST.
+    Works if it's run only on two nodes (separated with a comma)
+    of if it runs on more than two nodes (separated with a dash).
     """
     node_list = os.getenv("SLURM_JOB_NODELIST").split("[")[1].split("]")[0]
     if "," in node_list:
@@ -178,15 +137,35 @@ def get_lowest_node_id():
     return get_min_max_of_node_id()[0]
 
 
+def get_base_string_node_list():
+    return os.getenv("SLURM_JOB_NODELIST").split("[")[0]
+
+
 def get_lowest_node_name():
-    return os.getenv("SLURM_JOB_NODELIST").split("[")[0] + str(get_lowest_node_id())
+    return get_base_string_node_list() + str(get_lowest_node_id())
 
 
-def create_list_of_node_names():
-    return [
-        os.getenv("SLURM_JOB_NODELIST").split("[")[0] + str(i)
-        for i in range(get_min_max_of_node_id()[0], get_min_max_of_node_id()[1] + 1)
-    ]
+def get_number_of_nodes():
+    return get_min_max_of_node_id()[1] - get_min_max_of_node_id()[0] + 1
+
+
+def create_node_list_except_first():
+    """
+    Returns a list of all nodes except the first one to pass to SLURM
+    Example: node[2-4] if there are 4 nodes or node[2] if there are 2 nodes
+    """
+    min_node, max_node = get_min_max_of_node_id()
+    if get_number_of_nodes() == 2:
+        return get_base_string_node_list() + "[" + str(min_node + 1) + "]"
+
+    return (
+        get_base_string_node_list()
+        + "["
+        + str(min_node + 1)
+        + "-"
+        + str(max_node)
+        + "]"
+    )
 
 
 def get_node_id():
@@ -200,3 +179,7 @@ def is_first_node():
 
 def get_current_time():
     return time.strftime("%H:%M:%S", time.localtime())
+
+
+def is_on_slurm_cluster():
+    return "SLURM_JOB_ID" in os.environ

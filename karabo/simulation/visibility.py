@@ -14,17 +14,21 @@ from karabo.util.FileHandle import FileHandle
 
 
 class Visibility(KaraboResource):
-    def __init__(self) -> None:
-        self.file = FileHandle(is_dir=True, suffix=".ms")
+    def __init__(self, path: str = None):
+        self.file = FileHandle(dir=path, suffix=".ms")
 
     def write_to_file(self, path: str) -> None:
+        # Remove if file or folder already exists
         if os.path.exists(path):
-            shutil.rmtree(path)
-        shutil.copytree(self.file.path, path)
+            if os.path.isfile(path):
+                os.remove(path)
+            else:
+                shutil.rmtree(path)
+        shutil.copytree(self.file.path, path, dirs_exist_ok=True)
 
     @staticmethod
     def read_from_file(path: str) -> Visibility:
-        file = FileHandle(path, is_dir=True)
+        file = FileHandle(path)
         vis = Visibility()
         vis.file = file
         return vis
@@ -215,13 +219,6 @@ class Visibility(KaraboResource):
 
         if day_comb is not True:
             num_times = out_vis[j].shape[0] * number_of_days
-            print(
-                num_times,
-                out_vis[j].shape,
-                uui[j].shape,
-                block.num_baselines,
-                np.array(time_inc).shape,
-            )
             us = np.array(uui).shape
             outs = np.array(out_vis).shape
             uuf = np.array(uui).reshape(us[0] * us[1], us[2])

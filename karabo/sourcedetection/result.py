@@ -100,7 +100,7 @@ class SourceDetectionResult(KaraboResource):
         """
         if path.endswith(".zip"):
             path = path[0 : len(path) - 4]
-        tempdir = FileHandle(is_dir=True)
+        tempdir = FileHandle()
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, "zip", tempdir.path)
@@ -136,7 +136,7 @@ class SourceDetectionResult(KaraboResource):
 
     @staticmethod
     def read_from_file(path: str) -> SourceDetectionResult:
-        tempdir = FileHandle(is_dir=True)
+        tempdir = FileHandle()
         shutil.unpack_archive(path, tempdir.path)
         source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
         source_catalouge = np.loadtxt(
@@ -187,7 +187,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         functions on PyBDSF results
         :param bdsf_detection: PyBDSF result image
         """
-        sources_file = FileHandle()
+        sources_file = FileHandle(file_name="sources", suffix=".csv")
         bdsf_detection.write_catalog(
             outfile=sources_file.path, catalog_type="gaul", format="csv", clobber=True
         )
@@ -222,7 +222,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         return sources
 
     def __get_result_image(self, image_type: str, **kwargs) -> Image:
-        file_handle = FileHandle()
+        file_handle = FileHandle(file_name="result", suffix=".fits")
         self.bdsf_result.export_image(
             outfile=file_handle.path,
             img_format="fits",

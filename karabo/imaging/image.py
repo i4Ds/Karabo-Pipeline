@@ -37,7 +37,6 @@ class Image(KaraboResource):
         if isinstance(
             path, FileHandle
         ):  # save FileHandle if used to not lose reference and call it's __del__
-            self.__file_handle = path
             path_ = path.path
         else:
             path_ = path
