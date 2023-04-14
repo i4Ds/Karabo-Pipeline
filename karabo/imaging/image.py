@@ -51,6 +51,16 @@ class Image(KaraboResource):
     def read_from_file(path: str) -> Image:
         return Image(path=path)
 
+    @property
+    def data(self) -> NDArray[np.float_]:
+        return self._data
+
+    @data.setter
+    def data(self, new_data: NDArray[np.float_]) -> None:
+        self._data = new_data
+        if hasattr(self, "header"):
+            self.update_header_after_resize()
+
     def write_to_file(
         self,
         path: str,
@@ -110,16 +120,6 @@ class Image(KaraboResource):
             new_data[c] = interpolator(new_points).reshape(shape[0], shape[1])
 
         self.data = new_data
-
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self, new_data):
-        self._data = new_data
-        if hasattr(self, "header"):
-            self.update_header_after_resize()
 
     def update_header_after_resize(self) -> None:
         """Reshape the header to the given shape"""
