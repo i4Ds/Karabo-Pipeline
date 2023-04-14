@@ -310,11 +310,16 @@ class InterferometerSimulation:
                 )
                 # Create params for the interferometer
                 params_total = {**interferometer_params, **observation_params}
+
+                # Scatter the sky model to the workers
+                scattered_data = self.client.scatter(sky_)
+
+                # Submit the simulation to the workers
                 futures.append(
                     self.client.submit(
                         InterferometerSimulation.__run_simulation_oskar,
                         params_total,
-                        sky_,
+                        scattered_data,
                         self.precision,
                     )
                 )
