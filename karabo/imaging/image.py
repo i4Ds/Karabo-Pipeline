@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -80,22 +80,16 @@ class Image(KaraboResource):
     def resample(
         self,
         shape: Tuple[int, ...],
-        interpolation_f: Callable[
-            [Tuple[NDArray[np.float64], NDArray[np.float64]], NDArray[np.float64], Any],
-        ] = RegularGridInterpolator,
-        resample_header: bool = True,
         **kwargs: Any,
     ) -> None:
         """
         Resize the image to the given shape using SciPy's RegularGridInterpolator
-        for bilinear interpolation. You can use other interpolation functions by
-        passing them as interpolation_f.
+        for bilinear interpolation. See:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RegularGridInterpolator.html
 
         :param shape: The desired shape of the image
-        :param interpolation_f: The interpolation function to use
         :param kwargs: Keyword arguments for the interpolation function
-        :param resample_header: If True, the header will be updated to reflect the
-            new shape
+
         """
         new_data = np.empty(
             (self.data.shape[0], 1, shape[0], shape[1]), dtype=self.data.dtype
@@ -104,7 +98,7 @@ class Image(KaraboResource):
         for c in range(self.data.shape[0]):
             y = np.arange(self.data.shape[2])
             x = np.arange(self.data.shape[3])
-            interpolator = interpolation_f(
+            interpolator = RegularGridInterpolator(
                 (y, x),
                 self.data[c, 0],
                 **kwargs,
@@ -116,12 +110,21 @@ class Image(KaraboResource):
             new_data[c] = interpolator(new_points).reshape(shape[0], shape[1])
 
         self.data = new_data
-        if resample_header:
-            self.update_header_after_resize(shape)
 
-    def update_header_after_resize(self, new_shape: Tuple[int, ...]) -> None:
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        self._data = new_data
+        if hasattr(self, "header"):
+            self.update_header_after_resize()
+
+    def update_header_after_resize(self) -> None:
         """Reshape the header to the given shape"""
         old_shape = (self.header["NAXIS2"], self.header["NAXIS1"])
+        new_shape = (self.data.shape[2], self.data.shape[3])
         self.header["NAXIS1"] = new_shape[1]
         self.header["NAXIS2"] = new_shape[0]
 
