@@ -59,7 +59,7 @@ class Image(KaraboResource):
     def data(self, new_data: NDArray[np.float_]) -> None:
         self._data = new_data
         if hasattr(self, "header"):
-            self.update_header_after_resize()
+            self._update_header_after_resize()
 
     def write_to_file(
         self,
@@ -93,7 +93,7 @@ class Image(KaraboResource):
         **kwargs: Any,
     ) -> None:
         """
-        Resize the image to the given shape using SciPy's RegularGridInterpolator
+        Resamples the image to the given shape using SciPy's RegularGridInterpolator
         for bilinear interpolation. See:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RegularGridInterpolator.html
 
@@ -121,7 +121,7 @@ class Image(KaraboResource):
 
         self.data = new_data
 
-    def update_header_after_resize(self) -> None:
+    def _update_header_after_resize(self) -> None:
         """Reshape the header to the given shape"""
         old_shape = (self.header["NAXIS2"], self.header["NAXIS1"])
         new_shape = (self.data.shape[2], self.data.shape[3])
@@ -172,7 +172,6 @@ class Image(KaraboResource):
 
         if wcs_enabled:
             wcs = WCS(self.header)
-            print(wcs)
 
             slices = get_slices(wcs=wcs)
 
