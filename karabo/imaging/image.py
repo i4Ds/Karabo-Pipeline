@@ -77,16 +77,16 @@ class Image(KaraboResource):
     def get_squeezed_data(self) -> NDArray[np.float64]:
         return np.squeeze(self.data[:1, :1, :, :])
 
-    def reshape(
+    def resize(
         self,
         shape: Tuple[int, ...],
         interpolation_f: Callable[
-            [np.ndarray], np.ndarray
+            [Tuple[NDArray[np.float64], NDArray[np.float64]], NDArray[np.float64], Any],
         ] = scipy.interpolate.RegularGridInterpolator,
         **kwargs: Any,
     ) -> None:
         """
-        Reshape the image to the given shape using SciPy's RegularGridInterpolator
+        Resize the image to the given shape using SciPy's RegularGridInterpolator
         for bilinear interpolation. You can use other interpolation functions by
         passing them as interpolation_f.
 
@@ -104,8 +104,6 @@ class Image(KaraboResource):
             interpolator = interpolation_f(
                 (y, x),
                 self.data[c, 0],
-                bounds_error=False,
-                fill_value=None,
                 **kwargs,
             )
 
@@ -115,9 +113,9 @@ class Image(KaraboResource):
             new_data[c] = interpolator(new_points).reshape(shape[0], shape[1])
 
         self.data = new_data
-        self.reshape_header(shape)
+        self.update_header_after_resize(shape)
 
-    def reshape_header(self, new_shape: Tuple[int, ...]) -> None:
+    def update_header_after_resize(self, new_shape: Tuple[int, ...]) -> None:
         """Reshape the header to the given shape"""
         old_shape = (self.header["NAXIS2"], self.header["NAXIS1"])
         self.header["NAXIS1"] = new_shape[1]
