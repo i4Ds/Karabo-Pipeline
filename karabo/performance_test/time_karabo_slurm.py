@@ -86,7 +86,7 @@ def main(n_random_sources):
     )
 
     interferometer_sim = InterferometerSimulation(
-        channel_bandwidth_hz=1e6, client=DASK_CLIENT, split_sky_for_dask_by="frequency"
+        channel_bandwidth_hz=1e6, client=DASK_CLIENT, split_sky_for_dask_by="randomly"
     )
     visibility_askap = interferometer_sim.run_simulation(
         telescope, sky, observation_settings
