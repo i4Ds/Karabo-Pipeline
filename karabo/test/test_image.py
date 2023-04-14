@@ -27,18 +27,19 @@ class TestImage(unittest.TestCase):
         dirty.write_to_file("result/dirty.fits", overwrite=True)
         dirty.plot(title="Dirty Image")
 
-    def test_dirty_image_resize(self):
+    def test_dirty_image_resample(self):
         vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+        SHAPE = 2048
         imager = Imager(
-            vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05
+            vis, imaging_npixel=SHAPE, imaging_cellsize=3.878509448876288e-05
         )
 
         dirty = imager.get_dirty_image()
         shape_before = dirty.data.shape
 
         NEW_SHAPE = 512
-        dirty.resize((NEW_SHAPE, NEW_SHAPE))
-        dirty.write_to_file("result/dirty_resize.fits", overwrite=True)
+        dirty.resample((NEW_SHAPE, NEW_SHAPE))
+        dirty.write_to_file("result/dirty_resample.fits", overwrite=True)
         dirty.plot(title="Dirty Image")
 
         assert dirty.data.shape[2] == NEW_SHAPE
@@ -47,10 +48,10 @@ class TestImage(unittest.TestCase):
         assert dirty.data.shape[1] == shape_before[1]
         assert np.sum(np.isnan(dirty.data)) == 0
 
-        dirty.resize((2048, 2048))
+        dirty.resample((SHAPE, SHAPE))
 
-        assert dirty.data.shape[2] == 2048
-        assert dirty.data.shape[3] == 2048
+        assert dirty.data.shape[2] == SHAPE
+        assert dirty.data.shape[3] == SHAPE
         assert dirty.data.shape[0] == shape_before[0]
         assert dirty.data.shape[1] == shape_before[1]
         assert np.sum(np.isnan(dirty.data)) == 0

@@ -8,11 +8,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
 from astropy.io import fits
 from astropy.wcs import WCS
 from numpy.typing import NDArray
 from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
+from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.FileHandle import FileHandle, check_ending
@@ -77,12 +77,13 @@ class Image(KaraboResource):
     def get_squeezed_data(self) -> NDArray[np.float64]:
         return np.squeeze(self.data[:1, :1, :, :])
 
-    def resize(
+    def resample(
         self,
         shape: Tuple[int, ...],
         interpolation_f: Callable[
             [Tuple[NDArray[np.float64], NDArray[np.float64]], NDArray[np.float64], Any],
-        ] = scipy.interpolate.RegularGridInterpolator,
+        ] = RegularGridInterpolator,
+        resample_header: bool = True,
         **kwargs: Any,
     ) -> None:
         """
@@ -93,6 +94,8 @@ class Image(KaraboResource):
         :param shape: The desired shape of the image
         :param interpolation_f: The interpolation function to use
         :param kwargs: Keyword arguments for the interpolation function
+        :param resample_header: If True, the header will be updated to reflect the
+            new shape
         """
         new_data = np.empty(
             (self.data.shape[0], 1, shape[0], shape[1]), dtype=self.data.dtype
@@ -113,7 +116,8 @@ class Image(KaraboResource):
             new_data[c] = interpolator(new_points).reshape(shape[0], shape[1])
 
         self.data = new_data
-        self.update_header_after_resize(shape)
+        if resample_header:
+            self.update_header_after_resize(shape)
 
     def update_header_after_resize(self, new_shape: Tuple[int, ...]) -> None:
         """Reshape the header to the given shape"""
