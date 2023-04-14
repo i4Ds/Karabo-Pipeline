@@ -166,7 +166,7 @@ class InterferometerSimulation:
         use_gpus: bool = False,
         client: Union[Client, None] = None,
         split_idxs_per_group: Union[List[List[int]], None] = None,
-        split_sky_for_dask_by: str = "frequency",
+        split_sky_for_dask_how: str = "randomly",
         max_vram_usage_gpu: float = 0.8,
         precision: str = "single",
         station_type: str = "Isotropic beam",
@@ -200,7 +200,7 @@ class InterferometerSimulation:
         self.use_gpus = use_gpus
         self.client = client
         self.split_idxs_per_group = split_idxs_per_group
-        self.split_sky_for_dask_by = split_sky_for_dask_by
+        self.split_sky_for_dask_how = split_sky_for_dask_how
         self.max_vram_usage_gpu = max_vram_usage_gpu
         self.precision = precision
         self.station_type = station_type
@@ -260,61 +260,40 @@ class InterferometerSimulation:
 
             if self.split_idxs_per_group:
                 split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
-            elif self.split_sky_for_dask_by == "frequency":
-                # Sort the array by frequency
-                array_sky = array_sky[array_sky[:, 6].argsort()]
-
-                # Extract the frequencies from the sky model
-                frequencies = array_sky[:, 6]
-
-                # Create dataframe for groupby operations
-                frequencies = pd.DataFrame(frequencies, columns=["freq"])
-
-                # Create a column with the rank of the frequency
-                frequencies["rank"] = frequencies["freq"].rank(method="dense")
-
+            elif self.split_sky_for_dask_how == "randomly":
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
+                array_sky_size = array_sky.nbytes
 
-                while True:
-                    # Create list with the ranks to split on
-                    spacing = np.ceil(frequencies["rank"].iloc[-1] / N).astype(int)
-                    split_ranks = [0 + spacing * i for i in range(N)]
+                if is_cuda_available() and self.max_vram_usage_gpu:
+                    # Get memory consumption of the array
+                    split_array_sky_size = array_sky_size / N
 
-                    # Split idxs
-                    split_idxs = []
-                    for i in range(len(split_ranks) - 1):
-                        split_idxs.append(
-                            frequencies[
-                                frequencies["rank"] == split_ranks[i + 1]
-                            ].index[0]
-                        )
+                    # Get the max vram usage set by the user
+                    max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
 
-                    # Split the array
-                    split_array_sky = np.split(array_sky, split_idxs)
+                    # Check if the first split is bigger than the max vram usage
+                    ratio_vram_usage = (
+                        split_array_sky_size / 1024**2 > max_vram_usage_gpu
+                    )
 
-                    # Check that a split still fits in gpu memory and if not
-                    # increase the number of splits
-                    if is_cuda_available() and self.max_vram_usage_gpu:
-                        max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
+                    # If that is the case, increase the number of splits
+                    if ratio_vram_usage > 1:
+                        N += int(np.ceil(ratio_vram_usage))
 
-                        # Check if the first split is bigger than the max vram usage
-                        ratio_vram_usage = (
-                            split_array_sky[0].nbytes / 1024**2 > max_vram_usage_gpu
-                        )
+                # Split the array randomly
+                split_array_sky = []
+                to_select = int(np.ceil(len(array_sky) / N))
 
-                        # If that is the case, increase the number of splits
-                        if ratio_vram_usage > 1:
-                            N += int(np.ceil(ratio_vram_usage))
-                        else:
-                            break
-                    else:
-                        break
+                # Split the array, stop when there are no more sources
+                while len(array_sky) > 0:
+                    idx = np.random.choice(len(array_sky), to_select, replace=False)
+                    split_array_sky.append(array_sky[idx])
+                    array_sky = np.delete(array_sky, idx, axis=0)
 
             else:
                 raise ValueError(
-                    "Unknown split_sky_for_dask_by value. "
-                    "Please use 'frequency' or 'group'."
+                    "Unknown split_sky_for_dask_how value. " "Please use 'randomly'."
                 )
         # Create the settings tree
         observation_params = observation.get_OSKAR_settings_tree()
