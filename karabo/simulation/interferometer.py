@@ -286,10 +286,14 @@ class InterferometerSimulation:
                 to_select = int(np.ceil(len(array_sky) / N))
 
                 # Split the array, stop when there are no more sources
-                while len(array_sky) > 0:
+                while len(array_sky) >= to_select:
                     idx = np.random.choice(len(array_sky), to_select, replace=False)
                     split_array_sky.append(array_sky[idx])
                     array_sky = np.delete(array_sky, idx, axis=0)
+
+                # Add the remaining sources
+                if len(array_sky) > 0:
+                    split_array_sky.append(array_sky)
 
             else:
                 raise ValueError(
