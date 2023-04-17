@@ -1,22 +1,24 @@
 from typing import Union
 
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from typing_extensions import TypeAlias
 
 # numpy dtypes
-NPBoolLike = Union[bool, np.bool_]
-NPUIntLike = Union[
+NPBoolLike: TypeAlias = Union[bool, np.bool_]
+NPUIntLike: TypeAlias = Union[
     bool, np.unsignedinteger
 ]  # not BoolLike because "-" doesn't support np.bool_
-NPIntLike = Union[
+NPIntLike: TypeAlias = Union[
     bool, int, np.integer
 ]  # not BoolLike because "-" doesn't support np.bool_
-NPFloatLike = Union[NPIntLike, float, np.floating]
-NPComplexLike = Union[NPFloatLike, complex, np.complexfloating]
-NPTD64Like = Union[NPIntLike, np.timedelta64]
-NPNumberLike = Union[int, float, complex, np.number, np.bool_]
-NPScalarLike = Union[
+NPFloatLike: TypeAlias = Union[NPIntLike, float, np.floating]
+NPIntFloat: TypeAlias = Union[np.int_, np.float_]
+NPIntFloatCompl: TypeAlias = Union[NPIntFloat, np.complex_]
+NPComplexLike: TypeAlias = Union[NPFloatLike, complex, np.complexfloating]
+NPTD64Like: TypeAlias = Union[NPIntLike, np.timedelta64]
+NPNumberLike: TypeAlias = Union[int, float, complex, np.number, np.bool_]
+NPScalarLike: TypeAlias = Union[
     int,
     float,
     complex,
@@ -24,17 +26,29 @@ NPScalarLike = Union[
     bytes,
     np.generic,
 ]
-NPBroadcType: TypeAlias = Union[
+NPFloatInpBroadType: TypeAlias = Union[
     NPFloatLike,
-    ArrayLike,
+    NDArray[NPIntFloat],
+]
+NPFloatOutBroadType: TypeAlias = Union[
+    NPIntFloat,
+    NDArray[NPIntFloat],
+]
+NPComplInpBroadType: TypeAlias = Union[
+    NPComplexLike,
+    NDArray[NPIntFloatCompl],
+]
+NPComplOutBroadType: TypeAlias = Union[
+    NPIntFloatCompl,
+    NDArray[NPIntFloatCompl],
 ]
 
 # similar to `numpy dtypes` but without numpy
-IntLike = Union[bool, int]
-FloatLike = Union[IntLike, float]
-ComplexLike = Union[FloatLike, complex]
-NumberLike = ComplexLike
-ScalarLike = Union[
+IntLike: TypeAlias = Union[bool, int]
+FloatLike: TypeAlias = Union[IntLike, float]
+ComplexLike: TypeAlias = Union[FloatLike, complex]
+NumberLike: TypeAlias = ComplexLike
+ScalarLike: TypeAlias = Union[
     int,
     float,
     complex,
