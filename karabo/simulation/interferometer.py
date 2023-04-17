@@ -352,7 +352,7 @@ class InterferometerSimulation:
             visibilities = [x['interferometer']['oskar_vis_file_path'] for x in results]
             ms_file_paths = [x['interferometer']['ms_file_path'] for x in results]
             # TODO: Combine visibilities here. Currently, it just returns the first
-            Visibility.combine_vis(results, self.vis_file_path)
+            Visibility.combine_vis(visibilities, self.vis_file_path)
             return Visibility(self.vis_file_path), ms_file_paths
 
         # Run the simulation on the local machine
