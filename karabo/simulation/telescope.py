@@ -8,6 +8,7 @@ from typing import List, Optional
 
 import numpy as np
 import oskar.telescope as os_telescope
+from numpy.typing import NDArray
 
 import karabo.error
 from karabo.karabo_resource import KaraboResource
@@ -234,7 +235,7 @@ class Telescope(KaraboResource):
             )
         layout_file.close()
 
-    def get_cartesian_position(self):
+    def get_cartesian_position(self) -> NDArray[np.float_]:
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
 
     @classmethod
@@ -242,6 +243,8 @@ class Telescope(KaraboResource):
         if path.endswith(".tm"):
             logging.info("Supplied file is a .tm file. Read as OSKAR Telescope file.")
             return cls.read_OSKAR_tm_file(path)
+        else:
+            return None
 
     @classmethod
     def get_MEERKAT_Telescope(cls) -> Telescope:
@@ -331,11 +334,11 @@ class Telescope(KaraboResource):
     @classmethod
     def read_OSKAR_tm_file(cls, path: str) -> Telescope:
         abs_station_dir_paths = []
-        station_position_file = None
+        center_position_file = None
         station_layout_file = None
         for file_or_dir in os.listdir(path):
             if file_or_dir.startswith("position"):
-                station_position_file = os.path.abspath(os.path.join(path, file_or_dir))
+                center_position_file = os.path.abspath(os.path.join(path, file_or_dir))
             if file_or_dir.startswith("layout"):
                 station_layout_file = os.path.abspath(os.path.join(path, file_or_dir))
             if file_or_dir.startswith("station"):
@@ -343,7 +346,7 @@ class Telescope(KaraboResource):
                     os.path.abspath(os.path.join(path, file_or_dir))
                 )
 
-        if station_position_file is None:
+        if center_position_file is None:
             raise karabo.error.KaraboError("Missing crucial position.txt file_or_dir")
 
         if station_layout_file is None:
@@ -357,22 +360,26 @@ class Telescope(KaraboResource):
 
         telescope = None
 
-        position_file = open(station_position_file)
+        position_file = open(center_position_file)
         lines = position_file.readlines()
         for line in lines:
-            long_lat = line.split(" ")
-            if len(long_lat) > 3:
-                raise karabo.error.KaraboError("Too many values in position.txt")
-            long = float(long_lat[0])
-            lat = float(long_lat[1])
-            alt = 0
-            if len(long_lat) == 3:
-                alt = float(long_lat[2])
-            telescope = Telescope(long, lat, alt)
+            match = re.match(
+                r"^\d+(?:\.\d+)?(?:\s+\d+(?:\.\d+)?){0,2}$", line.strip()
+            )  # one line with two or three numbers
+            if match:
+                numbers = [float(num) for num in match.group().split()]
+                long = numbers[0]
+                lat = numbers[1]
+                alt = 0.0
+                if len(numbers) == 3:
+                    alt = float(numbers[2])
+                telescope = Telescope(long, lat, alt)
+                break
 
-        if Telescope is None:
+        if telescope is None:
             raise karabo.error.KaraboError(
-                "Could not create Telescope from position.txt file_or_dir."
+                "Could not create Telescope from position.txt file_or_dir. "
+                + "It must contain one line with two or three numbers."
             )
 
         position_file.close()
