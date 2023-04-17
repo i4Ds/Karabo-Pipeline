@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-import shutil
 from math import comb
 from typing import List, Optional
 
@@ -54,7 +53,9 @@ class Telescope(KaraboResource):
         Hotfix for issue #59.
     """
 
-    def __init__(self, longitude: float, latitude: float, altitude: float = 0):
+    def __init__(
+        self, longitude: float, latitude: float, altitude: float = 0.0
+    ) -> None:
         """__init__ method
 
         Parameters
@@ -66,8 +67,8 @@ class Telescope(KaraboResource):
         altitude : float, optional
             Altitude (in meters) at the center of the telescope, default is 0.
         """
-        self.temp_dir = None
-        self.path = None
+        self.temp_dir: Optional[FileHandle] = None
+        self.path: Optional[str] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
         self.centre_altitude = altitude
@@ -78,11 +79,11 @@ class Telescope(KaraboResource):
         self,
         horizontal_x: float,
         horizontal_y: float,
-        horizontal_z: float = 0,
-        horizontal_x_coordinate_error: float = 0,
-        horizontal_y_coordinate_error: float = 0,
-        horizontal_z_coordinate_error: float = 0,
-    ):
+        horizontal_z: float = 0.0,
+        horizontal_x_coordinate_error: float = 0.0,
+        horizontal_y_coordinate_error: float = 0.0,
+        horizontal_z_coordinate_error: float = 0.0,
+    ) -> None:
         """
         Specify the stations as relative to the centre position
         :param horizontal_x: east coordinate relative to centre
@@ -145,7 +146,7 @@ class Telescope(KaraboResource):
                 )
             )
 
-    def plot_telescope(self, file: str = None) -> None:
+    def plot_telescope(self, file: Optional[str] = None) -> None:
         """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
@@ -193,13 +194,13 @@ class Telescope(KaraboResource):
         :return: OSKAR Telescope object
         """
         self.temp_dir = FileHandle()
-        self.__create_telescope_tm_file(self.temp_dir.path)
+        self.write_to_file(self.temp_dir.path)
         tel = os_telescope.Telescope()
         tel.load(self.temp_dir.path)
         self.path = self.temp_dir.path
         return tel
 
-    def __create_telescope_tm_file(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         """
         Create .tm telescope configuration at the specified path
         :param path: directory in which the configuration will be saved in.
@@ -222,7 +223,9 @@ class Telescope(KaraboResource):
         )
         position_file.close()
 
-    def __write_layout_txt(self, layout_path: str, elements: List[EastNorthCoordinate]):
+    def __write_layout_txt(
+        self, layout_path: str, elements: List[EastNorthCoordinate]
+    ) -> None:
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
@@ -230,9 +233,6 @@ class Telescope(KaraboResource):
                 + f"{element.y_error}, {element.z_error} \n"
             )
         layout_file.close()
-
-    def write_to_file(self, path: str) -> None:
-        shutil.copytree(self.path.path, path)
 
     def get_cartesian_position(self):
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
