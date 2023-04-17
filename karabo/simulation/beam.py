@@ -1,5 +1,6 @@
 import enum
 import subprocess
+from typing import Literal, Optional, Tuple, cast
 
 import eidos
 import numpy as np
@@ -9,6 +10,7 @@ from eidos.create_beam import zernike_parameters
 from eidos.spatial import recon_par
 from katbeam import JimBeam
 from matplotlib import pyplot as plt
+from numpy.typing import ArrayLike, NDArray
 from scipy import interpolate
 from scipy.interpolate import RectBivariateSpline
 
@@ -16,6 +18,7 @@ from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
 from karabo.util.data_util import get_module_path_of_module
 from karabo.util.FileHandle import FileHandle
+from karabo.util.my_types import NPFloatLike
 
 
 class PolType(enum.Enum):
@@ -32,8 +35,8 @@ class BeamPattern:
     def __init__(
         self,
         cst_file_path: str,
-        telescope: Telescope = None,
-        freq_hz: float = 0,
+        telescope: Optional[Telescope] = None,
+        freq_hz: float = 0.0,
         pol: str = "XY",
         element_type_index: int = 0,
         average_fractional_error_factor_increase: float = 1.1,
@@ -42,50 +45,50 @@ class BeamPattern:
         beam_method: str = "Gaussian Beam",
         interpol: str = "RectBivariateSpline",
     ) -> None:
-        self.cst_file_path: str = cst_file_path
-        self.telescope: Telescope = telescope
-        self.freq_hz: float = freq_hz
-        self.pol: str = pol
-        self.element_type_index: int = element_type_index
-        self.average_fractional_error_factor_increase: float = (
+        self.cst_file_path = cst_file_path
+        self.telescope = telescope
+        self.freq_hz = freq_hz
+        self.pol = pol
+        self.element_type_index = element_type_index
+        self.average_fractional_error_factor_increase = (
             average_fractional_error_factor_increase
         )
-        self.ignore_data_at_pole: bool = ignore_data_at_pole
-        self.avg_frac_error: float = avg_frac_error
-        self.beam_method: str = beam_method
-        self.interpol: str = interpol
+        self.ignore_data_at_pole = ignore_data_at_pole
+        self.avg_frac_error = avg_frac_error
+        self.beam_method = beam_method
+        self.interpol = interpol
 
     def fit_elements(
         self,
-        telescope: Telescope = None,
-        freq_hz: float = None,
-        pol: str = None,
-        element_type_index: int = None,
-        average_fractional_error_factor_increase: float = None,
-        ignore_data_at_pole: bool = None,
-        avg_frac_error: float = None,
+        telescope: Optional[Telescope] = None,
+        freq_hz: Optional[float] = None,
+        pol: Optional[str] = None,
+        element_type_index: Optional[int] = None,
+        average_fractional_error_factor_increase: Optional[float] = None,
+        ignore_data_at_pole: Optional[bool] = None,
+        avg_frac_error: Optional[float] = None,
     ) -> None:
         if telescope is not None:
-            self.telescope: Telescope = telescope
+            self.telescope = telescope
         if not isinstance(self.telescope, Telescope):
             raise KaraboError(
                 f"`telescope` is {type(self.telescope)} "
                 + "but must be of type `Telescope`!"
             )
         if freq_hz is not None:
-            self.freq_hz: float = freq_hz
+            self.freq_hz = freq_hz
         if pol is not None:
-            self.pol: str = pol
+            self.pol = pol
         if element_type_index is not None:
-            self.element_type_index: int = element_type_index
+            self.element_type_index = element_type_index
         if average_fractional_error_factor_increase is not None:
-            self.average_fractional_error_factor_increase: float = (
+            self.average_fractional_error_factor_increase = (
                 average_fractional_error_factor_increase
             )
         if ignore_data_at_pole is not None:
-            self.ignore_data_at_pole: bool = ignore_data_at_pole
+            self.ignore_data_at_pole = ignore_data_at_pole
         if avg_frac_error is not None:
-            self.avg_frac_error: float = avg_frac_error
+            self.avg_frac_error = avg_frac_error
 
         content = (
             "[General] \n"
@@ -118,7 +121,11 @@ class BeamPattern:
         )
         fit_data_process.communicate()
 
-    def make_cst_from_arr(self, arr, output_file_path):
+    def make_cst_from_arr(
+        self,
+        arr: ArrayLike,
+        output_file_path: str,
+    ) -> None:
         """
         Takes array of dimensions (*,8), and returns a cst files
         :param arr:
@@ -134,7 +141,7 @@ class BeamPattern:
             "---------------------------------------------"
         )
         np.savetxt(
-            str(output_file_path) + ".cst",
+            output_file_path + ".cst",
             arr,
             delimiter=" ",
             header=line1 + "\n" + line2,
@@ -142,7 +149,13 @@ class BeamPattern:
         )
 
     @staticmethod
-    def get_meerkat_uhfbeam(f, pol, beamextentx, beamextenty, sampling_step: int = 80):
+    def get_meerkat_uhfbeam(
+        f: int,
+        pol: Literal["H", "V", "I"],
+        beamextentx: float,
+        beamextenty: float,
+        sampling_step: int = 80,
+    ) -> Tuple[NDArray[np.float_], NDArray[np.float_], NDArray[np.float_]]:
         """
 
         :param pol:
@@ -163,35 +176,48 @@ class BeamPattern:
             beampixels = beam.HH(x, y, freqMHz)
         elif pol == "V":
             beampixels = beam.VV(x, y, freqMHz)
-        else:
+        elif pol == "I":
             beampixels = beam.I(x, y, freqMHz)
-            pol = "I"
+        else:
+            raise ValueError(
+                f"`pol` value of 'H', 'V' or 'I' is allowed, but is {pol}."
+            )
         return x, y, beampixels
 
     @staticmethod
-    def get_eidos_holographic_beam(npix, ch, dia, thres, mode="AH") -> complex:
+    def get_eidos_holographic_beam(
+        npix: int,
+        ch: int,
+        dia: int,
+        thres: int,
+        mode: Literal["AH", "EM"] = "AH",
+    ) -> NDArray[np.complex_]:
         """
         Returns beam
         """
-        B = None
         if mode == "AH":
             meerkat_beam_coeff_ah = (
                 f"{get_module_path_of_module(eidos)}"
                 + "/data/meerkat_beam_coeffs_ah_zp_dct.npy"
             )
             params, freqs = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres)
-            B = recon_par(params[ch, :])
-        if mode == "EM":
+            B = cast(NDArray[np.complex_], recon_par(params[ch, :]))
+        elif mode == "EM":
             meerkat_beam_coeff_em = (
                 f"{get_module_path_of_module(eidos)}"
                 + "/data/meerkat_beam_coeffs_em_zp_dct.npy"
             )
             params, freqs = zernike_parameters(meerkat_beam_coeff_em, npix, dia, thres)
-            B = recon_par(params[ch, :])
+            B = cast(NDArray[np.complex_], recon_par(params[ch, :]))
+        else:
+            raise ValueError(f"`mode` 'EM' and 'AH' are allowed but is {mode}.")
         return B
 
     @staticmethod
-    def show_eidos_beam(B_ah, path=None):
+    def show_eidos_beam(
+        B_ah: NDArray[np.complex_],
+        path: Optional[str] = None,
+    ) -> None:
         f, ax = plt.subplots(2, 2)
         log10_notzero = 10 ** (-10)
         ax00 = ax[0, 0]
@@ -238,7 +264,12 @@ class BeamPattern:
         plt.pause(1)
 
     @staticmethod
-    def eidos_lineplot(B_ah, B_em, npix, path=None):
+    def eidos_lineplot(
+        B_ah: NDArray[np.complex_],
+        B_em: NDArray[np.complex_],
+        npix: int,
+        path: Optional[str] = None,
+    ) -> None:
         f, ax = plt.subplots(2, 1)
         log10_notzero = 10 ** (-12)
         ax0 = ax[0]
@@ -271,7 +302,13 @@ class BeamPattern:
         plt.pause(1)
 
     @staticmethod
-    def show_kat_beam(beampixels, beamextent, freq, pol, path=None):
+    def show_kat_beam(
+        beampixels: NDArray[np.float_],
+        beamextent: int,
+        freq: int,
+        pol: str,
+        path: Optional[str] = None,
+    ) -> None:
         """
 
         :param beamextent:
@@ -292,7 +329,13 @@ class BeamPattern:
         plt.show(block=False)
         plt.pause(1)
 
-    def plot_beam(self, theta, phi, absdir, path=None):
+    def plot_beam(
+        self,
+        theta: NPFloatLike,
+        phi: NPFloatLike,
+        absdir: NPFloatLike,  # TODO not quiet sure here about the type
+        path: Optional[str] = None,
+    ) -> None:
         """
 
         :param theta: in radians
@@ -310,14 +353,19 @@ class BeamPattern:
         plt.show(block=False)
         plt.pause(1)
 
-    def integrate(self, theta, phi, integrand):
-        theta = units.Quantity(theta, unit=units.deg).to("rad")
-        phi = units.Quantity(phi, unit=units.deg).to("rad")
+    def integrate(
+        self,
+        theta,  # NDArray[np.float_]?
+        phi,  # NDArray[np.float_]?
+        integrand,
+    ):
+        theta_ = units.Quantity(theta, unit=units.deg).to("rad")
+        phi_ = units.Quantity(phi, unit=units.deg).to("rad")
         # very simple quadrature, assuming uniform
         # theta, phi sampling and theta major ordering
-        dtheta = np.max(np.diff(theta))
-        dphi = phi[1] - phi[0]
-        dsa = (dtheta * dphi * np.sin(theta)).value
+        dtheta = np.max(np.diff(theta_))
+        dphi = phi_[1] - phi_[0]
+        dsa = (dtheta * dphi * np.sin(theta_)).value
         return np.sum(dsa * integrand)
 
     def sym_gaussian(

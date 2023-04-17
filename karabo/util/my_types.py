@@ -46,7 +46,9 @@ NPComplOutBroadType: TypeAlias = Union[
 # similar to `numpy dtypes` but without numpy
 IntLike: TypeAlias = Union[bool, int]
 FloatLike: TypeAlias = Union[IntLike, float]
+IntFloat: TypeAlias = Union[int, float]
 ComplexLike: TypeAlias = Union[FloatLike, complex]
+IntFloatCompl: TypeAlias = Union[IntFloat, complex]
 NumberLike: TypeAlias = ComplexLike
 ScalarLike: TypeAlias = Union[
     int,
@@ -55,3 +57,6 @@ ScalarLike: TypeAlias = Union[
     str,
     bytes,
 ]
+
+NPIntLikeStrict = Union[np.int_, int]
+NPFloatLikeStrict = Union[NPIntFloat, IntFloat]
