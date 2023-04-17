@@ -48,7 +48,7 @@ def dask_cleanup(client: Client):
         pass
 
     # Give some time for the workers to exit before closing the client
-    time.sleep(3)
+    time.sleep(10)
 
     # Remove the stop_workers file
     if os.path.exists(STOP_WORKER_FILE):
