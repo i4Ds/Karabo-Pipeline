@@ -11,6 +11,7 @@ import oskar.telescope as os_telescope
 from numpy.typing import NDArray
 
 import karabo.error
+from karabo.error import KaraboError
 from karabo.karabo_resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
@@ -28,6 +29,7 @@ from karabo.simulation.telescope_versions import (
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.FileHandle import FileHandle
 from karabo.util.math_util import long_lat_to_cartesian
+from karabo.util.my_types import NPFloatLike
 
 
 class Telescope(KaraboResource):
@@ -422,7 +424,7 @@ class Telescope(KaraboResource):
         return telescope
 
     @classmethod
-    def __read_layout_txt(cls, path) -> List[List[float]]:
+    def __read_layout_txt(cls, path: str) -> List[List[float]]:
         positions: List[List[float]] = []
         layout_file = open(path)
         lines = layout_file.readlines()
@@ -440,20 +442,20 @@ class Telescope(KaraboResource):
         return positions
 
     @classmethod
-    def __float_try_parse(cls, value):
+    def __float_try_parse(cls, value: str) -> float:
         try:
             return float(value)
         except ValueError:
             return 0.0
 
 
-def compute_distance(i, j, station_x, station_y):
-    return np.sqrt(
-        (station_x[i] - station_x[j]) ** 2 + (station_y[i] - station_y[j]) ** 2
-    )
-
-
-def create_baseline_cut_telelescope(lcut, hcut, tel):
+def create_baseline_cut_telelescope(
+    lcut: NPFloatLike,
+    hcut: NPFloatLike,
+    tel: Telescope,
+) -> str:
+    if tel.path is None:
+        raise KaraboError("`tel.path` None is not allowed.")
     stations = np.loadtxt(tel.path + "/layout.txt")
     station_x = stations[:, 0]
     station_y = stations[:, 1]
@@ -464,7 +466,7 @@ def create_baseline_cut_telelescope(lcut, hcut, tel):
     baseline_y = np.zeros(nb)
     for i in range(stations.shape[0]):
         for j in range(i):
-            baseline[k] = compute_distance(i, j, station_x, station_y)
+            baseline[k] = np.linalg.norm(station_x[i] - station_y[j])
             baseline_x[k] = i
             baseline_y[k] = j
             k = k + 1
