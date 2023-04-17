@@ -1,7 +1,7 @@
 import enum
 import os
 from copy import deepcopy
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import oskar
@@ -46,9 +46,6 @@ class FilterUnits(enum.Enum):
 class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
-
-    :ivar vis_path: Path of the visibility output file containing results of the
-                    simulation.
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
                                 smearing. (Note that this can be different to the
                                 frequency increment if channels do not cover a
@@ -139,7 +136,8 @@ class InterferometerSimulation:
 
     def __init__(
         self,
-        vis_path: str = None,
+        ms_file_path: Optional[str] = None,
+        vis_file_path: Optional[str] = None,
         channel_bandwidth_hz: float = 0,
         time_average_sec: float = 0,
         max_time_per_samples: int = 8,
@@ -175,7 +173,16 @@ class InterferometerSimulation:
         gauss_ref_freq_hz: float = 0.0,
         ionosphere_fits_path: str = None,
     ) -> None:
-        self.vis_path: str = vis_path
+        if ms_file_path is None: 
+            fh = FileHandle(suffix='.ms')
+            ms_file_path = fh.path
+        self.ms_file_path = ms_file_path
+
+        if vis_file_path is None:
+            vis = Visibility()
+            vis_file_path = vis.file.path
+        self.vis_file_path = vis_file_path
+
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
         self.time_average_sec: float = time_average_sec
         self.max_time_per_samples: int = max_time_per_samples
@@ -324,7 +331,7 @@ class InterferometerSimulation:
                 # Create visiblity object
                 visibility = Visibility()
                 interferometer_params = self.__get_OSKAR_settings_tree(
-                    input_telpath=input_telpath, ms_file_path=visibility.file.path
+                    input_telpath=input_telpath, ms_file_path=visibility.file.path, 
                 )
                 # Create params for the interferometer
                 params_total = {**interferometer_params, **observation_params}
@@ -342,10 +349,11 @@ class InterferometerSimulation:
                     )
                 )
             results = self.client.gather(futures)
+            visibilities = [x['interferometer']['oskar_vis_file_path'] for x in results]
+            ms_file_paths = [x['interferometer']['ms_file_path'] for x in results]
             # TODO: Combine visibilities here. Currently, it just returns the first
-            combined_vis = Visibility()
-            combined_vis.combine_vis(results, combined_vis.file.path)
-            return Visibility(combined_vis.file.path)
+            Visibility.combine_vis(results, self.vis_file_path)
+            return Visibility(self.vis_file_path), ms_file_paths
 
         # Run the simulation on the local machine
         else:
@@ -353,7 +361,7 @@ class InterferometerSimulation:
             visibility = Visibility()
             # Create params for the interferometer
             interferometer_params = self.__get_OSKAR_settings_tree(
-                input_telpath=input_telpath, ms_file_path=visibility.file.path
+                input_telpath=input_telpath, ms_file_path=visibility.file.path, vis_path=visibility.file.path
             )
             params_total = {**interferometer_params, **observation_params}
             path_to_vis = InterferometerSimulation.__run_simulation_oskar(
@@ -379,9 +387,9 @@ class InterferometerSimulation:
         simulation.set_sky_model(os_sky)
         simulation.run()
 
-        # Return the path to the visibility file
-        return params_total["interferometer"]["ms_filename"]
-
+        # Return the params, which contain all the information about the simulation
+        return params_total
+    
     def __run_simulation_long(
         self,
         telescope: Telescope,
@@ -495,7 +503,7 @@ class InterferometerSimulation:
         return self.precision != "single"
 
     def __get_OSKAR_settings_tree(
-        self, input_telpath, ms_file_path
+        self, input_telpath, ms_file_path, vis_path
     ) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
         settings = {
             "simulator": {
@@ -504,6 +512,7 @@ class InterferometerSimulation:
             },
             "interferometer": {
                 "ms_filename": ms_file_path,
+                "oskar_vis_filename": vis_path, 
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
                 "time_average_sec": str(self.time_average_sec),
                 "max_time_samples_per_block": str(self.max_time_per_samples),
@@ -549,8 +558,6 @@ class InterferometerSimulation:
                 }
             )
 
-        if self.vis_path:
-            settings["interferometer"]["oskar_vis_filename"] = self.vis_path
         return settings
 
     @staticmethod
