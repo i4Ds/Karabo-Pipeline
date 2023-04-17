@@ -1,123 +1,100 @@
+from __future__ import annotations
+
+import atexit
 import os
-import sys
 import time
 from subprocess import call
+from typing import Optional
 
-import psutil
 from dask.distributed import Client, LocalCluster
 
 SCHEDULER_ADDRESS = "scheduler_address.json"
-STOP_WORKER_FILE = "stop_workers"
 
+class DaskHandler():
+    dask_client: Optional[Client] = None
+    _n_workers_scheduler_node: int = 1
 
-def get_global_client(
-    min_ram_gb_per_worker: int = 2, threads_per_worker: int = 1
-) -> Client:
-    global client
-    if client is None:
-        client = get_local_dask_client(min_ram_gb_per_worker, threads_per_worker)
-    print(f"Client Dashboard Address: {client.dashboard_link}")
-    return client
-
-
-def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
-    global client
-    if client is not None:
-        return client
-    min_ram_gb_per_worker *= 1024
-    cpus = psutil.cpu_count()
-    ram = psutil.virtual_memory().total / 1024 / 1024
-    if ram / cpus >= min_ram_gb_per_worker:
-        client = Client(
-            LocalCluster(n_workers=cpus, threads_per_worker=threads_per_worker)
-        )
-    else:
-        workers = cpus
-        while ram / workers < min_ram_gb_per_worker:
-            workers -= 1
-
-        client = Client(
-            LocalCluster(n_workers=workers, threads_per_worker=threads_per_worker)
-        )
-    return client
-
-
-def dask_cleanup(client: Client):
-    # Create the stop_workers file
-    with open(STOP_WORKER_FILE, "w") as _:
+    def __init__(self) -> None:
         pass
 
-    # Give some time for the workers to exit before closing the client
-    time.sleep(10)
+    @staticmethod
+    def get_dask_client(n_workers_scheduler_node: int = 1) -> Client:
+        if DaskHandler.dask_client is None:
+            DaskHandler.dask_client = setup_dask_for_slurm(n_workers_scheduler_node=n_workers_scheduler_node)
+            DaskHandler._n_workers_scheduler_node = n_workers_scheduler_node
+        elif DaskHandler._n_workers_scheduler_node != n_workers_scheduler_node:
+            raise Exception("Dask client already created with different number of workers.")
+        return DaskHandler.dask_client
 
-    # Remove the stop_workers file
-    if os.path.exists(STOP_WORKER_FILE):
-        os.remove(STOP_WORKER_FILE)
-
+def dask_cleanup(client: Client):
     # Remove the scheduler file
     if os.path.exists(SCHEDULER_ADDRESS):
         os.remove(SCHEDULER_ADDRESS)
+
     if client is not None:
         client.close()
+        client.shutdown()
 
-
-def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
+def prepare_slurm_nodes_for_dask():
     # Detect if we are on a slurm cluster
     if not is_on_slurm_cluster() or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
-        return None
-
+        return 
+    
+    # Check if we are on the first node
+    if is_first_node():
+        # Remove old scheduler file
+        if os.path.exists(SCHEDULER_ADDRESS):
+            os.remove(SCHEDULER_ADDRESS)
+    
     else:
-        if is_first_node():
-            # Remove old scheduler file
-            if os.path.exists(SCHEDULER_ADDRESS):
-                os.remove(SCHEDULER_ADDRESS)
+        # Wait some time to make sure the scheduler file is new
+        time.sleep(10)
 
-            # Create client and scheduler
-            cluster = LocalCluster(
-                ip=get_lowest_node_name(), n_workers=n_workers_scheduler_node
-            )
-            client = Client(cluster)
+        # Wait until scheduler file is created
+        while not os.path.exists(SCHEDULER_ADDRESS):
+            print("Waiting for scheduler file to be created.")
+            time.sleep(1)
 
-            # Write scheduler file
-            with open(SCHEDULER_ADDRESS, "w") as f:
-                f.write(cluster.scheduler_address)
+        # Read scheduler file
+        with open(SCHEDULER_ADDRESS, "r") as f:
+            scheduler_address = f.read()
 
-            # Wait until all workers are connected
-            n_workers_requested = get_number_of_nodes() - 1 + n_workers_scheduler_node
-            while len(client.scheduler_info()["workers"]) < n_workers_requested:
-                print(
-                    f"Waiting for all workers to connect. Currently "
-                    f"{len(client.scheduler_info()['workers'])} "
-                    f"workers connected of {n_workers_requested} requested."
-                )
-                time.sleep(1)
+        # Create client
+        call(["dask", "worker", scheduler_address])
 
-            print(f"All {len(client.scheduler_info()['workers'])} workers connected!")
-            return client
-
-        else:
-            # Wait some time to make sure the scheduler file is new
+        # Run until client is closed
+        while True:
             time.sleep(5)
 
-            # Wait until scheduler file is created
-            while not os.path.exists(SCHEDULER_ADDRESS):
-                print("Waiting for scheduler file to be created.")
-                time.sleep(1)
+def setup_dask_for_slurm(n_workers_scheduler_node: int = 1):
+    if is_first_node():
+        # Create client and scheduler
+        cluster = LocalCluster(
+            ip=get_lowest_node_name(), n_workers=n_workers_scheduler_node
+        )
+        dask_client = Client(cluster)
 
-            # Read scheduler file
-            with open(SCHEDULER_ADDRESS, "r") as f:
-                scheduler_address = f.read()
+        # Write scheduler file
+        with open(SCHEDULER_ADDRESS, "w") as f:
+            f.write(cluster.scheduler_address)
 
-            # Create client
-            call(["dask", "worker", scheduler_address])
+        # Wait until all workers are connected
+        n_workers_requested = get_number_of_nodes() - 1 + n_workers_scheduler_node
+        while len(dask_client.scheduler_info()["workers"]) < n_workers_requested:
+            print(
+                f"Waiting for all workers to connect. Currently "
+                f"{len(dask_client.scheduler_info()['workers'])} "
+                f"workers connected of {n_workers_requested} requested."
+            )
+            time.sleep(1)
 
-            # Run until stop_workers file is created
-            while True:
-                if os.path.exists(STOP_WORKER_FILE):
-                    print("Stop workers file detected. Exiting.")
-                    sys.exit(0)
-                time.sleep(5)
+        print(f"All {len(dask_client.scheduler_info()['workers'])} workers connected!")
+        atexit.register(dask_cleanup, dask_client)
+        return dask_client
+
+    else:
+        raise Exception("This function should only be reached on the first node.")
 
 
 def get_min_max_of_node_id():
@@ -175,10 +152,6 @@ def get_node_id():
 
 def is_first_node():
     return get_node_id() == get_lowest_node_id()
-
-
-def get_current_time():
-    return time.strftime("%H:%M:%S", time.localtime())
 
 
 def is_on_slurm_cluster():

@@ -15,6 +15,7 @@ from astropy import units as u
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
+from dask.distributed import Client
 from numpy.typing import NDArray
 
 from karabo.data.external_data import (
@@ -22,6 +23,7 @@ from karabo.data.external_data import (
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboError
+from karabo.util.dask import DaskHandler
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.my_types import FloatLike, NPBroadcType
@@ -53,7 +55,6 @@ GLEAM_freq = Literal[
 
 SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_]]
 SetSkyItemType = Union[NPBroadcType, str]
-
 
 class Polarisation(enum.Enum):
     STOKES_I = (0,)
@@ -91,6 +92,7 @@ class SkyModel:
         self,
         sources: Optional[SkySourcesType] = None,
         wcs: Optional[WCS] = None,
+        client: Optional[Client] = None,
     ) -> None:
         """
         Initialization of a new SkyModel
@@ -102,6 +104,10 @@ class SkyModel:
         self.wcs = wcs
         if sources is not None:
             self.add_point_sources(sources)
+
+        if client is not None:
+            self.client = DaskHandler.get_dask_client()
+
 
     def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
         empty_sources = np.hstack(

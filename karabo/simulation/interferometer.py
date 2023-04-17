@@ -14,6 +14,7 @@ from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
+from karabo.util.dask import DaskHandler
 from karabo.util.FileHandle import FileHandle
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
 
@@ -198,7 +199,11 @@ class InterferometerSimulation:
         self.beam_polX: BeamPattern = beam_polX
         self.beam_polY: BeamPattern = beam_polY
         self.use_gpus = use_gpus
-        self.client = client
+        if client is None:
+            self.client = DaskHandler.get_dask_client()
+        else:
+            self.client = client
+        print("Using dask client: ", self.client)
         self.split_idxs_per_group = split_idxs_per_group
         self.split_sky_for_dask_how = split_sky_for_dask_how
         self.max_vram_usage_gpu = max_vram_usage_gpu
@@ -255,11 +260,14 @@ class InterferometerSimulation:
         array_sky = sky.get_OSKAR_sky(precision=self.precision).to_array()
 
         if self.client is not None:
+            print("Using Dask for parallelisation. Splitting sky model...")
             # To convert to a numpy array
             split_array_sky = None
 
             if self.split_idxs_per_group:
                 split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
+
+
             elif self.split_sky_for_dask_how == "randomly":
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
@@ -281,6 +289,9 @@ class InterferometerSimulation:
                     if ratio_vram_usage > 1:
                         N += int(np.ceil(ratio_vram_usage))
 
+                # Print out the number of splits
+                print(f"Splitting the sky into {N} chunks")
+
                 # Split the array randomly
                 split_array_sky = []
                 to_select = int(np.ceil(len(array_sky) / N))
@@ -295,9 +306,12 @@ class InterferometerSimulation:
                 if len(array_sky) > 0:
                     split_array_sky.append(array_sky)
 
+                # Delete the array
+                del array_sky
+
             else:
                 raise ValueError(
-                    "Unknown split_sky_for_dask_how value. " "Please use 'randomly'."
+                    "Unknown split_sky_for_dask_how value. Please use 'randomly'."
                 )
         # Create the settings tree
         observation_params = observation.get_OSKAR_settings_tree()
@@ -329,8 +343,9 @@ class InterferometerSimulation:
                 )
             results = self.client.gather(futures)
             # TODO: Combine visibilities here. Currently, it just returns the first
-            # result contains the list of paths to the visibilities
-            return Visibility(results[0])
+            combined_vis = Visibility()
+            combined_vis.combine_vis(results, combined_vis.file.path)
+            return Visibility(combined_vis.file.path)
 
         # Run the simulation on the local machine
         else:
@@ -409,6 +424,7 @@ class InterferometerSimulation:
                 beam = pb.sim_beam()
                 pb.save_cst_file(beam[3], telescope=telescope_run)
                 pb.fit_elements(telescope_run)
+
                 # ------------ Y-coordinate
                 pb = deepcopy(self.beam_polY)
                 pb.save_cst_file(beam[4], telescope=telescope_run)

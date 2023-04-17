@@ -18,6 +18,10 @@ if "WSL" in platform.release() and (
     # https://stackoverflow.com/questions/6543847/setting-ld-library-path-from-inside-python
     os.execv(sys.executable, ["python"] + sys.argv)
 
+# Setup dask for slurm
+from karabo.util.dask import prepare_slurm_nodes_for_dask
+
+prepare_slurm_nodes_for_dask()
 
 from karabo.util.data_util import get_module_absolute_path
 
