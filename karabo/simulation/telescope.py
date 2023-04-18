@@ -366,7 +366,7 @@ class Telescope(KaraboResource):
         lines = position_file.readlines()
         for line in lines:
             match = re.match(
-                r"^\d+(?:\.\d+)?(?:\s+\d+(?:\.\d+)?){1,2}$", line.strip()
+                r"^[-+]?\d+(?:\.\d+)?(?:\s+[-+]?\d+(?:\.\d+)?){1,2}$", line.strip()
             )  # one line with two or three numbers
             if match:
                 numbers = [float(num) for num in match.group().split()]
