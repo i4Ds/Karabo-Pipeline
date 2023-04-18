@@ -320,18 +320,19 @@ class InterferometerSimulation:
                 raise ValueError(
                     "Unknown split_sky_for_dask_how value. Please use 'randomly'."
                 )
-        # Create the settings tree
-        observation_params = observation.get_OSKAR_settings_tree()
-        input_telpath = telescope.path
 
         # Run the simulation on the dask cluster
         if self.client is not None:
             futures = []
             for sky_ in split_array_sky:
+                # Initialise the telescope and observation settings
+                observation_params = observation.get_OSKAR_settings_tree()
+                input_telpath = telescope.path
                 # Create visiblity object
                 visibility = Visibility()
+                fh = FileHandle(suffix=".ms")
                 interferometer_params = self.__get_OSKAR_settings_tree(
-                    input_telpath=input_telpath, ms_file_path=visibility.file.path, 
+                    input_telpath=input_telpath, ms_file_path=fh.path, vis_path=visibility.file.path
                 )
                 # Create params for the interferometer
                 params_total = {**interferometer_params, **observation_params}
@@ -349,25 +350,25 @@ class InterferometerSimulation:
                     )
                 )
             results = self.client.gather(futures)
-            visibilities = [x['interferometer']['oskar_vis_file_path'] for x in results]
+            visibility_paths = [x['interferometer']['oskar_vis_filename'] for x in results]
             ms_file_paths = [x['interferometer']['ms_file_path'] for x in results]
             # TODO: Combine visibilities here. Currently, it just returns the first
-            Visibility.combine_vis(visibilities, self.vis_file_path)
+            Visibility.combine_vis(visibility_paths, self.vis_file_path)
             return Visibility(self.vis_file_path), ms_file_paths
 
         # Run the simulation on the local machine
         else:
-            # Create the visibility object
             visibility = Visibility()
+            fh = FileHandle(suffix=".ms")
             # Create params for the interferometer
             interferometer_params = self.__get_OSKAR_settings_tree(
-                input_telpath=input_telpath, ms_file_path=visibility.file.path, vis_path=visibility.file.path
+                input_telpath=input_telpath, ms_file_path=fh.path, vis_path=visibility.file.path
             )
             params_total = {**interferometer_params, **observation_params}
-            path_to_vis = InterferometerSimulation.__run_simulation_oskar(
+            params_total = InterferometerSimulation.__run_simulation_oskar(
                 params_total, array_sky, self.precision
             )
-            return Visibility(path_to_vis)
+            return Visibility(params_total["interferometer"]["oskar_vis_filename"]), fh.path
 
     @staticmethod
     def __run_simulation_oskar(params_total, os_sky, precision):
@@ -382,8 +383,7 @@ class InterferometerSimulation:
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
         simulation = oskar.Interferometer(settings=setting_tree)
-        if isinstance(os_sky, np.ndarray):
-            os_sky = oskar.Sky.from_array(os_sky, precision=precision)
+        os_sky = oskar.Sky.from_array(os_sky, precision=precision)
         simulation.set_sky_model(os_sky)
         simulation.run()
 

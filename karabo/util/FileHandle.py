@@ -18,6 +18,9 @@ class FileHandle:
     file_name : str, optional
         Name of the output file. If not provided, a unique UUID will
         be used as the filename.
+    create_file : bool, optional
+        Whether to create the file or not. Default is False. If True,
+        the file will be created in the directory specified by dir by touching.
     suffix : str, optional
         Suffix to add to the filename. Default is an empty string.
 
@@ -43,6 +46,7 @@ class FileHandle:
         self,
         dir: Optional[str] = None,
         file_name: Optional[str] = None,
+        create_file: bool = False,
         suffix: str = "",
     ) -> None:
         if dir:
@@ -72,7 +76,7 @@ class FileHandle:
             os.makedirs(self.path, exist_ok=True)
 
         # Create the file if it does not exist
-        if file_name:
+        if create_file and file_name:
             open(self.path, "a").close()
 
     @staticmethod
