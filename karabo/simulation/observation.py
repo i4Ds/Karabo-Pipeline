@@ -2,8 +2,6 @@ from datetime import datetime, timedelta
 from typing import Union
 
 from karabo.error import KaraboError
-from karabo.util.gpu_util import is_cuda_available
-from karabo.warning import KaraboWarning
 
 
 class Observation:
@@ -38,7 +36,6 @@ class Observation:
         start_frequency_hz: float = 0,
         start_date_and_time: Union[datetime, str] = datetime.utcnow(),
         length: timedelta = timedelta(hours=4),
-        use_gpu: bool = None,
         number_of_channels: float = 1,
         frequency_increment_hz: float = 0,
         phase_centre_ra_deg: float = 0,
@@ -64,19 +61,6 @@ class Observation:
         self.phase_centre_ra_deg: float = phase_centre_ra_deg
         self.phase_centre_dec_deg: float = phase_centre_dec_deg
         self.number_of_time_steps: float = number_of_time_steps
-
-        # set use_gpu
-        if use_gpu is None:
-            print(
-                KaraboWarning(
-                    "Parameter 'use_gpu' is None! Using function "
-                    "'karabo.util.is_cuda_available()' to overwrite parameter "
-                    f"'use_gpu' to {is_cuda_available()}."
-                )
-            )
-            self.use_gpu = is_cuda_available()
-        else:
-            self.use_gpu = use_gpu
 
     def set_length_of_observation(
         self,

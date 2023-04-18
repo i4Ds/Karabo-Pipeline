@@ -45,6 +45,7 @@ class FileHandle:
     def __init__(
         self,
         dir: Optional[str] = None,
+        create_additional_folder_in_dir: bool = False,
         file_name: Optional[str] = None,
         create_file: bool = False,
         suffix: str = "",
@@ -53,21 +54,20 @@ class FileHandle:
             base_path = os.path.abspath(dir)
         else:
             base_path = os.path.join(os.getcwd(), "karabo_folder")
+        # If new folders to host the data should be created inside the base_path
+        if create_additional_folder_in_dir:
+            base_path = os.path.join(base_path, str(uuid.uuid4()))
 
         # Make the base path if it does not exist
         if not os.path.exists(base_path):
-            os.mkdir(base_path)
+            os.makedirs(base_path, exist_ok=True)
 
-        # If the folder is a visibility or measurement set, use it as the base path
-        if FileHandle.__folder_is_vis_or_ms(base_path):
-            self.path = base_path
+        if file_name:
+            self.path = os.path.join(
+                base_path, str(uuid.uuid4()), file_name + suffix
+            )
         else:
-            if file_name:
-                self.path = os.path.join(
-                    base_path, str(uuid.uuid4()), file_name + suffix
-                )
-            else:
-                self.path = os.path.join(base_path, str(uuid.uuid4()) + suffix)
+            self.path = os.path.join(base_path, str(uuid.uuid4()) + suffix)
 
         # Make sure everything, except the file, exists
         if file_name:

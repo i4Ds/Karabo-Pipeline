@@ -17,6 +17,7 @@ from karabo.simulation.visibility import Visibility
 from karabo.util.dask import DaskHandler
 from karabo.util.FileHandle import FileHandle
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
+from karabo.warning import KaraboWarning
 
 
 class CorrelationType(enum.Enum):
@@ -205,7 +206,19 @@ class InterferometerSimulation:
         self.enable_numerical_beam = enable_numerical_beam
         self.beam_polX: BeamPattern = beam_polX
         self.beam_polY: BeamPattern = beam_polY
-        self.use_gpus = use_gpus
+        # set use_gpu
+        if use_gpus is None:
+            print(
+                KaraboWarning(
+                    "Parameter 'use_gpus' is None! Using function "
+                    "'karabo.util.is_cuda_available()' to overwrite parameter "
+                    f"'use_gpu' to {is_cuda_available()}."
+                )
+            )
+            self.use_gpus = is_cuda_available()
+        else:
+            self.use_gpus = use_gpus
+
         if client is None:
             self.client = DaskHandler.get_dask_client()
         else:
@@ -328,9 +341,10 @@ class InterferometerSimulation:
                 # Initialise the telescope and observation settings
                 observation_params = observation.get_OSKAR_settings_tree()
                 input_telpath = telescope.path
+
                 # Create visiblity object
                 visibility = Visibility()
-                fh = FileHandle(suffix=".ms")
+                fh = FileHandle(dir=self.ms_file_path, create_additional_folder_in_dir=True, suffix=".ms")
                 interferometer_params = self.__get_OSKAR_settings_tree(
                     input_telpath=input_telpath, ms_file_path=fh.path, vis_path=visibility.file.path
                 )
@@ -350,25 +364,26 @@ class InterferometerSimulation:
                     )
                 )
             results = self.client.gather(futures)
+            # Combine the visibilities
             visibility_paths = [x['interferometer']['oskar_vis_filename'] for x in results]
-            ms_file_paths = [x['interferometer']['ms_file_path'] for x in results]
-            # TODO: Combine visibilities here. Currently, it just returns the first
             Visibility.combine_vis(visibility_paths, self.vis_file_path)
+
+            # Create a folder containing all the MS files
+            ms_file_paths = [x['interferometer']['ms_filename'] for x in results]
             return Visibility(self.vis_file_path), ms_file_paths
 
         # Run the simulation on the local machine
         else:
             visibility = Visibility()
-            fh = FileHandle(suffix=".ms")
             # Create params for the interferometer
             interferometer_params = self.__get_OSKAR_settings_tree(
-                input_telpath=input_telpath, ms_file_path=fh.path, vis_path=visibility.file.path
+                input_telpath=input_telpath, ms_file_path=self.ms_file_path, vis_path=visibility.file.path
             )
             params_total = {**interferometer_params, **observation_params}
             params_total = InterferometerSimulation.__run_simulation_oskar(
                 params_total, array_sky, self.precision
             )
-            return Visibility(params_total["interferometer"]["oskar_vis_filename"]), fh.path
+            return Visibility(params_total["interferometer"]["oskar_vis_filename"]), self.ms_file_path
 
     @staticmethod
     def __run_simulation_oskar(params_total, os_sky, precision):
