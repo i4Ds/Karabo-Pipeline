@@ -14,8 +14,11 @@ from karabo.util.FileHandle import FileHandle
 
 
 class Visibility(KaraboResource):
-    def __init__(self, path: str = None, file_name: str = 'visibility', create_file: bool = False) -> None:
-        self.file = FileHandle(dir=path, file_name=file_name, create_file=create_file, suffix=".vis")
+    def __init__(
+        self, path: str = None, ms_file_path: str = None, file_name: str = "visibility"
+    ) -> None:
+        self.file = FileHandle(path=path, file_name=file_name, suffix=".vis")
+        self.ms_file = FileHandle(path=ms_file_path, file_name=None, suffix=".ms")
 
     def write_to_file(self, path: str) -> None:
         # Remove if file or folder already exists
@@ -28,10 +31,15 @@ class Visibility(KaraboResource):
 
     @staticmethod
     def read_from_file(path: str) -> Visibility:
-        file = FileHandle(path)
-        vis = Visibility()
-        vis.file = file
+        if Visibility.is_measurement_set(path):
+            vis = Visibility(ms_file_path=path)
+        else:
+            vis = Visibility(path=path)
         return vis
+
+    @staticmethod
+    def is_measurement_set(path: str) -> str:
+        return path.endswith(".ms")
 
     @staticmethod
     def combine_spectral_foreground_vis(
@@ -130,7 +138,7 @@ class Visibility(KaraboResource):
     @staticmethod
     def combine_vis(
         visiblity_files: List[str],
-        combined_vis_filepath: str,
+        combined_ms_filepath: str,
         group_by: str = "day",
     ) -> None:
         print("Combining visibilities...")
@@ -154,7 +162,7 @@ class Visibility(KaraboResource):
 
         # Combine visibility data
         ms = oskar.MeasurementSet.create(
-            combined_vis_filepath,
+            combined_ms_filepath,
             block.num_stations,
             block.num_channels,
             block.num_pols,
@@ -167,7 +175,7 @@ class Visibility(KaraboResource):
         )
 
         # Write combined visibility data
-        print("### Writing combined visibilities in ", combined_vis_filepath)
+        print("### Writing combined visibilities in ", combined_ms_filepath)
 
         num_files = len(visiblity_files)
         if group_by == "day":
