@@ -310,12 +310,19 @@ class Telescope(KaraboResource):
 
     @classmethod
     def get_VLA_Telescope(cls, version: VLAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/vla.{version.value}.tm"
+        '''
+        version needs to string 'a', 'b' or 'c'
+        '''
+        path = f"{get_module_absolute_path()}/data/vla."+version+".tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_VLBA_Telescope(cls) -> Telescope:
         path = f"{get_module_absolute_path()}/data/vlba.tm"
+        return cls.read_OSKAR_tm_file(path)
+    @classmethod
+    def get_MWA_phase1_Telescope(cls) -> Telescope:
+        path = f"{get_module_absolute_path()}/data/mwa.phase1.tm"
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
