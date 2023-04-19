@@ -61,7 +61,8 @@ class MyTestCase(unittest.TestCase):
         freq = 8.0e8
         precision = "single"
         beam_type = "Isotropic beam"
-        vis_path = "./karabo/test/data/beam_vis"
+        vis_path = "./karabo/test/data/beam_vis.vis"
+        ms_file_path = "./karabo/test/data/beam_vis.ms"
         sky_txt = "./karabo/test/data/sky_model.txt"
         telescope_tm = "./karabo/data/meerkat.tm"
 
@@ -84,7 +85,8 @@ class MyTestCase(unittest.TestCase):
                 os.remove(os.path.join(telescope.path, item))
         # ------------- Simulation Begins
         simulation = InterferometerSimulation(
-            vis_path=vis_path + ".vis",
+            vis_path=vis_path,
+            ms_file_path=ms_file_path,
             channel_bandwidth_hz=2e7,
             time_average_sec=8,
             noise_enable=False,
@@ -107,7 +109,7 @@ class MyTestCase(unittest.TestCase):
             number_of_channels=1,
         )
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.write_to_file(path=vis_path + ".ms")
+        print(visibility.ms_file.path)
 
         # RASCIL IMAGING
         uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
@@ -227,7 +229,8 @@ class MyTestCase(unittest.TestCase):
         freq = 8.0e8
         precision = "double"
         beam_type = "Gaussian beam"
-        vis_path = "./karabo/test/data/beam_vis"
+        vis_path = "./karabo/test/data/beam_vis.vis"
+        ms_path = "./karabo/test/data/beam_vis.ms"
 
         sky = SkyModel()
         sky_data = np.zeros((81, 12))
@@ -248,7 +251,8 @@ class MyTestCase(unittest.TestCase):
                 os.remove(os.path.join(telescope.path, item))
         # ------------- Simulation Begins
         simulation = InterferometerSimulation(
-            vis_path=vis_path + ".vis",
+            vis_path=vis_path,
+            ms_file_path=ms_path,
             channel_bandwidth_hz=2e7,
             time_average_sec=8,
             noise_enable=False,
@@ -271,7 +275,6 @@ class MyTestCase(unittest.TestCase):
             number_of_channels=1,
         )
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.write_to_file(path=vis_path + ".ms")
 
         # RASCIL IMAGING
         uvmax = 3000 / (3.0e8 / freq)  # in wavelength units

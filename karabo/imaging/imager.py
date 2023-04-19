@@ -22,7 +22,7 @@ from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
-from karabo.util.dask import get_global_client
+from karabo.util.dask import DaskHandler
 from karabo.util.FileHandle import FileHandle
 
 
@@ -137,7 +137,7 @@ class Imager:
         :return: dirty image of visibilities.
         """
         # Code that triggers assertion statements
-        block_visibilities = create_visibility_from_ms(self.visibility.file.path)
+        block_visibilities = create_visibility_from_ms(self.visibility.ms_file.path)
 
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
@@ -209,7 +209,7 @@ class Imager:
         if client and not use_dask:
             raise EnvironmentError("Client passed but use_dask is False")
         if use_dask and not client:
-            client = get_global_client()
+            client = DaskHandler.get_dask_client()
         if client:
             print(client.cluster)
         # Set CUDA parameters

@@ -34,8 +34,8 @@ class DaskHandler:
     Methods
     -------
     get_dask_client() -> Client:
-        Returns a Dask client object. If the client does not exist or the Dask variables
-        were changed, a new client will be created.
+        Returns a Dask client object. If the client does not exist or the Dask
+        variables were changed, a new client will be created.
     were_dask_variables_changed() -> bool:
         Returns True if the Dask variables have changed since the last time the client
         was created by checking if the Dask info file exists and if the DaskHandler
