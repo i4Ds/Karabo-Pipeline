@@ -19,6 +19,7 @@ from ska_sdp_func_python.imaging import (
 )
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
+from karabo.error import KaraboError
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
@@ -101,7 +102,7 @@ class Imager:
         imaging_robustness: float = 0.0,
         imaging_gaussian_taper: Optional[float] = None,
         imaging_dopsf: Union[bool, str] = False,
-        imaging_uvmax: float = None,
+        imaging_uvmax: Optional[float] = None,
         imaging_uvmin: float = 0,
         imaging_dft_kernel: Optional[
             str
@@ -216,6 +217,9 @@ class Imager:
         if use_cuda:
             img_context = "wg"
         rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
+
+        if self.ingest_vis_nchan is None:
+            raise KaraboError("`ingest_vis_nchan` is None but must be of type 'int'.")
 
         blockviss = create_visibility_from_ms_rsexecute(
             msname=self.visibility.file.path,

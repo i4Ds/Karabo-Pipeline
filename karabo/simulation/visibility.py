@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import oskar
@@ -14,7 +14,7 @@ from karabo.util.FileHandle import FileHandle
 
 
 class Visibility(KaraboResource):
-    def __init__(self, path: str = None):
+    def __init__(self, path: Optional[str] = None) -> None:
         self.file = FileHandle(dir=path, suffix=".ms")
 
     def write_to_file(self, path: str) -> None:
