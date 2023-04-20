@@ -74,7 +74,9 @@ class DaskHandler:
             dask_info = json.load(f)
 
         return (
-            dask_info["n_workers_per_node"] != DaskHandler.n_workers_per_node
+            dask_info["n_workers_per_node"] != calculate_number_of_workers_per_node(
+                DaskHandler.min_ram_per_worker
+            )
             or dask_info["n_threads_per_worker"] != DaskHandler.threads_per_worker
         )
 

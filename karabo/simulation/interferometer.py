@@ -381,7 +381,8 @@ class InterferometerSimulation:
 
             # Create a folder containing all the MS files
             ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
-            return Visibility(visibility_paths, ms_file_paths)
+            # Visibilities cannot be combined currently, thus return the first one
+            return Visibility(visibility_paths[0], ms_file_paths)
 
         # Run the simulation on the local machine
         else:
