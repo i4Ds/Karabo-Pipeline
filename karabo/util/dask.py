@@ -77,7 +77,7 @@ class DaskHandler:
             dask_info["n_workers_per_node"] != DaskHandler.n_workers_per_node
             or dask_info["n_threads_per_worker"] != DaskHandler.threads_per_worker
         )
-    
+
     def should_dask_be_used(override: Optional[bool] = None):
         if override is not None:
             return override
@@ -199,8 +199,8 @@ def setup_dask_for_slurm(
         # Create client and scheduler
         cluster = LocalCluster(
             ip=get_lowest_node_name(),
-            n_workers=n_workers_scheduler_node, 
-            threads_per_worker=n_threads_per_worker
+            n_workers=n_workers_scheduler_node,
+            threads_per_worker=n_threads_per_worker,
         )
         dask_client = Client(cluster)
 
@@ -220,8 +220,8 @@ def setup_dask_for_slurm(
 
         # Wait until all workers are connected
         n_workers_requested = (
-            (get_number_of_nodes() - 1) * n_workers_per_node + n_workers_scheduler_node
-        )
+            get_number_of_nodes() - 1
+        ) * n_workers_per_node + n_workers_scheduler_node
 
         while len(dask_client.scheduler_info()["workers"]) < n_workers_requested:
             print(
