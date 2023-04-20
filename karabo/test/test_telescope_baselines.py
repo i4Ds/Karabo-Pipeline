@@ -52,7 +52,6 @@ class MyTestCase(unittest.TestCase):
 
         visibility = simulation.run_simulation(telescope, sky, observation)
         # visibility = simulation.run_simulation(parant_tel, sky, observation)
-        visibility.write_to_file("./result/baseline_cut.ms")
 
         imager = Imager(
             visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
