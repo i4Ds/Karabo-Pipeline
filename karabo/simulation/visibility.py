@@ -22,7 +22,7 @@ class Visibility(KaraboResource):
 
     def write_to_file(self, path: str) -> None:
         # Create the directory if it does not exist
-        if os.isfile(path):
+        if os.path.isfile(path):
             os.makedirs(os.path.dirname(path), exist_ok=True)
         else:
             os.makedirs(path, exist_ok=True)

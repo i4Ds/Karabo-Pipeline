@@ -88,4 +88,4 @@ def main(n_random_sources):
 
 
 if __name__ == "__main__":
-    main(n_random_sources=100)
+    main(n_random_sources=10000)

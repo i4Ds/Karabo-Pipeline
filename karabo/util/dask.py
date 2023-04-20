@@ -102,6 +102,8 @@ def prepare_slurm_nodes_for_dask():
     if not is_on_slurm_cluster() or os.getenv("SLURM_JOB_NUM_NODES") == "1":
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
         return
+    else:
+        print("Detected SLURM cluster. Setting up dask.")
 
     # Check if we are on the first node
     if is_first_node():

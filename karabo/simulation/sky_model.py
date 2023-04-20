@@ -106,7 +106,7 @@ class SkyModel:
         if sources is not None:
             self.add_point_sources(sources)
 
-        if client is not None:
+        if client is None:
             self.client = DaskHandler.get_dask_client()
 
     def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
