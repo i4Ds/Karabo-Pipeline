@@ -78,7 +78,7 @@ def main(n_random_sources):
         number_of_channels=64,
         number_of_time_steps=24,
     )
-    
+
     interferometer_sim = InterferometerSimulation(
         channel_bandwidth_hz=1e6, split_sky_for_dask_how="randomly"
     )
