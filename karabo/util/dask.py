@@ -81,8 +81,8 @@ class DaskHandler:
     def should_dask_be_used(override: Optional[bool] = None):
         if override is not None:
             return override
-        elif not DaskHandler.use_dask:
-            return False
+        elif DaskHandler.use_dask is not None:
+            return DaskHandler.use_dask
         elif DaskHandler.dask_client is not None:
             return True
         elif is_on_slurm_cluster():
