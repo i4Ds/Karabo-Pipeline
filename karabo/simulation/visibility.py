@@ -21,13 +21,15 @@ class Visibility(KaraboResource):
         self.ms_file = FileHandle(path=ms_file_path, file_name=None, suffix=".MS")
 
     def write_to_file(self, path: str) -> None:
-        # Remove if file or folder already exists
-        if os.path.exists(path):
-            if os.path.isfile(path):
-                os.remove(path)
-            else:
-                shutil.rmtree(path)
-        shutil.copytree(self.file.path, path, dirs_exist_ok=True)
+        # Create the directory if it does not exist
+        if os.isfile(path):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+        else:
+            os.makedirs(path, exist_ok=True)
+        if os.path.isfile(self.file.path):
+            shutil.copy(self.file.path, path)
+        else:
+            shutil.copytree(self.file.path, path, dirs_exist_ok=True)
 
     @staticmethod
     def read_from_file(path: str) -> Visibility:
