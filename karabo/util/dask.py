@@ -198,7 +198,9 @@ def setup_dask_for_slurm(
     if is_first_node():
         # Create client and scheduler
         cluster = LocalCluster(
-            n_workers=n_workers_scheduler_node, threads_per_worker=n_threads_per_worker
+            ip=get_lowest_node_name(),
+            n_workers=n_workers_scheduler_node, 
+            threads_per_worker=n_threads_per_worker
         )
         dask_client = Client(cluster)
 
@@ -218,7 +220,7 @@ def setup_dask_for_slurm(
 
         # Wait until all workers are connected
         n_workers_requested = (
-            get_number_of_nodes() * n_workers_per_node + n_workers_scheduler_node
+            (get_number_of_nodes() - 1) * n_workers_per_node + n_workers_scheduler_node
         )
 
         while len(dask_client.scheduler_info()["workers"]) < n_workers_requested:
