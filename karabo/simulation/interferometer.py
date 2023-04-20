@@ -231,7 +231,7 @@ class InterferometerSimulation:
             self.use_dask = DaskHandler.should_dask_be_used()
         else:
             self.use_dask = use_dask
-        
+
         if self.use_dask:
             self.client = DaskHandler.get_dask_client()
 
