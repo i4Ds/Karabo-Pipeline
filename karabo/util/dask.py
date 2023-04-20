@@ -46,6 +46,7 @@ class DaskHandler:
     n_workers_scheduler_node = 1
     threads_per_worker = 1
     min_ram_per_worker = None
+    use_dask = True
 
     @staticmethod
     def get_dask_client() -> Client:
@@ -76,6 +77,17 @@ class DaskHandler:
             dask_info["n_workers_per_node"] != DaskHandler.n_workers_per_node
             or dask_info["n_threads_per_worker"] != DaskHandler.threads_per_worker
         )
+    def should_dask_be_used(override: Optional[bool] = None):
+        if override is not None:
+            return override
+        elif not DaskHandler.use_dask:
+            return False
+        elif DaskHandler.dask_client is not None:
+            return True
+        elif is_on_slurm_cluster():
+            return True
+        else:
+            return False
 
 
 def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:

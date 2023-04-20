@@ -162,8 +162,8 @@ class InterferometerSimulation:
         # for `ObservationLong`
         beam_polY: BeamPattern = None,  # currently only considered
         # for `ObservationLong`
-        use_gpus: bool = False,
-        use_dask: bool = False,
+        use_gpus: bool = None,
+        use_dask: bool = None,
         client: Union[Client, None] = None,
         split_idxs_per_group: Union[List[List[int]], None] = None,
         split_sky_for_dask_how: str = "randomly",
@@ -220,13 +220,18 @@ class InterferometerSimulation:
         else:
             self.use_gpus = use_gpus
 
-        if not use_dask:
-            self.client = None
+        if use_dask is None:
+            print(
+                KaraboWarning(
+                    "Parameter 'use_dask' is None! Using function "
+                    "'DaskHandler.should_dask_be_used()' to overwrite parameter "
+                    f"'use_dask' to {DaskHandler.should_dask_be_used()}."
+                )
+            )
+            self.use_dask = DaskHandler.should_dask_be_used()
         else:
-            if client is None:
-                self.client = DaskHandler.get_dask_client()
+            self.use_dask = use_dask
 
-        print("Using dask client: ", self.client)
         self.split_idxs_per_group = split_idxs_per_group
         self.split_sky_for_dask_how = split_sky_for_dask_how
         self.max_vram_usage_gpu = max_vram_usage_gpu

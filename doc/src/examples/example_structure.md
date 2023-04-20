@@ -68,3 +68,11 @@ result = client.submit(my_function, my_argument)
 ```
 
 DaskHandler manages the dask workers and dask scheduler in the background, the user is not required to interact with them directly and restart the workers or scheduler manually.
+
+At the beginning of the script, the dask usage can also be overwritten globally as follows:
+
+```python
+from karabo.dask import DaskHandler
+# Modify the static variables
+DaskHandler.use_dask = False
+```
