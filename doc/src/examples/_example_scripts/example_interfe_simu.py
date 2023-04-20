@@ -24,7 +24,9 @@ telescope = Telescope.get_OSKAR_Example_Telescope()
 # overwrite or set any of the implemented configuration values
 telescope.centre_longitude = 3
 
-simulation = InterferometerSimulation("./test_result.ms")
+# Create path
+fh = FileHandle("./test_result.ms")
+simulation = InterferometerSimulation(fh.path)
 
 # create new observational settings with most settings set to default
 # except the start frequency set to 1e6
@@ -34,5 +36,4 @@ observation = Observation(start_frequency_hz=1e6)
 simulation.run_simulation(telescope, sky, observation)
 
 # clean up
-fh = FileHandle()
 fh.clean_up()

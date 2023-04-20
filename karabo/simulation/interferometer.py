@@ -377,10 +377,9 @@ class InterferometerSimulation:
             visibility_paths = [
                 x["interferometer"]["oskar_vis_filename"] for x in results
             ]
+            # Combine visibilities.
             Visibility.combine_vis(visibility_paths, self.ms_file_path)
 
-            # Create a folder containing all the MS files
-            ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
             # Visibilities cannot be combined currently, thus return the first one
             return Visibility(visibility_paths[0], self.ms_file_path)
 
