@@ -77,6 +77,7 @@ class DaskHandler:
             dask_info["n_workers_per_node"] != DaskHandler.n_workers_per_node
             or dask_info["n_threads_per_worker"] != DaskHandler.threads_per_worker
         )
+    
     def should_dask_be_used(override: Optional[bool] = None):
         if override is not None:
             return override
@@ -153,9 +154,9 @@ def prepare_slurm_nodes_for_dask():
                         "worker",
                         dask_info["scheduler_address"],
                         "--nthreads",
-                        dask_info["n_threads_per_worker"],
+                        str(dask_info["n_threads_per_worker"]),
                         "--nworkers",
-                        dask_info["n_workers_per_node"],
+                        str(dask_info["n_workers_per_node"]),
                     ]
                 )
                 dask_info_before = dask_info
