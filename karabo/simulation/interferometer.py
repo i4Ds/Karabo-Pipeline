@@ -220,7 +220,7 @@ class InterferometerSimulation:
         else:
             self.use_gpus = use_gpus
 
-        if use_dask is None:
+        if use_dask is None and not self.client:
             print(
                 KaraboWarning(
                     "Parameter 'use_dask' is None! Using function "
@@ -231,6 +231,9 @@ class InterferometerSimulation:
             self.use_dask = DaskHandler.should_dask_be_used()
         else:
             self.use_dask = use_dask
+        
+        if self.use_dask:
+            self.client = DaskHandler.get_dask_client()
 
         self.split_idxs_per_group = split_idxs_per_group
         self.split_sky_for_dask_how = split_sky_for_dask_how
