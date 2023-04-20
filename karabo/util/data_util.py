@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from scipy.special import wofz
 
 import karabo
-from karabo.util.my_types import NPBroadcType
+from karabo.util.my_types import NPFloatInpBroadType, NPFloatOutBroadType, NPIntFloat
 
 
 def get_module_absolute_path() -> str:
@@ -56,39 +56,39 @@ def full_getter(self: object) -> Dict[str, Any]:
 
 
 def Gauss(
-    x: NPBroadcType,
-    x0: NPBroadcType,
-    y0: NPBroadcType,
-    a: NPBroadcType,
-    sigma: NPBroadcType,
-) -> NPBroadcType:
-    gauss = y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))  # type: ignore
-    return cast(NPBroadcType, gauss)
+    x: NPFloatInpBroadType,
+    x0: NPFloatInpBroadType,
+    y0: NPFloatInpBroadType,
+    a: NPFloatInpBroadType,
+    sigma: NPFloatInpBroadType,
+) -> NPFloatOutBroadType:
+    gauss = y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))
+    return cast(NPFloatOutBroadType, gauss)
 
 
 def Voigt(
-    x: NPBroadcType,
-    x0: NPBroadcType,
-    y0: NPBroadcType,
-    a: NPBroadcType,
-    sigma: NPBroadcType,
-    gamma: NPBroadcType,
-) -> NPBroadcType:
+    x: NPFloatInpBroadType,
+    x0: NPFloatInpBroadType,
+    y0: NPFloatInpBroadType,
+    a: NPFloatInpBroadType,
+    sigma: NPFloatInpBroadType,
+    gamma: NPFloatInpBroadType,
+) -> NPFloatOutBroadType:
     # sigma = alpha / np.sqrt(2 * np.log(2))
     voigt = y0 + a * np.real(
         wofz((x - x0 + 1j * gamma) / sigma / np.sqrt(2))
     ) / sigma / np.sqrt(2 * np.pi)
-    return cast(NPBroadcType, voigt)
+    return cast(NPFloatOutBroadType, voigt)
 
 
 def get_spectral_sky_data(
-    ra: NDArray[np.float64],
-    dec: NDArray[np.float64],
-    freq0: NDArray[np.float64],
+    ra: NDArray[np.float_],
+    dec: NDArray[np.float_],
+    freq0: NDArray[np.float_],
     nfreq: int,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float_]:
     dfreq_arr = np.linspace(-0.1, 0.1, 100)
-    y_voigt = Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01)
+    y_voigt = cast(NDArray[NPIntFloat], Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01))
     # y_gauss = Gauss(dfreq_arr, 0, 0, 1, 0.01)
     dfreq_sample = dfreq_arr[::nfreq]
     flux_sample = y_voigt[::nfreq]
@@ -104,9 +104,9 @@ def get_spectral_sky_data(
 
 def resample_spectral_lines(
     npoints: int,
-    dfreq: NDArray[np.float64],
-    spec_line: NDArray[np.float64],
-) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
+    dfreq: NDArray[np.float_],
+    spec_line: NDArray[np.float_],
+) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     m = int(len(dfreq) / npoints)
     dfreq_sampled = dfreq[::m]
     line_sampled = spec_line[::m]

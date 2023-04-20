@@ -26,7 +26,7 @@ from karabo.error import KaraboError
 from karabo.util.dask import DaskHandler
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
-from karabo.util.my_types import FloatLike, NPBroadcType
+from karabo.util.my_types import FloatLike, NPFloatInpBroadType
 from karabo.util.plotting_util import get_slices
 from karabo.warning import KaraboWarning
 
@@ -54,7 +54,8 @@ GLEAM_freq = Literal[
 ]
 
 SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_]]
-SetSkyItemType = Union[NPBroadcType, str]
+SetSkyItemType = Union[NPFloatInpBroadType, str]
+
 
 class Polarisation(enum.Enum):
     STOKES_I = (0,)
@@ -107,7 +108,6 @@ class SkyModel:
 
         if client is not None:
             self.client = DaskHandler.get_dask_client()
-
 
     def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
         empty_sources = np.hstack(
@@ -450,7 +450,7 @@ class SkyModel:
         title: Optional[str] = None,
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
-        cfun: Optional[Callable[..., NPBroadcType]] = np.log10,
+        cfun: Optional[Callable[..., NPFloatInpBroadType]] = np.log10,
         cmap: Optional[str] = "plasma",
         cbar_label: Optional[str] = None,
         with_labels: bool = False,
