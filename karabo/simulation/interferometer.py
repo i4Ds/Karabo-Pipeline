@@ -175,7 +175,7 @@ class InterferometerSimulation:
         ionosphere_fits_path: str = None,
     ) -> None:
         if ms_file_path is None:
-            fh = FileHandle(suffix=".ms")
+            fh = FileHandle(suffix=".MS")
             ms_file_path = fh.path
         self.ms_file_path = ms_file_path
 

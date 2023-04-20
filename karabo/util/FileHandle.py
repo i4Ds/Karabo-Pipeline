@@ -63,7 +63,11 @@ class FileHandle:
         if path:
             base_path = os.path.abspath(path)
         else:
-            base_path = os.path.join(os.getcwd(), "karabo_folder", str(uuid.uuid4()))
+            base_path = os.path.join(os.getcwd(), "karabo_folder")
+            if suffix.lower() == ".ms":
+                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
+            else:
+                base_path = os.path.join(base_path, str(uuid.uuid4()))
 
         # If a new folder to host the data should be created inside the base_path
         if create_additional_folder_in_dir:
