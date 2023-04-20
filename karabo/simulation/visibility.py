@@ -18,7 +18,7 @@ class Visibility(KaraboResource):
         self, path: str = None, ms_file_path: str = None, file_name: str = "visibility"
     ) -> None:
         self.file = FileHandle(path=path, file_name=file_name, suffix=".vis")
-        self.ms_file = FileHandle(path=ms_file_path, file_name=None, suffix=".ms")
+        self.ms_file = FileHandle(path=ms_file_path, file_name=None, suffix=".MS")
 
     def write_to_file(self, path: str) -> None:
         # Remove if file or folder already exists
@@ -39,7 +39,7 @@ class Visibility(KaraboResource):
 
     @staticmethod
     def is_measurement_set(path: str) -> str:
-        return path.endswith(".ms")
+        return path.endswith(".ms") or path.endswith(".MS")
 
     @staticmethod
     def combine_spectral_foreground_vis(
