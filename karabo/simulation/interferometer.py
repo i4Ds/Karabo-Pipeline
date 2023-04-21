@@ -224,8 +224,9 @@ class InterferometerSimulation:
             print(
                 KaraboWarning(
                     "Parameter 'use_dask' is None! Using function "
-                    "'DaskHandler.should_dask_be_used()' to overwrite parameter "
-                    f"'use_dask' to {DaskHandler.should_dask_be_used()}."
+                    "'karabo.util.dask.DaskHandler.should_dask_be_used()' "
+                    "to overwrite parameter 'use_dask' to "
+                    f"{DaskHandler.should_dask_be_used()}."
                 )
             )
             self.use_dask = DaskHandler.should_dask_be_used()
