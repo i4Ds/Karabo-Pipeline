@@ -116,7 +116,6 @@ def prepare_slurm_nodes_for_dask():
     # Detect if we are on a slurm cluster
     if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
-        print(get_number_of_nodes())
         DaskHandler.use_dask = False
         return
     else:
