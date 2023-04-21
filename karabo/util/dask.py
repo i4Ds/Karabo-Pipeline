@@ -47,11 +47,12 @@ class DaskHandler:
     threads_per_worker = 1
     min_ram_per_worker = None
     use_dask = None
+    TIMEOUT = 60
 
     @staticmethod
     def get_dask_client() -> Client:
         if DaskHandler.dask_client is None or DaskHandler.were_dask_variables_changed():
-            if is_on_slurm_cluster():
+            if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
                     DaskHandler.n_workers_scheduler_node,
                     DaskHandler.threads_per_worker,
@@ -86,7 +87,7 @@ class DaskHandler:
             return DaskHandler.use_dask
         elif DaskHandler.dask_client is not None:
             return True
-        elif is_on_slurm_cluster():
+        elif is_on_slurm_cluster() and get_number_of_nodes() > 1:
             return True
         else:
             return False
@@ -113,8 +114,10 @@ def dask_cleanup(client: Client):
 
 def prepare_slurm_nodes_for_dask():
     # Detect if we are on a slurm cluster
-    if not is_on_slurm_cluster() or os.getenv("SLURM_JOB_NUM_NODES") == "1":
+    if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
+        print(get_number_of_nodes())
+        DaskHandler.use_dask = False
         return
     else:
         print("Detected SLURM cluster. Setting up dask.")
@@ -129,16 +132,16 @@ def prepare_slurm_nodes_for_dask():
         # Wait some time to make sure the scheduler file is new
         time.sleep(10)
 
-        # Wait until scheduler file is created
-        while not os.path.exists(DASK_INFO_ADDRESS):
-            print("Waiting for dask info file to be created.")
-            time.sleep(1)
-
         # Run until client is closed
         dask_info_before = None
         worker_process = None
 
         while True:
+            # Wait until scheduler file is created
+            while not os.path.exists(DASK_INFO_ADDRESS):
+                print("Waiting for dask info file to be created.")
+                time.sleep(1)
+                
             # Check if the dask info file has changed
             with open(DASK_INFO_ADDRESS, "r") as f:
                 dask_info = json.load(f)
@@ -224,13 +227,19 @@ def setup_dask_for_slurm(
             get_number_of_nodes() - 1
         ) * n_workers_per_node + n_workers_scheduler_node
 
-        while len(dask_client.scheduler_info()["workers"]) < n_workers_requested:
+        start = time.time()
+        while len(dask_client.scheduler_info()["workers"]) != n_workers_requested:
             print(
                 f"Waiting for all workers to connect. Currently "
                 f"{len(dask_client.scheduler_info()['workers'])} "
                 f"workers connected of {n_workers_requested} requested."
             )
             time.sleep(3)  # To avoid spamming the scheduler
+            if time.time() - start > DaskHandler.TIMEOUT:
+                raise Exception(
+                    "Timeout while waiting for all workers to connect. "
+                    "Something went wrong."
+                )
 
         print(f"All {len(dask_client.scheduler_info()['workers'])} workers connected!")
         atexit.register(dask_cleanup, dask_client)
@@ -254,7 +263,10 @@ def get_min_max_of_node_id():
 
 
 def get_lowest_node_id():
-    return get_min_max_of_node_id()[0]
+    if get_number_of_nodes() == 1:
+        return get_node_id()
+    else:
+        return get_min_max_of_node_id()[0]
 
 
 def get_base_string_node_list():
@@ -266,7 +278,8 @@ def get_lowest_node_name():
 
 
 def get_number_of_nodes():
-    return get_min_max_of_node_id()[1] - get_min_max_of_node_id()[0] + 1
+    n_nodes = os.getenv("SLURM_JOB_NUM_NODES")
+    return int(n_nodes)
 
 
 def get_node_id():

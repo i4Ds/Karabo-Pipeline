@@ -326,7 +326,7 @@ class InterferometerSimulation:
 
                 # Split the array randomly
                 split_array_sky = []
-                to_select = int(np.ceil(len(array_sky) / N))
+                to_select = int(len(array_sky) / N)
 
                 # Split the array, stop when there are no more sources
                 while len(array_sky) >= to_select:
