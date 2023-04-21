@@ -36,10 +36,6 @@ class DaskHandler:
     get_dask_client() -> Client:
         Returns a Dask client object. If the client does not exist or the Dask
         variables were changed, a new client will be created.
-    were_dask_variables_changed() -> bool:
-        Returns True if the Dask variables have changed since the last time the client
-        was created by checking if the Dask info file exists and if the DaskHandler
-        variables are the same as the ones stored in the file.
     """
 
     dask_client: Optional[Client] = None
@@ -51,7 +47,7 @@ class DaskHandler:
 
     @staticmethod
     def get_dask_client() -> Client:
-        if DaskHandler.dask_client is None or DaskHandler.were_dask_variables_changed():
+        if DaskHandler.dask_client is None:
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
                     DaskHandler.n_workers_scheduler_node,
@@ -65,20 +61,6 @@ class DaskHandler:
 
         atexit.register(dask_cleanup, DaskHandler.dask_client)
         return DaskHandler.dask_client
-
-    @staticmethod
-    def were_dask_variables_changed():
-        if not os.path.exists(DASK_INFO_ADDRESS):
-            return True
-
-        with open(DASK_INFO_ADDRESS, "r") as f:
-            dask_info = json.load(f)
-
-        return (
-            dask_info["n_workers_per_node"]
-            != calculate_number_of_workers_per_node(DaskHandler.min_ram_per_worker)
-            or dask_info["n_threads_per_worker"] != DaskHandler.threads_per_worker
-        )
 
     def should_dask_be_used(override: Optional[bool] = None):
         if override is not None:
@@ -103,7 +85,7 @@ def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
 
 
 def dask_cleanup(client: Client):
-    # Remove the scheduler file
+    # Remove the scheduler file if somehow it was not removed
     if os.path.exists(DASK_INFO_ADDRESS):
         os.remove(DASK_INFO_ADDRESS)
 
@@ -131,39 +113,28 @@ def prepare_slurm_nodes_for_dask():
         # Wait some time to make sure the scheduler file is new
         time.sleep(10)
 
-        # Run until client is closed
-        dask_info_before = None
-        worker_process = None
+        # Wait until dask info file is created
+        while not os.path.exists(DASK_INFO_ADDRESS):
+            print("Waiting for dask info file to be created.")
+            time.sleep(1)
+
+        # Load dask info file
+        with open(DASK_INFO_ADDRESS, "r") as f:
+            dask_info = json.load(f)
+
+        _ = Popen(
+            [
+                "dask",
+                "worker",
+                dask_info["scheduler_address"],
+                "--nthreads",
+                str(dask_info["n_threads_per_worker"]),
+                "--nworkers",
+                str(dask_info["n_workers_per_node"]),
+            ]
+        )
 
         while True:
-            # Wait until scheduler file is created
-            while not os.path.exists(DASK_INFO_ADDRESS):
-                print("Waiting for dask info file to be created.")
-                time.sleep(1)
-                
-            # Check if the dask info file has changed
-            with open(DASK_INFO_ADDRESS, "r") as f:
-                dask_info = json.load(f)
-
-            if dask_info != dask_info_before:
-                print("New dask info file. Starting dask worker.")
-
-                if worker_process is not None:
-                    worker_process.kill()
-
-                worker_process = Popen(
-                    [
-                        "dask",
-                        "worker",
-                        dask_info["scheduler_address"],
-                        "--nthreads",
-                        str(dask_info["n_threads_per_worker"]),
-                        "--nworkers",
-                        str(dask_info["n_workers_per_node"]),
-                    ]
-                )
-                dask_info_before = dask_info
-
             # Wait some time
             time.sleep(5)
 
@@ -242,6 +213,10 @@ def setup_dask_for_slurm(
 
         print(f"All {len(dask_client.scheduler_info()['workers'])} workers connected!")
         atexit.register(dask_cleanup, dask_client)
+
+        # Removing file
+        if os.path.exists(DASK_INFO_ADDRESS):
+            os.remove(DASK_INFO_ADDRESS)
         return dask_client
 
     else:

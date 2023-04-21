@@ -190,7 +190,7 @@ class TestSourceDetection(unittest.TestCase):
         imager = Imager(
             visibility,
             ingest_vis_nchan=3,
-            ingest_chan_per_blockvis=1,
+            ingest_chan_per_vis=1,
             ingest_average_blockvis=True,
             imaging_npixel=2048,
             imaging_cellsize=0.0003,
