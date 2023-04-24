@@ -117,7 +117,6 @@ def prepare_slurm_nodes_for_dask():
 
         # Wait until dask info file is created
         while not os.path.exists(DASK_INFO_ADDRESS):
-            print("Waiting for dask info file to be created.")
             time.sleep(1)
 
         # Load dask info file
