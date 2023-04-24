@@ -34,8 +34,10 @@ class DaskHandler:
     Methods
     -------
     get_dask_client() -> Client:
-        Returns a Dask client object. If the client does not exist or the Dask
-        variables were changed, a new client will be created.
+        Returns a Dask client object. If the client does not exist, and
+        the current node is a SLURM node and there are more than 1 node,
+        a Dask client will be created.
+
     """
 
     dask_client: Optional[Client] = None
