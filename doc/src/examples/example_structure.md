@@ -53,14 +53,10 @@ You can also change the requirements of the Dask client between two calls to get
 from karabo.dask import DaskHandler
 # Modify the static variables
 DaskHandler.min_ram_per_worker = 4.0
-DaskHandler.num_workers = 10
 
 # Run something
 client = DaskHandler.get_dask_client()
 result = client.submit(my_function, my_argument)
-
-# Modify the static variables to allow for more RAM
-DaskHandler.min_ram_per_worker = 8.0
 
 # Run something else
 client = DaskHandler.get_dask_client()
