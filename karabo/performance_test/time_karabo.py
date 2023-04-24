@@ -1,4 +1,3 @@
-import sys
 import time
 
 import numpy as np
@@ -88,7 +87,7 @@ def main(n_random_sources):
     visibility_askap = interferometer_sim.run_simulation(
         telescope, sky, observation_settings
     )
-    
+
     # Imaging
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
