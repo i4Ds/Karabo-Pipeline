@@ -158,21 +158,21 @@ class InterferometerSimulation:
         noise_freq: str = "Range",
         enable_array_beam: bool = False,
         enable_numerical_beam: bool = False,
-        beam_polX: BeamPattern = None,  # currently only considered
+        beam_polX: Optional[BeamPattern] = None,  # currently only considered
         # for `ObservationLong`
-        beam_polY: BeamPattern = None,  # currently only considered
+        beam_polY: Optional[BeamPattern] = None,  # currently only considered
         # for `ObservationLong`
-        use_gpus: bool = None,
-        use_dask: bool = None,
-        client: Union[Client, None] = None,
-        split_idxs_per_group: Union[List[List[int]], None] = None,
+        use_gpus: Optional[bool] = None,
+        use_dask: Optional[bool] = None,
+        client: Optional[Client] = None,
+        split_idxs_per_group: Optional[List[List[int]]] = None,
         split_sky_for_dask_how: str = "randomly",
         max_vram_usage_gpu: float = 0.8,
         precision: str = "single",
         station_type: str = "Isotropic beam",
         gauss_beam_fwhm_deg: float = 0.0,
         gauss_ref_freq_hz: float = 0.0,
-        ionosphere_fits_path: str = None,
+        ionosphere_fits_path: Optional[str] = None,
     ) -> None:
         if ms_file_path is None:
             fh = FileHandle(suffix=".MS")

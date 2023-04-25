@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import oskar
@@ -15,8 +15,28 @@ from karabo.util.FileHandle import FileHandle
 
 class Visibility(KaraboResource):
     def __init__(
-        self, path: str = None, ms_file_path: str = None, file_name: str = "visibility"
+        self,
+        path: Optional[str] = None,
+        ms_file_path: Optional[str] = None,
+        file_name: str = "visibility",
     ) -> None:
+        """
+        Initializes a Visibility object.
+
+        Parameters
+        ----------
+        path : Optional[str], default=None
+            Specifies the path to the visibility file to be created or read.
+        ms_file_path : Optional[str], default=None
+            Specifies the path to the measurement set (MS) file that will be
+            used to create the visibility file.
+        file_name : str, default='visibility'
+            Specifies the name of the visibility file to be created or read.
+
+        Returns
+        -------
+        None
+        """
         self.file = FileHandle(path=path, file_name=file_name, suffix=".vis")
         self.ms_file = FileHandle(path=ms_file_path, file_name=None, suffix=".MS")
 

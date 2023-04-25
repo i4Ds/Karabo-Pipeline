@@ -41,11 +41,11 @@ class DaskHandler:
     """
 
     dask_client: Optional[Client] = None
-    n_workers_scheduler_node = 1
-    threads_per_worker = 1
-    min_ram_per_worker = None
-    use_dask = None
-    TIMEOUT = 60
+    n_workers_scheduler_node: int = 1
+    threads_per_worker: int = 1
+    min_ram_per_worker: Optional[int] = None
+    use_dask: Optional[int] = None
+    TIMEOUT: int = 60
 
     @staticmethod
     def get_dask_client() -> Client:
@@ -146,7 +146,7 @@ def calculate_number_of_workers_per_node(min_ram_gb_per_worker: int) -> int:
     if min_ram_gb_per_worker is None:
         return 1
     # Calculate number of workers per node
-    ram = psutil.virtual_memory().available / 1024 / 1024
+    ram = psutil.virtual_memory().available / 1000 / 1000
     n_workers_per_node = int(ram / (min_ram_gb_per_worker))
     if ram < min_ram_gb_per_worker:
         KaraboWarning(
