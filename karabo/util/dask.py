@@ -5,7 +5,7 @@ import json
 import os
 import time
 from subprocess import Popen
-from typing import Optional
+from typing import Optional, Tuple
 
 import psutil
 from dask.distributed import Client, LocalCluster
@@ -64,7 +64,7 @@ class DaskHandler:
         atexit.register(dask_cleanup, DaskHandler.dask_client)
         return DaskHandler.dask_client
 
-    def should_dask_be_used(override: Optional[bool] = None):
+    def should_dask_be_used(override: Optional[bool] = None) -> bool:
         if override is not None:
             return override
         elif DaskHandler.use_dask is not None:
@@ -77,7 +77,9 @@ class DaskHandler:
             return False
 
 
-def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
+def get_local_dask_client(
+    min_ram_gb_per_worker: int, threads_per_worker: int
+) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
     client = Client(
@@ -86,7 +88,7 @@ def get_local_dask_client(min_ram_gb_per_worker, threads_per_worker) -> Client:
     return client
 
 
-def dask_cleanup(client: Client):
+def dask_cleanup(client: Client) -> None:
     # Remove the scheduler file if somehow it was not removed
     if os.path.exists(DASK_INFO_ADDRESS):
         os.remove(DASK_INFO_ADDRESS)
@@ -96,7 +98,7 @@ def dask_cleanup(client: Client):
         client.shutdown()
 
 
-def prepare_slurm_nodes_for_dask():
+def prepare_slurm_nodes_for_dask() -> None:
     # Detect if we are on a slurm cluster
     if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
         print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
@@ -140,7 +142,7 @@ def prepare_slurm_nodes_for_dask():
             time.sleep(5)
 
 
-def calculate_number_of_workers_per_node(min_ram_gb_per_worker):
+def calculate_number_of_workers_per_node(min_ram_gb_per_worker: int) -> int:
     if min_ram_gb_per_worker is None:
         return 1
     # Calculate number of workers per node
@@ -166,10 +168,10 @@ def calculate_number_of_workers_per_node(min_ram_gb_per_worker):
 
 
 def setup_dask_for_slurm(
-    n_workers_scheduler_node,
-    n_threads_per_worker,
-    min_ram_gb_per_worker,
-):
+    n_workers_scheduler_node: int,
+    n_threads_per_worker: int,
+    min_ram_gb_per_worker: int,
+) -> Client:
     if is_first_node():
         # Create client and scheduler
         cluster = LocalCluster(
@@ -224,7 +226,7 @@ def setup_dask_for_slurm(
         raise Exception("This function should only be reached on the first node.")
 
 
-def get_min_max_of_node_id():
+def get_min_max_of_node_id() -> Tuple[int, int]:
     """
     Returns the min max from SLURM_JOB_NODELIST.
     Works if it's run only on two nodes (separated with a comma)
@@ -237,34 +239,34 @@ def get_min_max_of_node_id():
         return int(node_list.split("-")[0]), int(node_list.split("-")[1])
 
 
-def get_lowest_node_id():
+def get_lowest_node_id() -> int:
     if get_number_of_nodes() == 1:
         return get_node_id()
     else:
         return get_min_max_of_node_id()[0]
 
 
-def get_base_string_node_list():
+def get_base_string_node_list() -> str:
     return os.getenv("SLURM_JOB_NODELIST").split("[")[0]
 
 
-def get_lowest_node_name():
+def get_lowest_node_name() -> str:
     return get_base_string_node_list() + str(get_lowest_node_id())
 
 
-def get_number_of_nodes():
+def get_number_of_nodes() -> int:
     n_nodes = os.getenv("SLURM_JOB_NUM_NODES")
     return int(n_nodes)
 
 
-def get_node_id():
+def get_node_id() -> int:
     len_id = len(str(get_lowest_node_id()))
     return int(os.getenv("SLURMD_NODENAME")[-len_id:])
 
 
-def is_first_node():
+def is_first_node() -> bool:
     return get_node_id() == get_lowest_node_id()
 
 
-def is_on_slurm_cluster():
+def is_on_slurm_cluster() -> bool:
     return "SLURM_JOB_ID" in os.environ
