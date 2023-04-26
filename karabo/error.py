@@ -8,5 +8,9 @@ class KaraboDaskError(KaraboError):
     ...
 
 
+class KaraboInterferometerSimulationError(KaraboError):
+    ...
+
+
 class NodeTermination(KaraboError):
     ...
