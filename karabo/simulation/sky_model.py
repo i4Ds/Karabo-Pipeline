@@ -4,9 +4,10 @@ import copy
 import enum
 import logging
 import math
-from typing import Any, Callable, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
+import astropy.io.fits as fits
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
@@ -743,60 +744,227 @@ class SkyModel:
                 220,
                 227,
             ]
+        # Get path to Gleamsurvey
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
-        df_gleam = SkyModel.get_fits_catalog(path).to_pandas()
+
+        prefix_mapping = {
+            "ra": "RAJ2000",
+            "dec": "DEJ2000",
+            "i": "Fp",
+            "q": None,
+            "u": None,
+            "v": None,
+            "ref_freq": None,
+            "spectral_index": None,
+            "rm": None,
+            "major": None,
+            "minor": "a",
+            "pa": "b",
+            "id": "pa",
+        }
+
+        return SkyModel.get_sky_model_from_fits(
+            path=path,
+            frequencies=frequencies,
+            prefix_mapping=prefix_mapping,
+            concat_freq_with_prefix=True,
+            filter_data_by_stokes_i=True,
+            frequency_to_mhz_multiplier=1e6,
+            memmap=False,
+        )
+
+    @staticmethod
+    def get_sky_model_from_fits(
+        path: str,
+        frequencies: List[int],
+        prefix_mapping: Dict[str, Optional[str]],
+        concat_freq_with_prefix: bool = False,
+        filter_data_by_stokes_i: bool = False,
+        frequency_to_mhz_multiplier: float = 1e6,
+        memmap: bool = False,
+    ) -> SkyModel:
+        """
+        Reads data from a FITS file and creates a SkyModel object that contains
+        information about celestial sources at given frequencies.
+
+        Parameters
+        ----------
+        path : str
+            Path to the input FITS file.
+        frequencies : list
+            List of frequencies of interest in MHz.
+        prefix_mapping : dict
+            Dictionary that maps column names in the FITS file to column names
+            used in the SkyModel.
+            Keys should be the original column names,  values should be the
+            corresponding column names in the SkyModel.
+            Any column names not present in the dictionary will be excluded
+            from the output SkyModel.
+        concat_freq_with_prefix : bool, optional
+        filter_data_by_stokes_i : bool, optional
+        frequency_to_mhz_multiplier : float, optional
+            Factor to convert the frequency units to MHz. Defaults to 1e6.
+        memmap : bool, optional
+            Whether to use memory mapping when opening the FITS file. Defaults to False.
+            Allows for reading of larger-than-memory files.
+
+        Returns
+        -------
+        SkyModel
+            SkyModel object containing information about celestial sources at given
+              frequencies.
+
+        Notes
+        -----
+        The FITS file should have a data table in its first HDU.
+        The required columns are:
+        "ra", "dec", "i", "q", "u", "v", "ref_freq", "spectral_index", "rm",
+        "major", "minor", "pa", and "id". Any additional columns will be ignored.
+
+        The `prefix_mapping` dictionary should map the required columns to their
+        corresponding column names in the input FITS file. For example:
+
+        If a column name in the FITS file is not present in the `prefix_mapping`
+        dictionary, it will be excluded from the output SkyModel.
+
+        Examples
+        --------
+        >>> sky_model = SkyModel.get_sky_model_from_fits(
+        ...     path="input.fits",
+        ...     frequencies=[100, 200, 300],
+        ...     prefix_mapping={
+        ...         "ra": "RAJ2000",
+        ...         "dec": "DEJ2000",
+        ...         "i": "Fp",
+        ...         "q": None,
+        ...         "u": None,
+        ...         "v": None,
+        ...         "ref_freq": None,
+        ...         "spectral_index": None,
+        ...         "rm": None,
+        ...         "major": None,
+        ...         "minor": "a",
+        ...         "pa": "b",
+        ...         "id": "pa",
+        ...     },
+        ...     concat_freq_with_prefix=True,
+        ...     frequency_to_mhz_multiplier=1e6,
+        ...     memmap=False,
+        ... )
+
+        """
+        # Open the FITS file with memory mapping
+        with fits.open(path, memmap=memmap) as hdul:
+            # Read the data from the first HDU
+            data = hdul[1].data
+
+        # Create a list to store the output sky arrays
         sky_arrays = []
+
+        # Iterate over the frequencies
         for freq in frequencies:
+            # Format the frequency string
             freq_str = str(freq).zfill(3)
-            df = df_gleam[~df_gleam[f"Fp{freq_str}"].isna()].copy()
-            sky_array = (
-                np.column_stack(
-                    (
-                        df["RAJ2000"],
-                        df["DEJ2000"],
-                        df[f"Fp{freq_str}"],
-                        np.zeros(len(df)),
-                        np.zeros(len(df)),
-                        np.zeros(len(df)),
-                        [freq * 1e6] * len(df),
-                        np.zeros(len(df)),
-                        np.zeros(len(df)),
-                        df[f"a{freq_str}"],
-                        df[f"b{freq_str}"],
-                        df[f"pa{freq_str}"],
-                    )
-                )
-                .astype(np.float64)
-                .astype(object)
-            )
-            sky_array = np.hstack((sky_array, df["GLEAM"].values[:, None]))
-            sky_arrays.append(sky_array)
-        return SkyModel(np.vstack(sky_arrays))
+
+            # Select the rows that have a valid flux measurement for this frequency
+            if filter_data_by_stokes_i:
+                data_freq = data[~np.isnan(data[f"{prefix_mapping['i']+freq_str}"])]
+            else:
+                data_freq = data
+
+            # Define a delayed function to create the sky array for this frequency
+            def create_sky_array(
+                data_freq: NDArray[np.float_], freq_str: str, freq: int
+            ) -> NDArray[np.float_]:
+                arr_columns = []
+                for col in [
+                    "ra",
+                    "dec",
+                    "i",
+                    "q",
+                    "u",
+                    "v",
+                    "ref_freq",
+                    "spectral_index",
+                    "rm",
+                    "major",
+                    "minor",
+                    "pa",
+                    "id",
+                ]:
+                    if col == "ref_freq":
+                        arr_columns.append(
+                            np.full(len(data_freq), freq * frequency_to_mhz_multiplier)
+                        )
+                    elif prefix_mapping[col] is None:
+                        arr_columns.append(np.zeros(len(data_freq)))
+                    else:
+                        if concat_freq_with_prefix and col not in ["ra", "dec"]:
+                            col_name = prefix_mapping[col] + freq_str
+                        else:
+                            col_name = prefix_mapping[col]
+
+                        arr_columns.append(data_freq[col_name])
+                return np.column_stack(arr_columns)
+
+            # Append the delayed function to the sky_arrays list
+            sky_arrays.append(create_sky_array(data_freq, freq_str, freq))
+
+        # Concatenate the blocks of rows into a numpy array
+        sky_data = np.vstack(sky_arrays)
+
+        return SkyModel(sky_data)
 
     @staticmethod
     def get_MIGHTEE_Sky() -> SkyModel:
+        """
+        Downloads the MIGHTEE catalog and creates a SkyModel object.
+
+        Returns
+        -------
+        SkyModel
+            SkyModel object containing information about celestial sources
+            in the MIGHTEE survey.
+
+        Notes
+        -----
+        The MIGHTEE catalog is downloaded using the MIGHTEESurveyDownloadObject class.
+
+        The SkyModel object contains columns for "ra", "dec", "i", "q", "u", "v",
+        "ref_freq", "major", "minor", "pa", and "id".
+        The "ref_freq" column is set to 76 MHz, and the "q", "u", and "v" columns
+        are set to zero. The "major", "minor", "pa", and "id" columns are obtained
+        from the "IM_MAJ", "IM_MIN", "IM_PA", and "NAME" columns of the catalog,
+        respectively.
+        """
         survey = MIGHTEESurveyDownloadObject()
         path = survey.get()
-        mightee = SkyModel.get_fits_catalog(path)
-        df_mightee = mightee.to_pandas()
-        ref_freq = 76e6
-        ra, dec, fp = df_mightee["RA"], df_mightee["DEC"], df_mightee["NU_EFF"]
-        sky_array = np.column_stack(
-            (
-                ra,
-                dec,
-                fp,
-                np.zeros(ra.shape[0]),
-                np.zeros(ra.shape[0]),
-                np.zeros(ra.shape[0]),
-                [ref_freq] * ra.shape[0],
-            )
-        ).astype(np.float64)
-        sky = SkyModel(sky_array)
-        # major axis FWHM, minor axis FWHM, position angle, object id
-        sky[:, [9, 10, 11, 12]] = df_mightee[["IM_MAJ", "IM_MIN", "IM_PA", "NAME"]]
-        return sky
+        prefix_mapping = {
+            "ra": "RA",
+            "dec": "DEC",
+            "i": "NU_EFF",
+            "q": None,
+            "u": None,
+            "v": None,
+            "ref_freq": None,
+            "spectral_index": None,
+            "rm": None,
+            "major": "IM_MAJ",
+            "minor": "IM_MIN",
+            "pa": "IM_PA",
+            "id": "NAME",
+        }
+
+        return SkyModel.get_sky_model_from_fits(
+            path=path,
+            frequencies=[76],
+            prefix_mapping=prefix_mapping,
+            concat_freq_with_prefix=False,
+            filter_data_by_stokes_i=False,
+            frequency_to_mhz_multiplier=1e6,
+            memmap=False,
+        )
 
     @staticmethod
     def get_random_poisson_disk_sky(
