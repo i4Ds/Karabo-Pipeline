@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Union
 
 from karabo.error import KaraboError
+from karabo.util.my_types import IntFloat
 
 
 class Observation:
@@ -33,39 +34,38 @@ class Observation:
     def __init__(
         self,
         mode: str = "Tracking",
-        start_frequency_hz: float = 0,
+        start_frequency_hz: IntFloat = 0,
         start_date_and_time: Union[datetime, str] = datetime.utcnow(),
         length: timedelta = timedelta(hours=4),
-        number_of_channels: float = 1,
-        frequency_increment_hz: float = 0,
-        phase_centre_ra_deg: float = 0,
-        phase_centre_dec_deg: float = 0,
-        number_of_time_steps: float = 1,
+        number_of_channels: int = 1,
+        frequency_increment_hz: IntFloat = 0,
+        phase_centre_ra_deg: IntFloat = 0,
+        phase_centre_dec_deg: IntFloat = 0,
+        number_of_time_steps: int = 1,
     ) -> None:
-        # required
-        self.start_frequency_hz: float = start_frequency_hz
+        self.start_frequency_hz = start_frequency_hz
 
         if isinstance(start_date_and_time, str):
             self.start_date_and_time = datetime.fromisoformat(start_date_and_time)
         else:
             self.start_date_and_time = start_date_and_time
 
-        self.length: timedelta = length
-        self.mode: str = mode
+        self.length = length
+        self.mode = mode
 
         # optional
-        self.number_of_channels: float = number_of_channels
-        self.frequency_increment_hz: float = frequency_increment_hz
-        self.phase_centre_ra_deg: float = phase_centre_ra_deg
-        self.phase_centre_dec_deg: float = phase_centre_dec_deg
-        self.number_of_time_steps: float = number_of_time_steps
+        self.number_of_channels = number_of_channels
+        self.frequency_increment_hz = frequency_increment_hz
+        self.phase_centre_ra_deg = phase_centre_ra_deg
+        self.phase_centre_dec_deg = phase_centre_dec_deg
+        self.number_of_time_steps = number_of_time_steps
 
     def set_length_of_observation(
         self,
-        hours: float,
-        minutes: float,
-        seconds: float,
-        milliseconds: float,
+        hours: IntFloat,
+        minutes: IntFloat,
+        seconds: IntFloat,
+        milliseconds: IntFloat,
     ) -> None:
         """
         Set a new length for the observation.
@@ -140,14 +140,14 @@ class ObservationLong(Observation):
     def __init__(
         self,
         mode: str = "Tracking",
-        start_frequency_hz: float = 0,
+        start_frequency_hz: IntFloat = 0,
         start_date_and_time: Union[datetime, str] = datetime.utcnow(),
         length: timedelta = timedelta(hours=4),
-        number_of_channels: float = 1,
-        frequency_increment_hz: float = 0,
-        phase_centre_ra_deg: float = 0,
-        phase_centre_dec_deg: float = 0,
-        number_of_time_steps: float = 1,
+        number_of_channels: int = 1,
+        frequency_increment_hz: IntFloat = 0,
+        phase_centre_ra_deg: IntFloat = 0,
+        phase_centre_dec_deg: IntFloat = 0,
+        number_of_time_steps: int = 1,
         number_of_days: int = 2,
     ) -> None:
         self.enable_check = False
