@@ -16,7 +16,7 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import IntFloat
 from karabo.util.dask import DaskHandler
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
 from karabo.warning import KaraboWarning
 

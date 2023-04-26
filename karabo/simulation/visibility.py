@@ -10,7 +10,7 @@ import oskar
 from numpy.typing import NDArray
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 
 class Visibility(KaraboResource):

@@ -2,7 +2,7 @@ import os.path
 import unittest
 
 from karabo.test import data_path
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 
 class TestFileHandle(unittest.TestCase):

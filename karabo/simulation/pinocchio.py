@@ -9,7 +9,7 @@ import numpy as np
 
 from karabo.error import KaraboPinocchioError
 from karabo.simulation.sky_model import SkyModel
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 
 @dataclass

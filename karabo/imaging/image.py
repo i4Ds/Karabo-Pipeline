@@ -15,7 +15,7 @@ from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
 from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle, check_ending
+from karabo.util.file_handle import FileHandle, check_ending
 from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,

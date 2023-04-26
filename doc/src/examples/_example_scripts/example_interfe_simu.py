@@ -4,7 +4,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 # create a simple sky model with three point sources
 sky = SkyModel()
