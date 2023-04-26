@@ -16,5 +16,9 @@ class KaraboPinocchioError(KaraboError):
     ...
 
 
+class KaraboSourceDetectionEvaluationError(KaraboError):
+    ...
+
+
 class NodeTermination(KaraboError):
     ...
