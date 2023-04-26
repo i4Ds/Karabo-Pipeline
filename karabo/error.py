@@ -12,5 +12,9 @@ class KaraboInterferometerSimulationError(KaraboError):
     ...
 
 
+class KaraboPinocchioError(KaraboError):
+    ...
+
+
 class NodeTermination(KaraboError):
     ...
