@@ -4,5 +4,9 @@ class KaraboError(Exception):
     """
 
 
-class NodeTermination(Exception):
-    pass
+class KaraboDaskError(KaraboError):
+    ...
+
+
+class NodeTermination(KaraboError):
+    ...
