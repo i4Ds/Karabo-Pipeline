@@ -46,8 +46,6 @@ The following sections list the tools to be used and their function & usage.
 
 If you run mypy several times for the same file(s) and it takes a while, you can launch the mypy daemon `dmypy start` and then check your file(s) using `dmypy check {file_or_directory}`. The first time you check might still take a while. However, once the check is done and you want to check a file again, the check will only take into account the changes you have made, so it will be much faster.
 
-In the beginning, there may be a lot of type errors because the files and their dependencies have not yet been checked with mypy. To prevent dependencies of other files from the same repository from producing errors, `disallow_untyped_calls = false` was defined in `setup.cfg`. However, as soon as a Python file is changed, the typehints of the entire file should be corrected as far as possible (even if you have not changed anything in other places).
-
 ### pydocstyle
 
 [pydocstyle](http://www.pydocstyle.org/en/stable/) supports docstring checking out of the box. The check can be used via CLI `pydocstyle {source_file_or_directory}. Further options can be found in the [documentation](http://www.pydocstyle.org/en/stable/usage.html) or via `pydocstyle --help`.
