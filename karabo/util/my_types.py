@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -60,3 +60,5 @@ ScalarLike: TypeAlias = Union[
 
 NPIntLikeStrict = Union[np.int_, int]
 NPFloatLikeStrict = Union[NPIntFloat, IntFloat]
+
+IntFloatList: TypeAlias = Union[List[int], List[float]]

@@ -24,7 +24,7 @@ from karabo.data.external_data import (
 from karabo.error import KaraboError
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
-from karabo.util.my_types import FloatLike, NPFloatInpBroadType
+from karabo.util.my_types import IntFloat, IntFloatList, NPFloatInpBroadType
 from karabo.util.plotting_util import get_slices
 from karabo.warning import KaraboWarning
 
@@ -164,18 +164,18 @@ class SkyModel:
 
     def add_point_source(
         self,
-        right_ascension: float,
-        declination: float,
-        stokes_I_flux: float,
-        stokes_Q_flux: float = 0,
-        stokes_U_flux: float = 0,
-        stokes_V_flux: float = 0,
-        reference_frequency: float = 0,
-        spectral_index: float = 0,
-        rotation_measure: float = 0,
-        major_axis_FWHM: float = 0,
-        minor_axis_FWHM: float = 0,
-        position_angle: float = 0,
+        right_ascension: IntFloat,
+        declination: IntFloat,
+        stokes_I_flux: IntFloat,
+        stokes_Q_flux: IntFloat = 0,
+        stokes_U_flux: IntFloat = 0,
+        stokes_V_flux: IntFloat = 0,
+        reference_frequency: IntFloat = 0,
+        spectral_index: IntFloat = 0,
+        rotation_measure: IntFloat = 0,
+        major_axis_FWHM: IntFloat = 0,
+        minor_axis_FWHM: IntFloat = 0,
+        position_angle: IntFloat = 0,
         source_id: Optional[object] = None,
     ) -> None:
         """
@@ -295,12 +295,12 @@ class SkyModel:
 
     def filter_by_radius(
         self,
-        inner_radius_deg: float,
-        outer_radius_deg: float,
-        ra0_deg: float,
-        dec0_deg: float,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
         indices: bool = False,
-    ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int64]]]:
+    ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int_]]]:
         """
         Filters the sky according to an inner and outer circle from the phase center
 
@@ -338,8 +338,8 @@ class SkyModel:
 
     def filter_by_flux(
         self,
-        min_flux_jy: float,
-        max_flux_jy: float,
+        min_flux_jy: IntFloat,
+        max_flux_jy: IntFloat,
     ) -> SkyModel:
         """
         Filters the sky using the Stokes-I-flux
@@ -363,8 +363,8 @@ class SkyModel:
 
     def filter_by_frequency(
         self,
-        min_freq: float,
-        max_freq: float,
+        min_freq: IntFloat,
+        max_freq: IntFloat,
     ) -> SkyModel:
         """
         Filters the sky using the referency frequency in Hz
@@ -405,7 +405,7 @@ class SkyModel:
 
     def setup_default_wcs(
         self,
-        phase_center: List[float] = [0, 0],
+        phase_center: IntFloatList = [0, 0],
     ) -> WCS:
         """
         Defines a default world coordinate system astropy.wcs
@@ -436,11 +436,11 @@ class SkyModel:
 
     def explore_sky(
         self,
-        phase_center: List[float],
+        phase_center: IntFloatList,
         flux_idx: int = 2,
-        xlim: Optional[Tuple[float, float]] = None,
-        ylim: Optional[Tuple[float, float]] = None,
-        figsize: Optional[Tuple[float, float]] = None,
+        xlim: Optional[Tuple[IntFloat, IntFloat]] = None,
+        ylim: Optional[Tuple[IntFloat, IntFloat]] = None,
+        figsize: Optional[Tuple[IntFloat, IntFloat]] = None,
         title: Optional[str] = None,
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
@@ -573,7 +573,9 @@ class SkyModel:
 
     @staticmethod
     def read_healpix_file_to_sky_model_array(
-        file: str, channel: int, polarisation: Polarisation
+        file: str,
+        channel: int,
+        polarisation: Polarisation,
     ) -> Tuple[NDArray[np.float_], int]:
         """
         Read a healpix file in hdf5 format.
@@ -624,7 +626,11 @@ class SkyModel:
             pass  # nothing toDo here
         return sources
 
-    def __setitem__(self, key: Any, value: SetSkyItemType) -> None:
+    def __setitem__(
+        self,
+        key: Any,
+        value: SetSkyItemType,
+    ) -> None:
         """
         Allows to set values in an np.ndarray like manner
 
@@ -672,7 +678,9 @@ class SkyModel:
         np.savetxt(path, self.sources[:, cols])
 
     @staticmethod
-    def __convert_ra_dec_to_cartesian(ra: float, dec: float) -> NDArray[np.float_]:
+    def __convert_ra_dec_to_cartesian(
+        ra: IntFloat, dec: IntFloat
+    ) -> NDArray[np.float_]:
         x = math.cos(math.radians(ra)) * math.cos(math.radians(dec))
         y = math.sin(math.radians(ra)) * math.cos(math.radians(dec))
         z = math.sin(math.radians(dec))
@@ -800,10 +808,10 @@ class SkyModel:
 
     @staticmethod
     def get_random_poisson_disk_sky(
-        min_size: Tuple[FloatLike, FloatLike],
-        max_size: Tuple[FloatLike, FloatLike],
-        flux_min: FloatLike,
-        flux_max: FloatLike,
+        min_size: Tuple[IntFloat, IntFloat],
+        max_size: Tuple[IntFloat, IntFloat],
+        flux_min: IntFloat,
+        flux_max: IntFloat,
         r: int = 3,
     ) -> SkyModel:
         sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
