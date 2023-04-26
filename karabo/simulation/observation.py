@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Dict, List, Union
 
 from karabo.error import KaraboError
 
@@ -46,11 +46,9 @@ class Observation:
         self.start_frequency_hz: float = start_frequency_hz
 
         if isinstance(start_date_and_time, str):
-            self.start_date_and_time: datetime = datetime.fromisoformat(
-                start_date_and_time
-            )
+            self.start_date_and_time = datetime.fromisoformat(start_date_and_time)
         else:
-            self.start_date_and_time: datetime = start_date_and_time
+            self.start_date_and_time = start_date_and_time
 
         self.length: timedelta = length
         self.mode: str = mode
@@ -82,7 +80,7 @@ class Observation:
             hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds
         )
 
-    def get_OSKAR_settings_tree(self):
+    def get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, str]]:
         """
         Get the settings of this observation as an oskar setting tree.
         This function returns a python dictionary formatted
@@ -113,7 +111,7 @@ class Observation:
     def __strfdelta(
         self,
         tdelta: timedelta,
-    ):
+    ) -> str:
         hours = tdelta.seconds // 3600 + tdelta.days * 24
         rm = tdelta.seconds % 3600
         minutes = rm // 60
@@ -121,7 +119,7 @@ class Observation:
         milliseconds = tdelta.microseconds // 1000
         return "{}:{}:{}:{}".format(hours, minutes, seconds, milliseconds)
 
-    def get_phase_centre(self):
+    def get_phase_centre(self) -> List[float]:
         return [self.phase_centre_ra_deg, self.phase_centre_dec_deg]
 
 
