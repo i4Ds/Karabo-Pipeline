@@ -11,7 +11,7 @@ import psutil
 from dask.distributed import Client, LocalCluster
 
 from karabo.error import KaraboDaskError
-from karabo.util.my_types import IntFloat
+from karabo.util._types import IntFloat
 from karabo.warning import KaraboWarning
 
 DASK_INFO_ADDRESS = os.path.join(".karabo_dask", "dask_info.json")

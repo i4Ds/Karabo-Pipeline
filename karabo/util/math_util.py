@@ -5,7 +5,7 @@ from typing import List, Literal, Tuple, Union, cast
 import numpy as np
 from numpy.typing import NDArray
 
-from karabo.util.my_types import FloatLike, NPFloatLike
+from karabo.util._types import FloatLike, NPFloatLike
 
 
 def poisson_disc_samples(

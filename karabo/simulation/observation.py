@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Union
 
 from karabo.error import KaraboError
-from karabo.util.my_types import IntFloat
+from karabo.util._types import IntFloat
 
 
 class Observation:

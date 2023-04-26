@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from scipy.special import wofz
 
 import karabo
-from karabo.util.my_types import NPFloatInpBroadType, NPFloatOutBroadType, NPIntFloat
+from karabo.util._types import NPFloatInpBroadType, NPFloatOutBroadType, NPIntFloat
 
 
 def get_module_absolute_path() -> str:

@@ -22,9 +22,9 @@ from karabo.data.external_data import (
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboError
+from karabo.util._types import IntFloat, IntFloatList, NPFloatInpBroadType
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
-from karabo.util.my_types import IntFloat, IntFloatList, NPFloatInpBroadType
 from karabo.util.plotting_util import get_slices
 from karabo.warning import KaraboWarning
 

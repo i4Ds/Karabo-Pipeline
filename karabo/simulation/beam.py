@@ -17,9 +17,9 @@ from typing_extensions import TypeAlias
 
 from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
+from karabo.util._types import IntFloat, NPIntFloat
 from karabo.util.data_util import get_module_path_of_module
 from karabo.util.FileHandle import FileHandle
-from karabo.util.my_types import IntFloat, NPIntFloat
 
 ElementFitPolType: TypeAlias = Literal[
     "x",

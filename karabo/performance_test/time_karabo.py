@@ -12,7 +12,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import PyBDSFSourceDetectionResult
-from karabo.util.my_types import IntFloat
+from karabo.util._types import IntFloat
 
 
 def create_random_sources(
