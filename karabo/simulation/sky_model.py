@@ -8,6 +8,9 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, c
 from warnings import warn
 
 import astropy.io.fits as fits
+import dask.array as da
+import dask.dataframe as dd
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
@@ -697,6 +700,79 @@ class SkyModel:
         )
         return cartesian_sky
 
+    @staticmethod
+    def get_sky_model_from_h5_to_dask(        
+        path: str,
+        prefix_mapping: Dict[str, Optional[str]],
+        chunksize: Union[int, str] = '2GB'
+            ) -> dd.DataFrame:
+        """
+        Load a sky model from an HDF5 file into a Dask dataframe.
+
+        Parameters
+        ----------
+        path : str
+            Path to the HDF5 file containing the sky model data.
+        prefix_mapping : dict of {str: str or None}
+            A dictionary that maps the column names in the HDF5 file to the corresponding keys
+            in the output dataframe. If a key is set to None, a column of zeros will be created with
+            the same shape as the other columns.
+        chunksize : int or str, optional
+            The size of the chunks to use when creating the Dask arrays. This can be an integer
+            representing the number of rows per chunk, or a string representing the size of each
+            chunk in bytes (e.g. '64MB', '1GB', etc.). Default is '2GB'.
+
+        Returns
+        -------
+        dd.DataFrame
+            A Dask dataframe representing the sky model data.
+
+        Examples
+        --------
+        >>> prefix_mapping = {
+        ...     "ra": "Right Ascension",
+        ...     "dec": "Declination",
+        ...     "i": "Flux",
+        ...     "q": None,
+        ...     "u": None,
+        ...     "v": None,
+        ...     "ref_freq": None,
+        ...     "spectral_index": None,
+        ...     "rm": None,
+        ...     "major": None,
+        ...     "minor": None, 
+        ...     "pa": None, 
+        ...     "id": None,
+        ... }
+        >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping)
+        
+        """
+        f = h5py.File(path, 'r')
+        arr_columns = []
+
+        for col in [
+            "ra",
+            "dec",
+            "i",
+            "q",
+            "u",
+            "v",
+            "ref_freq",
+            "spectral_index",
+            "rm",
+            "major",
+            "minor",
+            "pa",
+            "id",
+        ]:
+            shape = da.from_array(f[prefix_mapping['ra']]).shape
+
+            if prefix_mapping[col] is None:
+                arr_columns.append(da.zeros(shape, chunks=chunksize))
+            else:
+                arr_columns.append(da.from_array(f[prefix_mapping[col]], chunks=chunksize))
+        return SkyModel(da.concatenate([x[:, None] for x in arr_columns], axis=1))
+    
     @staticmethod
     def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
         """

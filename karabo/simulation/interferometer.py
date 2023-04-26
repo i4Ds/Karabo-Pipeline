@@ -3,6 +3,7 @@ import os
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple, Union
 
+import dask.array as da
 import numpy as np
 import oskar
 import pandas as pd
@@ -252,7 +253,7 @@ class InterferometerSimulation:
         """
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
-        array_sky = sky.get_OSKAR_sky(precision=self.precision).to_array()
+        array_sky = sky.sources # sky.get_OSKAR_sky(precision=self.precision).to_array()
 
         if self.client is not None:
             # To convert to a numpy array
@@ -260,6 +261,11 @@ class InterferometerSimulation:
 
             if self.split_idxs_per_group:
                 split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
+
+            # If the sources are a dask array, no splitting is needed
+            elif isinstance(SkyModel.sources, da.Array):
+                split_array_sky = array_sky
+
             elif self.split_sky_for_dask_how == "randomly":
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
@@ -306,7 +312,7 @@ class InterferometerSimulation:
         # Run the simulation on the dask cluster
         if self.client is not None:
             futures = []
-            for sky_ in split_array_sky:
+            for sky_ in split_array_sky.to_delayed() if isinstance(split_array_sky, da.Array) else split_array_sky:
                 # Create visiblity object
                 visibility = Visibility()
                 interferometer_params = self.__get_OSKAR_settings_tree(
@@ -327,6 +333,7 @@ class InterferometerSimulation:
                         self.precision,
                     )
                 )
+
             results = self.client.gather(futures)
             # TODO: Combine visibilities here. Currently, it just returns the first
             # result contains the list of paths to the visibilities
