@@ -313,6 +313,7 @@ class InterferometerSimulation:
         if self.client is not None:
             futures = []
             for sky_ in split_array_sky.to_delayed() if isinstance(split_array_sky, da.Array) else split_array_sky:
+                print(f"Submitting simulation to worker {sky_.key}")
                 # Create visiblity object
                 visibility = Visibility()
                 interferometer_params = self.__get_OSKAR_settings_tree(
@@ -366,8 +367,13 @@ class InterferometerSimulation:
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
         simulation = oskar.Interferometer(settings=setting_tree)
+        # Check if it's a dask array chunk
+        print(type(os_sky))
+        if isinstance(os_sky, da.Array):
+            os_sky = oskar.Sky.from_array(os_sky.compute(), precision=precision)
         if isinstance(os_sky, np.ndarray):
             os_sky = oskar.Sky.from_array(os_sky, precision=precision)
+        
         simulation.set_sky_model(os_sky)
         simulation.run()
 
