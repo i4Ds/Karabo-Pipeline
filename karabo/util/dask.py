@@ -26,8 +26,6 @@ class DaskHandler:
         The Dask client object. If None, a new client will be created.
     n_workers_scheduler_node : int
         The number of workers to start on the scheduler node.
-    threads_per_worker : int
-        The number of threads to allocate per worker.
     min_ram_per_worker : Optional[float]
         The minimum RAM to allocate per worker in GB.
 
@@ -42,7 +40,6 @@ class DaskHandler:
 
     dask_client: Optional[Client] = None
     n_workers_scheduler_node: int = 1
-    threads_per_worker: int = 1
     min_ram_per_worker: Optional[int] = None
     use_dask: Optional[int] = None
     TIMEOUT: int = 60
@@ -53,12 +50,11 @@ class DaskHandler:
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
                     DaskHandler.n_workers_scheduler_node,
-                    DaskHandler.threads_per_worker,
                     DaskHandler.min_ram_per_worker,
                 )
             else:
                 DaskHandler.dask_client = get_local_dask_client(
-                    DaskHandler.min_ram_per_worker, DaskHandler.threads_per_worker
+                    DaskHandler.min_ram_per_worker
                 )
 
         atexit.register(dask_cleanup, DaskHandler.dask_client)
@@ -78,12 +74,12 @@ class DaskHandler:
 
 
 def get_local_dask_client(
-    min_ram_gb_per_worker: int, threads_per_worker: int
+    min_ram_gb_per_worker: int,
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
     client = Client(
-        LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker)
+        LocalCluster(n_workers=n_workers)
     )
     return client
 
@@ -130,8 +126,6 @@ def prepare_slurm_nodes_for_dask() -> None:
                 "dask",
                 "worker",
                 dask_info["scheduler_address"],
-                "--nthreads",
-                str(dask_info["n_threads_per_worker"]),
                 "--nworkers",
                 str(dask_info["n_workers_per_node"]),
             ]
@@ -169,15 +163,13 @@ def calculate_number_of_workers_per_node(min_ram_gb_per_worker: int) -> int:
 
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
-    n_threads_per_worker: int,
     min_ram_gb_per_worker: int,
 ) -> Client:
     if is_first_node():
         # Create client and scheduler
         cluster = LocalCluster(
             ip=get_lowest_node_name(),
-            n_workers=n_workers_scheduler_node,
-            threads_per_worker=n_threads_per_worker,
+            n_workers=n_workers_scheduler_node
         )
         dask_client = Client(cluster)
 
@@ -187,8 +179,7 @@ def setup_dask_for_slurm(
         # Create dictionary with the information
         dask_info = {
             "scheduler_address": cluster.scheduler_address,
-            "n_workers_per_node": n_workers_per_node,
-            "n_threads_per_worker": n_threads_per_worker,
+            "n_workers_per_node": n_workers_per_node
         }
 
         # Write scheduler file
