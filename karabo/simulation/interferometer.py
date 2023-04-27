@@ -363,7 +363,7 @@ class InterferometerSimulation:
         if self.client is not None:
             futures = []
             # Define the function as delayed
-            run_simu_delayed = delayed(InterferometerSimulation.__run_simulation_oskar)
+            run_simu_delayed = delayed(self.__run_simulation_oskar)
 
             print(f"Submitting {len(split_array_sky)} simulations to the workers")
 
@@ -372,6 +372,7 @@ class InterferometerSimulation:
                 if isinstance(split_array_sky, da.Array)
                 else split_array_sky
             ):
+
                 # Create params
                 interferometer_params = (
                     self.__create_interferometer_params_with_random_paths(input_telpath)
@@ -388,6 +389,9 @@ class InterferometerSimulation:
                         self.precision,
                     )
                 )
+
+                if len(futures) > 3:
+                    break
 
             results = self.client.gather(futures)
             # Combine the visibilities

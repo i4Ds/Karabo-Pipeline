@@ -12,8 +12,9 @@ from dask.distributed import Client, LocalCluster
 
 from karabo.warning import KaraboWarning
 
-DASK_INFO_ADDRESS = os.path.join(".karabo_dask", "dask_info.json")
-os.makedirs(os.path.dirname(DASK_INFO_ADDRESS), exist_ok=True)
+DASK_INFO_FOLDER = ".karabo_dask"
+os.makedirs(DASK_INFO_FOLDER, exist_ok=True)
+DASK_INFO_ADDRESS = os.path.join(DASK_INFO_FOLDER, "dask_info.json")
 
 
 class DaskHandler:
@@ -86,6 +87,10 @@ def dask_cleanup(client: Client) -> None:
     # Remove the scheduler file if somehow it was not removed
     if os.path.exists(DASK_INFO_ADDRESS):
         os.remove(DASK_INFO_ADDRESS)
+
+    # Remove the dashboard file if somehow it was not removed
+    if os.path.exists('karabo-dask-dashboard.txt'):
+        os.remove('karabo-dask-dashboard.txt')
 
     if client is not None:
         client.close()
@@ -203,11 +208,18 @@ def setup_dask_for_slurm(
                 )
 
         print(f"All {len(dask_client.scheduler_info()['workers'])} workers connected!")
-        atexit.register(dask_cleanup, dask_client)
+        print(f"Dask dashboard available at {dask_client.dashboard_link}")
+
+        # Write the dashboard link to a file
+        with open('karabo-dask-dashboard.txt', "w") as f:
+            f.write(dask_client.dashboard_link)
 
         # Removing file
         if os.path.exists(DASK_INFO_ADDRESS):
             os.remove(DASK_INFO_ADDRESS)
+
+        # shutdown on exit
+        atexit.register(dask_cleanup, dask_client)
         return dask_client
 
     else:
