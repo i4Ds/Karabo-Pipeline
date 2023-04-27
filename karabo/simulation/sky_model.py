@@ -567,13 +567,20 @@ class SkyModel:
         if isinstance(filename, str):
             fig.savefig(fname=filename)
 
-    def get_OSKAR_sky(self, precision: str = "double") -> oskar.Sky:
+    @staticmethod
+    def get_OSKAR_sky(sky: NDArray, precision: str = "double") -> oskar.Sky:
         """
         Get OSKAR sky model object from the defined Sky Model
 
         :return: oskar sky model
         """
-        return oskar.Sky.from_array(self[:, :-1], precision)
+        if sky.shape[1] > 12:
+            print(KaraboWarning("Warning: Sky model has more than 12 columns"
+                                " (only the first 12 are used)")
+                                )
+            return oskar.Sky.from_array(sky[:, :12], precision)
+        else:
+            return oskar.Sky.from_array(sky, precision)
 
     @staticmethod
     def read_healpix_file_to_sky_model_array(
@@ -704,7 +711,7 @@ class SkyModel:
     def get_sky_model_from_h5_to_dask(        
         path: str,
         prefix_mapping: Dict[str, Optional[str]],
-        chunksize: Union[int, str] = '2GB'
+        chunksize: Union[int, str] = 10000000#, '256MB',
             ) -> dd.DataFrame:
         """
         Load a sky model from an HDF5 file into a Dask dataframe.
@@ -740,9 +747,9 @@ class SkyModel:
         ...     "spectral_index": None,
         ...     "rm": None,
         ...     "major": None,
-        ...     "minor": None, 
-        ...     "pa": None, 
-        ...     "id": None,
+        ...     "minor": None,
+        ...     "pa": None,
+        ...     "id": None
         ... }
         >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping)
         
@@ -763,15 +770,23 @@ class SkyModel:
             "major",
             "minor",
             "pa",
-            "id",
+            "id"
         ]:
             shape = da.from_array(f[prefix_mapping['ra']]).shape
 
             if prefix_mapping[col] is None:
-                arr_columns.append(da.zeros(shape, chunks=chunksize))
+                arr_columns.append(da.zeros(shape))
             else:
-                arr_columns.append(da.from_array(f[prefix_mapping[col]], chunks=chunksize))
-        return SkyModel(da.concatenate([x[:, None] for x in arr_columns], axis=1))
+                arr_columns.append(da.from_array(f[prefix_mapping[col]]))
+        sky = da.concatenate([x[:, None] for x in arr_columns], axis=1)
+
+        # Reshape each chunk to specific size
+        if isinstance(chunksize, str):
+            sky = sky.rechunk(chunksize)
+        else:
+            sky = sky.rechunk((chunksize, -1))
+
+        return SkyModel(sky)
     
     @staticmethod
     def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:

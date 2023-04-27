@@ -1,4 +1,5 @@
 import enum
+import sys
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -6,6 +7,7 @@ import dask.array as da
 import numpy as np
 import oskar
 import pandas as pd
+from dask import delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -299,12 +301,15 @@ class InterferometerSimulation:
             split_array_sky = None
 
             if self.split_idxs_per_group:
+                print("Detected split_idxs_per_group...")
                 split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
 
-            elif isinstance(SkyModel.sources, da.Array):
+            elif isinstance(sky.sources, da.Array):
+                print("Detected dask array...")
                 split_array_sky = array_sky
 
             elif self.split_sky_for_dask_how == "randomly":
+                print("Detected split_sky_for_dask_how == 'randomly'...")
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
                 array_sky_size = array_sky.nbytes
@@ -356,9 +361,21 @@ class InterferometerSimulation:
         # Run the simulation on the dask cluster
         if self.client is not None:
             futures = []
-            for sky_ in split_array_sky.to_delayed() if isinstance(split_array_sky, da.Array) else split_array_sky:
-                # Scatter the sky model to the workers
-                scattered_data = self.client.scatter(sky_)
+            # Define the function as delayed
+            run_simu_delayed = delayed(InterferometerSimulation.__run_simulation_oskar)
+            
+            for sky_ in split_array_sky.blocks if isinstance(split_array_sky, da.Array) else split_array_sky:
+                # Print out size of the sky model
+                if isinstance(split_array_sky, da.Array):
+                    print(
+                        f"Scattering sky model with size {sky_.nbytes / 1024**2} MB "
+                        f"and shape {sky_.shape}"
+                    )
+                else:
+                    print(
+                        f"Scattering sky model with size {sys.getsizeof(sky_) / 1024**2} MB "
+                        f"and shape {sky_.shape}"
+                    )
 
                 # Create params
                 interferometer_params = (
@@ -370,9 +387,9 @@ class InterferometerSimulation:
                 # Submit the simulation to the workers
                 futures.append(
                     self.client.submit(
-                        InterferometerSimulation.__run_simulation_oskar,
+                        run_simu_delayed,
                         params_total,
-                        scattered_data,
+                        sky_,
                         self.precision,
                     )
                 )
@@ -423,18 +440,17 @@ class InterferometerSimulation:
         :param os_sky: OSKAR sky model as np.array or oskar.Sky
         :param precision: precision of the simulation
         """
+
         # Create a visibility object
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
-        
-        print(type(os_sky))
+
         if isinstance(os_sky, da.Array):
-            os_sky = oskar.Sky.from_array(os_sky.compute(), precision=precision)
-        if isinstance(os_sky, np.ndarray):
-            os_sky = oskar.Sky.from_array(os_sky, precision=precision)
-        
+            os_sky = SkyModel.get_OSKAR_sky(os_sky.compute(), precision=precision)
+        elif isinstance(os_sky, np.ndarray):
+            os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
+
         simulation = oskar.Interferometer(settings=setting_tree)
-        os_sky = oskar.Sky.from_array(os_sky, precision=precision)
         simulation.set_sky_model(os_sky)
         simulation.run()
 
