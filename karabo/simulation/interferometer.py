@@ -365,17 +365,13 @@ class InterferometerSimulation:
             # Define the function as delayed
             run_simu_delayed = delayed(InterferometerSimulation.__run_simulation_oskar)
 
+            print(f"Submitting {len(split_array_sky)} simulations to the workers")
+
             for sky_ in (
                 split_array_sky.blocks
                 if isinstance(split_array_sky, da.Array)
                 else split_array_sky
             ):
-                # Print out size of the sky model
-                print(
-                    f"Scattering sky model with size {sky_.nbytes / 1024**2} MB "
-                    f"and shape {sky_.shape}"
-                )
-
                 # Create params
                 interferometer_params = (
                     self.__create_interferometer_params_with_random_paths(input_telpath)
