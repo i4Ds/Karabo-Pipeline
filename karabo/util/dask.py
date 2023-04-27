@@ -78,9 +78,7 @@ def get_local_dask_client(
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
-    client = Client(
-        LocalCluster(n_workers=n_workers)
-    )
+    client = Client(LocalCluster(n_workers=n_workers))
     return client
 
 
@@ -168,8 +166,7 @@ def setup_dask_for_slurm(
     if is_first_node():
         # Create client and scheduler
         cluster = LocalCluster(
-            ip=get_lowest_node_name(),
-            n_workers=n_workers_scheduler_node
+            ip=get_lowest_node_name(), n_workers=n_workers_scheduler_node
         )
         dask_client = Client(cluster)
 
@@ -179,7 +176,7 @@ def setup_dask_for_slurm(
         # Create dictionary with the information
         dask_info = {
             "scheduler_address": cluster.scheduler_address,
-            "n_workers_per_node": n_workers_per_node
+            "n_workers_per_node": n_workers_per_node,
         }
 
         # Write scheduler file

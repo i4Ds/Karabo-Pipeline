@@ -575,9 +575,12 @@ class SkyModel:
         :return: oskar sky model
         """
         if sky.shape[1] > 12:
-            print(KaraboWarning("Warning: Sky model has more than 12 columns"
-                                " (only the first 12 are used)")
-                                )
+            print(
+                KaraboWarning(
+                    "Warning: Sky model has more than 12 columns"
+                    " (only the first 12 are used)"
+                )
+            )
             return oskar.Sky.from_array(sky[:, :12], precision)
         else:
             return oskar.Sky.from_array(sky, precision)
@@ -708,11 +711,11 @@ class SkyModel:
         return cartesian_sky
 
     @staticmethod
-    def get_sky_model_from_h5_to_dask(        
+    def get_sky_model_from_h5_to_dask(
         path: str,
         prefix_mapping: Dict[str, Optional[str]],
-        chunksize: Union[int, str] = 10000000#, '256MB',
-            ) -> dd.DataFrame:
+        chunksize: Union[int, str] = 10000000,  # , '256MB',
+    ) -> dd.DataFrame:
         """
         Load a sky model from an HDF5 file into a Dask dataframe.
 
@@ -721,13 +724,14 @@ class SkyModel:
         path : str
             Path to the HDF5 file containing the sky model data.
         prefix_mapping : dict of {str: str or None}
-            A dictionary that maps the column names in the HDF5 file to the corresponding keys
-            in the output dataframe. If a key is set to None, a column of zeros will be created with
-            the same shape as the other columns.
+            A dictionary that maps the column names in the HDF5 file to the
+            corresponding keys in the output dataframe. If a key is set to None,
+            a column of zeros will be created with the same shape as the other columns.
         chunksize : int or str, optional
-            The size of the chunks to use when creating the Dask arrays. This can be an integer
-            representing the number of rows per chunk, or a string representing the size of each
-            chunk in bytes (e.g. '64MB', '1GB', etc.). Default is '2GB'.
+            The size of the chunks to use when creating the Dask arrays. This can
+            be an integer representing the number of rows per chunk, or a string
+            representing the size of each chunk in bytes (e.g. '64MB', '1GB', etc.).
+            Default is '2GB'.
 
         Returns
         -------
@@ -751,10 +755,10 @@ class SkyModel:
         ...     "pa": None,
         ...     "id": None
         ... }
-        >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping)
-        
+        >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping) # noqa: E501
+
         """
-        f = h5py.File(path, 'r')
+        f = h5py.File(path, "r")
         arr_columns = []
 
         for col in [
@@ -770,9 +774,9 @@ class SkyModel:
             "major",
             "minor",
             "pa",
-            "id"
+            "id",
         ]:
-            shape = da.from_array(f[prefix_mapping['ra']]).shape
+            shape = da.from_array(f[prefix_mapping["ra"]]).shape
 
             if prefix_mapping[col] is None:
                 arr_columns.append(da.zeros(shape))
@@ -787,7 +791,7 @@ class SkyModel:
             sky = sky.rechunk((chunksize, -1))
 
         return SkyModel(sky)
-    
+
     @staticmethod
     def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
         """

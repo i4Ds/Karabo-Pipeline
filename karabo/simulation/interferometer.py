@@ -1,5 +1,4 @@
 import enum
-import sys
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -293,7 +292,9 @@ class InterferometerSimulation:
         """
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
-        array_sky = sky.sources # sky.get_OSKAR_sky(precision=self.precision).to_array()
+        array_sky = (
+            sky.sources
+        )  # sky.get_OSKAR_sky(precision=self.precision).to_array()
 
         if self.client is not None:
             print("Using Dask for parallelisation. Splitting sky model...")
@@ -363,19 +364,17 @@ class InterferometerSimulation:
             futures = []
             # Define the function as delayed
             run_simu_delayed = delayed(InterferometerSimulation.__run_simulation_oskar)
-            
-            for sky_ in split_array_sky.blocks if isinstance(split_array_sky, da.Array) else split_array_sky:
+
+            for sky_ in (
+                split_array_sky.blocks
+                if isinstance(split_array_sky, da.Array)
+                else split_array_sky
+            ):
                 # Print out size of the sky model
-                if isinstance(split_array_sky, da.Array):
-                    print(
-                        f"Scattering sky model with size {sky_.nbytes / 1024**2} MB "
-                        f"and shape {sky_.shape}"
-                    )
-                else:
-                    print(
-                        f"Scattering sky model with size {sys.getsizeof(sky_) / 1024**2} MB "
-                        f"and shape {sky_.shape}"
-                    )
+                print(
+                    f"Scattering sky model with size {sky_.nbytes / 1024**2} MB "
+                    f"and shape {sky_.shape}"
+                )
 
                 # Create params
                 interferometer_params = (

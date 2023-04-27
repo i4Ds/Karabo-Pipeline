@@ -1,7 +1,5 @@
 import time
 
-import numpy as np
-
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -10,7 +8,7 @@ from karabo.simulation.telescope import Telescope
 
 def main():
     start = time.time()
-    path = '/scratch/snx3000/vtimmel/karabo/point_sources_OSKAR1.h5'
+    path = "/scratch/snx3000/vtimmel/karabo/point_sources_OSKAR1.h5"
     phase_center = [0, -30]
 
     prefix_mapping = {
@@ -24,8 +22,8 @@ def main():
         "spectral_index": None,
         "rm": None,
         "major": None,
-        "minor": None, 
-        "pa": None, 
+        "minor": None,
+        "pa": None,
         "id": None,
     }
 
@@ -50,7 +48,6 @@ def main():
     _ = interferometer_sim.run_simulation(telescope, sky, observation_settings)
 
     print(f"Time take for simulation: {(time.time() - start) / 60} minutes")
-
 
 
 if __name__ == "__main__":
