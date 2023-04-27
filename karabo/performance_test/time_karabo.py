@@ -37,7 +37,7 @@ def create_random_sources(num_sources, ranges=None):
     if not ranges:
         ranges = [
             [-1, 1],
-            [-29, -31],
+            [-25, -35],
             [1, 3],
             [0, 0],
             [0, 0],
@@ -88,6 +88,7 @@ def main(n_random_sources):
         telescope, sky, observation_settings
     )
 
+    # Imaging
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
@@ -153,4 +154,4 @@ def main(n_random_sources):
 
 
 if __name__ == "__main__":
-    main(n_random_sources=2)
+    main(n_random_sources=20000)

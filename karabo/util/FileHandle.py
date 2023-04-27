@@ -11,10 +11,15 @@ class FileHandle:
 
     Parameters
     ----------
-    dir : str, optional
-        Directory path where the resulting files will be stored.
+    path : str, optional
+        Directory path where the resulting files will be stored or
+        a file path.
         If not provided, a default directory named 'karabo_folder'
         will be created in the current working directory.
+    create_additional_folder_in_dir : bool, optional
+        Whether to create a new folder inside the directory specified
+        by dir. Default is False. If True, a unique UUID will be used
+        as the name of the folder.
     file_name : str, optional
         Name of the output file. If not provided, a unique UUID will
         be used as the filename.
@@ -41,47 +46,49 @@ class FileHandle:
 
     def __init__(
         self,
-        dir: Optional[str] = None,
+        path: Optional[str] = None,
+        create_additional_folder_in_dir: bool = False,
         file_name: Optional[str] = None,
         suffix: str = "",
     ) -> None:
-        if dir:
-            base_path = os.path.abspath(dir)
+        # Check if the dir ends with .vis
+        # If yes, it's a file path, so we need to extract the directory
+        # and the file name and set the suffix to nothing.
+        if path and os.path.isfile(path):
+            file_name = os.path.basename(path)
+            path = os.path.dirname(path)
+            suffix = ""
+
+        # If a directory is provided, use it as the base path
+        if path:
+            base_path = os.path.abspath(path)
         else:
             base_path = os.path.join(os.getcwd(), "karabo_folder")
+            if suffix.lower() == ".ms":
+                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
+            else:
+                base_path = os.path.join(base_path, str(uuid.uuid4()))
+
+        # If a new folder to host the data should be created inside the base_path
+        if create_additional_folder_in_dir:
+            base_path = os.path.join(base_path, str(uuid.uuid4()))
 
         # Make the base path if it does not exist
         if not os.path.exists(base_path):
-            os.mkdir(base_path)
+            os.makedirs(base_path, exist_ok=True)
 
-        # If the folder is a visibility or measurement set, use it as the base path
-        if FileHandle.__folder_is_vis_or_ms(base_path):
+        # If a file name is provided, use it as the path
+        if file_name:
+            self.path = os.path.join(base_path, file_name + suffix)
+        else:
             self.path = base_path
-        else:
-            if file_name:
-                self.path = os.path.join(
-                    base_path, str(uuid.uuid4()), file_name + suffix
-                )
-            else:
-                self.path = os.path.join(base_path, str(uuid.uuid4()) + suffix)
 
-        # Make sure everything, except the file, exists
-        if file_name:
-            os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        else:
-            os.makedirs(self.path, exist_ok=True)
-
-        # Create the file if it does not exist
-        if file_name:
-            open(self.path, "a").close()
-
-    @staticmethod
-    def __folder_is_vis_or_ms(folder: str) -> bool:
-        return folder.endswith(".ms") or folder.endswith(".vis")
+        self.dir = base_path
+        self.file_name = file_name
+        self.suffix = suffix
 
     def clean_up(self) -> None:
-        # remove temp folder and everything inside it
-        shutil.rmtree(self.path)
+        shutil.rmtree(self.dir)
 
     def remove_file(self, file_path: str) -> None:
         os.remove(file_path)

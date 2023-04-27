@@ -15,7 +15,6 @@ from karabo.sourcedetection.result import (
     SourceDetectionResult,
 )
 from karabo.test import data_path
-from karabo.util.dask import get_global_client
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 
@@ -191,7 +190,7 @@ class TestSourceDetection(unittest.TestCase):
         imager = Imager(
             visibility,
             ingest_vis_nchan=3,
-            ingest_chan_per_blockvis=1,
+            ingest_chan_per_vis=1,
             ingest_average_blockvis=True,
             imaging_npixel=2048,
             imaging_cellsize=0.0003,
@@ -200,9 +199,8 @@ class TestSourceDetection(unittest.TestCase):
         )
         # Get Dask client
         print("Starting Rascil with Dask.")
-        client = get_global_client(2, 2)
         convolved, restored, residual = imager.imaging_rascil(
-            client=client, use_dask=True, use_cuda=False
+            use_dask=True, use_cuda=False
         )
 
         convolved.write_to_file("result/test_dec/convolved.fits")

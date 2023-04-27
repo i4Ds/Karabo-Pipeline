@@ -68,6 +68,8 @@ class Image(KaraboResource):
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
         check_ending(path=path, ending=".fits")
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
         fits.writeto(
             filename=path,
             data=self.data,
