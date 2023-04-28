@@ -52,10 +52,6 @@ class DaskHandler:
     @staticmethod
     def get_dask_client() -> Client:
         if DaskHandler.dask_client is None:
-            if DaskHandler.min_ram_per_worker is None:
-                raise KaraboDaskError(
-                    "`DaskHandler.min_ram_per_worker` must be set but is None."
-                )
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
                     DaskHandler.n_workers_scheduler_node,
@@ -85,7 +81,8 @@ class DaskHandler:
 
 
 def get_local_dask_client(
-    min_ram_gb_per_worker: IntFloat, threads_per_worker: int
+    min_ram_gb_per_worker: Optional[IntFloat],
+    threads_per_worker: int,
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
@@ -149,7 +146,9 @@ def prepare_slurm_nodes_for_dask() -> None:
             time.sleep(5)
 
 
-def calculate_number_of_workers_per_node(min_ram_gb_per_worker: IntFloat) -> int:
+def calculate_number_of_workers_per_node(
+    min_ram_gb_per_worker: Optional[IntFloat],
+) -> int:
     if min_ram_gb_per_worker is None:
         return 1
     # Calculate number of workers per node
@@ -177,7 +176,7 @@ def calculate_number_of_workers_per_node(min_ram_gb_per_worker: IntFloat) -> int
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
     n_threads_per_worker: int,
-    min_ram_gb_per_worker: IntFloat,
+    min_ram_gb_per_worker: Optional[IntFloat],
 ) -> Client:
     if is_first_node():
         # Create client and scheduler
