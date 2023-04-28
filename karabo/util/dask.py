@@ -5,11 +5,13 @@ import json
 import os
 import time
 from subprocess import Popen
-from typing import Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 import psutil
 from dask.distributed import Client, LocalCluster
 
+from karabo.error import KaraboDaskError
+from karabo.util._types import IntFloat
 from karabo.warning import KaraboWarning
 
 DASK_INFO_ADDRESS = os.path.join(".karabo_dask", "dask_info.json")
@@ -41,11 +43,11 @@ class DaskHandler:
     """
 
     dask_client: Optional[Client] = None
-    n_workers_scheduler_node: int = 1
-    threads_per_worker: int = 1
-    min_ram_per_worker: Optional[int] = None
-    use_dask: Optional[int] = None
-    TIMEOUT: int = 60
+    n_workers_scheduler_node = 1
+    threads_per_worker = 1
+    min_ram_per_worker: Optional[IntFloat] = None
+    use_dask: Optional[bool] = None
+    TIMEOUT = 60.0
 
     @staticmethod
     def get_dask_client() -> Client:
@@ -64,6 +66,7 @@ class DaskHandler:
         atexit.register(dask_cleanup, DaskHandler.dask_client)
         return DaskHandler.dask_client
 
+    @staticmethod
     def should_dask_be_used(override: Optional[bool] = None) -> bool:
         if override is not None:
             return override
@@ -78,7 +81,8 @@ class DaskHandler:
 
 
 def get_local_dask_client(
-    min_ram_gb_per_worker: int, threads_per_worker: int
+    min_ram_gb_per_worker: Optional[IntFloat],
+    threads_per_worker: int,
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
@@ -142,7 +146,9 @@ def prepare_slurm_nodes_for_dask() -> None:
             time.sleep(5)
 
 
-def calculate_number_of_workers_per_node(min_ram_gb_per_worker: int) -> int:
+def calculate_number_of_workers_per_node(
+    min_ram_gb_per_worker: Optional[IntFloat],
+) -> int:
     if min_ram_gb_per_worker is None:
         return 1
     # Calculate number of workers per node
@@ -170,7 +176,7 @@ def calculate_number_of_workers_per_node(min_ram_gb_per_worker: int) -> int:
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
     n_threads_per_worker: int,
-    min_ram_gb_per_worker: int,
+    min_ram_gb_per_worker: Optional[IntFloat],
 ) -> Client:
     if is_first_node():
         # Create client and scheduler
@@ -209,7 +215,7 @@ def setup_dask_for_slurm(
             )
             time.sleep(3)  # To avoid spamming the scheduler
             if time.time() - start > DaskHandler.TIMEOUT:
-                raise Exception(
+                raise KaraboDaskError(
                     "Timeout while waiting for all workers to connect. "
                     "Something went wrong."
                 )
@@ -223,7 +229,7 @@ def setup_dask_for_slurm(
         return dask_client
 
     else:
-        raise Exception("This function should only be reached on the first node.")
+        raise KaraboDaskError("This function should only be reached on the first node.")
 
 
 def get_min_max_of_node_id() -> Tuple[int, int]:
@@ -232,7 +238,10 @@ def get_min_max_of_node_id() -> Tuple[int, int]:
     Works if it's run only on two nodes (separated with a comma)
     of if it runs on more than two nodes (separated with a dash).
     """
-    node_list = os.getenv("SLURM_JOB_NODELIST").split("[")[1].split("]")[0]
+    slurm_job_nodelist = check_env_var(
+        var="SLURM_JOB_NODELIST", fun=get_min_max_of_node_id
+    )
+    node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
     if "," in node_list:
         return int(node_list.split(",")[0]), int(node_list.split(",")[1])
     else:
@@ -241,13 +250,16 @@ def get_min_max_of_node_id() -> Tuple[int, int]:
 
 def get_lowest_node_id() -> int:
     if get_number_of_nodes() == 1:
-        return get_node_id()
+        return get_node_id()  # TODO fix inf-loop `get_node_id` and `get_lowest_node_id`
     else:
         return get_min_max_of_node_id()[0]
 
 
 def get_base_string_node_list() -> str:
-    return os.getenv("SLURM_JOB_NODELIST").split("[")[0]
+    slurm_job_nodelist = check_env_var(
+        var="SLURM_JOB_NODELIST", fun=get_base_string_node_list
+    )
+    return slurm_job_nodelist.split("[")[0]
 
 
 def get_lowest_node_name() -> str:
@@ -255,13 +267,14 @@ def get_lowest_node_name() -> str:
 
 
 def get_number_of_nodes() -> int:
-    n_nodes = os.getenv("SLURM_JOB_NUM_NODES")
+    n_nodes = check_env_var(var="SLURM_JOB_NUM_NODES", fun=get_number_of_nodes)
     return int(n_nodes)
 
 
 def get_node_id() -> int:
+    slurmd_nodename = check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
     len_id = len(str(get_lowest_node_id()))
-    return int(os.getenv("SLURMD_NODENAME")[-len_id:])
+    return int(slurmd_nodename[-len_id:])
 
 
 def is_first_node() -> bool:
@@ -270,3 +283,14 @@ def is_first_node() -> bool:
 
 def is_on_slurm_cluster() -> bool:
     return "SLURM_JOB_ID" in os.environ
+
+
+def check_env_var(var: str, fun: Optional[Callable[..., Any]] = None) -> str:
+    value = os.getenv(var)
+    if value is None:
+        suffix = ""
+        if fun is not None:
+            suffix = f" before calling `{fun.__name__}`"
+        error_msg = f"Environment variable '{var}' must be set" + suffix + "."
+        raise KaraboDaskError(error_msg)
+    return value

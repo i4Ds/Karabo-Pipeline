@@ -24,7 +24,7 @@ from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util.dask import DaskHandler
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 
 class Imager:
