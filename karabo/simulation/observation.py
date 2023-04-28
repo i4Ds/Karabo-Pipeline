@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Union
 
+import numpy as np
+
 from karabo.error import KaraboError
 
 
@@ -110,6 +112,28 @@ class Observation:
         }
         return settings
 
+    @staticmethod 
+    def extract_multiple_observations_from_settings(
+        settings: dict, number_of_observations: int, channel_bandwidth_hz: float
+    ):
+        """
+        Extracts the settings of multiple observations from a settings dictionary.
+        This function returns a list of dictionaries containing the settings
+        of each observation. The start_frequency and number_of_channels
+        need to be updated for each observation.
+        """
+        settings_list = []
+        for i in range(number_of_observations):
+            settings["observation"]["start_frequency_hz"] = str(
+                int(settings["observation"]["start_frequency_hz"])
+                + int(i * channel_bandwidth_hz)
+            )
+            settings["observation"]["num_channels"] = str(int(np.ceil(
+                settings["observation"]["num_channels"] / number_of_observations)
+            ))
+            settings_list.append(settings)
+        return settings_list
+        
     def __strfdelta(
         self,
         tdelta: timedelta,

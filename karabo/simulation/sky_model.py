@@ -4,6 +4,7 @@ import copy
 import enum
 import logging
 import math
+import os
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
@@ -15,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 import pandas as pd
+import tables
 from astropy import units as u
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
@@ -714,7 +716,7 @@ class SkyModel:
     def get_sky_model_from_h5_to_dask(
         path: str,
         prefix_mapping: Dict[str, Optional[str]],
-        chunksize: Union[int, str] = 10000000,  # , '256MB',
+        chunksize: Union[int, str] = '2GB',
     ) -> dd.DataFrame:
         """
         Load a sky model from an HDF5 file into a Dask dataframe.
@@ -758,7 +760,7 @@ class SkyModel:
         >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping) # noqa: E501
 
         """
-        f = h5py.File(path, "r")
+        f = tables.open_file(path, "r")
         arr_columns = []
 
         for col in [
@@ -776,21 +778,32 @@ class SkyModel:
             "pa",
             "id",
         ]:
-            shape = da.from_array(f[prefix_mapping["ra"]]).shape
+            shape = da.from_array(f.root[prefix_mapping["ra"]]).shape
 
             if prefix_mapping[col] is None:
                 arr_columns.append(da.zeros(shape))
             else:
-                arr_columns.append(da.from_array(f[prefix_mapping[col]]))
+                arr_columns.append(da.from_array(f.root[prefix_mapping[col]]))
         sky = da.concatenate([x[:, None] for x in arr_columns], axis=1)
+        
+        # TODO: Improve this, is memmap really necessary?
+        shape = sky.shape
+        dtype = sky.dtype
 
-        # Reshape each chunk to specific size
-        if isinstance(chunksize, str):
-            sky = sky.rechunk(chunksize)
-        else:
-            sky = sky.rechunk((chunksize, -1))
+        # Create path
+        memmap_path = os.path.join(
+            os.path.dirname(path), os.path.basename(path) + ".memmap"
+        )
 
-        return SkyModel(sky)
+        memmap_array = np.memmap(memmap_path, dtype=dtype, mode="w+", shape=shape)
+        if os.path.size(memmap_path) < os.path.size(path):
+            for i in range(shape[1]):
+                column = sky[:, i].compute()
+                memmap_array[:, i] = column
+
+        # Load in the memmap array as dask array
+        memmap_array = da.from_array(memmap_array, chunks=chunksize)
+        return SkyModel(memmap_array)
 
     @staticmethod
     def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
