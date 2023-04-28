@@ -133,10 +133,14 @@ class InterferometerSimulation:
                         effects by choosing "Isotropic beam". Or select one of the
                         following beam types:
                         "Gaussian beam", "Aperture array" or "VLA (PBCOR)"
+    :ivar enable_power_pattern: If true, gauss_beam_fwhm_deg will be taken in as
+                                power pattern.
     :ivar gauss_beam_fwhm_deg: If you choose "Gaussian beam" as station type you need
                                specify the full-width half maximum value at the
                                reference frequency of the Gaussian beam here.
-                               Units = degrees.
+                               Units = degrees. If enable_power_pattern is True,
+                               gauss_beam_fwhm_deg is in power pattern, otherwise
+                               it is in field pattern.
     :ivar gauss_ref_freq_hz: The reference frequency of the specified FWHM, in Hz.
     :ivar ionosphere_fits_path: The path to a fits file containing an ionospheric screen
                                 generated with ARatmospy. The file parameters
@@ -180,6 +184,7 @@ class InterferometerSimulation:
         max_vram_usage_gpu: IntFloat = 0.8,
         precision: PrecisionType = "single",
         station_type: StationTypeType = "Isotropic beam",
+        enable_power_pattern: bool = False,
         gauss_beam_fwhm_deg: IntFloat = 0.0,
         gauss_ref_freq_hz: IntFloat = 0.0,
         ionosphere_fits_path: Optional[str] = None,
@@ -251,7 +256,12 @@ class InterferometerSimulation:
         self.max_vram_usage_gpu = max_vram_usage_gpu
         self.precision = precision
         self.station_type = station_type
-        self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
+        self.enable_power_pattern = enable_power_pattern
+        if self.enable_power_pattern:
+            # Convert power pattern to field pattern
+            self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg * np.sqrt(2)
+        else:
+            self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
         self.gauss_ref_freq_hz = gauss_ref_freq_hz
         self.ionosphere_fits_path = ionosphere_fits_path
 
