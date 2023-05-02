@@ -716,7 +716,7 @@ class SkyModel:
     def get_sky_model_from_h5_to_dask(
         path: str,
         prefix_mapping: Dict[str, Optional[str]],
-        chunksize: Union[int, str] = '2GB',
+        chunksize: Union[int, str] = '1MB',
     ) -> dd.DataFrame:
         """
         Load a sky model from an HDF5 file into a Dask dataframe.
@@ -796,13 +796,12 @@ class SkyModel:
         )
 
         memmap_array = np.memmap(memmap_path, dtype=dtype, mode="w+", shape=shape)
-        if os.path.size(memmap_path) < os.path.size(path):
-            for i in range(shape[1]):
-                column = sky[:, i].compute()
-                memmap_array[:, i] = column
+        for i in range(shape[1]):
+            column = sky[:, i].compute()
+            memmap_array[:, i] = column
 
         # Load in the memmap array as dask array
-        memmap_array = da.from_array(memmap_array, chunks=chunksize)
+        memmap_array = da.from_array(memmap_array, chunks=(chunksize, -1))
         return SkyModel(memmap_array)
 
     @staticmethod

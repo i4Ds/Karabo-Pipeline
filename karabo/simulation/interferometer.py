@@ -308,7 +308,8 @@ class InterferometerSimulation:
             elif isinstance(sky.sources, da.Array):
                 print("Detected dask array...")
                 split_array_sky = array_sky
-                N = len(split_array_sky.chunks)
+                print(split_array_sky.chunks[0])
+                N = len(split_array_sky.chunks[0])
 
             elif self.split_sky_for_dask_how == "randomly":
                 print("Detected split_sky_for_dask_how == 'randomly'...")
@@ -361,13 +362,16 @@ class InterferometerSimulation:
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
 
-            print(f"Submitting {len(split_array_sky.chunks)} simulations to the workers")
+            print(f"Submitting {len(split_array_sky.chunks[0])} simulations to the workers")
             if N < len(self.client.scheduler_info()["workers"]):
                 print(f"Not enough data-splits. Splitting also by Observations.")
                 splits_by_observation = int(np.ceil(len(self.client.scheduler_info()["workers"]) - N))
-                observations = Observation.extract_multiple_observations_from_settings(observation.get_OSKAR_settings_tree(), splits_by_observation, self.channel_bandwidth_hz)
+                observations = Observation.extract_multiple_observations_from_settings(
+                    observation.get_OSKAR_settings_tree(), 
+                    splits_by_observation, 
+                    self.channel_bandwidth_hz)
             else:
-                observations = observation.get_OSKAR_settings_tree()
+                observations = [observation.get_OSKAR_settings_tree()]
 
             for sky_ in (
                 split_array_sky.blocks
@@ -386,7 +390,7 @@ class InterferometerSimulation:
                     delayed_results.append(
                         run_simu_delayed(
                         params_total,
-                        np.array(sky_),
+                        sky_,
                         self.precision)
                         )
     
