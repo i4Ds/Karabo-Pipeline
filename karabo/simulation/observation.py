@@ -123,13 +123,14 @@ class Observation:
         settings_list = []
         for i in range(number_of_observations):
             settings["observation"]["start_frequency_hz"] = str(
-                int(settings["observation"]["start_frequency_hz"])
-                + int(i * channel_bandwidth_hz)
+                float(settings["observation"]["start_frequency_hz"])
+                + i * channel_bandwidth_hz
             )
             settings["observation"]["num_channels"] = str(
                 int(
                     np.ceil(
-                        settings["observation"]["num_channels"] / number_of_observations
+                        float(settings["observation"]["num_channels"])
+                        / number_of_observations
                     )
                 )
             )
