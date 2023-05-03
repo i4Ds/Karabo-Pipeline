@@ -112,8 +112,8 @@ class Observation:
 
     @staticmethod
     def extract_multiple_observations_from_settings(
-        settings: dict, number_of_observations: int, channel_bandwidth_hz: float
-    ):
+        settings: Dict, number_of_observations: int, channel_bandwidth_hz: float
+    ) -> Dict[Dict]:
         """
         Extracts the settings of multiple observations from a settings dictionary.
         This function returns a list of dictionaries containing the settings

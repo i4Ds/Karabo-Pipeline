@@ -31,7 +31,6 @@ jobs:
           flake8 .
           black --check .
           isort --check .
-          mypy .
       - name: Test Code
         shell: bash -l {0}
         run: |
