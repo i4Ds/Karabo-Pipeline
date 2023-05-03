@@ -10,7 +10,7 @@ import oskar
 from numpy.typing import NDArray
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 
 class Visibility(KaraboResource):
@@ -60,7 +60,7 @@ class Visibility(KaraboResource):
         return vis
 
     @staticmethod
-    def is_measurement_set(path: str) -> str:
+    def is_measurement_set(path: str) -> bool:
         return path.endswith(".ms") or path.endswith(".MS")
 
     @staticmethod
