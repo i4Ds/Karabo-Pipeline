@@ -320,8 +320,8 @@ class InterferometerSimulation:
 
                     # Check if the first split is bigger than the max vram usage
                     ratio_vram_usage = (
-                        (array_sky.nbytes / 1024**2) / max_vram_usage_gpu
-                    )
+                        array_sky.nbytes / 1024**2
+                    ) / max_vram_usage_gpu
 
                     # If that is the case, increase the number of splits
                     if ratio_vram_usage > 1:
@@ -358,18 +358,24 @@ class InterferometerSimulation:
 
         # Run the simulation on the dask cluster
         if self.client is not None:
-            delayed_results  = []
+            delayed_results = []
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
 
-            print(f"Submitting {len(split_array_sky.chunks[0])} simulations to the workers")
+            print(
+                f"Submitting {len(split_array_sky.chunks[0])} "
+                "simulations to the workers"
+            )
             if N < len(self.client.scheduler_info()["workers"]):
-                print(f"Not enough data-splits. Splitting also by Observations.")
-                splits_by_observation = int(np.ceil(len(self.client.scheduler_info()["workers"]) - N))
+                print("Not enough data-splits. Splitting also by Observations.")
+                splits_by_observation = int(
+                    np.ceil(len(self.client.scheduler_info()["workers"]) - N)
+                )
                 observations = Observation.extract_multiple_observations_from_settings(
-                    observation.get_OSKAR_settings_tree(), 
-                    splits_by_observation, 
-                    self.channel_bandwidth_hz)
+                    observation.get_OSKAR_settings_tree(),
+                    splits_by_observation,
+                    self.channel_bandwidth_hz,
+                )
             else:
                 observations = [observation.get_OSKAR_settings_tree()]
 
@@ -381,23 +387,22 @@ class InterferometerSimulation:
                 for observation_params in observations:
                     # Create params
                     interferometer_params = (
-                        self.__create_interferometer_params_with_random_paths(input_telpath)
+                        self.__create_interferometer_params_with_random_paths(
+                            input_telpath
+                        )
                     )
 
                     params_total = {**interferometer_params, **observation_params}
 
                     # Submit the simulation to the workers
                     delayed_results.append(
-                        run_simu_delayed(
-                        params_total,
-                        sky_,
-                        self.precision)
-                        )
-    
-                    if len(delayed_results ) > 4:
+                        run_simu_delayed(params_total, sky_, self.precision)
+                    )
+
+                    if len(delayed_results) > 4:
                         break
 
-            results = compute(*delayed_results , scheduler='distributed')
+            results = compute(*delayed_results, scheduler="distributed")
             # Combine the visibilities
             visibility_paths = [
                 x["interferometer"]["oskar_vis_filename"] for x in results
@@ -416,7 +421,7 @@ class InterferometerSimulation:
                 ms_file_path=self.ms_file_path,
                 vis_path=self.vis_path,
             )
-            
+
             # Initialise the telescope and observation settings
             observation_params = observation.get_OSKAR_settings_tree()
 

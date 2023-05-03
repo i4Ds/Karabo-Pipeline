@@ -11,7 +11,6 @@ from warnings import warn
 import astropy.io.fits as fits
 import dask.array as da
 import dask.dataframe as dd
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
@@ -716,7 +715,7 @@ class SkyModel:
     def get_sky_model_from_h5_to_dask(
         path: str,
         prefix_mapping: Dict[str, Optional[str]],
-        chunksize: Union[int, str] = '1MB',
+        chunksize: Union[int, str] = "1MB",
     ) -> dd.DataFrame:
         """
         Load a sky model from an HDF5 file into a Dask dataframe.
@@ -785,7 +784,7 @@ class SkyModel:
             else:
                 arr_columns.append(da.from_array(f.root[prefix_mapping[col]]))
         sky = da.concatenate([x[:, None] for x in arr_columns], axis=1)
-        
+
         # TODO: Improve this, is memmap really necessary?
         shape = sky.shape
         dtype = sky.dtype

@@ -112,7 +112,7 @@ class Observation:
         }
         return settings
 
-    @staticmethod 
+    @staticmethod
     def extract_multiple_observations_from_settings(
         settings: dict, number_of_observations: int, channel_bandwidth_hz: float
     ):
@@ -128,12 +128,16 @@ class Observation:
                 int(settings["observation"]["start_frequency_hz"])
                 + int(i * channel_bandwidth_hz)
             )
-            settings["observation"]["num_channels"] = str(int(np.ceil(
-                settings["observation"]["num_channels"] / number_of_observations)
-            ))
+            settings["observation"]["num_channels"] = str(
+                int(
+                    np.ceil(
+                        settings["observation"]["num_channels"] / number_of_observations
+                    )
+                )
+            )
             settings_list.append(settings)
         return settings_list
-        
+
     def __strfdelta(
         self,
         tdelta: timedelta,
