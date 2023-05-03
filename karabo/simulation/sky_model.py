@@ -715,6 +715,7 @@ class SkyModel:
     def get_sky_model_from_h5_to_dask(
         path: str,
         prefix_mapping: Dict[str, Optional[str]],
+        extra_columns: Optional[List[str]] = None,
         chunksize: Union[int, str] = "1MB",
     ) -> dd.DataFrame:
         """
@@ -728,6 +729,11 @@ class SkyModel:
             A dictionary that maps the column names in the HDF5 file to the
             corresponding keys in the output dataframe. If a key is set to None,
             a column of zeros will be created with the same shape as the other columns.
+            If you want to read in extra columns, please use the `extra_columns`
+            parameter
+        extra_columns : list of str, optional
+            A list of extra columns to read in from the HDF5 file. These columns
+            will not be used by Oskar, but will be included in the output dataframe.
         chunksize : int or str, optional
             The size of the chunks to use when creating the Dask arrays. This can
             be an integer representing the number of rows per chunk, or a string
@@ -783,6 +789,10 @@ class SkyModel:
                 arr_columns.append(da.zeros(shape))
             else:
                 arr_columns.append(da.from_array(f.root[prefix_mapping[col]]))
+
+        if extra_columns is not None:
+            for col in extra_columns:
+                arr_columns.append(da.from_array(f.root[col]))
         sky = da.concatenate([x[:, None] for x in arr_columns], axis=1)
 
         # TODO: Improve this, is memmap really necessary?

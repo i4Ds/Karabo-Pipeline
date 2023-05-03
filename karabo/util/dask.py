@@ -89,8 +89,8 @@ def dask_cleanup(client: Client) -> None:
         os.remove(DASK_INFO_ADDRESS)
 
     # Remove the dashboard file if somehow it was not removed
-    if os.path.exists('karabo-dask-dashboard.txt'):
-        os.remove('karabo-dask-dashboard.txt')
+    if os.path.exists("karabo-dask-dashboard.txt"):
+        os.remove("karabo-dask-dashboard.txt")
 
     if client is not None:
         client.close()
@@ -211,7 +211,7 @@ def setup_dask_for_slurm(
         print(f"Dask dashboard available at {dask_client.dashboard_link}")
 
         # Write the dashboard link to a file
-        with open('karabo-dask-dashboard.txt', "w") as f:
+        with open("karabo-dask-dashboard.txt", "w") as f:
             f.write(dask_client.dashboard_link)
 
         # Removing file
