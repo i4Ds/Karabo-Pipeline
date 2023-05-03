@@ -552,7 +552,7 @@ class InterferometerSimulation:
             # Submit the simulation to the workers
             params_total = InterferometerSimulation.__run_simulation_oskar(
                 params_total,
-                sky.get_OSKAR_sky(precision=self.precision).to_array(),
+                sky.get_OSKAR_sky(sky, precision=self.precision).to_array(),
                 self.precision,
             )
             runs.append(params_total)
