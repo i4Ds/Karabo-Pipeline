@@ -5,12 +5,23 @@ import enum
 import logging
 import math
 import os
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 from warnings import warn
 
 import astropy.io.fits as fits
 import dask.array as da
-import dask.dataframe as dd
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
@@ -20,14 +31,21 @@ from astropy import units as u
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
+from dask.array import Array  # type: ignore[attr-defined]
 from numpy.typing import NDArray
+from xarray import DataArray
 
 from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboError
-from karabo.util._types import IntFloat, IntFloatList, NPFloatInpBroadType
+from karabo.util._types import (
+    IntFloat,
+    IntFloatList,
+    NPFloatInpBroadType,
+    PrecisionType,
+)
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
@@ -56,7 +74,11 @@ GLEAM_freq = Literal[
     227,
 ]
 
-SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_]]
+SkySourcesType = TypeVar(
+    "SkySourcesType",
+    bound=Union[NDArray[np.float_], NDArray[np.object_], Array],
+)
+
 SetSkyItemType = Union[NPFloatInpBroadType, str]
 
 
@@ -67,7 +89,7 @@ class Polarisation(enum.Enum):
     STOKES_V = 3
 
 
-class SkyModel:
+class SkyModel(Generic[SkySourcesType]):
     """
     Class containing all information of the to be observed Sky.
 
@@ -108,7 +130,7 @@ class SkyModel:
         if sources is not None:
             self.add_point_sources(sources)
 
-    def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
+    def __get_empty_sources(self, n_sources: int) -> NDArray[np.float_]:
         empty_sources = np.hstack(
             (
                 np.zeros((n_sources, SkyModel.SOURCES_COLS - 1)),
@@ -163,7 +185,7 @@ class SkyModel:
             fill[:, :-missing_shape] = sources
             sources = fill
         if self.sources is not None:
-            self.sources = np.vstack((self.sources, sources))  # type: ignore
+            self.sources = np.vstack((self.sources, sources))
         else:
             self.sources = sources
 
@@ -569,7 +591,7 @@ class SkyModel:
             fig.savefig(fname=filename)
 
     @staticmethod
-    def get_OSKAR_sky(sky: NDArray, precision: str = "double") -> oskar.Sky:
+    def get_OSKAR_sky(sky: NDArray[np.float_], precision: PrecisionType) -> oskar.Sky:
         """
         Get OSKAR sky model object from the defined Sky Model
 
@@ -725,7 +747,7 @@ class SkyModel:
         prefix_mapping: Dict[str, Optional[str]],
         extra_columns: Optional[List[str]] = None,
         chunksize: Union[int, str] = "1MB",
-    ) -> dd.DataFrame:
+    ) -> SkyModel:
         """
         Load a sky model from an HDF5 file into a Dask dataframe.
 
@@ -750,8 +772,8 @@ class SkyModel:
 
         Returns
         -------
-        dd.DataFrame
-            A Dask dataframe representing the sky model data.
+        Array
+            A Dask array containing the sky model data.
 
         Examples
         --------
@@ -792,17 +814,17 @@ class SkyModel:
             "pa",
             "id",
         ]:
-            shape = da.from_array(f.root[prefix_mapping["ra"]]).shape
+            shape = da.from_array(f.root[prefix_mapping["ra"]]).shape  # type: ignore[attr-defined] # noqa: E501
 
             if prefix_mapping[col] is None:
-                arr_columns.append(da.zeros(shape))
+                arr_columns.append(da.zeros(shape))  # type: ignore[attr-defined]
             else:
-                arr_columns.append(da.from_array(f.root[prefix_mapping[col]]))
+                arr_columns.append(da.from_array(f.root[prefix_mapping[col]]))  # type: ignore[attr-defined] # noqa: E501
 
         if extra_columns is not None:
             for col in extra_columns:
-                arr_columns.append(da.from_array(f.root[col]))
-        sky = da.concatenate([x[:, None] for x in arr_columns], axis=1)
+                arr_columns.append(da.from_array(f.root[col]))  # type: ignore[attr-defined] # noqa: E501
+        sky = da.concatenate([x[:, None] for x in arr_columns], axis=1)  # type: ignore[attr-defined] # noqa: E501
 
         # TODO: Improve this, is memmap really necessary?
         shape = sky.shape
@@ -819,7 +841,7 @@ class SkyModel:
             memmap_array[:, i] = column
 
         # Load in the memmap array as dask array
-        memmap_array = da.from_array(memmap_array, chunks=(chunksize, -1))
+        memmap_array = da.from_array(memmap_array, chunks=(chunksize, -1))  # type: ignore[attr-defined] # noqa: E501
         return SkyModel(memmap_array)
 
     @staticmethod
@@ -891,7 +913,7 @@ class SkyModel:
 
         return SkyModel.get_sky_model_from_fits(
             path=path,
-            frequencies=frequencies,
+            frequencies=frequencies,  # type: ignore[arg-type]
             prefix_mapping=prefix_mapping,
             concat_freq_with_prefix=True,
             filter_data_by_stokes_i=True,
@@ -993,14 +1015,16 @@ class SkyModel:
             freq_str = str(freq).zfill(3)
 
             # Select the rows that have a valid flux measurement for this frequency
-            if filter_data_by_stokes_i:
+            if filter_data_by_stokes_i and prefix_mapping["i"] is not None:
                 data_freq = data[~np.isnan(data[f"{prefix_mapping['i']+freq_str}"])]
             else:
                 data_freq = data
 
             # Define a delayed function to create the sky array for this frequency
             def create_sky_array(
-                data_freq: NDArray[np.float_], freq_str: str, freq: int
+                data_freq: DataArray,
+                freq_str: str,
+                freq: int,
             ) -> NDArray[np.float_]:
                 arr_columns = []
                 for col in [
@@ -1018,19 +1042,23 @@ class SkyModel:
                     "pa",
                     "id",
                 ]:
-                    if col == "ref_freq":
-                        arr_columns.append(
-                            np.full(len(data_freq), freq * frequency_to_mhz_multiplier)
-                        )
-                    elif prefix_mapping[col] is None:
-                        arr_columns.append(np.zeros(len(data_freq)))
-                    else:
-                        if concat_freq_with_prefix and col not in ["ra", "dec"]:
-                            col_name = prefix_mapping[col] + freq_str
+                    pm_col = prefix_mapping[col]
+                    if pm_col is not None:
+                        if col == "ref_freq":
+                            arr_columns.append(
+                                np.full(
+                                    len(data_freq), freq * frequency_to_mhz_multiplier
+                                )
+                            )
+                        elif pm_col is None:
+                            arr_columns.append(np.zeros(len(data_freq)))
                         else:
-                            col_name = prefix_mapping[col]
+                            if concat_freq_with_prefix and col not in ["ra", "dec"]:
+                                col_name = pm_col + freq_str
+                            else:
+                                col_name = pm_col
 
-                        arr_columns.append(data_freq[col_name])
+                            arr_columns.append(data_freq[col_name])
                 return np.column_stack(arr_columns)
 
             # Append the delayed function to the sky_arrays list

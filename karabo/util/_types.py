@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Literal, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -62,3 +62,4 @@ NPIntLikeStrict = Union[np.int_, int]
 NPFloatLikeStrict = Union[NPIntFloat, IntFloat]
 
 IntFloatList: TypeAlias = Union[List[int], List[float]]
+PrecisionType: TypeAlias = Literal["single", "double"]

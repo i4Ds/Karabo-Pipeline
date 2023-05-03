@@ -112,15 +112,18 @@ class Observation:
 
     @staticmethod
     def extract_multiple_observations_from_settings(
-        settings: Dict, number_of_observations: int, channel_bandwidth_hz: float
-    ) -> Dict[str, Dict[str, str]]:
+        settings: Dict[str, Dict[str, str]],
+        number_of_observations: int,
+        channel_bandwidth_hz: float,
+    ) -> List[Dict[str, Dict[str, str]]]:
         """
         Extracts the settings of multiple observations from a settings dictionary.
         This function returns a list of dictionaries containing the settings
         of each observation. The start_frequency and number_of_channels
         need to be updated for each observation.
         """
-        settings_list = []
+        settings_list: List[Dict[str, Dict[str, str]]] = []
+
         for i in range(number_of_observations):
             settings["observation"]["start_frequency_hz"] = str(
                 float(settings["observation"]["start_frequency_hz"])
@@ -135,6 +138,7 @@ class Observation:
                 )
             )
             settings_list.append(settings)
+
         return settings_list
 
     def __strfdelta(

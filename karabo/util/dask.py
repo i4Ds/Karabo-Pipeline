@@ -44,8 +44,8 @@ class DaskHandler:
     dask_client: Optional[Client] = None
     n_workers_scheduler_node: int = 1
     min_ram_per_worker: Optional[int] = None
-    use_dask: Optional[int] = None
-    TIMEOUT: int = 60.0
+    use_dask: Optional[bool] = None
+    TIMEOUT: int = 60
 
     @staticmethod
     def get_dask_client() -> Client:

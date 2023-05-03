@@ -6,7 +6,8 @@ import dask.array as da
 import numpy as np
 import oskar
 import pandas as pd
-from dask import compute, delayed
+from dask import compute, delayed  # type: ignore[attr-defined]
+from dask.array import Array  # type: ignore[attr-defined]
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -16,7 +17,7 @@ from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat
+from karabo.util._types import IntFloat, PrecisionType
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
@@ -44,7 +45,6 @@ class FilterUnits(enum.Enum):
 
 NoiseRmsType = Literal["Range", "Data file", "Telescope model"]
 NoiseFreqType = Literal["Range", "Data file", "Observation settings", "Telescope model"]
-PrecisionType = Literal["single", "double"]
 StationTypeType = Literal[
     "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
 ]
@@ -311,20 +311,21 @@ class InterferometerSimulation:
         """
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
-        array_sky = (
-            sky.sources
-        )  # sky.get_OSKAR_sky(precision=self.precision).to_array()
+        array_sky = sky.sources
+
+        if array_sky is None:
+            raise KaraboInterferometerSimulationError(
+                "Sky model has not been loaded. Please load the sky model first."
+            )
 
         if self.client is not None:
             print("Using Dask for parallelisation. Splitting sky model...")
-            # To convert to a numpy array
-            split_array_sky = None
             # Define number of splits and update it later.
             if self.split_idxs_per_group:
                 print("Detected split_idxs_per_group...")
                 split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
 
-            elif isinstance(sky.sources, da.Array):
+            elif isinstance(array_sky, Array):
                 print("Detected dask array...")
                 split_array_sky = array_sky
                 print(split_array_sky.chunks[0])
@@ -365,6 +366,7 @@ class InterferometerSimulation:
                 # Add the remaining sources
                 if len(array_sky) > 0:
                     split_array_sky.append(array_sky)
+
                 # Delete the array
                 del array_sky
 
@@ -403,7 +405,7 @@ class InterferometerSimulation:
 
             for sky_ in (
                 split_array_sky.blocks
-                if isinstance(split_array_sky, da.Array)
+                if isinstance(split_array_sky, da.Array)  # type: ignore[attr-defined]
                 else split_array_sky
             ):
                 for observation_params in observations:
@@ -485,7 +487,7 @@ class InterferometerSimulation:
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
 
-        if isinstance(os_sky, da.Array):
+        if isinstance(os_sky, da.Array):  # type: ignore[attr-defined]
             os_sky = SkyModel.get_OSKAR_sky(os_sky.compute(), precision=precision)
         elif isinstance(os_sky, np.ndarray):
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
