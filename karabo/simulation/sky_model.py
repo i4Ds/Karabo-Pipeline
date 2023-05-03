@@ -762,7 +762,8 @@ class SkyModel:
         ...     "pa": None,
         ...     "id": None
         ... }
-        >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping) # noqa: E501
+        ... extra_columns = ["Source Name"]
+        >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping, extra_columns) # noqa: E501
 
         """
         f = tables.open_file(path, "r")
