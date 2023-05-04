@@ -6,7 +6,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 
 
-def main():
+def main() -> None:
     start = time.time()
     path = "/scratch/snx3000/vtimmel/karabo/point_sources_OSKAR1.h5"
     phase_center = [0, -30]

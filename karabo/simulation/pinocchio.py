@@ -9,6 +9,7 @@ import numpy as np
 
 from karabo.error import KaraboPinocchioError
 from karabo.simulation.sky_model import SkyModel
+from karabo.util._types import IntFloat
 from karabo.util.file_handle import FileHandle
 
 
@@ -377,7 +378,7 @@ class Pinocchio:
 
         self.didRun = True
 
-    def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
+    def runPlanner(self, gbPerNode: IntFloat, tasksPerNode: int) -> None:
         """
         run the pinocchio runPlanner tool to check
         hardware requirements for given config
@@ -674,7 +675,7 @@ class Pinocchio:
         plt.show(block=False)
         plt.pause(1)
 
-    def getSkyModel(self, near: float = 0, far: float = 100) -> SkyModel:
+    def getSkyModel(self, near: IntFloat = 0, far: IntFloat = 100) -> SkyModel:
         """
         This method should be used on the pinocchio object after run() was called.
         It is a wrapper for the getSkyModelFromFiles() static method with the correct
@@ -691,7 +692,9 @@ class Pinocchio:
         return Pinocchio.getSkyModelFromFiles(self.outLightConePath, near, far)
 
     @staticmethod
-    def getSkyModelFromFiles(path: str, near: float = 0, far: float = 100) -> SkyModel:
+    def getSkyModelFromFiles(
+        path: str, near: IntFloat = 0, far: IntFloat = 100
+    ) -> SkyModel:
         """
         Create a sky model from the pinocchio simulation cone. All halos from the near
         to far plane (euclid distance) will be translated into the
