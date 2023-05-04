@@ -5,19 +5,7 @@ import enum
 import logging
 import math
 import os
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
 import astropy.io.fits as fits
@@ -31,7 +19,8 @@ from astropy import units as u
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
-from dask.array import Array  # type: ignore[attr-defined]
+
+# from dask.array import Array  # type: ignore[attr-defined]
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -74,13 +63,14 @@ GLEAM_freq = Literal[
     227,
 ]
 
-NPSky = Union[NDArray[np.float_], NDArray[np.object_]]
-DaskSky = Array
-SkySourcesType = TypeVar(
-    "SkySourcesType",
-    NPSky,
-    DaskSky,
-)
+# NPSky = Union[NDArray[np.float_], NDArray[np.object_]]
+# DaskSky = Array
+# SkySourcesType = TypeVar(
+#     "SkySourcesType",
+#     NPSky,
+#     DaskSky,
+# )
+SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_]]
 
 
 class Polarisation(enum.Enum):
@@ -90,13 +80,10 @@ class Polarisation(enum.Enum):
     STOKES_V = 3
 
 
-class SkyModel(Generic[SkySourcesType]):
+# class SkyModel(Generic[SkySourcesType]):
+class SkyModel:
     """
     Class containing all information of the to be observed Sky.
-
-    `SkyModel` supports `SkySourcesType` as generic. So to have full type-support,
-    provide the catalog during instantiation: my_sky = SkyModel(sources=my_sources),
-    OR as generic type: my_sky = SkyModel[NPSky]() or my_sky = SkyModel[DaskSky]().
 
     :ivar sources:  List of all point sources in the sky.
                     A single point source consists of:
@@ -135,7 +122,7 @@ class SkyModel(Generic[SkySourcesType]):
         if sources is not None:
             self.add_point_sources(sources)
 
-    def __get_empty_sources(self, n_sources: int) -> NPSky:
+    def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
         empty_sources = np.hstack(
             (
                 np.zeros((n_sources, SkyModel.SOURCES_COLS - 1)),
@@ -190,7 +177,7 @@ class SkyModel(Generic[SkySourcesType]):
             fill[:, :-missing_shape] = sources
             sources = fill
         if self.sources is not None:
-            self.sources = np.vstack((self.sources, sources))
+            self.sources = np.vstack((self.sources, sources))  # type: ignore
         else:
             self.sources = sources
 
@@ -256,7 +243,7 @@ class SkyModel(Generic[SkySourcesType]):
         self.save_sky_model_as_csv(path)
 
     @staticmethod
-    def read_from_file(path: str) -> SkyModel[NPSky]:
+    def read_from_file(path: str) -> SkyModel:
         """
         Read a CSV file in to create a SkyModel.
         The CSV should have the following columns
@@ -305,7 +292,7 @@ class SkyModel(Generic[SkySourcesType]):
             )
 
         sources = dataframe.to_numpy()
-        sky = SkyModel[NPSky](sources=sources)
+        sky = SkyModel(sources=sources)
         return sky
 
     def to_array(self, with_obj_ids: bool = False) -> SkySourcesType:
@@ -596,7 +583,10 @@ class SkyModel(Generic[SkySourcesType]):
             fig.savefig(fname=filename)
 
     @staticmethod
-    def get_OSKAR_sky(sky: NDArray[np.float_], precision: PrecisionType) -> oskar.Sky:
+    def get_OSKAR_sky(
+        sky: Union[SkySourcesType, SkyModel],
+        precision: PrecisionType,
+    ) -> oskar.Sky:
         """
         Get OSKAR sky model object from the defined Sky Model
 
@@ -1063,7 +1053,9 @@ class SkyModel(Generic[SkySourcesType]):
                             else:
                                 col_name = pm_col
 
-                            arr_columns.append(data_freq[col_name])
+                            arr_columns.append(
+                                data_freq[col_name]
+                            )  # TODO fix different dtypes in list
                 return np.column_stack(arr_columns)
 
             # Append the delayed function to the sky_arrays list
