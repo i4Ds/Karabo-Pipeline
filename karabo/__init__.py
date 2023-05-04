@@ -3,6 +3,10 @@ import os
 import platform
 import sys
 
+from karabo.version import __version__
+
+__version__ = __version__
+
 if "WSL" in platform.release() and (
     os.environ.get("LD_LIBRARY_PATH") is None
     or "wsl" not in os.environ["LD_LIBRARY_PATH"]
@@ -19,24 +23,11 @@ if "WSL" in platform.release() and (
     os.execv(sys.executable, ["python"] + sys.argv)
 
 
-from karabo.util.data_util import get_module_absolute_path
-
 # set rascil data directory environment variable
 # see https://ska-telescope.gitlab.io/external/rascil/RASCIL_install.html
 from karabo.util.jupyter import set_rascil_data_directory_env
 
 set_rascil_data_directory_env()
-
-# Set version. If dev version, use _version.txt, otherwise use package_version.txt
-if os.path.exists(get_module_absolute_path() + "/_package_version.txt"):
-    with open(get_module_absolute_path() + "/_package_version.txt", "r") as f:
-        version = f.read()
-else:
-    with open(get_module_absolute_path() + "/_version.txt", "r") as f:
-        version = f.read()
-
-__version__ = version.strip()
-
 
 if __name__ == "__main__":
     import karabo

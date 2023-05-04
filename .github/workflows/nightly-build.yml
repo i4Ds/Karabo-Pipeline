@@ -1,34 +1,43 @@
-name: Create Nightly Build
-
-env:
-  NIGHTLY_BUILD: true
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+name: Conda Build
 
 on:
-  schedule: # Every night at 3am
-    - cron: '0 3 * * *'
   workflow_dispatch:
+    inputs: 
+      version:
+        description: 'Version to build'
+        required: true
+
 
 jobs:
   conda-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: ghcr.io/i4ds/mambabuild-docker:latest
 
     steps:
-      - name: Install conda build
-        run: |
-          conda config --append channels conda-forge
-          conda config --append channels nvidia/label/cuda-11.7.0
-          conda config --append channels i4ds
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Get Previous tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+      - name: Install conda build
+        shell: bash -l {0}
+        id: channels
+        run: |
+          KARABO_TAG=${{ inputs.version }}
+          export KARABO_VERSION="${KARABO_TAG:1}"
+          conda config --append channels i4ds
+          conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels conda-forge
       - name: Build Conda
+        shell: bash -l {0}
         run: |
           cd conda
+          KARABO_TAG=${{ inputs.version }}
+          export KARABO_VERSION="${KARABO_TAG:1.nightly}"
+          echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
           conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/noarch/karabo-pipeline-*.tar.bz2 --label nightly --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --label nightly
