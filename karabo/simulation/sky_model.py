@@ -74,12 +74,13 @@ GLEAM_freq = Literal[
     227,
 ]
 
+NPSky = Union[NDArray[np.float_], NDArray[np.object_]]
+DaskSky = Array
 SkySourcesType = TypeVar(
     "SkySourcesType",
-    bound=Union[NDArray[np.float_], NDArray[np.object_], Array],
+    NPSky,
+    DaskSky,
 )
-
-SetSkyItemType = Union[NPFloatInpBroadType, str]
 
 
 class Polarisation(enum.Enum):
@@ -92,6 +93,10 @@ class Polarisation(enum.Enum):
 class SkyModel(Generic[SkySourcesType]):
     """
     Class containing all information of the to be observed Sky.
+
+    `SkyModel` supports `SkySourcesType` as generic. So to have full type-support,
+    provide the catalog during instantiation: my_sky = SkyModel(sources=my_sources),
+    OR as generic type: my_sky = SkyModel[NPSky]() or my_sky = SkyModel[DaskSky]().
 
     :ivar sources:  List of all point sources in the sky.
                     A single point source consists of:
@@ -130,7 +135,7 @@ class SkyModel(Generic[SkySourcesType]):
         if sources is not None:
             self.add_point_sources(sources)
 
-    def __get_empty_sources(self, n_sources: int) -> NDArray[np.float_]:
+    def __get_empty_sources(self, n_sources: int) -> NPSky:
         empty_sources = np.hstack(
             (
                 np.zeros((n_sources, SkyModel.SOURCES_COLS - 1)),
@@ -251,7 +256,7 @@ class SkyModel(Generic[SkySourcesType]):
         self.save_sky_model_as_csv(path)
 
     @staticmethod
-    def read_from_file(path: str) -> SkyModel:
+    def read_from_file(path: str) -> SkyModel[NPSky]:
         """
         Read a CSV file in to create a SkyModel.
         The CSV should have the following columns
@@ -300,7 +305,7 @@ class SkyModel(Generic[SkySourcesType]):
             )
 
         sources = dataframe.to_numpy()
-        sky = SkyModel(sources)
+        sky = SkyModel[NPSky](sources=sources)
         return sky
 
     def to_array(self, with_obj_ids: bool = False) -> SkySourcesType:
@@ -666,7 +671,7 @@ class SkyModel(Generic[SkySourcesType]):
     def __setitem__(
         self,
         key: Any,
-        value: SetSkyItemType,
+        value: Union[NPFloatInpBroadType, str],
     ) -> None:
         """
         Allows to set values in an np.ndarray like manner
