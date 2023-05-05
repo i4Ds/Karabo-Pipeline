@@ -1,6 +1,7 @@
 import os
 import unittest
 
+from karabo import __version__
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
@@ -24,3 +25,6 @@ class TestGpuUtils(unittest.TestCase):
     @unittest.skipIf(not RUN_GPU_TESTS, "GPU tests are disabled")
     def test_is_cuda_available_true(self):
         assert is_cuda_available()
+
+    def test_version(self):
+        assert isinstance(__version__, str)
