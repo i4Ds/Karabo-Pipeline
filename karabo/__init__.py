@@ -32,8 +32,3 @@ prepare_slurm_nodes_for_dask()
 from karabo.util.jupyter import set_rascil_data_directory_env  # noqa: E402
 
 set_rascil_data_directory_env()
-
-if __name__ == "__main__":
-    import karabo
-
-    print(karabo.__version__)
