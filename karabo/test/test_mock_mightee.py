@@ -84,13 +84,6 @@ class TestSystemNoise(unittest.TestCase):
                 visibility = simulation.run_simulation(
                     telescope, sky_filter, observation
                 )
-                visibility.write_to_file(
-                    "./result/mock_mightee/mock_mightee_dec"
-                    + str(phase_ra)
-                    + "ra_"
-                    + str(phase_dec)
-                    + ".ms"
-                )
                 # imaging cellsize is over-written in the Imager based on max uv dist.
                 imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)
                 dirty = imager.get_dirty_image()

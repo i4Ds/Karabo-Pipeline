@@ -1,7 +1,10 @@
 import time
+from typing import List, Optional
 
 import numpy as np
+from numpy.typing import NDArray
 
+from karabo.error import KaraboError
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -9,9 +12,13 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import PyBDSFSourceDetectionResult
+from karabo.util._types import IntFloat
 
 
-def create_random_sources(num_sources, ranges=None):
+def create_random_sources(
+    num_sources: int,
+    ranges: Optional[List[List[IntFloat]]] = None,
+) -> NDArray[np.float64]:
     """
     Create a random set of sources.
 
@@ -37,7 +44,7 @@ def create_random_sources(num_sources, ranges=None):
     if not ranges:
         ranges = [
             [-1, 1],
-            [-29, -31],
+            [-25, -35],
             [1, 3],
             [0, 0],
             [0, 0],
@@ -60,7 +67,7 @@ def create_random_sources(num_sources, ranges=None):
     return sources
 
 
-def main(n_random_sources):
+def main(n_random_sources: int) -> None:
     start = time.time()
 
     sky = SkyModel()
@@ -88,6 +95,7 @@ def main(n_random_sources):
         telescope, sky, observation_settings
     )
 
+    # Imaging
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
@@ -116,6 +124,8 @@ def main(n_random_sources):
 
     # Source detection
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
+    if detection_result is None:
+        raise KaraboError("`detection_result` is None.")
 
     ground_truth, sky_idxs = Imager.project_sky_to_image(
         sky=sky,
@@ -153,4 +163,4 @@ def main(n_random_sources):
 
 
 if __name__ == "__main__":
-    main(n_random_sources=2)
+    main(n_random_sources=20000)

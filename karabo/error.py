@@ -4,5 +4,21 @@ class KaraboError(Exception):
     """
 
 
-class NodeTermination(Exception):
-    pass
+class KaraboDaskError(KaraboError):
+    ...
+
+
+class KaraboInterferometerSimulationError(KaraboError):
+    ...
+
+
+class KaraboPinocchioError(KaraboError):
+    ...
+
+
+class KaraboSourceDetectionEvaluationError(KaraboError):
+    ...
+
+
+class NodeTermination(KaraboError):
+    ...

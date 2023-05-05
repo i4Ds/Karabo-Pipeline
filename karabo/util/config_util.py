@@ -1,6 +1,9 @@
-import numpy as np
-import pyproj
-import scipy.spatial.transform as te
+# from typing import Tuple
+
+# import numpy as np
+# from numpy.typing import NDArray
+
+# import pyproj
 
 tel_param = {
     "alma": [-23.0234, -67.7538, 5050],
@@ -24,65 +27,67 @@ tel_param = {
 }  # Lat, Lon, alt
 
 
-def read_cfg(filename):
-    """
-    Input: cfg configuration file
-    Output: ENU coordinates (x,y,z)
-    """
-    filecontent = open(filename, "r")
-    lines = filecontent.read().split("\n")
-    lines = list(filter(None, lines))
-    i = 0
-    x = [0] * len(lines)
-    y = [0] * len(lines)
-    z = [0] * len(lines)
-    for line in lines:
-        if line[0] != "#":
-            line = line.replace("\t", " ").split(" ")
-            line = [i for i in line if i != ""]
-            x[i] = np.float(line[0])
-            y[i] = np.float(line[1])
-            z[i] = np.float(line[2])
-        i = i + 1
-    x = [i for i in x if i != 0]
-    y = [i for i in y if i != 0]
-    z = [i for i in z if i != 0]
-    x = np.array(x)
-    y = np.array(y)
-    z = np.array(z)
-    return x, y, z
+# def read_cfg(
+#     filename: str,
+# ) -> Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+#     """
+#     Input: cfg configuration file
+#     Output: ENU coordinates (x,y,z)
+#     """
+#     filecontent = open(filename, "r")
+#     lines = filecontent.read().split("\n")
+#     lines = list(filter(None, lines))
+#     i = 0
+#     x = [0] * len(lines)
+#     y = [0] * len(lines)
+#     z = [0] * len(lines)
+#     for line in lines:
+#         if line[0] != "#":
+#             line = line.replace("\t", " ").split(" ")
+#             line = [i for i in line if i != ""]
+#             x[i] = np.float64(line[0])
+#             y[i] = np.float64(line[1])
+#             z[i] = np.float64(line[2])
+#         i = i + 1
+#     x = [i for i in x if i != 0]
+#     y = [i for i in y if i != 0]
+#     z = [i for i in z if i != 0]
+#     x = np.array(x)
+#     y = np.array(y)
+#     z = np.array(z)
+#     return x, y, z
 
 
-def convert_ecef2latlong(x, y, z):
-    """
-    Convert ECEF to LAT-LONG Coordinates
-    Input: ECEF Coordinates (x,y,z)
-    Output: longitude, latitute and altitude
-    """
-    ecef = pyproj.Proj(proj="geocent", ellps="WGS84", datum="WGS84")
-    lla = pyproj.Proj(proj="latlong", ellps="WGS84", datum="WGS84")
-    lon, lat, alt = pyproj.transform(ecef, lla, x, y, z, radians=False)
-    return lon, lat, alt
+# def convert_ecef2latlong(x, y, z):
+#     """
+#     Convert ECEF to LAT-LONG Coordinates
+#     Input: ECEF Coordinates (x,y,z)
+#     Output: longitude, latitute and altitude
+#     """
+#     ecef = pyproj.Proj(proj="geocent", ellps="WGS84", datum="WGS84")
+#     lla = pyproj.Proj(proj="latlong", ellps="WGS84", datum="WGS84")
+#     lon, lat, alt = pyproj.transform(ecef, lla, x, y, z, radians=False)
+#     return lon, lat, alt
 
 
-def convert_ecef2enu(x, y, z, lat0, lon0, alt0):
-    """
-    Convert ECEF to ENU Coordinates
-    Input: ECEF Coordinates, latitude-longitude and altitude(x,y,z),lat,long,alt
-    Output: ENU Coordinates
-    """
-    transformer = pyproj.Transformer.from_crs(
-        {"proj": "latlong", "ellps": "WGS84", "datum": "WGS84"},
-        {"proj": "geocent", "ellps": "WGS84", "datum": "WGS84"},
-    )
-    x_org, y_org, z_org = transformer.transform(lon0, lat0, alt0, radians=False)
-    vec = np.array([[x - x_org, y - y_org, z - z_org]]).T
-    rot1 = te.Rotation.from_euler(
-        "x", -(90 - lat0), degrees=True
-    ).as_matrix()  # angle*-1 : left handed *-1
-    rot3 = te.Rotation.from_euler(
-        "z", -(90 + lon0), degrees=True
-    ).as_matrix()  # angle*-1 : left handed *-1
-    rotMatrix = rot1.dot(rot3)
-    enu = rotMatrix.dot(vec).T.ravel()
-    return enu.T.reshape(x.shape[0], 3)
+# def convert_ecef2enu(x, y, z, lat0, lon0, alt0):
+#     """
+#     Convert ECEF to ENU Coordinates
+#     Input: ECEF Coordinates, latitude-longitude and altitude(x,y,z),lat,long,alt
+#     Output: ENU Coordinates
+#     """
+#     transformer = pyproj.Transformer.from_crs(
+#         {"proj": "latlong", "ellps": "WGS84", "datum": "WGS84"},
+#         {"proj": "geocent", "ellps": "WGS84", "datum": "WGS84"},
+#     )
+#     x_org, y_org, z_org = transformer.transform(lon0, lat0, alt0, radians=False)
+#     vec = np.array([[x - x_org, y - y_org, z - z_org]]).T
+#     rot1 = te.Rotation.from_euler(
+#         "x", -(90 - lat0), degrees=True
+#     ).as_matrix()  # angle*-1 : left handed *-1
+#     rot3 = te.Rotation.from_euler(
+#         "z", -(90 + lon0), degrees=True
+#     ).as_matrix()  # angle*-1 : left handed *-1
+#     rotMatrix = rot1.dot(rot3)
+#     enu = rotMatrix.dot(vec).T.ravel()
+#     return enu.T.reshape(x.shape[0], 3)

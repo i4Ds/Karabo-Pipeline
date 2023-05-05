@@ -10,7 +10,6 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.visibility import Visibility
 from karabo.test import data_path
 
 
@@ -58,7 +57,7 @@ class TestOskarLongObservation(unittest.TestCase):
         hours_per_day = 4
         enable_array_beam = False
         vis_path = "./karabo/test/data"
-        combined_vis_filepath = os.path.join(vis_path, "combined_vis.ms")
+        combined_ms_filepath = os.path.join(vis_path, "combined_vis.ms")
         xcstfile_path = os.path.join(vis_path, "cst_like_beam_port_1.txt")
         ycstfile_path = os.path.join(vis_path, "cst_like_beam_port_2.txt")
         sky = SkyModel()
@@ -100,7 +99,7 @@ class TestOskarLongObservation(unittest.TestCase):
             beam_method="Gaussian Beam",
         )
         simulation = InterferometerSimulation(
-            vis_path=vis_path,
+            ms_file_path=combined_ms_filepath,
             channel_bandwidth_hz=2e7,
             time_average_sec=7,
             noise_enable=False,
@@ -118,7 +117,7 @@ class TestOskarLongObservation(unittest.TestCase):
             beam_polY=beam_polY,
         )
         # -------- Iterate over days
-        visiblity_files = simulation.run_simulation(
+        visibility = simulation.run_simulation(
             telescope=telescope,
             sky=sky,
             observation=observation_long,
@@ -131,12 +130,9 @@ class TestOskarLongObservation(unittest.TestCase):
         #     './karabo/test/data/beam_vis_2.vis',
         #     './karabo/test/data/beam_vis_3.vis',
         # ]
-        Visibility.combine_vis(
-            number_of_days, visiblity_files, combined_vis_filepath, day_comb=False
-        )
-        visibilties = Visibility.read_from_file(combined_vis_filepath)
+
         # imaging cellsize is over-written in the Imager based on max uv dist.
-        imager = Imager(visibilties, imaging_npixel=4096, imaging_cellsize=1.0e-5)
+        imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=1.0e-5)
         imager.get_dirty_image()
         # dirty.write_to_file("./test/result/beam/beam_vis.fits",overwrite=True)
         # dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")

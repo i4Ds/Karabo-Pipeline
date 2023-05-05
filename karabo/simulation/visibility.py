@@ -3,35 +3,65 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import oskar
 from numpy.typing import NDArray
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 
 class Visibility(KaraboResource):
-    def __init__(self, path: str = None):
-        self.file = FileHandle(dir=path, suffix=".ms")
+    def __init__(
+        self,
+        path: Optional[str] = None,
+        ms_file_path: Optional[str] = None,
+        file_name: str = "visibility",
+    ) -> None:
+        """
+        Initializes a Visibility object.
+
+        Parameters
+        ----------
+        path : Optional[str], default=None
+            Specifies the path to the visibility file to be created or read.
+        ms_file_path : Optional[str], default=None
+            Specifies the path to the measurement set (MS) file that will be
+            used to create the visibility file.
+        file_name : str, default='visibility'
+            Specifies the name of the visibility file to be created or read.
+
+        Returns
+        -------
+        None
+        """
+        self.file = FileHandle(path=path, file_name=file_name, suffix=".vis")
+        self.ms_file = FileHandle(path=ms_file_path, file_name=None, suffix=".MS")
 
     def write_to_file(self, path: str) -> None:
-        # Remove if file or folder already exists
-        if os.path.exists(path):
-            if os.path.isfile(path):
-                os.remove(path)
-            else:
-                shutil.rmtree(path)
-        shutil.copytree(self.file.path, path, dirs_exist_ok=True)
+        # Create the directory if it does not exist
+        if os.path.isfile(path):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+        else:
+            os.makedirs(path, exist_ok=True)
+        if os.path.isfile(self.file.path):
+            shutil.copy(self.file.path, path)
+        else:
+            shutil.copytree(self.file.path, path, dirs_exist_ok=True)
 
     @staticmethod
     def read_from_file(path: str) -> Visibility:
-        file = FileHandle(path)
-        vis = Visibility()
-        vis.file = file
+        if Visibility.is_measurement_set(path):
+            vis = Visibility(ms_file_path=path)
+        else:
+            vis = Visibility(path=path)
         return vis
+
+    @staticmethod
+    def is_measurement_set(path: str) -> bool:
+        return path.endswith(".ms") or path.endswith(".MS")
 
     @staticmethod
     def combine_spectral_foreground_vis(
@@ -129,30 +159,18 @@ class Visibility(KaraboResource):
 
     @staticmethod
     def combine_vis(
-        number_of_days: int,
         visiblity_files: List[str],
-        combined_vis_filepath: str,
-        day_comb: bool,
+        combined_ms_filepath: str,
+        group_by: str = "day",
     ) -> None:
-        """
-        Combines visibilities and writes them into into `combined_vis_filepath`.
-        Args:
-            number_of_days: int,
-            visiblity_files: list,
-            combined_vis_filepath: str,
-            day_comb: bool,
-        """
-        print("### Combining the visibilities for ", visiblity_files)
+        print("Combining visibilities...")
 
-        out_vis: List[NDArray[np.complex_]] = list()
-        uui: List[NDArray[np.float_]] = list()
-        vvi: List[NDArray[np.float_]] = list()
-        wwi: List[NDArray[np.float_]] = list()
-        time_start = list()
-        time_inc = list()
-        time_ave = list()
-        for j in range(number_of_days):
-            (header, handle) = oskar.VisHeader.read(visiblity_files[j])
+        # Initialize lists to store data
+        out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
+
+        # Loop over visibility files and read data
+        for vis_file in visiblity_files:
+            (header, handle) = oskar.VisHeader.read(vis_file)
             block = oskar.VisBlock.create_from_header(header)
             for k in range(header.num_blocks):
                 block.read(header, handle, k)
@@ -163,19 +181,10 @@ class Visibility(KaraboResource):
             time_inc.append(header.time_inc_sec)
             time_start.append(header.time_start_mjd_utc)
             time_ave.append(header.get_time_average_sec())
-            print(uui[j].shape, out_vis[j].shape, number_of_days)
-        # uushape = uu.shape
-        # uu = uu.reshape(uushape[0], uushape[1] * uushape[2])
-        # vv = np.array(vvi).swapaxes(0, 1)
-        # vvshape = vv.shape
-        # vv = vv.reshape(vvshape[0], vvshape[1] * vvshape[2])
-        # ww = np.array(wwi).swapaxes(0, 1)
-        # wwshape = ww.shape
-        # ww = ww.reshape(wwshape[0], wwshape[1] * wwshape[2])
-        # --------- Combining the Visibilities
-        os.system("rm -rf " + combined_vis_filepath)
+
+        # Combine visibility data
         ms = oskar.MeasurementSet.create(
-            combined_vis_filepath,
+            combined_ms_filepath,
             block.num_stations,
             block.num_channels,
             block.num_pols,
@@ -186,19 +195,18 @@ class Visibility(KaraboResource):
         ms.set_phase_centre(
             header.phase_centre_ra_deg * deg2rad, header.phase_centre_dec_deg * deg2rad
         )
-        # Write data one block at a time.
-        print("### Writing combined visibilities in ", combined_vis_filepath)
-        if day_comb:
-            for j in range(number_of_days):
+
+        # Write combined visibility data
+        print("### Writing combined visibilities in ", combined_ms_filepath)
+
+        num_files = len(visiblity_files)
+        if group_by == "day":
+            for j in range(num_files):
                 num_times = out_vis[j].shape[0]
-                print(num_times, out_vis[j].shape, uui[j].shape, block.num_baselines)
                 for t in range(num_times):
-                    # Dummy data to write.
                     time_stamp = time_inc[j] * time_start[j]
-                    # Write coordinates and visibilities.
-                    start_row = t * block.num_baselines
                     exposure_sec = time_ave[0]
-                    # print(uui[j][t].shape,out_vis[j][t].shape,block.num_channels,block.num_baselines)
+                    start_row = t * block.num_baselines
                     ms.write_coords(
                         start_row,
                         block.num_baselines,
@@ -216,25 +224,22 @@ class Visibility(KaraboResource):
                         block.num_baselines,
                         out_vis[j][t],
                     )
-
-        if day_comb is not True:
-            num_times = out_vis[j].shape[0] * number_of_days
-            us = np.array(uui).shape
-            outs = np.array(out_vis).shape
-            uuf = np.array(uui).reshape(us[0] * us[1], us[2])
-            vvf = np.array(vvi).reshape(us[0] * us[1], us[2])
-            wwf = np.array(wwi).reshape(us[0] * us[1], us[2])
+        else:
+            num_times = out_vis[0].shape[0] * num_files
+            ushape = np.array(uui).shape
+            outshape = np.array(out_vis).shape
+            uuf = np.array(uui).reshape(ushape[0] * ushape[1], ushape[2])
+            vvf = np.array(vvi).reshape(ushape[0] * ushape[1], ushape[2])
+            wwf = np.array(wwi).reshape(ushape[0] * ushape[1], ushape[2])
             out_vis_reshaped = np.array(out_vis).reshape(
-                outs[0] * outs[1], outs[2], outs[3], outs[4]
+                outshape[0] * outshape[1], outshape[2], outshape[3], outshape[4]
             )
             for t in range(num_times):
-                # Dummy data to write.
                 time_stamp = time_start[0] + t * time_inc[0] / 86400.0
-                # Write coordinates and visibilities.
-                start_row = t * block.num_baselines
                 exposure_sec = time_ave[0]
                 interval_sec = time_ave[0]
-                # print(time_stamp,interval_sec,exposure_sec,start_row)
+                start_row = t * block.num_baselines
+
                 ms.write_coords(
                     start_row,
                     block.num_baselines,

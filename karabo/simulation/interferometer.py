@@ -1,7 +1,6 @@
 import enum
-import os
 from copy import deepcopy
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 import oskar
@@ -9,13 +8,17 @@ import pandas as pd
 from dask.distributed import Client
 from numpy.typing import NDArray
 
+from karabo.error import KaraboInterferometerSimulationError
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util.FileHandle import FileHandle
+from karabo.util._types import IntFloat
+from karabo.util.dask import DaskHandler
+from karabo.util.file_handle import FileHandle
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
+from karabo.warning import KaraboWarning
 
 
 class CorrelationType(enum.Enum):
@@ -37,6 +40,14 @@ class FilterUnits(enum.Enum):
     Metres = "Metres"
 
 
+NoiseRmsType = Literal["Range", "Data file", "Telescope model"]
+NoiseFreqType = Literal["Range", "Data file", "Observation settings", "Telescope model"]
+PrecisionType = Literal["single", "double"]
+StationTypeType = Literal[
+    "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
+]
+
+
 # TODO: Add noise for the interferometer simulation
 # Investigate the Noise file specification by oskar
 # class InterferometerNoise()
@@ -45,9 +56,6 @@ class FilterUnits(enum.Enum):
 class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
-
-    :ivar vis_path: Path of the visibility output file containing results of the
-                    simulation.
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
                                 smearing. (Note that this can be different to the
                                 frequency increment if channels do not cover a
@@ -125,10 +133,14 @@ class InterferometerSimulation:
                         effects by choosing "Isotropic beam". Or select one of the
                         following beam types:
                         "Gaussian beam", "Aperture array" or "VLA (PBCOR)"
+    :ivar enable_power_pattern: If true, gauss_beam_fwhm_deg will be taken in as
+                                power pattern.
     :ivar gauss_beam_fwhm_deg: If you choose "Gaussian beam" as station type you need
                                specify the full-width half maximum value at the
                                reference frequency of the Gaussian beam here.
-                               Units = degrees.
+                               Units = degrees. If enable_power_pattern is True,
+                               gauss_beam_fwhm_deg is in power pattern, otherwise
+                               it is in field pattern.
     :ivar gauss_ref_freq_hz: The reference frequency of the specified FWHM, in Hz.
     :ivar ionosphere_fits_path: The path to a fits file containing an ionospheric screen
                                 generated with ARatmospy. The file parameters
@@ -138,43 +150,56 @@ class InterferometerSimulation:
 
     def __init__(
         self,
-        vis_path: str = None,
-        channel_bandwidth_hz: float = 0,
-        time_average_sec: float = 0,
+        ms_file_path: Optional[str] = None,
+        vis_path: Optional[str] = None,
+        channel_bandwidth_hz: IntFloat = 0,
+        time_average_sec: IntFloat = 0,
         max_time_per_samples: int = 8,
         correlation_type: CorrelationType = CorrelationType.Cross_Correlations,
-        uv_filter_min: float = 0.0,
-        uv_filter_max: float = float("inf"),
+        uv_filter_min: IntFloat = 0,
+        uv_filter_max: IntFloat = float("inf"),
         uv_filter_units: FilterUnits = FilterUnits.WaveLengths,
         force_polarised_ms: bool = False,
         ignore_w_components: bool = False,
         noise_enable: bool = False,
         noise_seed: Union[str, int] = "time",
-        noise_start_freq=1.0e9,
-        noise_inc_freq=1.0e8,
-        noise_number_freq=24,
-        noise_rms_start: float = 0,
-        noise_rms_end: float = 0,
-        noise_rms: str = "Range",
-        noise_freq: str = "Range",
+        noise_start_freq: IntFloat = 1.0e9,
+        noise_inc_freq: IntFloat = 1.0e8,
+        noise_number_freq: int = 24,
+        noise_rms_start: IntFloat = 0,
+        noise_rms_end: IntFloat = 0,
+        noise_rms: NoiseRmsType = "Range",
+        noise_freq: NoiseFreqType = "Range",
         enable_array_beam: bool = False,
         enable_numerical_beam: bool = False,
-        beam_polX: BeamPattern = None,  # currently only considered
+        beam_polX: Optional[BeamPattern] = None,  # currently only considered
         # for `ObservationLong`
-        beam_polY: BeamPattern = None,  # currently only considered
+        beam_polY: Optional[BeamPattern] = None,  # currently only considered
         # for `ObservationLong`
-        use_gpus: bool = False,
-        client: Union[Client, None] = None,
-        split_idxs_per_group: Union[List[List[int]], None] = None,
-        split_sky_for_dask_by: str = "frequency",
-        max_vram_usage_gpu: float = 0.8,
-        precision: str = "single",
-        station_type: str = "Isotropic beam",
-        gauss_beam_fwhm_deg: float = 0.0,
-        gauss_ref_freq_hz: float = 0.0,
-        ionosphere_fits_path: str = None,
+        use_gpus: Optional[bool] = None,
+        use_dask: Optional[bool] = None,
+        client: Optional[Client] = None,
+        split_idxs_per_group: Optional[List[List[int]]] = None,
+        split_sky_for_dask_how: Literal["randomly"] = "randomly",
+        max_vram_usage_gpu: IntFloat = 0.8,
+        precision: PrecisionType = "single",
+        station_type: StationTypeType = "Isotropic beam",
+        enable_power_pattern: bool = False,
+        gauss_beam_fwhm_deg: IntFloat = 0.0,
+        gauss_ref_freq_hz: IntFloat = 0.0,
+        ionosphere_fits_path: Optional[str] = None,
     ) -> None:
-        self.vis_path: str = vis_path
+        if ms_file_path is None:
+            fh = FileHandle(suffix=".MS")
+            ms_file_path = fh.path
+        self.ms_file_path = ms_file_path
+
+        if vis_path is None:
+            vis = Visibility()
+            vis_path = vis.file.path
+
+        self.vis_path = vis_path
+
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
         self.time_average_sec: float = time_average_sec
         self.max_time_per_samples: int = max_time_per_samples
@@ -195,22 +220,54 @@ class InterferometerSimulation:
         self.noise_freq = noise_freq
         self.enable_array_beam = enable_array_beam
         self.enable_numerical_beam = enable_numerical_beam
-        self.beam_polX: BeamPattern = beam_polX
-        self.beam_polY: BeamPattern = beam_polY
-        self.use_gpus = use_gpus
+        self.beam_polX = beam_polX
+        self.beam_polY = beam_polY
+        # set use_gpu
+        if use_gpus is None:
+            print(
+                KaraboWarning(
+                    "Parameter 'use_gpus' is None! Using function "
+                    "'karabo.util.is_cuda_available()' to overwrite parameter "
+                    f"'use_gpu' to {is_cuda_available()}."
+                )
+            )
+            self.use_gpus = is_cuda_available()
+        else:
+            self.use_gpus = use_gpus
+
+        self.use_dask = use_dask
+        if use_dask is None and not client:
+            print(
+                KaraboWarning(
+                    "Parameter 'use_dask' is None! Using function "
+                    "'karabo.util.dask.DaskHandler.should_dask_be_used()' "
+                    "to overwrite parameter 'use_dask' to "
+                    f"{DaskHandler.should_dask_be_used()}."
+                )
+            )
+            self.use_dask = DaskHandler.should_dask_be_used()
+
+        if self.use_dask and not client:
+            client = DaskHandler.get_dask_client()
         self.client = client
+
         self.split_idxs_per_group = split_idxs_per_group
-        self.split_sky_for_dask_by = split_sky_for_dask_by
+        self.split_sky_for_dask_how = split_sky_for_dask_how
         self.max_vram_usage_gpu = max_vram_usage_gpu
         self.precision = precision
         self.station_type = station_type
-        self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
+        self.enable_power_pattern = enable_power_pattern
+        if self.enable_power_pattern:
+            # Convert power pattern to field pattern
+            self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg * np.sqrt(2)
+        else:
+            self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
         self.gauss_ref_freq_hz = gauss_ref_freq_hz
         self.ionosphere_fits_path = ionosphere_fits_path
 
     def run_simulation(
         self, telescope: Telescope, sky: SkyModel, observation: Observation
-    ) -> Union[Visibility, List[str]]:
+    ) -> Visibility:
         """
         Run a single interferometer simulation with the given sky, telescope.png and
         observation settings.
@@ -250,116 +307,134 @@ class InterferometerSimulation:
         :param sky: sky model defining the sources
         :param observation: observation settings
         """
-        # The following line depends on the mode with which we're loading
-        # the sky (explained in documentation)
         array_sky = sky.get_OSKAR_sky(precision=self.precision).to_array()
+        observation_params = observation.get_OSKAR_settings_tree()
+        input_telpath = telescope.path
+        if input_telpath is None:
+            raise KaraboInterferometerSimulationError(
+                "`telescope.path` must be set but is None."
+            )
 
         if self.client is not None:
+            print("Using Dask for parallelisation. Splitting sky model...")
             # To convert to a numpy array
             split_array_sky = None
 
             if self.split_idxs_per_group:
                 split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
-            elif self.split_sky_for_dask_by == "frequency":
-                # Sort the array by frequency
-                array_sky = array_sky[array_sky[:, 6].argsort()]
 
-                # Extract the frequencies from the sky model
-                frequencies = array_sky[:, 6]
-
-                # Create dataframe for groupby operations
-                frequencies = pd.DataFrame(frequencies, columns=["freq"])
-
-                # Create a column with the rank of the frequency
-                frequencies["rank"] = frequencies["freq"].rank(method="dense")
-
+            elif self.split_sky_for_dask_how == "randomly":
                 # Extract N by the number of workers
                 N = len(self.client.scheduler_info()["workers"])
+                array_sky_size = array_sky.nbytes
 
-                while True:
-                    # Create list with the ranks to split on
-                    spacing = np.ceil(frequencies["rank"].iloc[-1] / N).astype(int)
-                    split_ranks = [0 + spacing * i for i in range(N)]
+                if is_cuda_available() and self.max_vram_usage_gpu:
+                    # Get memory consumption of the array
+                    split_array_sky_size = array_sky_size / N
 
-                    # Split idxs
-                    split_idxs = []
-                    for i in range(len(split_ranks) - 1):
-                        split_idxs.append(
-                            frequencies[
-                                frequencies["rank"] == split_ranks[i + 1]
-                            ].index[0]
-                        )
+                    # Get the max vram usage set by the user
+                    max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
 
-                    # Split the array
-                    split_array_sky = np.split(array_sky, split_idxs)
+                    # Check if the first split is bigger than the max vram usage
+                    ratio_vram_usage = (
+                        split_array_sky_size / 1024**2 > max_vram_usage_gpu
+                    )
 
-                    # Check that a split still fits in gpu memory and if not
-                    # increase the number of splits
-                    if is_cuda_available() and self.max_vram_usage_gpu:
-                        max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
+                    # If that is the case, increase the number of splits
+                    if ratio_vram_usage > 1:
+                        N += int(np.ceil(ratio_vram_usage))
 
-                        # Check if the first split is bigger than the max vram usage
-                        ratio_vram_usage = (
-                            split_array_sky[0].nbytes / 1024**2 > max_vram_usage_gpu
-                        )
+                # Print out the number of splits
+                print(f"Splitting the sky into {N} chunks")
 
-                        # If that is the case, increase the number of splits
-                        if ratio_vram_usage > 1:
-                            N += int(np.ceil(ratio_vram_usage))
-                        else:
-                            break
-                    else:
-                        break
+                # Split the array randomly
+                split_array_sky = []
+                to_select = np.max([int(len(array_sky) / N), 1])
+
+                # Split the array, stop when there are no more sources
+                while len(array_sky) >= to_select:
+                    idx = np.random.choice(len(array_sky), to_select, replace=False)
+                    split_array_sky.append(array_sky[idx])
+                    array_sky = np.delete(array_sky, idx, axis=0)
+
+                # Add the remaining sources
+                if len(array_sky) > 0:
+                    split_array_sky.append(array_sky)
+                # Delete the array
+                del array_sky
 
             else:
                 raise ValueError(
-                    "Unknown split_sky_for_dask_by value. "
-                    "Please use 'frequency' or 'group'."
+                    "Unknown split_sky_for_dask_how value. Please use 'randomly'."
                 )
-        # Create the settings tree
-        observation_params = observation.get_OSKAR_settings_tree()
-        input_telpath = telescope.path
 
-        # Run the simulation on the dask cluster
-        if self.client is not None:
+            # Run the simulation on the dask cluster
             futures = []
             for sky_ in split_array_sky:
-                # Create visiblity object
-                visibility = Visibility()
-                interferometer_params = self.__get_OSKAR_settings_tree(
-                    input_telpath=input_telpath, ms_file_path=visibility.file.path
+                # Scatter the sky model to the workers
+                scattered_data = self.client.scatter(sky_)
+
+                # Create params
+                interferometer_params = (
+                    self.__create_interferometer_params_with_random_paths(input_telpath)
                 )
-                # Create params for the interferometer
+
                 params_total = {**interferometer_params, **observation_params}
+
+                # Submit the simulation to the workers
                 futures.append(
                     self.client.submit(
                         InterferometerSimulation.__run_simulation_oskar,
                         params_total,
-                        sky_,
+                        scattered_data,
                         self.precision,
                     )
                 )
             results = self.client.gather(futures)
-            # TODO: Combine visibilities here. Currently, it just returns the first
-            # result contains the list of paths to the visibilities
-            return Visibility(results[0])
+            # Combine the visibilities
+            visibility_paths = [
+                x["interferometer"]["oskar_vis_filename"] for x in results
+            ]
+            # Combine visibilities.
+            Visibility.combine_vis(visibility_paths, self.ms_file_path)
+
+            # Visibilities cannot be combined currently, thus return the first one
+            return Visibility(visibility_paths[0], self.ms_file_path)
 
         # Run the simulation on the local machine
         else:
-            # Create the visibility object
-            visibility = Visibility()
             # Create params for the interferometer
             interferometer_params = self.__get_OSKAR_settings_tree(
-                input_telpath=input_telpath, ms_file_path=visibility.file.path
+                input_telpath=input_telpath,
+                ms_file_path=self.ms_file_path,
+                vis_path=self.vis_path,
             )
             params_total = {**interferometer_params, **observation_params}
-            path_to_vis = InterferometerSimulation.__run_simulation_oskar(
+            params_total = InterferometerSimulation.__run_simulation_oskar(
                 params_total, array_sky, self.precision
             )
-            return Visibility(path_to_vis)
+            print(self.vis_path)
+            return Visibility(self.vis_path, self.ms_file_path)
+
+    def __create_interferometer_params_with_random_paths(
+        self, input_telpath: str
+    ) -> Dict[str, Dict[str, Any]]:
+        # Create visiblity object
+        visibility = Visibility()
+
+        interferometer_params = self.__get_OSKAR_settings_tree(
+            input_telpath=input_telpath,
+            ms_file_path=visibility.ms_file.path,
+            vis_path=visibility.file.path,
+        )
+        return interferometer_params
 
     @staticmethod
-    def __run_simulation_oskar(params_total, os_sky, precision):
+    def __run_simulation_oskar(
+        params_total: Dict[str, Any],
+        os_sky: Any,
+        precision: PrecisionType,
+    ) -> Dict[str, Any]:
         """
         Run a single interferometer simulation with a given sky,
         telescope and observation settings.
@@ -371,28 +446,34 @@ class InterferometerSimulation:
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
         simulation = oskar.Interferometer(settings=setting_tree)
-        if isinstance(os_sky, np.ndarray):
-            os_sky = oskar.Sky.from_array(os_sky, precision=precision)
+        os_sky = oskar.Sky.from_array(os_sky, precision=precision)
         simulation.set_sky_model(os_sky)
         simulation.run()
 
-        # Return the path to the visibility file
-        return params_total["interferometer"]["ms_filename"]
+        # Return the params, which contain all the information about the simulation
+        return params_total
 
     def __run_simulation_long(
         self,
         telescope: Telescope,
         sky: SkyModel,
         observation: ObservationLong,
-    ) -> List[str]:
-        # Setup visiblity paths
-        visiblity_files = []
-        beam_vis_prefix = "beam_vis_"
+    ) -> Visibility:
+        # Initialise the telescope and observation settings
+        observation_params = observation.get_OSKAR_settings_tree()
+        input_telpath = telescope.path
+        runs = []
 
-        # Create vis path
-        fh = FileHandle()
-        vis_dir_path = fh.path
-        print(f"Visibilities will be saved in: {vis_dir_path}")
+        if self.beam_polX is None or self.beam_polY is None:
+            raise KaraboInterferometerSimulationError(
+                "`InterferometerSimulation.beam_polX` and "
+                + "`InterferometerSimulation.beam_polY` must be set "
+                + "to run a long observation."
+            )
+        if input_telpath is None:
+            raise KaraboInterferometerSimulationError(
+                "`telescope.path` must be set but is None."
+            )
 
         # Loop over days
         for i, current_date in enumerate(
@@ -405,41 +486,41 @@ class InterferometerSimulation:
             current_date = current_date.date()
             print(f"Observing Day: {i}. Date: {current_date}")
 
-            # Copy sky model and initiate new telescope
-            sky_run = SkyModel(sources=deepcopy(sky.sources))
-            telescope_run = Telescope.read_OSKAR_tm_file(telescope.path)
-            vis_name = beam_vis_prefix + str(i)
-
-            # Remove old beam files if they exist
-            for item in os.listdir(telescope.path):
-                if item.endswith(".bin"):
-                    os.remove(os.path.join(telescope.path, item))
-
             if self.enable_array_beam:
                 # ------------ X-coordinate
                 pb = deepcopy(self.beam_polX)
                 beam = pb.sim_beam()
-                pb.save_cst_file(beam[3], telescope=telescope_run)
-                pb.fit_elements(telescope_run)
+                pb.save_cst_file(beam[3], telescope=telescope)
+                pb.fit_elements(telescope)
+
                 # ------------ Y-coordinate
                 pb = deepcopy(self.beam_polY)
-                pb.save_cst_file(beam[4], telescope=telescope_run)
-                pb.fit_elements(telescope_run)
+                pb.save_cst_file(beam[4], telescope=telescope)
+                pb.fit_elements(telescope)
 
-            visiblity_files.append(os.path.join(vis_dir_path, vis_name + ".vis"))
-            self.vis_path = visiblity_files[-1]
-            print(visiblity_files[-1])
-            ms_files = os.path.join(vis_dir_path, vis_name + ".ms")
-
-            observation_run = deepcopy(observation)
-            observation_run.start_date_and_time = current_date
-            visibility = self.__setup_run_simulation_oskar(
-                telescope_run, sky_run, observation_run
+            # Create params
+            interferometer_params = (
+                self.__create_interferometer_params_with_random_paths(input_telpath)
             )
-            print(f"Writing to file: {ms_files}")
-            visibility.write_to_file(ms_files)
+
+            params_total = {**interferometer_params, **observation_params}
+
+            # Submit the simulation to the workers
+            params_total = InterferometerSimulation.__run_simulation_oskar(
+                params_total,
+                sky.get_OSKAR_sky(precision=self.precision).to_array(),
+                self.precision,
+            )
+            runs.append(params_total)
+
+        # Combine the visibilities
+        visibility_paths = [x["interferometer"]["oskar_vis_filename"] for x in runs]
+
+        Visibility.combine_vis(visibility_paths, self.ms_file_path)
+
         print("Done with simulation.")
-        return visiblity_files
+        # Returns currently just one of the visiblities, of the first day.
+        return Visibility(visibility_paths[0], self.ms_file_path)
 
     def simulate_foreground_vis(
         self,
@@ -451,13 +532,13 @@ class InterferometerSimulation:
         foreground_ms_file: str,
     ) -> Tuple[
         Visibility,
-        List[NDArray[np.complex64]],
+        List[NDArray[np.complex_]],
         oskar.VisHeader,
         oskar.Binary,
         oskar.VisBlock,
-        NDArray[np.float32],
-        NDArray[np.float32],
-        NDArray[np.float32],
+        NDArray[np.float_],
+        NDArray[np.float_],
+        NDArray[np.float_],
     ]:
         """
         Simulates foreground sources
@@ -465,12 +546,14 @@ class InterferometerSimulation:
         print("### Simulating foreground source....")
         visibility = self.run_simulation(telescope, foreground, foreground_observation)
         (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
-        foreground_cross_correlation = [0.0] * fg_header.num_blocks
+        foreground_cross_correlation: List[NDArray[np.complex_]] = list()
         # fg_max_channel=fg_header.max_channels_per_block;
         for i in range(fg_header.num_blocks):
             fg_block = oskar.VisBlock.create_from_header(fg_header)
             fg_block.read(fg_header, fg_handle, i)
-            foreground_cross_correlation[i] = fg_block.cross_correlations()
+            foreground_cross_correlation[i] = cast(
+                NDArray[np.complex_], fg_block.cross_correlations()
+            )
         ff_uu = fg_block.baseline_uu_metres()
         ff_vv = fg_block.baseline_vv_metres()
         ff_ww = fg_block.baseline_ww_metres()
@@ -487,19 +570,23 @@ class InterferometerSimulation:
             ff_ww,
         )
 
-    def yes_double_precision(self):
+    def yes_double_precision(self) -> bool:
         return self.precision != "single"
 
     def __get_OSKAR_settings_tree(
-        self, input_telpath, ms_file_path
-    ) -> Dict[str, Dict[str, Union[Union[int, float, str], Any]]]:
-        settings = {
+        self,
+        input_telpath: str,
+        ms_file_path: str,
+        vis_path: str,
+    ) -> Dict[str, Dict[str, Any]]:
+        settings: Dict[str, Dict[str, Any]] = {
             "simulator": {
                 "use_gpus": self.use_gpus,
                 "double_precision": self.yes_double_precision(),
             },
             "interferometer": {
                 "ms_filename": ms_file_path,
+                "oskar_vis_filename": vis_path,
                 "channel_bandwidth_hz": str(self.channel_bandwidth_hz),
                 "time_average_sec": str(self.time_average_sec),
                 "max_time_samples_per_block": str(self.max_time_per_samples),
@@ -545,8 +632,6 @@ class InterferometerSimulation:
                 }
             )
 
-        if self.vis_path:
-            settings["interferometer"]["oskar_vis_filename"] = self.vis_path
         return settings
 
     @staticmethod
