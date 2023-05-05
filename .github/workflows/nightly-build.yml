@@ -1,4 +1,4 @@
-name: Conda Build
+name: Conda Nightly Build
 
 on:
   workflow_dispatch:
@@ -33,7 +33,8 @@ jobs:
         run: |
           cd conda
           KARABO_TAG=${{ inputs.version }}
-          export KARABO_VERSION="${KARABO_TAG:1.nightly}"
+          KARABO_VERSION="${KARABO_TAG:1.nightly}"
+          export KARABO_VERSION="$KARABO_VERSION"
           echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
           conda mambabuild .
       - name: Publish to Conda
