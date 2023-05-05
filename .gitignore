@@ -84,7 +84,6 @@ dask-worker-space
 
 # Configs
 config.yaml
-karabo/_version.txt
 
 # Tests
 karabo/test/result/*
