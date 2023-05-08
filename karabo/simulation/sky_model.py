@@ -8,21 +8,21 @@ import os
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
-import astropy.io.fits as fits
 import dask.array as da
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 import pandas as pd
 import tables
+import xarray as xr
 from astropy import units as u
+from astropy.io import fits
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
 
 # from dask.array import Array  # type: ignore[attr-defined]
 from numpy.typing import NDArray
-from xarray import DataArray
 
 from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
@@ -35,6 +35,7 @@ from karabo.util._types import (
     NPFloatInpBroadType,
     PrecisionType,
 )
+from karabo.util.data_util import parse_size
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
@@ -913,7 +914,6 @@ class SkyModel:
             concat_freq_with_prefix=True,
             filter_data_by_stokes_i=True,
             frequency_to_mhz_multiplier=1e6,
-            memmap=False,
         )
 
     @staticmethod
@@ -924,10 +924,11 @@ class SkyModel:
         concat_freq_with_prefix: bool = False,
         filter_data_by_stokes_i: bool = False,
         frequency_to_mhz_multiplier: float = 1e6,
+        chunk_size: Union[int, str] = 100,  # "2GB",
         memmap: bool = False,
-    ) -> SkyModel:
+    ) -> xr.Dataset:
         """
-        Reads data from a FITS file and creates a SkyModel object that contains
+        Reads data from a FITS file and creates an xarray Dataset containing
         information about celestial sources at given frequencies.
 
         Parameters
@@ -938,24 +939,31 @@ class SkyModel:
             List of frequencies of interest in MHz.
         prefix_mapping : dict
             Dictionary that maps column names in the FITS file to column names
-            used in the SkyModel.
-            Keys should be the original column names,  values should be the
-            corresponding column names in the SkyModel.
+            used in the output Dataset.
+            Keys should be the original column names, values should be the
+            corresponding column names in the Dataset.
             Any column names not present in the dictionary will be excluded
-            from the output SkyModel.
+            from the output Dataset.
         concat_freq_with_prefix : bool, optional
+            If True, concatenates the frequency with the prefix for each column.
+            Defaults to False.
         filter_data_by_stokes_i : bool, optional
+            If True, filters the data by Stokes I. Defaults to False.
         frequency_to_mhz_multiplier : float, optional
             Factor to convert the frequency units to MHz. Defaults to 1e6.
+        chunk_size : int or str, optional
+            The size of the chunks to use when creating the Dask arrays. This can
+            be an integer representing the number of rows per chunk, or a string
+            representing the size of each chunk in bytes (e.g. '64MB', '1GB', etc.).
         memmap : bool, optional
             Whether to use memory mapping when opening the FITS file. Defaults to False.
             Allows for reading of larger-than-memory files.
 
         Returns
         -------
-        SkyModel
-            SkyModel object containing information about celestial sources at given
-              frequencies.
+        xr.DataArray
+            xarray DataArray object containing information about celestial sources
+            at given frequencies.
 
         Notes
         -----
@@ -968,11 +976,11 @@ class SkyModel:
         corresponding column names in the input FITS file. For example:
 
         If a column name in the FITS file is not present in the `prefix_mapping`
-        dictionary, it will be excluded from the output SkyModel.
+        dictionary, it will be excluded from the output Dataset.
 
         Examples
         --------
-        >>> sky_model = SkyModel.get_sky_model_from_fits(
+        >>> sky_data = SkyModel.get_sky_model_from_fits(
         ...     path="input.fits",
         ...     frequencies=[100, 200, 300],
         ...     prefix_mapping={
@@ -991,80 +999,80 @@ class SkyModel:
         ...         "id": "pa",
         ...     },
         ...     concat_freq_with_prefix=True,
-        ...     frequency_to_mhz_multiplier=1e6,
+        ...     filter_data_by_stokes_i=True,
+        ...     chunks=100,
         ...     memmap=False,
         ... )
 
         """
-        # Open the FITS file with memory mapping
         with fits.open(path, memmap=memmap) as hdul:
-            # Read the data from the first HDU
+            header = hdul[1].header
             data = hdul[1].data
 
-        # Create a list to store the output sky arrays
-        sky_arrays = []
+        column_names = [header[f"TTYPE{i+1}"] for i in range(header["TFIELDS"])]
+        data_dict = {name: data[name] for name in column_names}
 
-        # Iterate over the frequencies
-        for freq in frequencies:
-            # Format the frequency string
+        dataset = xr.Dataset(data_dict)
+        data_arrays = []
+
+        for freq_id, freq in enumerate(frequencies):
             freq_str = str(freq).zfill(3)
 
-            # Select the rows that have a valid flux measurement for this frequency
             if filter_data_by_stokes_i and prefix_mapping["i"] is not None:
-                data_freq = data[~np.isnan(data[f"{prefix_mapping['i']+freq_str}"])]
+                dataset_filtered = dataset.dropna(
+                    dim=f"{prefix_mapping['i']}{freq_str}"
+                )
             else:
-                data_freq = data
+                dataset_filtered = dataset
 
-            # Define a delayed function to create the sky array for this frequency
-            def create_sky_array(
-                data_freq: DataArray,
-                freq_str: str,
-                freq: int,
-            ) -> NDArray[np.float_]:
-                arr_columns = []
-                for col in [
-                    "ra",
-                    "dec",
-                    "i",
-                    "q",
-                    "u",
-                    "v",
-                    "ref_freq",
-                    "spectral_index",
-                    "rm",
-                    "major",
-                    "minor",
-                    "pa",
-                    "id",
-                ]:
-                    pm_col = prefix_mapping[col]
-                    if pm_col is not None:
-                        if col == "ref_freq":
-                            arr_columns.append(
-                                np.full(
-                                    len(data_freq), freq * frequency_to_mhz_multiplier
-                                )
-                            )
-                        elif pm_col is None:
-                            arr_columns.append(np.zeros(len(data_freq)))
-                        else:
-                            if concat_freq_with_prefix and col not in ["ra", "dec"]:
-                                col_name = pm_col + freq_str
-                            else:
-                                col_name = pm_col
+            data = []
 
-                            arr_columns.append(
-                                data_freq[col_name]
-                            )  # TODO fix different dtypes in list
-                return np.column_stack(arr_columns)
+            for col, pm_col in prefix_mapping.items():
+                if pm_col is not None:
+                    if concat_freq_with_prefix and col not in ["ra", "dec"]:
+                        col_name = pm_col + freq_str
+                    else:
+                        col_name = pm_col
 
-            # Append the delayed function to the sky_arrays list
-            sky_arrays.append(create_sky_array(data_freq, freq_str, freq))
+                    freq_data = xr.DataArray(
+                        dataset_filtered[col_name].values,
+                        dims=["dim_1"],
+                        coords={"freq_id": freq_id},
+                    )
+                elif col == "ref_freq":
+                    freq_data = xr.DataArray(
+                        np.full(
+                            len(dataset_filtered[prefix_mapping["ra"]]),
+                            freq * frequency_to_mhz_multiplier,
+                        ),
+                        dims=["dim_1"],
+                        coords={"freq_id": freq_id},
+                    )
+                else:
+                    freq_data = xr.DataArray(
+                        np.zeros(len(dataset_filtered[prefix_mapping["ra"]])),
+                        dims=["dim_1"],
+                        coords={"freq_id": freq_id},
+                    )
+                data.append(freq_data)
 
-        # Concatenate the blocks of rows into a numpy array
-        sky_data = np.vstack(sky_arrays)
+            data_array = xr.concat(data, dim="dim_0")
 
-        return SkyModel(sky_data)
+            data_arrays.append(data_array)
+
+        if isinstance(chunk_size, str):
+            max_chunk_size_bytes = parse_size(chunk_size)
+            data_arrays_size = sum([data_array.nbytes for data_array in data_arrays])
+            chunk_size = int(np.ceil((max_chunk_size_bytes / data_arrays_size)))
+
+        for freq_dataset in data_arrays:
+            freq_dataset.chunk({"dim_1": chunk_size})
+
+        result_dataset = (
+            xr.concat(data_arrays, dim="dim_1").chunk({"dim_1": chunk_size}).T
+        )
+
+        return SkyModel(result_dataset)
 
     @staticmethod
     def get_MIGHTEE_Sky() -> SkyModel:

@@ -6,8 +6,8 @@ import dask.array as da
 import numpy as np
 import oskar
 import pandas as pd
+import xarray as xr
 from dask import compute, delayed  # type: ignore[attr-defined]
-from dask.array import Array  # type: ignore[attr-defined]
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -20,7 +20,7 @@ from karabo.simulation.visibility import Visibility
 from karabo.util._types import IntFloat, PrecisionType
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
-from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
+from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
 
 
@@ -123,11 +123,6 @@ class InterferometerSimulation:
     :ivar beam_polX: currently only considered for `ObservationLong`
     :ivar use_gpus: Set to true if you want to use gpus for the simulation
     :ivar client: The dask client to use for the simulation
-    :ivar split_idxs_per_group: The a list of list of indices to split the groups by
-    :ivar split_sky_for_dask_by: The attribute to split the data by for dask. Can be
-                        "frequency"
-    :ivar max_vram_usage_gpu: The maximum vram usage per gpu in GB. Used to split the
-                                data into chunks for the simulation on the gpu.
     :ivar precision: For the arithmetic use you can choose between "single" or
                      "double" precision
     :ivar station_type: Here you can choose the type of each station in the
@@ -318,63 +313,6 @@ class InterferometerSimulation:
                 "Sky model has not been loaded. Please load the sky model first."
             )
 
-        if self.client is not None:
-            print("Using Dask for parallelisation. Splitting sky model...")
-            # Define number of splits and update it later.
-            if self.split_idxs_per_group:
-                print("Detected split_idxs_per_group...")
-                split_array_sky = np.take(array_sky, self.split_idxs_per_group, axis=0)
-
-            elif isinstance(array_sky, Array):
-                print("Detected dask array...")
-                split_array_sky = array_sky
-                print(split_array_sky.chunks[0])
-                N = len(split_array_sky.chunks[0])
-
-            elif self.split_sky_for_dask_how == "randomly":
-                print("Detected split_sky_for_dask_how == 'randomly'...")
-                N = 1
-                if is_cuda_available() and self.max_vram_usage_gpu:
-                    # Get the max vram usage set by the user
-                    max_vram_usage_gpu = self.max_vram_usage_gpu * get_gpu_memory()
-
-                    # Check if the first split is bigger than the max vram usage
-                    ratio_vram_usage = (
-                        array_sky.nbytes / 1024**2
-                    ) / max_vram_usage_gpu
-
-                    # If that is the case, increase the number of splits
-                    if ratio_vram_usage > 1:
-                        N += int(np.ceil(ratio_vram_usage))
-                else:
-                    # Extract N by the number of workers
-                    N = len(self.client.scheduler_info()["workers"])
-
-                # Print out the number of splits
-                print(f"Splitting the sky into {N} chunks")
-
-                # Split the array randomly
-                split_array_sky = []
-                to_select = np.max([int(len(array_sky) / N), 1])
-
-                # Split the array, stop when there are no more sources
-                while len(array_sky) >= to_select:
-                    idx = np.random.choice(len(array_sky), to_select, replace=False)
-                    split_array_sky.append(array_sky[idx])
-                    array_sky = np.delete(array_sky, idx, axis=0)  # type: ignore
-
-                # Add the remaining sources
-                if len(array_sky) > 0:
-                    split_array_sky.append(array_sky)
-
-                # Delete the array
-                del array_sky
-
-            else:
-                raise ValueError(
-                    "Unknown split_sky_for_dask_how value. Please use 'randomly'."
-                )
-
         input_telpath = telescope.path
         if input_telpath is None:
             raise KaraboInterferometerSimulationError(
@@ -386,14 +324,13 @@ class InterferometerSimulation:
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
 
-            print(
-                f"Submitting {len(split_array_sky.chunks[0])} "
-                "simulations to the workers"
-            )
-            if N < len(self.client.scheduler_info()["workers"]):
-                print("Not enough data-splits. Splitting also by Observations.")
+            n_chunks_sky = len(array_sky.chunks[0])
+            print(f"Submitting {n_chunks_sky} chunks " "of the skymodel to the workers")
+
+            if n_chunks_sky < len(self.client.scheduler_info()["workers"]):
+                print("Not enough skymodel chunks. Splitting also by Observations.")
                 splits_by_observation = int(
-                    np.ceil(len(self.client.scheduler_info()["workers"]) - N)
+                    np.ceil(len(self.client.scheduler_info()["workers"]) - n_chunks_sky)
                 )
                 observations = Observation.extract_multiple_observations_from_settings(
                     observation.get_OSKAR_settings_tree(),
@@ -403,30 +340,26 @@ class InterferometerSimulation:
             else:
                 observations = [observation.get_OSKAR_settings_tree()]
 
-            for sky_ in (
-                split_array_sky.blocks
-                if isinstance(split_array_sky, da.Array)  # type: ignore[attr-defined]
-                else split_array_sky
-            ):
-                for observation_params in observations:
-                    # Create params
-                    interferometer_params = (
-                        self.__create_interferometer_params_with_random_paths(
-                            input_telpath
-                        )
-                    )
+            delayed_results = []
+            for observation_params in observations:
+                # Create params
+                interferometer_params = (
+                    self.__create_interferometer_params_with_random_paths(input_telpath)
+                )
 
-                    params_total = {**interferometer_params, **observation_params}
+                params_total = {**interferometer_params, **observation_params}
 
-                    # Submit the simulation to the workers
-                    delayed_results.append(
-                        run_simu_delayed(params_total, sky_, self.precision)
-                    )
-
-                    if len(delayed_results) > 4:
-                        break
+                # Submit the jobs
+                delayed_ = self.client.map(
+                    run_simu_delayed,
+                    [array_sky],
+                    params_total=params_total,
+                    precision=self.precision,
+                )
+                delayed_results.append(delayed_)
 
             results = compute(*delayed_results, scheduler="distributed")
+
             # Combine the visibilities
             visibility_paths = [
                 x["interferometer"]["oskar_vis_filename"] for x in results
@@ -471,8 +404,8 @@ class InterferometerSimulation:
 
     @staticmethod
     def __run_simulation_oskar(
+        os_sky: Union[oskar.Sky, np.ndarray, xr.DataArray],
         params_total: Dict[str, Any],
-        os_sky: Any,
         precision: PrecisionType,
     ) -> Dict[str, Any]:
         """
@@ -491,6 +424,8 @@ class InterferometerSimulation:
             os_sky = SkyModel.get_OSKAR_sky(os_sky.compute(), precision=precision)
         elif isinstance(os_sky, np.ndarray):
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
+        elif isinstance(os_sky, xr.DataArray):
+            os_sky = SkyModel.get_OSKAR_sky(np.array(os_sky), precision=precision)
 
         simulation = oskar.Interferometer(settings=setting_tree)
         simulation.set_sky_model(os_sky)

@@ -1,4 +1,5 @@
 import os
+import re
 from types import ModuleType
 from typing import Any, Dict, Tuple, cast
 
@@ -21,6 +22,20 @@ def get_module_path_of_module(module: ModuleType) -> str:
     path_elements = os.path.abspath(module_file).split(os.path.sep)
     path_elements.pop()
     return os.path.sep.join(path_elements)
+
+
+def parse_size(size_str: str) -> int:
+    size_str = size_str.strip().upper()
+    size_units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
+
+    pattern = r"^(\d+(?:\.\d+)?)\s*(" + "|".join(size_units.keys()) + ")$"
+    match = re.search(pattern, size_str)
+
+    if match:
+        value, unit = float(match.group(1)), match.group(2)
+        return int(value * size_units[unit])
+
+    raise ValueError(f"Invalid size format: '{size_str}'")
 
 
 def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
