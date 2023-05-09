@@ -2,7 +2,6 @@ import enum
 from copy import deepcopy
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
-import dask.array as da
 import numpy as np
 import oskar
 import pandas as pd
@@ -341,24 +340,28 @@ class InterferometerSimulation:
                 observations = [observation.get_OSKAR_settings_tree()]
 
             delayed_results = []
-            for observation_params in observations:
-                # Create params
-                interferometer_params = (
-                    self.__create_interferometer_params_with_random_paths(input_telpath)
-                )
+            for chunk in np.arange(n_chunks_sky):
+                for observation_params in observations:
+                    # Create params
+                    interferometer_params = (
+                        self.__create_interferometer_params_with_random_paths(
+                            input_telpath
+                        )
+                    )
 
-                params_total = {**interferometer_params, **observation_params}
+                    params_total = {**interferometer_params, **observation_params}
 
-                # Submit the jobs
-                delayed_ = self.client.map(
-                    run_simu_delayed,
-                    [array_sky],
-                    params_total=params_total,
-                    precision=self.precision,
-                )
-                delayed_results.append(delayed_)
+                    # Submit the jobs
+                    delayed_ = run_simu_delayed(
+                        array_sky.isel(**{"dim_0": chunk}),
+                        params_total=params_total,
+                        precision=self.precision,
+                    )
+                    delayed_results.append(delayed_)
 
             results = compute(*delayed_results, scheduler="distributed")
+
+            print(results)
 
             # Combine the visibilities
             visibility_paths = [
@@ -384,7 +387,7 @@ class InterferometerSimulation:
 
             params_total = {**interferometer_params, **observation_params}
             params_total = InterferometerSimulation.__run_simulation_oskar(
-                params_total, array_sky, self.precision
+                array_sky, params_total, self.precision
             )
             print(self.vis_path)
             return Visibility(self.vis_path, self.ms_file_path)
@@ -420,12 +423,12 @@ class InterferometerSimulation:
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
 
-        if isinstance(os_sky, da.Array):  # type: ignore[attr-defined]
-            os_sky = SkyModel.get_OSKAR_sky(os_sky.compute(), precision=precision)
-        elif isinstance(os_sky, np.ndarray):
+        if isinstance(os_sky, np.ndarray):
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
         elif isinstance(os_sky, xr.DataArray):
-            os_sky = SkyModel.get_OSKAR_sky(np.array(os_sky), precision=precision)
+            os_sky = SkyModel.get_OSKAR_sky(
+                np.array(os_sky.as_numpy()), precision=precision
+            )
 
         simulation = oskar.Interferometer(settings=setting_tree)
         simulation.set_sky_model(os_sky)
@@ -488,8 +491,8 @@ class InterferometerSimulation:
 
             # Submit the simulation to the workers
             params_total = InterferometerSimulation.__run_simulation_oskar(
-                params_total,
                 sky.get_OSKAR_sky(sky, precision=self.precision).to_array(),
+                params_total,
                 self.precision,
             )
             runs.append(params_total)

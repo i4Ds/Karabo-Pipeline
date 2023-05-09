@@ -1,8 +1,14 @@
 import unittest
 
+import numpy as np
+import xarray as xr
+
 from karabo.data.external_data import GLEAMSurveyDownloadObject
 from karabo.simulation.sky_model import SkyModel
-from karabo.util.data_util import parse_size
+from karabo.util.data_util import (
+    calculate_chunk_size_from_max_chunk_size_in_memory,
+    parse_size,
+)
 
 
 class TestData(unittest.TestCase):
@@ -47,6 +53,62 @@ class TestParseSize(unittest.TestCase):
         for size_str in invalid_sizes:
             with self.subTest(size_str=size_str):
                 self.assertRaises(ValueError, parse_size, size_str)
+
+
+class TestCalculateChunkSize(unittest.TestCase):
+    def test_calculate_chunk_size_from_max_chunk_size_in_memory(self):
+        # Create test data array
+        data_array = xr.DataArray(np.random.rand(1000, 1000), dims=("x", "y"))
+
+        # 1: max_chunk_memory_size is larger than the total size of the data_array
+        max_chunk_memory_size = "10MB"
+        expected_chunk_size = 1000
+        calculated_chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
+            max_chunk_memory_size, data_array
+        )
+        self.assertEqual(expected_chunk_size, calculated_chunk_size)
+
+        # 2: max_chunk_memory_size is smaller than the total size of the data_array
+        max_chunk_memory_size = "1MB"
+        expected_chunk_size = 125
+        calculated_chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
+            max_chunk_memory_size, data_array
+        )
+        self.assertEqual(expected_chunk_size, calculated_chunk_size)
+
+        # 3: max_chunk_memory_size equals the total size of the data_array
+        max_chunk_memory_size = "8MB"
+        expected_chunk_size = 1000
+        calculated_chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
+            max_chunk_memory_size, data_array
+        )
+        self.assertEqual(expected_chunk_size, calculated_chunk_size)
+
+        # 4: max_chunk_memory_size is smaller than one row of the data_array
+        max_chunk_memory_size = "1KB"
+        expected_chunk_size = 1
+        calculated_chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
+            max_chunk_memory_size, data_array
+        )
+        self.assertEqual(expected_chunk_size, calculated_chunk_size)
+
+        # 5: max_chunk_memory_size is larger than one row of the list of data_arrays
+        data_arrays = [data_array, data_array]
+        max_chunk_memory_size = "10MB"
+        expected_chunk_size = 500
+        calculated_chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
+            max_chunk_memory_size, data_arrays
+        )
+        self.assertEqual(expected_chunk_size, calculated_chunk_size)
+
+        # 6: Only one row of data
+        data_array = xr.DataArray(np.random.rand(1, 1000), dims=("x", "y"))
+        max_chunk_memory_size = "10MB"
+        expected_chunk_size = 1
+        calculated_chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
+            max_chunk_memory_size, data_array
+        )
+        self.assertEqual(expected_chunk_size, calculated_chunk_size)
 
 
 if __name__ == "__main__":

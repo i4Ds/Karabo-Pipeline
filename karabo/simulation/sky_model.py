@@ -35,7 +35,7 @@ from karabo.util._types import (
     NPFloatInpBroadType,
     PrecisionType,
 )
-from karabo.util.data_util import parse_size
+from karabo.util.data_util import calculate_chunk_size_from_max_chunk_size_in_memory
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
@@ -71,7 +71,7 @@ GLEAM_freq = Literal[
 #     NPSky,
 #     DaskSky,
 # )
-SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_]]
+SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_], xr.DataArray]
 
 
 class Polarisation(enum.Enum):
@@ -109,7 +109,7 @@ class SkyModel:
 
     def __init__(
         self,
-        sources: Optional[SkySourcesType] = None,
+        sources: SkySourcesType = xr.DataArray(),
         wcs: Optional[WCS] = None,
     ) -> None:
         """
@@ -118,9 +118,9 @@ class SkyModel:
         :param sources: Adds point sources
         :param wcs: world coordinate system
         """
-        self.sources: Optional[SkySourcesType] = None
+        self.sources = sources
         self.wcs = wcs
-        if sources is not None:
+        if sources.shape == ():
             self.add_point_sources(sources)
 
     def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
@@ -332,6 +332,7 @@ class SkyModel:
         we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
+        chunk_size = self.sources.chunks[0][0]
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
             raise KaraboError(
@@ -350,6 +351,9 @@ class SkyModel:
         filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
         filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
+
+        # Rechunk the array to the original chunk size
+        copied_sky.sources = copied_sky.sources.chunk(chunk_size)
 
         if indices is True:
             return copied_sky, filtered_sources_idxs
@@ -926,7 +930,7 @@ class SkyModel:
         frequency_to_mhz_multiplier: float = 1e6,
         chunk_size: Union[int, str] = 100,  # "2GB",
         memmap: bool = False,
-    ) -> xr.Dataset:
+    ) -> SkyModel:
         """
         Reads data from a FITS file and creates an xarray Dataset containing
         information about celestial sources at given frequencies.
@@ -1061,9 +1065,9 @@ class SkyModel:
             data_arrays.append(data_array)
 
         if isinstance(chunk_size, str):
-            max_chunk_size_bytes = parse_size(chunk_size)
-            data_arrays_size = sum([data_array.nbytes for data_array in data_arrays])
-            chunk_size = int(np.ceil((max_chunk_size_bytes / data_arrays_size)))
+            chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
+                max_chunk_memory_size=chunk_size, data_array=data_arrays
+            )
 
         for freq_dataset in data_arrays:
             freq_dataset.chunk({"dim_1": chunk_size})

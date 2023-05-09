@@ -1,9 +1,10 @@
 import os
 import re
 from types import ModuleType
-from typing import Any, Dict, Tuple, cast
+from typing import Any, Dict, List, Tuple, Union, cast
 
 import numpy as np
+import xarray as xr
 from numpy.typing import NDArray
 from scipy.special import wofz
 
@@ -36,6 +37,26 @@ def parse_size(size_str: str) -> int:
         return int(value * size_units[unit])
 
     raise ValueError(f"Invalid size format: '{size_str}'")
+
+
+def calculate_required_number_of_chunks(
+    max_chunk_size_in_memory: str,
+    data_array: List[xr.DataArray],
+) -> int:
+    max_chunk_size_bytes = parse_size(max_chunk_size_in_memory)
+    data_arrays_size = sum([x.nbytes for x in data_array])
+    n_chunks = int(np.ceil(data_arrays_size / max_chunk_size_bytes))
+    return n_chunks
+
+
+def calculate_chunk_size_from_max_chunk_size_in_memory(
+    max_chunk_memory_size: str, data_array: Union[xr.DataArray, List[xr.DataArray]]
+) -> int:
+    if not isinstance(data_array, list):
+        data_array = [data_array]
+    n_chunks = calculate_required_number_of_chunks(max_chunk_memory_size, data_array)
+    chunk_size = max(int(data_array[0].shape[0] / n_chunks), 1)
+    return chunk_size
 
 
 def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
