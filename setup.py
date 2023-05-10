@@ -1,8 +1,14 @@
+import os
+import re
 from distutils.core import setup
 
-from karabo.version import __version__
+with open(os.path.join("karabo", "version.py"), mode="r") as file:
+    version_txt = file.readline()
 
-# implicitly takes config from setup.cfg (used by conda build load_setup_py_data())
+canonical_pattern = r"([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?"  # noqa: E501
+karabo_version = re.search(canonical_pattern, version_txt).group()
+
+# implicitly takes config from setup.cfg
 setup(
-    version=__version__,
+    version=karabo_version,
 )
