@@ -7,6 +7,7 @@ import oskar
 import pandas as pd
 import xarray as xr
 from dask import compute, delayed  # type: ignore[attr-defined]
+from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -319,10 +320,6 @@ class InterferometerSimulation:
             )
         # Run the simulation on the dask cluster
         if self.client is not None:
-            delayed_results = []
-            # Define the function as delayed
-            run_simu_delayed = delayed(self.__run_simulation_oskar)
-
             n_chunks_sky = len(array_sky.chunks[0])
             print(f"Submitting {n_chunks_sky} chunks " "of the skymodel to the workers")
 
@@ -340,7 +337,18 @@ class InterferometerSimulation:
                 observations = [observation.get_OSKAR_settings_tree()]
 
             delayed_results = []
-            for chunk in np.arange(n_chunks_sky):
+            # Define the function as delayed
+            run_simu_delayed = delayed(self.__run_simulation_oskar)
+
+            # Delay each sky
+            delayed_sky = array_sky.data.to_delayed()
+
+            for sky_chunk in delayed_sky:
+                print("sky chunk")
+                print(sky_chunk)
+                print(type(sky_chunk))
+                print(sky_chunk[0])
+                sky_chunk = sky_chunk[0]
                 for observation_params in observations:
                     # Create params
                     interferometer_params = (
@@ -353,7 +361,7 @@ class InterferometerSimulation:
 
                     # Submit the jobs
                     delayed_ = run_simu_delayed(
-                        array_sky.isel(**{"dim_0": chunk}),
+                        os_sky=sky_chunk,
                         params_total=params_total,
                         precision=self.precision,
                     )
@@ -407,7 +415,7 @@ class InterferometerSimulation:
 
     @staticmethod
     def __run_simulation_oskar(
-        os_sky: Union[oskar.Sky, np.ndarray, xr.DataArray],
+        os_sky: Union[oskar.Sky, np.ndarray, xr.DataArray, Delayed],
         params_total: Dict[str, Any],
         precision: PrecisionType,
     ) -> Dict[str, Any]:
@@ -423,12 +431,15 @@ class InterferometerSimulation:
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
 
+        if isinstance(os_sky, Delayed):
+            os_sky = os_sky.compute()
+        if isinstance(os_sky, xr.DataArray):
+            os_sky = np.array(os_sky.as_numpy())
         if isinstance(os_sky, np.ndarray):
+            print("os_sky")
+            print(os_sky)
+            print(os_sky.shape)
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
-        elif isinstance(os_sky, xr.DataArray):
-            os_sky = SkyModel.get_OSKAR_sky(
-                np.array(os_sky.as_numpy()), precision=precision
-            )
 
         simulation = oskar.Interferometer(settings=setting_tree)
         simulation.set_sky_model(os_sky)

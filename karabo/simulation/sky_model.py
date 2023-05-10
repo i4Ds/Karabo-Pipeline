@@ -4,16 +4,15 @@ import copy
 import enum
 import logging
 import math
-import os
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
 import dask.array as da
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 import pandas as pd
-import tables
 import xarray as xr
 from astropy import units as u
 from astropy.io import fits
@@ -353,7 +352,8 @@ class SkyModel:
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
 
         # Rechunk the array to the original chunk size
-        copied_sky.sources = copied_sky.sources.chunk(chunk_size)
+        chunk_size = min(chunk_size, len(filtered_sources_idxs))
+        copied_sky.sources = copied_sky.sources.chunk({"dim_1": chunk_size})
 
         if indices is True:
             return copied_sky, filtered_sources_idxs
@@ -373,6 +373,7 @@ class SkyModel:
         :param max_flux_jy: Maximum flux in Jy
         :return sky: Filtered copy of the sky
         """
+        chunk_size = self.sources.chunks[0][0]
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
             raise KaraboError(
@@ -383,6 +384,10 @@ class SkyModel:
             np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy)
         )[0]
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
+
+        # Rechunk the array to the original chunk size
+        chunk_size = min(chunk_size, len(filtered_sources_idxs))
+        copied_sky.sources = copied_sky.sources.chunk({"dim_1": chunk_size})
         return copied_sky
 
     def filter_by_frequency(
@@ -501,11 +506,13 @@ class SkyModel:
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`,
                        `vmin` or `vmax`
         """
+        # To avoid having to read the data multiple times, we read it once here
+        data = self.sources.as_numpy()
         if wcs_enabled:
             if wcs is None:
                 wcs = self.setup_default_wcs(phase_center)
             px, py = wcs.wcs_world2pix(
-                self[:, 0], self[:, 1], 0
+                data[:, 0], data[:, 1], 0
             )  # ra-dec transformation
             xlim_reset, ylim_reset = False, False
             if xlim is None and ylim is not None:
@@ -521,11 +528,11 @@ class SkyModel:
             if ylim_reset:
                 ylim = None
         else:
-            px, py = self[:, 0], self[:, 1]
+            px, py = data[:, 0], data[:, 1]
 
         flux = None
         if cmap is not None:
-            flux = self[:, flux_idx]
+            flux = data[:, flux_idx]
             if cfun is not None:
                 if cfun in [np.log10, np.log] and any(flux <= 0):
                     warn(
@@ -556,9 +563,9 @@ class SkyModel:
         sc = ax.scatter(px, py, c=flux, cmap=cmap, **kwargs)
 
         if with_labels:
-            unique_keys, indices = np.unique(self[:, -1], return_index=True)
+            unique_keys, indices = np.unique(data[:, -1], return_index=True)
             for i, txt in enumerate(unique_keys):
-                if self.shape[0] > 1:
+                if data.shape[0] > 1:
                     ax.annotate(
                         txt,
                         (px[indices][i], py[indices][i]),
@@ -742,62 +749,40 @@ class SkyModel:
         return cartesian_sky
 
     @staticmethod
-    def get_sky_model_from_h5_to_dask(
+    def get_sky_model_from_h5_to_xarray(
         path: str,
         prefix_mapping: Dict[str, Optional[str]],
         extra_columns: Optional[List[str]] = None,
-        chunksize: Union[int, str] = "1MB",
-    ) -> SkyModel:
+        chunksize: Union[int, str] = "auto",
+    ) -> xr.DataArray:
         """
-        Load a sky model from an HDF5 file into a Dask dataframe.
+        Load a sky model dataset from an HDF5 file and
+        converts it to an xarray DataArray.
 
         Parameters
         ----------
         path : str
-            Path to the HDF5 file containing the sky model data.
-        prefix_mapping : dict of {str: str or None}
-            A dictionary that maps the column names in the HDF5 file to the
-            corresponding keys in the output dataframe. If a key is set to None,
-            a column of zeros will be created with the same shape as the other columns.
-            If you want to read in extra columns, please use the `extra_columns`
-            parameter
-        extra_columns : list of str, optional
-            A list of extra columns to read in from the HDF5 file. These columns
-            will not be used by Oskar, but will be included in the output dataframe.
-        chunksize : int or str, optional
-            The size of the chunks to use when creating the Dask arrays. This can
-            be an integer representing the number of rows per chunk, or a string
-            representing the size of each chunk in bytes (e.g. '64MB', '1GB', etc.).
-            Default is '2GB'.
+            Path to the input HDF5 file.
+        prefix_mapping : Dict[str, Optional[str]]
+            A dictionary mapping column names to their corresponding dataset paths
+            in the HDF5 file.
+            If the column is not present in the HDF5 file, set its value to None.
+        extra_columns : Optional[List[str]], default=None
+            A list of additional column names to include in the output DataArray.
+            If not provided, only the default columns will be included.
+        chunksize : Union[int, str], default=1000
+            Chunk size for Dask arrays. This determines the size of chunks that
+            the data will be divided into when read from the file. Can be an
+            integer or 'auto'. If 'auto', Dask will choose an optimal chunk size.
 
         Returns
         -------
-        Array
-            A Dask array containing the sky model data.
-
-        Examples
-        --------
-        >>> prefix_mapping = {
-        ...     "ra": "Right Ascension",
-        ...     "dec": "Declination",
-        ...     "i": "Flux",
-        ...     "q": None,
-        ...     "u": None,
-        ...     "v": None,
-        ...     "ref_freq": None,
-        ...     "spectral_index": None,
-        ...     "rm": None,
-        ...     "major": None,
-        ...     "minor": None,
-        ...     "pa": None,
-        ...     "id": None
-        ... }
-        ... extra_columns = ["Source Name"]
-        >>> skymodel = SkyModel.get_sky_model_from_h5_to_dask('/path/to/my/hdf5/file', prefix_mapping, extra_columns) # noqa: E501
-
+        xr.DataArray
+            A 2D xarray DataArray containing the sky model data. Rows represent data
+            points and columns represent different data fields ('ra', 'dec', ...).
         """
-        f = tables.open_file(path, "r")
-        arr_columns = []
+        f = h5py.File(path, "r")
+        data_arrays = []
 
         for col in [
             "ra",
@@ -814,35 +799,20 @@ class SkyModel:
             "pa",
             "id",
         ]:
-            shape = da.from_array(f.root[prefix_mapping["ra"]]).shape  # type: ignore[attr-defined] # noqa: E501
-
             if prefix_mapping[col] is None:
-                arr_columns.append(da.zeros(shape))  # type: ignore[attr-defined]
+                shape = f[prefix_mapping["ra"]].shape
+                dask_array = da.zeros(shape, chunks=(chunksize,))
             else:
-                arr_columns.append(da.from_array(f.root[prefix_mapping[col]]))  # type: ignore[attr-defined] # noqa: E501
+                dask_array = da.from_array(f[prefix_mapping[col]], chunks=(chunksize,))
+            data_arrays.append(xr.DataArray(dask_array, dims=["dim_0"]))
 
         if extra_columns is not None:
             for col in extra_columns:
-                arr_columns.append(da.from_array(f.root[col]))  # type: ignore[attr-defined] # noqa: E501
-        sky = da.concatenate([x[:, None] for x in arr_columns], axis=1)  # type: ignore[attr-defined] # noqa: E501
-
-        # TODO: Improve this, is memmap really necessary?
-        shape = sky.shape
-        dtype = sky.dtype
-
-        # Create path
-        memmap_path = os.path.join(
-            os.path.dirname(path), os.path.basename(path) + ".memmap"
-        )
-
-        memmap_array = np.memmap(memmap_path, dtype=dtype, mode="w+", shape=shape)
-        for i in range(shape[1]):
-            column = sky[:, i].compute()
-            memmap_array[:, i] = column
-
-        # Load in the memmap array as dask array
-        memmap_array = da.from_array(memmap_array, chunks=(chunksize, -1))  # type: ignore[attr-defined] # noqa: E501
-        return SkyModel(memmap_array)
+                dask_array = da.from_array(f[col], chunks=(chunksize,))
+                data_arrays.append(xr.DataArray(dask_array, dims=["dim_0"]))
+        sky = xr.concat(data_arrays, dim="columns")
+        sky = sky.T.chunk({"dim_0": chunksize, "columns": 13})
+        return sky
 
     @staticmethod
     def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
