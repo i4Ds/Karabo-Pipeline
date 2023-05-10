@@ -1,8 +1,8 @@
 import os
 import unittest
 
-from karabo import __version__
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
+from karabo.version import __version__
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 

@@ -3,7 +3,7 @@ import os
 import platform
 import sys
 
-from version import __version__
+from karabo.version import __version__
 
 __version__ = __version__
 
