@@ -159,6 +159,7 @@ When everything is merged which should be merged, a new Release can be deployed 
 - [Karabo-Pipline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
 - Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
+- Update version in `karabo/version.py`
 - Check that the `Target` is set to `main`.
 - Describe the release (get inspired by the previous releases).
 - Click `Publish release`. 
