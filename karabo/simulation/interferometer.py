@@ -431,9 +431,6 @@ class InterferometerSimulation:
         if isinstance(os_sky, xr.DataArray):
             os_sky = np.array(os_sky.as_numpy())
         if isinstance(os_sky, np.ndarray):
-            print("os_sky")
-            print(os_sky)
-            print(os_sky.shape)
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
 
         simulation = oskar.Interferometer(settings=setting_tree)

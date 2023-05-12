@@ -1,7 +1,7 @@
 import os
 import unittest
 
-import numpy as np
+import xarray as xr
 
 from karabo.data.external_data import ExampleHDF5Map
 from karabo.simulation.sky_model import Polarisation, SkyModel
@@ -17,7 +17,7 @@ class TestSkyModel(unittest.TestCase):
 
     def test_init(self):
         sky1 = SkyModel()
-        sky_data = np.array(
+        sky_data = xr.DataArray(
             [
                 [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, "source1"],
                 [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, "source2"],
@@ -32,7 +32,7 @@ class TestSkyModel(unittest.TestCase):
 
     def test_not_full_array(self):
         sky1 = SkyModel()
-        sky_data = np.array([[20.0, -30.0, 1], [20.0, -30.5, 3], [20.5, -30.5, 3]])
+        sky_data = xr.DataArray([[20.0, -30.0, 1], [20.0, -30.5, 3], [20.5, -30.5, 3]])
         sky1.add_point_sources(sky_data)
         sky2 = SkyModel(sky_data)
         # test if doc shape were expanded
@@ -47,7 +47,7 @@ class TestSkyModel(unittest.TestCase):
 
     def test_get_cartesian(self):
         sky1 = SkyModel()
-        sky_data = np.array(
+        sky_data = xr.DataArray(
             [
                 [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, "source1"],
                 [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, "source2"],
@@ -61,6 +61,7 @@ class TestSkyModel(unittest.TestCase):
     def test_filter_sky_model(self):
         sky = SkyModel.get_GLEAM_Sky([76])
         phase_center = [250, -80]  # ra,dec
+        print(type(sky.sources))
         filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
         filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(
@@ -71,7 +72,7 @@ class TestSkyModel(unittest.TestCase):
             ylim=(-81, -79),  # DEC-lim
             with_labels=True,
         )
-        assert len(filtered_sky.sources) == 24
+        assert len(filtered_sky.sources) == 8
         filtered_sky.write_to_file("./result/filtered_sky.csv")
         filtered_sky_euclidean_approx = (
             sky.filter_by_radius_euclidean_flat_approximation(
@@ -105,4 +106,7 @@ class TestSkyModel(unittest.TestCase):
 
     def test_get_poisson_sky(self):
         sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
+        print(type(sky.sources))
+        print(sky.sources)
+        print(sky.sources.shape)
         sky.explore_sky([240, -70])

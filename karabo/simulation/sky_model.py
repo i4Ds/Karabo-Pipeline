@@ -108,7 +108,7 @@ class SkyModel:
 
     def __init__(
         self,
-        sources: SkySourcesType = xr.DataArray(),
+        sources: Optional[SkySourcesType] = None,
         wcs: Optional[WCS] = None,
     ) -> None:
         """
@@ -117,19 +117,21 @@ class SkyModel:
         :param sources: Adds point sources
         :param wcs: world coordinate system
         """
-        self.sources = sources
         self.wcs = wcs
-        if sources.shape == ():
+        self.sources = None
+        if sources is not None:
+            if not isinstance(sources, xr.DataArray):
+                sources = xr.DataArray(sources)
             self.add_point_sources(sources)
 
     def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
         empty_sources = np.hstack(
             (
                 np.zeros((n_sources, SkyModel.SOURCES_COLS - 1)),
-                np.array([[None] * n_sources]).reshape(-1, 1),
+                np.array([[np.nan] * n_sources]).reshape(-1, 1),
             )
         )
-        return empty_sources
+        return xr.DataArray(empty_sources)
 
     def add_point_sources(self, sources: SkySourcesType) -> None:
         """
@@ -265,12 +267,7 @@ class SkyModel:
         :param path: file to read in
         :return: SkyModel
         """
-        dataframe = pd.read_csv(path)
-        if dataframe.ndim < 2:
-            raise KaraboError(
-                "CSV doesnt have enough dimensions to hold the necessary "
-                + f"information: Dimensions: {dataframe.ndim}"
-            )
+        dataframe = pd.read_csv(path).to_xarray()
 
         if dataframe.shape[1] < 3:
             raise KaraboError(
@@ -291,8 +288,8 @@ class SkyModel:
                 + "The extra rows will be cut off."
             )
 
-        sources = dataframe.to_numpy()
-        sky = SkyModel(sources=sources)
+        sources = dataframe
+        sky = SkyModel(sources)
         return sky
 
     def to_array(self, with_obj_ids: bool = False) -> SkySourcesType:
@@ -335,7 +332,9 @@ class SkyModel:
         we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
+        print(type(self.sources))
         copied_sky = copy.deepcopy(self)
+        print(type(copied_sky.sources))
         if copied_sky.sources is None:
             raise KaraboError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
@@ -348,9 +347,9 @@ class SkyModel:
             (ra0_deg * u.deg, dec0_deg * u.deg),
             outer_radius_deg * u.deg,  # pyright: ignore
         )
-        outer_sources = outer_circle.contains_points(copied_sky[:, 0:2]).astype("int")
-        inner_sources = inner_circle.contains_points(copied_sky[:, 0:2]).astype("int")
-        filtered_sources = np.array(outer_sources - inner_sources, dtype="bool")
+        outer_sources = outer_circle.contains_points(copied_sky[:, 0:2])
+        inner_sources = inner_circle.contains_points(copied_sky[:, 0:2])
+        filtered_sources = np.logical_and(outer_sources, np.logical_not(inner_sources))
         filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
 
@@ -387,13 +386,12 @@ class SkyModel:
         filter_mask = (distances_sq >= np.square(inner_radius_deg)) & (
             distances_sq <= np.square(outer_radius_deg)
         )
-        filter_mask = self.rechunk_array_based_on_self(filter_mask)
 
         print("Filtering sources")
-        # copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
         copied_sky.sources = copied_sky.sources[filter_mask]
 
-        print("Returning sky")
+        print("Rechunking sky")
+        copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
         if indices:
             filtered_indices = np.where(filter_mask)[0]
@@ -535,6 +533,8 @@ class SkyModel:
 
         :param phase_center: [RA,DEC]
         :param flux_idx: `SkyModel` flux index, default is "Stokes I" flux with index 2
+        :param idx_to_plot: If you want to plot only a subset of the sources, set
+                            the indices here.
         :param xlim: RA-limit of plot
         :param ylim: DEC-limit of plot
         :param figsize: figsize as tuple
@@ -684,7 +684,7 @@ class SkyModel:
         arr = get_healpix_image(file)
         filtered = arr[channel][polarisation.value]
         ra, dec, nside = convert_healpix_2_radec(filtered)
-        return np.vstack((ra, dec, filtered)).transpose(), nside
+        return xr.DataArray(np.vstack((ra, dec, filtered)).transpose()), nside
 
     @property
     def shape(self) -> Tuple[int, ...]:
@@ -1209,5 +1209,8 @@ class SkyModel:
         flux_max: IntFloat,
         r: int = 3,
     ) -> SkyModel:
-        sky_array = get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
+        sky_array = xr.DataArray(
+            get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
+        )
+        print(sky_array.shape)
         return SkyModel(sky_array)
