@@ -32,8 +32,13 @@ class DownloadObject:
         self.path = f"{directory}/{name}"
 
     def __download(self) -> None:
-        response = requests.get(self.url)
-        open(self.path, "wb").write(response.content)
+        response = requests.get(self.url, stream=True)
+        response.raise_for_status()
+        with open(self.path, "wb") as file:
+            for chunk in response.iter_content(
+                chunk_size=8192
+            ):  # Download in 8KB chunks
+                file.write(chunk)
 
     def __is_downloaded(self) -> bool:
         if os.path.exists(self.path):
@@ -42,10 +47,8 @@ class DownloadObject:
 
     def get(self) -> str:
         if not self.__is_downloaded():
-            print(
-                f"{self.name} is not downloaded yet. "
-                + "Downloading and caching for future uses..."
-            )
+            print(f"{self.name} is not downloaded yet.")
+            print("Downloading and caching for future uses to " f"{self.path} ...")
             self.__download()
         return self.path
 
@@ -56,6 +59,15 @@ class GLEAMSurveyDownloadObject(DownloadObject):
             "GLEAM_ECG.fits",
             "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
             + "/karabo_public/GLEAM_EGC.fits",
+        )
+
+
+class BATTYESurveyDownloadObject(DownloadObject):
+    def __init__(self) -> None:
+        super().__init__(
+            "point_sources_OSKAR1_battye.h5",
+            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
+            + "/karabo_public/point_sources_OSKAR1_battye.h5",
         )
 
 

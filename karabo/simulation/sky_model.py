@@ -24,6 +24,7 @@ from astropy.wcs import WCS
 from numpy.typing import NDArray
 
 from karabo.data.external_data import (
+    BATTYESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
@@ -34,7 +35,6 @@ from karabo.util._types import (
     NPFloatInpBroadType,
     PrecisionType,
 )
-from karabo.util.data_util import calculate_chunk_size_from_max_chunk_size_in_memory
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
@@ -312,6 +312,10 @@ class SkyModel:
         else:
             return self.sources[:, :-1]
 
+    def rechunk_array_based_on_self(self, da: xr.DataArray):
+        chunk_size = max(self.sources.chunks[0][0], 1)
+        return da.chunk({"dim_0": chunk_size})
+
     def filter_by_radius(
         self,
         inner_radius_deg: IntFloat,
@@ -331,7 +335,6 @@ class SkyModel:
         we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
-        chunk_size = self.sources.chunks[0][0]
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
             raise KaraboError(
@@ -352,18 +355,56 @@ class SkyModel:
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
 
         # Rechunk the array to the original chunk size
-        chunk_size = min(chunk_size, len(filtered_sources_idxs))
-        copied_sky.sources = copied_sky.sources.chunk({"dim_1": chunk_size})
+        copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
         if indices is True:
             return copied_sky, filtered_sources_idxs
         else:
             return copied_sky
 
+    def filter_by_radius_euclidean_flat_approximation(
+        self,
+        inner_radius_deg: float,
+        outer_radius_deg: float,
+        ra0_deg: float,
+        dec0_deg: float,
+        indices: bool = False,
+    ) -> Union[SkyModel, Tuple[SkyModel, np.ndarray]]:
+        copied_sky = copy.deepcopy(self)
+        if copied_sky.sources is None:
+            raise KaraboError(
+                "`sources` is None, add sources before calling `filter_by_radius`."
+            )
+
+        # Calculate distances to phase center using flat Euclidean approximation
+        print("Calculating distances")
+        x = (copied_sky.sources[:, 0] - ra0_deg) * np.cos(np.radians(dec0_deg))
+        y = copied_sky.sources[:, 1] - dec0_deg
+        distances_sq = np.add(np.square(x), np.square(y))
+
+        # Filter sources based on inner and outer radius
+        print("Calculating Mask")
+        filter_mask = (distances_sq >= np.square(inner_radius_deg)) & (
+            distances_sq <= np.square(outer_radius_deg)
+        )
+        filter_mask = self.rechunk_array_based_on_self(filter_mask)
+
+        print("Filtering sources")
+        # copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
+        copied_sky.sources = copied_sky.sources[filter_mask]
+
+        print("Returning sky")
+
+        if indices:
+            filtered_indices = np.where(filter_mask)[0]
+            return copied_sky, filtered_indices
+        else:
+            return copied_sky
+
     def filter_by_flux(
         self,
-        min_flux_jy: IntFloat,
-        max_flux_jy: IntFloat,
+        min_flux_jy: float,
+        max_flux_jy: float,
     ) -> SkyModel:
         """
         Filters the sky using the Stokes-I-flux
@@ -373,30 +414,30 @@ class SkyModel:
         :param max_flux_jy: Maximum flux in Jy
         :return sky: Filtered copy of the sky
         """
-        chunk_size = self.sources.chunks[0][0]
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
             raise KaraboError(
                 "`sources` is None, add sources before calling `filter_by_flux`."
             )
-        stokes_I_flux = copied_sky[:, 2]
-        filtered_sources_idxs = np.where(
-            np.logical_and(stokes_I_flux <= max_flux_jy, stokes_I_flux >= min_flux_jy)
-        )[0]
-        copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
 
-        # Rechunk the array to the original chunk size
-        chunk_size = min(chunk_size, len(filtered_sources_idxs))
-        copied_sky.sources = copied_sky.sources.chunk({"dim_1": chunk_size})
+        # Create mask
+        filter_mask = (copied_sky.sources[:, 2] >= min_flux_jy) & (
+            copied_sky.sources[:, 2] <= max_flux_jy
+        )
+        filter_mask = self.rechunk_array_based_on_self(filter_mask)
+
+        # Apply the filter mask and drop the unmatched rows
+        copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
+
         return copied_sky
 
     def filter_by_frequency(
         self,
-        min_freq: IntFloat,
-        max_freq: IntFloat,
+        min_freq: float,
+        max_freq: float,
     ) -> SkyModel:
         """
-        Filters the sky using the referency frequency in Hz
+        Filters the sky using the reference frequency in Hz
 
         :param min_freq: Minimum frequency in Hz
         :param max_freq: Maximum frequency in Hz
@@ -407,11 +448,16 @@ class SkyModel:
             raise KaraboError(
                 "`sources` is None, add sources before calling `filter_by_frequency`."
             )
-        freq = copied_sky[:, 6]
-        filtered_sources_idxs = np.where(
-            np.logical_and(freq <= max_freq, freq >= min_freq)
-        )[0]
-        copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
+
+        # Create mask
+        filter_mask = (copied_sky.sources[:, 6] >= min_freq) & (
+            copied_sky.sources[:, 6] <= max_freq
+        )
+        filter_mask = self.rechunk_array_based_on_self(filter_mask)
+
+        # Apply the filter mask and drop the unmatched rows
+        copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
+
         return copied_sky
 
     def get_wcs(self) -> WCS:
@@ -467,6 +513,7 @@ class SkyModel:
         self,
         phase_center: IntFloatList,
         flux_idx: int = 2,
+        idx_to_plot: Optional[NDArray[np.float_]] = None,
         xlim: Optional[Tuple[IntFloat, IntFloat]] = None,
         ylim: Optional[Tuple[IntFloat, IntFloat]] = None,
         figsize: Optional[Tuple[IntFloat, IntFloat]] = None,
@@ -507,7 +554,10 @@ class SkyModel:
                        `vmin` or `vmax`
         """
         # To avoid having to read the data multiple times, we read it once here
-        data = self.sources.as_numpy()
+        if idx_to_plot is not None:
+            data = self.sources[idx_to_plot].as_numpy()
+        else:
+            data = self.sources.as_numpy()
         if wcs_enabled:
             if wcs is None:
                 wcs = self.setup_default_wcs(phase_center)
@@ -810,9 +860,11 @@ class SkyModel:
             for col in extra_columns:
                 dask_array = da.from_array(f[col], chunks=(chunksize,))
                 data_arrays.append(xr.DataArray(dask_array, dims=["dim_0"]))
+
         sky = xr.concat(data_arrays, dim="columns")
-        sky = sky.T.chunk({"dim_0": chunksize, "columns": 13})
-        return sky
+        sky = sky.T
+        sky = sky.chunk({"dim_0": chunksize, "columns": sky.shape[1]})
+        return SkyModel(sky)
 
     @staticmethod
     def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
@@ -898,7 +950,7 @@ class SkyModel:
         concat_freq_with_prefix: bool = False,
         filter_data_by_stokes_i: bool = False,
         frequency_to_mhz_multiplier: float = 1e6,
-        chunk_size: Union[int, str] = 100,  # "2GB",
+        chunksize: Union[int, str] = "auto",
         memmap: bool = False,
     ) -> SkyModel:
         """
@@ -925,10 +977,11 @@ class SkyModel:
             If True, filters the data by Stokes I. Defaults to False.
         frequency_to_mhz_multiplier : float, optional
             Factor to convert the frequency units to MHz. Defaults to 1e6.
-        chunk_size : int or str, optional
+        chunksize : int or str, optional
             The size of the chunks to use when creating the Dask arrays. This can
             be an integer representing the number of rows per chunk, or a string
-            representing the size of each chunk in bytes (e.g. '64MB', '1GB', etc.).
+            representing the size of each chunk in bytes (e.g. '64MB', '1GB', etc.)
+            or 'auto'.
         memmap : bool, optional
             Whether to use memory mapping when opening the FITS file. Defaults to False.
             Allows for reading of larger-than-memory files.
@@ -974,7 +1027,7 @@ class SkyModel:
         ...     },
         ...     concat_freq_with_prefix=True,
         ...     filter_data_by_stokes_i=True,
-        ...     chunks=100,
+        ...     chunks='auto',
         ...     memmap=False,
         ... )
 
@@ -1034,19 +1087,69 @@ class SkyModel:
 
             data_arrays.append(data_array)
 
-        if isinstance(chunk_size, str):
-            chunk_size = calculate_chunk_size_from_max_chunk_size_in_memory(
-                max_chunk_memory_size=chunk_size, data_array=data_arrays
-            )
-
         for freq_dataset in data_arrays:
-            freq_dataset.chunk({"dim_1": chunk_size})
+            freq_dataset.chunk({"dim_1": chunksize})
 
         result_dataset = (
-            xr.concat(data_arrays, dim="dim_1").chunk({"dim_1": chunk_size}).T
+            xr.concat(data_arrays, dim="dim_1").chunk({"dim_1": chunksize}).T
         )
 
         return SkyModel(result_dataset)
+
+    @staticmethod
+    def get_BATTYE_sky() -> SkyModel:
+        """
+        Downloads BATTYE survey data and generates a sky
+        model using the downloaded data.
+
+        Source:
+        The BATTYE survey data was given by Jennifer Studer
+        (https://github.com/jejestern)
+
+        Returns:
+            SkyModel: A sky model generated from the BATTYE survey data.
+            The sky model contains the following information:
+
+            - 'Right Ascension' (ra): The right ascension coordinates
+                of the celestial objects.
+            - 'Declination' (dec): The declination coordinates of the
+                celestial objects.
+            - 'Flux' (i): The flux measurements of the celestial objects.
+            - 'Observed Redshift': Additional observed redshift information
+                of the celestial objects.
+
+            Note: Other properties such as 'q', 'u', 'v', 'ref_freq',
+            'spectral_index', 'rm', 'major', 'minor', 'pa', and 'id'
+            are not included in the sky model.
+
+
+        """
+        survey = BATTYESurveyDownloadObject()
+        path = survey.get()
+        column_mapping = {
+            "ra": "Right Ascension",
+            "dec": "Declination",
+            "i": "Flux",
+            "q": None,
+            "u": None,
+            "v": None,
+            "ref_freq": None,
+            "spectral_index": None,
+            "rm": None,
+            "major": None,
+            "minor": None,
+            "pa": None,
+            "id": None,
+        }
+        extra_columns = ["Observed Redshift"]
+
+        sky = SkyModel.get_sky_model_from_h5_to_xarray(
+            path=path, prefix_mapping=column_mapping, extra_columns=extra_columns
+        )
+
+        sky.sources[:, 1] *= -1
+
+        return sky
 
     @staticmethod
     def get_MIGHTEE_Sky() -> SkyModel:

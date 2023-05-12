@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime, timedelta
 from typing import Dict, List, Union
 
@@ -114,7 +115,7 @@ class Observation:
     def extract_multiple_observations_from_settings(
         settings: Dict[str, Dict[str, str]],
         number_of_observations: int,
-        channel_bandwidth_hz: float,
+        channel_bandwidth_hz: int,
     ) -> List[Dict[str, Dict[str, str]]]:
         """
         Extracts the settings of multiple observations from a settings dictionary.
@@ -124,20 +125,32 @@ class Observation:
         """
         settings_list: List[Dict[str, Dict[str, str]]] = []
 
-        for i in range(number_of_observations):
-            settings["observation"]["start_frequency_hz"] = str(
-                float(settings["observation"]["start_frequency_hz"])
-                + i * channel_bandwidth_hz
+        # Extract some settings from the dictionary
+        n_channels = int(settings["observation"]["num_channels"])
+        start_frequency_hz = float(settings["observation"]["start_frequency_hz"])
+
+        # Calculate n_channels per split
+        n_channels_per_split = int(
+            np.ceil(n_channels / number_of_observations)
+        )  # round up
+
+        # Calculate the observed frequency
+        observed_frequency_hz = n_channels * channel_bandwidth_hz
+
+        # Create a list of settings for each observation
+        current_start_frequency_hz = start_frequency_hz
+
+        while observed_frequency_hz > 0:
+            current_settings = copy.deepcopy(settings)
+            current_settings["observation"]["start_frequency_hz"] = str(
+                current_start_frequency_hz
             )
-            settings["observation"]["num_channels"] = str(
-                int(
-                    np.ceil(
-                        float(settings["observation"]["num_channels"])
-                        / number_of_observations
-                    )
-                )
+            current_settings["observation"]["num_channels"] = str(n_channels_per_split)
+            settings_list.append(current_settings)
+            current_start_frequency_hz += (
+                n_channels_per_split * channel_bandwidth_hz + 1
             )
-            settings_list.append(settings)
+            observed_frequency_hz -= n_channels_per_split * channel_bandwidth_hz
 
         return settings_list
 

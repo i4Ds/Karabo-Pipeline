@@ -123,6 +123,11 @@ class InterferometerSimulation:
     :ivar beam_polX: currently only considered for `ObservationLong`
     :ivar use_gpus: Set to true if you want to use gpus for the simulation
     :ivar client: The dask client to use for the simulation
+    :ivar split_idxs_per_group: The indices of the sky model to split for each group
+                                of workers. If None, the sky model will not be split.
+                                Useful if the sky model is too large to fit into the
+                                memory of a single worker. Group index should be
+                                strictly monotonic increasing.
     :ivar precision: For the arithmetic use you can choose between "single" or
                      "double" precision
     :ivar station_type: Here you can choose the type of each station in the
@@ -175,10 +180,9 @@ class InterferometerSimulation:
         # for `ObservationLong`
         use_gpus: Optional[bool] = None,
         use_dask: Optional[bool] = None,
+        split_observation_by_channels: bool = False,
+        n_split_channels: Union[int, str] = "each",
         client: Optional[Client] = None,
-        split_idxs_per_group: Optional[List[List[int]]] = None,
-        split_sky_for_dask_how: Literal["randomly"] = "randomly",
-        max_vram_usage_gpu: IntFloat = 0.8,
         precision: PrecisionType = "single",
         station_type: StationTypeType = "Isotropic beam",
         enable_power_pattern: bool = False,
@@ -248,9 +252,9 @@ class InterferometerSimulation:
             client = DaskHandler.get_dask_client()
         self.client = client
 
-        self.split_idxs_per_group = split_idxs_per_group
-        self.split_sky_for_dask_how = split_sky_for_dask_how
-        self.max_vram_usage_gpu = max_vram_usage_gpu
+        self.split_observation_by_channels = split_observation_by_channels
+        self.n_split_channels = n_split_channels
+
         self.precision = precision
         self.station_type = station_type
         self.enable_power_pattern = enable_power_pattern
@@ -320,35 +324,35 @@ class InterferometerSimulation:
             )
         # Run the simulation on the dask cluster
         if self.client is not None:
-            n_chunks_sky = len(array_sky.chunks[0])
-            print(f"Submitting {n_chunks_sky} chunks " "of the skymodel to the workers")
-
-            if n_chunks_sky < len(self.client.scheduler_info()["workers"]):
-                print("Not enough skymodel chunks. Splitting also by Observations.")
-                splits_by_observation = int(
-                    np.ceil(len(self.client.scheduler_info()["workers"]) - n_chunks_sky)
+            oskar_settings_tree = observation.get_OSKAR_settings_tree()
+            if self.split_observation_by_channels:
+                print("Splitting simulation by channels with the following parameter:")
+                print(f"{self.n_split_channels=}")
+                # Calculate the number of splits
+                n_splits = (
+                    int(oskar_settings_tree["observation"]["num_channels"])
+                    if self.n_split_channels == "each"
+                    else self.n_split_channels
+                )
+                print(
+                    f"Splitting into {n_splits} "
+                    f"observations because {self.n_split_channels=}"
                 )
                 observations = Observation.extract_multiple_observations_from_settings(
-                    observation.get_OSKAR_settings_tree(),
-                    splits_by_observation,
+                    oskar_settings_tree,
+                    n_splits,
                     self.channel_bandwidth_hz,
                 )
             else:
-                observations = [observation.get_OSKAR_settings_tree()]
+                observations = [oskar_settings_tree]
 
+            # Define delayed objects
             delayed_results = []
+            array_sky = [x[0] for x in array_sky.data.to_delayed()]
+
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
-
-            # Delay each sky
-            delayed_sky = array_sky.data.to_delayed()
-
-            for sky_chunk in delayed_sky:
-                print("sky chunk")
-                print(sky_chunk)
-                print(type(sky_chunk))
-                print(sky_chunk[0])
-                sky_chunk = sky_chunk[0]
+            for sky_ in array_sky:
                 for observation_params in observations:
                     # Create params
                     interferometer_params = (
@@ -361,7 +365,7 @@ class InterferometerSimulation:
 
                     # Submit the jobs
                     delayed_ = run_simu_delayed(
-                        os_sky=sky_chunk,
+                        os_sky=sky_,
                         params_total=params_total,
                         precision=self.precision,
                     )
@@ -369,17 +373,8 @@ class InterferometerSimulation:
 
             results = compute(*delayed_results, scheduler="distributed")
 
-            print(results)
-
-            # Combine the visibilities
-            visibility_paths = [
-                x["interferometer"]["oskar_vis_filename"] for x in results
-            ]
-            # Combine visibilities.
-            Visibility.combine_vis(visibility_paths, self.ms_file_path)
-
             # Visibilities cannot be combined currently, thus return the first one
-            return Visibility(visibility_paths[0], self.ms_file_path)
+            return results
 
         # Run the simulation on the local machine
         else:

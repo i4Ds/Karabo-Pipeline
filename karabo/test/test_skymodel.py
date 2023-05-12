@@ -71,7 +71,14 @@ class TestSkyModel(unittest.TestCase):
             ylim=(-81, -79),  # DEC-lim
             with_labels=True,
         )
+        assert len(filtered_sky.sources) == 24
         filtered_sky.write_to_file("./result/filtered_sky.csv")
+        filtered_sky_euclidean_approx = (
+            sky.filter_by_radius_euclidean_flat_approximation(
+                0, 0.55, phase_center[0], phase_center[1]
+            )
+        )
+        assert len(filtered_sky_euclidean_approx.sources) == len(filtered_sky.sources)
 
     def test_read_sky_model(self):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
