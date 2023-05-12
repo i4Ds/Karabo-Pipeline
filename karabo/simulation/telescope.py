@@ -284,6 +284,10 @@ class Telescope(KaraboResource):
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
+    def get_NG_VLAD_Telescope(cls) -> Telescope:
+        path = f"{get_module_absolute_path()}/data/ngvla-revD.tm"
+        return cls.read_OSKAR_tm_file(path)
+
     def get_NG_VLA_Telescope(cls, version: NGVLAVersions) -> Telescope:
         path = f"{get_module_absolute_path()}/data/ngvla-{version.value}.tm"
         return cls.read_OSKAR_tm_file(path)
