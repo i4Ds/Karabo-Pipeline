@@ -44,7 +44,7 @@ jobs:
           fi
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
-          pip install -e . --no-deps
+          pip install . --no-deps
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
