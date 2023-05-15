@@ -30,7 +30,6 @@ class TestSystemNoise(unittest.TestCase):
         _ = SkyModel.get_fits_catalog(path)
 
     def test_mock_mightee(self):
-        sky = SkyModel()
         mightee1 = SkyModel.get_MIGHTEE_Sky()
         # mightee0=fits.open('https://object.cscs.ch:443/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits');mightee_continuum=mightee0[1].data
         mightee_continuum = mightee1.to_array()
@@ -42,7 +41,8 @@ class TestSystemNoise(unittest.TestCase):
         sky_data[:, 9] = mightee_continuum[:, 9]
         sky_data[:, 10] = mightee_continuum[:, 10]
         sky_data[:, 11] = mightee_continuum[:, 11]
-        sky.add_point_sources(sky_data)
+        sky = SkyModel(sky_data)
+        print(sky)
         ra_list = [150.0, 150.5, 160.0]
         dec_list = [2.0, 2.5, 3.0]
         f_obs = 1.0e9

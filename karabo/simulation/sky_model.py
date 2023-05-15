@@ -346,9 +346,13 @@ class SkyModel:
         else:
             return self.sources.to_numpy()
 
-    def rechunk_array_based_on_self(self, da: xr.DataArray):
-        chunk_size = max(self.sources.chunks[0][0], 1)
-        return da.chunk({"source_name": chunk_size})
+    def rechunk_array_based_on_self(self, array: xr.DataArray):
+        if self.sources.chunks is not None:
+            chunk_size = max(self.sources.chunks[0][0], 1)
+            array = array.chunk({"source_name": chunk_size})
+        else:
+            pass
+        return array
 
     def filter_by_radius(
         self,
@@ -389,6 +393,8 @@ class SkyModel:
         filtered_sources = np.logical_and(outer_sources, np.logical_not(inner_sources))
         filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
+
+        print(copied_sky.sources)
 
         # Rechunk the array to the original chunk size
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
@@ -779,7 +785,9 @@ class SkyModel:
         Save source array into a csv.
         :param path: path to save the csv file in.
         """
-        pd.DataFrame(self.sources).to_csv(
+        df = pd.DataFrame(self.sources)
+        df["source id (object)"] = self.sources.source_name.values
+        df.to_csv(
             path,
             index=False,
             header=[

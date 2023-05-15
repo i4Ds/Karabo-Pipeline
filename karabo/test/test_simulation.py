@@ -46,3 +46,31 @@ class TestSimulation(unittest.TestCase):
         )
 
         simulation.run_simulation(telescope, sky, observation)
+
+    def test_split_by_observation(self):
+        CHANNEL_BANDWIDTH_HZ = 1e6
+        NUM_SPLITS = 5
+        NUM_CHANNELS = 10
+        observation = Observation(
+            start_frequency_hz=100e6,
+            number_of_channels=NUM_CHANNELS,
+        )
+        observations = Observation.extract_multiple_observations_from_settings(
+            observation.get_OSKAR_settings_tree(),
+            NUM_SPLITS,
+            CHANNEL_BANDWIDTH_HZ,
+        )
+
+        for i, observation in enumerate(observations):
+            observation = observation["observation"]
+            assert (
+                float(observation["start_frequency_hz"])
+                == 100e6 + i * CHANNEL_BANDWIDTH_HZ * NUM_CHANNELS / NUM_SPLITS + i * 1
+            )
+            assert float(observation["num_channels"]) == 2
+
+        assert len(observations) == NUM_SPLITS
+
+
+if __name__ == "__main__":
+    unittest.main()
