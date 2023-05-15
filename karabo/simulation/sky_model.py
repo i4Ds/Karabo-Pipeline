@@ -119,9 +119,19 @@ class SkyModel:
         """
         self.wcs = wcs
         self.sources = None
+        print(type(sources))
         if sources is not None:
             if not isinstance(sources, xr.DataArray):
-                sources = xr.DataArray(sources)
+                print(
+                    KaraboWarning(
+                        "Sources is not a xr.DataArray. "
+                        "Karabo will try to convert it to xr.DataArray. "
+                        "If this fails, please convert it to xr.DataArray yourself."
+                    )
+                )
+
+                sources = self.any_array_to_xarray_dataarray(sources)
+
             self.add_point_sources(sources)
 
     def __get_empty_sources(self, n_sources: int) -> SkySourcesType:
@@ -132,6 +142,33 @@ class SkyModel:
             )
         )
         return xr.DataArray(empty_sources)
+
+    def any_array_to_xarray_dataarray(self, array: NDArray[np.float_]) -> xr.DataArray:
+        # try to transform the array to a np.array
+        if isinstance(array, pd.DataFrame):
+            array = array.to_numpy()
+        if not isinstance(array, np.ndarray):
+            # Numpy is our last hope
+            array = np.array(array)
+
+        if array.shape[1] == SkyModel.SOURCES_COLS:
+            print(array)
+            print(type(array))
+            da = xr.DataArray(
+                array[:, 0:12],
+                dims=["source_name", "y"],
+                coords={"source_name": array[:, 12]},
+            )
+        else:
+            da = xr.DataArray(array, dims=["source_name", "y"])
+            # Generate source names
+            da.coords["source_name"] = (
+                "source_name",
+                [f"source_{i}" for i in range(array.shape[0])],
+            )
+
+        da.data = da.data.astype(np.float_)
+        return da
 
     def add_point_sources(self, sources: SkySourcesType) -> None:
         """
@@ -166,12 +203,8 @@ class SkyModel:
                 "`sources` requires min 3 cols: `right_ascension`, "
                 + "`declination` and `stokes I Flux`."
             )
-        if sources.shape[1] > SkyModel.SOURCES_COLS:
-            raise ValueError(
-                f"Max cols of `sources` is {SkyModel.SOURCES_COLS} "
-                + f"but got {sources.shape[1]}."
-            )
-        if sources.shape[1] < SkyModel.SOURCES_COLS:
+        if sources.shape[1] < SkyModel.SOURCES_COLS - 1:
+            print("The sources array does not have the necessary 12 columns.")
             # if some elements are missing,
             # fill them up with zeros except `source_id`
             missing_shape = SkyModel.SOURCES_COLS - sources.shape[1]
@@ -267,7 +300,7 @@ class SkyModel:
         :param path: file to read in
         :return: SkyModel
         """
-        dataframe = pd.read_csv(path).to_xarray()
+        dataframe = pd.read_csv(path)
 
         if dataframe.shape[1] < 3:
             raise KaraboError(
@@ -288,8 +321,7 @@ class SkyModel:
                 + "The extra rows will be cut off."
             )
 
-        sources = dataframe
-        sky = SkyModel(sources)
+        sky = SkyModel(dataframe)
         return sky
 
     def to_array(self, with_obj_ids: bool = False) -> SkySourcesType:
@@ -305,13 +337,18 @@ class SkyModel:
                 "`sources` is None, add sources before calling `to_array`."
             )
         if with_obj_ids:
-            return self.sources
+            return np.hstack(
+                (
+                    self.sources.to_numpy(),
+                    self.sources.source_name.values.reshape(-1, 1),
+                )
+            )
         else:
-            return self.sources[:, :-1]
+            return self.sources.to_numpy()
 
     def rechunk_array_based_on_self(self, da: xr.DataArray):
         chunk_size = max(self.sources.chunks[0][0], 1)
-        return da.chunk({"dim_0": chunk_size})
+        return da.chunk({"source_name": chunk_size})
 
     def filter_by_radius(
         self,
@@ -613,7 +650,7 @@ class SkyModel:
         sc = ax.scatter(px, py, c=flux, cmap=cmap, **kwargs)
 
         if with_labels:
-            unique_keys, indices = np.unique(data[:, -1], return_index=True)
+            unique_keys, indices = np.unique(data.source_name, return_index=True)
             for i, txt in enumerate(unique_keys):
                 if data.shape[0] > 1:
                     ax.annotate(
@@ -699,7 +736,7 @@ class SkyModel:
         if self.sources is None:
             return 0
         else:
-            return self.shape[0]
+            return len(self.sources.source_name)
 
     def __getitem__(self, key: Any) -> SkySourcesType:
         """
@@ -854,16 +891,16 @@ class SkyModel:
                 dask_array = da.zeros(shape, chunks=(chunksize,))
             else:
                 dask_array = da.from_array(f[prefix_mapping[col]], chunks=(chunksize,))
-            data_arrays.append(xr.DataArray(dask_array, dims=["dim_0"]))
+            data_arrays.append(xr.DataArray(dask_array, dims=["source_name"]))
 
         if extra_columns is not None:
             for col in extra_columns:
                 dask_array = da.from_array(f[col], chunks=(chunksize,))
-                data_arrays.append(xr.DataArray(dask_array, dims=["dim_0"]))
+                data_arrays.append(xr.DataArray(dask_array, dims=["source_name"]))
 
         sky = xr.concat(data_arrays, dim="columns")
         sky = sky.T
-        sky = sky.chunk({"dim_0": chunksize, "columns": sky.shape[1]})
+        sky = sky.chunk({"source_name": chunksize, "columns": sky.shape[1]})
         return SkyModel(sky)
 
     @staticmethod
@@ -930,7 +967,7 @@ class SkyModel:
             "major": None,
             "minor": "a",
             "pa": "b",
-            "id": "pa",
+            "id": "GLEAM",
         }
 
         return SkyModel.get_sky_model_from_fits(
@@ -1042,7 +1079,7 @@ class SkyModel:
         dataset = xr.Dataset(data_dict)
         data_arrays = []
 
-        for freq_id, freq in enumerate(frequencies):
+        for freq in frequencies:
             freq_str = str(freq).zfill(3)
 
             if filter_data_by_stokes_i and prefix_mapping["i"] is not None:
@@ -1053,8 +1090,18 @@ class SkyModel:
                 dataset_filtered = dataset
 
             data = []
-
+            if prefix_mapping["id"] is not None:
+                source_names = xr.DataArray(
+                    dataset_filtered[prefix_mapping["id"]].values, dims=["source_name"]
+                )
+            else:
+                source_names = xr.DataArray(
+                    np.arange(len(dataset_filtered[prefix_mapping["ra"]])),
+                    dims=["source_name"],
+                )
             for col, pm_col in prefix_mapping.items():
+                if col == "id":
+                    continue
                 if pm_col is not None:
                     if concat_freq_with_prefix and col not in ["ra", "dec"]:
                         col_name = pm_col + freq_str
@@ -1063,8 +1110,8 @@ class SkyModel:
 
                     freq_data = xr.DataArray(
                         dataset_filtered[col_name].values,
-                        dims=["dim_1"],
-                        coords={"freq_id": freq_id},
+                        dims=["source_name"],
+                        coords={"source_name": source_names},
                     )
                 elif col == "ref_freq":
                     freq_data = xr.DataArray(
@@ -1072,26 +1119,28 @@ class SkyModel:
                             len(dataset_filtered[prefix_mapping["ra"]]),
                             freq * frequency_to_mhz_multiplier,
                         ),
-                        dims=["dim_1"],
-                        coords={"freq_id": freq_id},
+                        dims=["source_name"],
+                        coords={"source_name": source_names},
                     )
                 else:
                     freq_data = xr.DataArray(
                         np.zeros(len(dataset_filtered[prefix_mapping["ra"]])),
-                        dims=["dim_1"],
-                        coords={"freq_id": freq_id},
+                        dims=["source_name"],
+                        coords={"source_name": source_names},
                     )
                 data.append(freq_data)
 
-            data_array = xr.concat(data, dim="dim_0")
+            data_array = xr.concat(data, dim="columns")
 
             data_arrays.append(data_array)
 
         for freq_dataset in data_arrays:
-            freq_dataset.chunk({"dim_1": chunksize})
+            freq_dataset.chunk({"source_name": chunksize})
 
         result_dataset = (
-            xr.concat(data_arrays, dim="dim_1").chunk({"dim_1": chunksize}).T
+            xr.concat(data_arrays, dim="source_name")
+            .chunk({"source_name": chunksize})
+            .T
         )
 
         return SkyModel(result_dataset)
