@@ -119,7 +119,6 @@ class SkyModel:
         """
         self.wcs = wcs
         self.sources = None
-        print(type(sources))
         if sources is not None:
             if not isinstance(sources, xr.DataArray):
                 print(
@@ -373,9 +372,7 @@ class SkyModel:
         we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
-        print(type(self.sources))
         copied_sky = copy.deepcopy(self)
-        print(type(copied_sky.sources))
         if copied_sky.sources is None:
             raise KaraboError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
@@ -393,8 +390,6 @@ class SkyModel:
         filtered_sources = np.logical_and(outer_sources, np.logical_not(inner_sources))
         filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
-
-        print(copied_sky.sources)
 
         # Rechunk the array to the original chunk size
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
