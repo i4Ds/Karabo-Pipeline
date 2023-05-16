@@ -51,9 +51,13 @@ class FileHandle:
         file_name: Optional[str] = None,
         suffix: str = "",
     ) -> None:
-        # Check if the dir ends with .vis
-        # If yes, it's a file path, so we need to extract the directory
-        # and the file name and set the suffix to nothing.
+        filehandle_root_path: str = os.getcwd()
+        use_scratch_folder_if_exist: bool = True
+
+        if "SCRATCH" in os.environ and use_scratch_folder_if_exist:
+            filehandle_root_path = os.environ["SCRATCH"]
+
+        # Check if the passed path is a path to a file
         if path and os.path.isfile(path):
             file_name = os.path.basename(path)
             path = os.path.dirname(path)
@@ -63,11 +67,16 @@ class FileHandle:
         if path:
             base_path = os.path.abspath(path)
         else:
-            base_path = os.path.join(os.getcwd(), "karabo_folder")
-            if suffix.lower() == ".ms":
-                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
+            base_path = os.path.join(filehandle_root_path, "karabo_folder")
+            # generate unique id, either use e.g. a JOBID or generate a UUID
+            if "SLURM_JOB_ID" in os.environ:
+                unique_id = str(os.environ["SLURM_JOB_ID"])
             else:
-                base_path = os.path.join(base_path, str(uuid.uuid4()))
+                unique_id = str(uuid.uuid4())
+            if suffix.lower() == ".ms":
+                base_path = os.path.join(base_path, unique_id + ".MS")
+            else:
+                base_path = os.path.join(base_path, unique_id)
 
         # If a new folder to host the data should be created inside the base_path
         if create_additional_folder_in_dir:

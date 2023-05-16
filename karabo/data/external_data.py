@@ -5,17 +5,19 @@ import requests
 
 
 class KaraboCache:
-    @staticmethod
-    def valida_cache_directory_exists() -> None:
-        path = site.getsitepackages()[0]
-        cache_path = f"{path}/karabo_cache"
+    base_path: str = site.getsitepackages()[0]
+    use_scratch_folder_if_exist: bool = True
+
+    if "SCRATCH" in os.environ and use_scratch_folder_if_exist:
+        base_path = os.environ["SCRATCH"]
+
+    def valida_cache_directory_exists(self) -> None:
+        cache_path = self.get_cache_directory()
         if not os.path.exists(cache_path):
             os.mkdir(cache_path)
 
-    @staticmethod
-    def get_cache_directory() -> str:
-        path = site.getsitepackages()[0]
-        cache_path = f"{path}/karabo_cache"
+    def get_cache_directory(self) -> str:
+        cache_path = f"{self.base_path}/karabo_cache"
         return cache_path
 
 
