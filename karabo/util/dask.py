@@ -29,7 +29,7 @@ class DaskHandler:
         The Dask client object. If None, a new client will be created.
     n_workers_scheduler_node : int
         The number of workers to start on the scheduler node.
-    min_ram_per_worker : Optional[float]
+    min_gb_ram_per_worker : Optional[float]
         The minimum RAM to allocate per worker in GB.
 
     Methods
@@ -43,7 +43,7 @@ class DaskHandler:
 
     dask_client: Optional[Client] = None
     n_workers_scheduler_node: int = 1
-    min_ram_per_worker: Optional[int] = None
+    min_gb_ram_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
     TIMEOUT: int = 60
 
@@ -53,11 +53,11 @@ class DaskHandler:
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
                     DaskHandler.n_workers_scheduler_node,
-                    DaskHandler.min_ram_per_worker,
+                    DaskHandler.min_gb_ram_per_worker,
                 )
             else:
                 DaskHandler.dask_client = get_local_dask_client(
-                    DaskHandler.min_ram_per_worker
+                    DaskHandler.min_gb_ram_per_worker
                 )
 
         atexit.register(dask_cleanup, DaskHandler.dask_client)
@@ -103,7 +103,6 @@ def dask_cleanup(client: Client) -> None:
 def prepare_slurm_nodes_for_dask() -> None:
     # Detect if we are on a slurm cluster
     if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
-        print("Not on a SLURM cluster or only 1 node. Not setting up dask.")
         DaskHandler.use_dask = False
         return
     else:
