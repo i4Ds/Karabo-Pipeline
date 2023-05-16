@@ -27,7 +27,7 @@ def main() -> None:
         "id": None,
     }
 
-    sky = SkyModel.get_sky_model_from_h5_to_dask(
+    sky = SkyModel.get_sky_model_from_h5_to_xarray(
         path=path, prefix_mapping=prefix_mapping
     )
 
@@ -42,9 +42,7 @@ def main() -> None:
         number_of_time_steps=24,
     )
 
-    interferometer_sim = InterferometerSimulation(
-        channel_bandwidth_hz=1e6, split_sky_for_dask_how="randomly"
-    )
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
     _ = interferometer_sim.run_simulation(telescope, sky, observation_settings)
 
     print(f"Time take for simulation: {(time.time() - start) / 60} minutes")

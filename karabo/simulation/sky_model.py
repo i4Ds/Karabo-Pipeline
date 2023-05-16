@@ -844,7 +844,7 @@ class SkyModel:
         prefix_mapping: Dict[str, Optional[str]],
         extra_columns: Optional[List[str]] = None,
         chunksize: Union[int, str] = "auto",
-    ) -> xr.DataArray:
+    ) -> SkyModel:
         """
         Load a sky model dataset from an HDF5 file and
         converts it to an xarray DataArray.
