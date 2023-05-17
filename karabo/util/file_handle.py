@@ -66,22 +66,22 @@ class FileHandle:
         # If a directory is provided, use it as the base path
         if path:
             base_path = os.path.abspath(path)
+
+            # If a new folder to host the data should be created inside the base_path
+            if create_additional_folder_in_dir:
+                base_path = os.path.join(base_path, str(uuid.uuid4()))
         else:
             base_path = os.path.join(filehandle_root_path, "karabo_folder")
             # generate unique id, either use e.g. a JOBID or generate a UUID
             if "SLURM_JOB_ID" in os.environ:
-                base_path = os.path.join(base_path, str(os.environ["SLURM_JOB_ID"]))
-            if suffix.lower() == ".ms":
-                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
-            else:
-                base_path = os.path.join(base_path, str(uuid.uuid4()))
+                base_path = os.path.join(
+                    base_path, "karabo_run_job_id_" + str(os.environ["SLURM_JOB_ID"])
+                )
 
-        # If a new folder to host the data should be created inside the base_path
-        if create_additional_folder_in_dir:
-            if suffix.lower() == ".ms":
-                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
-            else:
-                base_path = os.path.join(base_path, str(uuid.uuid4()))
+        if suffix.lower() == ".ms":
+            base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
+        elif create_additional_folder_in_dir:
+            base_path = os.path.join(base_path, str(uuid.uuid4()))
 
         # Make the base path if it does not exist
         if not os.path.exists(base_path):
