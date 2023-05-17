@@ -72,16 +72,16 @@ class FileHandle:
             if "SLURM_JOB_ID" in os.environ:
                 base_path = os.path.join(base_path, str(os.environ["SLURM_JOB_ID"]))
             if suffix.lower() == ".ms":
-                base_path = os.path.join(base_path, uuid.uuid4() + ".MS")
+                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
             else:
-                base_path = os.path.join(base_path, uuid.uuid4())
+                base_path = os.path.join(base_path, str(uuid.uuid4()))
 
         # If a new folder to host the data should be created inside the base_path
         if create_additional_folder_in_dir:
             if suffix.lower() == ".ms":
-                base_path = os.path.join(base_path, uuid.uuid4() + ".MS")
+                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
             else:
-                base_path = os.path.join(base_path, uuid.uuid4())
+                base_path = os.path.join(base_path, str(uuid.uuid4()))
 
         # Make the base path if it does not exist
         if not os.path.exists(base_path):
