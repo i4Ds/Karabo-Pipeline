@@ -11,13 +11,15 @@ class KaraboCache:
     if "SCRATCH" in os.environ and use_scratch_folder_if_exist:
         base_path = os.environ["SCRATCH"]
 
-    def valida_cache_directory_exists(self) -> None:
-        cache_path = self.get_cache_directory()
+    @staticmethod
+    def valida_cache_directory_exists() -> None:
+        cache_path = KaraboCache.get_cache_directory()
         if not os.path.exists(cache_path):
             os.mkdir(cache_path)
 
-    def get_cache_directory(self) -> str:
-        cache_path = f"{self.base_path}/karabo_cache"
+    @staticmethod
+    def get_cache_directory() -> str:
+        cache_path = f"{KaraboCache.base_path}/karabo_cache"
         return cache_path
 
 
