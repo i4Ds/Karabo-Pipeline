@@ -58,6 +58,11 @@ StationTypeType = Literal[
 class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
+    :ivar ms_file_path: Optional. File path of the MS (mass spectrometry) file.
+    :ivar vis_path: Optional. File path for visualization output.
+    :ivar folder_for_multiple_observation: Optional.
+        Folder path for multiple observations.
+
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
                                 smearing. (Note that this can be different to the
                                 frequency increment if channels do not cover a
@@ -154,6 +159,7 @@ class InterferometerSimulation:
         self,
         ms_file_path: Optional[str] = None,
         vis_path: Optional[str] = None,
+        folder_for_multiple_observation: Optional[str] = None,
         channel_bandwidth_hz: IntFloat = 0,
         time_average_sec: IntFloat = 0,
         max_time_per_samples: int = 8,
@@ -200,6 +206,7 @@ class InterferometerSimulation:
             vis_path = vis.file.path
 
         self.vis_path = vis_path
+        self.folder_for_multiple_observation = folder_for_multiple_observation
 
         self.channel_bandwidth_hz: float = channel_bandwidth_hz
         self.time_average_sec: float = time_average_sec
@@ -400,10 +407,14 @@ class InterferometerSimulation:
     ) -> Dict[str, Dict[str, Any]]:
         # Create visiblity object
         vis_path = FileHandle(
-            path=self.vis_path, create_additional_folder_in_dir=True, suffix=".vis"
+            path=self.folder_for_multiple_observation,
+            create_additional_folder_in_dir=True,
+            suffix=".vis",
         ).path
         ms_file_path = FileHandle(
-            path=self.ms_file_path, create_additional_folder_in_dir=True, suffix=".MS"
+            path=self.folder_for_multiple_observation,
+            create_additional_folder_in_dir=True,
+            suffix=".MS",
         ).path
 
         interferometer_params = self.__get_OSKAR_settings_tree(
