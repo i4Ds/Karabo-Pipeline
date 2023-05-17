@@ -401,10 +401,10 @@ class InterferometerSimulation:
         # Create visiblity object
         vis_path = FileHandle(
             path=self.vis_path, create_additional_folder_in_dir=True, suffix=".vis"
-        )
+        ).path
         ms_file_path = FileHandle(
             path=self.ms_file_path, create_additional_folder_in_dir=True, suffix=".MS"
-        )
+        ).path
 
         interferometer_params = self.__get_OSKAR_settings_tree(
             input_telpath=input_telpath,
