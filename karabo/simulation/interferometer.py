@@ -399,12 +399,17 @@ class InterferometerSimulation:
         self, input_telpath: str
     ) -> Dict[str, Dict[str, Any]]:
         # Create visiblity object
-        visibility = Visibility()
+        vis_path = FileHandle(
+            path=self.vis_path, create_additional_folder_in_dir=True, suffix=".vis"
+        )
+        ms_file_path = FileHandle(
+            path=self.ms_file_path, create_additional_folder_in_dir=True, suffix=".MS"
+        )
 
         interferometer_params = self.__get_OSKAR_settings_tree(
             input_telpath=input_telpath,
-            ms_file_path=visibility.ms_file.path,
-            vis_path=visibility.file.path,
+            ms_file_path=ms_file_path,
+            vis_path=vis_path,
         )
         return interferometer_params
 
