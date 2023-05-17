@@ -408,6 +408,7 @@ class InterferometerSimulation:
         # Create visiblity object
         vis_path = FileHandle(
             path=self.folder_for_multiple_observation,
+            file_name="visibility",
             create_additional_folder_in_dir=True,
             suffix=".vis",
         ).path
