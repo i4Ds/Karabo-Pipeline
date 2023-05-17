@@ -8,11 +8,9 @@ from karabo.util.dask import DaskHandler, get_number_of_nodes
 
 
 def main(n_channels: int) -> None:
-    DaskHandler.min_gb_ram_per_worker = 4
-
     start = time.time()
 
-    sky = SkyModel.get_GLEAM_Sky()
+    sky = SkyModel.get_GLEAM_Sky([76])
 
     phase_center = [250, -80]
 
