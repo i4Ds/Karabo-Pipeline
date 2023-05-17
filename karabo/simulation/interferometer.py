@@ -392,7 +392,7 @@ class InterferometerSimulation:
             params_total = InterferometerSimulation.__run_simulation_oskar(
                 array_sky, params_total, self.precision
             )
-            print(self.vis_path)
+            print(f"Saved visibility to {self.vis_path}")
             return Visibility(self.vis_path, self.ms_file_path)
 
     def __create_interferometer_params_with_random_paths(
