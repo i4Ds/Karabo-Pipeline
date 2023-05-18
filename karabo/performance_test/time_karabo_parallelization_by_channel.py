@@ -4,7 +4,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.util.dask import DaskHandler, get_number_of_nodes
+from karabo.util.dask import get_number_of_nodes
 
 
 def main(n_channels: int) -> None:
@@ -45,7 +45,7 @@ def main(n_channels: int) -> None:
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
 
-    with open(f"output_{str(get_number_of_nodes())}_nodes_{str(n_channels)}_channels.txt", "a") as file:
+    with open(f"output_{str(get_number_of_nodes())}_nodes_{str(n_channels)}_channels.txt", "a") as file: # noqa: F401
         file.write(
             f"Number of channels: {str(n_channels)}. "
             f"Time taken: {str(time_taken)} min.\n"
