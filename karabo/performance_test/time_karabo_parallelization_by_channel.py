@@ -48,10 +48,10 @@ def main(n_channels: int) -> None:
     with open(f"output_{str(get_number_of_nodes())}_nodes_{str(n_channels)}_channels.txt", "a") as file:
         file.write(
             f"Number of channels: {str(n_channels)}. "
-            "Time taken: {str(time_taken)} min.\n"
+            f"Time taken: {str(time_taken)} min.\n"
         )
         file.flush()  # Optional: Flush the buffer to ensure immediate writing
 
 
 if __name__ == "__main__":
-    main(n_channels=10000)
+    main(n_channels=100)
