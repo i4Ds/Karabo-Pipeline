@@ -45,13 +45,13 @@ def main(n_channels: int) -> None:
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
 
-    with open(f"output_{str(get_number_of_nodes())}_nodes_{str(n_channels)}_channels.txt", "a") as file: # noqa: F401
+    with open(f"output_{str(get_number_of_nodes())}_nodes_{str(n_channels)}_channels.txt", "a") as file: # noqa: E501 
         file.write(
             f"Number of channels: {str(n_channels)}. "
             f"Time taken: {str(time_taken)} min.\n"
         )
-        file.flush()  # Optional: Flush the buffer to ensure immediate writing
+        file.flush()
 
 
 if __name__ == "__main__":
-    main(n_channels=100)
+    main(n_channels=10000)
