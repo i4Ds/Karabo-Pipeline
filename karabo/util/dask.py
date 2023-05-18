@@ -4,6 +4,7 @@ import atexit
 import json
 import os
 import time
+import uuid
 from subprocess import Popen
 from typing import Any, Callable, Optional, Tuple
 
@@ -15,8 +16,12 @@ from karabo.util._types import IntFloat
 from karabo.warning import KaraboWarning
 
 DASK_INFO_FOLDER = ".karabo_dask"
+DASK_INFO_FILE = "dask_info.json"
+
+##
+DASK_INFO_FOLDER = os.path.join(DASK_INFO_FOLDER, str(uuid.uuid4()))
 os.makedirs(DASK_INFO_FOLDER, exist_ok=True)
-DASK_INFO_ADDRESS = os.path.join(DASK_INFO_FOLDER, "dask_info.json")
+DASK_INFO_ADDRESS = os.path.join(DASK_INFO_FOLDER, DASK_INFO_FILE)
 
 
 class DaskHandler:
