@@ -4,7 +4,6 @@ import atexit
 import json
 import os
 import time
-import uuid
 from subprocess import Popen
 from typing import Any, Callable, Optional, Tuple
 
@@ -19,7 +18,8 @@ DASK_INFO_FOLDER = ".karabo_dask"
 DASK_INFO_FILE = "dask_info.json"
 
 ##
-DASK_INFO_FOLDER = os.path.join(DASK_INFO_FOLDER, str(uuid.uuid4()))
+if 'SLURM_JOB_ID' in os.environ:
+    DASK_INFO_FOLDER = os.path.join(DASK_INFO_FOLDER, str(os.environ['SLURM_JOB_ID']))
 os.makedirs(DASK_INFO_FOLDER, exist_ok=True)
 DASK_INFO_ADDRESS = os.path.join(DASK_INFO_FOLDER, DASK_INFO_FILE)
 

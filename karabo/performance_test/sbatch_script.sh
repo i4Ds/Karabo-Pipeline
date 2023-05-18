@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH --job-name="slurm_dask_timing"
 #SBATCH --account="sk05"
-#SBATCH --nodes=3
+#SBATCH --nodes=4
 #SBATCH --time=02:00:00
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=1
