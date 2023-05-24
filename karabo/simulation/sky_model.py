@@ -1147,21 +1147,11 @@ class SkyModel:
         """
         survey = BATTYESurveyDownloadObject()
         path = survey.get()
-        column_mapping = {
-            "ra": "Right Ascension",
-            "dec": "Declination",
-            "i": "Flux",
-            "q": None,
-            "u": None,
-            "v": None,
-            "ref_freq": None,
-            "spectral_index": None,
-            "rm": None,
-            "major": None,
-            "minor": None,
-            "pa": None,
-            "id": None,
-        }
+        column_mapping = SkyPrefixMapping(
+            ra="Right Ascension",
+            dec="Declination",
+            stokes_i="Flux",
+        )
         extra_columns = ["Observed Redshift"]
 
         sky = SkyModel.get_sky_model_from_h5_to_xarray(
