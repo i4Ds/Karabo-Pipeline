@@ -46,12 +46,11 @@ def main(n_channels: int) -> None:
     print("Time taken: (minutes)", time_taken)
 
     with open(
-        f"output_{str(get_number_of_nodes())}_nodes_{str(n_channels)}_channels.txt",
-        "a",  # noqa: E501
-    ) as file:  # noqa: E501
+        f"output_{str(get_number_of_nodes())}_nodes_{n_channels}_channels.txt",
+        "a",
+    ) as file:
         file.write(
-            f"Number of channels: {str(n_channels)}. "
-            f"Time taken: {str(time_taken)} min.\n"
+            f"Number of channels: {n_channels}. " f"Time taken: {time_taken} min.\n"
         )
         file.flush()
 

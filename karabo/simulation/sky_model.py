@@ -4,6 +4,7 @@ import copy
 import enum
 import logging
 import math
+from dataclasses import dataclass, fields
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
@@ -19,8 +20,6 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
-
-# from dask.array import Array  # type: ignore[attr-defined]
 from numpy.typing import NDArray
 
 from karabo.data.external_data import (
@@ -28,7 +27,7 @@ from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
-from karabo.error import KaraboError
+from karabo.error import KaraboSkyModelError
 from karabo.util._types import (
     IntFloat,
     IntFloatList,
@@ -62,15 +61,10 @@ GLEAM_freq = Literal[
     220,
     227,
 ]
+StokesType = Literal["Stokes I", "Stokes Q", "Stokes U", "Stokes V "]
 
-# NPSky = Union[NDArray[np.float_], NDArray[np.object_]]
-# DaskSky = Array
-# SkySourcesType = TypeVar(
-#     "SkySourcesType",
-#     NPSky,
-#     DaskSky,
-# )
-SkySourcesType = Union[NDArray[np.float_], NDArray[np.object_], xr.DataArray]
+NPSkyType = Union[NDArray[np.float_], NDArray[np.object_]]
+SkySourcesType = Union[NPSkyType, xr.DataArray]
 
 
 class Polarisation(enum.Enum):
@@ -80,10 +74,31 @@ class Polarisation(enum.Enum):
     STOKES_V = 3
 
 
-# class SkyModel(Generic[SkySourcesType]):
+@dataclass
+class SkyPrefixMapping:
+    ra: str
+    dec: str
+    stokes_i: Optional[str] = None
+    stokes_q: Optional[str] = None
+    stokes_u: Optional[str] = None
+    stokes_v: Optional[str] = None
+    ref_freq: Optional[str] = None
+    spectral_index: Optional[str] = None
+    rm: Optional[str] = None
+    major: Optional[str] = None
+    minor: Optional[str] = None
+    pa: Optional[str] = None
+    id: Optional[str] = None
+
+
 class SkyModel:
     """
     Class containing all information of the to be observed Sky.
+
+    `SkyModel.sources` is a `xarray.DataArray`
+        ( https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html ).
+    `np.ndarray` are also supported as input type for all `SkyModel` functions,
+        however, the values in `SkyModel.sources` are `xarray.DataArray`.
 
     :ivar sources:  List of all point sources in the sky.
                     A single point source consists of:
@@ -105,6 +120,12 @@ class SkyModel:
     """
 
     SOURCES_COLS = 13
+    _STOKES_IDX: Dict[StokesType, int] = {
+        "Stokes I": 2,
+        "Stokes Q": 3,
+        "Stokes U": 4,
+        "Stokes V": 5,
+    }
 
     def __init__(
         self,
@@ -121,14 +142,6 @@ class SkyModel:
         self.sources = None
         if sources is not None:
             if not isinstance(sources, xr.DataArray):
-                print(
-                    KaraboWarning(
-                        "Sources is not a xr.DataArray. "
-                        "Karabo will try to convert it to xr.DataArray. "
-                        "If this fails, please convert it to xr.DataArray yourself."
-                    )
-                )
-
                 sources = self.any_array_to_xarray_dataarray(sources)
 
             self.add_point_sources(sources)
@@ -143,16 +156,7 @@ class SkyModel:
         return xr.DataArray(empty_sources)
 
     def any_array_to_xarray_dataarray(self, array: NDArray[np.float_]) -> xr.DataArray:
-        # try to transform the array to a np.array
-        if isinstance(array, pd.DataFrame):
-            array = array.to_numpy()
-        if not isinstance(array, np.ndarray):
-            # Numpy is our last hope
-            array = np.array(array)
-
         if array.shape[1] == SkyModel.SOURCES_COLS:
-            print(array)
-            print(type(array))
             da = xr.DataArray(
                 array[:, 0:12],
                 dims=["source_name", "y"],
@@ -203,7 +207,6 @@ class SkyModel:
                 + "`declination` and `stokes I Flux`."
             )
         if sources.shape[1] < SkyModel.SOURCES_COLS - 1:
-            print("The sources array does not have the necessary 12 columns.")
             # if some elements are missing,
             # fill them up with zeros except `source_id`
             missing_shape = SkyModel.SOURCES_COLS - sources.shape[1]
@@ -302,7 +305,7 @@ class SkyModel:
         dataframe = pd.read_csv(path)
 
         if dataframe.shape[1] < 3:
-            raise KaraboError(
+            raise KaraboSkyModelError(
                 f"CSV does not have the necessary 3 basic columns (RA, DEC and "
                 f"STOKES I), but only {dataframe.shape[1]} columns."
             )
@@ -332,7 +335,7 @@ class SkyModel:
         :return: the sources of the SkyModel as np.ndarray
         """
         if self.sources is None:
-            raise KaraboError(
+            raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `to_array`."
             )
         if with_obj_ids:
@@ -374,7 +377,7 @@ class SkyModel:
         """
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
-            raise KaraboError(
+            raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
             )
         inner_circle = SphericalCircle(
@@ -401,34 +404,30 @@ class SkyModel:
 
     def filter_by_radius_euclidean_flat_approximation(
         self,
-        inner_radius_deg: float,
-        outer_radius_deg: float,
-        ra0_deg: float,
-        dec0_deg: float,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
         indices: bool = False,
-    ) -> Union[SkyModel, Tuple[SkyModel, np.ndarray]]:
+    ) -> Union[SkyModel, Tuple[SkyModel, NPSkyType]]:
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
-            raise KaraboError(
+            raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
             )
 
         # Calculate distances to phase center using flat Euclidean approximation
-        print("Calculating distances")
-        x = (copied_sky.sources[:, 0] - ra0_deg) * np.cos(np.radians(dec0_deg))
-        y = copied_sky.sources[:, 1] - dec0_deg
+        x = (copied_sky[:, 0] - ra0_deg) * np.cos(np.radians(dec0_deg))
+        y = copied_sky[:, 1] - dec0_deg
         distances_sq = np.add(np.square(x), np.square(y))
 
         # Filter sources based on inner and outer radius
-        print("Calculating Mask")
         filter_mask = (distances_sq >= np.square(inner_radius_deg)) & (
             distances_sq <= np.square(outer_radius_deg)
         )
 
-        print("Filtering sources")
         copied_sky.sources = copied_sky.sources[filter_mask]
 
-        print("Rechunking sky")
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
         if indices:
@@ -439,8 +438,8 @@ class SkyModel:
 
     def filter_by_flux(
         self,
-        min_flux_jy: float,
-        max_flux_jy: float,
+        min_flux_jy: IntFloat,
+        max_flux_jy: IntFloat,
     ) -> SkyModel:
         """
         Filters the sky using the Stokes-I-flux
@@ -452,13 +451,13 @@ class SkyModel:
         """
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
-            raise KaraboError(
+            raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_flux`."
             )
 
         # Create mask
-        filter_mask = (copied_sky.sources[:, 2] >= min_flux_jy) & (
-            copied_sky.sources[:, 2] <= max_flux_jy
+        filter_mask = (copied_sky[:, 2] >= min_flux_jy) & (
+            copied_sky[:, 2] <= max_flux_jy
         )
         filter_mask = self.rechunk_array_based_on_self(filter_mask)
 
@@ -481,7 +480,7 @@ class SkyModel:
         """
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
-            raise KaraboError(
+            raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_frequency`."
             )
 
@@ -548,8 +547,8 @@ class SkyModel:
     def explore_sky(
         self,
         phase_center: IntFloatList,
-        flux_idx: int = 2,
-        idx_to_plot: Optional[NDArray[np.float_]] = None,
+        stokes: StokesType = "Stokes I",
+        idx_to_plot: Optional[NDArray[np.int_]] = None,
         xlim: Optional[Tuple[IntFloat, IntFloat]] = None,
         ylim: Optional[Tuple[IntFloat, IntFloat]] = None,
         figsize: Optional[Tuple[IntFloat, IntFloat]] = None,
@@ -570,7 +569,7 @@ class SkyModel:
         are projected according to the `phase_center`
 
         :param phase_center: [RA,DEC]
-        :param flux_idx: `SkyModel` flux index, default is "Stokes I" flux with index 2
+        :param stokes: `SkyModel` stoke flux
         :param idx_to_plot: If you want to plot only a subset of the sources, set
                             the indices here.
         :param xlim: RA-limit of plot
@@ -600,7 +599,7 @@ class SkyModel:
             if wcs is None:
                 wcs = self.setup_default_wcs(phase_center)
             px, py = wcs.wcs_world2pix(
-                data[:, 0], data[:, 1], 0
+                self[:, 0], self[:, 1], 0
             )  # ra-dec transformation
             xlim_reset, ylim_reset = False, False
             if xlim is None and ylim is not None:
@@ -616,11 +615,11 @@ class SkyModel:
             if ylim_reset:
                 ylim = None
         else:
-            px, py = data[:, 0], data[:, 1]
+            px, py = self[:, 0], self[:, 1]
 
         flux = None
         if cmap is not None:
-            flux = data[:, flux_idx]
+            flux = self[:, SkyModel._STOKES_IDX[stokes]]
             if cfun is not None:
                 if cfun in [np.log10, np.log] and any(flux <= 0):
                     warn(
@@ -693,12 +692,6 @@ class SkyModel:
         :return: oskar sky model
         """
         if sky.shape[1] > 12:
-            print(
-                KaraboWarning(
-                    "Warning: Sky model has more than 12 columns"
-                    " (only the first 12 are used)"
-                )
-            )
             return oskar.Sky.from_array(sky[:, :12], precision)
         else:
             return oskar.Sky.from_array(sky, precision)
@@ -737,7 +730,7 @@ class SkyModel:
         if self.sources is None:
             return 0
         else:
-            return len(self.sources.source_name)
+            return self.shape[0]
 
     def __getitem__(self, key: Any) -> SkySourcesType:
         """
@@ -841,7 +834,7 @@ class SkyModel:
     @staticmethod
     def get_sky_model_from_h5_to_xarray(
         path: str,
-        prefix_mapping: Dict[str, Optional[str]],
+        prefix_mapping: SkyPrefixMapping,
         extra_columns: Optional[List[str]] = None,
         chunksize: Union[int, str] = "auto",
     ) -> SkyModel:
@@ -853,8 +846,8 @@ class SkyModel:
         ----------
         path : str
             Path to the input HDF5 file.
-        prefix_mapping : Dict[str, Optional[str]]
-            A dictionary mapping column names to their corresponding dataset paths
+        prefix_mapping : SkyPrefixMapping
+            Mapping column names to their corresponding dataset paths
             in the HDF5 file.
             If the column is not present in the HDF5 file, set its value to None.
         extra_columns : Optional[List[str]], default=None
@@ -874,26 +867,13 @@ class SkyModel:
         f = h5py.File(path, "r")
         data_arrays = []
 
-        for col in [
-            "ra",
-            "dec",
-            "i",
-            "q",
-            "u",
-            "v",
-            "ref_freq",
-            "spectral_index",
-            "rm",
-            "major",
-            "minor",
-            "pa",
-            "id",
-        ]:
-            if prefix_mapping[col] is None:
-                shape = f[prefix_mapping["ra"]].shape
+        for field in fields(prefix_mapping):
+            field_value: Optional[str] = getattr(prefix_mapping, field.name)
+            if field_value is None:
+                shape = f[prefix_mapping.ra].shape
                 dask_array = da.zeros(shape, chunks=(chunksize,))
             else:
-                dask_array = da.from_array(f[prefix_mapping[col]], chunks=(chunksize,))
+                dask_array = da.from_array(f[field_value], chunks=(chunksize,))
             data_arrays.append(xr.DataArray(dask_array, dims=["source_name"]))
 
         if extra_columns is not None:
@@ -901,7 +881,7 @@ class SkyModel:
                 dask_array = da.from_array(f[col], chunks=(chunksize,))
                 data_arrays.append(xr.DataArray(dask_array, dims=["source_name"]))
 
-        sky = xr.concat(data_arrays, dim="columns")
+        sky = cast(xr.DataArray, xr.concat(data_arrays, dim="columns"))
         sky = sky.T
         sky = sky.chunk({"source_name": chunksize, "columns": sky.shape[1]})
         return SkyModel(sky)
@@ -957,21 +937,14 @@ class SkyModel:
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
 
-        prefix_mapping = {
-            "ra": "RAJ2000",
-            "dec": "DEJ2000",
-            "i": "Fp",
-            "q": None,
-            "u": None,
-            "v": None,
-            "ref_freq": None,
-            "spectral_index": None,
-            "rm": None,
-            "major": None,
-            "minor": "a",
-            "pa": "b",
-            "id": "GLEAM",
-        }
+        prefix_mapping = SkyPrefixMapping(
+            ra="RAJ2000",
+            dec="DEJ2000",
+            stokes_i="Fp",
+            minor="a",
+            pa="b",
+            id="GLEAM",
+        )
 
         return SkyModel.get_sky_model_from_fits(
             path=path,
@@ -986,7 +959,7 @@ class SkyModel:
     def get_sky_model_from_fits(
         path: str,
         frequencies: List[int],
-        prefix_mapping: Dict[str, Optional[str]],
+        prefix_mapping: SkyPrefixMapping,
         concat_freq_with_prefix: bool = False,
         filter_data_by_stokes_i: bool = False,
         frequency_to_mhz_multiplier: float = 1e6,
@@ -1003,8 +976,8 @@ class SkyModel:
             Path to the input FITS file.
         frequencies : list
             List of frequencies of interest in MHz.
-        prefix_mapping : dict
-            Dictionary that maps column names in the FITS file to column names
+        prefix_mapping : SkyPrefixMapping
+            Maps column names in the FITS file to column names
             used in the output Dataset.
             Keys should be the original column names, values should be the
             corresponding column names in the Dataset.
@@ -1039,32 +1012,25 @@ class SkyModel:
         "ra", "dec", "i", "q", "u", "v", "ref_freq", "spectral_index", "rm",
         "major", "minor", "pa", and "id". Any additional columns will be ignored.
 
-        The `prefix_mapping` dictionary should map the required columns to their
+        The `prefix_mapping` values should map the required columns to their
         corresponding column names in the input FITS file. For example:
 
-        If a column name in the FITS file is not present in the `prefix_mapping`
-        dictionary, it will be excluded from the output Dataset.
+        If a column name in the FITS file is not present in `prefix_mapping`
+        values, it will be excluded from the output Dataset.
 
         Examples
         --------
         >>> sky_data = SkyModel.get_sky_model_from_fits(
         ...     path="input.fits",
         ...     frequencies=[100, 200, 300],
-        ...     prefix_mapping={
-        ...         "ra": "RAJ2000",
-        ...         "dec": "DEJ2000",
-        ...         "i": "Fp",
-        ...         "q": None,
-        ...         "u": None,
-        ...         "v": None,
-        ...         "ref_freq": None,
-        ...         "spectral_index": None,
-        ...         "rm": None,
-        ...         "major": None,
-        ...         "minor": "a",
-        ...         "pa": "b",
-        ...         "id": "pa",
-        ...     },
+        ...     prefix_mapping=SkyPrefixMapping(
+        ...         ra="RAJ2000",
+        ...         dec="DEJ2000",
+        ...         stokes_i="Fp",
+        ...         minor="a",
+        ...         pa="b",
+        ...         id="pa",
+        ...     ),
         ...     concat_freq_with_prefix=True,
         ...     filter_data_by_stokes_i=True,
         ...     chunks='auto',
@@ -1085,24 +1051,26 @@ class SkyModel:
         for freq in frequencies:
             freq_str = str(freq).zfill(3)
 
-            if filter_data_by_stokes_i and prefix_mapping["i"] is not None:
+            if filter_data_by_stokes_i and prefix_mapping.stokes_i is not None:
                 dataset_filtered = dataset.dropna(
-                    dim=f"{prefix_mapping['i']}{freq_str}"
+                    dim=f"{prefix_mapping.stokes_i}{freq_str}"
                 )
             else:
                 dataset_filtered = dataset
 
             data = []
-            if prefix_mapping["id"] is not None:
+            if prefix_mapping.id is not None:
                 source_names = xr.DataArray(
-                    dataset_filtered[prefix_mapping["id"]].values, dims=["source_name"]
+                    dataset_filtered[prefix_mapping.id].values, dims=["source_name"]
                 )
             else:
                 source_names = xr.DataArray(
-                    np.arange(len(dataset_filtered[prefix_mapping["ra"]])),
+                    np.arange(len(dataset_filtered[prefix_mapping.ra])),
                     dims=["source_name"],
                 )
-            for col, pm_col in prefix_mapping.items():
+            for field in fields(prefix_mapping):
+                col = field.name
+                pm_col: Optional[str] = getattr(prefix_mapping, field.name)
                 if col == "id":
                     continue
                 if pm_col is not None:
@@ -1119,7 +1087,7 @@ class SkyModel:
                 elif col == "ref_freq":
                     freq_data = xr.DataArray(
                         np.full(
-                            len(dataset_filtered[prefix_mapping["ra"]]),
+                            len(dataset_filtered[prefix_mapping.ra]),
                             freq * frequency_to_mhz_multiplier,
                         ),
                         dims=["source_name"],
@@ -1127,7 +1095,7 @@ class SkyModel:
                     )
                 else:
                     freq_data = xr.DataArray(
-                        np.zeros(len(dataset_filtered[prefix_mapping["ra"]])),
+                        np.zeros(len(dataset_filtered[prefix_mapping.ra])),
                         dims=["source_name"],
                         coords={"source_name": source_names},
                     )
@@ -1140,10 +1108,11 @@ class SkyModel:
         for freq_dataset in data_arrays:
             freq_dataset.chunk({"source_name": chunksize})
 
-        result_dataset = (
+        result_dataset = cast(
+            xr.DataArray,
             xr.concat(data_arrays, dim="source_name")
             .chunk({"source_name": chunksize})
-            .T
+            .T,
         )
 
         return SkyModel(result_dataset)
@@ -1227,21 +1196,15 @@ class SkyModel:
         """
         survey = MIGHTEESurveyDownloadObject()
         path = survey.get()
-        prefix_mapping = {
-            "ra": "RA",
-            "dec": "DEC",
-            "i": "NU_EFF",
-            "q": None,
-            "u": None,
-            "v": None,
-            "ref_freq": None,
-            "spectral_index": None,
-            "rm": None,
-            "major": "IM_MAJ",
-            "minor": "IM_MIN",
-            "pa": "IM_PA",
-            "id": "NAME",
-        }
+        prefix_mapping = SkyPrefixMapping(
+            ra="RA",
+            dec="DEC",
+            stokes_i="NU_EFF",
+            major="IM_MAJ",
+            minor="IM_MIN",
+            pa="IM_PA",
+            id="NAME",
+        )
 
         return SkyModel.get_sky_model_from_fits(
             path=path,

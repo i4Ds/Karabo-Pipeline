@@ -307,6 +307,7 @@ class InterferometerSimulation:
         telescope: Telescope,
         sky: SkyModel,
         observation: Observation,
+        verbose: bool = False,
     ) -> Visibility:
         """
         Run a single interferometer simulation with a given sky,
@@ -333,18 +334,22 @@ class InterferometerSimulation:
         if self.client is not None:
             oskar_settings_tree = observation.get_OSKAR_settings_tree()
             if self.split_observation_by_channels:
-                print("Splitting simulation by channels with the following parameter:")
-                print(f"{self.n_split_channels=}")
+                if verbose:
+                    print(
+                        "Splitting simulation by channels with the following parameter:"
+                    )
+                    print(f"{self.n_split_channels=}")
                 # Calculate the number of splits
                 n_splits = (
                     int(oskar_settings_tree["observation"]["num_channels"])
                     if self.n_split_channels == "each"
                     else self.n_split_channels
                 )
-                print(
-                    f"Splitting into {n_splits} "
-                    f"observations because {self.n_split_channels=}"
-                )
+                if verbose:
+                    print(
+                        f"Splitting into {n_splits} "
+                        f"observations because {self.n_split_channels=}"
+                    )
                 observations = Observation.extract_multiple_observations_from_settings(
                     oskar_settings_tree,
                     n_splits,
@@ -427,9 +432,9 @@ class InterferometerSimulation:
 
     @staticmethod
     def __run_simulation_oskar(
-        os_sky: Union[oskar.Sky, np.ndarray, xr.DataArray, Delayed],
+        os_sky: Union[oskar.Sky, NDArray[np.float_], xr.DataArray, Delayed],
         params_total: Dict[str, Any],
-        precision: PrecisionType,
+        precision: Optional[PrecisionType] = None,
     ) -> Dict[str, Any]:
         """
         Run a single interferometer simulation with a given sky,
@@ -445,9 +450,13 @@ class InterferometerSimulation:
 
         if isinstance(os_sky, Delayed):
             os_sky = os_sky.compute()
-        if isinstance(os_sky, xr.DataArray):
+        elif isinstance(os_sky, xr.DataArray):
             os_sky = np.array(os_sky.as_numpy())
-        if isinstance(os_sky, np.ndarray):
+        elif isinstance(os_sky, np.ndarray):
+            if precision is None:
+                raise KaraboInterferometerSimulationError(
+                    "`precision` must be set but is None."
+                )
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
 
         simulation = oskar.Interferometer(settings=setting_tree)
