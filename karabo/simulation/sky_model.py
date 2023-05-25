@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import enum
-import logging
 import math
 from dataclasses import dataclass, fields
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
@@ -106,7 +105,9 @@ class SkyModel:
     `np.ndarray` are also supported as input type for all `SkyModel` functions,
         however, the values in `SkyModel.sources` are `xarray.DataArray`.
 
-    :ivar sources:  List of all point sources in the sky.
+    :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
+                    The source_ids reside in `SkyModel.source_ids` if provided
+                    through `xarray.sources.coords` or `np.ndarray` as idx 12.
                     A single point source consists of:
 
                     - right ascension (deg)
@@ -121,7 +122,6 @@ class SkyModel:
                     - major axis FWHM (arcsec): defaults to 0
                     - minor axis FWHM (arcsec): defaults to 0
                     - position angle (deg): defaults to 0
-                    - source id (object): defaults to None
 
     """
 
@@ -222,6 +222,7 @@ class SkyModel:
             - [9] major axis FWHM (arcsec): defaults to 0
             - [10] minor axis FWHM (arcsec): defaults to 0
             - [11] position angle (deg): defaults to 0
+            - source id (object): is in `SkyModel.source_ids` if provided
 
         """
         if len(sources.shape) != 2:
@@ -263,11 +264,12 @@ class SkyModel:
         - major axis FWHM (arcsec): if no information available, set to 0
         - minor axis FWHM (arcsec): if no information available, set to 0
         - position angle (deg): if no information available, set to 0
+        - source id (object): is in `SkyModel.source_ids` if provided
 
         :param path: file to read in
         :return: SkyModel
         """
-        dataframe = pd.read_csv(path)
+        dataframe = pd.read_csv(path).to_numpy()
 
         if dataframe.shape[1] < 3:
             raise KaraboSkyModelError(
@@ -275,15 +277,8 @@ class SkyModel:
                 f"STOKES I), but only {dataframe.shape[1]} columns."
             )
 
-        if dataframe.shape[1] < 13:
-            logging.info(
-                f"The CSV only holds {dataframe.shape[1]} columns."
-                f" Extra {13 - dataframe.shape[1]} "
-                + "columns will be filled with defaults."
-            )
-
         if dataframe.shape[1] >= 13:
-            logging.info(
+            print(
                 f"CSV has {dataframe.shape[1] - 13} too many rows. "
                 + "The extra rows will be cut off."
             )
@@ -304,10 +299,16 @@ class SkyModel:
                 "`sources` is None, add sources before calling `to_array`."
             )
         if with_obj_ids:
+            if self.source_ids is None:
+                raise KaraboSkyModelError(
+                    "There are no 'source_ids' available in `sources`."
+                )
             return np.hstack(
                 (
                     self.sources.to_numpy(),
-                    self.sources[self._sources_dim_sources].values.reshape(-1, 1),
+                    self.source_ids[self._sources_dim_sources]
+                    .to_numpy()
+                    .reshape(-1, 1),
                 )
             )
         else:
@@ -417,7 +418,8 @@ class SkyModel:
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
-                "`sources` is None, add sources before calling `filter_by_flux`."
+                "`sources` None is not allowed."
+                + "Add sources before calling `filter_by_flux`."
             )
 
         # Create mask
@@ -433,8 +435,8 @@ class SkyModel:
 
     def filter_by_frequency(
         self,
-        min_freq: float,
-        max_freq: float,
+        min_freq: IntFloat,
+        max_freq: IntFloat,
     ) -> SkyModel:
         """
         Filters the sky using the reference frequency in Hz
@@ -668,7 +670,7 @@ class SkyModel:
         file: str,
         channel: int,
         polarisation: Polarisation,
-    ) -> Tuple[NDArray[np.float_], int]:
+    ) -> Tuple[xr.DataArray, int]:
         """
         Read a healpix file in hdf5 format.
         The file should have the map keywords:
