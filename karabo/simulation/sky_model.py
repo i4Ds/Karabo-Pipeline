@@ -91,7 +91,9 @@ class SkyPrefixMapping:
     id: Optional[str] = None
 
 
-XARRAY_DIM_0_DEFAULT, XARRAY_DIM_1_DEFAULT = xr.DataArray([[]]).dims
+XARRAY_DIM_0_DEFAULT, XARRAY_DIM_1_DEFAULT = cast(
+    Tuple[str, str], xr.DataArray([[]]).dims
+)
 
 
 class SkyModel:
@@ -122,7 +124,7 @@ class SkyModel:
 
     """
 
-    SOURCES_COLS = 13
+    SOURCES_COLS = 12
     _STOKES_IDX: Dict[StokesType, int] = {
         "Stokes I": 2,
         "Stokes Q": 3,
@@ -141,25 +143,24 @@ class SkyModel:
         :param sources: Adds point sources
         :param wcs: world coordinate system
         """
-        self._sources_dim_sources = XARRAY_DIM_0_DEFAULT
-        self._sources_dim_data = XARRAY_DIM_1_DEFAULT
+        self.__sources_dim_sources = XARRAY_DIM_0_DEFAULT
+        self.__sources_dim_data = XARRAY_DIM_1_DEFAULT
         self._sources: Optional[xr.DataArray] = None
         self.wcs = wcs
         if sources is not None:
             self.sources = sources
 
-    def __get_empty_sources(self, n_sources: int) -> NDArray[np.float64]:
-        empty_sources = np.hstack(
-            (
-                np.zeros((n_sources, SkyModel.SOURCES_COLS - 1)),
-                np.array([[np.nan] * n_sources]).reshape(-1, 1),
-            )
+    def __get_empty_sources(self, n_sources: int) -> xr.DataArray:
+        empty_sources = np.hstack((np.zeros((n_sources, SkyModel.SOURCES_COLS)),))
+        return xr.DataArray(
+            empty_sources, dims=[self._sources_dim_sources, self._sources_dim_data]
         )
-        return empty_sources
 
-    def _to_xarray(self, array: SkySourcesType) -> xr.DataArray:
-        # if isinstance(array, xr.DataArray):
-        #     return array
+    def _to_sky_xarray(self, array: SkySourcesType) -> xr.DataArray:
+        if isinstance(array, xr.DataArray):
+            self._sources_dim_sources, self._sources_dim_data = cast(
+                Tuple[str, str], array.dims
+            )
         if array.shape[1] == SkyModel.SOURCES_COLS:
             da = xr.DataArray(
                 array[:, 0:12],
@@ -686,12 +687,54 @@ class SkyModel:
     def sources(self) -> Optional[xr.DataArray]:
         return self._sources
 
+    @property
+    def _sources_dim_sources(self) -> str:
+        if self.sources is None:
+            return XARRAY_DIM_0_DEFAULT
+        else:
+            return self.__sources_dim_sources
+
+    @_sources_dim_sources.setter
+    def _sources_dim_sources(self, value: str) -> None:
+        if (
+            self._sources_dim_sources != XARRAY_DIM_0_DEFAULT
+            and self._sources_dim_sources != value
+        ):
+            raise KaraboSkyModelError(
+                "Provided dim_0 name is not consistent with existing dim-name of"
+                + f"`sources`. Provided dim-name is {value} but existing is"
+                + f"{self._sources_dim_sources}."
+            )
+        self.__sources_dim_sources = value
+
+    @property
+    def _sources_dim_data(self) -> str:
+        if self.sources is None:
+            return XARRAY_DIM_1_DEFAULT
+        else:
+            return self.__sources_dim_data
+
+    @_sources_dim_data.setter
+    def _sources_dim_data(self, value: str) -> None:
+        if (
+            self._sources_dim_data != XARRAY_DIM_1_DEFAULT
+            and self._sources_dim_sources != value
+        ):
+            raise KaraboSkyModelError(
+                "Provided dim_1 name is not consistent with existing dim-name of"
+                + f"`sources`. Provided dim-name is {value} but existing is"
+                + f"{self._sources_dim_data}."
+            )
+        self.__sources_dim_data = value
+
     @sources.setter
     def sources(self, value: Optional[SkySourcesType]) -> None:
         if value is not None:
             self.add_point_sources(sources=value)
         else:
             self._sources = None
+            self._sources_dim_sources = XARRAY_DIM_0_DEFAULT
+            self._sources_dim_data = XARRAY_DIM_1_DEFAULT
 
     def __getitem__(self, key: Any) -> SkySourcesType:
         """
