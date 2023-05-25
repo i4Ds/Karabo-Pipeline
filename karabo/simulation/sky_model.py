@@ -21,6 +21,7 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
 from numpy.typing import NDArray
+from xarray.core.coordinates import DataArrayCoordinates
 
 from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
@@ -161,6 +162,7 @@ class SkyModel:
             self._sources_dim_sources, self._sources_dim_data = cast(
                 Tuple[str, str], array.dims
             )
+
         if array.shape[1] == SkyModel.SOURCES_COLS:
             da = xr.DataArray(
                 array[:, 0:12],
@@ -718,7 +720,7 @@ class SkyModel:
     def _sources_dim_data(self, value: str) -> None:
         if (
             self._sources_dim_data != XARRAY_DIM_1_DEFAULT
-            and self._sources_dim_sources != value
+            and self._sources_dim_data != value
         ):
             raise KaraboSkyModelError(
                 "Provided dim_1 name is not consistent with existing dim-name of"
@@ -735,6 +737,40 @@ class SkyModel:
             self._sources = None
             self._sources_dim_sources = XARRAY_DIM_0_DEFAULT
             self._sources_dim_data = XARRAY_DIM_1_DEFAULT
+
+    @property
+    def source_ids(self) -> Optional[DataArrayCoordinates]:
+        if self.sources is not None and len(self.sources.coords) > 0:
+            return self.sources.coords
+        else:
+            return None
+
+    @source_ids.setter
+    def source_ids(
+        self,
+        value: Union[
+            List[str],
+            List[int],
+            List[float],
+            NDArray[np.object0],
+            NDArray[np.int_],
+            NDArray[np.float_],
+            DataArrayCoordinates,
+        ],
+    ) -> None:
+        if self.sources is None:
+            raise KaraboSkyModelError(
+                "Setting source-ids on empty `sources` is not allowed."
+            )
+        if isinstance(value, DataArrayCoordinates):
+            self.sources.coords[self._sources_dim_sources] = value[
+                self._sources_dim_sources
+            ]
+        else:
+            self.sources.coords[self._sources_dim_sources] = (
+                self._sources_dim_sources,
+                value,
+            )
 
     def __getitem__(self, key: Any) -> SkySourcesType:
         """
