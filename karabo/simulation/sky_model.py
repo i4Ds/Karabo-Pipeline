@@ -79,7 +79,7 @@ class Polarisation(enum.Enum):
 class SkyPrefixMapping:
     ra: str
     dec: str
-    stokes_i: Optional[str] = None
+    stokes_i: str
     stokes_q: Optional[str] = None
     stokes_u: Optional[str] = None
     stokes_v: Optional[str] = None
@@ -158,37 +158,57 @@ class SkyModel:
         )
 
     def _to_sky_xarray(self, array: SkySourcesType) -> xr.DataArray:
-        if isinstance(array, xr.DataArray):
+        if isinstance(array, xr.DataArray):  # just check/update dims if already xarray
+            if array.shape[1] > SkyModel.SOURCES_COLS:
+                raise KaraboSkyModelError(
+                    f"Too many cols for `SkyModel.sources`. Got {array.shape[1]}"
+                    + f"but only {SkyModel.SOURCES_COLS} cols are allowed"
+                    + "for `xr.DataArray`. Source-ids must be in `xr.DataArray.coords`."
+                )
             self._sources_dim_sources, self._sources_dim_data = cast(
                 Tuple[str, str], array.dims
             )
+            if array.shape[1] < SkyModel.SOURCES_COLS:
+                fill = self.__get_empty_sources(n_sources=array.shape[0])
+                if len(array.coords) == 1:
+                    fill.coords[self._sources_dim_sources] = array.coords[
+                        self._sources_dim_sources
+                    ]
+                missing_cols = SkyModel.SOURCES_COLS - array.shape[1]
+                fill[:, :-missing_cols] = array
+                da = fill
+            else:
+                da = array
+        else:  # `array` is `np.ndarray`
+            if array.shape[1] > SkyModel.SOURCES_COLS + 1:
+                raise KaraboSkyModelError(
+                    f"Too many cols for `SkyModel.sources`. Got {array.shape[1]}"
+                    + f"but only {SkyModel.SOURCES_COLS + 1} cols are allowed"
+                    + "for np.ndarrays."
+                )
+            elif array.shape[1] == SkyModel.SOURCES_COLS + 1:  # is last col source_id?
+                da = xr.DataArray(
+                    array[:, 0:12],
+                    dims=[self._sources_dim_sources, self._sources_dim_data],
+                    coords={self._sources_dim_sources: array[:, 12]},
+                )
+            else:  # fill with zeros
+                fill = self.__get_empty_sources(n_sources=array.shape[0])
+                missing_cols = SkyModel.SOURCES_COLS - array.shape[1]
+                fill[:, :-missing_cols] = array
+                da = fill
 
-        if array.shape[1] == SkyModel.SOURCES_COLS:
-            da = xr.DataArray(
-                array[:, 0:12],
-                dims=[self._sources_dim_sources, self._sources_dim_data],
-                coords={self._sources_dim_sources: array[:, 12]},
-            )
-        else:
-            da = xr.DataArray(
-                array, dims=[self._sources_dim_sources, self._sources_dim_data]
-            )
-            # Generate source names
-            da.coords[self._sources_dim_sources] = (
-                self._sources_dim_sources,
-                [f"source_{i}" for i in range(array.shape[0])],
-            )
-
-        da.data = da.data.astype(np.float_)
         return da
 
     def add_point_sources(self, sources: SkySourcesType) -> None:
-        """
-        Add new point sources to the sky model.
+        """Add new point sources to the sky model.
 
-        :param sources: Array-like with shape (number of sources, 13), each row
-        representing one source. The indices in the second dimension of the array
-        correspond to:
+        :param sources: `np.ndarray` with shape (number of sources, 13), where you can
+        place the "source_id" at index 12.
+        OR an `xarray.DataArray` with shape (number of sources, 12) where you can place
+        the "source_id" at `xarray.DataArray.coord` or use `SkyModel.source_ids` later.
+
+        The column indices correspond to:
 
             - [0] right ascension (deg)-
             - [1] declination (deg)
@@ -202,7 +222,6 @@ class SkyModel:
             - [9] major axis FWHM (arcsec): defaults to 0
             - [10] minor axis FWHM (arcsec): defaults to 0
             - [11] position angle (deg): defaults to 0
-            - [12] source id (object): defaults to None
 
         """
         if len(sources.shape) != 2:
@@ -213,19 +232,15 @@ class SkyModel:
         if sources.shape[1] < 3:
             raise ValueError(
                 "`sources` requires min 3 cols: `right_ascension`, "
-                + "`declination` and `stokes I Flux`."
+                + "`declination` and `stokes I flux`."
             )
-        if sources.shape[1] < SkyModel.SOURCES_COLS - 1:
-            # if some elements are missing,
-            # fill them up with zeros except `source_id`
-            missing_shape = SkyModel.SOURCES_COLS - sources.shape[1]
-            fill = self.__get_empty_sources(sources.shape[0])
-            fill[:, :-missing_shape] = sources
-            sources = fill
+        sky_sources = self._to_sky_xarray(array=sources)
         if self.sources is not None:
-            self.sources = np.vstack((self.sources, sources))
+            self.sources = xr.concat(
+                (self.sources, sky_sources), dim=self._sources_dim_sources
+            )
         else:
-            self.sources = sources
+            self.sources = sky_sources
 
     def write_to_file(self, path: str) -> None:
         self.save_sky_model_as_csv(path)
@@ -248,7 +263,6 @@ class SkyModel:
         - major axis FWHM (arcsec): if no information available, set to 0
         - minor axis FWHM (arcsec): if no information available, set to 0
         - position angle (deg): if no information available, set to 0
-        - source id (object): if no information available, set to None
 
         :param path: file to read in
         :return: SkyModel
