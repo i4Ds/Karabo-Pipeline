@@ -1,9 +1,15 @@
 import os
 import unittest
 
+import numpy as np
 import xarray as xr
 
-from karabo.data.external_data import ExampleHDF5Map
+from karabo.data.external_data import (
+    BATTYESurveyDownloadObject,
+    ExampleHDF5Map,
+    GLEAMSurveyDownloadObject,
+    MIGHTEESurveyDownloadObject,
+)
 from karabo.simulation.sky_model import Polarisation, SkyModel
 from karabo.test import data_path
 
@@ -27,6 +33,7 @@ class TestSkyModel(unittest.TestCase):
         sky1.add_point_sources(sky_data)
         sky2 = SkyModel(sky_data)
         # test if sources are inside now
+        assert np.all(sky1.sources == sky2.sources)
         self.assertEqual(sky_data.shape, sky1.sources.shape)
         self.assertEqual(sky_data.shape, sky2.sources.shape)
 
@@ -45,23 +52,9 @@ class TestSkyModel(unittest.TestCase):
         cartesian_sky = sky.get_cartesian_sky()
         print(cartesian_sky)
 
-    def test_get_cartesian(self):
-        sky1 = SkyModel()
-        sky_data = xr.DataArray(
-            [
-                [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, "source1"],
-                [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, "source2"],
-                [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, "source3"],
-            ]
-        )
-        sky1.add_point_sources(sky_data)
-        cart_sky = sky1.get_cartesian_sky()
-        print(cart_sky)
-
     def test_filter_sky_model(self):
         sky = SkyModel.get_GLEAM_Sky([76])
         phase_center = [250, -80]  # ra,dec
-        print(type(sky.sources))
         filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
         filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(
@@ -96,7 +89,7 @@ class TestSkyModel(unittest.TestCase):
     def test_read_healpix_map(self):
         download = ExampleHDF5Map()
         path = download.get()
-        source_array, nside = SkyModel.read_healpix_file_to_sky_model_array(
+        source_array, _ = SkyModel.read_healpix_file_to_sky_model_array(
             f"{path}",
             0,
             Polarisation.STOKES_I,
@@ -106,7 +99,38 @@ class TestSkyModel(unittest.TestCase):
 
     def test_get_poisson_sky(self):
         sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
-        print(type(sky.sources))
-        print(sky.sources)
-        print(sky.sources.shape)
         sky.explore_sky([240, -70])
+
+    def test_cscs_resource_availability(self):
+        gleam = GLEAMSurveyDownloadObject()
+        assert gleam.is_available()
+        battye = BATTYESurveyDownloadObject()
+        assert battye.is_available()
+        mightee = MIGHTEESurveyDownloadObject()
+        assert mightee.is_available()
+        map = ExampleHDF5Map()
+        assert map.is_available()
+
+    def test_download_gleam_and_make_sky_model(self):
+        sky = SkyModel.get_GLEAM_Sky([76])
+        sky.explore_sky([250, -30], s=0.1)
+        assert sky.num_sources > 0
+        assert len(sky.sources.source_name) == sky.num_sources
+
+    def test_transform_numpy_to_xarray(self):
+        sources = np.array(
+            [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "source1"],
+                [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, "source2"],
+                [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, "source3"],
+                [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, "source4"],
+                [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, "source5"],
+            ],
+            dtype=object,
+        )
+        sky = SkyModel(sources)
+        assert isinstance(sky.sources, xr.DataArray)
+        assert sky.num_sources > 0
+        assert sky.to_array().shape == (sky.num_sources, 12)  # No source ID
+        assert len(sky.sources.source_name) == sky.num_sources
+        assert all(sky.sources.source_name == sources[:, 12])

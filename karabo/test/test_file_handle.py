@@ -9,16 +9,14 @@ class TestFileHandle(unittest.TestCase):
     def test_create_file(self):
         handle = FileHandle(file_name="file.file")
         path = handle.path
-        dir_path = os.path.dirname(path)
-        self.assertTrue(os.path.exists(dir_path))
+        self.assertTrue(os.path.exists(path))
         handle.clean_up()
         self.assertFalse(os.path.exists(path))
 
     def test_create_file_w_suffix(self):
         handle = FileHandle(file_name="file", suffix=".file")
         path = handle.path
-        dir_path = os.path.dirname(path)
-        self.assertTrue(os.path.exists(dir_path))
+        self.assertTrue(os.path.exists(path))
         handle.clean_up()
         self.assertFalse(os.path.exists(path))
 
@@ -67,7 +65,6 @@ class TestFileHandle(unittest.TestCase):
         if not os.path.exists(dir):
             os.mkdir(dir)
         handle = FileHandle(dir=dir, create_additional_folder_in_dir=True)
-        print(handle.path)
         self.assertEqual(dir, os.path.split(handle.dir)[0])
         handle.clean_up()
         self.assertTrue(os.path.exists(dir))
@@ -75,7 +72,6 @@ class TestFileHandle(unittest.TestCase):
     def test_pass_ms_set_path(self):
         dir = os.path.join(data_path)
         handle = FileHandle(dir=dir, suffix=".ms")
-        print(handle.path)
         self.assertEqual(handle.dir, dir)
         # Check that in path there is a .ms file
         self.assertTrue(".ms" in handle.path)

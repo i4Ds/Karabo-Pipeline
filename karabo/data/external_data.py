@@ -56,6 +56,21 @@ class DownloadObject:
             self.__download()
         return self.path
 
+    def is_available(self) -> bool:
+        """Checks whether the url is available or not.
+
+        Returns:
+            Ture if available, else False
+        """
+        resp = requests.get(
+            url=self.url,
+            headers={"Range": "bytes=0-0"},
+        )
+        if resp.status_code == 206:  # succeed & partial content
+            return True
+        else:
+            return False
+
 
 class GLEAMSurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:

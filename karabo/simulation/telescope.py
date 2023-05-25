@@ -206,7 +206,7 @@ class Telescope(KaraboResource):
     def write_to_file(self, dir: str) -> None:
         """
         Create .tm telescope configuration at the specified path
-        :param path: directory in which the configuration will be saved in.
+        :param dir: directory in which the configuration will be saved in.
         """
         self.__write_position_txt(f"{dir}/position.txt")
         self.__write_layout_txt(

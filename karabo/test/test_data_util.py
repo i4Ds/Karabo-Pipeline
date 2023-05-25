@@ -28,7 +28,6 @@ class TestParseSize(unittest.TestCase):
             ("1.25 TB", 1.25 * 10**12),
             ("10.5GB", 10.5 * 10**9),
         ]
-        test_cases = [("1.5 KB", 1500)]
 
         for size_str, expected in test_cases:
             with self.subTest(size_str=size_str, expected=expected):
@@ -101,7 +100,3 @@ class TestCalculateChunkSize(unittest.TestCase):
             max_chunk_memory_size, data_array
         )
         self.assertEqual(expected_chunk_size, calculated_chunk_size)
-
-
-if __name__ == "__main__":
-    unittest.main(argv=[""], exit=False)

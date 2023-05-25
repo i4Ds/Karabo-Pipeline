@@ -42,7 +42,6 @@ class TestSystemNoise(unittest.TestCase):
         sky_data[:, 10] = mightee_continuum[:, 10]
         sky_data[:, 11] = mightee_continuum[:, 11]
         sky = SkyModel(sky_data)
-        print(sky)
         ra_list = [150.0, 150.5, 160.0]
         dec_list = [2.0, 2.5, 3.0]
         f_obs = 1.0e9
@@ -133,7 +132,6 @@ class TestSystemNoise(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/mock_mightee/noise_dirty.fits")
         time_end=(time.time() - start_time)
-        print(time_vis,time_vis_write,time_end)
         dirty.plot(title='Flux Density (Jy)',vmin=0,vmax=0.5)
         plt.plot(
             [1, 10, 30, 60, 80, 100],

@@ -652,7 +652,7 @@ class SkyModel:
         if with_labels:
             unique_keys, indices = np.unique(data.source_name, return_index=True)
             for i, txt in enumerate(unique_keys):
-                if data.shape[0] > 1:
+                if self.shape[0] > 1:
                     ax.annotate(
                         txt,
                         (px[indices][i], py[indices][i]),
@@ -1008,9 +1008,10 @@ class SkyModel:
         Notes
         -----
         The FITS file should have a data table in its first HDU.
-        The required columns are:
-        "ra", "dec", "i", "q", "u", "v", "ref_freq", "spectral_index", "rm",
-        "major", "minor", "pa", and "id". Any additional columns will be ignored.
+        Valid columns are:
+        "ra", "dec", "stokes_i", "stokes_q", "stokes_u", "stokes_v", "ref_freq",
+        "spectral_index", "rm", "major", "minor", "pa", and "id".
+        Any additional columns will be ignored.
 
         The `prefix_mapping` values should map the required columns to their
         corresponding column names in the input FITS file. For example:
@@ -1124,7 +1125,7 @@ class SkyModel:
         model using the downloaded data.
 
         Source:
-        The BATTYE survey data was given by Jennifer Studer
+        The BATTYE survey data was provided by Jennifer Studer
         (https://github.com/jejestern)
 
         Returns:
@@ -1139,8 +1140,8 @@ class SkyModel:
             - 'Observed Redshift': Additional observed redshift information
                 of the celestial objects.
 
-            Note: Other properties such as 'q', 'u', 'v', 'ref_freq',
-            'spectral_index', 'rm', 'major', 'minor', 'pa', and 'id'
+            Note: Other properties such as 'stokes_q', 'stokes_u', 'stokes_v',
+             'ref_freq', 'spectral_index', 'rm', 'major', 'minor', 'pa', and 'id'
             are not included in the sky model.
 
 

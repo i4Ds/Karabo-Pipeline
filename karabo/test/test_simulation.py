@@ -70,7 +70,3 @@ class TestSimulation(unittest.TestCase):
             assert float(observation["num_channels"]) == 2
 
         assert len(observations) == NUM_SPLITS
-
-
-if __name__ == "__main__":
-    unittest.main()
