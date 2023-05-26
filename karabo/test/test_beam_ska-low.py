@@ -46,8 +46,6 @@ class MyTestCase(unittest.TestCase):
         sky.add_point_sources(sky_data)
         telescope = Telescope.get_SKA1_LOW_Telescope()
         # telescope.centre_longitude = 3
-        xcstfile_path = "./karabo/test/data/cst_like_beam_port_1.txt"
-        ycstfile_path = "./karabo/test/data/cst_like_beam_port_2.txt"
         enable_array_beam = True
         # Remove beam if already present
         #------------- Simulation Begins
@@ -56,7 +54,8 @@ class MyTestCase(unittest.TestCase):
             channel_bandwidth_hz=2e7,
             time_average_sec=1,
             noise_enable=False,
-            enable_numerical_beam=False,
+            enable_numerical_beam=True,
+            station_type = 'Gaussian',
             enable_array_beam=enable_array_beam,
         )
         observation = Observation(
