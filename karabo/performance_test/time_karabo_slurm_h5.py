@@ -2,7 +2,7 @@ import time
 
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
-from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.sky_model import SkyModel, SkyPrefixMapping
 from karabo.simulation.telescope import Telescope
 
 
@@ -11,21 +11,11 @@ def main() -> None:
     path = "/scratch/snx3000/vtimmel/karabo/point_sources_OSKAR1.h5"
     phase_center = [0, -30]
 
-    prefix_mapping = {
-        "ra": "Right Ascension",
-        "dec": "Declination",
-        "i": "Flux",
-        "q": None,
-        "u": None,
-        "v": None,
-        "ref_freq": None,
-        "spectral_index": None,
-        "rm": None,
-        "major": None,
-        "minor": None,
-        "pa": None,
-        "id": None,
-    }
+    prefix_mapping = SkyPrefixMapping(
+        ra="Right Ascension",
+        dec="Declination",
+        stokes_i="Flux",
+    )
 
     sky = SkyModel.get_sky_model_from_h5_to_xarray(
         path=path, prefix_mapping=prefix_mapping

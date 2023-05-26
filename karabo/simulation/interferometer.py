@@ -208,12 +208,12 @@ class InterferometerSimulation:
         self.vis_path = vis_path
         self.folder_for_multiple_observation = folder_for_multiple_observation
 
-        self.channel_bandwidth_hz: float = channel_bandwidth_hz
-        self.time_average_sec: float = time_average_sec
+        self.channel_bandwidth_hz: IntFloat = channel_bandwidth_hz
+        self.time_average_sec: IntFloat = time_average_sec
         self.max_time_per_samples: int = max_time_per_samples
         self.correlation_type: CorrelationType = correlation_type
-        self.uv_filter_min: float = uv_filter_min
-        self.uv_filter_max: float = uv_filter_max
+        self.uv_filter_min: IntFloat = uv_filter_min
+        self.uv_filter_max: IntFloat = uv_filter_max
         self.uv_filter_units: FilterUnits = uv_filter_units
         self.force_polarised_ms: bool = force_polarised_ms
         self.ignore_w_components: bool = ignore_w_components
@@ -340,8 +340,8 @@ class InterferometerSimulation:
                     )
                     print(f"{self.n_split_channels=}")
                 # Calculate the number of splits
-                n_splits = (
-                    int(oskar_settings_tree["observation"]["num_channels"])
+                n_splits = int(
+                    oskar_settings_tree["observation"]["num_channels"]
                     if self.n_split_channels == "each"
                     else self.n_split_channels
                 )
@@ -360,11 +360,14 @@ class InterferometerSimulation:
 
             # Define delayed objects
             delayed_results = []
-            array_sky = [x[0] for x in array_sky.data.to_delayed()]
+            # TODO: make possible to use dask. currently there is no possible way, that
+            # TODO:`array_sky.data` can ever be a dask-array and therefore to-delay
+            # TODO: can't exist. Thus, this implementation is not correct.
+            array_sky_delayed = [x[0] for x in array_sky.data.to_delayed()]
 
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
-            for sky_ in array_sky:
+            for sky_ in array_sky_delayed:
                 for observation_params in observations:
                     # Create params
                     interferometer_params = (

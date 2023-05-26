@@ -115,7 +115,7 @@ class Observation:
     def extract_multiple_observations_from_settings(
         settings: Dict[str, Dict[str, str]],
         number_of_observations: int,
-        channel_bandwidth_hz: int,
+        channel_bandwidth_hz: IntFloat,
     ) -> List[Dict[str, Dict[str, str]]]:
         """
         Extracts the settings of multiple observations from a settings dictionary.
