@@ -638,10 +638,8 @@ class InterferometerSimulation:
                     ),
                     "ionosphere_screen_type": self.ionosphere_screen_type,
                     "isoplanatic_screen": self.ionosphere_isoplanatic_screen,
-                    "external_tec_screen/screen_height_km":
-                        self.ionosphere_screen_height_km,
-                    "external_tec_screen/screen_pixel_size_m":
-                        self.ionosphere_screen_pixel_size_m,
+                    "external_tec_screen/screen_height_km": self.ionosphere_screen_height_km,  # noqa: E501
+                    "external_tec_screen/screen_pixel_size_m": self.ionosphere_screen_pixel_size_m,  # noqa: E501
                 }
             )
 
