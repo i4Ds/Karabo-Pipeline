@@ -4,7 +4,18 @@ import copy
 import enum
 import math
 from dataclasses import dataclass, fields
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 from warnings import warn
 
 import dask.array as da
@@ -32,6 +43,7 @@ from karabo.util._types import (
     IntFloat,
     IntFloatList,
     NPFloatInpBroadType,
+    NPFloatLike,
     PrecisionType,
 )
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
@@ -61,7 +73,7 @@ GLEAM_freq = Literal[
     220,
     227,
 ]
-StokesType = Literal["Stokes I", "Stokes Q", "Stokes U", "Stokes V "]
+StokesType = Literal["Stokes I", "Stokes Q", "Stokes U", "Stokes V"]
 
 NPSkyType = Union[NDArray[np.float_], NDArray[np.object_]]
 SkySourcesType = Union[NPSkyType, xr.DataArray]
@@ -137,19 +149,21 @@ class SkyModel:
         self,
         sources: Optional[SkySourcesType] = None,
         wcs: Optional[WCS] = None,
+        precision: Type[np.float_] = np.float64,
     ) -> None:
         """
         Initialization of a new SkyModel
 
         :param sources: Adds point sources
         :param wcs: world coordinate system
+        :param precision: precision of `sources`
         """
         self.__sources_dim_sources = XARRAY_DIM_0_DEFAULT
         self.__sources_dim_data = XARRAY_DIM_1_DEFAULT
         self._sources: Optional[xr.DataArray] = None
+        self.precision = precision
         self.wcs = wcs
-        if sources is not None:
-            self.sources = sources
+        self.sources = sources  # type: ignore [assignment]
 
     def __get_empty_sources(self, n_sources: int) -> xr.DataArray:
         empty_sources = np.hstack((np.zeros((n_sources, SkyModel.SOURCES_COLS)),))
@@ -170,7 +184,7 @@ class SkyModel:
             )
             if array.shape[1] < SkyModel.SOURCES_COLS:
                 fill = self.__get_empty_sources(n_sources=array.shape[0])
-                if len(array.coords) == 1:
+                if len(array.coords) > 0:
                     fill.coords[self._sources_dim_sources] = array.coords[
                         self._sources_dim_sources
                     ]
@@ -239,9 +253,9 @@ class SkyModel:
         if self.sources is not None:
             self.sources = xr.concat(
                 (self.sources, sky_sources), dim=self._sources_dim_sources
-            )
+            ).astype(self.precision)
         else:
-            self.sources = sky_sources
+            self.sources = sky_sources.astype(self.precision)
 
     def write_to_file(self, path: str) -> None:
         self.save_sky_model_as_csv(path)
@@ -286,7 +300,7 @@ class SkyModel:
         sky = SkyModel(dataframe)
         return sky
 
-    def to_array(self, with_obj_ids: bool = False) -> SkySourcesType:
+    def to_np_array(self, with_obj_ids: bool = False) -> NPSkyType:
         """
         Gets the sources as np.ndarray
 
@@ -314,7 +328,9 @@ class SkyModel:
         else:
             return self.sources.to_numpy()
 
-    def rechunk_array_based_on_self(self, array: xr.DataArray):
+    def rechunk_array_based_on_self(self, array: xr.DataArray) -> xr.DataArray:
+        if self.sources is None:
+            raise KaraboSkyModelError("Rechunking of `sources` None is not allowed.")
         if self.sources.chunks is not None:
             chunk_size = max(self.sources.chunks[0][0], 1)
             array = array.chunk({self._sources_dim_sources: chunk_size})
@@ -375,7 +391,7 @@ class SkyModel:
         ra0_deg: IntFloat,
         dec0_deg: IntFloat,
         indices: bool = False,
-    ) -> Union[SkyModel, Tuple[SkyModel, NPSkyType]]:
+    ) -> Union[SkyModel, Tuple[SkyModel, np.int64]]:
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
@@ -397,7 +413,7 @@ class SkyModel:
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
         if indices:
-            filtered_indices = np.where(filter_mask)[0]
+            filtered_indices = cast(np.int64, np.where(filter_mask)[0])
             return copied_sky, filtered_indices
         else:
             return copied_sky
@@ -558,6 +574,8 @@ class SkyModel:
                        `vmin` or `vmax`
         """
         # To avoid having to read the data multiple times, we read it once here
+        if self.sources is None:
+            raise KaraboSkyModelError("Can't plot sky if `sources` is None.")
         if idx_to_plot is not None:
             data = self.sources[idx_to_plot].as_numpy()
         else:
@@ -586,7 +604,7 @@ class SkyModel:
 
         flux = None
         if cmap is not None:
-            flux = self[:, SkyModel._STOKES_IDX[stokes]]
+            flux = cast(NDArray[np.float_], self[:, SkyModel._STOKES_IDX[stokes]].data)
             if cfun is not None:
                 if cfun in [np.log10, np.log] and any(flux <= 0):
                     warn(
@@ -598,14 +616,14 @@ class SkyModel:
                     )
 
                     flux = np.where(flux > 0, flux, np.nan)
-                flux = cfun(flux)  # type: ignore
+                flux = cast(NDArray[np.float_], cfun(flux))
 
         # handle matplotlib kwargs
         # not set as normal args because default assignment depends on args
         if "vmin" not in kwargs:
-            kwargs["vmin"] = np.nanmin(flux)  # type: ignore
+            kwargs["vmin"] = np.nanmin(flux)  # type: ignore [arg-type]
         if "vmax" not in kwargs:
-            kwargs["vmax"] = np.nanmax(flux)  # type: ignore
+            kwargs["vmax"] = np.nanmax(flux)  # type: ignore [arg-type]
 
         if wcs_enabled:
             slices = get_slices(wcs)
@@ -705,6 +723,24 @@ class SkyModel:
     def sources(self) -> Optional[xr.DataArray]:
         return self._sources
 
+    @sources.setter
+    def sources(self, value: Optional[xr.DataArray]) -> None:
+        """Sources setter.
+
+        Does also allow numpy-arrays.
+        But mypy doesn't allow getter and setter to have different dtypes.
+        Just set "# type: ignore [assignment]" in case you don't have exctly an `xarray`
+
+        Args:
+            value: sources, `xarray.DataArray` or `np.ndarray`
+        """
+        if value is not None:
+            self.add_point_sources(sources=value)
+        else:
+            self._sources = None
+            self._sources_dim_sources = XARRAY_DIM_0_DEFAULT
+            self._sources_dim_data = XARRAY_DIM_1_DEFAULT
+
     @property
     def _sources_dim_sources(self) -> str:
         if self.sources is None:
@@ -745,17 +781,8 @@ class SkyModel:
             )
         self.__sources_dim_data = value
 
-    @sources.setter
-    def sources(self, value: Optional[SkySourcesType]) -> None:
-        if value is not None:
-            self.add_point_sources(sources=value)
-        else:
-            self._sources = None
-            self._sources_dim_sources = XARRAY_DIM_0_DEFAULT
-            self._sources_dim_data = XARRAY_DIM_1_DEFAULT
-
     @property
-    def source_ids(self) -> Optional[DataArrayCoordinates]:
+    def source_ids(self) -> Optional[DataArrayCoordinates[xr.DataArray]]:
         if self.sources is not None and len(self.sources.coords) > 0:
             return self.sources.coords
         else:
@@ -771,7 +798,7 @@ class SkyModel:
             NDArray[np.object0],
             NDArray[np.int_],
             NDArray[np.float_],
-            DataArrayCoordinates,
+            DataArrayCoordinates[xr.DataArray],
         ],
     ) -> None:
         if self.sources is None:
@@ -788,7 +815,7 @@ class SkyModel:
                 value,
             )
 
-    def __getitem__(self, key: Any) -> SkySourcesType:
+    def __getitem__(self, key: Any) -> xr.DataArray:
         """
         Allows to get access to self.sources in an np.ndarray like manner
         If casts the selected array/scalar to float64 if possible
@@ -800,17 +827,12 @@ class SkyModel:
         """
         if self.sources is None:
             raise AttributeError("`sources` is None and therefore can't be accessed.")
-        sources = cast(SkySourcesType, self.sources[key])
-        try:
-            sources = sources.astype(np.float64)
-        except ValueError:
-            pass  # nothing toDo here
-        return sources
+        return self.sources[key]
 
     def __setitem__(
         self,
         key: Any,
-        value: Union[NPFloatInpBroadType, str],
+        value: Union[SkySourcesType, NPFloatLike],
     ) -> None:
         """
         Allows to set values in an np.ndarray like manner
@@ -819,16 +841,17 @@ class SkyModel:
         :param value: values to store
         """
         if self.sources is None:
-            value_ = cast(SkySourcesType, value)
-            self.add_point_sources(sources=value_)
-        else:
-            self.sources[key] = value
+            raise KaraboSkyModelError("Can't acces `sources` because it's None.")
+        # access `sources.getter`, not `sources.setter` which is fine
+        self.sources[key] = value
 
     def save_sky_model_as_csv(self, path: str) -> None:
         """
         Save source array into a csv.
         :param path: path to save the csv file in.
         """
+        if self.sources is None:
+            raise KaraboSkyModelError("Can't save `sources` because they're None.")
         df = pd.DataFrame(self.sources)
         df["source id (object)"] = self.sources[self._sources_dim_sources].values
         df.to_csv(
@@ -921,27 +944,30 @@ class SkyModel:
             points and columns represent different data fields ('ra', 'dec', ...).
         """
         f = h5py.File(path, "r")
-        data_arrays = []
+        data_arrays: List[xr.DataArray] = []
 
         for field in fields(prefix_mapping):
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
                 shape = f[prefix_mapping.ra].shape
-                dask_array = da.zeros(shape, chunks=(chunksize,))
+                dask_array = da.zeros(shape, chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
             else:
-                dask_array = da.from_array(f[field_value], chunks=(chunksize,))
+                dask_array = da.from_array(f[field_value], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
 
         if extra_columns is not None:
             for col in extra_columns:
-                dask_array = da.from_array(f[col], chunks=(chunksize,))
+                dask_array = da.from_array(f[col], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
                 data_arrays.append(
                     xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT])
                 )
 
-        sky = cast(xr.DataArray, xr.concat(data_arrays, dim="columns"))
+        f.close()
+        sky = xr.concat(data_arrays, dim="columns")
         sky = sky.T
-        sky = sky.chunk({XARRAY_DIM_0_DEFAULT: chunksize, "columns": sky.shape[1]})
+        sky = sky.chunk(
+            {XARRAY_DIM_0_DEFAULT: chunksize, "columns": sky.shape[1]}
+        )  # TODO: Why does mypy complain on `DataArray.chunk` funs? Also below!
         return SkyModel(sky)
 
     @staticmethod
@@ -1105,7 +1131,7 @@ class SkyModel:
         data_dict = {name: data[name] for name in column_names}
 
         dataset = xr.Dataset(data_dict)
-        data_arrays = []
+        data_arrays: List[xr.DataArray] = []
 
         for freq in frequencies:
             freq_str = str(freq).zfill(3)
@@ -1168,11 +1194,10 @@ class SkyModel:
         for freq_dataset in data_arrays:
             freq_dataset.chunk({XARRAY_DIM_0_DEFAULT: chunksize})
 
-        result_dataset = cast(
-            xr.DataArray,
+        result_dataset = (
             xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT)
             .chunk({XARRAY_DIM_0_DEFAULT: chunksize})
-            .T,
+            .T
         )
 
         return SkyModel(result_dataset)
@@ -1217,6 +1242,8 @@ class SkyModel:
         sky = SkyModel.get_sky_model_from_h5_to_xarray(
             path=path, prefix_mapping=column_mapping, extra_columns=extra_columns
         )
+        if sky.sources is None:
+            raise KaraboSkyModelError("`sky.sources` is None but shouldn't be.")
 
         sky.sources[:, 1] *= -1
 
@@ -1277,5 +1304,4 @@ class SkyModel:
         sky_array = xr.DataArray(
             get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
         )
-        print(sky_array.shape)
         return SkyModel(sky_array)

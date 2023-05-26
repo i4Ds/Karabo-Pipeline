@@ -131,6 +131,6 @@ class TestSkyModel(unittest.TestCase):
         sky = SkyModel(sources)
         assert isinstance(sky.sources, xr.DataArray)
         assert sky.num_sources > 0
-        assert sky.to_array().shape == (sky.num_sources, 12)  # No source ID
+        assert sky.to_np_array().shape == (sky.num_sources, 12)  # No source ID
         assert len(sky.sources.source_name) == sky.num_sources
         assert all(sky.sources.source_name == sources[:, 12])
