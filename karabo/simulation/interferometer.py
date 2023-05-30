@@ -437,7 +437,7 @@ class InterferometerSimulation:
     def __run_simulation_oskar(
         os_sky: Union[oskar.Sky, NDArray[np.float_], xr.DataArray, Delayed],
         params_total: Dict[str, Any],
-        precision: Optional[PrecisionType] = None,
+        precision: PrecisionType = "double",
     ) -> Dict[str, Any]:
         """
         Run a single interferometer simulation with a given sky,
@@ -456,10 +456,6 @@ class InterferometerSimulation:
         elif isinstance(os_sky, xr.DataArray):
             os_sky = np.array(os_sky.as_numpy())
         elif isinstance(os_sky, np.ndarray):
-            if precision is None:
-                raise KaraboInterferometerSimulationError(
-                    "`precision` must be set but is None."
-                )
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
 
         simulation = oskar.Interferometer(settings=setting_tree)

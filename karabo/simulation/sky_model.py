@@ -671,7 +671,7 @@ class SkyModel:
     @staticmethod
     def get_OSKAR_sky(
         sky: Union[SkySourcesType, SkyModel],
-        precision: PrecisionType,
+        precision: PrecisionType = "double",
     ) -> oskar.Sky:
         """
         Get OSKAR sky model object from the defined Sky Model
