@@ -255,7 +255,7 @@ class SkyModel:
                 (self.sources, sky_sources), dim=self._sources_dim_sources
             ).astype(self.precision)
         else:
-            self.sources = sky_sources.astype(self.precision)
+            self._sources = sky_sources.astype(self.precision)
 
     def write_to_file(self, path: str) -> None:
         self.save_sky_model_as_csv(path)
