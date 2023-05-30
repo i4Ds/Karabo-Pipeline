@@ -333,7 +333,7 @@ class InterferometerSimulation:
             )
         # Run the simulation on the dask cluster
         if self.client is not None:
-            if not isinstance(da, array_sky.data):
+            if not isinstance(array_sky.data, da):
                 raise KaraboInterferometerSimulationError(
                     "Client is set, but `xarray.DataArray` is not of type"
                     + "`dask.array import Array`,"
@@ -423,14 +423,15 @@ class InterferometerSimulation:
     ) -> OskarSettingsTreeType:
         # Create visiblity object
         vis_path = FileHandle(
-            path=self.folder_for_multiple_observation,
+            dir=self.folder_for_multiple_observation,
             file_name="visibility",
             create_additional_folder_in_dir=True,
             suffix=".vis",
         ).path
         ms_file_path = FileHandle(
-            path=self.folder_for_multiple_observation,
+            dir=self.folder_for_multiple_observation,
             create_additional_folder_in_dir=True,
+            file_is_dir=True,
             suffix=".MS",
         ).path
 
