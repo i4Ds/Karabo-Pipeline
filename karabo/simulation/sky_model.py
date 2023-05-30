@@ -392,6 +392,19 @@ class SkyModel:
         dec0_deg: IntFloat,
         indices: bool = False,
     ) -> Union[SkyModel, Tuple[SkyModel, np.int64]]:
+        # TODO description what is different to non-apporx, when should I use this fun?
+        """_summary_
+
+        Args:
+            inner_radius_deg: _description_
+            outer_radius_deg: _description_
+            ra0_deg: _description_
+            dec0_deg: _description_
+            indices: _description_
+
+        Returns:
+            _description_
+        """
         copied_sky = copy.deepcopy(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
@@ -604,7 +617,7 @@ class SkyModel:
 
         flux = None
         if cmap is not None:
-            flux = cast(NDArray[np.float_], self[:, SkyModel._STOKES_IDX[stokes]].data)
+            flux = self[:, SkyModel._STOKES_IDX[stokes]].to_numpy()
             if cfun is not None:
                 if cfun in [np.log10, np.log] and any(flux <= 0):
                     warn(
@@ -735,6 +748,7 @@ class SkyModel:
             value: sources, `xarray.DataArray` or `np.ndarray`
         """
         if value is not None:
+            self._sources = None
             self.add_point_sources(sources=value)
         else:
             self._sources = None

@@ -1,11 +1,11 @@
 import copy
 from datetime import datetime, timedelta
-from typing import Dict, List, Union
+from typing import List, Union
 
 import numpy as np
 
 from karabo.error import KaraboError
-from karabo.util._types import IntFloat
+from karabo.util._types import IntFloat, OskarSettingsTreeType
 
 
 class Observation:
@@ -83,7 +83,7 @@ class Observation:
             hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds
         )
 
-    def get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, str]]:
+    def get_OSKAR_settings_tree(self) -> OskarSettingsTreeType:
         """
         Get the settings of this observation as an oskar setting tree.
         This function returns a python dictionary formatted
@@ -113,17 +113,17 @@ class Observation:
 
     @staticmethod
     def extract_multiple_observations_from_settings(
-        settings: Dict[str, Dict[str, str]],
+        settings: OskarSettingsTreeType,
         number_of_observations: int,
         channel_bandwidth_hz: IntFloat,
-    ) -> List[Dict[str, Dict[str, str]]]:
+    ) -> List[OskarSettingsTreeType]:
         """
         Extracts the settings of multiple observations from a settings dictionary.
         This function returns a list of dictionaries containing the settings
         of each observation. The start_frequency and number_of_channels
         need to be updated for each observation.
         """
-        settings_list: List[Dict[str, Dict[str, str]]] = []
+        settings_list: List[OskarSettingsTreeType] = []
 
         # Extract some settings from the dictionary
         n_channels = int(settings["observation"]["num_channels"])

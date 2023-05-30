@@ -1,4 +1,4 @@
-from typing import List, Literal, Union
+from typing import Dict, List, Literal, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -63,3 +63,5 @@ NPFloatLikeStrict = Union[NPIntFloat, IntFloat]
 
 IntFloatList: TypeAlias = Union[List[int], List[float]]
 PrecisionType: TypeAlias = Literal["single", "double"]
+
+OskarSettingsTreeType: TypeAlias = Dict[str, Dict[str, str]]

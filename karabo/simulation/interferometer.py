@@ -7,6 +7,7 @@ import oskar
 import pandas as pd
 import xarray as xr
 from dask import compute, delayed  # type: ignore[attr-defined]
+from dask.array import Array as da  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
@@ -17,7 +18,7 @@ from karabo.simulation.observation import Observation, ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat, PrecisionType
+from karabo.util._types import IntFloat, OskarSettingsTreeType, PrecisionType
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
 from karabo.util.gpu_util import is_cuda_available
@@ -332,6 +333,13 @@ class InterferometerSimulation:
             )
         # Run the simulation on the dask cluster
         if self.client is not None:
+            if not isinstance(da, array_sky.data):
+                raise KaraboInterferometerSimulationError(
+                    "Client is set, but `xarray.DataArray` is not of type"
+                    + "`dask.array import Array`,"
+                    + f"instead it is type {type(array_sky.data)}."
+                )
+            dask_array = cast(da, array_sky.data)
             oskar_settings_tree = observation.get_OSKAR_settings_tree()
             if self.split_observation_by_channels:
                 if verbose:
@@ -360,10 +368,7 @@ class InterferometerSimulation:
 
             # Define delayed objects
             delayed_results = []
-            # TODO: make possible to use dask. currently there is no possible way, that
-            # TODO:`array_sky.data` can ever be a dask-array and therefore to-delay
-            # TODO: can't exist. Thus, this implementation is not correct.
-            array_sky_delayed = [x[0] for x in array_sky.data.to_delayed()]
+            array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
 
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
@@ -386,9 +391,12 @@ class InterferometerSimulation:
                     )
                     delayed_results.append(delayed_)
 
-            results = compute(*delayed_results, scheduler="distributed")
-
-            # Visibilities cannot be combined currently, thus return the first one
+            results = cast(
+                List[OskarSettingsTreeType],
+                compute(*delayed_results, scheduler="distributed"),
+            )
+            # TODO combine visibilities is not done yet.
+            # currently it is a list of oskar-settings-tree.
             return results
 
         # Run the simulation on the local machine
@@ -412,7 +420,7 @@ class InterferometerSimulation:
 
     def __create_interferometer_params_with_random_paths(
         self, input_telpath: str
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> OskarSettingsTreeType:
         # Create visiblity object
         vis_path = FileHandle(
             path=self.folder_for_multiple_observation,
@@ -436,7 +444,7 @@ class InterferometerSimulation:
     @staticmethod
     def __run_simulation_oskar(
         os_sky: Union[oskar.Sky, NDArray[np.float_], xr.DataArray, Delayed],
-        params_total: Dict[str, Any],
+        params_total: OskarSettingsTreeType,
         precision: PrecisionType = "double",
     ) -> Dict[str, Any]:
         """
@@ -455,7 +463,7 @@ class InterferometerSimulation:
             os_sky = os_sky.compute()
         elif isinstance(os_sky, xr.DataArray):
             os_sky = np.array(os_sky.as_numpy())
-        elif isinstance(os_sky, np.ndarray):
+        if isinstance(os_sky, np.ndarray):
             os_sky = SkyModel.get_OSKAR_sky(os_sky, precision=precision)
 
         simulation = oskar.Interferometer(settings=setting_tree)
@@ -590,8 +598,8 @@ class InterferometerSimulation:
         input_telpath: str,
         ms_file_path: str,
         vis_path: str,
-    ) -> Dict[str, Dict[str, Any]]:
-        settings: Dict[str, Dict[str, Any]] = {
+    ) -> OskarSettingsTreeType:
+        settings: OskarSettingsTreeType = {
             "simulator": {
                 "use_gpus": self.use_gpus,
                 "double_precision": self.yes_double_precision(),
