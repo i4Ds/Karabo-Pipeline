@@ -59,13 +59,15 @@ class NumpyHandleError:
 
 
 class HiddenPrints:
-    def __enter__(
+    def __init__(
         self,
         stdout: bool = True,
         stderr: bool = True,
     ) -> None:
         self.stdout = stdout
         self.stderr = stderr
+
+    def __enter__(self) -> None:
         if self.stdout:
             self._original_stdout = sys.stdout
             sys.stdout = open(os.devnull, "w")
