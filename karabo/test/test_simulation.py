@@ -47,7 +47,7 @@ class TestSimulation(unittest.TestCase):
 
         simulation.run_simulation(telescope, sky, observation)
 
-    def test_split_by_observation(self):
+    def test_create_observations_oskar_settings_tree(self):
         CHANNEL_BANDWIDTH_HZ = 1e6
         NUM_SPLITS = 5
         NUM_CHANNELS = 10
@@ -70,3 +70,7 @@ class TestSimulation(unittest.TestCase):
             assert float(observation["num_channels"]) == 2
 
         assert len(observations) == NUM_SPLITS
+
+    def test_parallelization_by_channel(self):
+        # TODO: Do this test
+        pass

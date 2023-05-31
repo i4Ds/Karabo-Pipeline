@@ -18,8 +18,8 @@ DASK_INFO_FOLDER = ".karabo_dask"
 DASK_INFO_FILE = "dask_info.json"
 
 ##
-if 'SLURM_JOB_ID' in os.environ:
-    DASK_INFO_FOLDER = os.path.join(DASK_INFO_FOLDER, str(os.environ['SLURM_JOB_ID']))
+if "SLURM_JOB_ID" in os.environ:
+    DASK_INFO_FOLDER = os.path.join(DASK_INFO_FOLDER, str(os.environ["SLURM_JOB_ID"]))
 os.makedirs(DASK_INFO_FOLDER, exist_ok=True)
 DASK_INFO_ADDRESS = os.path.join(DASK_INFO_FOLDER, DASK_INFO_FILE)
 
@@ -87,7 +87,7 @@ def get_local_dask_client(
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
-    client = Client(LocalCluster(n_workers=n_workers))
+    client = Client(LocalCluster(n_workers=n_workers, threads_per_worker=1))
     return client
 
 
@@ -152,7 +152,7 @@ def calculate_number_of_workers_per_node(
     if min_ram_gb_per_worker is None:
         return 1
     # Calculate number of workers per node
-    ram = psutil.virtual_memory().available / 1000 / 1000
+    ram = psutil.virtual_memory().available / 1e9
     n_workers_per_node = int(ram / (min_ram_gb_per_worker))
     if ram < min_ram_gb_per_worker:
         KaraboWarning(

@@ -4,20 +4,19 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.util.dask import get_number_of_nodes
+from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
 
 
-def main(n_channels: int) -> None:
-    start = time.time()
-
+def main(n_channels: int, gb_ram_per_worker: int) -> None:
+    DaskHandler.min_gb_ram_per_worker = gb_ram_per_worker
     print("Setting up sky model...")
     sky = SkyModel.get_GLEAM_Sky([76])
     phase_center = [250, -80]
 
     print("Filtering sky model...")
     sky = sky.filter_by_radius_euclidean_flat_approximation(
-        0, 45, phase_center[0], phase_center[1]
+        0, 30, phase_center[0], phase_center[1]
     )
 
     print("Size of sky sources: ", sky.sources.nbytes / 1e6, "MB")
@@ -45,26 +44,30 @@ def main(n_channels: int) -> None:
 
     print("Running simulation...")
     interferometer_sim = InterferometerSimulation(
-        folder_for_multiple_observation=dir_intermediate_files,
         channel_bandwidth_hz=1e6,
-        use_gpus=True,
+        use_gpus=False,
         use_dask=True,
         split_observation_by_channels=True,
         n_split_channels="each",
     )
 
-    visibility_askap = interferometer_sim.run_simulation(
+    print(f"Dashboard available here: {interferometer_sim.client.dashboard_link}")
+    n_workers = len(interferometer_sim.client.scheduler_info()["workers"])
+    print(f"Number of workers: {n_workers}")
+    print(f"Client: {interferometer_sim.client}")
+
+    start = time.time()
+    _ = interferometer_sim.run_simulation(
         askap_tel,
         sky,
         observation_settings,
     )
 
-    assert len(visibility_askap) == n_channels
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
 
     with open(
-        f"output_{str(get_number_of_nodes())}_nodes_{n_channels}_channels.txt",
+        f"output_{str(n_workers)}_nodes_{n_channels}_channels.txt",
         "a",
     ) as file:
         file.write(
@@ -77,4 +80,4 @@ def main(n_channels: int) -> None:
 
 
 if __name__ == "__main__":
-    main(n_channels=10000)
+    main(n_channels=100, gb_ram_per_worker=2)

@@ -173,12 +173,6 @@ class SkyModel:
 
     def _to_sky_xarray(self, array: SkySourcesType) -> xr.DataArray:
         if isinstance(array, xr.DataArray):  # just check/update dims if already xarray
-            if array.shape[1] > SkyModel.SOURCES_COLS:
-                raise KaraboSkyModelError(
-                    f"Too many cols for `SkyModel.sources`. Got {array.shape[1]}"
-                    + f"but only {SkyModel.SOURCES_COLS} cols are allowed"
-                    + "for `xr.DataArray`. Source-ids must be in `xr.DataArray.coords`."
-                )
             self._sources_dim_sources, self._sources_dim_data = cast(
                 Tuple[str, str], array.dims
             )
@@ -194,15 +188,9 @@ class SkyModel:
             else:
                 da = array
         else:  # `array` is `np.ndarray`
-            if array.shape[1] > SkyModel.SOURCES_COLS + 1:
-                raise KaraboSkyModelError(
-                    f"Too many cols for `SkyModel.sources`. Got {array.shape[1]}"
-                    + f"but only {SkyModel.SOURCES_COLS + 1} cols are allowed"
-                    + "for np.ndarrays."
-                )
-            elif array.shape[1] == SkyModel.SOURCES_COLS + 1:  # is last col source_id?
+            if array.shape[1] == SkyModel.SOURCES_COLS + 1:  # is last col source_id?
                 da = xr.DataArray(
-                    array[:, 0:12],
+                    array[:, 0:],
                     dims=[self._sources_dim_sources, self._sources_dim_data],
                     coords={self._sources_dim_sources: array[:, 12]},
                 )
@@ -976,7 +964,6 @@ class SkyModel:
                     xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT])
                 )
 
-        f.close()
         sky = xr.concat(data_arrays, dim="columns")
         sky = sky.T
         sky = sky.chunk(
