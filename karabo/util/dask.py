@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import atexit
 import json
 import os
 import time
-from subprocess import Popen
 from typing import Any, Callable, Optional, Tuple
 
 import psutil
-from dask.distributed import Client, LocalCluster
+from dask.distributed import Client, LocalCluster, Worker
 
 from karabo.error import KaraboDaskError
 from karabo.util._types import IntFloat
@@ -131,20 +131,30 @@ def prepare_slurm_nodes_for_dask() -> None:
         with open(DASK_INFO_ADDRESS, "r") as f:
             dask_info = json.load(f)
 
-        _ = Popen(
-            [
-                "dask",
-                "worker",
-                dask_info["scheduler_address"],
-                "--nworkers",
-                str(dask_info["n_workers_per_node"]),
-            ]
-        )
+        print("I am on a node! I need to start a dask worker.")
+        print(f"My Node ID: {get_node_id()}")
+        # Wait some time to make sure the scheduler file is new
+        time.sleep(10)
 
-        while True:
-            # Wait some time
-            time.sleep(5)
+        # Wait until dask info file is created
+        while not os.path.exists(DASK_INFO_ADDRESS):
+            time.sleep(1)
 
+        # Load dask info file
+        with open(DASK_INFO_ADDRESS, "r") as f:
+            dask_info = json.load(f)
+
+        async def start_worker(scheduler_address):
+            worker = await Worker(scheduler_address)
+            await worker.finished()
+
+        scheduler_address = dask_info["scheduler_address"]
+        # Number of workers you want to start
+        n_workers = dask_info["n_workers_per_node"]
+
+        # Start workers
+        for _ in range(n_workers):
+            asyncio.run(start_worker(scheduler_address))
 
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
@@ -184,6 +194,9 @@ def setup_dask_for_slurm(
         )
         dask_client = Client(cluster)
 
+        print(
+            f'Main Node. Name = {os.getenv("SLURMD_NODENAME")}. Client = {dask_client}'
+        )
         # Calculate number of workers per node
         n_workers_per_node = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
 
