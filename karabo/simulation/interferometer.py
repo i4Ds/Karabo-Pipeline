@@ -339,7 +339,7 @@ class InterferometerSimulation:
                     + "`dask.array import Array`,"
                     + f"instead it is type {type(array_sky.data)}."
                 )
-            dask_array = cast(da, array_sky.data)
+            dask_array = array_sky.data
             oskar_settings_tree = observation.get_OSKAR_settings_tree()
             if self.split_observation_by_channels:
                 if verbose:

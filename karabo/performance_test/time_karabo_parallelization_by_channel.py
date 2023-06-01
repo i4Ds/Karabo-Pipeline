@@ -1,4 +1,5 @@
 import time
+from typing import cast
 
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -15,11 +16,14 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
     phase_center = [250, -80]
 
     print("Filtering sky model...")
-    sky = sky.filter_by_radius_euclidean_flat_approximation(
-        0, 30, phase_center[0], phase_center[1]
+    sky = cast(
+        SkyModel,
+        sky.filter_by_radius_euclidean_flat_approximation(
+            0, 30, phase_center[0], phase_center[1]
+        ),
     )
 
-    print("Size of sky sources: ", sky.sources.nbytes / 1e6, "MB")
+    print("Size of sky sources: ", sky.sources.nbytes / 1e6, "MB")  # type: ignore [union-attr] # noqa: E501
 
     print("Setting up default wcs...")
     sky.setup_default_wcs(phase_center=phase_center)
@@ -51,8 +55,8 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
         n_split_channels="each",
     )
 
-    print(f"Dashboard available here: {interferometer_sim.client.dashboard_link}")
-    n_workers = len(interferometer_sim.client.scheduler_info()["workers"])
+    print(f"Dashboard available here: {interferometer_sim.client.dashboard_link}")  # type: ignore [union-attr] # noqa: E501
+    n_workers = len(interferometer_sim.client.scheduler_info()["workers"])  # type: ignore [union-attr] # noqa: E501
     print(f"Number of workers: {n_workers}")
     print(f"Client: {interferometer_sim.client}")
 
