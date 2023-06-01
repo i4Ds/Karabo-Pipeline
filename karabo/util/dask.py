@@ -115,11 +115,11 @@ def prepare_slurm_nodes_for_dask() -> None:
 
     # Check if we are on the first node
     if is_first_node():
-        # Remove old scheduler file
-        if os.path.exists(DASK_INFO_ADDRESS):
-            os.remove(DASK_INFO_ADDRESS)
+        pass
 
     else:
+        print("I am on a node! I need to start a dask worker.")
+        print(f"My Node ID: {get_node_id()}")
         # Wait some time to make sure the scheduler file is new
         time.sleep(10)
 
@@ -193,6 +193,8 @@ def setup_dask_for_slurm(
             "n_workers_per_node": n_workers_per_node,
         }
 
+        print(f"Scheduler address: {cluster.scheduler_address}")
+
         # Write scheduler file
         with open(DASK_INFO_ADDRESS, "w") as f:
             json.dump(dask_info, f)
@@ -222,10 +224,6 @@ def setup_dask_for_slurm(
         # Write the dashboard link to a file
         with open("karabo-dask-dashboard.txt", "w") as f:
             f.write(dask_client.dashboard_link)
-
-        # Removing file
-        if os.path.exists(DASK_INFO_ADDRESS):
-            os.remove(DASK_INFO_ADDRESS)
 
         # shutdown on exit
         atexit.register(dask_cleanup, dask_client)

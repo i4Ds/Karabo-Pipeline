@@ -45,7 +45,7 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
     print("Running simulation...")
     interferometer_sim = InterferometerSimulation(
         channel_bandwidth_hz=1e6,
-        use_gpus=False,
+        use_gpus=True,
         use_dask=True,
         split_observation_by_channels=True,
         n_split_channels="each",
@@ -57,7 +57,7 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
     print(f"Client: {interferometer_sim.client}")
 
     start = time.time()
-    _ = interferometer_sim.run_simulation(
+    visibility = interferometer_sim.run_simulation(
         askap_tel,
         sky,
         observation_settings,
@@ -65,6 +65,9 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
 
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
+
+    # Check that the created visiblities are corresponding to the number of channels
+    assert len(visibility) == n_channels
 
     with open(
         f"output_{str(n_workers)}_nodes_{n_channels}_channels.txt",
@@ -80,4 +83,4 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
 
 
 if __name__ == "__main__":
-    main(n_channels=100, gb_ram_per_worker=2)
+    main(n_channels=10, gb_ram_per_worker=None)

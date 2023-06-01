@@ -370,6 +370,8 @@ class InterferometerSimulation:
             delayed_results = []
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
 
+            print(len(array_sky_delayed))
+
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
             for sky_ in array_sky_delayed:
@@ -461,7 +463,7 @@ class InterferometerSimulation:
         setting_tree.from_dict(params_total)
 
         if isinstance(os_sky, Delayed):
-            os_sky = os_sky.compute()
+            os_sky = os_sky.persist()
         elif isinstance(os_sky, xr.DataArray):
             os_sky = np.array(os_sky.as_numpy())
         if isinstance(os_sky, np.ndarray):
