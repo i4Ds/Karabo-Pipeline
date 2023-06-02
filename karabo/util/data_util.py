@@ -24,6 +24,20 @@ def get_module_path_of_module(module: ModuleType) -> str:
     path_elements.pop()
     return os.path.sep.join(path_elements)
 
+def extract_digit_from_string(string: str) -> int:
+    digit = ""
+    for char in string:
+        if char.isdigit():
+            digit += char
+    return int(digit)
+
+def extract_chars_from_string(string: str) -> str:
+    letters = ""
+    for char in string:
+        if char.isalpha():
+            letters += char
+    return letters
+
 
 def parse_size(size_str: str) -> int:
     size_str = size_str.strip().upper()

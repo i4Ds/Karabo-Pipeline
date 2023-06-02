@@ -12,6 +12,7 @@ from dask.distributed import Client, LocalCluster, Worker
 
 from karabo.error import KaraboDaskError
 from karabo.util._types import IntFloat
+from karabo.util.data_util import extract_chars_from_string, extract_digit_from_string
 from karabo.warning import KaraboWarning
 
 DASK_INFO_FOLDER = ".karabo_dask"
@@ -64,8 +65,12 @@ class DaskHandler:
                 DaskHandler.dask_client = get_local_dask_client(
                     DaskHandler.min_gb_ram_per_worker
                 )
-
-        atexit.register(dask_cleanup, DaskHandler.dask_client)
+            # Write the dashboard link to a file
+            with open("karabo-dask-dashboard.txt", "w") as f:
+                f.write(DaskHandler.dask_client.dashboard_link)
+            # Register cleanup function
+            print(f"Dashboard link: {DaskHandler.dask_client.dashboard_link}")
+            atexit.register(dask_cleanup, DaskHandler.dask_client)
         return DaskHandler.dask_client
 
     @staticmethod
@@ -76,7 +81,7 @@ class DaskHandler:
             return DaskHandler.use_dask
         elif DaskHandler.dask_client is not None:
             return True
-        elif is_on_slurm_cluster() and get_number_of_nodes() > 1:
+        elif is_on_slurm_cluster():
             return True
         else:
             return False
@@ -156,13 +161,18 @@ def prepare_slurm_nodes_for_dask() -> None:
         for _ in range(n_workers):
             asyncio.run(start_worker(scheduler_address))
 
+        # Wait for the script to finish and for the 
+        # kill signal to be sent
+        while True:
+            time.sleep(10)
+
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
 ) -> int:
     if min_ram_gb_per_worker is None:
         return 1
     # Calculate number of workers per node
-    ram = psutil.virtual_memory().available / 1e9
+    ram = psutil.virtual_memory().available / 1e9 # GB
     n_workers_per_node = int(ram / (min_ram_gb_per_worker))
     if ram < min_ram_gb_per_worker:
         KaraboWarning(
@@ -189,14 +199,12 @@ def setup_dask_for_slurm(
 ) -> Client:
     if is_first_node():
         # Create client and scheduler
+        print(f"First node. Name = {get_lowest_node_name()}")
         cluster = LocalCluster(
             ip=get_lowest_node_name(), n_workers=n_workers_scheduler_node
         )
         dask_client = Client(cluster)
 
-        print(
-            f'Main Node. Name = {os.getenv("SLURMD_NODENAME")}. Client = {dask_client}'
-        )
         # Calculate number of workers per node
         n_workers_per_node = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
 
@@ -205,8 +213,6 @@ def setup_dask_for_slurm(
             "scheduler_address": cluster.scheduler_address,
             "n_workers_per_node": n_workers_per_node,
         }
-
-        print(f"Scheduler address: {cluster.scheduler_address}")
 
         # Write scheduler file
         with open(DASK_INFO_ADDRESS, "w") as f:
@@ -232,14 +238,6 @@ def setup_dask_for_slurm(
                 )
 
         print(f"All {len(dask_client.scheduler_info()['workers'])} workers connected!")
-        print(f"Dask dashboard available at {dask_client.dashboard_link}")
-
-        # Write the dashboard link to a file
-        with open("karabo-dask-dashboard.txt", "w") as f:
-            f.write(dask_client.dashboard_link)
-
-        # shutdown on exit
-        atexit.register(dask_cleanup, dask_client)
         return dask_client
 
     else:
@@ -255,7 +253,16 @@ def get_min_max_of_node_id() -> Tuple[int, int]:
     slurm_job_nodelist = check_env_var(
         var="SLURM_JOB_NODELIST", fun=get_min_max_of_node_id
     )
+    if get_number_of_nodes() == 1:
+        # Node name will be something like "psanagpu115"
+        min_max = extract_digit_from_string(slurm_job_nodelist)
+        return min_max, min_max
+
     node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
+    # If there is a comma, it means that there are only two nodes
+    # Example: psanagpu115,psanagpu116
+    # If there is a dash, it means that there are more than two nodes
+    # Example: psanagpu115-psanagpu117
     if "," in node_list:
         return int(node_list.split(",")[0]), int(node_list.split(",")[1])
     else:
@@ -263,17 +270,17 @@ def get_min_max_of_node_id() -> Tuple[int, int]:
 
 
 def get_lowest_node_id() -> int:
-    if get_number_of_nodes() == 1:
-        return get_node_id()  # TODO fix inf-loop `get_node_id` and `get_lowest_node_id`
-    else:
-        return get_min_max_of_node_id()[0]
+    return get_min_max_of_node_id()[0]
 
 
 def get_base_string_node_list() -> str:
     slurm_job_nodelist = check_env_var(
         var="SLURM_JOB_NODELIST", fun=get_base_string_node_list
     )
-    return slurm_job_nodelist.split("[")[0]
+    if get_number_of_nodes() == 1:
+        return extract_chars_from_string(slurm_job_nodelist)
+    else:
+        return slurm_job_nodelist.split("[")[0]
 
 
 def get_lowest_node_name() -> str:

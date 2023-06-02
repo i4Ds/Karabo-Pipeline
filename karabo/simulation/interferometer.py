@@ -197,15 +197,8 @@ class InterferometerSimulation:
         gauss_ref_freq_hz: IntFloat = 0.0,
         ionosphere_fits_path: Optional[str] = None,
     ) -> None:
-        if ms_file_path is None:
-            fh = FileHandle(suffix=".MS")
-            ms_file_path = fh.path
+
         self.ms_file_path = ms_file_path
-
-        if vis_path is None:
-            vis = Visibility()
-            vis_path = vis.file.path
-
         self.vis_path = vis_path
         self.folder_for_multiple_observation = folder_for_multiple_observation
 
@@ -417,8 +410,10 @@ class InterferometerSimulation:
             params_total = InterferometerSimulation.__run_simulation_oskar(
                 array_sky, params_total, self.precision
             )
-            print(f"Saved visibility to {self.vis_path}")
-            return Visibility(self.vis_path, self.ms_file_path)
+            vis_path = params_total["interferometer"]["ms_filename"]
+            ms_file_path = params_total["interferometer"]["oskar_vis_filename"]
+            print(f"Saved visibility to {vis_path}")
+            return Visibility(vis_path, ms_file_path)
 
     def __create_interferometer_params_with_random_paths(
         self, input_telpath: str
@@ -602,6 +597,15 @@ class InterferometerSimulation:
         ms_file_path: str,
         vis_path: str,
     ) -> OskarSettingsTreeType:
+        # Create the paths if they are not given
+        if ms_file_path is None:
+            fh = FileHandle(suffix=".MS")
+            ms_file_path = fh.path
+
+        if vis_path is None:
+            vis = Visibility()
+            vis_path = vis.file.path
+
         settings: OskarSettingsTreeType = {
             "simulator": {
                 "use_gpus": self.use_gpus,

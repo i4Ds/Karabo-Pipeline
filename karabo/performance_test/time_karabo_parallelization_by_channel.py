@@ -57,6 +57,7 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
 
     print(f"Dashboard available here: {interferometer_sim.client.dashboard_link}")  # type: ignore [union-attr] # noqa: E501
     n_workers = len(interferometer_sim.client.scheduler_info()["workers"])  # type: ignore [union-attr] # noqa: E501
+    
     print(f"Number of workers: {n_workers}")
     print(f"Client: {interferometer_sim.client}")
 
@@ -87,4 +88,4 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
 
 
 if __name__ == "__main__":
-    main(n_channels=10, gb_ram_per_worker=None)
+    main(n_channels=1000, gb_ram_per_worker=None)
