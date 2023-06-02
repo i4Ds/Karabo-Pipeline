@@ -87,15 +87,6 @@ class DaskHandler:
             return False
 
 
-def get_local_dask_client(
-    min_ram_gb_per_worker: Optional[IntFloat],
-) -> Client:
-    # Calculate number of workers per node
-    n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
-    client = Client(LocalCluster(n_workers=n_workers, threads_per_worker=1))
-    return client
-
-
 def dask_cleanup(client: Client) -> None:
     # Remove the scheduler file if somehow it was not removed
     if os.path.exists(DASK_INFO_ADDRESS):
@@ -193,6 +184,20 @@ def calculate_number_of_workers_per_node(
     return n_workers_per_node
 
 
+def get_local_dask_client(
+    min_ram_gb_per_worker: Optional[IntFloat],
+) -> Client:
+    # Calculate number of workers per node
+    n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
+    print(f"Node name: {get_node_name()}")
+    client = Client(
+        LocalCluster(
+            ip=get_node_name() if is_on_slurm_cluster() else None,
+            n_workers=n_workers,
+            )
+        )
+    return client
+
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
     min_ram_gb_per_worker: Optional[IntFloat],
@@ -201,7 +206,7 @@ def setup_dask_for_slurm(
         # Create client and scheduler
         print(f"First node. Name = {get_lowest_node_name()}")
         cluster = LocalCluster(
-            ip=get_lowest_node_name(), n_workers=n_workers_scheduler_node
+            ip=get_node_name(), n_workers=n_workers_scheduler_node
         )
         dask_client = Client(cluster)
 
@@ -244,7 +249,7 @@ def setup_dask_for_slurm(
         raise KaraboDaskError("This function should only be reached on the first node.")
 
 
-def get_min_max_of_node_id() -> Tuple[int, int]:
+def get_min_max_of_node_id() -> Tuple[str, str]:
     """
     Returns the min max from SLURM_JOB_NODELIST.
     Works if it's run only on two nodes (separated with a comma)
@@ -256,6 +261,7 @@ def get_min_max_of_node_id() -> Tuple[int, int]:
     if get_number_of_nodes() == 1:
         # Node name will be something like "psanagpu115"
         min_max = extract_digit_from_string(slurm_job_nodelist)
+        print(f"Node min_max: {min_max}")
         return min_max, min_max
 
     node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
@@ -264,9 +270,9 @@ def get_min_max_of_node_id() -> Tuple[int, int]:
     # If there is a dash, it means that there are more than two nodes
     # Example: psanagpu115-psanagpu117
     if "," in node_list:
-        return int(node_list.split(",")[0]), int(node_list.split(",")[1])
+        return node_list.split(",")[0], node_list.split(",")[1]
     else:
-        return int(node_list.split("-")[0]), int(node_list.split("-")[1])
+        return node_list.split("-")[0], node_list.split("-")[1]
 
 
 def get_lowest_node_id() -> int:
@@ -292,10 +298,14 @@ def get_number_of_nodes() -> int:
     return int(n_nodes)
 
 
-def get_node_id() -> int:
+def get_node_id() -> str:
+    # Attention, often the node id starts with a 0.
     slurmd_nodename = check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
     len_id = len(str(get_lowest_node_id()))
-    return int(slurmd_nodename[-len_id:])
+    return slurmd_nodename[-len_id:]
+
+def get_node_name() -> str:
+    return check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
 
 
 def is_first_node() -> bool:
