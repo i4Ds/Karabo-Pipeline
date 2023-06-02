@@ -197,7 +197,6 @@ class InterferometerSimulation:
         gauss_ref_freq_hz: IntFloat = 0.0,
         ionosphere_fits_path: Optional[str] = None,
     ) -> None:
-
         self.ms_file_path = ms_file_path
         self.vis_path = vis_path
         self.folder_for_multiple_observation = folder_for_multiple_observation

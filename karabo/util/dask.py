@@ -152,10 +152,11 @@ def prepare_slurm_nodes_for_dask() -> None:
         for _ in range(n_workers):
             asyncio.run(start_worker(scheduler_address))
 
-        # Wait for the script to finish and for the 
+        # Wait for the script to finish and for the
         # kill signal to be sent
         while True:
             time.sleep(10)
+
 
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
@@ -163,7 +164,7 @@ def calculate_number_of_workers_per_node(
     if min_ram_gb_per_worker is None:
         return 1
     # Calculate number of workers per node
-    ram = psutil.virtual_memory().available / 1e9 # GB
+    ram = psutil.virtual_memory().available / 1e9  # GB
     n_workers_per_node = int(ram / (min_ram_gb_per_worker))
     if ram < min_ram_gb_per_worker:
         KaraboWarning(
@@ -194,9 +195,10 @@ def get_local_dask_client(
         LocalCluster(
             ip=get_node_name() if is_on_slurm_cluster() else None,
             n_workers=n_workers,
-            )
         )
+    )
     return client
+
 
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
@@ -205,9 +207,7 @@ def setup_dask_for_slurm(
     if is_first_node():
         # Create client and scheduler
         print(f"First node. Name = {get_lowest_node_name()}")
-        cluster = LocalCluster(
-            ip=get_node_name(), n_workers=n_workers_scheduler_node
-        )
+        cluster = LocalCluster(ip=get_node_name(), n_workers=n_workers_scheduler_node)
         dask_client = Client(cluster)
 
         # Calculate number of workers per node
@@ -303,6 +303,7 @@ def get_node_id() -> str:
     slurmd_nodename = check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
     len_id = len(str(get_lowest_node_id()))
     return slurmd_nodename[-len_id:]
+
 
 def get_node_name() -> str:
     return check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
