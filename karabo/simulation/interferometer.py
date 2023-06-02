@@ -362,8 +362,6 @@ class InterferometerSimulation:
             delayed_results = []
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
 
-            print(len(array_sky_delayed))
-
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
             for sky_ in array_sky_delayed:
