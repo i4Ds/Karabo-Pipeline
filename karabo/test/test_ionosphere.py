@@ -49,6 +49,7 @@ class TestSystemNoise(unittest.TestCase):
             [(r0, speed, 60.0, 300e3), (r0, speed / 2.0, -30.0, 310e3)]
         )
         my_screens = ArScreens(n, m, pscale, rate, layer_params, alpha_mag)
+        my_screens.run(num_times)
         phase2tec = -frequency / 8.44797245e9
         w = WCS(naxis=4)
         w.naxis = 4
@@ -75,7 +76,7 @@ class TestSystemNoise(unittest.TestCase):
         rate = 1.0 / 60.0  # The inverse frame rate (1 per minute).
         alpha_mag = 0.999  # Evolve screen slowly.
         num_times = 240  # Four hours.
-        frequency = 1.0e9
+        frequency = 1.0e8
         fits_filename = "result/test_screen_60s.fits"
         self.sim_ion(
             screen_width_metres,
@@ -93,21 +94,22 @@ class TestSystemNoise(unittest.TestCase):
         sky = SkyModel()
         sky_data = np.array(
             [
-                [20.0, -30.0, 100, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0],
-                [20.0, -30.5, 100, 2, 2, 0, 1.0e9, -0.7, 0.0, 0, 50, 45],
-                [20.5, -30.5, 100, 0, 0, 2, 1.0e9, -0.7, 0.0, 0, 10, -10],
+                [20.0, -30.0, 100, 0, 0, 0, 1.0e8, 0, 0.0, 0, 0, 0],
+                [20.0, -30.5, 100, 2, 2, 0, 1.0e8, 0, 0.0, 0, 50, 45],
+                [20.5, -30.5, 100, 0, 0, 2, 1.0e8, 0, 0.0, 0, 10, -10],
             ]
         )
         sky.add_point_sources(sky_data)
         # sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 1, 1, 1)
         # sky.explore_sky([240, -70])
-        telescope = Telescope.get_SKA1_MID_Telescope()
+        telescope = Telescope.get_SKA1_LOW_Telescope()
         # telescope.centre_longitude = 3
 
         simulation = InterferometerSimulation(
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
             noise_enable=False,
+            station_type='Isotropic',
             ionosphere_fits_path=fits_filename,
             ionosphere_screen_type="External",
             ionosphere_screen_height_km=r0,
@@ -116,10 +118,10 @@ class TestSystemNoise(unittest.TestCase):
         )
         observation = Observation(
             phase_centre_ra_deg=20.0,
-            start_date_and_time=datetime(2022, 9, 1, 23, 00, 00, 521489),
-            length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
+            start_date_and_time=datetime(2022, 9, 1, 3, 00, 00, 521489),
+            length=timedelta(hours=0, minutes=10, seconds=1, milliseconds=0),
             phase_centre_dec_deg=-30.5,
-            number_of_time_steps=1,
+            number_of_time_steps=5,
             start_frequency_hz=frequency,
             frequency_increment_hz=1e6,
             number_of_channels=1,
@@ -129,7 +131,7 @@ class TestSystemNoise(unittest.TestCase):
         visibility.write_to_file("./result/test_ion.ms")
 
         imager = Imager(
-            visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
+            visibility, imaging_npixel=2048 * 1, imaging_cellsize=5.0e-5
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/test_ion.fits", overwrite=True)
