@@ -7,6 +7,7 @@ import math
 from typing import Any, Callable, List, Literal, Optional, Tuple, Union, cast
 from warnings import warn
 
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
@@ -840,3 +841,60 @@ class SkyModel:
         sky.add_point_sources(sky_data)
 
         return sky
+
+    @staticmethod
+    def sky_from_h5_with_redshift(
+        path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
+    ):
+        """
+        A sky model is created from a h5 file containing a catalog with right ascension,
+        declination, flux and observed redshift of HI distribution. The sky model only
+        takes into account sources around a certain radius of the phase center.
+
+        :param path: Path of the h5 file.
+        :param ra_deg: Phase center, right ascension.
+        :param dec_deg: Phase center, declination.
+        :param outer_rad: The radius size of the sky model to be considered.
+        :return: The sky model and the corresponding redshifts.
+        TODO: Change after branch 400 is merged.
+        """
+
+        # Read in the catalog (only works for catalogs which are not very large)
+        catalog = h5py.File(path, "r")
+        print("The catalog keys are:", list(catalog.keys()))
+        print("The unit of the flux given here is:", catalog["Flux"].attrs["Units"])
+        print(
+            "Number of elements in the complete catalog:",
+            len(catalog["Declination"][()]),
+        )
+
+        ra = np.array(catalog["Right Ascension"])
+        # We multiply by -1 to change the catalog to the Southern sky
+        dec = np.array(catalog["Declination"]) * -1
+        flux = np.array(catalog["Flux"])
+        z_obs = np.array(catalog["Observed Redshift"])
+        catalog.close()
+
+        # We construct the sky model from the catalog information with Karabo
+        sky_data = np.zeros((len(ra), 12))
+        sky_data[:, 0] = ra
+        sky_data[:, 1] = dec
+        sky_data[:, 2] = flux
+        sky = SkyModel()
+        sky.add_point_sources(sky_data)
+
+        # We only take into account a certain FOV, we filter the sky for this FOV
+        sky_filter, filter_in = sky.filter_by_radius(
+            ra0_deg=ra_deg,
+            dec0_deg=dec_deg,
+            inner_radius_deg=0.0,
+            outer_radius_deg=outer_rad,
+            indices=True,
+        )
+        z_obs_filter = z_obs[filter_in]
+        print(
+            "Number of elements in diluted catalog in the interesting FOV:",
+            len(sky_filter[:, 0]),
+        )
+
+        return sky_filter, z_obs_filter
