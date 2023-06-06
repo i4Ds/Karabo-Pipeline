@@ -9,11 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 from astropy.constants import c
-
-# from astropy.convolution import Gaussian2DKernel
+from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
-
-# from astropy.stats import gaussian_fwhm_to_sigma
 from astropy.wcs import WCS
 from numpy.typing import NDArray
 
@@ -427,6 +424,40 @@ def line_emission_pointing(
                    used.
     :return: Total line emission reconstruction, 3D line emission reconstruction,
              Header of reconstruction and mean frequency.
+
+
+    E.g. for how to do the simulation of line emission for one pointing and then
+    applying gaussian primary beam correction to it.
+
+    outpath = (
+        "/home/user/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
+        "Line_emission_pointing_2"
+    )
+    catalog_path = (
+        "/home/user/Documents/SKAHIIM_Pipeline/Flux_calculation/"
+        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
+    )
+    ra = 20
+    dec = -30
+    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
+        catalog_path, ra, dec
+    )
+    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
+        outpath, sky_pointing, z_obs_pointing
+    )
+    plot_scatter_recon(
+        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
+    )
+    gauss_fwhm = gaussian_fwhm_meerkat(freq_mid_dirty)
+    beam_corrected, _ = simple_gaussian_beam_correction(outpath, dirty_im, gauss_fwhm)
+    plot_scatter_recon(
+        sky_pointing,
+        beam_corrected,
+        outpath + "_GaussianBeam_Corrected",
+        header_dirty,
+        vmax=0.15,
+        cut=3.0,
+    )
     """
     # Create folders to save outputs/ delete old one if it already exists
     try:
@@ -495,24 +526,87 @@ def line_emission_pointing(
     return dirty_image, dirty_images, header, freq_mid
 
 
-if __name__ == "__main__":
-    # Test karabo_reconstruction
-    outpath = (
-        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
-        "Line_emission_pointing_2"
+def gaussian_fwhm_meerkat(freq: float):
+    """
+    Computes the FWHM of MeerKAT for a certain observation frequency.
+
+    :param freq: Frequency of interest in Hz.
+    :return: The power pattern FWHM of the MeerKAT telescope at this frequency in
+             degrees.
+    """
+    gaussian_fwhm = np.sqrt(89.5 * 86.2) / 60.0 * (1e3 / (freq / 10**6))
+
+    return gaussian_fwhm
+
+
+def gaussian_beam(
+    ra_deg: float,
+    dec_deg: float,
+    img_size: int = 2048,
+    cut: float = 1.2,
+    fwhm: float = 1.0,
+    outfile: str = "beam",
+):
+    """
+    Creates a Gaussian beam at RA, DEC.
+    :param ra_deg: Right ascension coordinate of center of Gaussian.
+    :param dec_deg: Declination coordinate of center of Gaussian.
+    :param img_size: Pixel image size.
+    :param cut: Image size in degrees.
+    :param fwhm: FWHM of the Gaussian in degrees.
+    :param outfile: Name of the image file with the Gaussian.
+    :return:
+    """
+    # We create the image header and the wcs frame of the Gaussian
+    header = header_for_mosaic(
+        img_size=img_size, ra_deg=ra_deg, dec_deg=dec_deg, cut=cut
     )
-    catalog_path = (
-        "/home/jennifer/Documents/SKAHIIM_Pipeline/Flux_calculation/"
-        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
+    wcs = WCS(header)
+
+    # Calculate Gaussian
+    sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+    gauss_kernel = Gaussian2DKernel(
+        sigma / wcs.wcs.cdelt[0], x_size=img_size, y_size=img_size
     )
-    ra = 20
-    dec = -30
-    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
-        catalog_path, ra, dec
+
+    beam_image = gauss_kernel.array
+    # normalize the kernel, such that max=1.0
+    beam_image = beam_image / np.max(beam_image)
+
+    # make the beam image circular and save it as a fits file
+    beam_image = circle_image(beam_image)
+    fits.writeto(outfile + ".fits", beam_image, header, overwrite=True)
+
+    return beam_image, header
+
+
+def simple_gaussian_beam_correction(
+    path_outfile: str,
+    dirty_image: NDArray[np.float_],
+    gaussian_fwhm: float,
+    ra_deg: float = 20,
+    dec_deg: float = -30,
+    cut: float = 3.0,
+    img_size: int = 4096,
+):
+    print("Calculate gaussian beam for primary beam correction...")
+    beam, header = gaussian_beam(
+        img_size=img_size,
+        ra_deg=ra_deg,
+        dec_deg=dec_deg,
+        cut=cut,
+        fwhm=gaussian_fwhm,
+        outfile=path_outfile + "/gaussian_beam",
     )
-    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-        outpath, sky_pointing, z_obs_pointing
+
+    print("Apply primary beam correction...")
+    dirty_image_corrected = dirty_image / beam
+
+    fits.writeto(
+        path_outfile + "_GaussianBeam_Corrected.fits",
+        dirty_image_corrected,
+        header,
+        overwrite=True,
     )
-    plot_scatter_recon(
-        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
-    )
+
+    return dirty_image_corrected, header
