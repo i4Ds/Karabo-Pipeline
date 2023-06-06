@@ -1,15 +1,15 @@
-# import copy
-# import os
-# import shutil
+import copy
+import os
+import shutil
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import Optional, Tuple
 
-# import h5py
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
+from astropy.constants import c
 
-# from astropy.constants import c
 # from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
 
@@ -65,13 +65,13 @@ def circle_image(image: NDArray[np.float_]):
     return image
 
 
-def header_for_mosaic(img_size: int, ra: float, dec: float, cut: float):
+def header_for_mosaic(img_size: int, ra_deg: float, dec_deg: float, cut: float):
     """
     Create a header for the fits file of the reconstructed image, which is compatible
     with the mosaicking done by MontagePy
     :param img_size: Pixel size of the image.
-    :param ra: Right ascension of the center.
-    :param dec: Declination of the center.
+    :param ra_deg: Right ascension of the center.
+    :param dec_deg: Declination of the center.
     :param cut: Size of the reconstructed image in degree.
     :return: Fits header.
     """
@@ -85,8 +85,8 @@ def header_for_mosaic(img_size: int, ra: float, dec: float, cut: float):
     header["NAXIS2"] = img_size
     header["CTYPE1"] = "RA---SIN"
     header["CTYPE2"] = "DEC--SIN"
-    header["CRVAL1"] = ra
-    header["CRVAL2"] = dec
+    header["CRVAL1"] = ra_deg
+    header["CRVAL2"] = dec_deg
     header["CDELT1"] = -cut / float(img_size)  # 1 arcsecond per pixel
     header["CDELT2"] = cut / float(img_size)
     header["CRPIX1"] = img_size / 2.0
@@ -121,8 +121,8 @@ def rascil_imager(outfile: str, visibility, cut: float = 1.0, img_size: int = 40
 
 def oskar_imager(
     outfile: str,
-    ra: float = 20,
-    dec: float = -30,
+    ra_deg: float = 20,
+    dec_deg: float = -30,
     cut: float = 1.0,
     img_size: int = 4096,
 ):
@@ -130,8 +130,8 @@ def oskar_imager(
     Reconstructs the image from the visibilities with oskar.
 
     :param outfile: Path/Name of the output files.
-    :param ra: Phase center right ascension.
-    :param dec: Phase center declination.
+    :param ra_deg: Phase center right ascension.
+    :param dec_deg: Phase center declination.
     :param cut: Size of the reconstructed image.
     :param img_size: The pixel size of the reconstructed image.
     :return: Dirty image reconstruction of sky.
@@ -147,7 +147,7 @@ def oskar_imager(
         weighting="Uniform",
         uv_filter_max=3000,
     )
-    imager.set_vis_phase_centre(ra, dec)
+    imager.set_vis_phase_centre(ra_deg, dec_deg)
     imager.output_root = outfile
 
     output = imager.run(return_images=1)
@@ -159,10 +159,10 @@ def plot_scatter_recon(
     sky: SkyModel,
     recon_image: NDArray[np.float_],
     outfile: str,
-    header: fits.header.Header = None,
+    header: Optional[fits.header.Header] = None,
     vmin: float = 0,
     vmax: float = 0.4,
-    cut: float = None,
+    cut: Optional[float] = None,
 ):
     """
     Plotting the sky as a scatter plot and its reconstruction and saving it as a pdf.
@@ -174,7 +174,6 @@ def plot_scatter_recon(
     :param vmin: Minimum value of the colorbar.
     :param vmax: Maximum value of the colorbar.
     :param cut: Smaller FOV
-    :return:
     """
 
     wcs = WCS(header)
@@ -213,10 +212,66 @@ def plot_scatter_recon(
     plt.savefig(outfile + ".pdf")
 
 
+def sky_slice(sky: SkyModel, z_obs: NDArray[np.float_], z_min: float, z_max: float):
+    """
+    Extracting a slice from the sky which includes only sources between redshift z_min
+    and z_max.
+
+    :param sky: Sky model.
+    :param z_obs: Redshift information of the sky sources. # TODO change as soon as
+    branch 400 is merged
+    :param z_min: Smallest redshift of this sky bin.
+    :param z_max: Largest redshift of this sky bin.
+
+    :return: Sky model only including the sources with redshifts between z_min and
+             z_max.
+    """
+    sky_bin = copy.deepcopy(sky)
+    sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
+    sky_bin.sources = sky_bin.sources[sky_bin_idx]
+
+    return sky_bin
+
+
+def redshift_slices(redshift_obs: NDArray[np.float_], channel_num: int = 10):
+    print("Smallest redshift:", np.amin(redshift_obs))
+    print("Largest redshift:", np.amax(redshift_obs))
+
+    redshift_channel = np.linspace(
+        np.amin(redshift_obs), np.amax(redshift_obs), channel_num + 1
+    )
+
+    return redshift_channel
+
+
+def freq_channels(z_obs: NDArray[np.float_], channel_num: int = 10):
+    """
+    Calculates the frequency channels from the redshifs.
+    :param z_obs: Observed redshifts from the HI sources.
+    :param channel_num: Number uf channels.
+
+    :return: Redshift channel, frequency channel in Hz, bin width of frequency channel
+             in Hz, middle frequency in Hz
+    """
+
+    redshift_channel = redshift_slices(z_obs, channel_num)
+
+    freq_channel = c.value / (0.21 * (1 + redshift_channel))
+    freq_start = freq_channel[0]
+    freq_end = freq_channel[-1]
+    freq_mid = freq_start + (freq_end - freq_start) / 2
+    freq_bin = freq_channel[0] - freq_channel[1]
+    print("The frequency channel starts at:", freq_start, "Hz")
+    print("The bin size of the freq channel is:", freq_bin, "Hz")
+    print("The freq channel: ", freq_channel)
+
+    return redshift_channel, freq_channel, freq_bin, freq_mid
+
+
 def karabo_reconstruction(
     outfile: str,
-    mosaic_pntg_file: str = None,
-    sky: SkyModel = None,
+    mosaic_pntg_file: Optional[str] = None,
+    sky: Optional[SkyModel] = None,
     ra_deg: float = 20,
     dec_deg: float = -30,
     start_time=datetime(2000, 3, 20, 12, 6, 39),
@@ -327,13 +382,137 @@ def karabo_reconstruction(
     return dirty_image, header
 
 
+def line_emission_pointing(
+    path_outfile: str,
+    sky: SkyModel,
+    z_obs: NDArray[np.float_],  # TODO: After branch 400-read_in_sky-exists the sky
+    # includes this information -> rewrite
+    ra_deg: float = 20,
+    dec_deg: float = -30,
+    num_bins: int = 10,
+    beam_type: StationTypeType = "Gaussian beam",
+    gaussian_fwhm: float = 1.0,
+    gaussian_ref_freq: float = 1.4639e9,
+    start_time=datetime(2000, 3, 20, 12, 6, 39),
+    obs_length=timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+    cut: float = 3.0,
+    img_size: int = 4096,
+    circle: bool = True,
+    rascil: bool = True,
+):
+    """
+    Simulating line emission for one pointing.
+
+    :param path_outfile: Pathname of the output file and folder.
+    :param sky: Sky model which is used for simulating line emission. If None, a test
+                sky (out of equally spaced sources) is used.
+    :param z_obs: Redshift information of the sky sources.
+    :param ra_deg: Phase center right ascension.
+    :param dec_deg: Phase center declination.
+    :param num_bins: Number of redshift/frequency slices used to simulate line emission.
+                     The more the better the line emission is simulated.
+    :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
+                      "Aperture Array".
+    :param gaussian_fwhm: If the primary beam is gaussian, this is its FWHM. In power
+                          pattern. Units = degrees.
+    :param gaussian_ref_freq: If you choose "Gaussian beam" as station type you need
+                              specify the reference frequency of the reference
+                              frequency of the full-width half maximum here.
+    :param start_time: Observation start time.
+    :param obs_length: Observation length (time).
+    :param cut: Size of the reconstructed image.
+    :param img_size: The pixel size of the reconstructed image.
+    :param circle: If set to True, the pointing has a round shape of size cut.
+    :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
+                   used.
+    :return: Total line emission reconstruction, 3D line emission reconstruction,
+             Header of reconstruction and mean frequency.
+    """
+    # Create folders to save outputs/ delete old one if it already exists
+    try:
+        shutil.rmtree(path_outfile)
+    except FileNotFoundError:
+        print(
+            "                Can't delete work tree; probably doesn't exist yet",
+            flush=True,
+        )
+
+    print("Work directory: " + path_outfile, flush=True)
+    os.makedirs(path_outfile)
+
+    redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
+
+    dirty_images = []
+    header = None
+
+    for bin_idx in range(num_bins):
+        print("Channel " + str(bin_idx) + " is being processed...")
+
+        print("Extracting the corresponding frequency slice from the sky model...")
+        sky_bin = sky_slice(
+            sky, z_obs, redshift_channel[bin_idx], redshift_channel[bin_idx + 1]
+        )
+
+        print("Starting simulation...")
+        start_freq = freq_channel[bin_idx] + freq_bin / 2
+        dirty_image, header = karabo_reconstruction(
+            path_outfile + "/slice_" + str(bin_idx),
+            sky=sky_bin,
+            ra_deg=ra_deg,
+            dec_deg=dec_deg,
+            start_freq=start_freq,
+            freq_bin=freq_bin,
+            beam_type=beam_type,
+            gaussian_fwhm=gaussian_fwhm,
+            gaussian_ref_freq=gaussian_ref_freq,
+            start_time=start_time,
+            obs_length=obs_length,
+            cut=cut,
+            img_size=img_size,
+            channel_num=1,
+            circle=circle,
+            rascil=rascil,
+        )
+
+        dirty_images.append(dirty_image)
+
+    dirty_image = sum(dirty_images)
+
+    print("Save summed dirty images as fits file")
+    dirty_img = fits.PrimaryHDU(dirty_image)
+    dirty_img.writeto(path_outfile + ".fits", overwrite=True)
+
+    print("Save 3-dim reconstructed dirty images as h5")
+    z_bin = redshift_channel[1] - redshift_channel[0]
+    z_channel_mid = redshift_channel + z_bin / 2
+
+    f = h5py.File(path_outfile + ".h5", "w")
+    dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
+    dataset_dirty.attrs["Units"] = "Jy"
+    f.create_dataset("Observed Redshift Channel Center", data=z_channel_mid)
+    f.create_dataset("Observed Redshift Bin Size", data=z_bin)
+
+    return dirty_image, dirty_images, header, freq_mid
+
+
 if __name__ == "__main__":
-    karabo_reconstruction(
-        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Beam/karabo_test1",
-        mosaic_pntg_file="/home/jennifer/Documents/SKAHIIM_Pipeline/result/Beam/"
-        "test4_karabo",
-        beam_type="Gaussian beam",
-        circle=True,
-        pdf_plot=True,
-        cut=2,
+    # Test karabo_reconstruction
+    outpath = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
+        "Line_emission_pointing_2"
+    )
+    catalog_path = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/Flux_calculation/"
+        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
+    )
+    ra = 20
+    dec = -30
+    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
+        catalog_path, ra, dec
+    )
+    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
+        outpath, sky_pointing, z_obs_pointing
+    )
+    plot_scatter_recon(
+        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
     )
