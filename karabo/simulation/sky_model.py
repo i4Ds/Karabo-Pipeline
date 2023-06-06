@@ -4,7 +4,7 @@ import copy
 import enum
 import logging
 import math
-from typing import Any, Callable, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Callable, List, Literal, Optional, Tuple, Union, cast, overload
 from warnings import warn
 
 import h5py
@@ -293,6 +293,28 @@ class SkyModel:
             return self.sources
         else:
             return self.sources[:, :-1]
+
+    @overload
+    def filter_by_radius(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[False] = False,
+    ) -> SkyModel:
+        ...
+
+    @overload
+    def filter_by_radius(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[True],
+    ) -> Tuple[SkyModel, NDArray[np.int_]]:
+        ...
 
     def filter_by_radius(
         self,
