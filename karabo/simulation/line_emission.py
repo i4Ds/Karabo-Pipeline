@@ -2,7 +2,7 @@ import copy
 import os
 import shutil
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple, Union, cast
 
 import h5py
 import matplotlib.pyplot as plt
@@ -19,9 +19,12 @@ from karabo.simulation.interferometer import InterferometerSimulation, StationTy
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulation.visibility import Visibility
 
 
-def polar_corrdinates_grid(im_shape: Tuple[int, int], center: Tuple[int, int]):
+def polar_corrdinates_grid(
+    im_shape: Tuple[int, int], center: Tuple[float, float]
+) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     """
     Creates a corresponding r-phi grid for the x-y coordinate system
 
@@ -42,7 +45,7 @@ def polar_corrdinates_grid(im_shape: Tuple[int, int], center: Tuple[int, int]):
     return r_array, phi_array
 
 
-def circle_image(image: NDArray[np.float_]):
+def circle_image(image: NDArray[np.float_]) -> NDArray[np.float_]:
     """
     Cuts the image to a circle, where it takes the x_len/2 as a radius, where x_len is
     the length of the image. Assuming a square image.
@@ -62,7 +65,9 @@ def circle_image(image: NDArray[np.float_]):
     return image
 
 
-def header_for_mosaic(img_size: int, ra_deg: float, dec_deg: float, cut: float):
+def header_for_mosaic(
+    img_size: int, ra_deg: float, dec_deg: float, cut: float
+) -> fits.header.Header:
     """
     Create a header for the fits file of the reconstructed image, which is compatible
     with the mosaicking done by MontagePy
@@ -93,7 +98,9 @@ def header_for_mosaic(img_size: int, ra_deg: float, dec_deg: float, cut: float):
     return header
 
 
-def rascil_imager(outfile: str, visibility, cut: float = 1.0, img_size: int = 4096):
+def rascil_imager(
+    outfile: str, visibility: Visibility, cut: float = 1.0, img_size: int = 4096
+) -> NDArray[np.float_]:
     """
     Reconstruct the image from the visibilities with rascil.
 
@@ -112,7 +119,8 @@ def rascil_imager(outfile: str, visibility, cut: float = 1.0, img_size: int = 40
     )
     dirty = imager.get_dirty_image()
     dirty.write_to_file(outfile + ".fits", overwrite=True)
-    dirty_image = dirty.data[0][0]
+    dirty_image = cast(NDArray[np.float_], dirty.data[0][0])
+
     return dirty_image
 
 
@@ -122,7 +130,7 @@ def oskar_imager(
     dec_deg: float = -30,
     cut: float = 1.0,
     img_size: int = 4096,
-):
+) -> NDArray[np.float_]:
     """
     Reconstructs the image from the visibilities with oskar.
 
@@ -148,7 +156,7 @@ def oskar_imager(
     imager.output_root = outfile
 
     output = imager.run(return_images=1)
-    image = output["images"][0]
+    image = cast(NDArray[np.float_], output["images"][0])
     return image
 
 
@@ -156,11 +164,11 @@ def plot_scatter_recon(
     sky: SkyModel,
     recon_image: NDArray[np.float_],
     outfile: str,
-    header: Optional[fits.header.Header] = None,
+    header: fits.header.Header,
     vmin: float = 0,
     vmax: float = 0.4,
     cut: Optional[float] = None,
-):
+) -> None:
     """
     Plotting the sky as a scatter plot and its reconstruction and saving it as a pdf.
 
@@ -181,7 +189,7 @@ def plot_scatter_recon(
         elif i == 1:
             slices.append("y")
         else:
-            slices.append(0)
+            slices.append(0)  # type: ignore [arg-type]
 
     # Plot the scatter plot and the sky reconstruction next to each other
     fig = plt.figure(figsize=(12, 6))
@@ -209,7 +217,9 @@ def plot_scatter_recon(
     plt.savefig(outfile + ".pdf")
 
 
-def sky_slice(sky: SkyModel, z_obs: NDArray[np.float_], z_min: float, z_max: float):
+def sky_slice(
+    sky: SkyModel, z_obs: NDArray[np.float_], z_min: float, z_max: float
+) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
     and z_max.
@@ -225,12 +235,26 @@ def sky_slice(sky: SkyModel, z_obs: NDArray[np.float_], z_min: float, z_max: flo
     """
     sky_bin = copy.deepcopy(sky)
     sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
+    if sky_bin.sources is None:
+        raise TypeError("`sky.sources` is None which is not allowed.")
+
     sky_bin.sources = sky_bin.sources[sky_bin_idx]
 
     return sky_bin
 
 
-def redshift_slices(redshift_obs: NDArray[np.float_], channel_num: int = 10):
+def redshift_slices(
+    redshift_obs: NDArray[np.float_], channel_num: int = 10
+) -> NDArray[np.float_]:
+    """
+    Creation of the redshift bins used for the line emission simulation based on the
+    observed redshift range from the sky.
+
+    :param redshift_obs: Observed redshifts of the sources.
+    :param channel_num: Number of redshift bins/channels.
+
+    :return: The channels of the observed redshift range.
+    """
     print("Smallest redshift:", np.amin(redshift_obs))
     print("Largest redshift:", np.amax(redshift_obs))
 
@@ -241,7 +265,9 @@ def redshift_slices(redshift_obs: NDArray[np.float_], channel_num: int = 10):
     return redshift_channel
 
 
-def freq_channels(z_obs: NDArray[np.float_], channel_num: int = 10):
+def freq_channels(
+    z_obs: NDArray[np.float_], channel_num: int = 10
+) -> Tuple[NDArray[np.float_], NDArray[np.float_], float, float]:
     """
     Calculates the frequency channels from the redshifs.
     :param z_obs: Observed redshifts from the HI sources.
@@ -271,8 +297,8 @@ def karabo_reconstruction(
     sky: Optional[SkyModel] = None,
     ra_deg: float = 20,
     dec_deg: float = -30,
-    start_time=datetime(2000, 3, 20, 12, 6, 39),
-    obs_length=timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+    start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
+    obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
     start_freq: float = 1.4639e9,
     freq_bin: float = 1.0e7,
     beam_type: StationTypeType = "Isotropic beam",
@@ -284,7 +310,7 @@ def karabo_reconstruction(
     pdf_plot: bool = False,
     circle: bool = False,
     rascil: bool = True,
-):
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Performs a sky reconstruction for our test sky.
 
@@ -390,13 +416,13 @@ def line_emission_pointing(
     beam_type: StationTypeType = "Gaussian beam",
     gaussian_fwhm: float = 1.0,
     gaussian_ref_freq: float = 1.4639e9,
-    start_time=datetime(2000, 3, 20, 12, 6, 39),
-    obs_length=timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+    start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
+    obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
     cut: float = 3.0,
     img_size: int = 4096,
     circle: bool = True,
     rascil: bool = True,
-):
+) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, float]:
     """
     Simulating line emission for one pointing.
 
@@ -507,7 +533,7 @@ def line_emission_pointing(
 
         dirty_images.append(dirty_image)
 
-    dirty_image = sum(dirty_images)
+    dirty_image = cast(NDArray[np.float_], sum(dirty_images))
 
     print("Save summed dirty images as fits file")
     dirty_img = fits.PrimaryHDU(dirty_image)
@@ -526,7 +552,7 @@ def line_emission_pointing(
     return dirty_image, dirty_images, header, freq_mid
 
 
-def gaussian_fwhm_meerkat(freq: float):
+def gaussian_fwhm_meerkat(freq: float) -> float:
     """
     Computes the FWHM of MeerKAT for a certain observation frequency.
 
@@ -534,7 +560,8 @@ def gaussian_fwhm_meerkat(freq: float):
     :return: The power pattern FWHM of the MeerKAT telescope at this frequency in
              degrees.
     """
-    gaussian_fwhm = np.sqrt(89.5 * 86.2) / 60.0 * (1e3 / (freq / 10**6))
+    root = cast(float, np.sqrt(89.5 * 86.2))
+    gaussian_fwhm = root / 60.0 * (1e3 / (freq / 10**6))
 
     return gaussian_fwhm
 
@@ -546,7 +573,7 @@ def gaussian_beam(
     cut: float = 1.2,
     fwhm: float = 1.0,
     outfile: str = "beam",
-):
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Creates a Gaussian beam at RA, DEC.
     :param ra_deg: Right ascension coordinate of center of Gaussian.
@@ -588,7 +615,7 @@ def simple_gaussian_beam_correction(
     dec_deg: float = -30,
     cut: float = 3.0,
     img_size: int = 4096,
-):
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
     print("Calculate gaussian beam for primary beam correction...")
     beam, header = gaussian_beam(
         img_size=img_size,

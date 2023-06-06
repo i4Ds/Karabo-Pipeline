@@ -867,7 +867,7 @@ class SkyModel:
     @staticmethod
     def sky_from_h5_with_redshift(
         path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
-    ):
+    ) -> Tuple[SkyModel, NDArray[np.float_]]:
         """
         A sky model is created from a h5 file containing a catalog with right ascension,
         declination, flux and observed redshift of HI distribution. The sky model only
