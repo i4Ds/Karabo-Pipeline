@@ -555,7 +555,7 @@ def gaussian_fwhm_meerkat(freq: IntFloat) -> np.float64:
     :return: The power pattern FWHM of the MeerKAT telescope at this frequency in
              degrees.
     """
-    root = np.sqrt(89.5 * 86.2)
+    root = cast(np.float64, np.sqrt(89.5 * 86.2))
     gaussian_fwhm = root / 60.0 * (1e3 / (freq / 10**6))
 
     return gaussian_fwhm
