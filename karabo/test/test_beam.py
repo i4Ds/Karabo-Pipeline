@@ -232,16 +232,7 @@ class MyTestCase(unittest.TestCase):
         vis_path = "./karabo/test/data/beam_vis.vis"
         ms_path = "./karabo/test/data/beam_vis.ms"
 
-        sky = SkyModel()
-        sky_data = np.zeros((81, 12))
-        a = np.arange(-32, -27.5, 0.5)
-        b = np.arange(18, 22.5, 0.5)
-        dec_arr, ra_arr = np.meshgrid(a, b)
-        sky_data[:, 0] = ra_arr.flatten()
-        sky_data[:, 1] = dec_arr.flatten()
-        sky_data[:, 2] = 1
-
-        sky.add_point_sources(sky_data)
+        sky = SkyModel.sky_test()
 
         telescope = Telescope.get_MEERKAT_Telescope()
         # Remove beam if already present
