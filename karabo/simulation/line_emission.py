@@ -20,6 +20,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
+from karabo.util._types import IntFloat
 
 
 def polar_corrdinates_grid(
@@ -66,7 +67,7 @@ def circle_image(image: NDArray[np.float_]) -> NDArray[np.float_]:
 
 
 def header_for_mosaic(
-    img_size: int, ra_deg: float, dec_deg: float, cut: float
+    img_size: int, ra_deg: IntFloat, dec_deg: IntFloat, cut: IntFloat
 ) -> fits.header.Header:
     """
     Create a header for the fits file of the reconstructed image, which is compatible
@@ -99,7 +100,7 @@ def header_for_mosaic(
 
 
 def rascil_imager(
-    outfile: str, visibility: Visibility, cut: float = 1.0, img_size: int = 4096
+    outfile: str, visibility: Visibility, cut: IntFloat = 1.0, img_size: int = 4096
 ) -> NDArray[np.float_]:
     """
     Reconstruct the image from the visibilities with rascil.
@@ -126,9 +127,9 @@ def rascil_imager(
 
 def oskar_imager(
     outfile: str,
-    ra_deg: float = 20,
-    dec_deg: float = -30,
-    cut: float = 1.0,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
+    cut: IntFloat = 1.0,
     img_size: int = 4096,
 ) -> NDArray[np.float_]:
     """
@@ -165,9 +166,9 @@ def plot_scatter_recon(
     recon_image: NDArray[np.float_],
     outfile: str,
     header: fits.header.Header,
-    vmin: float = 0,
-    vmax: float = 0.4,
-    cut: Optional[float] = None,
+    vmin: IntFloat = 0,
+    vmax: IntFloat = 0.4,
+    cut: Optional[IntFloat] = None,
 ) -> None:
     """
     Plotting the sky as a scatter plot and its reconstruction and saving it as a pdf.
@@ -295,16 +296,16 @@ def karabo_reconstruction(
     outfile: str,
     mosaic_pntg_file: Optional[str] = None,
     sky: Optional[SkyModel] = None,
-    ra_deg: float = 20,
-    dec_deg: float = -30,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
     start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
     obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
-    start_freq: float = 1.4639e9,
-    freq_bin: float = 1.0e7,
+    start_freq: IntFloat = 1.4639e9,
+    freq_bin: IntFloat = 1.0e7,
     beam_type: StationTypeType = "Isotropic beam",
-    gaussian_fwhm: float = 1.0,
-    gaussian_ref_freq: float = 1.4639e9,
-    cut: float = 1.0,
+    gaussian_fwhm: IntFloat = 1.0,
+    gaussian_ref_freq: IntFloat = 1.4639e9,
+    cut: IntFloat = 1.0,
     img_size: int = 4096,
     channel_num: int = 10,
     pdf_plot: bool = False,
@@ -410,15 +411,15 @@ def line_emission_pointing(
     sky: SkyModel,
     z_obs: NDArray[np.float_],  # TODO: After branch 400-read_in_sky-exists the sky
     # includes this information -> rewrite
-    ra_deg: float = 20,
-    dec_deg: float = -30,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
     num_bins: int = 10,
     beam_type: StationTypeType = "Gaussian beam",
-    gaussian_fwhm: float = 1.0,
-    gaussian_ref_freq: float = 1.4639e9,
+    gaussian_fwhm: IntFloat = 1.0,
+    gaussian_ref_freq: IntFloat = 1.4639e9,
     start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
     obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
-    cut: float = 3.0,
+    cut: IntFloat = 3.0,
     img_size: int = 4096,
     circle: bool = True,
     rascil: bool = True,
@@ -552,7 +553,7 @@ def line_emission_pointing(
     return dirty_image, dirty_images, header, freq_mid
 
 
-def gaussian_fwhm_meerkat(freq: float) -> float:
+def gaussian_fwhm_meerkat(freq: IntFloat) -> float:
     """
     Computes the FWHM of MeerKAT for a certain observation frequency.
 
@@ -567,11 +568,11 @@ def gaussian_fwhm_meerkat(freq: float) -> float:
 
 
 def gaussian_beam(
-    ra_deg: float,
-    dec_deg: float,
+    ra_deg: IntFloat,
+    dec_deg: IntFloat,
     img_size: int = 2048,
-    cut: float = 1.2,
-    fwhm: float = 1.0,
+    cut: IntFloat = 1.2,
+    fwhm: IntFloat = 1.0,
     outfile: str = "beam",
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
@@ -610,10 +611,10 @@ def gaussian_beam(
 def simple_gaussian_beam_correction(
     path_outfile: str,
     dirty_image: NDArray[np.float_],
-    gaussian_fwhm: float,
-    ra_deg: float = 20,
-    dec_deg: float = -30,
-    cut: float = 3.0,
+    gaussian_fwhm: IntFloat,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
+    cut: IntFloat = 3.0,
     img_size: int = 4096,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     print("Calculate gaussian beam for primary beam correction...")
