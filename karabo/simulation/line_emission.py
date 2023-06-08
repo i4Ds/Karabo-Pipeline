@@ -487,15 +487,9 @@ def line_emission_pointing(
     )
     """
     # Create folders to save outputs/ delete old one if it already exists
-    try:
+    if os.path.exists(path_outfile):
         shutil.rmtree(path_outfile)
-    except FileNotFoundError:
-        print(
-            "                Can't delete work tree; probably doesn't exist yet",
-            flush=True,
-        )
 
-    print("Work directory: " + path_outfile, flush=True)
     os.makedirs(path_outfile)
 
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
@@ -514,7 +508,7 @@ def line_emission_pointing(
         print("Starting simulation...")
         start_freq = freq_channel[bin_idx] + freq_bin / 2
         dirty_image, header = karabo_reconstruction(
-            path_outfile + "/slice_" + str(bin_idx),
+            path_outfile + os.path.sep + "slice_" + str(bin_idx),
             sky=sky_bin,
             ra_deg=ra_deg,
             dec_deg=dec_deg,
@@ -553,7 +547,7 @@ def line_emission_pointing(
     return dirty_image, dirty_images, header, freq_mid
 
 
-def gaussian_fwhm_meerkat(freq: IntFloat) -> float:
+def gaussian_fwhm_meerkat(freq: IntFloat) -> np.float64:
     """
     Computes the FWHM of MeerKAT for a certain observation frequency.
 
@@ -561,7 +555,7 @@ def gaussian_fwhm_meerkat(freq: IntFloat) -> float:
     :return: The power pattern FWHM of the MeerKAT telescope at this frequency in
              degrees.
     """
-    root = cast(float, np.sqrt(89.5 * 86.2))
+    root = np.sqrt(89.5 * 86.2)
     gaussian_fwhm = root / 60.0 * (1e3 / (freq / 10**6))
 
     return gaussian_fwhm
@@ -624,7 +618,7 @@ def simple_gaussian_beam_correction(
         dec_deg=dec_deg,
         cut=cut,
         fwhm=gaussian_fwhm,
-        outfile=path_outfile + "/gaussian_beam",
+        outfile=path_outfile + os.path.sep + "gaussian_beam",
     )
 
     print("Apply primary beam correction...")
