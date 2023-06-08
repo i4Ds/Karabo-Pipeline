@@ -1003,7 +1003,7 @@ class SkyModel:
         extra_columns : Optional[List[str]], default=None
             A list of additional column names to include in the output DataArray.
             If not provided, only the default columns will be included.
-        chunksize : Union[int, str], default=1000
+        chunksize : Union[int, str], default=auto
             Chunk size for Dask arrays. This determines the size of chunks that
             the data will be divided into when read from the file. Can be an
             integer or 'auto'. If 'auto', Dask will choose an optimal chunk size.
