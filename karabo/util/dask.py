@@ -81,7 +81,7 @@ class DaskHandler:
             return DaskHandler.use_dask
         elif DaskHandler.dask_client is not None:
             return True
-        elif is_on_slurm_cluster():
+        elif is_on_slurm_cluster() and get_number_of_nodes() > 1:
             return True
         else:
             return False
