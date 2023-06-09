@@ -302,7 +302,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: Observation,
         verbose: bool = False,
-    ) -> Visibility:
+    ) -> Union[Visibility, OskarSettingsTreeType]:
         """
         Run a single interferometer simulation with a given sky,
         telescope and observation settings.
@@ -387,11 +387,7 @@ class InterferometerSimulation:
             )
             # TODO combine visibilities is not done yet.
             # currently it is a list of oskar-settings-tree.
-            visibility_paths = [
-                x["interferometer"]["oskar_vis_filename"] for x in results
-            ]
-            ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
-            return Visibility(visibility_paths[0], ms_file_paths[0])
+            return results
 
         # Run the simulation on the local machine
         else:
