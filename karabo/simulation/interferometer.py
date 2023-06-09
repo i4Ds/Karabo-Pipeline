@@ -8,6 +8,7 @@ import pandas as pd
 import xarray as xr
 from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.array import Array as da  # type: ignore[attr-defined]
+from dask.array import from_array  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
@@ -326,7 +327,7 @@ class InterferometerSimulation:
         # Run the simulation on the dask cluster
         if self.client is not None:
             if not isinstance(array_sky.data, da):
-                array_sky.data = da.from_array(array_sky.data, chunks="auto")
+                array_sky.data = from_array(array_sky.data, chunks="auto")
             dask_array = array_sky.data
             oskar_settings_tree = observation.get_OSKAR_settings_tree()
             if self.split_observation_by_channels:
