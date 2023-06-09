@@ -18,7 +18,7 @@ class Visibility(KaraboResource):
         self,
         path: Optional[str] = None,
         ms_file_path: Optional[str] = None,
-        file_name: str = "visibility",
+        file_name: str = "visibility.vis",
     ) -> None:
         """
         Initializes a Visibility object.

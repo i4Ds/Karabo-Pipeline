@@ -325,10 +325,12 @@ class InterferometerSimulation:
             )
         # Run the simulation on the dask cluster
         if self.client is not None:
-            if not isinstance(array_sky.data, da):
+            if not isinstance(array_sky.data, da) or not isinstance(
+                array_sky.data, np.ndarray
+            ):
                 raise KaraboInterferometerSimulationError(
                     "Client is set, but `xarray.DataArray` is not of type"
-                    + "`dask.array import Array`,"
+                    + "`dask.array.Array` or `numpy.ndarray`"
                     + f"instead it is type {type(array_sky.data)}."
                 )
             dask_array = array_sky.data
