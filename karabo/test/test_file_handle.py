@@ -1,74 +1,87 @@
 import os.path
-import unittest
+
+import pytest
 
 from karabo.test import data_path
 from karabo.util.file_handle import FileHandle
 
 
-class TestFileHandle(unittest.TestCase):
-    def test_create_file(self):
-        handle = FileHandle(file_name="file.file")
-        path = handle.path
-        dir_path = os.path.dirname(path)
-        self.assertTrue(os.path.exists(dir_path))
-        handle.clean_up()
-        self.assertFalse(os.path.exists(dir_path))
+def setup_handle(
+    file_name=None, suffix="", path=None, create_additional_folder_in_dir=False
+):
+    return FileHandle(
+        file_name=file_name,
+        suffix=suffix,
+        path=path,
+        create_additional_folder_in_dir=create_additional_folder_in_dir,
+    )
 
-    def test_create_file_w_suffix(self):
-        handle = FileHandle(file_name="file", suffix=".file")
-        path = handle.path
-        dir_path = os.path.dirname(path)
-        self.assertTrue(os.path.exists(dir_path))
-        handle.clean_up()
-        self.assertFalse(os.path.exists(dir_path))
 
-    def test_create_folder(self):
-        handle = FileHandle()
-        path = handle.path
-        self.assertTrue(os.path.exists(path))
-        handle.clean_up()
-        self.assertFalse(os.path.exists(path))
+@pytest.fixture
+def handle():
+    handle = setup_handle()
+    yield handle  # yield the setup
 
-    def test_existing_folder(self):
-        handle = FileHandle()
-        path = handle.path
-        self.assertTrue(os.path.exists(path))
 
-        handle = FileHandle(path=path)
-        path = handle.path
-        self.assertTrue(os.path.exists(path))
-        handle.clean_up()
-        self.assertFalse(os.path.exists(path))
+@pytest.mark.parametrize("file_name, suffix", [("file.file", ""), ("file", ".file")])
+def test_create_file(file_name, suffix):
+    handle = setup_handle(file_name=file_name, suffix=suffix)
+    dir_path = os.path.dirname(handle.path)
+    assert os.path.exists(dir_path)
+    handle.clean_up()
+    assert not os.path.exists(dir_path)
 
-    def test_existing_file(self):
-        handle = FileHandle(path=data_path, file_name="detection.csv")
-        path = handle.path
-        self.assertTrue(os.path.exists(path))
 
-    def test_cleanup(self):
-        handle = FileHandle()
-        path = handle.path
-        self.assertTrue(os.path.exists(path))
-        handle.clean_up()
-        self.assertFalse(os.path.exists(path))
+def test_create_folder(handle):
+    assert os.path.exists(handle.path)
+    handle.clean_up()
+    assert not os.path.exists(handle.path)
 
-    def test_correct_path_creation(self):
-        path = os.path.join(data_path, "test_123.ms")
-        handle = FileHandle(path=path)
-        self.assertEqual(handle.path, path)
-        self.assertEqual(handle.dir, path)
 
-    def test_correct_file_location(self):
-        path = os.path.join(data_path)
-        handle = FileHandle(path=path, file_name="test_123.ms")
-        self.assertEqual(handle.path, os.path.join(path, "test_123.ms"))
-        self.assertEqual(handle.dir, data_path)
+def test_existing_folder(handle):
+    path = handle.path
+    assert os.path.exists(path)
 
-    def test_folder_creation_in_folder(self):
-        path = os.path.join(data_path, "test_123")
-        if not os.path.exists(path):
-            os.mkdir(path)
-        handle = FileHandle(path=path, create_additional_folder_in_dir=True)
-        self.assertEqual(path, os.path.split(handle.path)[0])
-        handle.clean_up()
-        self.assertTrue(os.path.exists(path))
+    handle = setup_handle(path=path)
+    assert os.path.exists(handle.path)
+    handle.clean_up()
+    assert not os.path.exists(handle.path)
+
+
+def test_existing_file():
+    handle = setup_handle(path=data_path, file_name="detection.csv")
+    assert os.path.exists(handle.path)
+
+
+def test_cleanup(handle):
+    assert os.path.exists(handle.path)
+    handle.clean_up()
+    assert not os.path.exists(handle.path)
+
+
+@pytest.mark.parametrize(
+    "path, file_name, expected_path, expected_dir",
+    [
+        (
+            os.path.join(data_path, "test_123.ms"),
+            None,
+            os.path.join(data_path, "test_123.ms"),
+            os.path.join(data_path, "test_123.ms"),
+        ),
+        (data_path, "test_123.ms", os.path.join(data_path, "test_123.ms"), data_path),
+    ],
+)
+def test_correct_path_and_file_location(path, file_name, expected_path, expected_dir):
+    handle = setup_handle(path=path, file_name=file_name)
+    assert handle.path == expected_path
+    assert handle.dir == expected_dir
+
+
+def test_folder_creation_in_folder():
+    path = os.path.join(data_path, "test_123")
+    if not os.path.exists(path):
+        os.mkdir(path)
+    handle = setup_handle(path=path, create_additional_folder_in_dir=True)
+    assert path == os.path.split(handle.path)[0]
+    handle.clean_up()
+    assert os.path.exists(path)
