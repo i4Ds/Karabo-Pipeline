@@ -140,7 +140,7 @@ def prepare_slurm_nodes_for_dask() -> None:
         with open(DASK_INFO_ADDRESS, "r") as f:
             dask_info = json.load(f)
 
-        async def start_worker(scheduler_address):
+        async def start_worker(scheduler_address: str) -> None:
             worker = await Worker(scheduler_address)
             await worker.finished()
 
@@ -275,7 +275,7 @@ def get_min_max_of_node_id() -> Tuple[str, str]:
         return node_list.split("-")[0], node_list.split("-")[1]
 
 
-def get_lowest_node_id() -> int:
+def get_lowest_node_id() -> str:
     return get_min_max_of_node_id()[0]
 
 

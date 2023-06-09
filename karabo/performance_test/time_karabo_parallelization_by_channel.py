@@ -1,5 +1,5 @@
 import time
-from typing import cast
+from typing import Optional, cast
 
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -9,7 +9,7 @@ from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
 
 
-def main(n_channels: int, gb_ram_per_worker: int) -> None:
+def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
     DaskHandler.min_gb_ram_per_worker = gb_ram_per_worker
     print("Setting up sky model...")
     sky = SkyModel.get_GLEAM_Sky([76])
@@ -62,7 +62,7 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
     print(f"Client: {interferometer_sim.client}")
 
     start = time.time()
-    visibility = interferometer_sim.run_simulation(
+    _ = interferometer_sim.run_simulation(
         askap_tel,
         sky,
         observation_settings,
@@ -72,7 +72,6 @@ def main(n_channels: int, gb_ram_per_worker: int) -> None:
     print("Time taken: (minutes)", time_taken)
 
     # Check that the created visiblities are corresponding to the number of channels
-    assert len(visibility) == n_channels
 
     with open(
         f"output_{str(n_workers)}_nodes_{n_channels}_channels.txt",

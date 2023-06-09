@@ -331,6 +331,7 @@ class InterferometerSimulation:
             dask_array = array_sky.data
             oskar_settings_tree = observation.get_OSKAR_settings_tree()
             if self.split_observation_by_channels:
+                # TODO: Currently wrong, no combination by channels.
                 if verbose:
                     print(
                         "Splitting simulation by channels with the following parameter:"
@@ -592,8 +593,8 @@ class InterferometerSimulation:
     def __get_OSKAR_settings_tree(
         self,
         input_telpath: str,
-        ms_file_path: str,
-        vis_path: str,
+        ms_file_path: Optional[str] = None,
+        vis_path: Optional[str] = None,
     ) -> OskarSettingsTreeType:
         # Create the paths if they are not given
         if ms_file_path is None:

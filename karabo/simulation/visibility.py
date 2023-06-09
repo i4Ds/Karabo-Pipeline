@@ -160,10 +160,13 @@ class Visibility(KaraboResource):
     @staticmethod
     def combine_vis(
         visiblity_files: List[str],
-        combined_ms_filepath: str,
+        combined_ms_filepath: Optional[str] = None,
         group_by: str = "day",
     ) -> None:
         print("Combining visibilities...")
+        if combined_ms_filepath is None:
+            fh = FileHandle(suffix=".MS")
+            combined_ms_filepath = fh.path
 
         # Initialize lists to store data
         out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
