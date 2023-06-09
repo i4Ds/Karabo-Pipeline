@@ -17,6 +17,7 @@ def setup_test_environment():
     os.chdir(path_to_notebooks)
 
 
+@pytest.mark.skip(reason="Not a test")
 def _test_notebook(notebook):
     print(Font.BOLD + Font.BLUE + "Testing notebook " + notebook + Font.END)
 
