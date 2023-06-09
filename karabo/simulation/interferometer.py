@@ -386,7 +386,11 @@ class InterferometerSimulation:
             )
             # TODO combine visibilities is not done yet.
             # currently it is a list of oskar-settings-tree.
-            return results
+            visibility_paths = [
+                x["interferometer"]["oskar_vis_filename"] for x in results
+            ]
+            ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
+            return Visibility(visibility_paths[0], ms_file_paths[0])
 
         # Run the simulation on the local machine
         else:
