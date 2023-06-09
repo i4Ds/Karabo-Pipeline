@@ -62,9 +62,9 @@ class FileHandle:
         suffix: str = "",
     ) -> None:
         use_scratch_folder_if_exist: bool = True
+        use_slurm_job_id_if_exist: bool = True
 
         # Some logic
-
         if not dir:
             if path:
                 dir = os.path.split(path)[0]
@@ -72,6 +72,8 @@ class FileHandle:
                 dir = os.path.join(os.environ["SCRATCH"], "karabo_folder")
             else:
                 dir = os.path.join(os.getcwd(), "karabo_folder")
+            if "SLURM_JOB_ID" in os.environ and use_slurm_job_id_if_exist:
+                dir = os.path.join(dir, os.environ["SLURM_JOB_ID"])
 
         if create_additional_folder_in_dir:
             dir = os.path.join(dir, str(uuid.uuid4()))
