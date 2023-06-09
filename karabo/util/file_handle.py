@@ -77,8 +77,12 @@ class FileHandle:
 
         if create_additional_folder_in_dir:
             dir = os.path.join(dir, str(uuid.uuid4()))
+
         if not file_name:
-            file_name = str(uuid.uuid4()) + suffix
+            if path:
+                file_name = path.split(os.path.sep)[-1]
+            else:
+                file_name = str(uuid.uuid4()) + suffix
 
         if not path:
             path = os.path.join(dir, file_name)

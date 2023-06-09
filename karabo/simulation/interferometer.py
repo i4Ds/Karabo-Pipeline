@@ -407,8 +407,8 @@ class InterferometerSimulation:
             params_total = InterferometerSimulation.__run_simulation_oskar(
                 array_sky, params_total, self.precision
             )
-            vis_path = params_total["interferometer"]["ms_filename"]
-            ms_file_path = params_total["interferometer"]["oskar_vis_filename"]
+            ms_file_path = params_total["interferometer"]["ms_filename"]
+            vis_path = params_total["interferometer"]["oskar_vis_filename"]
             print(f"Saved visibility to {vis_path}")
             return Visibility(vis_path, ms_file_path)
 
