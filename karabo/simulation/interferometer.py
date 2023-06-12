@@ -391,7 +391,7 @@ class InterferometerSimulation:
             # Extract visibilities
             visibilities = [x["interferometer"]["oskar_vis_filename"] for x in results]
             if len(visibilities) > 1:
-                Visibility.combine_vis(visibilities, self.ms_file_path, group_by='sky_chunks', combine_func=np.sum)
+                self.ms_file_path = Visibility.combine_vis(visibilities, self.ms_file_path, group_by='sky_chunks', combine_func=np.sum, return_path=True)
             return Visibility(visibilities[0], self.ms_file_path)
 
         # Run the simulation on the local machine

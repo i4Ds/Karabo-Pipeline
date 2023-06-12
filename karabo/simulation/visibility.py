@@ -164,6 +164,7 @@ class Visibility(KaraboResource):
         combined_ms_filepath: Optional[str] = None,
         group_by: str = "day",
         combine_func: Callable = np.mean,
+        return_path: bool = False,
     ) -> None:
         print("Combining visibilities...")
         if combined_ms_filepath is None:
@@ -262,3 +263,5 @@ class Visibility(KaraboResource):
                     block.num_baselines,
                     out_vis_reshaped[t],
                 )
+        if return_path:
+            return combined_ms_filepath
