@@ -3,14 +3,15 @@ from __future__ import annotations
 import logging
 import os
 import re
-import shutil
 from math import comb
 from typing import List, Optional
 
 import numpy as np
 import oskar.telescope as os_telescope
+from numpy.typing import NDArray
 
 import karabo.error
+from karabo.error import KaraboError
 from karabo.karabo_resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
@@ -25,8 +26,9 @@ from karabo.simulation.telescope_versions import (
     SMAVersions,
     VLAVersions,
 )
+from karabo.util._types import NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 from karabo.util.math_util import long_lat_to_cartesian
 
 
@@ -54,7 +56,9 @@ class Telescope(KaraboResource):
         Hotfix for issue #59.
     """
 
-    def __init__(self, longitude: float, latitude: float, altitude: float = 0):
+    def __init__(
+        self, longitude: float, latitude: float, altitude: float = 0.0
+    ) -> None:
         """__init__ method
 
         Parameters
@@ -66,8 +70,8 @@ class Telescope(KaraboResource):
         altitude : float, optional
             Altitude (in meters) at the center of the telescope, default is 0.
         """
-        self.temp_dir = None
-        self.path = None
+        self.temp_dir: Optional[FileHandle] = None
+        self.path: Optional[str] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
         self.centre_altitude = altitude
@@ -78,11 +82,11 @@ class Telescope(KaraboResource):
         self,
         horizontal_x: float,
         horizontal_y: float,
-        horizontal_z: float = 0,
-        horizontal_x_coordinate_error: float = 0,
-        horizontal_y_coordinate_error: float = 0,
-        horizontal_z_coordinate_error: float = 0,
-    ):
+        horizontal_z: float = 0.0,
+        horizontal_x_coordinate_error: float = 0.0,
+        horizontal_y_coordinate_error: float = 0.0,
+        horizontal_z_coordinate_error: float = 0.0,
+    ) -> None:
         """
         Specify the stations as relative to the centre position
         :param horizontal_x: east coordinate relative to centre
@@ -145,7 +149,7 @@ class Telescope(KaraboResource):
                 )
             )
 
-    def plot_telescope(self, file: str = None) -> None:
+    def plot_telescope(self, file: Optional[str] = None) -> None:
         """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
@@ -192,14 +196,14 @@ class Telescope(KaraboResource):
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-        self.temp_dir = FileHandle(is_dir=True)
-        self.__create_telescope_tm_file(self.temp_dir.path)
+        self.temp_dir = FileHandle()
+        self.write_to_file(self.temp_dir.path)
         tel = os_telescope.Telescope()
         tel.load(self.temp_dir.path)
         self.path = self.temp_dir.path
         return tel
 
-    def __create_telescope_tm_file(self, path: str) -> None:
+    def write_to_file(self, path: str) -> None:
         """
         Create .tm telescope configuration at the specified path
         :param path: directory in which the configuration will be saved in.
@@ -222,7 +226,9 @@ class Telescope(KaraboResource):
         )
         position_file.close()
 
-    def __write_layout_txt(self, layout_path: str, elements: List[EastNorthCoordinate]):
+    def __write_layout_txt(
+        self, layout_path: str, elements: List[EastNorthCoordinate]
+    ) -> None:
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
@@ -231,10 +237,7 @@ class Telescope(KaraboResource):
             )
         layout_file.close()
 
-    def write_to_file(self, path: str) -> None:
-        shutil.copytree(self.path.path, path)
-
-    def get_cartesian_position(self):
+    def get_cartesian_position(self) -> NDArray[np.float_]:
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
 
     @classmethod
@@ -242,6 +245,8 @@ class Telescope(KaraboResource):
         if path.endswith(".tm"):
             logging.info("Supplied file is a .tm file. Read as OSKAR Telescope file.")
             return cls.read_OSKAR_tm_file(path)
+        else:
+            return None
 
     @classmethod
     def get_MEERKAT_Telescope(cls) -> Telescope:
@@ -331,11 +336,11 @@ class Telescope(KaraboResource):
     @classmethod
     def read_OSKAR_tm_file(cls, path: str) -> Telescope:
         abs_station_dir_paths = []
-        station_position_file = None
+        center_position_file = None
         station_layout_file = None
         for file_or_dir in os.listdir(path):
             if file_or_dir.startswith("position"):
-                station_position_file = os.path.abspath(os.path.join(path, file_or_dir))
+                center_position_file = os.path.abspath(os.path.join(path, file_or_dir))
             if file_or_dir.startswith("layout"):
                 station_layout_file = os.path.abspath(os.path.join(path, file_or_dir))
             if file_or_dir.startswith("station"):
@@ -343,7 +348,7 @@ class Telescope(KaraboResource):
                     os.path.abspath(os.path.join(path, file_or_dir))
                 )
 
-        if station_position_file is None:
+        if center_position_file is None:
             raise karabo.error.KaraboError("Missing crucial position.txt file_or_dir")
 
         if station_layout_file is None:
@@ -357,22 +362,27 @@ class Telescope(KaraboResource):
 
         telescope = None
 
-        position_file = open(station_position_file)
+        position_file = open(center_position_file)
         lines = position_file.readlines()
         for line in lines:
-            long_lat = line.split(" ")
-            if len(long_lat) > 3:
-                raise karabo.error.KaraboError("Too many values in position.txt")
-            long = float(long_lat[0])
-            lat = float(long_lat[1])
-            alt = 0
-            if len(long_lat) == 3:
-                alt = float(long_lat[2])
-            telescope = Telescope(long, lat, alt)
+            match = re.match(
+                r"^\s*([-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)\s+([-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)\s*([-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)?\s*$",  # noqa: E501
+                line.strip(),
+            )  # one line with two or three numbers
+            if match:
+                numbers = [float(num) for num in match.group().split()]
+                long = numbers[0]
+                lat = numbers[1]
+                alt = 0.0
+                if len(numbers) == 3:
+                    alt = float(numbers[2])
+                telescope = Telescope(long, lat, alt)
+                break
 
-        if Telescope is None:
+        if telescope is None:
             raise karabo.error.KaraboError(
-                "Could not create Telescope from position.txt file_or_dir."
+                "Could not create Telescope from position.txt file_or_dir. "
+                + "It must contain one line with two or three numbers."
             )
 
         position_file.close()
@@ -415,7 +425,7 @@ class Telescope(KaraboResource):
         return telescope
 
     @classmethod
-    def __read_layout_txt(cls, path) -> List[List[float]]:
+    def __read_layout_txt(cls, path: str) -> List[List[float]]:
         positions: List[List[float]] = []
         layout_file = open(path)
         lines = layout_file.readlines()
@@ -433,20 +443,20 @@ class Telescope(KaraboResource):
         return positions
 
     @classmethod
-    def __float_try_parse(cls, value):
+    def __float_try_parse(cls, value: str) -> float:
         try:
             return float(value)
         except ValueError:
             return 0.0
 
 
-def compute_distance(i, j, station_x, station_y):
-    return np.sqrt(
-        (station_x[i] - station_x[j]) ** 2 + (station_y[i] - station_y[j]) ** 2
-    )
-
-
-def create_baseline_cut_telelescope(lcut, hcut, tel):
+def create_baseline_cut_telelescope(
+    lcut: NPFloatLike,
+    hcut: NPFloatLike,
+    tel: Telescope,
+) -> str:
+    if tel.path is None:
+        raise KaraboError("`tel.path` None is not allowed.")
     stations = np.loadtxt(tel.path + "/layout.txt")
     station_x = stations[:, 0]
     station_y = stations[:, 1]
@@ -457,7 +467,7 @@ def create_baseline_cut_telelescope(lcut, hcut, tel):
     baseline_y = np.zeros(nb)
     for i in range(stations.shape[0]):
         for j in range(i):
-            baseline[k] = compute_distance(i, j, station_x, station_y)
+            baseline[k] = np.linalg.norm(station_x[i] - station_y[j])
             baseline_x[k] = i
             baseline_y[k] = j
             k = k + 1

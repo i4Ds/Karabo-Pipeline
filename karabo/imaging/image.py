@@ -3,19 +3,20 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 from numpy.typing import NDArray
 from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
+from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.FileHandle import FileHandle, check_ending
+from karabo.util.file_handle import FileHandle, check_ending
+from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,
 # because rascil sets it to Agg (non-GUI)
@@ -28,7 +29,7 @@ class Image(KaraboResource):
     def __init__(
         self,
         path: Union[str, FileHandle],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         Proxy object class for images.
@@ -37,17 +38,28 @@ class Image(KaraboResource):
         if isinstance(
             path, FileHandle
         ):  # save FileHandle if used to not lose reference and call it's __del__
-            self.__file_handle = path
             path_ = path.path
         else:
             path_ = path
         self.path = path_
         self.__name = self.path.split(os.path.sep)[-1]
+        self.data: NDArray[np.float64]
+        self.header: fits.header.Header
         self.data, self.header = fits.getdata(self.path, ext=0, header=True, **kwargs)
 
     @staticmethod
     def read_from_file(path: str) -> Image:
         return Image(path=path)
+
+    @property
+    def data(self) -> NDArray[np.float_]:
+        return self._data
+
+    @data.setter
+    def data(self, new_data: NDArray[np.float_]) -> None:
+        self._data = new_data
+        if hasattr(self, "header"):
+            self._update_header_after_resize()
 
     def write_to_file(
         self,
@@ -56,6 +68,8 @@ class Image(KaraboResource):
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
         check_ending(path=path, ending=".fits")
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
         fits.writeto(
             filename=path,
             data=self.data,
@@ -73,7 +87,54 @@ class Image(KaraboResource):
         return True
 
     def get_squeezed_data(self) -> NDArray[np.float64]:
-        return numpy.squeeze(self.data[:1, :1, :, :])
+        return np.squeeze(self.data[:1, :1, :, :])
+
+    def resample(
+        self,
+        shape: Tuple[int, ...],
+        **kwargs: Any,
+    ) -> None:
+        """
+        Resamples the image to the given shape using SciPy's RegularGridInterpolator
+        for bilinear interpolation. See:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RegularGridInterpolator.html
+
+        :param shape: The desired shape of the image
+        :param kwargs: Keyword arguments for the interpolation function
+
+        """
+        new_data = np.empty(
+            (self.data.shape[0], 1, shape[0], shape[1]), dtype=self.data.dtype
+        )
+
+        for c in range(self.data.shape[0]):
+            y = np.arange(self.data.shape[2])
+            x = np.arange(self.data.shape[3])
+            interpolator = RegularGridInterpolator(
+                (y, x),
+                self.data[c, 0],
+                **kwargs,
+            )
+
+            new_x = np.linspace(0, self.data.shape[3] - 1, shape[1])
+            new_y = np.linspace(0, self.data.shape[2] - 1, shape[0])
+            new_points = np.array(np.meshgrid(new_y, new_x)).T.reshape(-1, 2)
+            new_data[c] = interpolator(new_points).reshape(shape[0], shape[1])
+
+        self.data = new_data
+
+    def _update_header_after_resize(self) -> None:
+        """Reshape the header to the given shape"""
+        old_shape = (self.header["NAXIS2"], self.header["NAXIS1"])
+        new_shape = (self.data.shape[2], self.data.shape[3])
+        self.header["NAXIS1"] = new_shape[1]
+        self.header["NAXIS2"] = new_shape[0]
+
+        self.header["CRPIX1"] = (new_shape[1] + 1) / 2
+        self.header["CRPIX2"] = (new_shape[0] + 1) / 2
+
+        self.header["CDELT1"] = self.header["CDELT1"] * old_shape[1] / new_shape[1]
+        self.header["CDELT2"] = self.header["CDELT2"] * old_shape[0] / new_shape[0]
 
     def plot(
         self,
@@ -89,7 +150,7 @@ class Image(KaraboResource):
         wcs_enabled: bool = True,
         invert_xaxis: bool = False,
         filename: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Plots the image
 
@@ -113,16 +174,8 @@ class Image(KaraboResource):
 
         if wcs_enabled:
             wcs = WCS(self.header)
-            print(wcs)
 
-            slices = []
-            for i in range(wcs.pixel_n_dim):
-                if i == 0:
-                    slices.append("x")
-                elif i == 1:
-                    slices.append("y")
-                else:
-                    slices.append(0)
+            slices = get_slices(wcs=wcs)
 
             # create dummy xlim or ylim if only one is set for conversion
             xlim_reset, ylim_reset = False, False
@@ -231,7 +284,7 @@ class Image(KaraboResource):
         self,
         resolution: float = 5.0e-4,
         signal_channel: Optional[int] = None,
-    ) -> Tuple[NDArray[np.float64], NDArray[np.floating]]:
+    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Calculate the power spectrum of this image.
 
@@ -242,7 +295,6 @@ class Image(KaraboResource):
             profile: Brightness temperature for each angular scale in Kelvin
             theta_axis: Angular scale data in degrees
         """
-        # use RASCIL for power spectrum
         profile, theta = power_spectrum(self.path, resolution, signal_channel)
         return profile, theta
 
@@ -271,7 +323,7 @@ class Image(KaraboResource):
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
         plt.gca().set_yscale("log")
-        plt.gca().set_ylim(1e-6 * numpy.max(profile), 2.0 * numpy.max(profile))
+        plt.gca().set_ylim(1e-6 * np.max(profile), 2.0 * np.max(profile))
         plt.tight_layout()
 
         if save_png:
@@ -282,15 +334,19 @@ class Image(KaraboResource):
         plt.show(block=False)
         plt.pause(1)
 
-    def get_cellsize(self) -> float:
+    def get_cellsize(self) -> np.float64:
         cdelt1 = self.header["CDELT1"]
         cdelt2 = self.header["CDELT2"]
-        if abs(cdelt1) != abs(cdelt2):
-            logging.warning(
-                "The Images's cdelt1 and cdelt2 are not the same in absolute value."
-                + "Continuing with cdelt1"
+        if not isinstance(cdelt1, float) or not isinstance(cdelt2, float):
+            raise ValueError(
+                "CDELT1 & CDELT2 in header are expected to be of type float."
             )
-        return np.deg2rad(np.abs(cdelt1))
+        if np.abs(cdelt1) != np.abs(cdelt2):
+            logging.warning(
+                "Non-square pixels are not supported, continue with `cdelt1`."
+            )
+        cellsize = cast(np.float64, np.deg2rad(np.abs(cdelt1)))
+        return cellsize
 
     def get_wcs(self) -> WCS:
         return WCS(self.header)
@@ -301,7 +357,7 @@ class Image(KaraboResource):
     ) -> WCS:
         wcs = WCS(naxis=2)
 
-        def radian_degree(rad: float) -> float:
+        def radian_degree(rad: np.float64) -> np.float64:
             return rad * (180 / np.pi)
 
         cdelt = radian_degree(self.get_cellsize())

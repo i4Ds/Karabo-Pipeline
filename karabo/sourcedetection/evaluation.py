@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, cast
 
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from numpy.typing import NDArray
 from scipy.spatial import KDTree
 
+from karabo.error import KaraboSourceDetectionEvaluationError
 from karabo.simulation.sky_model import SkyModel
 from karabo.sourcedetection.result import SourceDetectionResult
 from karabo.util.plotting_util import get_slices
@@ -19,9 +21,9 @@ class SourceDetectionEvaluation:
     def __init__(
         self,
         sky: SkyModel,
-        ground_truth: Tuple[NDArray[np.float64], NDArray[np.int64]],
-        assignments: NDArray[np.float64],
-        sky_idxs: NDArray[np.int64],
+        ground_truth: NDArray[np.float_],
+        assignments: NDArray[np.float_],
+        sky_idxs: NDArray[np.int_],
         source_detection: SourceDetectionResult,
     ) -> None:
         """Class that holds the mapping of a source detection to truth mapping.
@@ -51,7 +53,9 @@ class SourceDetectionEvaluation:
 
     def __setup_assignments(self) -> None:
         # get `SkyModel` array of ground truth sources
-        assignment_truth = self.assignments[np.where(self.assignments[:, 0] >= 0)]
+        assignment_truth = cast(
+            NDArray[np.float_], self.assignments[np.where(self.assignments[:, 0] >= 0)]
+        )
         sky_idxs_gt = self.sky_idxs[assignment_truth[:, 0].astype(np.int64)]
         self.sky_array_gt = self.sky[sky_idxs_gt]
         self.sky_array_gt_img_pos = self.ground_truth[
@@ -60,9 +64,10 @@ class SourceDetectionEvaluation:
         # get `SourceDetectionResult.detected_sources` array of predictions
         self.detected_sources_array_pred = self.source_detection.detected_sources
         # get `SkyModel` array of assigned ground truth sources
-        assignment_assigned = self.assignments[
-            np.where(self.assignments[:, 2] != np.inf)
-        ]
+        assignment_assigned = cast(
+            NDArray[np.float_],
+            self.assignments[np.where(self.assignments[:, 2] != np.inf)],
+        )
         sky_idxs_gt_assigned = self.sky_idxs[assignment_assigned[:, 0].astype(np.int64)]
         self.sky_array_gt_assigned = self.sky[sky_idxs_gt_assigned]
         self.sky_array_gt_assigned_img_pos = self.ground_truth[
@@ -76,8 +81,8 @@ class SourceDetectionEvaluation:
 
     @staticmethod
     def __return_multiple_assigned_detected_points(
-        assigments: NDArray[np.float64],
-    ) -> NDArray[np.float64]:
+        assigments: NDArray[np.float_],
+    ) -> NDArray[np.float_]:
         """
         Returns the indices of the predicted sources that are assigned
         to more than one ground truth source.
@@ -90,15 +95,15 @@ class SourceDetectionEvaluation:
         pred_multiple_assignment = pred_multiple_assignment[
             pred_multiple_assignment != -1
         ]
-        return pred_multiple_assignment
+        return cast(NDArray[np.float_], pred_multiple_assignment)
 
     @staticmethod
     def automatic_assignment_of_ground_truth_and_prediction(
-        ground_truth: Union[NDArray[np.int64], NDArray[np.float64]],
-        detected: Union[NDArray[np.int64], NDArray[np.float64]],
+        ground_truth: Union[NDArray[np.int_], NDArray[np.float_]],
+        detected: Union[NDArray[np.int_], NDArray[np.float_]],
         max_dist: float,
         top_k: int = 3,
-    ) -> NDArray[np.float64]:
+    ) -> NDArray[np.float_]:
         """Automatic assignment of the predicted sources `predicted` to the
         ground truth `gtruth`. The strategy is the following (similar to
         `AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61,
@@ -111,6 +116,8 @@ class SourceDetectionEvaluation:
         sources to the ground truth and vice versa. So each ground truth source
         should be assigned with a predicted source if at least one was in range
         and the predicted source assigned to another ground truth source before.
+        If there are duplicate sources (e.g. same source, different frequency), the
+        duplicate sources are removed and the assignment is done on the remaining.
 
         :param ground_truth: nx2 np.ndarray with the ground truth pixel
         coordinates of the catalog
@@ -131,6 +138,15 @@ class SourceDetectionEvaluation:
             of that source
 
         """
+        # Check if there are duplicate sources and if yes, remove them
+        # Do it via index because otherwise the order is changed
+        # by np.unique.
+        _, gidx = np.unique(ground_truth, axis=0, return_index=True)
+        _, didx = np.unique(detected, axis=0, return_index=True)
+
+        ground_truth = ground_truth[np.sort(gidx)]
+        detected = detected[np.sort(didx)]
+
         # With scipy.spatial.KDTree get the closest detection point
         # for each ground truth point
         tree = KDTree(ground_truth)
@@ -191,11 +207,11 @@ class SourceDetectionEvaluation:
                 ]
             )
             assigments = np.vstack([assigments, missing_gts.T])
-        return assigments[assigments[:, 0].argsort()]
+        return cast(NDArray[np.float_], assigments[assigments[:, 0].argsort()])
 
     @staticmethod
     def calculate_evaluation_measures(
-        assignments: NDArray[np.float64],
+        assignments: NDArray[np.float_],
     ) -> Tuple[int, int, int]:
         """
         Calculates the True Positive (TP), False Positive (FP)
@@ -231,6 +247,10 @@ class SourceDetectionEvaluation:
 
         if self.source_detection.has_source_image() and not exclude_img:
             image = self.source_detection.get_source_image()
+            if image is None:
+                raise KaraboSourceDetectionEvaluationError(
+                    "`SourceDetectionEvaluation.source_detection` has no source image."
+                )
             wcs = WCS(image.header)
             slices = get_slices(wcs)
 
@@ -245,7 +265,7 @@ class SourceDetectionEvaluation:
             plt.savefig(filename)
         plt.show(block=False)
 
-    def __plot_truth_and_prediction(self, ax, show_legend: bool) -> None:
+    def __plot_truth_and_prediction(self, ax: Axes, show_legend: bool) -> None:
         truth = self.sky_array_gt_img_pos
         pred = self.detected_sources_array_pred[:, [3, 4]].astype(np.float64).T
         ax.plot(
@@ -371,7 +391,12 @@ class SourceDetectionEvaluation:
         ra_dec_pred = truth[[0, 1]]
         flux_ref = truth[2]
         flux_pred = pred[2]
-        phase_center = self.source_detection.get_source_image().get_phase_center()
+        source_image = self.source_detection.get_source_image()
+        if source_image is None:
+            raise KaraboSourceDetectionEvaluationError(
+                "`SourceDetectionEvaluation.source_detection` has no source image."
+            )
+        phase_center = source_image.get_phase_center()
 
         flux_ratio = flux_pred / flux_ref
 

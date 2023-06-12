@@ -1,26 +1,28 @@
 from __future__ import annotations
 
 import shutil
-from typing import Optional, Tuple, Type
+from typing import Any, Optional, Tuple, Type, TypeVar
 from warnings import warn
 
 import bdsf
 import numpy as np
-from bdsf import image as bdsf_image
+from bdsf.image import Image as bdsf_image
 from numpy.typing import NDArray
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import KaraboResource
 from karabo.util.data_util import read_CSV_to_ndarray
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 from karabo.warning import KaraboWarning
+
+T = TypeVar("T")
 
 
 class SourceDetectionResult(KaraboResource):
     def __init__(
         self,
-        detected_sources: NDArray[np.float64],
+        detected_sources: NDArray[np.float_],
         source_image: Image,
     ) -> None:
         """
@@ -45,14 +47,12 @@ class SourceDetectionResult(KaraboResource):
 
     @classmethod
     def detect_sources_in_image(
-        cls: Type[SourceDetectionResult],
+        cls: Type[T],
         image: Image,
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
-        **kwargs,
-    ) -> Optional[
-        PyBDSFSourceDetectionResult
-    ]:  # could maybe be changed using `TypeVar`, but this is more specific atm
+        **kwargs: Any,
+    ) -> Optional[T]:
         """
         Detecting sources in an image. The Source detection is implemented with
         the PyBDSF.process_image function.
@@ -90,7 +90,7 @@ class SourceDetectionResult(KaraboResource):
             else:
                 raise e
 
-        return cls(detection)
+        return cls(detection)  # type: ignore
 
     def write_to_file(self, path: str) -> None:
         """
@@ -100,7 +100,7 @@ class SourceDetectionResult(KaraboResource):
         """
         if path.endswith(".zip"):
             path = path[0 : len(path) - 4]
-        tempdir = FileHandle(is_dir=True)
+        tempdir = FileHandle()
         self.source_image.write_to_file(tempdir.path + "/source_image.fits")
         self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
         shutil.make_archive(path, "zip", tempdir.path)
@@ -118,7 +118,7 @@ class SourceDetectionResult(KaraboResource):
         """
         if method == "rascil_1_iter":
             # TODO: Investigate why those parameters need to be set.
-            imager.ingest_chan_per_blockvis = 1
+            imager.ingest_chan_per_vis = 1
             imager.ingest_vis_nchan = 16
             # Run
             _, restored, _ = imager.imaging_rascil(
@@ -136,7 +136,7 @@ class SourceDetectionResult(KaraboResource):
 
     @staticmethod
     def read_from_file(path: str) -> SourceDetectionResult:
-        tempdir = FileHandle(is_dir=True)
+        tempdir = FileHandle()
         shutil.unpack_archive(path, tempdir.path)
         source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
         source_catalouge = np.loadtxt(
@@ -168,8 +168,10 @@ class SourceDetectionResult(KaraboResource):
         """
         if self.has_source_image():
             return self.source_image
+        else:
+            return None
 
-    def get_pixel_position_of_sources(self) -> NDArray[np.float64]:
+    def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
         x_pos = self.detected_sources[:, 3]
         y_pos = self.detected_sources[:, 4]
         result = np.vstack((np.array(x_pos), np.array(y_pos)))
@@ -187,7 +189,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         functions on PyBDSF results
         :param bdsf_detection: PyBDSF result image
         """
-        sources_file = FileHandle()
+        sources_file = FileHandle(file_name="sources", suffix=".csv")
         bdsf_detection.write_catalog(
             outfile=sources_file.path, catalog_type="gaul", format="csv", clobber=True
         )
@@ -204,8 +206,8 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
 
     @staticmethod
     def __transform_bdsf_to_reduced_result_array(
-        bdsf_detected_sources: NDArray[np.float64],
-    ) -> NDArray[np.float64]:
+        bdsf_detected_sources: NDArray[np.float_],
+    ) -> NDArray[np.float_]:
         if (
             len(bdsf_detected_sources.shape) == 2
             and bdsf_detected_sources.shape[1] > 14
@@ -221,8 +223,8 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             sources = bdsf_detected_sources
         return sources
 
-    def __get_result_image(self, image_type: str, **kwargs) -> Image:
-        file_handle = FileHandle()
+    def __get_result_image(self, image_type: str, **kwargs: Any) -> Image:
+        file_handle = FileHandle(file_name="result", suffix=".fits")
         self.bdsf_result.export_image(
             outfile=file_handle.path,
             img_format="fits",

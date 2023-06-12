@@ -40,7 +40,7 @@ class TestSkyModel(unittest.TestCase):
         self.assertEqual(sky2.sources.shape, (sky_data.shape[0], 13))
 
     def test_plot_gleam(self):
-        sky = SkyModel.get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky([76])
         sky.explore_sky([250, -80], s=0.1)
         cartesian_sky = sky.get_cartesian_sky()
         print(cartesian_sky)
@@ -59,7 +59,7 @@ class TestSkyModel(unittest.TestCase):
         print(cart_sky)
 
     def test_filter_sky_model(self):
-        sky = SkyModel.get_GLEAM_Sky()
+        sky = SkyModel.get_GLEAM_Sky([76])
         phase_center = [250, -80]  # ra,dec
         filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
         filtered_sky.setup_default_wcs(phase_center)
@@ -93,7 +93,7 @@ class TestSkyModel(unittest.TestCase):
             0,
             Polarisation.STOKES_I,
         )
-        sky = SkyModel(source_array, nside=nside)
+        sky = SkyModel(source_array)
         sky.explore_sky([250, -80])
 
     def test_get_poisson_sky(self):

@@ -1,8 +1,0 @@
-FROM --platform=amd64 continuumio/miniconda3
-ARG filename=environment-dev.yaml
-RUN apt-get update && apt-get install -y curl && apt-get autoclean && rm -rf /var/lib/apt/lists/*
-RUN conda update conda
-COPY ../$filename $filename
-# Add untitesting package needed for writing the nice github issue reporst into the env.yaml file.
-RUN echo "\n  - unittest-xml-reporting" >> $filename
-RUN conda env update --file $filename --prune

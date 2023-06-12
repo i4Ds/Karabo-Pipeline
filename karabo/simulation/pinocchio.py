@@ -2,13 +2,14 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+from karabo.error import KaraboPinocchioError
 from karabo.simulation.sky_model import SkyModel
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 
 @dataclass
@@ -33,7 +34,6 @@ class PinocchioRedShiftRequest:
 
 
 class Pinocchio:
-
     PIN_EXEC_MPI = "mpirun"
     PIN_EXEC_MPI_NO_NODES = "-np"
     PIN_EXEC_MPI_AS_ROOT = "--allow-run-as-root"
@@ -62,12 +62,12 @@ class Pinocchio:
 
     RAD_TO_DEG = 180 / np.pi
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Creates temp directory (wd) for the pinocchio run.
         Load default file paths for config files, load default config files
         """
-        self.wd = FileHandle(is_dir=True)
+        self.wd = FileHandle()
 
         # get default input files
         inputFilesPath = os.environ["CONDA_PREFIX"] + "/etc/"
@@ -106,7 +106,6 @@ class Pinocchio:
         rsr = PinocchioRedShiftRequest()
 
         with open(path) as redShifts:
-
             rsr.header = (
                 f"{Pinocchio.PRMS_CMNT} Generated redshift output request "
                 + "file for Pinocchio by Karabo Framework "
@@ -178,12 +177,10 @@ class Pinocchio:
         c: PinocchioConfig = PinocchioConfig()
 
         with open(path) as configF:
-
             # remove header
             line: str = configF.readline()
             if line[0] != Pinocchio.PRMS_CMNT:
-                print("input file is broken or has no header")
-                return {}
+                raise KaraboPinocchioError("input file is broken or has no header")
 
             currMapName: str = ""
 
@@ -269,29 +266,26 @@ class Pinocchio:
 
         self.currConfig = config
 
-    def printConfig(self):
+    def printConfig(self) -> None:
         """
         Print the current config to the console
         """
 
-        k: str
-        v: list[PinocchioParams]
-        for (k, v) in self.currConfig.confDict.items():
+        for _, v in self.currConfig.confDict.items():
             for i in v:
                 desc: str = "is a flag" if i.isFlag else f"has value = {i.value}"
                 status: str = "is active" if i.active else "is inactive"
                 print(f"{i.name}: {desc} and {status}, comment = {i.comment}")
 
-    def printRedShiftRequest(self):
+    def printRedShiftRequest(self) -> None:
         """
         Print the current red shift request that gets written into the ouputs file
         """
 
-        k: str
         for k in self.redShiftRequest.redShifts:
             print(f"Redshift active: {k}")
 
-    def setRunName(self, name: str):
+    def setRunName(self, name: str) -> None:
         """
         set the name of the next run called by run()
 
@@ -404,7 +398,7 @@ class Pinocchio:
         ]
         subprocess.run(cmd, cwd=self.wd.path, text=True)
 
-    def getPinocchioStdOutput(self) -> str:
+    def getPinocchioStdOutput(self) -> Optional[str]:
         """
         get the std output created during run,
         only available if live output was disabled
@@ -415,8 +409,10 @@ class Pinocchio:
 
         if hasattr(self, "out"):
             return self.out.stdout
+        else:
+            return None
 
-    def getPinocchioStdError(self) -> str:
+    def getPinocchioStdError(self) -> Optional[str]:
         """
         get the std error created during run, only available if live output was disabled
 
@@ -426,6 +422,8 @@ class Pinocchio:
 
         if hasattr(self, "out"):
             return self.out.stderr
+        else:
+            return None
 
     def __writeRequiredFilesToWD(self) -> None:
         """
@@ -473,7 +471,7 @@ class Pinocchio:
         # write entries
         k: str
         v: List[PinocchioParams]
-        for (k, v) in self.currConfig.confDict.items():
+        for k, v in self.currConfig.confDict.items():
             # write header
             lines.append(f"{Pinocchio.PRMS_CMNT} {k}")
 

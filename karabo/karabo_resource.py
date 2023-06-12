@@ -1,4 +1,7 @@
-from typing import Any
+from types import TracebackType
+from typing import Any, Optional
+
+import numpy as np
 
 
 class KaraboResource:
@@ -15,3 +18,16 @@ class KaraboResource:
         (format specified by resource itself)
         """
         raise NotImplementedError()
+
+
+class NumpyAssertionsDisabled:
+    def __enter__(self) -> None:
+        self.old_settings = np.seterr(all="ignore")
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        np.seterr(**self.old_settings)

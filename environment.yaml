@@ -1,0 +1,22 @@
+channels:
+  - i4ds
+  - nvidia/label/cuda-11.7.0
+  - conda-forge
+dependencies:
+  - python=3.9
+  - oskarpy=2.8.3
+  - rascil=1.0.0
+  - numpy=1.22
+  - scipy=1.10.1
+  - astropy
+  - dask=2022.12.1
+  - matplotlib
+  - healpy
+  - requests
+  - pinocchio=5.0.0
+  - katbeam=0.1.0
+  - eidos=1.1.0
+  - libcufft
+  - cuda-cudart
+  - ska-gridder-nifty-cuda=0.3.0
+  - tools21cm=2.0.2

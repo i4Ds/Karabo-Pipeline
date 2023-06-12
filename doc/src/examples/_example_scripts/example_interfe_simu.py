@@ -4,7 +4,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.util.FileHandle import FileHandle
+from karabo.util.file_handle import FileHandle
 
 # create a simple sky model with three point sources
 sky = SkyModel()
@@ -24,7 +24,9 @@ telescope = Telescope.get_OSKAR_Example_Telescope()
 # overwrite or set any of the implemented configuration values
 telescope.centre_longitude = 3
 
-simulation = InterferometerSimulation("./test_result.ms")
+# Create path
+fh = FileHandle("./test_result.ms")
+simulation = InterferometerSimulation(fh.path)
 
 # create new observational settings with most settings set to default
 # except the start frequency set to 1e6
@@ -34,5 +36,4 @@ observation = Observation(start_frequency_hz=1e6)
 simulation.run_simulation(telescope, sky, observation)
 
 # clean up
-fh = FileHandle()
 fh.clean_up()

@@ -76,7 +76,7 @@ visibilities_task_stream.html
 
 # Dask
 dask-worker-space
-*.vis
+**/dask_info.json
 
 # Karabo folder
 **/karabo_folder/**
@@ -88,11 +88,17 @@ config.yaml
 # Tests
 karabo/test/result/*
 karabo/test/data/*
+*.vis
 
 # Results
 result/*
 karabo/result/*
+karabo/examples/result/*
+karabo/examples/karabo/test/data/results/*
 
 # Vscode
 .vscode/*
 /.vs
+
+# Slurm logs
+**.out

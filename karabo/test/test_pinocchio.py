@@ -10,7 +10,6 @@ from karabo.simulation.telescope import Telescope
 
 
 class TestPinocchio(unittest.TestCase):
-
     RESULT_FOLDER = "./result"
 
     @classmethod
@@ -50,7 +49,6 @@ class TestPinocchio(unittest.TestCase):
 
         visibility = simulation.run_simulation(telescope, sky, observation)
 
-        visibility.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/pinocchiotest/vis.ms")
         cellsize = 0.003
         boxsize = 2048
         imager = Imager(visibility, imaging_npixel=boxsize, imaging_cellsize=cellsize)
