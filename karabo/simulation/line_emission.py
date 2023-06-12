@@ -393,7 +393,7 @@ def karabo_reconstruction(
             "Creation of a pdf with scatter plot and reconstructed image to ",
             str(outfile),
         )
-        plot_scatter_recon(sky, dirty_image, outfile, header)
+        plot_scatter_recon(sky, dirty_image, outfile, header, cut=cut)
 
     if mosaic_pntg_file is not None:
         print(
