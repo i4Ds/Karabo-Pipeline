@@ -359,6 +359,9 @@ class InterferometerSimulation:
             # Define delayed objects
             delayed_results = []
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
+            if len(array_sky_delayed) > 1:
+                print("WARNING: Sky model is split into multiple chunks. "
+                      "Recombining the sky chunks later.")
 
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
@@ -385,9 +388,11 @@ class InterferometerSimulation:
                 List[OskarSettingsTreeType],
                 compute(*delayed_results, scheduler="distributed"),
             )
-            # TODO combine visibilities is not done yet.
-            # currently it is a list of oskar-settings-tree.
-            return results
+            # Extract visibilities
+            visibilities = [x["interferometer"]["vis_filename"] for x in results]
+            if len(visibilities) > 1:
+                Visibility.combine_vis(visibilities, self.ms_file_path, group_by='sky_chunks', combine_func=np.sum)
+            return Visibility(visibilities[0], self.ms_file_path)
 
         # Run the simulation on the local machine
         else:

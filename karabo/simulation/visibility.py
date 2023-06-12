@@ -8,6 +8,7 @@ from typing import List, Optional
 import numpy as np
 import oskar
 from numpy.typing import NDArray
+from typing import Callable
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.file_handle import FileHandle
@@ -162,6 +163,7 @@ class Visibility(KaraboResource):
         visiblity_files: List[str],
         combined_ms_filepath: Optional[str] = None,
         group_by: str = "day",
+        combine_func: Callable = np.mean,
     ) -> None:
         print("Combining visibilities...")
         if combined_ms_filepath is None:
@@ -246,9 +248,9 @@ class Visibility(KaraboResource):
                 ms.write_coords(
                     start_row,
                     block.num_baselines,
-                    uuf.mean(axis=0),
-                    vvf.mean(axis=0),
-                    wwf.mean(axis=0),
+                    combine_func(uuf, axis=0),
+                    combine_func(vvf, axis=0),
+                    combine_func(wwf, axis=0),
                     exposure_sec,
                     interval_sec,
                     time_stamp,
