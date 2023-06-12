@@ -360,7 +360,7 @@ class InterferometerSimulation:
             delayed_results = []
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
             if len(array_sky_delayed) > 1:
-                print("WARNING: Sky model is split into multiple chunks. "
+                print(f"WARNING: Sky model is split into {len(array_sky_delayed)} chunks. "
                       "Recombining the sky chunks later.")
 
             # Define the function as delayed
