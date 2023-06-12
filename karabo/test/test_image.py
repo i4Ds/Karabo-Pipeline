@@ -1,35 +1,28 @@
 import os
+import tempfile
 
 import numpy as np
-import pytest
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
-from karabo.test import data_path
-
-
-# Test preparation moved to fixture
-@pytest.fixture(scope="session", autouse=True)
-def prepare_test_environment():
-    # make dir for result files
-    if not os.path.exists("result/"):
-        os.makedirs("result/")
+from karabo.test.test_base import TestObject
 
 
 # Test case
-def test_dirty_image():
-    vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+def test_dirty_image(test_objects: TestObject):
+    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
     imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
     dirty = imager.get_dirty_image()
-    dirty.write_to_file("result/dirty.fits", overwrite=True)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dirty.write_to_file(os.path.join(tmpdir, "dirty.fits"), overwrite=True)
     dirty.plot(title="Dirty Image")
 
 
-def test_dirty_image_resample():
-    vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+def test_dirty_image_resample(test_objects: TestObject):
+    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
     SHAPE = 2048
     imager = Imager(vis, imaging_npixel=SHAPE, imaging_cellsize=3.878509448876288e-05)
 
@@ -38,7 +31,8 @@ def test_dirty_image_resample():
 
     NEW_SHAPE = 512
     dirty.resample((NEW_SHAPE, NEW_SHAPE))
-    dirty.write_to_file("result/dirty_resample.fits", overwrite=True)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dirty.write_to_file(os.path.join(tmpdir, "dirty_resample.fits"), overwrite=True)
     dirty.plot(title="Dirty Image")
 
     assert dirty.data.shape[2] == NEW_SHAPE
@@ -56,8 +50,8 @@ def test_dirty_image_resample():
     assert np.sum(np.isnan(dirty.data)) == 0
 
 
-def test_cellsize_overwrite():
-    vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+def test_cellsize_overwrite(test_objects: TestObject):
+    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
     imager = Imager(
         vis,
         imaging_npixel=2048,
@@ -82,8 +76,8 @@ def test_cellsize_overwrite():
     assert cdelt_overwrite_cellsize_false == cdelt_overwrite_cellsize_true
 
 
-def test_cellsize_overwrite_false():
-    vis = Visibility.read_from_file(f"{data_path}/visibilities_gleam.ms")
+def test_cellsize_overwrite_false(test_objects: TestObject):
+    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
     imager = Imager(
         vis,
         imaging_npixel=2048,
@@ -142,8 +136,8 @@ def test_explore_sky():
 #     sky.save_to_file("result/imaging_sky.txt")
 
 
-def test_power_spectrum():
-    restored_image = Image(path=f"{data_path}/restored.fits")
+def test_power_spectrum(test_objects: TestObject):
+    restored_image = Image(path=test_objects.restored_fits)
     # restored_image.plot_power_spectrum(save_png=True)
     restored_image.get_cellsize()
     # restored_image.plot_histogram()

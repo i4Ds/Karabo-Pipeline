@@ -1,35 +1,20 @@
 import os
+import tempfile
 
 import numpy as np
-import pytest
+from numpy.typing import NDArray
 
 from karabo.data.external_data import ExampleHDF5Map
 from karabo.simulation.sky_model import Polarisation, SkyModel
-from karabo.test import data_path
 
 
-@pytest.fixture(scope="module")
-def setup_folder():
-    # make dir for result files
-    if not os.path.exists("result/"):
-        os.makedirs("result/")
-    yield
-
-
-def test_init():
+def test_init(sky_data_with_ids: NDArray[np.object_]):
     sky1 = SkyModel()
-    sky_data = np.array(
-        [
-            [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, "source1"],
-            [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, "source2"],
-            [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, "source3"],
-        ]
-    )
-    sky1.add_point_sources(sky_data)
-    sky2 = SkyModel(sky_data)
+    sky1.add_point_sources(sky_data_with_ids)
+    sky2 = SkyModel(sky_data_with_ids)
     # test if sources are inside now
-    assert sky_data.shape == sky1.sources.shape
-    assert sky_data.shape == sky2.sources.shape
+    assert sky_data_with_ids.shape == sky1.sources.shape
+    assert sky_data_with_ids.shape == sky2.sources.shape
 
 
 def test_not_full_array():
@@ -49,21 +34,14 @@ def test_plot_gleam():
     print(cartesian_sky)
 
 
-def test_get_cartesian():
+def test_get_cartesian(sky_data_with_ids: NDArray[np.object_]):
     sky1 = SkyModel()
-    sky_data = np.array(
-        [
-            [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0, "source1"],
-            [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45, "source2"],
-            [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10, "source3"],
-        ]
-    )
-    sky1.add_point_sources(sky_data)
+    sky1.add_point_sources(sky_data_with_ids)
     cart_sky = sky1.get_cartesian_sky()
     print(cart_sky)
 
 
-def test_filter_sky_model(setup_folder):
+def test_filter_sky_model():
     sky = SkyModel.get_GLEAM_Sky([76])
     phase_center = [250, -80]  # ra,dec
     filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
@@ -76,20 +54,15 @@ def test_filter_sky_model(setup_folder):
         ylim=(-81, -79),  # DEC-lim
         with_labels=True,
     )
-    filtered_sky.write_to_file("./result/filtered_sky.csv")
 
 
-def test_read_sky_model():
-    sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
-    phase_center = [250, -80]  # ra,dec
-    sky.explore_sky(
-        phase_center=phase_center,
-        figsize=(8, 6),
-        s=80,
-        xlim=(254, 246),  # RA-lim
-        ylim=(-81, -79),  # DEC-lim
-        with_labels=True,
-    )
+def test_read_write_sky_model(sky_data: NDArray[np.float64]):
+    sky = SkyModel(sky_data)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sky_path = os.path.join(tmpdir, "sky.csv")
+        sky.write_to_file(sky_path)
+        sky_loaded = sky.read_from_file(sky_path)
+        assert np.all(sky.sources == sky_loaded.sources)
 
 
 def test_read_healpix_map():
