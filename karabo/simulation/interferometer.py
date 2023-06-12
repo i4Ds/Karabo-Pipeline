@@ -20,7 +20,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import IntFloat, OskarSettingsTreeType, PrecisionType
-from karabo.util.dask import DaskHandler
+from karabo.util.dask import DaskHandler, get_number_of_nodes
 from karabo.util.file_handle import FileHandle
 from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
@@ -359,9 +359,18 @@ class InterferometerSimulation:
             # Define delayed objects
             delayed_results = []
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
+            if (len(array_sky_delayed) + len(observations)) < get_number_of_nodes():
+                print(f"WARNING: Less jobs than nodes. Rechunking the sky model...")
+                # Rechunk the dask array
+                dask_array = dask_array.rechunk(
+                    dask_array.shape[0] // get_number_of_nodes() + 1,
+                    -1) # type: ignore [dict-item] # noqa: E501
+
+                array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
+
             if len(array_sky_delayed) > 1:
                 print(f"WARNING: Sky model is split into {len(array_sky_delayed)} chunks. "
-                      "Recombining the sky chunks later.")
+                      "Recombining the measurement sets but not the .vis files.")
 
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
@@ -390,8 +399,11 @@ class InterferometerSimulation:
             )
             # Extract visibilities
             visibilities = [x["interferometer"]["oskar_vis_filename"] for x in results]
+            ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
             if len(visibilities) > 1:
                 self.ms_file_path = Visibility.combine_vis(visibilities, self.ms_file_path, group_by='sky_chunks', combine_func=np.sum, return_path=True)
+            else:
+                self.ms_file_path = ms_file_paths[0]
             return Visibility(visibilities[0], self.ms_file_path)
 
         # Run the simulation on the local machine

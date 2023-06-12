@@ -9,13 +9,13 @@ if __name__ == "__main__":
     print("Filtering sky model")
     sky = sky.filter_by_radius_euclidean_flat_approximation(
         0,
-        3,
+        2,
         phase_center[0],
         phase_center[1],
     )
     print("Reconstructing sky model")
     karabo_reconstruction(
-        "/scratch/snx3000/vtimmel/karabo_folder/test_recon2/", 
+        "/scratch/snx3000/vtimmel/karabo_folder/test_recon/", 
         sky=sky, 
         pdf_plot=True,
         cut=3,
