@@ -3,12 +3,11 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import numpy as np
 import oskar
 from numpy.typing import NDArray
-from typing import Callable
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util.file_handle import FileHandle
@@ -166,7 +165,7 @@ class Visibility(KaraboResource):
         combine_func: Callable = np.mean,
         return_path: bool = False,
     ) -> None:
-        print("Combining visibilities...")
+        print(f"Combining {len(visiblity_files)} visibilities...")
         if combined_ms_filepath is None:
             fh = FileHandle(suffix=".MS")
             combined_ms_filepath = fh.path
@@ -263,5 +262,88 @@ class Visibility(KaraboResource):
                     block.num_baselines,
                     out_vis_reshaped[t],
                 )
+        if return_path:
+            return combined_ms_filepath
+        
+    @staticmethod
+    def combine_vis_sky_chunks(
+        visibility_files: List[str],
+        combined_ms_filepath: Optional[str] = None,
+        return_path: bool = False,
+    ) -> None:
+        print(f"Combining {len(visibility_files)} visibilities...")
+        if combined_ms_filepath is None:
+            fh = FileHandle(suffix=".MS")
+            combined_ms_filepath = fh.path
+
+        # Initialize lists to store data
+        out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
+
+        # Loop over visibility files and read data
+        for vis_file in visibility_files:
+            (header, handle) = oskar.VisHeader.read(vis_file)
+            block = oskar.VisBlock.create_from_header(header)
+            for k in range(header.num_blocks):
+                block.read(header, handle, k)
+            out_vis.append(block.cross_correlations())
+            uui.append(block.baseline_uu_metres())
+            vvi.append(block.baseline_vv_metres())
+            wwi.append(block.baseline_ww_metres())
+            time_inc.append(header.time_inc_sec)
+            time_start.append(header.time_start_mjd_utc)
+            time_ave.append(header.get_time_average_sec())
+
+        # Combine visibility data
+        combined_vis = np.sum(out_vis, axis=0)
+        combined_uu = np.mean(uui, axis=0)
+        combined_vv = np.mean(vvi, axis=0)
+        combined_ww = np.mean(wwi, axis=0)
+        combined_time_start = np.min(time_start)
+        combined_time_inc = np.min(time_inc)
+        combined_time_ave = np.mean(time_ave)
+
+        print(f"Num channels: {block.num_channels}")
+        # Create a new measurement set
+        ms = oskar.MeasurementSet.create(
+            combined_ms_filepath,
+            block.num_stations,
+            block.num_channels,
+            block.num_pols,
+            header.freq_start_hz,
+            header.freq_inc_hz,
+        )
+        deg2rad = np.pi / 180
+        ms.set_phase_centre(
+            header.phase_centre_ra_deg * deg2rad, header.phase_centre_dec_deg * deg2rad
+        )
+
+        # Write combined visibility data
+        print("### Writing combined visibilities in ", combined_ms_filepath)
+
+        num_files = len(visibility_files)
+        for j in range(num_files):
+            num_times = out_vis[j].shape[0]
+            for t in range(num_times):
+                time_stamp = combined_time_inc * combined_time_start
+                exposure_sec = combined_time_ave
+                start_row = t * block.num_baselines
+                ms.write_coords(
+                    start_row,
+                    block.num_baselines,
+                    combined_uu[t],
+                    combined_vv[t],
+                    combined_ww[t],
+                    exposure_sec,
+                    combined_time_ave,
+                    time_stamp,
+                )
+                ms.write_vis(
+                    start_row,
+                    0,
+                    block.num_channels,
+                    block.num_baselines,
+                    combined_vis[t],
+                )
+
         if return_path:
             return combined_ms_filepath

@@ -400,7 +400,7 @@ class InterferometerSimulation:
             visibilities = [x["interferometer"]["oskar_vis_filename"] for x in results]
             ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
             if len(visibilities) > 1:
-                self.ms_file_path = Visibility.combine_vis(visibilities, self.ms_file_path, group_by='sky_chunks', combine_func=np.sum, return_path=True)
+                self.ms_file_path = Visibility.combine_vis_sky_chunks(visibilities, self.ms_file_path, return_path=True)
             else:
                 self.ms_file_path = ms_file_paths[0]
             return Visibility(visibilities[0], self.ms_file_path)
