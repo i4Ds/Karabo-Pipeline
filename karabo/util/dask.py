@@ -190,7 +190,6 @@ def get_local_dask_client(
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
-    print(f"Node name: {get_node_name()}")
     client = Client(
         LocalCluster(
             ip=get_node_name() if is_on_slurm_cluster() else None,
