@@ -359,8 +359,10 @@ class InterferometerSimulation:
             # Define delayed objects
             delayed_results = []
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
-            if (len(array_sky_delayed) + len(observations)) < get_number_of_nodes():
-                print(f"WARNING: Less jobs than nodes. Rechunking the sky model...")
+            if (len(array_sky_delayed) + len(observations) - 2) < get_number_of_nodes():
+                print(f"WARNING: Less jobs than nodes. Rechunking the sky model "
+                      "but performance gain will maybe be little. "
+                      "Try to use only one node")
                 # Rechunk the dask array
                 dask_array = dask_array.rechunk(
                     dask_array.shape[0] // get_number_of_nodes() + 1,
@@ -401,7 +403,7 @@ class InterferometerSimulation:
             visibilities = [x["interferometer"]["oskar_vis_filename"] for x in results]
             ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
             if len(visibilities) > 1:
-                self.ms_file_path = Visibility.combine_vis(visibilities, self.ms_file_path, group_by='sky_chunks', combine_func=np.sum, return_path=True)
+                self.ms_file_path = Visibility.combine_vis_sky_chunks(visibilities, self.ms_file_path, return_path=True)
             else:
                 self.ms_file_path = ms_file_paths[0]
             return Visibility(visibilities[0], self.ms_file_path)
