@@ -357,6 +357,7 @@ def karabo_reconstruction(
         enable_power_pattern=True,
         gauss_beam_fwhm_deg=gaussian_fwhm,
         gauss_ref_freq_hz=gaussian_ref_freq,
+        use_dask=False,
     )
     print("Setup observation parameters...")
     observation = Observation(
