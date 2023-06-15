@@ -162,9 +162,8 @@ class Visibility(KaraboResource):
         visiblity_files: List[str],
         combined_ms_filepath: Optional[str] = None,
         group_by: str = "day",
-        combine_func: Callable = np.mean,
         return_path: bool = False,
-    ) -> None:
+    ) -> Optional[str]:
         print(f"Combining {len(visiblity_files)} visibilities...")
         if combined_ms_filepath is None:
             fh = FileHandle(suffix=".MS")
@@ -248,9 +247,9 @@ class Visibility(KaraboResource):
                 ms.write_coords(
                     start_row,
                     block.num_baselines,
-                    combine_func(uuf, axis=0),
-                    combine_func(vvf, axis=0),
-                    combine_func(wwf, axis=0),
+                    np.mean(uuf, axis=0),
+                    np.mean(vvf, axis=0),
+                    np.mean(wwf, axis=0),
                     exposure_sec,
                     interval_sec,
                     time_stamp,
@@ -264,13 +263,15 @@ class Visibility(KaraboResource):
                 )
         if return_path:
             return combined_ms_filepath
+        else:
+            return None
 
     @staticmethod
     def combine_vis_sky_chunks(
         visibility_files: List[str],
         combined_ms_filepath: Optional[str] = None,
         return_path: bool = False,
-    ) -> None:
+    ) -> Optional[str]:
         print(f"Combining {len(visibility_files)} visibilities...")
         if combined_ms_filepath is None:
             fh = FileHandle(suffix=".MS")
@@ -347,3 +348,5 @@ class Visibility(KaraboResource):
 
         if return_path:
             return combined_ms_filepath
+        else:
+            return None

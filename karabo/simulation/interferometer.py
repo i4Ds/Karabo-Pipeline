@@ -20,7 +20,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import IntFloat, OskarSettingsTreeType, PrecisionType
-from karabo.util.dask import DaskHandler, get_number_of_nodes
+from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
 from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
@@ -302,7 +302,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: Observation,
         verbose: bool = False,
-    ) -> Union[Visibility, OskarSettingsTreeType]:
+    ) -> Visibility:
         """
         Run a single interferometer simulation with a given sky,
         telescope and observation settings.
@@ -362,8 +362,8 @@ class InterferometerSimulation:
 
             if len(array_sky_delayed) > 1:
                 print(
-                    f"WARNING: Sky model is split into {len(array_sky_delayed)} chunks. "
-                    "Recombining the measurement sets but not the .vis files."
+                    f"WARNING: Sky model is split into {len(array_sky_delayed)} " 
+                    "chunks. Recombining the measurement sets but not the .vis files."
                 )
 
             # Define the function as delayed
