@@ -361,6 +361,7 @@ def karabo_reconstruction(
         enable_power_pattern=True,
         gauss_beam_fwhm_deg=gaussian_fwhm,
         gauss_ref_freq_hz=gaussian_ref_freq,
+        use_dask=False,
     )
     print("Setup observation parameters...")
     observation = Observation(
@@ -632,3 +633,25 @@ def simple_gaussian_beam_correction(
     )
 
     return dirty_image_corrected, header
+
+
+if __name__ == "__main__":
+    outpath = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
+        "Line_emission_pointing_2"
+    )
+    catalog_path = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/Flux_calculation/"
+        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
+    )
+    ra = 20
+    dec = -30
+    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
+        catalog_path, ra, dec
+    )
+    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
+        outpath, sky_pointing, z_obs_pointing
+    )
+    plot_scatter_recon(
+        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
+    )
