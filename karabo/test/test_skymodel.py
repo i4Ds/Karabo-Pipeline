@@ -130,4 +130,4 @@ class TestSkyModel(unittest.TestCase):
         sky = SkyModel(sources)
         assert isinstance(sky.sources, xr.DataArray)
         assert sky.num_sources > 0
-        assert sky.to_np_array().shape == (sky.num_sources, 13)  # 13 = 12 + 1 (name)
+        assert sky.to_np_array(with_obj_ids=True).shape == (sky.num_sources, 13)
