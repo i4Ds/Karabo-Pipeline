@@ -264,7 +264,7 @@ class Visibility(KaraboResource):
                 )
         if return_path:
             return combined_ms_filepath
-        
+
     @staticmethod
     def combine_vis_sky_chunks(
         visibility_files: List[str],

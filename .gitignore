@@ -106,3 +106,4 @@ karabo/examples/karabo/test/data/results/*
 **.out
 
 
+.experiment/*

@@ -1,6 +1,5 @@
-from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.line_emission import karabo_reconstruction
-
+from karabo.simulation.sky_model import SkyModel
 
 if __name__ == "__main__":
     print("Loading sky model")
@@ -15,8 +14,8 @@ if __name__ == "__main__":
     )
     print("Reconstructing sky model")
     karabo_reconstruction(
-        "/scratch/snx3000/vtimmel/karabo_folder/test_recon/", 
-        sky=sky, 
+        "/scratch/snx3000/vtimmel/karabo_folder/test_recon/",
+        sky=sky,
         pdf_plot=True,
         cut=3,
     )
