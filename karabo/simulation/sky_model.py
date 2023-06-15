@@ -303,12 +303,16 @@ class SkyModel:
             sds, sdd = self._sources_dim_sources, self._sources_dim_data
             self._check_sources(sources=sources)
             sky_sources = self.to_sky_xarray(sources=sources)
+            if sky_sources.shape[1] > SkyModel.SOURCES_COLS:
+                sky_sources[:, : SkyModel.SOURCES_COLS] = sky_sources[
+                    :, : SkyModel.SOURCES_COLS
+                ].astype(self.precision)
             if self.sources is not None:
                 self.sources = xr.concat(
                     (self.sources, sky_sources), dim=self._sources_dim_sources
-                ).astype(self.precision)
+                )
             else:
-                self._sources = sky_sources.astype(self.precision)
+                self._sources = sky_sources
         except BaseException as e:  # rollback of dim-names if sth goes wrong
             self._sources_dim_sources, self._sources_dim_data = sds, sdd
             raise e

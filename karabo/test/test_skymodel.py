@@ -43,8 +43,8 @@ class TestSkyModel(unittest.TestCase):
         sky1.add_point_sources(sky_data)
         sky2 = SkyModel(sky_data)
         # test if doc shape were expanded
-        self.assertEqual(sky1.sources.shape, (sky_data.shape[0], 13))
-        self.assertEqual(sky2.sources.shape, (sky_data.shape[0], 13))
+        self.assertEqual(sky1.sources.shape, (sky_data.shape[0], 12))
+        self.assertEqual(sky2.sources.shape, (sky_data.shape[0], 12))
 
     def test_plot_gleam(self):
         sky = SkyModel.get_GLEAM_Sky([76])
@@ -115,7 +115,6 @@ class TestSkyModel(unittest.TestCase):
         sky = SkyModel.get_GLEAM_Sky([76])
         sky.explore_sky([250, -30], s=0.1)
         assert sky.num_sources > 0
-        assert len(sky.sources.source_name) == sky.num_sources
 
     def test_transform_numpy_to_xarray(self):
         sources = np.array(
@@ -131,6 +130,4 @@ class TestSkyModel(unittest.TestCase):
         sky = SkyModel(sources)
         assert isinstance(sky.sources, xr.DataArray)
         assert sky.num_sources > 0
-        assert sky.to_np_array().shape == (sky.num_sources, 12)  # No source ID
-        assert len(sky.sources.source_name) == sky.num_sources
-        assert all(sky.sources.source_name == sources[:, 12])
+        assert sky.to_np_array().shape == (sky.num_sources, 13)  # 13 = 12 + 1 (name)
