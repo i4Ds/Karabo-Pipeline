@@ -26,7 +26,7 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
     )
 
     # Rechunk Sky model
-    sky.sources = sky.sources.chunk(np.ceil(len(sky.sources) / 2)) # type: ignore
+    sky.sources = sky.sources.chunk(np.ceil(len(sky.sources) / 2))  # type: ignore
     print("Size of sky sources: ", sky.sources.nbytes / 1e6, "MB")
 
     print("Setting up default wcs...")

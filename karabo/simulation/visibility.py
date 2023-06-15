@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 import numpy as np
 import oskar

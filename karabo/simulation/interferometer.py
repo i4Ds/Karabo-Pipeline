@@ -362,7 +362,7 @@ class InterferometerSimulation:
 
             if len(array_sky_delayed) > 1:
                 print(
-                    f"WARNING: Sky model is split into {len(array_sky_delayed)} " 
+                    f"WARNING: Sky model is split into {len(array_sky_delayed)} "
                     "chunks. Recombining the measurement sets but not the .vis files."
                 )
 
