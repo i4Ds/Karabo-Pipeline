@@ -1,6 +1,8 @@
 import time
 from typing import Optional, cast
 
+import numpy as np
+
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -19,10 +21,14 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
     sky = cast(
         SkyModel,
         sky.filter_by_radius_euclidean_flat_approximation(
-            0, 30, phase_center[0], phase_center[1]
+            0, 1, phase_center[0], phase_center[1]
         ),
     )
 
+    # Rechunk Sky model
+    sky.sources = sky.sources.chunk(
+        np.ceil(len(sky.sources) / 2 )
+        )
     print("Size of sky sources: ", sky.sources.nbytes / 1e6, "MB")  # type: ignore [union-attr] # noqa: E501
 
     print("Setting up default wcs...")
@@ -49,9 +55,10 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
     print("Running simulation...")
     interferometer_sim = InterferometerSimulation(
         channel_bandwidth_hz=1e6,
-        use_gpus=True,
+        folder_for_multiple_observation=dir_intermediate_files,
+        use_gpus=False,
         use_dask=True,
-        split_observation_by_channels=True,
+        split_observation_by_channels=False,
         n_split_channels="each",
     )
 
@@ -62,11 +69,13 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
     print(f"Client: {interferometer_sim.client}")
 
     start = time.time()
-    _ = interferometer_sim.run_simulation(
+    vis = interferometer_sim.run_simulation(
         askap_tel,
         sky,
         observation_settings,
     )
+
+    print(f"MS Vis is {vis.ms_file.path}")
 
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
@@ -83,8 +92,8 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
         file.flush()
 
     # Clean up
-    fh.remove_dir(dir_intermediate_files)
+    # fh.remove_dir(dir_intermediate_files)
 
 
 if __name__ == "__main__":
-    main(n_channels=1000, gb_ram_per_worker=None)
+    main(n_channels=10, gb_ram_per_worker=None)

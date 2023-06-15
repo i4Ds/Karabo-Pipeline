@@ -359,14 +359,6 @@ class InterferometerSimulation:
             # Define delayed objects
             delayed_results = []
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
-            if (len(array_sky_delayed) + len(observations)) < get_number_of_nodes():
-                print(f"WARNING: Less jobs than nodes. Rechunking the sky model...")
-                # Rechunk the dask array
-                dask_array = dask_array.rechunk(
-                    dask_array.shape[0] // get_number_of_nodes() + 1,
-                    -1) # type: ignore [dict-item] # noqa: E501
-
-                array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
 
             if len(array_sky_delayed) > 1:
                 print(f"WARNING: Sky model is split into {len(array_sky_delayed)} chunks. "
@@ -374,6 +366,13 @@ class InterferometerSimulation:
 
             # Define the function as delayed
             run_simu_delayed = delayed(self.__run_simulation_oskar)
+
+            # Calculate the number of jobs
+            n_jobs = len(observations) * len(array_sky_delayed)
+
+            print(f"Submitting {n_jobs} "
+                  "jobs to the cluster.")
+            
             for sky_ in array_sky_delayed:
                 for observation_params in observations:
                     # Create params
@@ -401,7 +400,7 @@ class InterferometerSimulation:
             visibilities = [x["interferometer"]["oskar_vis_filename"] for x in results]
             ms_file_paths = [x["interferometer"]["ms_filename"] for x in results]
             if len(visibilities) > 1:
-                self.ms_file_path = Visibility.combine_vis(visibilities, self.ms_file_path, group_by='sky_chunks', combine_func=np.sum, return_path=True)
+                self.ms_file_path = Visibility.combine_vis_sky_chunks(visibilities, self.ms_file_path, return_path=True)
             else:
                 self.ms_file_path = ms_file_paths[0]
             return Visibility(visibilities[0], self.ms_file_path)
