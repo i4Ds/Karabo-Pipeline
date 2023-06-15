@@ -21,13 +21,13 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
     sky = cast(
         SkyModel,
         sky.filter_by_radius_euclidean_flat_approximation(
-            0, 5, phase_center[0], phase_center[1]
+            0, 1, phase_center[0], phase_center[1]
         ),
     )
 
     # Rechunk Sky model
     sky.sources = sky.sources.chunk(
-        np.ceil(len(sky.sources) / 1 )
+        np.ceil(len(sky.sources) / 2 )
         )
     print("Size of sky sources: ", sky.sources.nbytes / 1e6, "MB")  # type: ignore [union-attr] # noqa: E501
 
@@ -69,11 +69,13 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
     print(f"Client: {interferometer_sim.client}")
 
     start = time.time()
-    _ = interferometer_sim.run_simulation(
+    vis = interferometer_sim.run_simulation(
         askap_tel,
         sky,
         observation_settings,
     )
+
+    print(f"MS Vis is {vis.ms_file.path}")
 
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
@@ -94,4 +96,4 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
 
 
 if __name__ == "__main__":
-    main(n_channels=1000, gb_ram_per_worker=None)
+    main(n_channels=10, gb_ram_per_worker=None)
