@@ -576,7 +576,6 @@ def line_emission_pointing(
     # Run the simulation on the das cluster
     if client is not None:
         # Define the function as delayed
-        print("Defin delayed function")
         run_simu_delayed = delayed(run_one_channel_simulation)
 
         # Calculate the number of jobs
@@ -610,10 +609,12 @@ def line_emission_pointing(
             )
             delayed_results.append(delayed_)
 
-        print("comopute results")
+        print("compute results")
         result = compute(*delayed_results, scheduler="distributed")
-        dirty_images = result[:, 0]
-        header = result[0, 1]
+        print(result)
+        dirty_images = [x[0] for x in result]
+        headers = [x[1] for x in result]
+        header = headers[0]
 
     else:
         print("Not parallelizing")
