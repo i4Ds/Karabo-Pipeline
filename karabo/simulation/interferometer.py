@@ -331,7 +331,9 @@ class InterferometerSimulation:
             dask_array = array_sky.data
             oskar_settings_tree = observation.get_OSKAR_settings_tree()
             if self.split_observation_by_channels:
-                # TODO: Currently wrong, no combination by channels.
+                raise NotImplementedError(
+                    "Split by channels is probably implemented wrong "
+                )
                 if verbose:
                     print(
                         "Splitting simulation by channels with the following parameter:"
@@ -361,6 +363,10 @@ class InterferometerSimulation:
             array_sky_delayed = [x[0] for x in dask_array.to_delayed()]
 
             if len(array_sky_delayed) > 1:
+                raise NotImplementedError(
+                    "No solution currently exist to recombine the .vis files "
+                    " when splitting the sky model into chunks."
+                )
                 print(
                     f"WARNING: Sky model is split into {len(array_sky_delayed)} "
                     "chunks. Recombining the measurement sets but not the .vis files."
@@ -372,7 +378,7 @@ class InterferometerSimulation:
             # Calculate the number of jobs
             n_jobs = len(observations) * len(array_sky_delayed)
 
-            print(f"Submitting {n_jobs} " "jobs to the cluster.")
+            print(f"Submitting {n_jobs} jobs to the cluster.")
 
             for sky_ in array_sky_delayed:
                 for observation_params in observations:
