@@ -14,6 +14,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 # from dask.delayed import Delayed
+from dask import compute, delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -412,6 +413,56 @@ def karabo_reconstruction(
     return dirty_image, header
 
 
+def run_one_channel_simulation(
+    path_outfile,
+    sky,
+    bin_idx,
+    z_obs,
+    z_min,
+    z_max,
+    freq_min,
+    freq_bin,
+    ra_deg,
+    dec_deg,
+    beam_type,
+    gaussian_fwhm,
+    gaussian_ref_freq,
+    start_time,
+    obs_length,
+    cut,
+    img_size,
+    circle,
+    rascil,
+):
+    print("Channel " + str(bin_idx) + " is being processed...")
+
+    print("Extracting the corresponding frequency slice from the sky model...")
+    sky_bin = sky_slice(sky, z_obs, z_min, z_max)
+
+    print("Starting simulation...")
+    start_freq = freq_min + freq_bin / 2
+    dirty_image, header = karabo_reconstruction(
+        path_outfile + os.path.sep + "slice_" + str(bin_idx),
+        sky=sky_bin,
+        ra_deg=ra_deg,
+        dec_deg=dec_deg,
+        start_freq=start_freq,
+        freq_bin=freq_bin,
+        beam_type=beam_type,
+        gaussian_fwhm=gaussian_fwhm,
+        gaussian_ref_freq=gaussian_ref_freq,
+        start_time=start_time,
+        obs_length=obs_length,
+        cut=cut,
+        img_size=img_size,
+        channel_num=1,
+        circle=circle,
+        rascil=rascil,
+    )
+
+    return dirty_image, header
+
+
 def line_emission_pointing(
     path_outfile: str,
     sky: SkyModel,
@@ -519,36 +570,70 @@ def line_emission_pointing(
     dirty_images = []
     header = None
 
-    for bin_idx in range(num_bins):
-        print("Channel " + str(bin_idx) + " is being processed...")
+    # Run the simulation on the das cluster
+    if client is not None:
+        # Define the function as delayed
+        run_simu_delayed = delayed(run_one_channel_simulation)
 
-        print("Extracting the corresponding frequency slice from the sky model...")
-        sky_bin = sky_slice(
-            sky, z_obs, redshift_channel[bin_idx], redshift_channel[bin_idx + 1]
+        # Calculate the number of jobs
+        n_jobs = num_bins
+        print(f"Submitting {n_jobs} jobs to the cluster.")
+
+        delayed_results = []
+
+        for bin_idx in range(num_bins):
+            # Submit the jobs
+            delayed_ = run_simu_delayed(
+                path_outfile,
+                sky,
+                bin_idx,
+                z_obs,
+                redshift_channel[bin_idx],
+                redshift_channel[bin_idx + 1],
+                freq_channel[bin_idx],
+                freq_bin,
+                ra_deg,
+                dec_deg,
+                beam_type,
+                gaussian_fwhm,
+                gaussian_ref_freq,
+                start_time,
+                obs_length,
+                cut,
+                img_size,
+                circle,
+                rascil,
+            )
+            delayed_results.append(delayed_)
+        print(
+            "COMPUTE !!!!!!!!!!!!", compute(*delayed_results, scheduler="distributed")
         )
 
-        print("Starting simulation...")
-        start_freq = freq_channel[bin_idx] + freq_bin / 2
-        dirty_image, header = karabo_reconstruction(
-            path_outfile + os.path.sep + "slice_" + str(bin_idx),
-            sky=sky_bin,
-            ra_deg=ra_deg,
-            dec_deg=dec_deg,
-            start_freq=start_freq,
-            freq_bin=freq_bin,
-            beam_type=beam_type,
-            gaussian_fwhm=gaussian_fwhm,
-            gaussian_ref_freq=gaussian_ref_freq,
-            start_time=start_time,
-            obs_length=obs_length,
-            cut=cut,
-            img_size=img_size,
-            channel_num=1,
-            circle=circle,
-            rascil=rascil,
-        )
+    else:
+        for bin_idx in range(num_bins):
+            dirty_image, header = run_one_channel_simulation(
+                path_outfile,
+                sky,
+                bin_idx,
+                z_obs,
+                redshift_channel[bin_idx],
+                redshift_channel[bin_idx + 1],
+                freq_channel[bin_idx],
+                freq_bin,
+                ra_deg,
+                dec_deg,
+                beam_type,
+                gaussian_fwhm,
+                gaussian_ref_freq,
+                start_time,
+                obs_length,
+                cut,
+                img_size,
+                circle,
+                rascil,
+            )
 
-        dirty_images.append(dirty_image)
+            dirty_images.append(dirty_image)
 
     dirty_image = cast(NDArray[np.float_], sum(dirty_images))
 
@@ -654,25 +739,3 @@ def simple_gaussian_beam_correction(
     )
 
     return dirty_image_corrected, header
-
-
-if __name__ == "__main__":
-    outpath = (
-        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
-        "Line_emission_pointing_2"
-    )
-    catalog_path = (
-        "/home/jennifer/Documents/SKAHIIM_Pipeline/Flux_calculation/"
-        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
-    )
-    ra = 20
-    dec = -30
-    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
-        catalog_path, ra, dec
-    )
-    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-        outpath, sky_pointing, z_obs_pointing
-    )
-    plot_scatter_recon(
-        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
-    )
