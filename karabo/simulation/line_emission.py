@@ -12,6 +12,9 @@ from astropy.constants import c
 from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
 from astropy.wcs import WCS
+
+# from dask.delayed import Delayed
+from dask.distributed import Client
 from numpy.typing import NDArray
 
 from karabo.imaging.imager import Imager
@@ -21,6 +24,8 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import IntFloat
+from karabo.util.dask import DaskHandler
+from karabo.warning import KaraboWarning
 
 
 def polar_corrdinates_grid(
@@ -424,6 +429,8 @@ def line_emission_pointing(
     img_size: int = 4096,
     circle: bool = True,
     rascil: bool = True,
+    use_dask: Optional[bool] = None,
+    client: Optional[Client] = None,
 ) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, float]:
     """
     Simulating line emission for one pointing.
@@ -492,6 +499,20 @@ def line_emission_pointing(
         shutil.rmtree(path_outfile)
 
     os.makedirs(path_outfile)
+
+    if use_dask is None and not client:
+        print(
+            KaraboWarning(
+                "Parameter 'use_dask' is None! Using function "
+                "'karabo.util.dask.DaskHandler.should_dask_be_used()' "
+                "to overwrite parameter 'use_dask' to "
+                f"{DaskHandler.should_dask_be_used()}."
+            )
+        )
+        use_dask = DaskHandler.should_dask_be_used()
+
+    if use_dask and not client:
+        client = DaskHandler.get_dask_client()
 
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
 
@@ -633,3 +654,25 @@ def simple_gaussian_beam_correction(
     )
 
     return dirty_image_corrected, header
+
+
+if __name__ == "__main__":
+    outpath = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
+        "Line_emission_pointing_2"
+    )
+    catalog_path = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/Flux_calculation/"
+        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
+    )
+    ra = 20
+    dec = -30
+    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
+        catalog_path, ra, dec
+    )
+    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
+        outpath, sky_pointing, z_obs_pointing
+    )
+    plot_scatter_recon(
+        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
+    )
