@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, Union, cast
 
-# import h5py
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
@@ -14,7 +14,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 # from dask.delayed import Delayed
-# from dask import compute, delayed
+from dask import compute, delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -572,7 +572,7 @@ def line_emission_pointing(
 
     dirty_images = []
     header = None
-    """
+
     # Run the simulation on the das cluster
     if client is not None:
         # Define the function as delayed
@@ -612,7 +612,8 @@ def line_emission_pointing(
 
         print("comopute results")
         result = compute(*delayed_results, scheduler="distributed")
-        print("COMPUTE !!!!!!!!!!!!", result)
+        dirty_images = result[:, 0]
+        header = result[0, 1]
 
     else:
         print("Not parallelizing")
@@ -656,8 +657,7 @@ def line_emission_pointing(
     dataset_dirty.attrs["Units"] = "Jy"
     f.create_dataset("Observed Redshift Channel Center", data=z_channel_mid)
     f.create_dataset("Observed Redshift Bin Size", data=z_bin)
-    """
-    dirty_image = 0
+
     return dirty_image, dirty_images, header, freq_mid
 
 
