@@ -563,6 +563,7 @@ def line_emission_pointing(
         use_dask = DaskHandler.should_dask_be_used()
 
     if use_dask and not client:
+        "Print: Get dask client"
         client = DaskHandler.get_dask_client()
 
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
@@ -573,6 +574,7 @@ def line_emission_pointing(
     # Run the simulation on the das cluster
     if client is not None:
         # Define the function as delayed
+        print("Defin delayed function")
         run_simu_delayed = delayed(run_one_channel_simulation)
 
         # Calculate the number of jobs
@@ -605,11 +607,13 @@ def line_emission_pointing(
                 rascil,
             )
             delayed_results.append(delayed_)
-        print(
-            "COMPUTE !!!!!!!!!!!!", compute(*delayed_results, scheduler="distributed")
-        )
+
+        print("comopute results")
+        result = compute(*delayed_results, scheduler="distributed")
+        print("COMPUTE !!!!!!!!!!!!", result)
 
     else:
+        print("Not parallelizing")
         for bin_idx in range(num_bins):
             dirty_image, header = run_one_channel_simulation(
                 path_outfile,
