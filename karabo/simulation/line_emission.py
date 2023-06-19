@@ -26,7 +26,6 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import IntFloat
 from karabo.util.dask import DaskHandler
-from karabo.warning import KaraboWarning
 
 
 def polar_corrdinates_grid(
@@ -293,7 +292,6 @@ def freq_channels(
     freq_bin = freq_channel[0] - freq_channel[1]
     print("The frequency channel starts at:", freq_start, "Hz")
     print("The bin size of the freq channel is:", freq_bin, "Hz")
-    print("The freq channel: ", freq_channel)
 
     return redshift_channel, freq_channel, freq_bin, freq_mid
 
@@ -317,6 +315,7 @@ def karabo_reconstruction(
     pdf_plot: bool = False,
     circle: bool = False,
     rascil: bool = True,
+    verbose: bool = False,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Performs a sky reconstruction for our test sky.
@@ -347,15 +346,18 @@ def karabo_reconstruction(
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
                    used.
+    :param verbose: If True you get more print statements.
     :return: Reconstructed sky of one pointing of size cut.
     """
-    print("Create Sky...")
+    if verbose:
+        print("Create Sky...")
     if sky is None:
         sky = SkyModel.sky_test()
 
     telescope = Telescope.get_MEERKAT_Telescope()
 
-    print("Sky Simulation...")
+    if verbose:
+        print("Sky Simulation...")
     simulation = InterferometerSimulation(
         vis_path=outfile + ".vis",
         channel_bandwidth_hz=1.0e7,
@@ -369,7 +371,8 @@ def karabo_reconstruction(
         gauss_ref_freq_hz=gaussian_ref_freq,
         use_dask=False,
     )
-    print("Setup observation parameters...")
+    if verbose:
+        print("Setup observation parameters...")
     observation = Observation(
         phase_centre_ra_deg=ra_deg,
         phase_centre_dec_deg=dec_deg,
@@ -380,34 +383,40 @@ def karabo_reconstruction(
         frequency_increment_hz=freq_bin,
         number_of_channels=channel_num,
     )
-    print("Calculate visibilites...")
+    if verbose:
+        print("Calculate visibilites...")
     visibility = simulation.run_simulation(telescope, sky, observation)
 
     if rascil:
-        print("Sky reconstruction with Rascil...")
+        if verbose:
+            print("Sky reconstruction with Rascil...")
         dirty_image = rascil_imager(outfile, visibility, cut, img_size)
     else:
-        print("Sky reconstruction with the Oskar Imager")
+        if verbose:
+            print("Sky reconstruction with the Oskar Imager")
         dirty_image = oskar_imager(outfile, ra_deg, dec_deg, cut, img_size)
 
     if circle:
-        print("Cutout a circle from image...")
+        if verbose:
+            print("Cutout a circle from image...")
         dirty_image = circle_image(dirty_image)
 
     header = header_for_mosaic(img_size, ra_deg, dec_deg, cut)
     if pdf_plot:
-        print(
-            "Creation of a pdf with scatter plot and reconstructed image to ",
-            str(outfile),
-        )
+        if verbose:
+            print(
+                "Creation of a pdf with scatter plot and reconstructed image to ",
+                str(outfile),
+            )
         plot_scatter_recon(sky, dirty_image, outfile, header)
 
     if mosaic_pntg_file is not None:
-        print(
-            "Write the reconstructed image to a fits file which can be used for "
-            "coaddition.",
-            mosaic_pntg_file,
-        )
+        if verbose:
+            print(
+                "Write the reconstructed image to a fits file which can be used for "
+                "coaddition.",
+                mosaic_pntg_file,
+            )
         fits.writeto(mosaic_pntg_file + ".fits", dirty_image, header, overwrite=True)
 
     return dirty_image, header
@@ -433,6 +442,7 @@ def run_one_channel_simulation(
     img_size: int,
     circle: bool,
     rascil: bool,
+    verbose: bool = False,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Run simulation for one pointing and one channel
@@ -462,15 +472,18 @@ def run_one_channel_simulation(
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
                    used.
+    :param verbose: If True you get more print statements.
     :return: Reconstruction of one bin slice of the sky and its header.
     """
+    if verbose:
+        print("Channel " + str(bin_idx) + " is being processed...")
 
-    print("Channel " + str(bin_idx) + " is being processed...")
-
-    print("Extracting the corresponding frequency slice from the sky model...")
+    if verbose:
+        print("Extracting the corresponding frequency slice from the sky model...")
     sky_bin = sky_slice(sky, z_obs, z_min, z_max)
 
-    print("Starting simulation...")
+    if verbose:
+        print("Starting simulation...")
     start_freq = freq_min + freq_bin / 2
     dirty_image, header = karabo_reconstruction(
         path_outfile + os.path.sep + "slice_" + str(bin_idx),
@@ -489,6 +502,7 @@ def run_one_channel_simulation(
         channel_num=1,
         circle=circle,
         rascil=rascil,
+        verbose=verbose,
     )
 
     return dirty_image, header
@@ -511,8 +525,8 @@ def line_emission_pointing(
     img_size: int = 4096,
     circle: bool = True,
     rascil: bool = True,
-    use_dask: Optional[bool] = None,
     client: Optional[Client] = None,
+    verbose: bool = False,
 ) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, float]:
     """
     Simulating line emission for one pointing.
@@ -539,8 +553,8 @@ def line_emission_pointing(
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
                    used.
-    :param use_dask: If True, code is parallelized with dask.
     :param client: Setting a dask client is optional.
+    :param verbose: If True you get more print statements.
     :return: Total line emission reconstruction, 3D line emission reconstruction,
              Header of reconstruction and mean frequency.
 
@@ -584,22 +598,9 @@ def line_emission_pointing(
 
     os.makedirs(path_outfile)
 
-    if use_dask is None and not client:
-        print(
-            KaraboWarning(
-                "Parameter 'use_dask' is None! Using function "
-                "'karabo.util.dask.DaskHandler.should_dask_be_used()' "
-                "to overwrite parameter 'use_dask' to "
-                f"{DaskHandler.should_dask_be_used()}."
-            )
-        )
-        use_dask = DaskHandler.should_dask_be_used()
-
-    if use_dask and not client:
+    if not client:
         "Print: Get dask client"
         client = DaskHandler.get_dask_client()
-
-    print("After Get Dask")
 
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
 
@@ -639,42 +640,14 @@ def line_emission_pointing(
                 img_size,
                 circle,
                 rascil,
+                verbose,
             )
             delayed_results.append(delayed_)
 
-        print("compute results")
         result = compute(*delayed_results, scheduler="distributed")
         dirty_images = [x[0] for x in result]
         headers = [x[1] for x in result]
         header = headers[0]
-        print(dirty_images)
-        print(header)
-
-    else:
-        for bin_idx in range(num_bins):
-            dirty_image, header = run_one_channel_simulation(
-                path_outfile,
-                sky,
-                bin_idx,
-                z_obs,
-                redshift_channel[bin_idx],
-                redshift_channel[bin_idx + 1],
-                freq_channel[bin_idx],
-                freq_bin,
-                ra_deg,
-                dec_deg,
-                beam_type,
-                gaussian_fwhm,
-                gaussian_ref_freq,
-                start_time,
-                obs_length,
-                cut,
-                img_size,
-                circle,
-                rascil,
-            )
-
-            dirty_images.append(dirty_image)
 
     dirty_image = cast(NDArray[np.float_], sum(dirty_images))
 
