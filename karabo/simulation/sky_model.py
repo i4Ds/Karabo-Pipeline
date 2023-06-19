@@ -1064,7 +1064,7 @@ class SkyModel:
                 )
 
         if load_as == "numpy_array":
-            dask_array = np.stack(data_arrays, axis=1)
+            data_arrays = [x.compute() for x in data_arrays]
         sky = xr.concat(data_arrays, dim=XARRAY_DIM_1_DEFAULT)
         sky = sky.T
         sky = sky.chunk(
