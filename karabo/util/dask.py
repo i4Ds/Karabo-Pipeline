@@ -194,6 +194,7 @@ def get_local_dask_client(
         LocalCluster(
             ip=get_node_name() if is_on_slurm_cluster() else None,
             n_workers=n_workers,
+            threads_per_worker=1,
         )
     )
     return client
