@@ -56,3 +56,6 @@ from karabo.util.dask import DaskHandler
 # Modify the static variables
 DaskHandler.use_dask = False
 ```
+
+### Dask Dashboard
+The link for the Dask Dashboard is written into a .txt file called `karabo-dask-dashboard.txt`. This file is located in the same directory as where the run was started. This URL can then be pasted into a browser to access the Dask Dashboard. If you run Karabo on a VM without access to a browser and internet, you can use `port forwarding` to access the Dask Dashboard from your local machine. In `VSCODE`, this can be done directly when using the "PORTS" tab; just paste the IP address and port number from the .txt file into the Port column and click on "Open in Browser" in the Local Adress column.

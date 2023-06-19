@@ -60,7 +60,6 @@ class TestOskarLongObservation(unittest.TestCase):
         combined_ms_filepath = os.path.join(vis_path, "combined_vis.ms")
         xcstfile_path = os.path.join(vis_path, "cst_like_beam_port_1.txt")
         ycstfile_path = os.path.join(vis_path, "cst_like_beam_port_2.txt")
-        sky = SkyModel()
         sky_data = np.array(
             [
                 [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
@@ -68,7 +67,7 @@ class TestOskarLongObservation(unittest.TestCase):
                 [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 0, 0, -10],
             ]
         )
-        sky.add_point_sources(sky_data)
+        sky = SkyModel(sky_data)
         telescope = Telescope.get_MEERKAT_Telescope()
         observation_long = ObservationLong(
             mode="Tracking",

@@ -88,6 +88,8 @@ config.yaml
 # Tests
 karabo/test/result/*
 karabo/test/data/*
+karabo/data/**
+example_telescope.png
 *.vis
 
 # Results
@@ -100,5 +102,11 @@ karabo/examples/karabo/test/data/results/*
 .vscode/*
 /.vs
 
+# Formating 
+.mypy_cache/*
 # Slurm logs
 **.out
+
+# Other (playground, experiment, ..)
+.experiment/*
+

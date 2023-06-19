@@ -452,8 +452,8 @@ class SourceDetectionEvaluation:
         nbins: int = 10,
         filename: Optional[str] = None,
     ) -> None:
-        flux_in = self.sky_array_gt_assigned[:, 2].astype(np.float64)
-        flux_out = self.detected_sources_array_pred_assigned[:, 5].astype(np.float64)
+        flux_in = self.sky_array_gt_assigned[:, 2].to_numpy()
+        flux_out = self.detected_sources_array_pred_assigned[:, 5]
 
         flux_in = flux_in[flux_in > 0.0]
         flux_out = flux_out[flux_out > 0.0]

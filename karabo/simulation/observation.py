@@ -1,8 +1,11 @@
+import copy
 from datetime import datetime, timedelta
-from typing import Dict, List, Union
+from typing import List, Union
+
+import numpy as np
 
 from karabo.error import KaraboError
-from karabo.util._types import IntFloat
+from karabo.util._types import IntFloat, OskarSettingsTreeType
 
 
 class Observation:
@@ -80,7 +83,7 @@ class Observation:
             hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds
         )
 
-    def get_OSKAR_settings_tree(self) -> Dict[str, Dict[str, str]]:
+    def get_OSKAR_settings_tree(self) -> OskarSettingsTreeType:
         """
         Get the settings of this observation as an oskar setting tree.
         This function returns a python dictionary formatted
@@ -107,6 +110,49 @@ class Observation:
             },
         }
         return settings
+
+    @staticmethod
+    def extract_multiple_observations_from_settings(
+        settings: OskarSettingsTreeType,
+        number_of_observations: int,
+        channel_bandwidth_hz: IntFloat,
+    ) -> List[OskarSettingsTreeType]:
+        """
+        Extracts the settings of multiple observations from a settings dictionary.
+        This function returns a list of dictionaries containing the settings
+        of each observation. The start_frequency and number_of_channels
+        need to be updated for each observation.
+        """
+        settings_list: List[OskarSettingsTreeType] = []
+
+        # Extract some settings from the dictionary
+        n_channels = int(settings["observation"]["num_channels"])
+        start_frequency_hz = float(settings["observation"]["start_frequency_hz"])
+
+        # Calculate n_channels per split
+        n_channels_per_split = int(
+            np.ceil(n_channels / number_of_observations)
+        )  # round up
+
+        # Calculate the observed frequency
+        observed_frequency_hz = n_channels * channel_bandwidth_hz
+
+        # Create a list of settings for each observation
+        current_start_frequency_hz = start_frequency_hz
+
+        while observed_frequency_hz > 0:
+            current_settings = copy.deepcopy(settings)
+            current_settings["observation"]["start_frequency_hz"] = str(
+                current_start_frequency_hz
+            )
+            current_settings["observation"]["num_channels"] = str(n_channels_per_split)
+            settings_list.append(current_settings)
+            current_start_frequency_hz += (
+                n_channels_per_split * channel_bandwidth_hz + 1
+            )
+            observed_frequency_hz -= n_channels_per_split * channel_bandwidth_hz
+
+        return settings_list
 
     def __strfdelta(
         self,
