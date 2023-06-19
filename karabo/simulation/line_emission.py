@@ -14,7 +14,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 # from dask.delayed import Delayed
-from dask import compute, delayed
+from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -225,7 +225,7 @@ def plot_scatter_recon(
 
 
 def sky_slice(
-    sky: SkyModel, z_obs: NDArray[np.float_], z_min: float, z_max: float
+    sky: SkyModel, z_obs: NDArray[np.float_], z_min: np.float_, z_max: np.float_
 ) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
@@ -414,26 +414,57 @@ def karabo_reconstruction(
 
 
 def run_one_channel_simulation(
-    path_outfile,
-    sky,
-    bin_idx,
-    z_obs,
-    z_min,
-    z_max,
-    freq_min,
-    freq_bin,
-    ra_deg,
-    dec_deg,
-    beam_type,
-    gaussian_fwhm,
-    gaussian_ref_freq,
-    start_time,
-    obs_length,
-    cut,
-    img_size,
-    circle,
-    rascil,
-):
+    path_outfile: str,
+    sky: SkyModel,
+    bin_idx: int,
+    z_obs: NDArray[np.float_],
+    z_min: np.float_,
+    z_max: np.float_,
+    freq_min: float,
+    freq_bin: float,
+    ra_deg: IntFloat,
+    dec_deg: IntFloat,
+    beam_type: StationTypeType,
+    gaussian_fwhm: IntFloat,
+    gaussian_ref_freq: IntFloat,
+    start_time: Union[datetime, str],
+    obs_length: timedelta,
+    cut: IntFloat,
+    img_size: int,
+    circle: bool,
+    rascil: bool,
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
+    """
+    Run simulation for one pointing and one channel
+
+    :param path_outfile: Pathname of the output file and folder.
+    :param sky: Sky model which is used for simulating line emission. If None, a test
+                sky (out of equally spaced sources) is used.
+    :param bin_idx: Index of the channel which is currently being simulated.
+    :param z_obs: Redshift information of the sky sources.
+    :param z_min: Smallest redshift in this bin.
+    :param z_max: Largest redshift in this bin.
+    :param freq_min: Smallest frequency in this bin.
+    :param freq_bin: Size of the sky frequency bin which is simulated.
+    :param ra_deg: Phase center right ascension.
+    :param dec_deg: Phase center declination.
+    :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
+                      "Aperture Array".
+    :param gaussian_fwhm: If the primary beam is gaussian, this is its FWHM. In power
+                          pattern. Units = degrees.
+    :param gaussian_ref_freq: If you choose "Gaussian beam" as station type you need
+                              specify the reference frequency of the reference
+                              frequency of the full-width half maximum here.
+    :param start_time: Observation start time.
+    :param obs_length: Observation length (time).
+    :param cut: Size of the reconstructed image.
+    :param img_size: The pixel size of the reconstructed image.
+    :param circle: If set to True, the pointing has a round shape of size cut.
+    :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
+                   used.
+    :return: Reconstruction of one bin slice of the sky and its header.
+    """
+
     print("Channel " + str(bin_idx) + " is being processed...")
 
     print("Extracting the corresponding frequency slice from the sky model...")
@@ -508,6 +539,8 @@ def line_emission_pointing(
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
                    used.
+    :param use_dask: If True, code is parallelized with dask.
+    :param client: Setting a dask client is optional.
     :return: Total line emission reconstruction, 3D line emission reconstruction,
              Header of reconstruction and mean frequency.
 
@@ -611,13 +644,13 @@ def line_emission_pointing(
 
         print("compute results")
         result = compute(*delayed_results, scheduler="distributed")
-        print(result)
         dirty_images = [x[0] for x in result]
         headers = [x[1] for x in result]
         header = headers[0]
+        print(dirty_images)
+        print(header)
 
     else:
-        print("Not parallelizing")
         for bin_idx in range(num_bins):
             dirty_image, header = run_one_channel_simulation(
                 path_outfile,
