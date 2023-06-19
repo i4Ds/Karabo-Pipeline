@@ -1,4 +1,5 @@
 import os, sys
+import sys
 import unittest
 from datetime import datetime, timedelta
 
@@ -78,6 +79,8 @@ class TestSystemNoise(unittest.TestCase):
         num_times = 240  # Four hours.
         frequency = 1.0e8
         fits_filename = "result/test_screen_60s.fits"
+        print("test_ionosphere-1", file=sys.stderr)
+        print("test_ionosphere-1")
         self.sim_ion(
             screen_width_metres,
             r0,
@@ -90,6 +93,8 @@ class TestSystemNoise(unittest.TestCase):
             frequency,
             fits_filename,
         )
+        print("test_ionosphere-2", file=sys.stderr)
+        print("test_ionosphere-2")
         # ---------- Simulation with Screen
         sky = SkyModel()
         sky_data = np.array(
@@ -102,14 +107,17 @@ class TestSystemNoise(unittest.TestCase):
         sky.add_point_sources(sky_data)
         # sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 1, 1, 1)
         # sky.explore_sky([240, -70])
+        print("test_ionosphere-3", file=sys.stderr)
+        print("test_ionosphere-3")
         telescope = Telescope.get_SKA1_LOW_Telescope()
         # telescope.centre_longitude = 3
-
+        print("test_ionosphere-4", file=sys.stderr)
+        print("test_ionosphere-4")
         simulation = InterferometerSimulation(
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
             noise_enable=False,
-            station_type='Isotropic',
+            station_type="Isotropic",
             ionosphere_fits_path=fits_filename,
             ionosphere_screen_type="External",
             ionosphere_screen_height_km=r0,
@@ -126,13 +134,23 @@ class TestSystemNoise(unittest.TestCase):
             frequency_increment_hz=1e6,
             number_of_channels=1,
         )
-
+        print("test_ionosphere-5", file=sys.stderr)
+        print("test_ionosphere-5")
         visibility = simulation.run_simulation(telescope, sky, observation)
+        print("test_ionosphere-6", file=sys.stderr)
+        print("test_ionosphere-6")
         visibility.write_to_file("./result/test_ion.ms")
-
+        print("test_ionosphere-7", file=sys.stderr)
+        print("test_ionosphere-7")
         imager = Imager(
             visibility, imaging_npixel=2048 * 1, imaging_cellsize=5.0e-5
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        print("test_ionosphere-8", file=sys.stderr)
+        print("test_ionosphere-8")
         dirty = imager.get_dirty_image()
+        print("test_ionosphere-9", file=sys.stderr)
+        print("test_ionosphere-9")
         dirty.write_to_file("result/test_ion.fits", overwrite=True)
+        print("test_ionosphere-10", file=sys.stderr)
+        print("test_ionosphere-10")
         dirty.plot(title="Flux Density (Jy)")
