@@ -196,25 +196,25 @@ class Telescope(KaraboResource):
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-        self.temp_dir = FileHandle()
-        self.write_to_file(self.temp_dir.path)
+        self.temp_dir = FileHandle(create_additional_folder_in_dir=True)
+        self.write_to_file(self.temp_dir.dir)
         tel = os_telescope.Telescope()
-        tel.load(self.temp_dir.path)
-        self.path = self.temp_dir.path
+        tel.load(self.temp_dir.dir)
+        self.path = self.temp_dir.dir
         return tel
 
-    def write_to_file(self, path: str) -> None:
+    def write_to_file(self, dir: str) -> None:
         """
         Create .tm telescope configuration at the specified path
-        :param path: directory in which the configuration will be saved in.
+        :param dir: directory in which the configuration will be saved in.
         """
-        self.__write_position_txt(f"{path}/position.txt")
+        self.__write_position_txt(f"{dir}/position.txt")
         self.__write_layout_txt(
-            f"{path}/layout.txt", [station.position for station in self.stations]
+            f"{dir}/layout.txt", [station.position for station in self.stations]
         )
         i = 0
         for station in self.stations:
-            station_path = f"{path}/station{'{:03d}'.format(i)}"
+            station_path = f"{dir}/station{'{:03d}'.format(i)}"
             os.mkdir(station_path)
             self.__write_layout_txt(f"{station_path}/layout.txt", station.antennas)
             i += 1

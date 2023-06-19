@@ -9,6 +9,7 @@ import numpy as np
 
 from karabo.error import KaraboPinocchioError
 from karabo.simulation.sky_model import SkyModel
+from karabo.util._types import IntFloat
 from karabo.util.file_handle import FileHandle
 
 
@@ -348,7 +349,7 @@ class Pinocchio:
         cmd.append(self.runConfigPath)
 
         self.out = subprocess.run(
-            cmd, cwd=self.wd.path, capture_output=not printLiveOutput, text=True
+            cmd, cwd=self.wd.dir, capture_output=not printLiveOutput, text=True
         )
 
         # mark output files
@@ -362,14 +363,14 @@ class Pinocchio:
             outPrefix = f"{Pinocchio.PIN_EXEC_NAME}.{float(i):.04f}.{runName}"
 
             self.outCatalogPath[i] = os.path.join(
-                self.wd.path, f"{outPrefix}.catalog.{Pinocchio.PIN_OUT_FILEENDING}"
+                self.wd.dir, f"{outPrefix}.catalog.{Pinocchio.PIN_OUT_FILEENDING}"
             )
             self.outMFPath[i] = os.path.join(
-                self.wd.path, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}"
+                self.wd.dir, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}"
             )
 
         self.outLightConePath = os.path.join(
-            self.wd.path,
+            self.wd.dir,
             f"{Pinocchio.PIN_EXEC_NAME}.{runName}.plc.{Pinocchio.PIN_OUT_FILEENDING}",
         )
 
@@ -377,7 +378,7 @@ class Pinocchio:
 
         self.didRun = True
 
-    def runPlanner(self, gbPerNode: int, tasksPerNode: int) -> None:
+    def runPlanner(self, gbPerNode: IntFloat, tasksPerNode: int) -> None:
         """
         run the pinocchio runPlanner tool to check
         hardware requirements for given config
@@ -396,7 +397,7 @@ class Pinocchio:
             f"{gbPerNode}",
             f"{tasksPerNode}",
         ]
-        subprocess.run(cmd, cwd=self.wd.path, text=True)
+        subprocess.run(cmd, cwd=self.wd.dir, text=True)
 
     def getPinocchioStdOutput(self) -> Optional[str]:
         """
@@ -441,7 +442,7 @@ class Pinocchio:
         :rtype: str
         """
 
-        fp: str = os.path.join(self.wd.path, Pinocchio.PIN_REDSHIFT_FILE)
+        fp: str = os.path.join(self.wd.dir, Pinocchio.PIN_REDSHIFT_FILE)
 
         with open(os.path.join(fp), "w") as temp_file:
             temp_file.write(self.redShiftRequest.header)
@@ -512,7 +513,7 @@ class Pinocchio:
             # add empty line between sections
             lines.append("")
 
-        fp: str = os.path.join(self.wd.path, Pinocchio.PIN_PARAM_FILE)
+        fp: str = os.path.join(self.wd.dir, Pinocchio.PIN_PARAM_FILE)
 
         with open(os.path.join(fp), "w") as temp_file:
             temp_file.write("\n".join(lines))
@@ -533,7 +534,7 @@ class Pinocchio:
         if not os.path.isdir(outDirPath):
             os.mkdir(outDirPath)
 
-        shutil.copytree(self.wd.path, outDirPath, dirs_exist_ok=True)
+        shutil.copytree(self.wd.dir, outDirPath, dirs_exist_ok=True)
 
     def plotHalos(self, redshift: str = "0.0", save: bool = False) -> None:
         """
@@ -674,7 +675,7 @@ class Pinocchio:
         plt.show(block=False)
         plt.pause(1)
 
-    def getSkyModel(self, near: float = 0, far: float = 100) -> SkyModel:
+    def getSkyModel(self, near: IntFloat = 0, far: IntFloat = 100) -> SkyModel:
         """
         This method should be used on the pinocchio object after run() was called.
         It is a wrapper for the getSkyModelFromFiles() static method with the correct
@@ -691,7 +692,9 @@ class Pinocchio:
         return Pinocchio.getSkyModelFromFiles(self.outLightConePath, near, far)
 
     @staticmethod
-    def getSkyModelFromFiles(path: str, near: float = 0, far: float = 100) -> SkyModel:
+    def getSkyModelFromFiles(
+        path: str, near: IntFloat = 0, far: IntFloat = 100
+    ) -> SkyModel:
         """
         Create a sky model from the pinocchio simulation cone. All halos from the near
         to far plane (euclid distance) will be translated into the
