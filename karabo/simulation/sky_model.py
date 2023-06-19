@@ -1013,6 +1013,7 @@ class SkyModel:
         path: str,
         prefix_mapping: SkyPrefixMapping,
         extra_columns: Optional[List[str]] = None,
+        load_as: Literal["numpy_array", "dask_array"] = "dask_array",
         chunksize: Union[int, Literal["auto"]] = "auto",
     ) -> SkyModel:
         """
@@ -1030,6 +1031,8 @@ class SkyModel:
         extra_columns : Optional[List[str]], default=None
             A list of additional column names to include in the output DataArray.
             If not provided, only the default columns will be included.
+        load_as : Literal["numpy_array", "dask_array"], default="dask_array"
+            What type of array to load the data inside the xarray Data Array as.
         chunksize : Union[int, str], default=auto
             Chunk size for Dask arrays. This determines the size of chunks that
             the data will be divided into when read from the file. Can be an
@@ -1060,6 +1063,8 @@ class SkyModel:
                     xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT])
                 )
 
+        if load_as == "numpy_array":
+            dask_array = np.stack(data_arrays, axis=1)
         sky = xr.concat(data_arrays, dim=XARRAY_DIM_1_DEFAULT)
         sky = sky.T
         sky = sky.chunk(

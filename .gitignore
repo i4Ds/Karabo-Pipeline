@@ -102,8 +102,11 @@ karabo/examples/karabo/test/data/results/*
 .vscode/*
 /.vs
 
+# Formating 
+.mypy_cache/*
 # Slurm logs
 **.out
 
-
+# Other (playground, experiment, ..)
 .experiment/*
+
