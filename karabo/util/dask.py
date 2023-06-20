@@ -114,8 +114,6 @@ def prepare_slurm_nodes_for_dask() -> None:
         pass
 
     else:
-        print("I am on a node! I need to start a dask worker.")
-        print(f"My Node ID: {get_node_id()}")
         # Wait some time to make sure the scheduler file is new
         time.sleep(10)
 
@@ -141,7 +139,7 @@ def prepare_slurm_nodes_for_dask() -> None:
             dask_info = json.load(f)
 
         async def start_worker(scheduler_address: str) -> None:
-            worker = await Worker(scheduler_address)
+            worker = await Worker(scheduler_address, nthreads=1, memory_limit=f"{psutil.virtual_memory().available / 1e9}GB")
             await worker.finished()
 
         scheduler_address = dask_info["scheduler_address"]
@@ -207,7 +205,7 @@ def setup_dask_for_slurm(
     if is_first_node():
         # Create client and scheduler
         print(f"First node. Name = {get_lowest_node_name()}")
-        cluster = LocalCluster(ip=get_node_name(), n_workers=n_workers_scheduler_node)
+        cluster = LocalCluster(ip=get_node_name(), n_workers=n_workers_scheduler_node, threads_per_worker=1)
         dask_client = Client(cluster)
 
         # Calculate number of workers per node

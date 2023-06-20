@@ -364,7 +364,7 @@ def karabo_reconstruction(
         time_average_sec=8,
         ignore_w_components=True,
         uv_filter_max=3000,
-        use_gpus=True,
+        use_gpus=False,
         station_type=beam_type,
         enable_power_pattern=True,
         gauss_beam_fwhm_deg=gaussian_fwhm,
@@ -618,6 +618,12 @@ def line_emission_pointing(
 
         delayed_results = []
 
+        # Xarray dask array to numpy
+        sky.sources = sky.sources.to_numpy()
+
+        # Scatter sky
+        sky = client.scatter(sky)
+
         for bin_idx in range(num_bins):
             # Submit the jobs
             delayed_ = run_simu_delayed(
@@ -753,3 +759,9 @@ def simple_gaussian_beam_correction(
     )
 
     return dirty_image_corrected, header
+
+if __name__ == '__main__':
+    sky = SkyModel.get_GLEAM_Sky([76])
+    line_emission_pointing(path_outfile="/scratch/snx3000/vtimmel/test_line_em", sky=sky, z_obs=[0.5, 1.0, 1.5, 2.0, 2.5, 3.0], num_bins=10)
+
+
