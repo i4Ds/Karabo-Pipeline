@@ -34,6 +34,9 @@ from ska_sdp_func_python.imaging import (
     sum_invert_results,
 )
 
+from rascil.processing_components.parameters import rascil_data_path
+from rascil.processing_components.util.installation_checks import check_data_directory
+
 from rascil.processing_components import create_test_image
 
 from ska_sdp_func_python.imaging import (
