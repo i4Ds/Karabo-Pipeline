@@ -143,7 +143,7 @@ class Imager:
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
-        file_handle = FileHandle(file_name="dirty", suffix=".fits")
+        file_handle = FileHandle(file_name="dirty.fits", create_additional_folder_in_dir=True)
         model = create_image_from_visibility(
             visibility,
             npixel=self.imaging_npixel,

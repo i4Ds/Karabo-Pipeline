@@ -108,6 +108,11 @@ def prepare_slurm_nodes_for_dask() -> None:
         return
     else:
         print("Detected SLURM cluster. Setting up dask.")
+        slurm_job_nodelist = check_env_var(
+        var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
+        )
+        print(f"Node list is: {slurm_job_nodelist}")
+        print(f"Min Max is: {get_min_max_of_node_id()}")
 
     # Check if we are on the first node
     if is_first_node():

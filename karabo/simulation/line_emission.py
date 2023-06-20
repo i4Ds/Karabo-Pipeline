@@ -759,9 +759,3 @@ def simple_gaussian_beam_correction(
     )
 
     return dirty_image_corrected, header
-
-if __name__ == '__main__':
-    sky = SkyModel.get_GLEAM_Sky([76])
-    line_emission_pointing(path_outfile="/scratch/snx3000/vtimmel/test_line_em", sky=sky, z_obs=[0.5, 1.0, 1.5, 2.0, 2.5, 3.0], num_bins=10)
-
-
