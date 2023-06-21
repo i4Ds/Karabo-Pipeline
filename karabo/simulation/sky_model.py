@@ -165,6 +165,7 @@ class SkyModel:
         sources: Optional[SkySourcesType] = None,
         wcs: Optional[WCS] = None,
         precision: Type[np.float_] = np.float64,
+        h5_file_connection: Optional[h5py.File] = None
     ) -> None:
         """
         Initialization of a new SkyModel
@@ -179,6 +180,7 @@ class SkyModel:
         self.precision = precision
         self.wcs = wcs
         self.sources = sources  # type: ignore [assignment]
+        self.h5_file_connection = h5_file_connection
 
     def __get_empty_sources(self, n_sources: int) -> xr.DataArray:
         empty_sources = np.hstack((np.zeros((n_sources, SkyModel.SOURCES_COLS)),))
@@ -195,6 +197,49 @@ class SkyModel:
             )
         else:
             assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
+    
+    def close(self):
+        """
+        Closes the connection to the HDF5 file.
+
+        This method closes the connection to the HDF5 file if it is open and 
+        sets the `h5_file_connection` attribute to `None`.
+        """
+        if self.h5_file_connection:
+            self.h5_file_connection.close()
+            self.h5_file_connection = None
+
+    def __del__(self):
+        """
+        Destructor method that closes the connection to the HDF5 file.
+
+        This method is automatically called when the instance of the class
+        is no longer referenced. It ensures that the connection to the
+        HDF5 file is closed before the instance is destroyed.
+        """
+        self.close()
+
+    def compute(self, *args, **kwargs) -> None:
+        """
+        Loads the lazy data into a numpy array, wrapped in a xarray.DataArray.
+
+        This method loads the lazy data from the sources into a numpy array, 
+        which is then wrapped in a xarray.DataArray object. It performs the computation
+        necessary to obtain the actual data and stores it in the `_sources` attribute. 
+        After the computation is complete, 
+        it calls the `close` method to close the connection to the HDF5 file.
+
+        Parameters:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+        None
+        """
+        # Dask array inside the xarray to numpy array.
+        self._sources = self.sources.compute(*args, **kwargs)
+        self.close()
+
 
     def _check_sources(self, sources: SkySourcesType) -> None:
         self.__set_sky_xarr_dims(sources=sources)
