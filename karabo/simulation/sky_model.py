@@ -31,7 +31,6 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
-from dask.array.core import Array
 from numpy.typing import NDArray
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
