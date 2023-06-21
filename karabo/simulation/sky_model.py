@@ -128,6 +128,11 @@ class SkyModel:
     `np.ndarray` are also supported as input type for `SkyModel.sources`,
         however, the values in `SkyModel.sources` are converted to `xarray.DataArray`.
 
+    `SkyModel.compute` method is used to load the data into memory as a numpy array. 
+    It should be called after all the filtering and other operations are completed on the data, 
+    especially if the data is too large to fit into memory. This method also prevents possible kernel crash 
+    caused by `.persist()` or `.compute()` methods on `xarray.DataArray`.
+
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
                     through `xarray.sources.coords` with an arbitrary string key
@@ -149,7 +154,6 @@ class SkyModel:
                     - [12] object-id: just for `np.ndarray`
                         it is removed in the `xr.DataArray`
                         and exists then in `xr.DataArray.coords` as index.
-
     """
 
     SOURCES_COLS = 12
@@ -198,7 +202,7 @@ class SkyModel:
         else:
             assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
     
-    def close(self):
+    def close(self) -> None:
         """
         Closes the connection to the HDF5 file.
 
@@ -209,7 +213,7 @@ class SkyModel:
             self.h5_file_connection.close()
             self.h5_file_connection = None
 
-    def __del__(self):
+    def __del__(self) -> None:
         """
         Destructor method that closes the connection to the HDF5 file.
 
@@ -219,7 +223,7 @@ class SkyModel:
         """
         self.close()
 
-    def compute(self, *args, **kwargs) -> None:
+    def compute(self) -> None:
         """
         Loads the lazy data into a numpy array, wrapped in a xarray.DataArray.
 
@@ -237,7 +241,8 @@ class SkyModel:
         None
         """
         # Dask array inside the xarray to numpy array.
-        self._sources = self.sources.compute(*args, **kwargs)
+        if self.sources and isinstance(self.sources.data, xr.DataArray):
+            self._sources = self.sources.compute()
         self.close()
 
 
