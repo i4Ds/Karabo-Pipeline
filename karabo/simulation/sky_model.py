@@ -31,6 +31,7 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
+from dask.array.core import Array
 from numpy.typing import NDArray
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
@@ -128,11 +129,10 @@ class SkyModel:
     `np.ndarray` are also supported as input type for `SkyModel.sources`,
         however, the values in `SkyModel.sources` are converted to `xarray.DataArray`.
 
-    `SkyModel.compute` method is used to load the data into memory as a numpy array. 
-    It should be called after all the filtering and other operations are completed on the data, 
-    especially if the data is too large to fit into memory. This method also prevents possible kernel crash 
-    caused by `.persist()` or `.compute()` methods on `xarray.DataArray`.
-
+    `SkyModel.compute` method is used to load the data into memory as a numpy array.
+    It should be called after all the filtering and other operations are completed,
+    especially if the data is too large to fit into memory.
+    
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
                     through `xarray.sources.coords` with an arbitrary string key
@@ -169,7 +169,7 @@ class SkyModel:
         sources: Optional[SkySourcesType] = None,
         wcs: Optional[WCS] = None,
         precision: Type[np.float_] = np.float64,
-        h5_file_connection: Optional[h5py.File] = None
+        h5_file_connection: Optional[h5py.File] = None,
     ) -> None:
         """
         Initialization of a new SkyModel
@@ -201,12 +201,12 @@ class SkyModel:
             )
         else:
             assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
-    
+
     def close(self) -> None:
         """
         Closes the connection to the HDF5 file.
 
-        This method closes the connection to the HDF5 file if it is open and 
+        This method closes the connection to the HDF5 file if it is open and
         sets the `h5_file_connection` attribute to `None`.
         """
         if self.h5_file_connection:
@@ -227,24 +227,20 @@ class SkyModel:
         """
         Loads the lazy data into a numpy array, wrapped in a xarray.DataArray.
 
-        This method loads the lazy data from the sources into a numpy array, 
+        This method loads the lazy data from the sources into a numpy array,
         which is then wrapped in a xarray.DataArray object. It performs the computation
-        necessary to obtain the actual data and stores it in the `_sources` attribute. 
-        After the computation is complete, 
+        necessary to obtain the actual data and stores it in the `_sources` attribute.
+        After the computation is complete,
         it calls the `close` method to close the connection to the HDF5 file.
-
-        Parameters:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
 
         Returns:
         None
         """
         # Dask array inside the xarray to numpy array.
-        if self.sources and isinstance(self.sources.data, xr.DataArray):
+        if self.sources is not None and isinstance(self.sources.data, Array):
+            print("Computing the data array.")
             self._sources = self.sources.compute()
         self.close()
-
 
     def _check_sources(self, sources: SkySourcesType) -> None:
         self.__set_sky_xarr_dims(sources=sources)
