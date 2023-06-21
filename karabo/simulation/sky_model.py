@@ -132,7 +132,7 @@ class SkyModel:
     `SkyModel.compute` method is used to load the data into memory as a numpy array.
     It should be called after all the filtering and other operations are completed,
     especially if the data is too large to fit into memory.
-    
+
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
                     through `xarray.sources.coords` with an arbitrary string key
@@ -237,7 +237,7 @@ class SkyModel:
         None
         """
         # Dask array inside the xarray to numpy array.
-        if self.sources is not None and isinstance(self.sources.data, Array):
+        if self.sources is not None and isinstance(self.sources, xr.DataArray):
             print("Computing the data array.")
             self._sources = self.sources.compute()
         self.close()
