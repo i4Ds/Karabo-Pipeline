@@ -127,7 +127,7 @@ def prepare_slurm_nodes_for_dask() -> None:
         )
         print("Detected SLURM cluster. Setting up dask on the following "
               f"nodes: {slurm_job_nodelist}")
-        print(f"First Node, containing the scheduler, is: {get_node_name}")
+        print(f"First Node, containing the scheduler, is: {get_node_name()}")
     else:
         pass
 
