@@ -123,13 +123,16 @@ def prepare_slurm_nodes_for_dask() -> None:
         return
     elif is_first_node():
         slurm_job_nodelist = check_env_var(
-        var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
+            var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
         )
-        print("Detected SLURM cluster. Setting up dask on the following "
-              f"nodes: {slurm_job_nodelist}")
+        print(
+            "Detected SLURM cluster. Setting up dask on the following "
+            f"nodes: {slurm_job_nodelist}"
+        )
         print(f"First Node, containing the scheduler, is: {get_node_name}")
     else:
         pass
+
 
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
@@ -179,7 +182,11 @@ def setup_dask_for_slurm(
 ) -> Client:
     if is_first_node():
         # Create client and scheduler
-        cluster = LocalCluster(ip=get_node_name(), n_workers=n_workers_scheduler_node, threads_per_worker=DaskHandler.n_threads_per_worker)
+        cluster = LocalCluster(
+            ip=get_node_name(),
+            n_workers=n_workers_scheduler_node,
+            threads_per_worker=DaskHandler.n_threads_per_worker,
+        )
         dask_client = Client(cluster)
 
         # Calculate number of workers per node
@@ -241,17 +248,24 @@ def setup_dask_for_slurm(
             memory_limit = f"{DaskHandler.min_gb_ram_per_worker}GB"
 
         async def start_worker(scheduler_address: str) -> None:
-            worker = await Worker(scheduler_address, nthreads=DaskHandler.n_threads_per_worker, memory_limit=memory_limit)
+            worker = await Worker(
+                scheduler_address,
+                nthreads=DaskHandler.n_threads_per_worker,
+                memory_limit=memory_limit,
+            )
             await worker.finished()
 
         async def start_nanny(scheduler_address: str) -> None:
-            nanny = await Nanny(scheduler_address, nthreads=DaskHandler.n_threads_per_worker, memory_limit=memory_limit)
+            nanny = await Nanny(
+                scheduler_address,
+                nthreads=DaskHandler.n_threads_per_worker,
+                memory_limit=memory_limit,
+            )
             await nanny.finished()
 
-
-        scheduler_address = dask_info["scheduler_address"]
+        scheduler_address = str(dask_info["scheduler_address"])
         # Number of workers you want to start
-        n_workers = dask_info["n_workers_per_node"]
+        n_workers = int(str(dask_info["n_workers_per_node"]))
 
         # Start workers
         for _ in range(n_workers):
@@ -285,7 +299,8 @@ def extract_node_ids_from_node_list() -> List[int]:
 
     return node_ids
 
-def get_min_max_of_node_id() -> Tuple[str, str]:
+
+def get_min_max_of_node_id() -> Tuple[int, int]:
     """
     Returns the min max from SLURM_JOB_NODELIST.
     Works if it's run only on two nodes (separated with a comma)
@@ -295,7 +310,7 @@ def get_min_max_of_node_id() -> Tuple[str, str]:
     return min(node_list), max(node_list)
 
 
-def get_lowest_node_id() -> str:
+def get_lowest_node_id() -> int:
     return get_min_max_of_node_id()[0]
 
 
@@ -318,7 +333,7 @@ def get_number_of_nodes() -> int:
     return int(n_nodes)
 
 
-def get_node_id() -> str:
+def get_node_id() -> int:
     # Attention, often the node id starts with a 0.
     slurmd_nodename = check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
     len_id = len(get_base_string_node_list())
