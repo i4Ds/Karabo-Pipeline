@@ -254,13 +254,13 @@ def setup_dask_for_slurm(
         raise KaraboDaskError("This function should only be reached on the first node.")
 
 
-def extract_node_id_from_node_list():
+def extract_node_ids_from_node_list() -> List[int]:
     slurm_job_nodelist = check_env_var(
-        var="SLURM_JOB_NODELIST", fun=extract_node_id_from_node_list
+        var="SLURM_JOB_NODELIST", fun=extract_node_ids_from_node_list
     )
     if get_number_of_nodes() == 1:
         # Node name will be something like "psanagpu115"
-        return extract_digit_from_string([slurm_job_nodelist])
+        return [extract_digit_from_string(slurm_job_nodelist)]
     node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
     id_ranges = node_list.split(",")
     node_ids = []
@@ -279,7 +279,7 @@ def get_min_max_of_node_id() -> Tuple[str, str]:
     Works if it's run only on two nodes (separated with a comma)
     of if it runs on more than two nodes (separated with a dash).
     """
-    node_list = extract_node_id_from_node_list()
+    node_list = extract_node_ids_from_node_list()
     return min(node_list), max(node_list)
 
 

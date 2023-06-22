@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from karabo.util.dask import (  # replace `your_module` with your actual module name
+    extract_node_ids_from_node_list,
     get_base_string_node_list,
     get_lowest_node_id,
     get_lowest_node_name,
@@ -91,6 +92,52 @@ def test_multiple_nodes_and_ranges():
         assert is_first_node() is True
         assert is_on_slurm_cluster() is True
 
+    # test for a different node
+    env_vars['SLURMD_NODENAME'] = 'nid04715'
+
+    with patch.dict(os.environ, env_vars):
+        assert get_min_max_of_node_id() == (2780, 4715)
+        assert get_lowest_node_id() == 2780
+        assert get_base_string_node_list() == "nid0"
+        assert get_lowest_node_name() == "nid02780"
+        assert get_number_of_nodes() == 3
+        assert get_node_id() == 4715
+        assert get_node_name() == "nid04715"
+        assert is_first_node() is False
+        assert is_on_slurm_cluster() is True
+
+    # test for a different node
+    env_vars['SLURMD_NODENAME'] = 'nid02781'
+
+    with patch.dict(os.environ, env_vars):
+        assert get_min_max_of_node_id() == (2780, 4715)
+        assert get_lowest_node_id() == 2780
+        assert get_base_string_node_list() == "nid0"
+        assert get_lowest_node_name() == "nid02780"
+        assert get_number_of_nodes() == 3
+        assert get_node_id() == 2781
+        assert get_node_name() == "nid02781"
+        assert is_first_node() is False
+        assert is_on_slurm_cluster() is True
+
+def test_extreme_range_of_nodes():
+    env_vars = {
+        "SLURM_JOB_NODELIST": "nid0[2780-2781,3213-4313,4441,4443,4715]",
+        "SLURM_JOB_NUM_NODES": "1106",
+        "SLURMD_NODENAME": "nid03333",
+        "SLURM_JOB_ID": "123456"
+    }
+    with patch.dict(os.environ, env_vars):
+        assert get_min_max_of_node_id() == (2780, 4715)
+        assert get_lowest_node_id() == 2780
+        assert get_base_string_node_list() == "nid0"
+        assert get_lowest_node_name() == "nid02780"
+        assert get_number_of_nodes() == 1106
+        assert get_node_id() == 3333
+        assert get_node_name() == "nid03333"
+        assert is_first_node() is False
+        assert is_on_slurm_cluster() is True
+        assert len(extract_node_ids_from_node_list()) == 1106
 
 def test_single_node():
     env_vars = {
@@ -102,4 +149,5 @@ def test_single_node():
         min_node_id, max_node_id = get_min_max_of_node_id()
         assert min_node_id == 3038
         assert max_node_id == 3038
+        assert get_base_string_node_list() == "nid"
         
