@@ -8,7 +8,7 @@ import time
 from typing import Any, Callable, Optional, Tuple
 
 import psutil
-from dask.distributed import Client, LocalCluster, Worker
+from dask.distributed import Client, LocalCluster, Nanny, Worker
 
 from karabo.error import KaraboDaskError
 from karabo.util._types import IntFloat
@@ -119,9 +119,6 @@ def prepare_slurm_nodes_for_dask() -> None:
         pass
 
     else:
-        # Wait some time to make sure the scheduler file is new
-        time.sleep(10)
-
         # Wait until dask info file is created
         while not os.path.exists(DASK_INFO_ADDRESS):
             time.sleep(1)
@@ -129,11 +126,6 @@ def prepare_slurm_nodes_for_dask() -> None:
         # Load dask info file
         with open(DASK_INFO_ADDRESS, "r") as f:
             dask_info = json.load(f)
-
-        print("I am on a node! I need to start a dask worker.")
-        print(f"My Node ID: {get_node_id()}")
-        # Wait some time to make sure the scheduler file is new
-        time.sleep(10)
 
         # Wait until dask info file is created
         while not os.path.exists(DASK_INFO_ADDRESS):
@@ -146,6 +138,11 @@ def prepare_slurm_nodes_for_dask() -> None:
         async def start_worker(scheduler_address: str) -> None:
             worker = await Worker(scheduler_address, nthreads=1, memory_limit=f"{psutil.virtual_memory().available / 1e9}GB")
             await worker.finished()
+
+        async def start_nanny(scheduler_address: str) -> None:
+            nanny = await Nanny(scheduler_address, nthreads=1, memory_limit=f"{psutil.virtual_memory().available / 1e9}GB")
+            await nanny.finished()
+
 
         scheduler_address = dask_info["scheduler_address"]
         # Number of workers you want to start
