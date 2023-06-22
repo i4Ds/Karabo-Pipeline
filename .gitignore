@@ -109,4 +109,4 @@ karabo/examples/karabo/test/data/results/*
 
 # Other (playground, experiment, ..)
 .experiment/*
-
+**/karabo-dask-dashboard.txt

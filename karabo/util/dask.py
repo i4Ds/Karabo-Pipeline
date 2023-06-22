@@ -5,7 +5,7 @@ import atexit
 import json
 import os
 import time
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import psutil
 from dask.distributed import Client, LocalCluster, Nanny, Worker
@@ -37,6 +37,19 @@ class DaskHandler:
         The number of workers to start on the scheduler node.
     min_gb_ram_per_worker : Optional[float]
         The minimum RAM to allocate per worker in GB.
+    n_threads_per_worker : int
+        The number of threads to use per worker. Standard is 1.
+    use_dask: Optional[bool]
+        Whether to use Dask or not. If None, Dask will be used if the
+        current node is a SLURM node and there are more than 1 node.
+    use_workers_or_nannies: Optional[str]
+        Whether to use workers or nannies. If None, nannies will be used.
+        This could lead to more processing (see documentation for dask usage
+        in Karabo).
+    TIMEOUT: int
+        The timeout in seconds for the Dask scheduler to wait for all the
+        workers to connect.
+
 
     Methods
     -------
@@ -50,7 +63,9 @@ class DaskHandler:
     dask_client: Optional[Client] = None
     n_workers_scheduler_node: int = 1
     min_gb_ram_per_worker: Optional[int] = None
+    n_threads_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
+    use_workers_or_nannies: Optional[str] = "nannies"
     TIMEOUT: int = 60
 
     @staticmethod
@@ -106,57 +121,15 @@ def prepare_slurm_nodes_for_dask() -> None:
     if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
         DaskHandler.use_dask = False
         return
-    else:
-        print("Detected SLURM cluster. Setting up dask.")
+    elif is_first_node():
         slurm_job_nodelist = check_env_var(
         var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
         )
-        print(f"Node list is: {slurm_job_nodelist}")
-        print(f"Min Max is: {get_min_max_of_node_id()}")
-
-    # Check if we are on the first node
-    if is_first_node():
-        pass
-
+        print("Detected SLURM cluster. Setting up dask on the following "
+              f"nodes: {slurm_job_nodelist}")
+        print(f"First Node, containing the scheduler, is: {get_node_name}")
     else:
-        # Wait until dask info file is created
-        while not os.path.exists(DASK_INFO_ADDRESS):
-            time.sleep(1)
-
-        # Load dask info file
-        with open(DASK_INFO_ADDRESS, "r") as f:
-            dask_info = json.load(f)
-
-        # Wait until dask info file is created
-        while not os.path.exists(DASK_INFO_ADDRESS):
-            time.sleep(1)
-
-        # Load dask info file
-        with open(DASK_INFO_ADDRESS, "r") as f:
-            dask_info = json.load(f)
-
-        async def start_worker(scheduler_address: str) -> None:
-            worker = await Worker(scheduler_address, nthreads=1, memory_limit=f"{psutil.virtual_memory().available / 1e9}GB")
-            await worker.finished()
-
-        async def start_nanny(scheduler_address: str) -> None:
-            nanny = await Nanny(scheduler_address, nthreads=1, memory_limit=f"{psutil.virtual_memory().available / 1e9}GB")
-            await nanny.finished()
-
-
-        scheduler_address = dask_info["scheduler_address"]
-        # Number of workers you want to start
-        n_workers = dask_info["n_workers_per_node"]
-
-        # Start workers
-        for _ in range(n_workers):
-            asyncio.run(start_worker(scheduler_address))
-
-        # Wait for the script to finish and for the
-        # kill signal to be sent
-        while True:
-            time.sleep(10)
-
+        pass
 
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
@@ -194,7 +167,7 @@ def get_local_dask_client(
         LocalCluster(
             ip=get_node_name() if is_on_slurm_cluster() else None,
             n_workers=n_workers,
-            threads_per_worker=1,
+            threads_per_worker=DaskHandler.n_threads_per_worker,
         )
     )
     return client
@@ -204,12 +177,9 @@ def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
     min_ram_gb_per_worker: Optional[IntFloat],
 ) -> Client:
-    print("Setting up dask for SLURM cluster.")
-    print(f"Available Nodes: {os.environ['SLURM_JOB_NODELIST']}")
     if is_first_node():
         # Create client and scheduler
-        print(f"First node. Name = {get_lowest_node_name()}")
-        cluster = LocalCluster(ip=get_node_name(), n_workers=n_workers_scheduler_node, threads_per_worker=1)
+        cluster = LocalCluster(ip=get_node_name(), n_workers=n_workers_scheduler_node, threads_per_worker=DaskHandler.n_threads_per_worker)
         dask_client = Client(cluster)
 
         # Calculate number of workers per node
@@ -248,7 +218,52 @@ def setup_dask_for_slurm(
         return dask_client
 
     else:
-        raise KaraboDaskError("This function should only be reached on the first node.")
+        # Wait until dask info file is created
+        while not os.path.exists(DASK_INFO_ADDRESS):
+            time.sleep(1)
+
+        # Load dask info file
+        with open(DASK_INFO_ADDRESS, "r") as f:
+            dask_info = json.load(f)
+
+        # Wait until dask info file is created
+        while not os.path.exists(DASK_INFO_ADDRESS):
+            time.sleep(1)
+
+        # Load dask info file
+        with open(DASK_INFO_ADDRESS, "r") as f:
+            dask_info = json.load(f)
+
+        # Calculate memory usage of each worker
+        if DaskHandler.min_gb_ram_per_worker is None:
+            memory_limit = f"{psutil.virtual_memory().available / 1e9}GB"
+        else:
+            memory_limit = f"{DaskHandler.min_gb_ram_per_worker}GB"
+
+        async def start_worker(scheduler_address: str) -> None:
+            worker = await Worker(scheduler_address, nthreads=DaskHandler.n_threads_per_worker, memory_limit=memory_limit)
+            await worker.finished()
+
+        async def start_nanny(scheduler_address: str) -> None:
+            nanny = await Nanny(scheduler_address, nthreads=DaskHandler.n_threads_per_worker, memory_limit=memory_limit)
+            await nanny.finished()
+
+
+        scheduler_address = dask_info["scheduler_address"]
+        # Number of workers you want to start
+        n_workers = dask_info["n_workers_per_node"]
+
+        # Start workers
+        for _ in range(n_workers):
+            if DaskHandler.use_workers_or_nannies == "workers":
+                asyncio.run(start_worker(scheduler_address))
+            else:
+                asyncio.run(start_nanny(scheduler_address))
+
+        # Wait for the script to finish and for the
+        # kill signal to be sent
+        while True:
+            time.sleep(10)
 
 
 def extract_node_ids_from_node_list() -> List[int]:

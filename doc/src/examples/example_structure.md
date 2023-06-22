@@ -19,38 +19,28 @@ Please look at the karabo.package documentation for specifics on the individual 
 
 ## Use Karabo on a SLURM cluster
 
-Karabo makes all the nodes available to the user with the help of Dask. The `DaskHandler` class manages the creation of a Dask client and provides a simple interface to interact with. The class has some static variables that can be modified to change the behavior of the Dask client. The user does not need to interact with Dask directly, as everything happens in the background and is managed by Karabo. However, here is an example of how to use the Dask client directly.
+Karabo manages all available nodes through Dask, making the computational power conveniently accessible for the user. The `DaskHandler` class streamlines the creation of a Dask client and offers a user-friendly interface for interaction. This class contains static variables, which when altered, modify the behavior of the Dask client. 
+
+While users are not required to interact with Dask directly - thanks to the background processes managed by Karabo - the Dask client can be used directly if necessary. This method is recommended when there is a need to prevent your Python script from being processed multiple times when using `Nanny` instead of `Worker` (standard setting in `Karabo.util.dask.DaskHandler`).
+
+Protecting the `Nanny` process by the `if __name__ == "__main__":` statement is essential since the nodes cannot be assigned as a `Dask Worker/Nanny` outside of this statement. 
+
+When the client isn't called at the start of the script, the script runs until `Karabo` initializes the Dask client. This process designates the nodes that should act as a `Dask Worker/Nanny`.
+
+It's important to remember that this approach is intended to streamline your work. However, if issues or additional requirements arise, one can always interact with the Dask client directly.
 
 ```python
 from karabo.util.dask import DaskHandler
 
-# Get the Dask client
-client = DaskHandler.get_dask_client()
+if __name__ == "__main__":
+    # Get the Dask client
+    client = DaskHandler.get_dask_client()
 
-# Use the client as needed
-result = client.submit(my_function, *args)
+    # Use the client as needed
+    result = client.submit(my_function, *args)
 ```
 
-In this example, we set the number of workers on the scheduler node to 1, the number of threads per worker to 1, and the minimum RAM per worker to 2 GB. Then, we get the Dask client using the get_dask_client method of DaskHandler and use it to submit a function with an argument. The my_function function will be executed on one of the available workers in the cluster.
-
-Note that you can also update the static variables and adapt them to different needs. For example, if you have a large dataset that requires more RAM, you can increase the value of min_ram_per_worker accordingly.
-
-```python
-from karabo.util.dask import DaskHandler
-# Modify the static variables
-DaskHandler.min_ram_per_worker = 4.0
-
-# Get the Dask client
-client = DaskHandler.get_dask_client()
-
-# Use the client as needed
-result = client.submit(my_function, *args)
-```
-
-DaskHandler manages the dask workers and dask scheduler in the background, the user is not required to interact with them directly and restart the workers or scheduler manually.
-
-At the beginning of the script, the dask usage can also be overwritten globally as follows:
-
+Disable the usage of Dask by Karabo.
 ```python
 from karabo.util.dask import DaskHandler
 # Modify the static variables
