@@ -30,7 +30,7 @@ def extract_digit_from_string(string: str) -> str:
     for char in string:
         if char.isdigit():
             digit += char
-    return digit
+    return int(digit)
 
 
 def extract_chars_from_string(string: str) -> str:

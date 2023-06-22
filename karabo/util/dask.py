@@ -207,6 +207,8 @@ def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
     min_ram_gb_per_worker: Optional[IntFloat],
 ) -> Client:
+    print("Setting up dask for SLURM cluster.")
+    print(f"Available Nodes: {os.environ['SLURM_JOB_NODELIST']}")
     if is_first_node():
         # Create client and scheduler
         print(f"First node. Name = {get_lowest_node_name()}")
@@ -252,30 +254,33 @@ def setup_dask_for_slurm(
         raise KaraboDaskError("This function should only be reached on the first node.")
 
 
+def extract_node_id_from_node_list():
+    slurm_job_nodelist = check_env_var(
+        var="SLURM_JOB_NODELIST", fun=extract_node_id_from_node_list
+    )
+    if get_number_of_nodes() == 1:
+        # Node name will be something like "psanagpu115"
+        return extract_digit_from_string([slurm_job_nodelist])
+    node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
+    id_ranges = node_list.split(",")
+    node_ids = []
+    for id_range in id_ranges:
+        if "-" in id_range:
+            min_id, max_id = id_range.split("-")
+            node_ids += [i for i in range(int(min_id), int(max_id) + 1)]
+        else:
+            node_ids.append(int(id_range))
+
+    return node_ids
+
 def get_min_max_of_node_id() -> Tuple[str, str]:
     """
     Returns the min max from SLURM_JOB_NODELIST.
     Works if it's run only on two nodes (separated with a comma)
     of if it runs on more than two nodes (separated with a dash).
     """
-    slurm_job_nodelist = check_env_var(
-        var="SLURM_JOB_NODELIST", fun=get_min_max_of_node_id
-    )
-    if get_number_of_nodes() == 1:
-        # Node name will be something like "psanagpu115"
-        min_max = extract_digit_from_string(slurm_job_nodelist)
-        print(f"Node min_max: {min_max}")
-        return min_max, min_max
-
-    node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
-    # If there is a comma, it means that there are only two nodes
-    # Example: psanagpu115,psanagpu116
-    # If there is a dash, it means that there are more than two nodes
-    # Example: psanagpu115-psanagpu117
-    if "," in node_list:
-        return node_list.split(",")[0], node_list.split(",")[1]
-    else:
-        return node_list.split("-")[0], node_list.split("-")[1]
+    node_list = extract_node_id_from_node_list()
+    return min(node_list), max(node_list)
 
 
 def get_lowest_node_id() -> str:
@@ -304,8 +309,8 @@ def get_number_of_nodes() -> int:
 def get_node_id() -> str:
     # Attention, often the node id starts with a 0.
     slurmd_nodename = check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
-    len_id = len(str(get_lowest_node_id()))
-    return slurmd_nodename[-len_id:]
+    len_id = len(get_base_string_node_list())
+    return int(slurmd_nodename[-len_id:])
 
 
 def get_node_name() -> str:
