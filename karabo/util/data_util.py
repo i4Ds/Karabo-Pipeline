@@ -25,7 +25,7 @@ def get_module_path_of_module(module: ModuleType) -> str:
     return os.path.sep.join(path_elements)
 
 
-def extract_digit_from_string(string: str) -> str:
+def extract_digit_from_string(string: str) -> int:
     digit = ""
     for char in string:
         if char.isdigit():
