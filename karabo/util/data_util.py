@@ -1,8 +1,10 @@
 import os
+import re
 from types import ModuleType
-from typing import Any, Dict, Tuple, cast
+from typing import Any, Dict, List, Tuple, Union, cast
 
 import numpy as np
+import xarray as xr
 from numpy.typing import NDArray
 from scipy.special import wofz
 
@@ -21,6 +23,56 @@ def get_module_path_of_module(module: ModuleType) -> str:
     path_elements = os.path.abspath(module_file).split(os.path.sep)
     path_elements.pop()
     return os.path.sep.join(path_elements)
+
+
+def extract_digit_from_string(string: str) -> str:
+    digit = ""
+    for char in string:
+        if char.isdigit():
+            digit += char
+    return digit
+
+
+def extract_chars_from_string(string: str) -> str:
+    letters = ""
+    for char in string:
+        if char.isalpha():
+            letters += char
+    return letters
+
+
+def parse_size(size_str: str) -> int:
+    size_str = size_str.strip().upper()
+    size_units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
+
+    pattern = r"^(\d+(?:\.\d+)?)\s*(" + "|".join(size_units.keys()) + ")$"
+    match = re.search(pattern, size_str)
+
+    if match:
+        value, unit = float(match.group(1)), match.group(2)
+        return int(value * size_units[unit])
+
+    raise ValueError(f"Invalid size format: '{size_str}'")
+
+
+def calculate_required_number_of_chunks(
+    max_chunk_size_in_memory: str,
+    data_array: List[xr.DataArray],
+) -> int:
+    max_chunk_size_bytes = parse_size(max_chunk_size_in_memory)
+    data_arrays_size = sum([x.nbytes for x in data_array])
+    n_chunks = int(np.ceil(data_arrays_size / max_chunk_size_bytes))
+    return n_chunks
+
+
+def calculate_chunk_size_from_max_chunk_size_in_memory(
+    max_chunk_memory_size: str, data_array: Union[xr.DataArray, List[xr.DataArray]]
+) -> int:
+    if not isinstance(data_array, list):
+        data_array = [data_array]
+    n_chunks = calculate_required_number_of_chunks(max_chunk_memory_size, data_array)
+    chunk_size = max(int(data_array[0].shape[0] / n_chunks), 1)
+    return chunk_size
 
 
 def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
