@@ -1,41 +1,22 @@
+import os
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 import numpy as np
-from ska_sdp_datamodels.calibration import (
-    export_pointingtable_to_hdf5,
-    export_gaintable_to_hdf5,
-)
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
-from ska_sdp_datamodels.sky_model import SkyComponent, export_skycomponent_to_hdf5
-from ska_sdp_datamodels.visibility import export_visibility_to_hdf5, create_visibility
+from ska_sdp_datamodels.visibility import create_visibility
 from ska_sdp_datamodels.configuration import (
     create_named_configuration,
-    select_configuration,
 )
-from ska_sdp_datamodels.sky_model.sky_model import SkyModel
+
 from ska_sdp_func_python.image.deconvolution import (
-    radler_deconvolve_list,
-    deconvolve_list,
     deconvolve_cube,
 )
 
-from rascil.processing_components.imaging.primary_beams import (
-    create_pb,
-    create_low_test_beam,
-)
 
 from ska_sdp_func_python.imaging import (
-    invert_visibility,invert_ng,
-    predict_visibility,
-    normalise_sumwt,
-    taper_visibility_gaussian,
-    remove_sumwt,
-    sum_predict_results,
-    sum_invert_results,
+    invert_visibility,
+    invert_ng,
 )
-
-from rascil.processing_components.parameters import rascil_data_path
-from rascil.processing_components.util.installation_checks import check_data_directory
 
 from rascil.processing_components import create_test_image
 
@@ -43,15 +24,10 @@ from ska_sdp_func_python.imaging import (
     advise_wide_field,
     create_image_from_visibility,
 )
-from ska_sdp_func_python.visibility import convert_visibility_stokesI_to_polframe
-from ska_sdp_func_python.calibration import multiply_gaintables
-
-from rascil.workflows.rsexecute.execution_support import rsexecute, get_dask_client
-
 
 results_dir = "/home/rohit/simulations/rascil_results/"
 # Construct LOW core configuration
-lowr3 = create_named_configuration("LOWBD2", rmax=750.0)
+lowr3 = create_named_configuration("MID", rmax=750.0)
 # We create the visibility. This just makes the uvw, time, antenna1, antenna2,
 # weight columns in a table. We subsequently fill the visibility value in by
 # a predict step.
@@ -82,17 +58,7 @@ m31image = create_test_image(
 
 model = create_image_from_visibility(vt, cellsize=cellsize, npixel=512)
 dirty, sumwt = invert_visibility(vt, model, context="2d")
-psf, sumwt = invert_ng(vt, model, context='2d', dopsf=True)
-
-#        model_list = [rsexecute.execute(create_image_from_visibility)
-#            (v, npixel=npixel, cellsize=cellsize, polarisation_frame=pol_frame)
-#            for v in vis_list]
-
-#        model_list = rsexecute.persist(model_list)
-#        dirty_list = invert_list_rsexecute_workflow(vis_list, template_model_imagelist=model_list, context='wstack',vis_slices=51)
-#        dirty_sumwt_list = rsexecute.compute(dirty_list, sync=True)
-#        dirty, sumwt = dirty_sumwt_list[centre]
-# Deconvolve using clean
+psf, sumwt = invert_ng(vt, model, context="2d", dopsf=True)
 comp, residual = deconvolve_cube(
     dirty,
     psf,
@@ -105,5 +71,8 @@ comp, residual = deconvolve_cube(
 )
 
 
-export_image_to_fits(dirty, "%s/imaging_dirty.fits" % (results_dir))
-export_image_to_fits(psf, "%s/imaging_psf.fits" % (results_dir))
+imagename = "imaging_dirty.fits"
+psffilename = "psf.fits"
+print(os.path.join(results_dir, imagename))
+dirty.image_acc.export_to_fits(fits_file=os.path.join(results_dir, imagename))
+dirty.image_acc.export_to_fits(fits_file=os.path.join(results_dir, psffilename))
