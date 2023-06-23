@@ -129,8 +129,8 @@ class SkyModel:
         however, the values in `SkyModel.sources` are converted to `xarray.DataArray`.
 
     `SkyModel.compute` method is used to load the data into memory as a numpy array.
-    It should be called after all the filtering and other operations are completed,
-    especially if the data is too large to fit into memory.
+    It should be called after all the filtering and other operations are completed
+    and to avoid doing the same calculation multiple thems when e.g. on a cluster.
 
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
@@ -153,6 +153,12 @@ class SkyModel:
                     - [12] object-id: just for `np.ndarray`
                         it is removed in the `xr.DataArray`
                         and exists then in `xr.DataArray.coords` as index.
+    :ivar wcs: World Coordinate System (WCS) object representing the coordinate transformation
+              between pixel coordinates and celestial coordinates (e.g., right ascension and declination).
+    :ivar precision: The precision of numerical values used in the SkyModel.
+                     Has to be of type np.float_.
+    :ivar h5_file_connection: An open connection to an HDF5 (h5) file
+                              that can be used to store or retrieve data related to the SkyModel.
     """
 
     SOURCES_COLS = 12
@@ -171,11 +177,24 @@ class SkyModel:
         h5_file_connection: Optional[h5py.File] = None,
     ) -> None:
         """
-        Initialization of a new SkyModel
+        Initialize a SkyModel object.
 
-        :param sources: Adds point sources
-        :param wcs: world coordinate system
-        :param precision: precision of `sources`
+        Parameters
+        ----------
+        sources : {xarray.DataArray, np.ndarray}, optional
+            List of all point sources in the sky.
+            It can be provided as an `xarray.DataArray` or `np.ndarray`.
+            If provided as an `np.ndarray`, the values are converted to
+            `xarray.DataArray`.
+        wcs : WCS, optional
+            World Coordinate System (WCS) object representing the coordinate
+            transformation between pixel coordinates and celestial coordinates.
+        precision : np.dtype, optional
+            The precision of numerical values used in the SkyModel.
+            It should be a NumPy data type (e.g., np.float64).
+        h5_file_connection : h5py.File, optional
+            An open connection to an HDF5 (h5) file
+            that can be used to store or retrieve data related to the SkyModel.
         """
         self.__sources_dim_sources = XARRAY_DIM_0_DEFAULT
         self.__sources_dim_data = XARRAY_DIM_1_DEFAULT
@@ -235,10 +254,10 @@ class SkyModel:
         Returns:
         None
         """
-        # Dask array inside the xarray to numpy array.
-        if self.sources is not None and isinstance(self.sources, xr.DataArray):
-            print("Computing the data array.")
-            self._sources = self.sources.compute()
+        if self.sources is not None:
+            computed_sources = self.sources.compute()
+        self.sources = None
+        self.sources = computed_sources
         self.close()
 
     def _check_sources(self, sources: SkySourcesType) -> None:
@@ -1115,7 +1134,7 @@ class SkyModel:
         sky = sky.chunk(
             {XARRAY_DIM_0_DEFAULT: chunksize, XARRAY_DIM_1_DEFAULT: sky.shape[1]}  # type: ignore [dict-item] # noqa: E501
         )
-        return SkyModel(sky)
+        return SkyModel(sky, h5_file_connection=f)
 
     @staticmethod
     def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
