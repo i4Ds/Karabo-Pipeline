@@ -112,10 +112,65 @@ class Observation:
         return settings
 
     @staticmethod
+    def create_observations_oskar_from_lists(
+        settings_tree: OskarSettingsTreeType,
+        central_freqs: Union[int, List[int]],
+        channel_bandwidths: Union[int, List[int]],
+        n_channels: Union[int, List[int]],
+    ) -> List[dict]:
+        """
+        Create observations for OSKAR settings from input lists.
+
+        Parameters
+        ----------
+        settings_tree : OskarSettingsTreeType
+            The OSKAR settings tree, with 'observation' key among others.
+        central_freqs : int or list of int
+            List of central frequencies in MHz for each observation.
+        channel_bandwidths : int or list of int
+            List of channel bandwidths in MHz for each observation.
+        n_channels : int or list of int
+            List of numbers of channels for each observation.
+
+        Returns
+        -------
+        list of dict
+            List of OSKAR observations, each as a dictionary with 'observation'
+            key among others.
+
+        Raises
+        ------
+        ValueError
+            If the input lists are not of the same length.
+
+        Notes
+        -----
+        The 'observation' key in each dictionary in the returned list has a value
+        which is itself a dictionary, with keys 'start_frequency_hz',
+        'num_channels', and 'frequency_inc_hz'.
+        """
+        # If the input is int, convert it into list
+        if isinstance(central_freqs, int):
+            central_freqs = [central_freqs]
+        if isinstance(channel_bandwidths, int):
+            channel_bandwidths = [channel_bandwidths]
+        if isinstance(n_channels, int):
+            n_channels = [n_channels]
+
+        observations = []
+        for cf, cb, nc in zip(central_freqs, channel_bandwidths, n_channels):
+            obs = copy.deepcopy(settings_tree)
+            obs["observation"]["start_frequency_hz"] = cf
+            obs["observation"]["num_channels"] = nc
+            obs["observation"]["frequency_inc_hz"] = cb
+            observations.append(obs)
+        return observations
+
+    @staticmethod
     def extract_multiple_observations_from_settings(
         settings: OskarSettingsTreeType,
         number_of_observations: int,
-        channel_bandwidth_hz: IntFloat,
+        channel_bandwidth_hz: int,
     ) -> List[OskarSettingsTreeType]:
         """
         Extracts the settings of multiple observations from a settings dictionary.
@@ -128,6 +183,7 @@ class Observation:
         # Extract some settings from the dictionary
         n_channels = int(settings["observation"]["num_channels"])
         start_frequency_hz = float(settings["observation"]["start_frequency_hz"])
+        freq_inc_hz = float(settings["observation"]["frequency_inc_hz"])
 
         # Calculate n_channels per split
         n_channels_per_split = int(
@@ -135,10 +191,12 @@ class Observation:
         )  # round up
 
         # Calculate the observed frequency
-        observed_frequency_hz = n_channels * channel_bandwidth_hz
+        observed_frequency_hz = n_channels * freq_inc_hz
 
         # Create a list of settings for each observation
-        current_start_frequency_hz = start_frequency_hz
+        current_start_frequency_hz = (
+            start_frequency_hz - (observed_frequency_hz / 2) + freq_inc_hz / 2
+        )
 
         while observed_frequency_hz > 0:
             current_settings = copy.deepcopy(settings)
