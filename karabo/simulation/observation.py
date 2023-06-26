@@ -1,6 +1,7 @@
 import copy
 from abc import ABC
 from datetime import datetime, timedelta
+from itertools import cycle
 from typing import List, Union
 
 from karabo.error import KaraboError
@@ -121,7 +122,6 @@ class ObservationAbstract(ABC):
         Create observations for OSKAR settings from input lists.
         If there is a mix of different lengths of lists or single values,
         the missing information is repeated to match the longest list.
-        See functionality of python's zip() function.
 
         Parameters
         ----------
@@ -159,15 +159,37 @@ class ObservationAbstract(ABC):
         if not isinstance(n_channels, List):
             n_channels = [n_channels]
 
+        # Get max list length
+        max_list_length = max(
+            len(central_frequencies_hz), len(channel_bandwidths_hz), len(n_channels)
+        )
+
+        # Initialize cycle iterators
+        cycle_cf = cycle(central_frequencies_hz)
+        cycle_cb = cycle(channel_bandwidths_hz)
+        cycle_nc = cycle(n_channels)
+
+        # Extend the lists to match max_list_length by cycling over their elements
+        while len(central_frequencies_hz) < max_list_length:
+            central_frequencies_hz.append(next(cycle_cf))
+
+        while len(channel_bandwidths_hz) < max_list_length:
+            channel_bandwidths_hz.append(next(cycle_cb))
+
+        while len(n_channels) < max_list_length:
+            n_channels.append(next(cycle_nc))
+
         observations = []
         for cf, cb, nc in zip(
             central_frequencies_hz, channel_bandwidths_hz, n_channels
         ):
             obs = copy.deepcopy(settings_tree)
-            obs["observation"]["start_frequency_hz"] = cf
-            obs["observation"]["num_channels"] = nc
-            obs["observation"]["frequency_inc_hz"] = cb
+            obs["observation"]["start_frequency_hz"] = str(cf)
+            obs["observation"]["num_channels"] = str(nc)
+            obs["observation"]["frequency_inc_hz"] = str(cb)
             observations.append(obs)
+        assert len(observations) == max_list_length
+
         return observations
 
     def __strfdelta(
@@ -262,7 +284,7 @@ class ObservationParallized(ObservationAbstract):
     def __init__(
         self,
         mode: str = "Tracking",
-        center_frequencies: Union[IntFloat, List[IntFloat]] = 100e6,
+        center_frequencies_hz: Union[IntFloat, List[IntFloat]] = 100e6,
         start_date_and_time: Union[datetime, str] = datetime.utcnow(),
         length: timedelta = timedelta(hours=4),
         n_channels: Union[IntFloat, List[IntFloat]] = [0, 1, 2, 3, 4, 5],
@@ -283,6 +305,6 @@ class ObservationParallized(ObservationAbstract):
             phase_centre_dec_deg=phase_centre_dec_deg,
             number_of_time_steps=number_of_time_steps,
         )
-        self.center_frequencies = center_frequencies
+        self.center_frequencies_hz = center_frequencies_hz
         self.n_channels = n_channels
         self.channel_bandwidths_hz = channel_bandwidths_hz

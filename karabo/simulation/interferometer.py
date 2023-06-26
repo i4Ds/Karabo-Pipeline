@@ -328,6 +328,10 @@ class InterferometerSimulation:
         # the sky (explained in documentation)
         array_sky = sky.sources
 
+        # Check if there is a dask client
+        if self.client is None:
+            self.client = DaskHandler.get_dask_client()
+
         if array_sky is None:
             raise KaraboInterferometerSimulationError(
                 "Sky model has not been loaded. Please load the sky model first."
@@ -341,13 +345,17 @@ class InterferometerSimulation:
         settings_tree = observation.get_OSKAR_settings_tree()
         observations = Observation.create_observations_oskar_from_lists(
             settings_tree=settings_tree,
-            central_frequencies_hz=observation.center_frequencies,
+            central_frequencies_hz=observation.center_frequencies_hz,
             channel_bandwidths_hz=observation.channel_bandwidths_hz,
             n_channels=observation.n_channels,
         )
 
-        run_simu_delayed = delayed(self.__setup_run_simulation_oskar)
+        # Some dask stuff
+        run_simu_delayed = delayed(self.__run_simulation_oskar)
         delayed_results = []
+
+        # Scatter sky
+        array_sky = self.client.scatter(array_sky)
 
         for observation_params in observations:
             # Create params
