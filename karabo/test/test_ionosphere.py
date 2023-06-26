@@ -133,10 +133,3 @@ class TestSystemNoise(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/test_ion.fits", overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
-
-
-if __name__ == "__main__":
-    tsn = TestSystemNoise()
-    print("start-test")
-    tsn.test_ionosphere()
-    print("end-test")

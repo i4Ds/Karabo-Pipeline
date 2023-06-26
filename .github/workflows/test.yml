@@ -46,7 +46,6 @@ jobs:
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
           pip install . --no-deps
-          python -m karabo.test.test_ionosphere karabo/test/test_ionosphere.py
           python -m xmlrunner -o ./test-reports/junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
