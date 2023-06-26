@@ -232,4 +232,4 @@ class ObservationLong(Observation):
                 f"`number_of_days` must be >=2 but is {self.number_of_days}!"
             )
         if self.length > timedelta(hours=12):
-            raise KaraboError(f"`length` should be max 4 hours but is {self.length}!")
+            raise KaraboError(f"`length` should be max 12 hours but is {self.length}!")
