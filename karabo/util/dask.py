@@ -112,8 +112,8 @@ def dask_cleanup(client: Client) -> None:
         os.remove("karabo-dask-dashboard.txt")
 
     if client is not None:
+        client.shutdown(targets="all", hub=True)
         client.close()
-        client.shutdown()
 
 
 def prepare_slurm_nodes_for_dask() -> None:
@@ -129,8 +129,10 @@ def prepare_slurm_nodes_for_dask() -> None:
             "Detected SLURM cluster. Setting up dask on the following "
             f"nodes: {slurm_job_nodelist}"
         )
-        print("Detected SLURM cluster. Setting up dask on the following "
-              f"nodes: {slurm_job_nodelist}")
+        print(
+            "Detected SLURM cluster. Setting up dask on the following "
+            f"nodes: {slurm_job_nodelist}"
+        )
         print(f"First Node, containing the scheduler, is: {get_node_name()}")
     else:
         pass
