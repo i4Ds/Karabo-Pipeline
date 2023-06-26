@@ -30,10 +30,9 @@ class TestSystemNoise(unittest.TestCase):
         _ = SkyModel.get_fits_catalog(path)
 
     def test_mock_mightee(self):
-        sky = SkyModel()
         mightee1 = SkyModel.get_MIGHTEE_Sky()
         # mightee0=fits.open('https://object.cscs.ch:443/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits');mightee_continuum=mightee0[1].data
-        mightee_continuum = mightee1.to_array()
+        mightee_continuum = mightee1.to_np_array()
         sky_data = np.zeros((len(mightee_continuum), 12))
         sky_data[:, 0] = mightee_continuum[:, 0]
         sky_data[:, 1] = mightee_continuum[:, 1]
@@ -42,7 +41,7 @@ class TestSystemNoise(unittest.TestCase):
         sky_data[:, 9] = mightee_continuum[:, 9]
         sky_data[:, 10] = mightee_continuum[:, 10]
         sky_data[:, 11] = mightee_continuum[:, 11]
-        sky.add_point_sources(sky_data)
+        sky = SkyModel(sky_data)
         ra_list = [150.0, 150.5, 160.0]
         dec_list = [2.0, 2.5, 3.0]
         f_obs = 1.0e9
@@ -133,7 +132,6 @@ class TestSystemNoise(unittest.TestCase):
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/mock_mightee/noise_dirty.fits")
         time_end=(time.time() - start_time)
-        print(time_vis,time_vis_write,time_end)
         dirty.plot(title='Flux Density (Jy)',vmin=0,vmax=0.5)
         plt.plot(
             [1, 10, 30, 60, 80, 100],

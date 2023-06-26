@@ -12,6 +12,10 @@ class KaraboInterferometerSimulationError(KaraboError):
     ...
 
 
+class KaraboSkyModelError(KaraboError):
+    ...
+
+
 class KaraboPinocchioError(KaraboError):
     ...
 
