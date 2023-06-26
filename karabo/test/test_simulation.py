@@ -50,32 +50,32 @@ class TestSimulation(unittest.TestCase):
         simulation.run_simulation(telescope, sky, observation)
 
     def test_create_observations_oskar_settings_tree(self):
-        CENTRAL_FREQS = [200, 250, 370, 300, 301]
+        central_frequencies_hz = [200, 250, 370, 300, 301]
         CHANNEL_BANDWIDTHS = [1, 2, 3, 4, 5]
         N_CHANNELS = [1, 2, 3, 4, 5]
 
         obs = Observation()
         settings_tree = obs.get_OSKAR_settings_tree()
         observations = Observation.create_observations_oskar_from_lists(
-            settings_tree, CENTRAL_FREQS, CHANNEL_BANDWIDTHS, N_CHANNELS
+            settings_tree, central_frequencies_hz, CHANNEL_BANDWIDTHS, N_CHANNELS
         )
         for i, observation in enumerate(observations):
             start_frequency_hz = float(observation["observation"]["start_frequency_hz"])
             n_channels = int(observation["observation"]["num_channels"])
             freq_inc_hz = float(observation["observation"]["frequency_inc_hz"])
 
-            assert start_frequency_hz == CENTRAL_FREQS[i]
+            assert start_frequency_hz == central_frequencies_hz[i]
             assert n_channels == N_CHANNELS[i]
             assert freq_inc_hz == CHANNEL_BANDWIDTHS[i]
 
-        CENTRAL_FREQS = [200, 300, 400]
+        central_frequencies_hz = [200, 300, 400]
         CHANNEL_BANDWIDTHS = 5
         N_CHANNELS = 1
 
         obs = Observation()
         settings_tree = obs.get_OSKAR_settings_tree()
         observations = Observation.create_observations_oskar_from_lists(
-            settings_tree, CENTRAL_FREQS, CHANNEL_BANDWIDTHS, N_CHANNELS
+            settings_tree, central_frequencies_hz, CHANNEL_BANDWIDTHS, N_CHANNELS
         )
 
         for i, observation in enumerate(observations):
@@ -83,7 +83,7 @@ class TestSimulation(unittest.TestCase):
             n_channels = int(observation["observation"]["num_channels"])
             freq_inc_hz = float(observation["observation"]["frequency_inc_hz"])
 
-            assert start_frequency_hz == CENTRAL_FREQS[i]
+            assert start_frequency_hz == central_frequencies_hz[i]
             assert n_channels == N_CHANNELS
             assert freq_inc_hz == CHANNEL_BANDWIDTHS
 
