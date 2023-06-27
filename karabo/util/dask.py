@@ -38,7 +38,9 @@ class DaskHandler:
     min_gb_ram_per_worker : Optional[float]
         The minimum RAM to allocate per worker in GB.
     n_threads_per_worker : int
-        The number of threads to use per worker. Standard is 1.
+        The number of threads to use per worker. Standard is None, which
+        means that the number of threads will be equal to the number of
+        cores.
     use_dask: Optional[bool]
         Whether to use Dask or not. If None, Dask will be used if the
         current node is a SLURM node and there are more than 1 node.
