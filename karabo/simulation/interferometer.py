@@ -200,6 +200,10 @@ class InterferometerSimulation:
         gauss_beam_fwhm_deg: IntFloat = 0.0,
         gauss_ref_freq_hz: IntFloat = 0.0,
         ionosphere_fits_path: Optional[str] = None,
+        ionosphere_screen_type: Optional[str] = None,
+        ionosphere_screen_height_km: Optional[float] = 300,
+        ionosphere_screen_pixel_size_m: Optional[float] = 0,
+        ionosphere_isoplanatic_screen: Optional[bool] = False,
     ) -> None:
         self.ms_file_path = ms_file_path
         self.vis_path = vis_path
@@ -269,6 +273,10 @@ class InterferometerSimulation:
             self.gauss_beam_fwhm_deg = gauss_beam_fwhm_deg
         self.gauss_ref_freq_hz = gauss_ref_freq_hz
         self.ionosphere_fits_path = ionosphere_fits_path
+        self.ionosphere_screen_type = ionosphere_screen_type
+        self.ionosphere_screen_height_km = ionosphere_screen_height_km
+        self.ionosphere_screen_pixel_size_m = ionosphere_screen_pixel_size_m
+        self.ionosphere_isoplanatic_screen = ionosphere_isoplanatic_screen
 
     @overload
     def run_simulation(
@@ -669,10 +677,13 @@ class InterferometerSimulation:
         if self.ionosphere_fits_path:
             settings["telescope"].update(
                 {
-                    "ionosphere_screen_type": "External",
                     "external_tec_screen/input_fits_file": str(
                         self.ionosphere_fits_path
                     ),
+                    "ionosphere_screen_type": self.ionosphere_screen_type,
+                    "isoplanatic_screen": self.ionosphere_isoplanatic_screen,
+                    "external_tec_screen/screen_height_km": self.ionosphere_screen_height_km,  # noqa: E501
+                    "external_tec_screen/screen_pixel_size_m": self.ionosphere_screen_pixel_size_m,  # noqa: E501
                 }
             )
 
