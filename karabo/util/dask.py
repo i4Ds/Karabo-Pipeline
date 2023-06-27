@@ -42,6 +42,7 @@ class DaskHandler:
     use_dask: Optional[bool]
         Whether to use Dask or not. If None, Dask will be used if the
         current node is a SLURM node and there are more than 1 node.
+        You can overwrite this by setting this attribute to True or False.
     use_workers_or_nannies: Optional[str]
         Whether to use workers or nannies. If None, nannies will be used.
         This could lead to more processing (see documentation for dask usage
@@ -53,6 +54,12 @@ class DaskHandler:
 
     Methods
     -------
+    setup() -> Client:
+        Sets up the Dask client. If the client does not exist, and the
+        current node is a SLURM node and there are more than 1 node, a
+        Dask client will be created. Also, it stops the execution of the
+        program on non-scheduler nodes until the scheduler node is ready.
+        Basically, just call this function at the start of your program.
     get_dask_client() -> Client:
         Returns a Dask client object. If the client does not exist, and
         the current node is a SLURM node and there are more than 1 node,
@@ -67,6 +74,11 @@ class DaskHandler:
     use_dask: Optional[bool] = None
     use_workers_or_nannies: Optional[str] = "nannies"
     TIMEOUT: int = 60
+
+    @staticmethod
+    def setup() -> None:
+        _ = DaskHandler.get_dask_client()
+        print("Dask client setup complete.")
 
     @staticmethod
     def get_dask_client() -> Client:
@@ -112,11 +124,7 @@ def dask_cleanup(client: Client) -> None:
         os.remove("karabo-dask-dashboard.txt")
 
     if client is not None:
-        print(
-            "------------------------------------------------------Shutdown-----------"
-            "-------------------------------------------------"
-        )
-        client.shutdown(targets="all", hub=True)
+        client.shutdown()
         client.close()
 
 
@@ -133,11 +141,6 @@ def prepare_slurm_nodes_for_dask() -> None:
             "Detected SLURM cluster. Setting up dask on the following "
             f"nodes: {slurm_job_nodelist}"
         )
-        print(
-            "Detected SLURM cluster. Setting up dask on the following "
-            f"nodes: {slurm_job_nodelist}"
-        )
-        print(f"First Node, containing the scheduler, is: {get_node_name()}")
     else:
         pass
 
@@ -233,14 +236,6 @@ def setup_dask_for_slurm(
         return dask_client
 
     else:
-        # Wait until dask info file is created
-        while not os.path.exists(DASK_INFO_ADDRESS):
-            time.sleep(1)
-
-        # Load dask info file
-        with open(DASK_INFO_ADDRESS, "r") as f:
-            dask_info = json.load(f)
-
         # Wait until dask info file is created
         while not os.path.exists(DASK_INFO_ADDRESS):
             time.sleep(1)
