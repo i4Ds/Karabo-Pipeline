@@ -4,7 +4,6 @@ import os
 import pytest
 
 
-@pytest.mark.test
 def test_examples():
     """Test all examples in the documentation"""
     # get all example scripts

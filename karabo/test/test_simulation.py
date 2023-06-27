@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -61,7 +64,8 @@ def test_parallelization_by_observation():
             vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        dirty.write_to_file(f"result/parallized_by_obs/dirty_{i}.fits", overwrite=True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dirty.write_to_file(os.path.join(tmpdir, f"dirty_{i}.fits"), overwrite=True)
         assert dirty.header["CRVAL4"] == CENTER_FREQUENCIES_HZ[i]
         assert dirty.header["NAXIS4"] == N_CHANNELS[i]
         assert dirty.header["CDELT4"] == CHANNEL_BANDWIDTHS_HZ[i]

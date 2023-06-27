@@ -2,7 +2,6 @@ import os
 from datetime import datetime, timedelta
 
 import numpy as np
-import pytest
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -13,30 +12,6 @@ from karabo.simulation.visibility import Visibility
 from karabo.util.data_util import Gauss, resample_spectral_lines
 
 
-@pytest.fixture(scope="module", autouse=True)
-def setup_module():
-    # make dir for result files
-    if not os.path.exists("result/system_noise"):
-        os.makedirs("result/system_noise")
-
-    # def disabled_plot_spectral_profiles(self):
-    #    # popt, pcov = curve_fit(
-    #    #     Voigt, x, y,
-    #    #     p0=[8, np.max(y), -(np.max(y) - np.min(y)), sigma, gamma],
-    #    # )
-    #     plt.plot(dfreq_arr,y_voigt,label='Voigt')
-    #     plt.xlabel('$\\frac{f-f_0}{f_0}$')
-    #     plt.ylabel('Flux Density (Jy)')
-    #     plt.plot(dfreq_arr,y_gauss,label='Gaussian')
-    #     plt.xlabel('$\\frac{f-f_0}{f_0}$')
-    #     plt.ylabel('Flux Density (Jy)')
-    #     for i in range(nfreq):
-    #         plt.axvline(x=dfreq_sample[i],color='red')
-    #     plt.legend()
-    #     plt.show()
-
-
-@pytest.mark.skip(reason="Not a test")
 def simulate_spectral_vis(
     ra_spec,
     dec_spec,
@@ -186,7 +161,7 @@ def test_disabled_spectral_line():
     ra_spec = 20.2
     dec_spec = -30.2
     spec_path = "./result/spectral_line/"
-    spectral_vis_output, spectral_ms_output = simulate_spectral_vis(
+    spectral_vis_output, _ = simulate_spectral_vis(
         ra_spec,
         dec_spec,
         phase_ra,

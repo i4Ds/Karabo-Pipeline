@@ -27,7 +27,7 @@ def test_constructor_with_date_time():
     ), "ObservationLong constructor with datetime object broken"
 
 
-def test_create_observations_oskar_settings_tree(self):
+def test_create_observations_oskar_settings_tree():
     central_frequencies_hz = [200, 250, 370, 300, 301]
     CHANNEL_BANDWIDTHS = [1, 2, 3, 4, 5]
     N_CHANNELS = [1, 2, 3, 4, 5]

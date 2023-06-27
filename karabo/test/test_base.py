@@ -9,7 +9,7 @@ from karabo.test import data_path
 
 
 @dataclass
-class TestObject(frozen=True):
+class TestObject:
     """Read-only repo-artifact paths.
 
     It is assumed that all artifacts here exist in the repo
