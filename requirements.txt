@@ -13,10 +13,6 @@ pre-commit==3.2.2
 # types for mypy
 types-requests
 
-# testing tools
-nbconvert
-nbformat
-
 # doc tools
 myst-parser
 sphinx

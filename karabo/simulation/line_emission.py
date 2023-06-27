@@ -167,7 +167,6 @@ def plot_scatter_recon(
     outfile: str,
     header: fits.header.Header,
     vmin: IntFloat = 0,
-    vmax: IntFloat = 0.4,
     cut: Optional[IntFloat] = None,
 ) -> None:
     """
@@ -178,7 +177,6 @@ def plot_scatter_recon(
     :param outfile: The path of the plot.
     :param header: The header of the recon_image.
     :param vmin: Minimum value of the colorbar.
-    :param vmax: Maximum value of the colorbar.
     :param cut: Smaller FOV
     """
 
@@ -209,9 +207,7 @@ def plot_scatter_recon(
     ax1.invert_xaxis()
 
     ax2 = fig.add_subplot(122, projection=wcs, slices=slices)
-    recon_img = ax2.imshow(
-        recon_image, cmap="YlGnBu", origin="lower", vmin=vmin, vmax=vmax
-    )
+    recon_img = ax2.imshow(recon_image, cmap="YlGnBu", origin="lower", vmin=vmin)
     plt.colorbar(recon_img, ax=ax2, label="Flux Density [Jy]")
 
     plt.tight_layout()
@@ -361,6 +357,7 @@ def karabo_reconstruction(
         enable_power_pattern=True,
         gauss_beam_fwhm_deg=gaussian_fwhm,
         gauss_ref_freq_hz=gaussian_ref_freq,
+        use_dask=False,
     )
     print("Setup observation parameters...")
     observation = Observation(
@@ -393,7 +390,7 @@ def karabo_reconstruction(
             "Creation of a pdf with scatter plot and reconstructed image to ",
             str(outfile),
         )
-        plot_scatter_recon(sky, dirty_image, outfile, header)
+        plot_scatter_recon(sky, dirty_image, outfile, header, cut=cut)
 
     if mosaic_pntg_file is not None:
         print(

@@ -12,10 +12,14 @@ class FileHandle:
     Parameters
     ----------
     path : str, optional
-        Directory path where the resulting files will be stored or
-        a file path.
-        If not provided, a default directory named 'karabo_folder'
-        will be created in the current working directory.
+        File path where the resulting file will be stored.
+        If not provided, a uuid will be created.
+        Can also be a folder but then it needs to be a
+        .ms file.
+    dir : str, optional
+        Directory where the resulting file will be stored.
+        If not provided, it either will be saved in the current
+        working directory or in a scratch folder if it exists.
     create_additional_folder_in_dir : bool, optional
         Whether to create a new folder inside the directory specified
         by dir. Default is False. If True, a unique UUID will be used
@@ -23,8 +27,12 @@ class FileHandle:
     file_name : str, optional
         Name of the output file. If not provided, a unique UUID will
         be used as the filename.
+    file_is_dir : bool
+        If the file_name is a folder instead of a file.
+        Example: for measurement sets the "file" is a folder.
     suffix : str, optional
         Suffix to add to the filename. Default is an empty string.
+        Example: ".MS"
 
     Attributes
     ----------
@@ -47,51 +55,64 @@ class FileHandle:
     def __init__(
         self,
         path: Optional[str] = None,
+        dir: Optional[str] = None,
         create_additional_folder_in_dir: bool = False,
         file_name: Optional[str] = None,
+        file_is_dir: bool = False,
         suffix: str = "",
     ) -> None:
-        # Check if the dir ends with .vis
-        # If yes, it's a file path, so we need to extract the directory
-        # and the file name and set the suffix to nothing.
-        if path and os.path.isfile(path):
-            file_name = os.path.basename(path)
-            path = os.path.dirname(path)
-            suffix = ""
+        use_scratch_folder_if_exist: bool = True
+        use_slurm_job_id_if_exist: bool = True
 
-        # If a directory is provided, use it as the base path
-        if path:
-            base_path = os.path.abspath(path)
-        else:
-            base_path = os.path.join(os.getcwd(), "karabo_folder")
-            if suffix.lower() == ".ms":
-                base_path = os.path.join(base_path, str(uuid.uuid4()) + ".MS")
+        # Some logic
+        if not dir:
+            if path:
+                dir = os.path.split(path)[0]
+            elif "SCRATCH" in os.environ and use_scratch_folder_if_exist:
+                dir = os.path.join(os.environ["SCRATCH"], "karabo_folder")
             else:
-                base_path = os.path.join(base_path, str(uuid.uuid4()))
+                dir = os.path.join(os.getcwd(), "karabo_folder")
+            if "SLURM_JOB_ID" in os.environ and use_slurm_job_id_if_exist:
+                dir = os.path.join(dir, os.environ["SLURM_JOB_ID"])
 
-        # If a new folder to host the data should be created inside the base_path
         if create_additional_folder_in_dir:
-            base_path = os.path.join(base_path, str(uuid.uuid4()))
+            dir = os.path.join(dir, str(uuid.uuid4()))
 
-        # Make the base path if it does not exist
-        if not os.path.exists(base_path):
-            os.makedirs(base_path, exist_ok=True)
+        if not file_name:
+            if path:
+                file_name = path.split(os.path.sep)[-1]
+            else:
+                file_name = str(uuid.uuid4()) + suffix
 
-        # If a file name is provided, use it as the path
-        if file_name:
-            self.path = os.path.join(base_path, file_name + suffix)
+        if not path:
+            path = os.path.join(dir, file_name)
+
+        # Add some logic to file_is_dir
+        if path.lower().endswith(".ms") or file_name.lower().endswith(".ms"):
+            file_is_dir = True
+
+        if file_is_dir:
+            os.makedirs(path, exist_ok=True)
         else:
-            self.path = base_path
+            os.makedirs(dir, exist_ok=True)
 
-        self.dir = base_path
+        # Set variables
+        self.path = path
+        self.dir = dir
         self.file_name = file_name
-        self.suffix = suffix
 
     def clean_up(self) -> None:
-        shutil.rmtree(self.dir)
+        if os.path.exists(self.path):
+            if os.path.isfile(self.path):
+                self.remove_file(self.path)
+            else:
+                self.remove_dir(self.path)
 
     def remove_file(self, file_path: str) -> None:
         os.remove(file_path)
+
+    def remove_dir(self, dir_path: str) -> None:
+        shutil.rmtree(dir_path)
 
     def copy_file(self, file_path: str) -> None:
         file_name = file_path.split(os.path.sep)[-1]

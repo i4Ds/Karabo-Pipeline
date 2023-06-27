@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import numpy as np
+import xarray as xr
 from numpy.typing import NDArray
 
 from karabo.data.external_data import ExampleHDF5Map
@@ -19,12 +20,12 @@ def test_init(sky_data_with_ids: NDArray[np.object_]):
 
 def test_not_full_array():
     sky1 = SkyModel()
-    sky_data = np.array([[20.0, -30.0, 1], [20.0, -30.5, 3], [20.5, -30.5, 3]])
+    sky_data = xr.DataArray([[20.0, -30.0, 1], [20.0, -30.5, 3], [20.5, -30.5, 3]])
     sky1.add_point_sources(sky_data)
     sky2 = SkyModel(sky_data)
     # test if doc shape were expanded
-    assert sky1.sources.shape == (sky_data.shape[0], 13)
-    assert sky2.sources.shape == (sky_data.shape[0], 13)
+    assert sky1.sources.shape == sky_data.shape
+    assert sky2.sources.shape == sky_data.shape
 
 
 def test_plot_gleam():
@@ -68,7 +69,7 @@ def test_read_write_sky_model(sky_data: NDArray[np.float64]):
 def test_read_healpix_map():
     download = ExampleHDF5Map()
     path = download.get()
-    source_array, nside = SkyModel.read_healpix_file_to_sky_model_array(
+    source_array, _ = SkyModel.read_healpix_file_to_sky_model_array(
         f"{path}",
         0,
         Polarisation.STOKES_I,

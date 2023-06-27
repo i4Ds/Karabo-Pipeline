@@ -27,7 +27,7 @@ def test_mightee_download():
 def test_mock_mightee():
     sky = SkyModel()
     mightee1 = SkyModel.get_MIGHTEE_Sky()
-    mightee_continuum = mightee1.to_array()
+    mightee_continuum = mightee1.to_np_array()
     sky_data = np.zeros((len(mightee_continuum), 12))
     sky_data[:, 0] = mightee_continuum[:, 0]
     sky_data[:, 1] = mightee_continuum[:, 1]
@@ -128,7 +128,6 @@ def test_mock_mightee():
         dirty = imager.get_dirty_image()
         dirty.write_to_file("result/mock_mightee/noise_dirty.fits")
         time_end=(time.time() - start_time)
-        print(time_vis,time_vis_write,time_end)
         dirty.plot(title='Flux Density (Jy)',vmin=0,vmax=0.5)
         plt.plot(
             [1, 10, 30, 60, 80, 100],
