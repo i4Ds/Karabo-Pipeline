@@ -3,7 +3,6 @@ import os
 import unittest
 from datetime import datetime, timedelta
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
