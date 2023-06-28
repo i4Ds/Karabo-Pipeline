@@ -14,8 +14,6 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 
-matplotlib.use("TkAgg")
-
 
 class MyTestCase(unittest.TestCase):
     @classmethod
