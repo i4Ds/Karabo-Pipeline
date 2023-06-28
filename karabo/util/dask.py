@@ -139,6 +139,7 @@ def prepare_slurm_nodes_for_dask() -> None:
         slurm_job_nodelist = check_env_var(
             var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
         )
+        print("Preparing SLURM nodes for dask...")
         print(f"First Node, containing the scheduler, is: {get_node_name()}")
         print("With the help of dask, the following nodes will be used:")
         print(f"{slurm_job_nodelist}")
