@@ -112,11 +112,7 @@ def dask_cleanup(client: Client) -> None:
         os.remove("karabo-dask-dashboard.txt")
 
     if client is not None:
-        print(
-            "------------------------------------------------------Shutdown-----------"
-            "-------------------------------------------------"
-        )
-        client.shutdown(targets="all", hub=True)
+        client.shutdown()
         client.close()
 
 
