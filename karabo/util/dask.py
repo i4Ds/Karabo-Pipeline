@@ -4,9 +4,9 @@ import asyncio
 import atexit
 import json
 import os
-import time
 import sys
-from typing import Any, Callable, List, Optional, Tuple
+import time
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import psutil
 from dask.distributed import Client, LocalCluster, Nanny, Worker
@@ -85,14 +85,24 @@ class DaskHandler:
 
     # Some internal variables
     _nodes_prepared: bool = False
+    _setup_called: bool = False
 
     @staticmethod
     def setup() -> None:
         _ = DaskHandler.get_dask_client()
+        DaskHandler._setup_called = True
 
     @staticmethod
     def get_dask_client() -> Client:
         if DaskHandler.dask_client is None:
+            if not DaskHandler._setup_called:
+                print(
+                    KaraboWarning(
+                        "DaskHandler.setup() was not called at the beginning "
+                        "of the script. This could lead to unexpected behaviour "
+                        "(see documentation)."
+                    )
+                )
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
                     DaskHandler.n_workers_scheduler_node,
@@ -128,7 +138,7 @@ def dask_cleanup(client: Client) -> None:
     # Renove run status file
     if os.path.exists(DASK_RUN_STATUS):
         os.remove(DASK_RUN_STATUS)
-    
+
     # Wait for nannys to shut down
     time.sleep(10)
 
@@ -150,7 +160,11 @@ def prepare_slurm_nodes_for_dask() -> None:
     if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
         DaskHandler.use_dask = False
         return
-    elif is_first_node() and DaskHandler.dask_client is None and not DaskHandler._nodes_prepared:
+    elif (
+        is_first_node()
+        and DaskHandler.dask_client is None
+        and not DaskHandler._nodes_prepared
+    ):
         DaskHandler._nodes_prepared = True
         slurm_job_nodelist = check_env_var(
             var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
@@ -168,6 +182,7 @@ def prepare_slurm_nodes_for_dask() -> None:
         # TODO: Here setup_nannies_workers_for_slurm() could be called
         # but there is no if name == main guard in this file.
         pass
+
 
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
@@ -210,7 +225,7 @@ def get_local_dask_client(
     return client
 
 
-def setup_nannies_workers_for_slurm():
+def setup_nannies_workers_for_slurm() -> None:
     # Wait until dask info file is created
     while not os.path.exists(DASK_INFO_ADDRESS):
         time.sleep(1)
@@ -232,7 +247,7 @@ def setup_nannies_workers_for_slurm():
             memory_limit=memory_limit,
         )
         await worker.finished()
-        return worker
+        return worker  # type: ignore
 
     async def start_nanny(scheduler_address: str) -> Nanny:
         nanny = await Nanny(
@@ -241,13 +256,13 @@ def setup_nannies_workers_for_slurm():
             memory_limit=memory_limit,
         )
         await nanny.finished()
-        return nanny
+        return nanny  # type: ignore
 
     scheduler_address = str(dask_info["scheduler_address"])
     n_workers = int(str(dask_info["n_workers_per_node"]))
 
     # Start workers or nannies
-    workers_or_nannies = []
+    workers_or_nannies: List[Union[Worker, Nanny]] = []
     for _ in range(n_workers):
         if DaskHandler.use_workers_or_nannies == "workers":
             worker = asyncio.run(start_worker(scheduler_address))
@@ -266,10 +281,16 @@ def setup_nannies_workers_for_slurm():
         if result == "OK":
             pass
         else:
-            print(f"There was an issue closing the worker or nanny at {worker_or_nanny.address}.")
+            print(
+                f"""
+                There was an issue closing the worker or nanny at
+                 {worker_or_nanny.address}
+                """
+            )
 
     # Stop the script successfully
     sys.exit(0)
+
 
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
@@ -306,13 +327,16 @@ def setup_dask_for_slurm(
             get_number_of_nodes() - 1
         ) * n_workers_per_node + n_workers_scheduler_node
 
-        dask_client.wait_for_workers(n_workers=n_workers_requested, timeout=DaskHandler.TIMEOUT)
+        dask_client.wait_for_workers(
+            n_workers=n_workers_requested, timeout=DaskHandler.TIMEOUT
+        )
 
         print(f"All {len(dask_client.scheduler_info()['workers'])} workers connected!")
         return dask_client
 
     else:
         setup_nannies_workers_for_slurm()
+        return None  # type: ignore
 
 
 def extract_node_ids_from_node_list() -> List[int]:
