@@ -5,10 +5,10 @@ import atexit
 import json
 import os
 import time
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import psutil
-from dask.distributed import Client, LocalCluster, Worker
+from dask.distributed import Client, LocalCluster, Nanny, Worker
 
 from karabo.error import KaraboDaskError
 from karabo.util._types import IntFloat
@@ -37,21 +37,52 @@ class DaskHandler:
         The number of workers to start on the scheduler node.
     min_gb_ram_per_worker : Optional[float]
         The minimum RAM to allocate per worker in GB.
+    n_threads_per_worker : int
+        The number of threads to use per worker. Standard is None, which
+        means that the number of threads will be equal to the number of
+        cores.
+    use_dask: Optional[bool]
+        Whether to use Dask or not. If None, Dask will be used if the
+        current node is a SLURM node and there are more than 1 node.
+    use_workers_or_nannies: Optional[str]
+        Whether to use workers or nannies. If None, nannies will be used.
+        This could lead to more processing (see documentation for dask usage
+        in Karabo).
+    TIMEOUT: int
+        The timeout in seconds for the Dask scheduler to wait for all the
+        workers to connect.
+
 
     Methods
     -------
+    setup -> None:
+        Sets up the Dask client. If the client does not exist, and the
+        current node is a SLURM node and there are more than 1 node, a
+        Dask client will be created but not returned. Then, when a function
+        can make use of dask, it will make use of dask automatically. This
+        function need to be only called once at the beginning of the script.
+        It stops the processing of the script if the script is not running on the
+        main node.
     get_dask_client() -> Client:
         Returns a Dask client object. If the client does not exist, and
         the current node is a SLURM node and there are more than 1 node,
         a Dask client will be created.
+
+
 
     """
 
     dask_client: Optional[Client] = None
     n_workers_scheduler_node: int = 1
     min_gb_ram_per_worker: Optional[int] = None
+    n_threads_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
+    use_workers_or_nannies: Optional[str] = "nannies"
     TIMEOUT: int = 60
+
+    @staticmethod
+    def setup() -> None:
+        _ = DaskHandler.get_dask_client()
 
     @staticmethod
     def get_dask_client() -> Client:
@@ -97,8 +128,8 @@ def dask_cleanup(client: Client) -> None:
         os.remove("karabo-dask-dashboard.txt")
 
     if client is not None:
-        client.close()
         client.shutdown()
+        client.close()
 
 
 def prepare_slurm_nodes_for_dask() -> None:
@@ -106,56 +137,21 @@ def prepare_slurm_nodes_for_dask() -> None:
     if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
         DaskHandler.use_dask = False
         return
-    else:
-        print("Detected SLURM cluster. Setting up dask.")
+    elif is_first_node():
+        slurm_job_nodelist = check_env_var(
+            var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
+        )
+        print(
+            f"""
+            Preparing SLURM nodes for dask...
+            First Node, containing the scheduler, is: {get_node_name()}
+            With the help of dask, the following nodes will be used:
+            {slurm_job_nodelist}
+            """
+        )
 
-    # Check if we are on the first node
-    if is_first_node():
+    else:
         pass
-
-    else:
-        print("I am on a node! I need to start a dask worker.")
-        print(f"My Node ID: {get_node_id()}")
-        # Wait some time to make sure the scheduler file is new
-        time.sleep(10)
-
-        # Wait until dask info file is created
-        while not os.path.exists(DASK_INFO_ADDRESS):
-            time.sleep(1)
-
-        # Load dask info file
-        with open(DASK_INFO_ADDRESS, "r") as f:
-            dask_info = json.load(f)
-
-        print("I am on a node! I need to start a dask worker.")
-        print(f"My Node ID: {get_node_id()}")
-        # Wait some time to make sure the scheduler file is new
-        time.sleep(10)
-
-        # Wait until dask info file is created
-        while not os.path.exists(DASK_INFO_ADDRESS):
-            time.sleep(1)
-
-        # Load dask info file
-        with open(DASK_INFO_ADDRESS, "r") as f:
-            dask_info = json.load(f)
-
-        async def start_worker(scheduler_address: str) -> None:
-            worker = await Worker(scheduler_address)
-            await worker.finished()
-
-        scheduler_address = dask_info["scheduler_address"]
-        # Number of workers you want to start
-        n_workers = dask_info["n_workers_per_node"]
-
-        # Start workers
-        for _ in range(n_workers):
-            asyncio.run(start_worker(scheduler_address))
-
-        # Wait for the script to finish and for the
-        # kill signal to be sent
-        while True:
-            time.sleep(10)
 
 
 def calculate_number_of_workers_per_node(
@@ -194,6 +190,7 @@ def get_local_dask_client(
         LocalCluster(
             ip=get_node_name() if is_on_slurm_cluster() else None,
             n_workers=n_workers,
+            threads_per_worker=DaskHandler.n_threads_per_worker,
         )
     )
     return client
@@ -205,8 +202,11 @@ def setup_dask_for_slurm(
 ) -> Client:
     if is_first_node():
         # Create client and scheduler
-        print(f"First node. Name = {get_lowest_node_name()}")
-        cluster = LocalCluster(ip=get_node_name(), n_workers=n_workers_scheduler_node)
+        cluster = LocalCluster(
+            ip=get_node_name(),
+            n_workers=n_workers_scheduler_node,
+            threads_per_worker=DaskHandler.n_threads_per_worker,
+        )
         dask_client = Client(cluster)
 
         # Calculate number of workers per node
@@ -245,36 +245,84 @@ def setup_dask_for_slurm(
         return dask_client
 
     else:
-        raise KaraboDaskError("This function should only be reached on the first node.")
+        # Wait until dask info file is created
+        while not os.path.exists(DASK_INFO_ADDRESS):
+            time.sleep(1)
+
+        # Load dask info file
+        with open(DASK_INFO_ADDRESS, "r") as f:
+            dask_info = json.load(f)
+
+        # Calculate memory usage of each worker
+        if DaskHandler.min_gb_ram_per_worker is None:
+            memory_limit = f"{psutil.virtual_memory().available / 1e9}GB"
+        else:
+            memory_limit = f"{DaskHandler.min_gb_ram_per_worker}GB"
+
+        async def start_worker(scheduler_address: str) -> None:
+            worker = await Worker(
+                scheduler_address,
+                nthreads=DaskHandler.n_threads_per_worker,
+                memory_limit=memory_limit,
+            )
+            await worker.finished()
+
+        async def start_nanny(scheduler_address: str) -> None:
+            nanny = await Nanny(
+                scheduler_address,
+                nthreads=DaskHandler.n_threads_per_worker,
+                memory_limit=memory_limit,
+            )
+            await nanny.finished()
+
+        scheduler_address = str(dask_info["scheduler_address"])
+        # Number of workers you want to start
+        n_workers = int(str(dask_info["n_workers_per_node"]))
+
+        # Start workers
+        for _ in range(n_workers):
+            if DaskHandler.use_workers_or_nannies == "workers":
+                asyncio.run(start_worker(scheduler_address))
+            else:
+                asyncio.run(start_nanny(scheduler_address))
+
+        # Wait for the script to finish and for the
+        # kill signal to be sent
+        while True:
+            time.sleep(10)
 
 
-def get_min_max_of_node_id() -> Tuple[str, str]:
+def extract_node_ids_from_node_list() -> List[int]:
+    slurm_job_nodelist = check_env_var(
+        var="SLURM_JOB_NODELIST", fun=extract_node_ids_from_node_list
+    )
+    if get_number_of_nodes() == 1:
+        # Node name will be something like "psanagpu115"
+        return [extract_digit_from_string(slurm_job_nodelist)]
+    node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
+    id_ranges = node_list.split(",")
+    node_ids = []
+    for id_range in id_ranges:
+        if "-" in id_range:
+            min_id, max_id = id_range.split("-")
+            node_ids += [i for i in range(int(min_id), int(max_id) + 1)]
+        else:
+            node_ids.append(int(id_range))
+
+    return node_ids
+
+
+def get_min_max_of_node_id() -> Tuple[int, int]:
     """
     Returns the min max from SLURM_JOB_NODELIST.
     Works if it's run only on two nodes (separated with a comma)
     of if it runs on more than two nodes (separated with a dash).
     """
-    slurm_job_nodelist = check_env_var(
-        var="SLURM_JOB_NODELIST", fun=get_min_max_of_node_id
-    )
-    if get_number_of_nodes() == 1:
-        # Node name will be something like "psanagpu115"
-        min_max = extract_digit_from_string(slurm_job_nodelist)
-        print(f"Node min_max: {min_max}")
-        return min_max, min_max
-
-    node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
-    # If there is a comma, it means that there are only two nodes
-    # Example: psanagpu115,psanagpu116
-    # If there is a dash, it means that there are more than two nodes
-    # Example: psanagpu115-psanagpu117
-    if "," in node_list:
-        return node_list.split(",")[0], node_list.split(",")[1]
-    else:
-        return node_list.split("-")[0], node_list.split("-")[1]
+    node_list = extract_node_ids_from_node_list()
+    return min(node_list), max(node_list)
 
 
-def get_lowest_node_id() -> str:
+def get_lowest_node_id() -> int:
     return get_min_max_of_node_id()[0]
 
 
@@ -297,11 +345,11 @@ def get_number_of_nodes() -> int:
     return int(n_nodes)
 
 
-def get_node_id() -> str:
+def get_node_id() -> int:
     # Attention, often the node id starts with a 0.
     slurmd_nodename = check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
-    len_id = len(str(get_lowest_node_id()))
-    return slurmd_nodename[-len_id:]
+    len_id = len(get_base_string_node_list())
+    return int(slurmd_nodename[-len_id:])
 
 
 def get_node_name() -> str:
