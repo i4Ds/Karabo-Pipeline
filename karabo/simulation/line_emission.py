@@ -619,7 +619,11 @@ def line_emission_pointing(
         delayed_results = []
 
         # Xarray dask array to numpy
-        sky.sources = sky.sources.to_numpy()
+        if sources is None:
+            raise TypeError("`sources` None is not allowed! Please set them in"
+            " the `SkyModel` before calling this function.")
+        else:
+            sky.sources = sky.sources.to_numpy()
 
         # Scatter sky
         sky = client.scatter(sky)
