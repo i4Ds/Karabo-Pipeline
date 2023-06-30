@@ -95,12 +95,12 @@ class DaskHandler:
     @staticmethod
     def get_dask_client() -> Client:
         if DaskHandler.dask_client is None:
-            if not DaskHandler._setup_called:
+            if not DaskHandler._setup_called and is_first_node():
                 print(
                     KaraboWarning(
-                        "DaskHandler.setup() was not called at the beginning "
+                        "DaskHandler.setup() has to be called at the beginning "
                         "of the script. This could lead to unexpected behaviour "
-                        "(see documentation)."
+                        "if not (see documentation)."
                     )
                 )
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
