@@ -3,6 +3,8 @@ import unittest
 
 import numpy as np
 import xarray as xr
+from dask.array import from_array
+from dask.array.core import Array
 
 from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
@@ -131,3 +133,27 @@ class TestSkyModel(unittest.TestCase):
         assert isinstance(sky.sources, xr.DataArray)
         assert sky.num_sources > 0
         assert sky.to_np_array(with_obj_ids=True).shape == (sky.num_sources, 13)
+
+    def test_compute(self):
+        sources = np.array(
+            [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "source1"],
+                [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, "source2"],
+                [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, "source3"],
+                [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, "source4"],
+                [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, "source5"],
+            ],
+            dtype=object,
+        )
+        sources_xr = xr.DataArray(from_array(sources, chunks=2))
+        sky = SkyModel(sources_xr)
+        # Check that test data is correct
+        assert isinstance(sky.sources, xr.DataArray)
+        assert isinstance(sky.sources.data, Array)
+
+        # Check that compute works
+        sky.compute()
+        assert isinstance(sky.sources, xr.DataArray)
+        assert isinstance(sky.sources.data, np.ndarray)
+        assert sky.sources.data.shape == (5, 13)
+        assert np.all(sky.sources.data == sources)

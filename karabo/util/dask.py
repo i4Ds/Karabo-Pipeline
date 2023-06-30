@@ -38,7 +38,9 @@ class DaskHandler:
     min_gb_ram_per_worker : Optional[float]
         The minimum RAM to allocate per worker in GB.
     n_threads_per_worker : int
-        The number of threads to use per worker. Standard is 1.
+        The number of threads to use per worker. Standard is None, which
+        means that the number of threads will be equal to the number of
+        cores.
     use_dask: Optional[bool]
         Whether to use Dask or not. If None, Dask will be used if the
         current node is a SLURM node and there are more than 1 node.
@@ -53,10 +55,20 @@ class DaskHandler:
 
     Methods
     -------
+    setup -> None:
+        Sets up the Dask client. If the client does not exist, and the
+        current node is a SLURM node and there are more than 1 node, a
+        Dask client will be created but not returned. Then, when a function
+        can make use of dask, it will make use of dask automatically. This
+        function need to be only called once at the beginning of the script.
+        It stops the processing of the script if the script is not running on the
+        main node.
     get_dask_client() -> Client:
         Returns a Dask client object. If the client does not exist, and
         the current node is a SLURM node and there are more than 1 node,
         a Dask client will be created.
+
+
 
     """
 
@@ -67,6 +79,10 @@ class DaskHandler:
     use_dask: Optional[bool] = None
     use_workers_or_nannies: Optional[str] = "nannies"
     TIMEOUT: int = 60
+
+    @staticmethod
+    def setup() -> None:
+        _ = DaskHandler.get_dask_client()
 
     @staticmethod
     def get_dask_client() -> Client:
@@ -126,17 +142,16 @@ def prepare_slurm_nodes_for_dask() -> None:
             var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
         )
         print(
-            "Detected SLURM cluster. Setting up dask on the following "
-            f"nodes: {slurm_job_nodelist}"
+            f"""
+            Preparing SLURM nodes for dask...
+            First Node, containing the scheduler, is: {get_node_name()}
+            With the help of dask, the following nodes will be used:
+            {slurm_job_nodelist}
+            """
         )
-        print(
-            "Detected SLURM cluster. Setting up dask on the following "
-            f"nodes: {slurm_job_nodelist}"
-        )
-        print(f"First Node, containing the scheduler, is: {get_node_name()}")
+
     else:
         pass
-
 
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
@@ -229,14 +244,6 @@ def setup_dask_for_slurm(
         return dask_client
 
     else:
-        # Wait until dask info file is created
-        while not os.path.exists(DASK_INFO_ADDRESS):
-            time.sleep(1)
-
-        # Load dask info file
-        with open(DASK_INFO_ADDRESS, "r") as f:
-            dask_info = json.load(f)
-
         # Wait until dask info file is created
         while not os.path.exists(DASK_INFO_ADDRESS):
             time.sleep(1)
