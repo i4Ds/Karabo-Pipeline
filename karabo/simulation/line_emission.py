@@ -24,7 +24,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat
+from karabo.util._types import IntFloat, NPFloats
 from karabo.util.dask import DaskHandler
 
 
@@ -224,7 +224,7 @@ def plot_scatter_recon(
 
 
 def sky_slice(
-    sky: SkyModel, z_obs: NDArray[np.float_], z_min: np.float_, z_max: np.float_
+    sky: SkyModel, z_obs: NDArray[NPFloats], z_min: NPFloats, z_max: NPFloats
 ) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
@@ -426,9 +426,9 @@ def run_one_channel_simulation(
     path_outfile: str,
     sky: SkyModel,
     bin_idx: int,
-    z_obs: NDArray[np.float_],
-    z_min: np.float_,
-    z_max: np.float_,
+    z_obs: NDArray[NPFloats],
+    z_min: NPFloats,
+    z_max: NPFloats,
     freq_min: float,
     freq_bin: float,
     ra_deg: IntFloat,
@@ -476,10 +476,11 @@ def run_one_channel_simulation(
     :return: Reconstruction of one bin slice of the sky and its header.
     """
     if verbose:
-        print("Channel " + str(bin_idx) + " is being processed...")
+        print(
+            "Channel " + str(bin_idx) + " is being processed...\n"
+            "Extracting the corresponding frequency slice from the sky model..."
+        )
 
-    if verbose:
-        print("Extracting the corresponding frequency slice from the sky model...")
     sky_bin = sky_slice(sky, z_obs, z_min, z_max)
 
     if verbose:
@@ -511,7 +512,7 @@ def run_one_channel_simulation(
 def line_emission_pointing(
     path_outfile: str,
     sky: SkyModel,
-    z_obs: NDArray[np.float_],  # TODO: After branch 400-read_in_sky-exists the sky
+    z_obs: NDArray[NPFloats],  # TODO: After branch 400-read_in_sky-exists the sky
     # includes this information -> rewrite
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
@@ -620,10 +621,11 @@ def line_emission_pointing(
 
         # Xarray dask array to numpy
         if sky.sources is None:
-            raise TypeError("`sources` None is not allowed! Please set them in"
-            " the `SkyModel` before calling this function.")
-        else:
-            sky.sources = sky.sources.to_numpy()
+            raise TypeError(
+                "`sources` None is not allowed! Please set them in"
+                " the `SkyModel` before calling this function."
+            )
+        sky.sources = sky.sources.to_numpy()
 
         # Scatter sky
         sky = client.scatter(sky)

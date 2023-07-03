@@ -153,6 +153,7 @@ def prepare_slurm_nodes_for_dask() -> None:
     else:
         pass
 
+
 def calculate_number_of_workers_per_node(
     min_ram_gb_per_worker: Optional[IntFloat],
 ) -> int:
