@@ -610,9 +610,6 @@ def line_emission_pointing(
 
     # Run the simulation on the das cluster
     if client is not None:
-        # Define the function as delayed
-        run_simu_delayed = delayed(run_one_channel_simulation)
-
         # Calculate the number of jobs
         n_jobs = num_bins
         print(f"Submitting {n_jobs} jobs to the cluster.")
@@ -632,7 +629,7 @@ def line_emission_pointing(
 
         for bin_idx in range(num_bins):
             # Submit the jobs
-            delayed_ = run_simu_delayed(
+            delayed_ = delayed(run_one_channel_simulation)(
                 path_outfile,
                 sky,
                 bin_idx,
