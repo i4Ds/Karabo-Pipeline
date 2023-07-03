@@ -24,7 +24,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat
+from karabo.util._types import IntFloat, NPFloatLikeStrict
 from karabo.util.dask import DaskHandler
 
 
@@ -528,7 +528,7 @@ def line_emission_pointing(
     rascil: bool = True,
     client: Optional[Client] = None,
     verbose: bool = False,
-) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, float]:
+) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, np.float_]:
     """
     Simulating line emission for one pointing.
 
@@ -606,7 +606,7 @@ def line_emission_pointing(
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
 
     dirty_images = []
-    header = None
+    header: Optional[fits.header.Header] = None
 
     # Run the simulation on the das cluster
     if client is not None:
@@ -617,12 +617,13 @@ def line_emission_pointing(
         delayed_results = []
 
         # Xarray dask array to numpy
-        if sky.sources is None:
+        sources = sky.sources
+        if sources is None:
             raise TypeError(
                 "`sources` None is not allowed! Please set them in"
                 " the `SkyModel` before calling this function."
             )
-        sky.sources = sky.sources.to_numpy()
+        sky.sources = sources.to_numpy()  # type: ignore [assignment]
 
         # Scatter sky
         sky = client.scatter(sky)
@@ -658,6 +659,8 @@ def line_emission_pointing(
         headers = [x[1] for x in result]
         header = headers[0]
 
+    if header is None:
+        raise ValueError("No Header found.")
     dirty_image = cast(NDArray[np.float_], sum(dirty_images))
 
     print("Save summed dirty images as fits file")
@@ -677,7 +680,7 @@ def line_emission_pointing(
     return dirty_image, dirty_images, header, freq_mid
 
 
-def gaussian_fwhm_meerkat(freq: IntFloat) -> np.float64:
+def gaussian_fwhm_meerkat(freq: NPFloatLikeStrict) -> np.float64:
     """
     Computes the FWHM of MeerKAT for a certain observation frequency.
 
@@ -696,7 +699,7 @@ def gaussian_beam(
     dec_deg: IntFloat,
     img_size: int = 2048,
     cut: IntFloat = 1.2,
-    fwhm: IntFloat = 1.0,
+    fwhm: NPFloatLikeStrict = 1.0,
     outfile: str = "beam",
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
@@ -735,7 +738,7 @@ def gaussian_beam(
 def simple_gaussian_beam_correction(
     path_outfile: str,
     dirty_image: NDArray[np.float_],
-    gaussian_fwhm: IntFloat,
+    gaussian_fwhm: NPFloatLikeStrict,
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     cut: IntFloat = 3.0,

@@ -888,7 +888,7 @@ class SkyModel:
         """Sources setter.
 
         Does also allow numpy-arrays.
-        But mypy doesn't allow getter and setter to have different dtypes.
+        But mypy doesn't allow getter and setter to have different dtypes (issue 3004).
         Just set "# type: ignore [assignment]" in case you don't have exctly an `xarray`
 
         Args:
