@@ -12,7 +12,6 @@ NPUIntLike: TypeAlias = Union[
 NPIntLike: TypeAlias = Union[
     bool, int, np.integer
 ]  # not BoolLike because "-" doesn't support np.bool_
-NPFloats: TypeAlias = Union[float, np.float_]
 NPFloatLike: TypeAlias = Union[NPIntLike, float, np.floating]
 NPIntFloat: TypeAlias = Union[np.int_, np.float_]
 NPIntFloatCompl: TypeAlias = Union[NPIntFloat, np.complex_]

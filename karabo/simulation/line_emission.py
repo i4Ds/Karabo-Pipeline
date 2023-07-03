@@ -24,7 +24,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat, NPFloats
+from karabo.util._types import IntFloat
 from karabo.util.dask import DaskHandler
 
 
@@ -224,7 +224,7 @@ def plot_scatter_recon(
 
 
 def sky_slice(
-    sky: SkyModel, z_obs: NDArray[NPFloats], z_min: NPFloats, z_max: NPFloats
+    sky: SkyModel, z_obs: NDArray[np.float_], z_min: np.float_, z_max: np.float_
 ) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
@@ -273,7 +273,7 @@ def redshift_slices(
 
 def freq_channels(
     z_obs: NDArray[np.float_], channel_num: int = 10
-) -> Tuple[NDArray[np.float_], NDArray[np.float_], float, float]:
+) -> Tuple[NDArray[np.float_], NDArray[np.float_], np.float_, np.float_]:
     """
     Calculates the frequency channels from the redshifs.
     :param z_obs: Observed redshifts from the HI sources.
@@ -426,9 +426,9 @@ def run_one_channel_simulation(
     path_outfile: str,
     sky: SkyModel,
     bin_idx: int,
-    z_obs: NDArray[NPFloats],
-    z_min: NPFloats,
-    z_max: NPFloats,
+    z_obs: NDArray[np.float_],
+    z_min: np.float_,
+    z_max: np.float_,
     freq_min: float,
     freq_bin: float,
     ra_deg: IntFloat,
@@ -512,7 +512,7 @@ def run_one_channel_simulation(
 def line_emission_pointing(
     path_outfile: str,
     sky: SkyModel,
-    z_obs: NDArray[NPFloats],  # TODO: After branch 400-read_in_sky-exists the sky
+    z_obs: NDArray[np.float_],  # TODO: After branch 400-read_in_sky-exists the sky
     # includes this information -> rewrite
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
@@ -765,3 +765,33 @@ def simple_gaussian_beam_correction(
     )
 
     return dirty_image_corrected, header
+
+
+if __name__ == "__main__":
+    outpath = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
+        "Line_emission_pointing_2"
+    )
+    catalog_path = (
+        "/home/jennifer/Documents/SKAHIIM_Pipeline/Flux_calculation/"
+        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
+    )
+    ra = 20
+    dec = -30
+    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
+        catalog_path, ra, dec
+    )
+    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
+        outpath, sky_pointing, z_obs_pointing
+    )
+    plot_scatter_recon(sky_pointing, dirty_im, outpath, header_dirty, cut=3.0)
+    gauss_fwhm = gaussian_fwhm_meerkat(freq_mid_dirty)
+    beam_corrected, _ = simple_gaussian_beam_correction(outpath, dirty_im, gauss_fwhm)
+    plot_scatter_recon(
+        sky_pointing,
+        beam_corrected,
+        outpath + "_GaussianBeam_Corrected",
+        header_dirty,
+        cut=3.0,
+    )
+    print("Finished")
