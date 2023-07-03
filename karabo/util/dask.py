@@ -38,8 +38,10 @@ class DaskHandler:
         The Dask client object. If None, a new client will be created.
     n_workers_scheduler_node : int
         The number of workers to start on the scheduler node.
-    min_gb_ram_per_worker : Optional[float]
-        The minimum RAM to allocate per worker in GB.
+    memory_limit : Optional[float]
+        The memory_limit per worker in GB. If None, the memory limit will
+        be set to the maximum available memory on the node (see documentation)
+        in dask for `memory_limit`.
     n_threads_per_worker : int
         The number of threads to use per worker. Standard is None, which
         means that the number of threads will be equal to the number of
@@ -58,7 +60,7 @@ class DaskHandler:
 
     Methods
     -------
-    setup -> None:
+    setup() -> None:
         Sets up the Dask client. If the client does not exist, and the
         current node is a SLURM node and there are more than 1 node, a
         Dask client will be created but not returned. Then, when a function
@@ -77,7 +79,7 @@ class DaskHandler:
 
     dask_client: Optional[Client] = None
     n_workers_scheduler_node: int = 1
-    min_gb_ram_per_worker: Optional[int] = None
+    memory_limit: Optional[int] = None
     n_threads_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
     use_workers_or_nannies: Optional[str] = "nannies"
@@ -110,11 +112,11 @@ class DaskHandler:
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
                     DaskHandler.n_workers_scheduler_node,
-                    DaskHandler.min_gb_ram_per_worker,
+                    DaskHandler.memory_limit,
                 )
             else:
                 DaskHandler.dask_client = get_local_dask_client(
-                    DaskHandler.min_gb_ram_per_worker
+                    DaskHandler.memory_limit
                 )
             # Write the dashboard link to a file
             with open("karabo-dask-dashboard.txt", "w") as f:
@@ -189,17 +191,17 @@ def prepare_slurm_nodes_for_dask() -> None:
 
 
 def calculate_number_of_workers_per_node(
-    min_ram_gb_per_worker: Optional[IntFloat],
+    memory_limit: Optional[IntFloat],
 ) -> int:
-    if min_ram_gb_per_worker is None:
+    if memory_limit is None:
         return 1
     # Calculate number of workers per node
     ram = psutil.virtual_memory().available / 1e9  # GB
-    n_workers_per_node = int(ram / (min_ram_gb_per_worker))
-    if ram < min_ram_gb_per_worker:
+    n_workers_per_node = int(ram / (memory_limit))
+    if ram < memory_limit:
         KaraboWarning(
             f"Only {ram} GB of RAM available. Requested at least "
-            f"{min_ram_gb_per_worker} GB. Setting number of "
+            f"{memory_limit} GB. Setting number of "
             f"workers per node to 1."
         )
         n_workers_per_node = 1
@@ -216,10 +218,10 @@ def calculate_number_of_workers_per_node(
 
 
 def get_local_dask_client(
-    min_ram_gb_per_worker: Optional[IntFloat],
+    memory_limit: Optional[IntFloat],
 ) -> Client:
     # Calculate number of workers per node
-    n_workers = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
+    n_workers = calculate_number_of_workers_per_node(memory_limit)
     client = Client(
         LocalCluster(
             n_workers=n_workers,
@@ -239,10 +241,10 @@ def setup_nannies_workers_for_slurm() -> None:
         dask_info = json.load(f)
 
     # Calculate memory usage of each worker
-    if DaskHandler.min_gb_ram_per_worker is None:
+    if DaskHandler.memory_limit is None:
         memory_limit = f"{psutil.virtual_memory().available / 1e9}GB"
     else:
-        memory_limit = f"{DaskHandler.min_gb_ram_per_worker}GB"
+        memory_limit = f"{DaskHandler.memory_limit}GB"
 
     async def start_worker(scheduler_address: str) -> Worker:
         worker = await Worker(
@@ -298,7 +300,7 @@ def setup_nannies_workers_for_slurm() -> None:
 
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
-    min_ram_gb_per_worker: Optional[IntFloat],
+    memory_limit: Optional[IntFloat],
 ) -> Client:
     if is_first_node():
         # Create file to show that the run is still ongoing
@@ -314,7 +316,7 @@ def setup_dask_for_slurm(
         dask_client = Client(cluster)
 
         # Calculate number of workers per node
-        n_workers_per_node = calculate_number_of_workers_per_node(min_ram_gb_per_worker)
+        n_workers_per_node = calculate_number_of_workers_per_node(memory_limit)
 
         # Create dictionary with the information
         dask_info = {

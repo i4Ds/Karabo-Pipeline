@@ -11,8 +11,8 @@ from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
 
 
-def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
-    DaskHandler.min_gb_ram_per_worker = gb_ram_per_worker
+def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
+    DaskHandler.memory_limit = memory_limit
     print("Setting up sky model...")
     sky = SkyModel.get_GLEAM_Sky([76])
     phase_center = [250, -80]
@@ -94,4 +94,4 @@ def main(n_channels: int, gb_ram_per_worker: Optional[int] = None) -> None:
 
 
 if __name__ == "__main__":
-    main(n_channels=10, gb_ram_per_worker=None)
+    main(n_channels=10, memory_limit=None)
