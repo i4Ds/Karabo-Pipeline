@@ -90,6 +90,15 @@ class BATTYESurveyDownloadObject(DownloadObject):
         )
 
 
+class DistilledBATTYESurveyDownloadObject(DownloadObject):
+    def __init__(self) -> None:
+        super().__init__(
+            "point_sources_OSKAR1_diluted5000.h5",
+            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
+            + "/karabo_public/point_sources_OSKAR1_diluted5000.h5",
+        )
+
+
 class MIGHTEESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
