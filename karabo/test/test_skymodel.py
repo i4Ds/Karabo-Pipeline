@@ -8,6 +8,7 @@ from dask.array.core import Array
 
 from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
+    DilutedBATTYESurveyDownloadObject,
     ExampleHDF5Map,
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
@@ -58,7 +59,6 @@ class TestSkyModel(unittest.TestCase):
         sky = SkyModel.get_GLEAM_Sky([76])
         phase_center = [250, -80]  # ra,dec
         filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
-        filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(
             phase_center=phase_center,
             figsize=(8, 6),
@@ -75,6 +75,28 @@ class TestSkyModel(unittest.TestCase):
             )
         )
         assert len(filtered_sky_euclidean_approx.sources) == len(filtered_sky.sources)
+
+    def test_filter_sky_model_h5(self):
+        sky = SkyModel.get_BATTYE_sky(which="diluted")
+        phase_center = [21.44213503, -30.70729488]
+        filtered_sky = sky.filter_by_radius_euclidean_flat_approximation(
+            0, 1, phase_center[0], phase_center[1]
+        )
+        filtered_sky.setup_default_wcs(phase_center)
+        filtered_sky.explore_sky(
+            phase_center,
+            s=1,
+            cmap="jet",
+            cbar_label="Flux [Jy]",
+            cfun=None,
+            wcs_enabled=False,
+            xlabel="RA [deg]",
+            ylabel="DEC [deg]",
+        )
+        assert len(filtered_sky.sources) == 69
+        assert np.all(
+            np.abs(filtered_sky.sources.compute()[:, 0:2] - phase_center) < [2, 2]
+        )
 
     def test_read_sky_model(self):
         sky = SkyModel.read_from_file(f"{data_path}/filtered_sky.csv")
@@ -107,6 +129,8 @@ class TestSkyModel(unittest.TestCase):
         gleam = GLEAMSurveyDownloadObject()
         assert gleam.is_available()
         battye = BATTYESurveyDownloadObject()
+        assert battye.is_available()
+        battye = DilutedBATTYESurveyDownloadObject()
         assert battye.is_available()
         mightee = MIGHTEESurveyDownloadObject()
         assert mightee.is_available()
