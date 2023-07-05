@@ -1,9 +1,14 @@
 import os
 from unittest.mock import patch
 
+import dask
 import pytest
+from dask import compute, delayed  # type: ignore[attr-defined]
+from dask.delayed import Delayed
+from dask.distributed import Client
 
 from karabo.util.dask import (  # replace `your_module` with your actual module name
+    DaskHandler,
     extract_node_ids_from_node_list,
     get_base_string_node_list,
     get_lowest_node_id,
@@ -153,3 +158,35 @@ def test_single_node():
         assert min_node_id == 3038
         assert max_node_id == 3038
         assert get_base_string_node_list() == "nid"
+
+def test_dask_job():
+    DaskHandler.setup()
+    client = DaskHandler.get_dask_client()
+
+    assert client is not None
+
+    @dask.delayed
+    def inc(x):
+        return x + 1
+
+    @dask.delayed
+    def double(x):
+        return x * 2
+
+    @dask.delayed
+    def add(x, y):
+        return x + y
+
+    data = [1, 2, 3, 4, 5]
+
+    output = []
+    for x in data:
+        a = inc(x)
+        b = double(x)
+        c = add(a, b)
+        output.append(c)
+
+    result = compute(*output, scheduler="distributed")
+
+    assert result == (4, 7, 10, 13, 16)
+    assert sum(result) == 50
