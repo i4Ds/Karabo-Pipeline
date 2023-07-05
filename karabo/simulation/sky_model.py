@@ -37,6 +37,7 @@ from xarray.core.coordinates import DataArrayCoordinates
 
 from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
+    DilutedBATTYESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
@@ -241,6 +242,20 @@ class SkyModel:
         HDF5 file is closed before the instance is destroyed.
         """
         self.close()
+
+    @staticmethod
+    def copy_sky(sky: SkyModel) -> SkyModel:
+        if sky.h5_file_connection is not None:
+            h5_connection = sky.h5_file_connection
+            sky.h5_file_connection = None
+        else:
+            h5_connection = None
+
+        copied_sky = copy.deepcopy(sky)
+        if h5_connection is not None:
+            copied_sky.h5_file_connection = h5_connection
+
+        return copied_sky
 
     def compute(self) -> None:
         """
@@ -504,7 +519,7 @@ class SkyModel:
         we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
-        copied_sky = copy.deepcopy(self)
+        copied_sky = SkyModel.copy_sky(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
@@ -552,7 +567,9 @@ class SkyModel:
         Returns:
             _description_
         """
-        copied_sky = copy.deepcopy(self)
+
+        copied_sky = SkyModel.copy_sky(self)
+
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
@@ -591,7 +608,7 @@ class SkyModel:
         :param max_flux_jy: Maximum flux in Jy
         :return sky: Filtered copy of the sky
         """
-        copied_sky = copy.deepcopy(self)
+        copied_sky = SkyModel.copy_sky(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
                 "`sources` None is not allowed. "
@@ -621,7 +638,7 @@ class SkyModel:
         :param max_freq: Maximum frequency in Hz
         :return sky: Filtered copy of the sky
         """
-        copied_sky = copy.deepcopy(self)
+        copied_sky = SkyModel.copy_sky(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_frequency`."
@@ -1359,10 +1376,18 @@ class SkyModel:
         return SkyModel(result_dataset)
 
     @staticmethod
-    def get_BATTYE_sky() -> SkyModel:
+    def get_BATTYE_sky(which: Literal["full", "diluted"] = "full") -> SkyModel:
         """
         Downloads BATTYE survey data and generates a sky
-        model using the downloaded data.
+        model using the downloaded data. There are two types of
+        BATTYE survey data available: 'full' and 'diluted'.
+        They vary in the number of sources they contain. Diluted
+        is around 7 MB and full is around 35 GB.
+
+
+        Parameters:
+            which (str): The type of BATTYE survey data to download.
+            The options are 'full' and 'diluted'. Defaults to 'full'.
 
         Source:
         The BATTYE survey data was provided by Jennifer Studer
@@ -1384,9 +1409,14 @@ class SkyModel:
              'ref_freq', 'spectral_index', 'rm', 'major', 'minor', 'pa', and 'id'
             are not included in the sky model.
 
-
         """
-        survey = BATTYESurveyDownloadObject()
+        survey: Union[BATTYESurveyDownloadObject, DilutedBATTYESurveyDownloadObject]
+        if which == "full":
+            survey = BATTYESurveyDownloadObject()
+        elif which == "diluted":
+            survey = DilutedBATTYESurveyDownloadObject()
+        else:
+            raise ValueError(f"Invalid value for 'which': {which}")
         path = survey.get()
         column_mapping = SkyPrefixMapping(
             ra="Right Ascension",
