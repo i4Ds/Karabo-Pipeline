@@ -59,7 +59,6 @@ class TestSkyModel(unittest.TestCase):
         sky = SkyModel.get_GLEAM_Sky([76])
         phase_center = [250, -80]  # ra,dec
         filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
-        filtered_sky.setup_default_wcs(phase_center)
         filtered_sky.explore_sky(
             phase_center=phase_center,
             figsize=(8, 6),
