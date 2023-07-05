@@ -3,11 +3,9 @@ from unittest.mock import patch
 
 import dask
 import pytest
-from dask import compute, delayed  # type: ignore[attr-defined]
-from dask.delayed import Delayed
-from dask.distributed import Client
+from dask import compute  # type: ignore[attr-defined]
 
-from karabo.util.dask import (  # replace `your_module` with your actual module name
+from karabo.util.dask import (
     DaskHandler,
     extract_node_ids_from_node_list,
     get_base_string_node_list,
@@ -158,6 +156,7 @@ def test_single_node():
         assert min_node_id == 3038
         assert max_node_id == 3038
         assert get_base_string_node_list() == "nid"
+
 
 def test_dask_job():
     DaskHandler.setup()
