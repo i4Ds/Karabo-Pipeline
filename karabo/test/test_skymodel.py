@@ -8,7 +8,7 @@ from dask.array.core import Array
 
 from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
-    DistilledBATTYESurveyDownloadObject,
+    DilutedBATTYESurveyDownloadObject,
     ExampleHDF5Map,
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
@@ -78,7 +78,7 @@ class TestSkyModel(unittest.TestCase):
         assert len(filtered_sky_euclidean_approx.sources) == len(filtered_sky.sources)
 
     def test_filter_sky_model_h5(self):
-        sky = SkyModel.get_BATTYE_sky(which="distilled")
+        sky = SkyModel.get_BATTYE_sky(which="diluted")
         phase_center = [21.44213503, -30.70729488]
         filtered_sky = sky.filter_by_radius_euclidean_flat_approximation(
             0, 1, phase_center[0], phase_center[1]
@@ -131,7 +131,7 @@ class TestSkyModel(unittest.TestCase):
         assert gleam.is_available()
         battye = BATTYESurveyDownloadObject()
         assert battye.is_available()
-        battye = DistilledBATTYESurveyDownloadObject()
+        battye = DilutedBATTYESurveyDownloadObject()
         assert battye.is_available()
         mightee = MIGHTEESurveyDownloadObject()
         assert mightee.is_available()

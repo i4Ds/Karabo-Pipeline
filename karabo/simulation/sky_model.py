@@ -37,7 +37,7 @@ from xarray.core.coordinates import DataArrayCoordinates
 
 from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
-    DistilledBATTYESurveyDownloadObject,
+    DilutedBATTYESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
@@ -1376,18 +1376,18 @@ class SkyModel:
         return SkyModel(result_dataset)
 
     @staticmethod
-    def get_BATTYE_sky(which: Literal["full", "distilled"] = "full") -> SkyModel:
+    def get_BATTYE_sky(which: Literal["full", "diluted"] = "full") -> SkyModel:
         """
         Downloads BATTYE survey data and generates a sky
         model using the downloaded data. There are two types of
-        BATTYE survey data available: 'full' and 'distilled'.
-        They vary in the number of sources they contain. Distilled
+        BATTYE survey data available: 'full' and 'diluted'.
+        They vary in the number of sources they contain. Diluted
         is around 7 MB and full is around 35 GB.
 
 
         Parameters:
             which (str): The type of BATTYE survey data to download.
-            The options are 'full' and 'distilled'. Defaults to 'full'.
+            The options are 'full' and 'diluted'. Defaults to 'full'.
 
         Source:
         The BATTYE survey data was provided by Jennifer Studer
@@ -1410,11 +1410,11 @@ class SkyModel:
             are not included in the sky model.
 
         """
-        survey: Union[BATTYESurveyDownloadObject, DistilledBATTYESurveyDownloadObject]
+        survey: Union[BATTYESurveyDownloadObject, DilutedBATTYESurveyDownloadObject]
         if which == "full":
             survey = BATTYESurveyDownloadObject()
-        elif which == "distilled":
-            survey = DistilledBATTYESurveyDownloadObject()
+        elif which == "diluted":
+            survey = DilutedBATTYESurveyDownloadObject()
         else:
             raise ValueError(f"Invalid value for 'which': {which}")
         path = survey.get()

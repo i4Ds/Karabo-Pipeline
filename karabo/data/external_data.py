@@ -90,7 +90,7 @@ class BATTYESurveyDownloadObject(DownloadObject):
         )
 
 
-class DistilledBATTYESurveyDownloadObject(DownloadObject):
+class DilutedBATTYESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
             "point_sources_OSKAR1_diluted5000.h5",
