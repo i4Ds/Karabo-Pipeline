@@ -2,7 +2,6 @@ import os
 import tempfile
 from datetime import datetime, timedelta
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
@@ -12,8 +11,6 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-
-matplotlib.use("TkAgg")
 
 
 def test_beam():
