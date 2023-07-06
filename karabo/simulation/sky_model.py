@@ -1517,7 +1517,7 @@ class SkyModel:
         return sky
 
     @staticmethod
-    def sky_from_h5_with_redshift(
+    def sky_from_h5_with_redshift_filtered(
         path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
     ) -> Tuple[SkyModel, NDArray[np.float_]]:
         """
@@ -1530,45 +1530,45 @@ class SkyModel:
         :param dec_deg: Phase center, declination.
         :param outer_rad: The radius size of the sky model to be considered.
         :return: The sky model and the corresponding redshifts.
-        TODO: Change after branch 400 is merged.
         """
+        SOUTH_CATALOG_FACTOR = -1
 
-        # Read in the catalog (only works for catalogs which are not very large)
-        catalog = h5py.File(path, "r")
-        print("The catalog keys are:", list(catalog.keys()))
-        print("The unit of the flux given here is:", catalog["Flux"].attrs["Units"])
-        print(
-            "Number of elements in the complete catalog:",
-            len(catalog["Declination"][()]),
+        # Read in the catalog
+        prefix_mapping = SkyPrefixMapping(
+            ra="Right Ascension", dec="Declination", stokes_i="Flux"
+        )
+        extra_columns = ["Observed Redshift"]
+        sky = SkyModel.get_sky_model_from_h5_to_xarray(
+            path=path, prefix_mapping=prefix_mapping, extra_columns=extra_columns
         )
 
-        ra = np.array(catalog["Right Ascension"])
-        # We multiply by -1 to change the catalog to the Southern sky
-        dec = np.array(catalog["Declination"]) * -1
-        flux = np.array(catalog["Flux"])
-        z_obs = np.array(catalog["Observed Redshift"])
-        catalog.close()
-
-        # We construct the sky model from the catalog information with Karabo
-        sky_data = np.zeros((len(ra), 12))
-        sky_data[:, 0] = ra
-        sky_data[:, 1] = dec
-        sky_data[:, 2] = flux
-        sky = SkyModel()
-        sky.add_point_sources(sky_data)
+        print("The catalog keys are:", list(sky.h5_file_connection.keys()))
+        print(
+            "The unit of the flux given here is:",
+            sky.h5_file_connection["Flux"].attrs["Units"],
+        )
+        print(
+            "Number of elements in the complete catalog:",
+            len(sky.h5_file_connection["Declination"][()]),
+        )
 
         # We only take into account a certain FOV, we filter the sky for this FOV
-        sky_filter, filter_in = sky.filter_by_radius(
+        sky_filter, filter_in = sky.filter_by_radius_euclidean_flat_approximation(
             ra0_deg=ra_deg,
-            dec0_deg=dec_deg,
+            dec0_deg=dec_deg * SOUTH_CATALOG_FACTOR,
             inner_radius_deg=0.0,
             outer_radius_deg=outer_rad,
             indices=True,
         )
-        z_obs_filter = z_obs[filter_in]
+
+        # Delete large sky
+        del sky
+        # Transform the sky to the southern sky
+        sky_filter.sources[:, 1] *= SOUTH_CATALOG_FACTOR
+
         print(
             "Number of elements in diluted catalog in the interesting FOV:",
             len(sky_filter[:, 0]),
         )
 
-        return sky_filter, z_obs_filter
+        return sky_filter

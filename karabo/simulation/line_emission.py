@@ -572,7 +572,7 @@ def line_emission_pointing(
     )
     ra = 20
     dec = -30
-    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
+    sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
         catalog_path, ra, dec
     )
     dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
