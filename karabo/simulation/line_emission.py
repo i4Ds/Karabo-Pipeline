@@ -510,9 +510,8 @@ def run_one_channel_simulation(
 
 def line_emission_pointing(
     path_outfile: str,
-    sky: SkyModel,
-    z_obs: NDArray[np.float_],  # TODO: After branch 400-read_in_sky-exists the sky
-    # includes this information -> rewrite
+    sky: SkyModel,  # TODO: After branch 400-read_in_sky-exists the sky includes this
+    # information -> rewrite
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     num_bins: int = 10,
@@ -532,9 +531,9 @@ def line_emission_pointing(
     Simulating line emission for one pointing.
 
     :param path_outfile: Pathname of the output file and folder.
-    :param sky: Sky model which is used for simulating line emission. If None, a test
-                sky (out of equally spaced sources) is used.
-    :param z_obs: Redshift information of the sky sources.
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param num_bins: Number of redshift/frequency slices used to simulate line emission.
@@ -597,6 +596,12 @@ def line_emission_pointing(
         shutil.rmtree(path_outfile)
 
     os.makedirs(path_outfile)
+
+    # Load sky into memory and close connection to h5
+    sky.compute()
+
+    # Load observed redshifts
+    z_obs = sky.sources[:, 13]
 
     if not client:
         "Print: Get dask client"
