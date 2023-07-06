@@ -222,16 +222,14 @@ def plot_scatter_recon(
     plt.savefig(outfile + ".pdf")
 
 
-def sky_slice(
-    sky: SkyModel, z_obs: NDArray[np.float_], z_min: np.float_, z_max: np.float_
-) -> SkyModel:
+def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
     and z_max.
 
-    :param sky: Sky model.
-    :param z_obs: Redshift information of the sky sources. # TODO change as soon as
-    branch 400 is merged
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
     :param z_min: Smallest redshift of this sky bin.
     :param z_max: Largest redshift of this sky bin.
 
@@ -239,10 +237,11 @@ def sky_slice(
              z_max.
     """
     sky_bin = SkyModel.copy_sky(sky)
-    sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
     if sky_bin.sources is None:
         raise TypeError("`sky.sources` is None which is not allowed.")
 
+    z_obs = sky_bin.sources[:, 13]
+    sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
     sky_bin.sources = sky_bin.sources[sky_bin_idx]
 
     return sky_bin
@@ -425,7 +424,6 @@ def run_one_channel_simulation(
     path_outfile: str,
     sky: SkyModel,
     bin_idx: int,
-    z_obs: NDArray[np.float_],
     z_min: np.float_,
     z_max: np.float_,
     freq_min: float,
@@ -447,10 +445,10 @@ def run_one_channel_simulation(
     Run simulation for one pointing and one channel
 
     :param path_outfile: Pathname of the output file and folder.
-    :param sky: Sky model which is used for simulating line emission. If None, a test
-                sky (out of equally spaced sources) is used.
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
     :param bin_idx: Index of the channel which is currently being simulated.
-    :param z_obs: Redshift information of the sky sources.
     :param z_min: Smallest redshift in this bin.
     :param z_max: Largest redshift in this bin.
     :param freq_min: Smallest frequency in this bin.
@@ -480,7 +478,7 @@ def run_one_channel_simulation(
             "Extracting the corresponding frequency slice from the sky model..."
         )
 
-    sky_bin = sky_slice(sky, z_obs, z_min, z_max)
+    sky_bin = sky_slice(sky, z_min, z_max)
 
     if verbose:
         print("Starting simulation...")
@@ -510,8 +508,7 @@ def run_one_channel_simulation(
 
 def line_emission_pointing(
     path_outfile: str,
-    sky: SkyModel,  # TODO: After branch 400-read_in_sky-exists the sky includes this
-    # information -> rewrite
+    sky: SkyModel,
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     num_bins: int = 10,
@@ -600,14 +597,13 @@ def line_emission_pointing(
     # Load sky into memory and close connection to h5
     sky.compute()
 
-    # Load observed redshifts
-    z_obs = sky.sources[:, 13]
-
     if not client:
         "Print: Get dask client"
         client = DaskHandler.get_dask_client()
 
-    redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
+    redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(
+        z_obs=sky.sources[:, 13], channel_num=num_bins
+    )
 
     dirty_images = []
     header: Optional[fits.header.Header] = None
@@ -633,7 +629,6 @@ def line_emission_pointing(
                 path_outfile=path_outfile,
                 sky=sky,
                 bin_idx=bin_idx,
-                z_obs=z_obs,
                 z_min=redshift_channel[bin_idx],
                 z_max=redshift_channel[bin_idx + 1],
                 freq_min=freq_channel[bin_idx],
