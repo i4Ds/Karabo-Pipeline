@@ -7,7 +7,7 @@ RUN git clone --branch ${KARABO_TAG} --depth=1 https://github.com/i4Ds/Karabo-Pi
 FROM --platform=amd64 continuumio/miniconda3:4.12.0
 ARG KARABO_TAG
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN apt-get update && apt-get install -y curl && apt-get autoclean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl libarchive13 && apt-get autoclean && rm -rf /var/lib/apt/lists/*
 RUN conda update -y conda && \
     conda clean --all --yes && \
     conda install mamba -y -c conda-forge
