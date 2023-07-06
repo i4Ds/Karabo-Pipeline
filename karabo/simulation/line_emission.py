@@ -1,4 +1,3 @@
-import copy
 import os
 import shutil
 from datetime import datetime, timedelta
@@ -239,7 +238,7 @@ def sky_slice(
     :return: Sky model only including the sources with redshifts between z_min and
              z_max.
     """
-    sky_bin = copy.deepcopy(sky)
+    sky_bin = SkyModel.copy_sky(sky)
     sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
     if sky_bin.sources is None:
         raise TypeError("`sky.sources` is None which is not allowed.")
@@ -623,10 +622,10 @@ def line_emission_pointing(
                 "`sources` None is not allowed! Please set them in"
                 " the `SkyModel` before calling this function."
             )
-        sky.sources = sources.to_numpy()  # type: ignore [assignment]
+        # sky.sources = sources.to_numpy()  # type: ignore [assignment]
 
         # Scatter sky
-        sky = client.scatter(sky)
+        # sky = client.scatter(sky)
 
         for bin_idx in range(num_bins):
             # Submit the jobs
