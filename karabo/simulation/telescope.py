@@ -7,8 +7,8 @@ from math import comb
 from typing import List, Optional
 
 import numpy as np
-import oskar.telescope as os_telescope
 from numpy.typing import NDArray
+from oskar.telescope import Telescope as OskarTelescope
 
 import karabo.error
 from karabo.error import KaraboError
@@ -30,8 +30,6 @@ from karabo.util._types import NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handle import FileHandle
 from karabo.util.math_util import long_lat_to_cartesian
-
-OskarTelescope = os_telescope.Telescope
 
 
 class Telescope(KaraboResource):
