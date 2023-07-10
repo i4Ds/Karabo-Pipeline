@@ -172,6 +172,7 @@ def plot_scatter_recon(
     header: fits.header.Header,
     vmin: IntFloat = 0,
     vmax: Optional[IntFloat] = None,
+    f_min: Optional[IntFloat] = None,
     cut: Optional[IntFloat] = None,
 ) -> None:
     """
@@ -195,6 +196,11 @@ def plot_scatter_recon(
             slices.append("y")
         else:
             slices.append(0)  # type: ignore [arg-type]
+
+    # Do only plot sources with a flux above f_min if f_min is not None
+    if f_min is not None:
+        f_max = np.max(sky[:, 2])
+        sky = sky.filter_by_flux(min_flux_jy=f_min, max_flux_jy=f_max)
 
     # Plot the scatter plot and the sky reconstruction next to each other
     fig = plt.figure(figsize=(12, 6))
@@ -339,7 +345,7 @@ def karabo_reconstruction(
                               here.
     :param cut: Size of the reconstructed image.
     :param img_size: The pixel size of the reconstructed image.
-    :param channel_num:
+    :param channel_num: #TODO
     :param pdf_plot: Shall we plot the scatter plot and the reconstruction as a pdf?
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
