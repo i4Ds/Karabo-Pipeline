@@ -1,5 +1,5 @@
 import time
-from typing import Optional, cast
+from typing import Optional
 
 import numpy as np
 
@@ -18,11 +18,8 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     phase_center = [250, -80]
 
     print("Filtering sky model...")
-    sky = cast(
-        SkyModel,
-        sky.filter_by_radius_euclidean_flat_approximation(
-            0, 1, phase_center[0], phase_center[1]
-        ),
+    sky = sky.filter_by_radius_euclidean_flat_approximation(
+        0, 1, phase_center[0], phase_center[1]
     )
 
     # Rechunk Sky model

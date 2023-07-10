@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sky = SkyModel.get_BATTYE_sky()
     phase_center = [21.44213503, -30.70729488]
     print("Filtering sky model")
-    sky = sky.filter_by_radius_euclidean_flat_approximation(  # type: ignore
+    sky = sky.filter_by_radius_euclidean_flat_approximation(
         0,
         2,
         phase_center[0],

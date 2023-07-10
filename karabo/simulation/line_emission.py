@@ -7,6 +7,7 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
+import xarray as xr
 from astropy.constants import c
 from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
@@ -255,7 +256,8 @@ def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
 
 
 def redshift_slices(
-    redshift_obs: NDArray[np.float_], channel_num: int = 10
+    redshift_obs: Union[NDArray[np.float_], xr.DataArray],  # TODO dask type-hint #441
+    channel_num: int = 10,
 ) -> NDArray[np.float_]:
     """
     Creation of the redshift bins used for the line emission simulation based on the
@@ -277,7 +279,8 @@ def redshift_slices(
 
 
 def freq_channels(
-    z_obs: NDArray[np.float_], channel_num: int = 10
+    z_obs: Union[NDArray[np.float_], xr.DataArray],  # TODO dask type-hint #441
+    channel_num: int = 10,
 ) -> Tuple[NDArray[np.float_], NDArray[np.float_], np.float_, np.float_]:
     """
     Calculates the frequency channels from the redshifts.
