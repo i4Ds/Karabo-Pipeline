@@ -546,6 +546,28 @@ class SkyModel:
         else:
             return copied_sky
 
+    @overload
+    def filter_by_radius_euclidean_flat_approximation(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[False] = False,
+    ) -> SkyModel:
+        ...
+
+    @overload
+    def filter_by_radius_euclidean_flat_approximation(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[True],
+    ) -> Tuple[SkyModel, NDArray[np.int_]]:
+        ...
+
     def filter_by_radius_euclidean_flat_approximation(
         self,
         inner_radius_deg: IntFloat,
@@ -553,7 +575,7 @@ class SkyModel:
         ra0_deg: IntFloat,
         dec0_deg: IntFloat,
         indices: bool = False,
-    ) -> Union[SkyModel, Tuple[SkyModel, np.int64]]:
+    ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int_]]]:
         # TODO description what is different to non-apporx, when should I use this fun?
         """_summary_
 
