@@ -612,7 +612,7 @@ class SkyModel:
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
         if indices:
-            filtered_indices = cast(np.int64, np.where(filter_mask)[0])
+            filtered_indices = np.where(filter_mask)[0]
             return copied_sky, filtered_indices
         else:
             return copied_sky
