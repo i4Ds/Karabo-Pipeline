@@ -280,7 +280,7 @@ def freq_channels(
     z_obs: NDArray[np.float_], channel_num: int = 10
 ) -> Tuple[NDArray[np.float_], NDArray[np.float_], np.float_, np.float_]:
     """
-    Calculates the frequency channels from the redshifs.
+    Calculates the frequency channels from the redshifts.
     :param z_obs: Observed redshifts from the HI sources.
     :param channel_num: Number uf channels.
 
@@ -609,6 +609,12 @@ def line_emission_pointing(
     # Load sky into memory and close connection to h5
     sky.compute()
 
+    if sky.sources is None:
+        raise TypeError(
+            "`sources` None is not allowed! Please set them in"
+            " the `SkyModel` before calling this function."
+        )
+
     if not client:
         "Print: Get dask client"
         client = DaskHandler.get_dask_client()
@@ -627,14 +633,6 @@ def line_emission_pointing(
         print(f"Submitting {n_jobs} jobs to the cluster.")
 
         delayed_results = []
-
-        sources = sky.sources
-
-        if sources is None:
-            raise TypeError(
-                "`sources` None is not allowed! Please set them in"
-                " the `SkyModel` before calling this function."
-            )
 
         for bin_idx in range(num_bins):
             delayed_ = delayed(run_one_channel_simulation)(
