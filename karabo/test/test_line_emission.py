@@ -1,5 +1,5 @@
 import os
-import unittest
+import tempfile
 
 import numpy as np
 
@@ -12,19 +12,13 @@ from karabo.simulation.line_emission import (
 from karabo.simulation.sky_model import SkyModel
 
 
-class TestLineEmission(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        # make dir for result files
-        if not os.path.exists("result/lin_em"):
-            os.makedirs("result/lin_em")
-
-    def test_line_emission_run(self):
-        # Tests parallelised line emission simulation and beam correction
-        outpath = "restult/lin_em/test_line_emission"
-        sky_pointing = SkyModel.sky_test()
-        num_sources = len(sky_pointing[:, 2])
-        z_obs_pointing = np.random.uniform(0.5, 1.0, num_sources)
+def test_line_emission_run():
+    # Tests parallelised line emission simulation and beam correction
+    sky_pointing = SkyModel.sky_test()
+    num_sources = len(sky_pointing[:, 2])
+    z_obs_pointing = np.random.uniform(0.5, 1.0, num_sources)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        outpath = os.path.join(tmpdir, "test_line_emission")
         dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
             outpath, sky_pointing, z_obs_pointing
         )
@@ -40,9 +34,3 @@ class TestLineEmission(unittest.TestCase):
             header_dirty,
             cut=3.0,
         )
-
-
-if __name__ == "__main__":
-    # TODO: When merging pull request #451 this test should be performed
-    # TestLineEmission.test_line_emission_run(TestLineEmission)
-    print("")

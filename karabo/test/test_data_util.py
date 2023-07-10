@@ -22,7 +22,7 @@ from karabo.util.data_util import (
     ],
 )
 def test_valid_sizes(size_str: str, expected: float):
-    assert parse_size(size_str) == expected
+    assert parse_size(size_str) == int(expected)
 
 
 @pytest.mark.parametrize(

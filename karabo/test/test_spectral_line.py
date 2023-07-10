@@ -1,7 +1,9 @@
 import os
+import tempfile
 from datetime import datetime, timedelta
 
 import numpy as np
+from numpy.typing import NDArray
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -36,8 +38,8 @@ def simulate_spectral_vis(
     spectral_ms_output = [0] * npoints
     freq_spec = [0] * npoints
     for i in range(npoints):
-        spectral_vis_output[i] = spec_path + "vis_spectral_" + str(i) + ".vis"
-        spectral_ms_output[i] = spec_path + "vis_spectral_" + str(i) + ".ms"
+        spectral_vis_output[i] = f"{spec_path}_vis_spectral_{i}.vis"
+        spectral_ms_output[i] = f"{spec_path}_vis_spectral_{i}.ms"
         os.system("rm -rf " + spectral_vis_output[i])
         os.system("rm -rf " + spectral_ms_output[i])
         print(
@@ -81,7 +83,7 @@ def simulate_spectral_vis(
     return spectral_vis_output, spectral_ms_output
 
 
-def test_disabled_spectral_line():
+def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
     # ------- Simulate Foreground ---------#
     make_foreground_image = 0
     bandwidth_smearing = 0
@@ -89,136 +91,102 @@ def test_disabled_spectral_line():
     phase_dec = -30.0
     obs_freq = 0.99e9  # 999.0 MHz & 0.2 MHz
     chan_width = 1e6  # 100 kHz
-    foreground_vis_file = "./result/spectral_line/vis_foreground.vis"
-    foreground_ms_file = "./result/spectral_line/vis_foreground.ms"
-    write_foreground_ms = True
-    os.system("rm -rf " + foreground_vis_file)
-    os.system("rm -rf " + foreground_ms_file)
-    foreground = SkyModel()
-    foreground_data = np.array(
-        [
-            [20.0, -30.0, 10, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0],
-            [20.0, -30.5, 10, 2, 2, 0, 1.0e9, -0.7, 0.0, 0, 50, 45],
-            [20.5, -30.5, 10, 0, 0, 2, 1.0e9, -0.7, 0.0, 0, 10, -10],
-        ]
-    )
-    foreground.add_point_sources(foreground_data)
-    telescope = Telescope.get_MEERKAT_Telescope()
-    simulation = InterferometerSimulation(
-        vis_path=foreground_vis_file,
-        channel_bandwidth_hz=bandwidth_smearing,
-        time_average_sec=1,
-        noise_enable=False,
-        noise_seed="time",
-        noise_freq="Range",
-        noise_rms="Range",
-        noise_start_freq=1.0e9,
-        noise_inc_freq=1.0e8,
-        noise_number_freq=24,
-        noise_rms_start=5000,
-        noise_rms_end=10000,
-    )
-    foreground_observation = Observation(
-        phase_centre_ra_deg=phase_ra,
-        phase_centre_dec_deg=phase_dec,
-        start_date_and_time=datetime(2022, 1, 1, 23, 00, 00, 521489),
-        length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
-        number_of_time_steps=1,
-        start_frequency_hz=obs_freq,
-        frequency_increment_hz=chan_width,
-        number_of_channels=20,
-    )
-    (
-        visibility,
-        foreground_cross_correlation,
-        fg_header,
-        fg_handle,
-        fg_block,
-        ff_uu,
-        ff_vv,
-        ff_ww,
-    ) = simulation.simulate_foreground_vis(
-        telescope,
-        foreground,
-        foreground_observation,
-        foreground_vis_file,
-        write_foreground_ms,
-        foreground_ms_file,
-    )
-    if make_foreground_image:
-        imager = Imager(
-            visibility, imaging_npixel=2048 * 1, imaging_cellsize=50
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
-        dirty.write_to_file("./result/spectral_line/foreground.fits", overwrite=True)
-        dirty.plot(title="Flux Density (Jy)")
-    # ------- Simulate Spectral Line Sky -----#
-    spectral_freq0 = 1.0e9
-    make_spectral_image = 0
-    dfreq = np.linspace(-5, 5, 1000) * 1.0e6
-    spec_line = Gauss(dfreq, 0, 0, 10, 2.0e6)
-    npoints = int((dfreq[-1] - dfreq[0]) / chan_width)
-    ra_spec = 20.2
-    dec_spec = -30.2
-    spec_path = "./result/spectral_line/"
-    spectral_vis_output, _ = simulate_spectral_vis(
-        ra_spec,
-        dec_spec,
-        phase_ra,
-        phase_dec,
-        spectral_freq0,
-        npoints,
-        dfreq,
-        spec_line,
-        spec_path,
-        bandwidth_smearing,
-        chan_width,
-    )
-    if make_spectral_image:
-        imager = Imager(
-            visibility, imaging_npixel=2048 * 1, imaging_cellsize=50
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
-        dirty.write_to_file(
-            "./result/spectral_line/spectral_line_" + str(i) + ".fits",  # noqa
-            overwrite=True,
+    with tempfile.TemporaryDirectory() as tmpdir:
+        foreground_vis_file = os.path.join(tmpdir, "vis_foreground.vis")
+        foreground_ms_file = os.path.join(tmpdir, "vis_foreground.ms")
+        write_foreground_ms = True
+        foreground = SkyModel()
+        foreground.add_point_sources(sky_data)
+        telescope = Telescope.get_MEERKAT_Telescope()
+        simulation = InterferometerSimulation(
+            vis_path=foreground_vis_file,
+            channel_bandwidth_hz=bandwidth_smearing,
+            time_average_sec=1,
+            noise_enable=False,
+            noise_seed="time",
+            noise_freq="Range",
+            noise_rms="Range",
+            noise_start_freq=1.0e9,
+            noise_inc_freq=1.0e8,
+            noise_number_freq=24,
+            noise_rms_start=5000,
+            noise_rms_end=10000,
         )
-        dirty.plot(title="Flux Density (Jy)")
+        foreground_observation = Observation(
+            phase_centre_ra_deg=phase_ra,
+            phase_centre_dec_deg=phase_dec,
+            start_date_and_time=datetime(2022, 1, 1, 23, 00, 00, 521489),
+            length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
+            number_of_time_steps=1,
+            start_frequency_hz=obs_freq,
+            frequency_increment_hz=chan_width,
+            number_of_channels=20,
+        )
+        (
+            visibility,
+            foreground_cross_correlation,
+            fg_header,
+            fg_handle,
+            fg_block,
+            ff_uu,
+            ff_vv,
+            ff_ww,
+        ) = simulation.simulate_foreground_vis(
+            telescope,
+            foreground,
+            foreground_observation,
+            foreground_vis_file,
+            write_foreground_ms,
+            foreground_ms_file,
+        )
+        if make_foreground_image:
+            imager = Imager(
+                visibility, imaging_npixel=2048 * 1, imaging_cellsize=50
+            )  # imaging cellsize is over-written in the Imager based on max uv dist.
+            dirty = imager.get_dirty_image()
+            dirty.write_to_file(os.path.join(tmpdir, "foreground.fits"), overwrite=True)
+            dirty.plot(title="Flux Density (Jy)")
+        # ------- Simulate Spectral Line Sky -----#
+        spectral_freq0 = 1.0e9
+        make_spectral_image = 0
+        dfreq = np.linspace(-5, 5, 1000) * 1.0e6
+        spec_line = Gauss(dfreq, 0, 0, 10, 2.0e6)
+        npoints = int((dfreq[-1] - dfreq[0]) / chan_width)
+        ra_spec = 20.2
+        dec_spec = -30.2
+        spectral_vis_output, _ = simulate_spectral_vis(
+            ra_spec,
+            dec_spec,
+            phase_ra,
+            phase_dec,
+            spectral_freq0,
+            npoints,
+            dfreq,
+            spec_line,
+            tmpdir,
+            bandwidth_smearing,
+            chan_width,
+        )
+        if make_spectral_image:
+            imager = Imager(
+                visibility, imaging_npixel=2048 * 1, imaging_cellsize=50
+            )  # imaging cellsize is over-written in the Imager based on max uv dist.
+            dirty = imager.get_dirty_image()
+            dirty.write_to_file(
+                os.path.join(tmpdir, "foreground.fits"),
+                overwrite=True,
+            )
+            dirty.plot(title="Flux Density (Jy)")
 
-    # ------- Combine Visibilities ----------#
-    dfreq = np.linspace(-5, 5, 1000) * 1.0e6
-    chan_width = 1e6
-    npoints = int((dfreq[-1] - dfreq[0]) / chan_width)
-    foreground_vis_file = "./result/spectral_line/vis_foreground.vis"
-    combined_vis_filepath = "./result/spectral_line/combined_fg_spectral_line_vis.ms"
-    spec_path = "./result/spectral_line/"
-    spectral_vis_output = [0] * npoints
-    for i in range(npoints):
-        spectral_vis_output[i] = spec_path + "vis_spectral_" + str(i) + ".vis"
-    Visibility.combine_spectral_foreground_vis(
-        foreground_vis_file, spectral_vis_output, combined_vis_filepath
-    )
-
-    # -------- Imaging ---------------------#
-    # imager = Imager(
-    #     visibility,
-    #     imaging_npixel=4096 * 1,
-    #     imaging_cellsize=50,
-    # )  # imaging cellsize is over-written in the Imager based on max uv dist.
-    # dirty = imager.get_dirty_image()
-    # dirty.write_to_file("result/system_noise/noise_dirty.fits")
-    # dirty.plot(title='Flux Density (Jy)')
-    # for k in range(len(foreground_cross_correlation)):
-    #    fg_block_w = oskar.VisBlock.create_from_header(fg_header)
-    #    fg_block.read(fg_header, fg_handle, k)
-    #    fg_chan[k]=fg_block.num_channels
-    #    sc[k]=fg_block.get_start_channel_index()
-    # for k in range(len(foreground_cross_correlation)):
-    #    print(k)
-    #    ms.write_vis(
-    #        start_row,
-    #        sc[k],
-    #        fg_chan[k],
-    #        fg_block.num_baselines,
-    #        foreground_cross_correlation[k],
-    #    )
+        # ------- Combine Visibilities ----------#
+        dfreq = np.linspace(-5, 5, 1000) * 1.0e6
+        chan_width = 1e6
+        npoints = int((dfreq[-1] - dfreq[0]) / chan_width)
+        foreground_vis_file = os.path.join(tmpdir, "vis_foreground.vis")
+        combined_vis_filepath = os.path.join(tmpdir, "combined_fg_spectral_line_vis.ms")
+        spectral_vis_output = [0] * npoints
+        for i in range(npoints):
+            spectral_vis_output[i] = os.path.join(tmpdir, f"vis_spectral_{i}.vis")
+        Visibility.combine_spectral_foreground_vis(
+            foreground_vis_file, spectral_vis_output, combined_vis_filepath
+        )

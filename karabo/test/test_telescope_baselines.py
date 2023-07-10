@@ -1,6 +1,9 @@
+import os
+import tempfile
 from datetime import datetime, timedelta
 
 import numpy as np
+from numpy.typing import NDArray
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -9,50 +12,48 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope, create_baseline_cut_telelescope
 
 
-def test_baselines_based_cutoff():
+def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
     lcut = 5000
     hcut = 10000  # Lower cut off and higher cut-off in meters
     parant_tel = Telescope.get_MEERKAT_Telescope()
     telescope_path = create_baseline_cut_telelescope(lcut, hcut, parant_tel)
     telescope = Telescope.read_OSKAR_tm_file(telescope_path)
     sky = SkyModel()
-    sky_data = np.array(
-        [
-            [20.0, -30.0, 100, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0],
-            [20.0, -30.5, 100, 2, 2, 0, 1.0e9, -0.7, 0.0, 0, 50, 45],
-            [20.5, -30.5, 100, 0, 0, 2, 1.0e9, -0.7, 0.0, 0, 10, -10],
-        ]
-    )
     sky.add_point_sources(sky_data)
-    simulation = InterferometerSimulation(
-        channel_bandwidth_hz=1e6,
-        time_average_sec=1,
-        noise_enable=False,
-        noise_seed="time",
-        noise_freq="Range",
-        noise_rms="Range",
-        noise_start_freq=1.0e9,
-        noise_inc_freq=1.0e8,
-        noise_number_freq=24,
-        noise_rms_start=5000,
-        noise_rms_end=10000,
-    )
-    observation = Observation(
-        phase_centre_ra_deg=20.0,
-        start_date_and_time=datetime(2022, 1, 1, 11, 00, 00, 521489),
-        length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
-        phase_centre_dec_deg=-30.5,
-        number_of_time_steps=1,
-        start_frequency_hz=1.0e9,
-        frequency_increment_hz=1e6,
-        number_of_channels=1,
-    )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ms_path = os.path.join(tmpdir, "out.ms")
+        vis_path = os.path.join(tmpdir, "out.vis")
+        simulation = InterferometerSimulation(
+            ms_file_path=ms_path,
+            vis_path=vis_path,
+            channel_bandwidth_hz=1e6,
+            time_average_sec=1,
+            noise_enable=False,
+            noise_seed="time",
+            noise_freq="Range",
+            noise_rms="Range",
+            noise_start_freq=1.0e9,
+            noise_inc_freq=1.0e8,
+            noise_number_freq=24,
+            noise_rms_start=5000,
+            noise_rms_end=10000,
+        )
+        observation = Observation(
+            phase_centre_ra_deg=20.0,
+            start_date_and_time=datetime(2022, 1, 1, 11, 00, 00, 521489),
+            length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
+            phase_centre_dec_deg=-30.5,
+            number_of_time_steps=1,
+            start_frequency_hz=1.0e9,
+            frequency_increment_hz=1e6,
+            number_of_channels=1,
+        )
 
-    visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility = simulation.run_simulation(telescope, sky, observation)
 
-    imager = Imager(
-        visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
-    )  # imaging cellsize is over-written in the Imager based on max uv dist.
-    dirty = imager.get_dirty_image()
-    dirty.write_to_file("result/baseline_cut.fits", overwrite=True)
-    dirty.plot(title="Flux Density (Jy)")
+        imager = Imager(
+            visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
+        )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        dirty = imager.get_dirty_image()
+        dirty.write_to_file(os.path.join(tmpdir, "baseline_cut.fits"), overwrite=True)
+        dirty.plot(title="Flux Density (Jy)")
