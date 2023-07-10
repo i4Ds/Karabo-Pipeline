@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Literal, NamedTuple
+from typing import Annotated, Literal, NamedTuple, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -91,10 +91,10 @@ class SegmentationOutput(NamedTuple):
     """Output of the segmentation."""
 
     image: Image3D
-    xhii_stitch: npt.NDArray[np.bool_] | None
+    xhii_stitch: Optional[npt.NDArray[np.bool_]]
     mask_xhi: npt.NDArray[np.bool_]
     dt_smooth: npt.NDArray[np.float_]
-    xhi_seg_err: npt.NDArray[np.float_] | None
+    xhi_seg_err: Optional[npt.NDArray[np.float_]]
 
 
 @dataclass(frozen=True)
