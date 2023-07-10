@@ -1556,12 +1556,11 @@ class SkyModel:
         )
 
         # We only take into account a certain FOV, we filter the sky for this FOV
-        sky_filter, filter_in = sky.filter_by_radius_euclidean_flat_approximation(
+        sky_filter = sky.filter_by_radius_euclidean_flat_approximation(
             ra0_deg=ra_deg,
             dec0_deg=dec_deg * SOUTH_CATALOG_FACTOR,
             inner_radius_deg=0.0,
             outer_radius_deg=outer_rad,
-            indices=True,
         )
 
         # Delete large sky
