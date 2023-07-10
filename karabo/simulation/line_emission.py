@@ -589,7 +589,6 @@ def line_emission_pointing(
         )
 
     if not client:
-        "Print: Get dask client"
         client = DaskHandler.get_dask_client()
 
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(
@@ -599,37 +598,35 @@ def line_emission_pointing(
     dirty_images = []
     header: Optional[fits.header.Header] = None
 
-    # Run the simulation on the das cluster
-    if client is not None:
-        # Calculate the number of jobs
-        n_jobs = num_bins
-        print(f"Submitting {n_jobs} jobs to the cluster.")
+    # Calculate the number of jobs
+    n_jobs = num_bins
+    print(f"Submitting {n_jobs} jobs to the cluster.")
 
-        delayed_results = []
+    delayed_results = []
 
-        for bin_idx in range(num_bins):
-            delayed_ = delayed(run_one_channel_simulation)(
-                path_outfile=path_outfile,
-                sky=sky,
-                bin_idx=bin_idx,
-                z_min=redshift_channel[bin_idx],
-                z_max=redshift_channel[bin_idx + 1],
-                freq_min=freq_channel[bin_idx],
-                freq_bin=freq_bin,
-                ra_deg=ra_deg,
-                dec_deg=dec_deg,
-                beam_type=beam_type,
-                gaussian_fwhm=gaussian_fwhm,
-                gaussian_ref_freq=gaussian_ref_freq,
-                start_time=start_time,
-                obs_length=obs_length,
-                cut=cut,
-                img_size=img_size,
-                circle=circle,
-                rascil=rascil,
-                verbose=verbose,
-            )
-            delayed_results.append(delayed_)
+    for bin_idx in range(num_bins):
+        delayed_ = delayed(run_one_channel_simulation)(
+            path_outfile=path_outfile,
+            sky=sky,
+            bin_idx=bin_idx,
+            z_min=redshift_channel[bin_idx],
+            z_max=redshift_channel[bin_idx + 1],
+            freq_min=freq_channel[bin_idx],
+            freq_bin=freq_bin,
+            ra_deg=ra_deg,
+            dec_deg=dec_deg,
+            beam_type=beam_type,
+            gaussian_fwhm=gaussian_fwhm,
+            gaussian_ref_freq=gaussian_ref_freq,
+            start_time=start_time,
+            obs_length=obs_length,
+            cut=cut,
+            img_size=img_size,
+            circle=circle,
+            rascil=rascil,
+            verbose=verbose,
+        )
+        delayed_results.append(delayed_)
 
         result = compute(*delayed_results, scheduler="distributed")
         dirty_images = [x[0] for x in result]
