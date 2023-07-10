@@ -1542,6 +1542,9 @@ class SkyModel:
             path=path, prefix_mapping=prefix_mapping, extra_columns=extra_columns
         )
 
+        if sky.h5_file_connection is None:
+            raise ConnectionError("Please provide an h5 file to create the sky model.")
+
         print("The catalog keys are:", list(sky.h5_file_connection.keys()))
         print(
             "The unit of the flux given here is:",
