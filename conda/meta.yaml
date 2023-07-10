@@ -35,6 +35,7 @@ requirements:
     - ska-gridder-nifty-cuda=0.3.0
     - tools21cm=2.0.2
     - pytables=3.7.0
+    - bluebild=0.1.0
 
 
 test:
