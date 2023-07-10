@@ -256,7 +256,7 @@ def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
 
 
 def redshift_slices(
-    redshift_obs: Union[NDArray[np.float_], xr.DataArray],  # TODO dask type-hint #441
+    redshift_obs: Union[NDArray[np.float_], xr.DataArray],
     channel_num: int = 10,
 ) -> NDArray[np.float_]:
     """
@@ -279,7 +279,7 @@ def redshift_slices(
 
 
 def freq_channels(
-    z_obs: Union[NDArray[np.float_], xr.DataArray],  # TODO dask type-hint #441
+    z_obs: Union[NDArray[np.float_], xr.DataArray],
     channel_num: int = 10,
 ) -> Tuple[NDArray[np.float_], NDArray[np.float_], np.float_, np.float_]:
     """
@@ -570,38 +570,8 @@ def line_emission_pointing(
 
 
     E.g. for how to do the simulation of line emission for one pointing and then
-    applying gaussian primary beam correction to it.
-
-    from karabo.util.dask import DaskHandler
-    DaskHandler.n_threads_per_worker = 1
-
-    outpath = (
-        "/home/jennifer/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
-        "Line_emission_pointing_2"
-    )
-    catalog_path = (
-        "/home/jennifer/Documents/SKAHIIM_Pipeline/Flux_calculation/"
-        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
-    )
-    ra = 20
-    dec = -30
-    sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
-        catalog_path, ra, dec
-    )
-    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-        path_outfile=outpath, sky=sky_pointing
-    )
-    plot_scatter_recon(sky_pointing, dirty_im, outpath, header_dirty, cut=3.0)
-    gauss_fwhm = gaussian_fwhm_meerkat(freq_mid_dirty)
-    beam_corrected, _ = simple_gaussian_beam_correction(outpath, dirty_im, gauss_fwhm)
-    plot_scatter_recon(
-        sky_pointing,
-        beam_corrected,
-        outpath + "_GaussianBeam_Corrected",
-        header_dirty,
-        cut=3.0,
-    )
-    print("Finished")
+    applying gaussian primary beam correction to it at karabo/test/test_line_emission.py
+    and karabo/examples/HIIM_Img_Recovery.ipynb
     """
     # Create folders to save outputs/ delete old one if it already exists
     if os.path.exists(path_outfile):
