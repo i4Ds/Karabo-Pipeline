@@ -1541,7 +1541,7 @@ class SkyModel:
     @staticmethod
     def sky_from_h5_with_redshift_filtered(
         path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
-    ) -> Tuple[SkyModel, NDArray[np.float_]]:
+    ) -> SkyModel:
         """
         A sky model is created from a h5 file containing a catalog with right ascension,
         declination, flux and observed redshift of HI distribution. The sky model only
@@ -1587,6 +1587,13 @@ class SkyModel:
 
         # Delete large sky
         del sky
+
+        if sky_filter.sources is None:
+            raise TypeError(
+                "`sources` None is not allowed! Please set them in"
+                " the `SkyModel` before calling this function."
+            )
+
         # Transform the sky to the southern sky
         sky_filter.sources[:, 1] *= SOUTH_CATALOG_FACTOR
 
