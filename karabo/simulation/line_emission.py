@@ -1,4 +1,3 @@
-import copy
 import os
 import shutil
 from datetime import datetime, timedelta
@@ -8,6 +7,7 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
+import xarray as xr
 from astropy.constants import c
 from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
@@ -173,6 +173,7 @@ def plot_scatter_recon(
     header: fits.header.Header,
     vmin: IntFloat = 0,
     vmax: Optional[IntFloat] = None,
+    f_min: Optional[IntFloat] = None,
     cut: Optional[IntFloat] = None,
 ) -> None:
     """
@@ -184,6 +185,7 @@ def plot_scatter_recon(
     :param header: The header of the recon_image.
     :param vmin: Minimum value of the colorbar.
     :param vmax: Maximum value of the colorbar.
+    :param f_min: Minimal flux of the sources to be plotted in the scatter plot
     :param cut: Smaller FOV
     """
 
@@ -196,6 +198,11 @@ def plot_scatter_recon(
             slices.append("y")
         else:
             slices.append(0)  # type: ignore [arg-type]
+
+    # Do only plot sources with a flux above f_min if f_min is not None
+    if f_min is not None:
+        f_max = np.max(sky[:, 2])
+        sky = sky.filter_by_flux(min_flux_jy=f_min, max_flux_jy=f_max)
 
     # Plot the scatter plot and the sky reconstruction next to each other
     fig = plt.figure(figsize=(12, 6))
@@ -223,34 +230,34 @@ def plot_scatter_recon(
     plt.savefig(outfile + ".pdf")
 
 
-def sky_slice(
-    sky: SkyModel, z_obs: NDArray[np.float_], z_min: np.float_, z_max: np.float_
-) -> SkyModel:
+def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
     and z_max.
 
-    :param sky: Sky model.
-    :param z_obs: Redshift information of the sky sources. # TODO change as soon as
-    branch 400 is merged
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
     :param z_min: Smallest redshift of this sky bin.
     :param z_max: Largest redshift of this sky bin.
 
     :return: Sky model only including the sources with redshifts between z_min and
              z_max.
     """
-    sky_bin = copy.deepcopy(sky)
-    sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
+    sky_bin = SkyModel.copy_sky(sky)
     if sky_bin.sources is None:
         raise TypeError("`sky.sources` is None which is not allowed.")
 
+    z_obs = sky_bin.sources[:, 13]
+    sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
     sky_bin.sources = sky_bin.sources[sky_bin_idx]
 
     return sky_bin
 
 
 def redshift_slices(
-    redshift_obs: NDArray[np.float_], channel_num: int = 10
+    redshift_obs: Union[NDArray[np.float_], xr.DataArray],
+    channel_num: int = 10,
 ) -> NDArray[np.float_]:
     """
     Creation of the redshift bins used for the line emission simulation based on the
@@ -272,10 +279,11 @@ def redshift_slices(
 
 
 def freq_channels(
-    z_obs: NDArray[np.float_], channel_num: int = 10
+    z_obs: Union[NDArray[np.float_], xr.DataArray],
+    channel_num: int = 10,
 ) -> Tuple[NDArray[np.float_], NDArray[np.float_], np.float_, np.float_]:
     """
-    Calculates the frequency channels from the redshifs.
+    Calculates the frequency channels from the redshifts.
     :param z_obs: Observed redshifts from the HI sources.
     :param channel_num: Number uf channels.
 
@@ -341,7 +349,9 @@ def karabo_reconstruction(
                               here.
     :param cut: Size of the reconstructed image.
     :param img_size: The pixel size of the reconstructed image.
-    :param channel_num:
+    :param channel_num: The number of frequency channels to be used for the
+                        simulation of the continuous emission and therefore for the
+                        reconstruction.
     :param pdf_plot: Shall we plot the scatter plot and the reconstruction as a pdf?
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
@@ -426,7 +436,6 @@ def run_one_channel_simulation(
     path_outfile: str,
     sky: SkyModel,
     bin_idx: int,
-    z_obs: NDArray[np.float_],
     z_min: np.float_,
     z_max: np.float_,
     freq_min: float,
@@ -448,10 +457,10 @@ def run_one_channel_simulation(
     Run simulation for one pointing and one channel
 
     :param path_outfile: Pathname of the output file and folder.
-    :param sky: Sky model which is used for simulating line emission. If None, a test
-                sky (out of equally spaced sources) is used.
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
     :param bin_idx: Index of the channel which is currently being simulated.
-    :param z_obs: Redshift information of the sky sources.
     :param z_min: Smallest redshift in this bin.
     :param z_max: Largest redshift in this bin.
     :param freq_min: Smallest frequency in this bin.
@@ -481,7 +490,7 @@ def run_one_channel_simulation(
             "Extracting the corresponding frequency slice from the sky model..."
         )
 
-    sky_bin = sky_slice(sky, z_obs, z_min, z_max)
+    sky_bin = sky_slice(sky, z_min, z_max)
 
     if verbose:
         print("Starting simulation...")
@@ -512,8 +521,6 @@ def run_one_channel_simulation(
 def line_emission_pointing(
     path_outfile: str,
     sky: SkyModel,
-    z_obs: NDArray[np.float_],  # TODO: After branch 400-read_in_sky-exists the sky
-    # includes this information -> rewrite
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     num_bins: int = 10,
@@ -533,13 +540,15 @@ def line_emission_pointing(
     Simulating line emission for one pointing.
 
     :param path_outfile: Pathname of the output file and folder.
-    :param sky: Sky model which is used for simulating line emission. If None, a test
-                sky (out of equally spaced sources) is used.
-    :param z_obs: Redshift information of the sky sources.
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param num_bins: Number of redshift/frequency slices used to simulate line emission.
                      The more the better the line emission is simulated.
+                     This value also restricts the parallelization. The number of bins
+                     restricts the number of nodes which are effectively used.
     :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
                       "Aperture Array".
     :param gaussian_fwhm: If the primary beam is gaussian, this is its FWHM. In power
@@ -561,37 +570,8 @@ def line_emission_pointing(
 
 
     E.g. for how to do the simulation of line emission for one pointing and then
-    applying gaussian primary beam correction to it.
-
-    outpath = (
-        "/home/user/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
-        "Line_emission_pointing_2"
-    )
-    catalog_path = (
-        "/home/user/Documents/SKAHIIM_Pipeline/Flux_calculation/"
-        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
-    )
-    ra = 20
-    dec = -30
-    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
-        catalog_path, ra, dec
-    )
-    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-        outpath, sky_pointing, z_obs_pointing
-    )
-    plot_scatter_recon(
-        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
-    )
-    gauss_fwhm = gaussian_fwhm_meerkat(freq_mid_dirty)
-    beam_corrected, _ = simple_gaussian_beam_correction(outpath, dirty_im, gauss_fwhm)
-    plot_scatter_recon(
-        sky_pointing,
-        beam_corrected,
-        outpath + "_GaussianBeam_Corrected",
-        header_dirty,
-        vmax=0.15,
-        cut=3.0,
-    )
+    applying gaussian primary beam correction to it at karabo/test/test_line_emission.py
+    and karabo/examples/HIIM_Img_Recovery.ipynb
     """
     # Create folders to save outputs/ delete old one if it already exists
     if os.path.exists(path_outfile):
@@ -599,60 +579,54 @@ def line_emission_pointing(
 
     os.makedirs(path_outfile)
 
+    # Load sky into memory and close connection to h5
+    sky.compute()
+
+    if sky.sources is None:
+        raise TypeError(
+            "`sources` None is not allowed! Please set them in"
+            " the `SkyModel` before calling this function."
+        )
+
     if not client:
-        "Print: Get dask client"
         client = DaskHandler.get_dask_client()
 
-    redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
+    redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(
+        z_obs=sky.sources[:, 13], channel_num=num_bins
+    )
 
     dirty_images = []
     header: Optional[fits.header.Header] = None
 
-    # Run the simulation on the das cluster
-    if client is not None:
-        # Calculate the number of jobs
-        n_jobs = num_bins
-        print(f"Submitting {n_jobs} jobs to the cluster.")
+    # Calculate the number of jobs
+    n_jobs = num_bins
+    print(f"Submitting {n_jobs} jobs to the cluster.")
 
-        delayed_results = []
+    delayed_results = []
 
-        # Xarray dask array to numpy
-        sources = sky.sources
-        if sources is None:
-            raise TypeError(
-                "`sources` None is not allowed! Please set them in"
-                " the `SkyModel` before calling this function."
-            )
-        sky.sources = sources.to_numpy()  # type: ignore [assignment]
-
-        # Scatter sky
-        sky = client.scatter(sky)
-
-        for bin_idx in range(num_bins):
-            # Submit the jobs
-            delayed_ = delayed(run_one_channel_simulation)(
-                path_outfile=path_outfile,
-                sky=sky,
-                bin_idx=bin_idx,
-                z_obs=z_obs,
-                z_min=redshift_channel[bin_idx],
-                z_max=redshift_channel[bin_idx + 1],
-                freq_min=freq_channel[bin_idx],
-                freq_bin=freq_bin,
-                ra_deg=ra_deg,
-                dec_deg=dec_deg,
-                beam_type=beam_type,
-                gaussian_fwhm=gaussian_fwhm,
-                gaussian_ref_freq=gaussian_ref_freq,
-                start_time=start_time,
-                obs_length=obs_length,
-                cut=cut,
-                img_size=img_size,
-                circle=circle,
-                rascil=rascil,
-                verbose=verbose,
-            )
-            delayed_results.append(delayed_)
+    for bin_idx in range(num_bins):
+        delayed_ = delayed(run_one_channel_simulation)(
+            path_outfile=path_outfile,
+            sky=sky,
+            bin_idx=bin_idx,
+            z_min=redshift_channel[bin_idx],
+            z_max=redshift_channel[bin_idx + 1],
+            freq_min=freq_channel[bin_idx],
+            freq_bin=freq_bin,
+            ra_deg=ra_deg,
+            dec_deg=dec_deg,
+            beam_type=beam_type,
+            gaussian_fwhm=gaussian_fwhm,
+            gaussian_ref_freq=gaussian_ref_freq,
+            start_time=start_time,
+            obs_length=obs_length,
+            cut=cut,
+            img_size=img_size,
+            circle=circle,
+            rascil=rascil,
+            verbose=verbose,
+        )
+        delayed_results.append(delayed_)
 
         result = compute(*delayed_results, scheduler="distributed")
         dirty_images = [x[0] for x in result]
@@ -661,7 +635,7 @@ def line_emission_pointing(
 
     if header is None:
         raise ValueError("No Header found.")
-    dirty_image = cast(NDArray[np.float_], sum(dirty_images))
+    dirty_image = cast(NDArray[np.float_], np.einsum("ijk->jk", dirty_images))
 
     print("Save summed dirty images as fits file")
     dirty_img = fits.PrimaryHDU(dirty_image)

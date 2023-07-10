@@ -1,8 +1,7 @@
 import os
 import tempfile
 
-import numpy as np
-
+from karabo.data.external_data import DilutedBATTYESurveyDownloadObject
 from karabo.simulation.line_emission import (
     gaussian_fwhm_meerkat,
     line_emission_pointing,
@@ -10,27 +9,39 @@ from karabo.simulation.line_emission import (
     simple_gaussian_beam_correction,
 )
 from karabo.simulation.sky_model import SkyModel
+from karabo.util.dask import DaskHandler
 
 
 def test_line_emission_run():
-    # Tests parallelised line emission simulation and beam correction
-    sky_pointing = SkyModel.sky_test()
-    num_sources = len(sky_pointing[:, 2])
-    z_obs_pointing = np.random.uniform(0.5, 1.0, num_sources)
+    DaskHandler.n_threads_per_worker = 1
+
+    # Read in the sky
+    survey = DilutedBATTYESurveyDownloadObject()
+    catalog_path = survey.get()
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = os.path.join(tmpdir, "test_line_emission")
-        dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-            outpath, sky_pointing, z_obs_pointing
+        ra = 20
+        dec = -30
+        cut = 1.0
+        sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
+            path=catalog_path, ra_deg=ra, dec_deg=dec, outer_rad=3
         )
-        plot_scatter_recon(sky_pointing, dirty_im, outpath, header_dirty, cut=3.0)
+        # Simulation of line emission observation
+        dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
+            path_outfile=outpath, sky=sky_pointing, cut=cut, img_size=1024
+        )
+        plot_scatter_recon(sky_pointing, dirty_im, outpath, header_dirty, cut=cut)
+
+        # Primary beam correction
         gauss_fwhm = gaussian_fwhm_meerkat(freq_mid_dirty)
         beam_corrected, _ = simple_gaussian_beam_correction(
-            outpath, dirty_im, gauss_fwhm
+            outpath, dirty_im, gauss_fwhm, cut=cut, img_size=1024
         )
         plot_scatter_recon(
             sky_pointing,
             beam_corrected,
             outpath + "_GaussianBeam_Corrected",
             header_dirty,
-            cut=3.0,
+            cut=cut,
         )
+        print("Finished")

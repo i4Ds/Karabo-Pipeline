@@ -546,6 +546,28 @@ class SkyModel:
         else:
             return copied_sky
 
+    @overload
+    def filter_by_radius_euclidean_flat_approximation(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[False] = False,
+    ) -> SkyModel:
+        ...
+
+    @overload
+    def filter_by_radius_euclidean_flat_approximation(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[True],
+    ) -> Tuple[SkyModel, NDArray[np.int_]]:
+        ...
+
     def filter_by_radius_euclidean_flat_approximation(
         self,
         inner_radius_deg: IntFloat,
@@ -553,7 +575,7 @@ class SkyModel:
         ra0_deg: IntFloat,
         dec0_deg: IntFloat,
         indices: bool = False,
-    ) -> Union[SkyModel, Tuple[SkyModel, np.int64]]:
+    ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int_]]]:
         # TODO description what is different to non-apporx, when should I use this fun?
         """_summary_
 
@@ -590,7 +612,7 @@ class SkyModel:
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
         if indices:
-            filtered_indices = cast(np.int64, np.where(filter_mask)[0])
+            filtered_indices = np.where(filter_mask)[0]
             return copied_sky, filtered_indices
         else:
             return copied_sky
@@ -1517,9 +1539,9 @@ class SkyModel:
         return sky
 
     @staticmethod
-    def sky_from_h5_with_redshift(
+    def sky_from_h5_with_redshift_filtered(
         path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
-    ) -> Tuple[SkyModel, NDArray[np.float_]]:
+    ) -> SkyModel:
         """
         A sky model is created from a h5 file containing a catalog with right ascension,
         declination, flux and observed redshift of HI distribution. The sky model only
@@ -1530,45 +1552,54 @@ class SkyModel:
         :param dec_deg: Phase center, declination.
         :param outer_rad: The radius size of the sky model to be considered.
         :return: The sky model and the corresponding redshifts.
-        TODO: Change after branch 400 is merged.
         """
+        SOUTH_CATALOG_FACTOR = -1
 
-        # Read in the catalog (only works for catalogs which are not very large)
-        catalog = h5py.File(path, "r")
-        print("The catalog keys are:", list(catalog.keys()))
-        print("The unit of the flux given here is:", catalog["Flux"].attrs["Units"])
+        # Read in the catalog
+        prefix_mapping = SkyPrefixMapping(
+            ra="Right Ascension", dec="Declination", stokes_i="Flux"
+        )
+        extra_columns = ["Observed Redshift"]
+        sky = SkyModel.get_sky_model_from_h5_to_xarray(
+            path=path, prefix_mapping=prefix_mapping, extra_columns=extra_columns
+        )
+
+        if sky.h5_file_connection is None:
+            raise ConnectionError("Please provide an h5 file to create the sky model.")
+
+        print("The catalog keys are:", list(sky.h5_file_connection.keys()))
+        print(
+            "The unit of the flux given here is:",
+            sky.h5_file_connection["Flux"].attrs["Units"],
+        )
         print(
             "Number of elements in the complete catalog:",
-            len(catalog["Declination"][()]),
+            len(sky.h5_file_connection["Declination"][()]),
         )
-
-        ra = np.array(catalog["Right Ascension"])
-        # We multiply by -1 to change the catalog to the Southern sky
-        dec = np.array(catalog["Declination"]) * -1
-        flux = np.array(catalog["Flux"])
-        z_obs = np.array(catalog["Observed Redshift"])
-        catalog.close()
-
-        # We construct the sky model from the catalog information with Karabo
-        sky_data = np.zeros((len(ra), 12))
-        sky_data[:, 0] = ra
-        sky_data[:, 1] = dec
-        sky_data[:, 2] = flux
-        sky = SkyModel()
-        sky.add_point_sources(sky_data)
 
         # We only take into account a certain FOV, we filter the sky for this FOV
-        sky_filter, filter_in = sky.filter_by_radius(
+        sky_filter = sky.filter_by_radius_euclidean_flat_approximation(
             ra0_deg=ra_deg,
-            dec0_deg=dec_deg,
+            dec0_deg=dec_deg * SOUTH_CATALOG_FACTOR,
             inner_radius_deg=0.0,
             outer_radius_deg=outer_rad,
-            indices=True,
         )
-        z_obs_filter = z_obs[filter_in]
+
+        # Delete large sky
+        del sky
+
+        if sky_filter.sources is None:
+            raise TypeError(
+                "`sources` None is not allowed! Please set them in"
+                " the `SkyModel` before calling this function."
+            )
+
+        # Transform the sky to the southern sky
+        sky_filter.sources[:, 1] *= SOUTH_CATALOG_FACTOR
+
         print(
             "Number of elements in diluted catalog in the interesting FOV:",
             len(sky_filter[:, 0]),
         )
 
-        return sky_filter, z_obs_filter
+        return sky_filter
