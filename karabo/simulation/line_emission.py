@@ -184,6 +184,7 @@ def plot_scatter_recon(
     :param header: The header of the recon_image.
     :param vmin: Minimum value of the colorbar.
     :param vmax: Maximum value of the colorbar.
+    :param f_min: Minimal flux of the sources to be plotted in the scatter plot
     :param cut: Smaller FOV
     """
 
@@ -345,7 +346,9 @@ def karabo_reconstruction(
                               here.
     :param cut: Size of the reconstructed image.
     :param img_size: The pixel size of the reconstructed image.
-    :param channel_num: #TODO
+    :param channel_num: The number of frequency channels to be used for the
+                        simulation of the continuous emission and therefore for the
+                        reconstruction.
     :param pdf_plot: Shall we plot the scatter plot and the reconstruction as a pdf?
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
@@ -541,6 +544,8 @@ def line_emission_pointing(
     :param dec_deg: Phase center declination.
     :param num_bins: Number of redshift/frequency slices used to simulate line emission.
                      The more the better the line emission is simulated.
+                     This value also restricts the parallelization. The number of bins
+                     restricts the number of nodes which are effectively used.
     :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
                       "Aperture Array".
     :param gaussian_fwhm: If the primary beam is gaussian, this is its FWHM. In power
