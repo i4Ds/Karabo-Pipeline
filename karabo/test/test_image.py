@@ -7,12 +7,12 @@ from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
-from karabo.test.test_base import TestObject
+from karabo.test.conftest import TFiles
 
 
 # Test case
-def test_dirty_image(test_objects: TestObject):
-    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
+def test_dirty_image(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
     dirty = imager.get_dirty_image()
@@ -21,8 +21,8 @@ def test_dirty_image(test_objects: TestObject):
     dirty.plot(title="Dirty Image")
 
 
-def test_dirty_image_resample(test_objects: TestObject):
-    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
+def test_dirty_image_resample(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     SHAPE = 2048
     imager = Imager(vis, imaging_npixel=SHAPE, imaging_cellsize=3.878509448876288e-05)
 
@@ -50,8 +50,8 @@ def test_dirty_image_resample(test_objects: TestObject):
     assert np.sum(np.isnan(dirty.data)) == 0
 
 
-def test_cellsize_overwrite(test_objects: TestObject):
-    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
+def test_cellsize_overwrite(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     imager = Imager(
         vis,
         imaging_npixel=2048,
@@ -76,8 +76,8 @@ def test_cellsize_overwrite(test_objects: TestObject):
     assert cdelt_overwrite_cellsize_false == cdelt_overwrite_cellsize_true
 
 
-def test_cellsize_overwrite_false(test_objects: TestObject):
-    vis = Visibility.read_from_file(test_objects.visibilities_gleam_ms)
+def test_cellsize_overwrite_false(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     imager = Imager(
         vis,
         imaging_npixel=2048,
@@ -136,8 +136,8 @@ def test_explore_sky():
 #     sky.save_to_file("result/imaging_sky.txt")
 
 
-def test_power_spectrum(test_objects: TestObject):
-    restored_image = Image(path=test_objects.restored_fits)
+def test_power_spectrum(tobject: TFiles):
+    restored_image = Image(path=tobject.restored_fits)
     # restored_image.plot_power_spectrum(save_png=True)
     restored_image.get_cellsize()
     # restored_image.plot_histogram()

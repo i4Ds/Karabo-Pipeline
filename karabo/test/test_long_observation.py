@@ -11,13 +11,13 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.test.test_base import TestObject
+from karabo.test.conftest import TFiles
 
 
 # Test cases
-def test_fit_element(test_objects: TestObject):
+def test_fit_element(tobject: TFiles):
     tel = Telescope.get_MEERKAT_Telescope()
-    beam = BeamPattern(test_objects.run5_cst)
+    beam = BeamPattern(tobject.run5_cst)
     beam.fit_elements(tel, freq_hz=1.0e08, avg_frac_error=0.5)
 
 
@@ -58,7 +58,7 @@ def test_eidosbeam():
         )
 
 
-def test_long_observations(test_objects: TestObject, sky_data: NDArray[np.float64]):
+def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
     # skips `input` during unit tests if using `karabo.util.data_util.input_wrapper`
     os.environ["SKIP_INPUT"] = str(True)
     number_of_days = 3
@@ -82,7 +82,7 @@ def test_long_observations(test_objects: TestObject, sky_data: NDArray[np.float6
             number_of_days=number_of_days,
         )
         beam_polX = BeamPattern(
-            cst_file_path=test_objects.cst_like_beam_port_1_txt,
+            cst_file_path=tobject.cst_like_beam_port_1_txt,
             telescope=telescope,
             freq_hz=observation_long.start_frequency_hz,
             pol="X",
@@ -90,7 +90,7 @@ def test_long_observations(test_objects: TestObject, sky_data: NDArray[np.float6
             beam_method="Gaussian Beam",
         )
         beam_polY = BeamPattern(
-            cst_file_path=test_objects.cst_like_beam_port_2_txt,
+            cst_file_path=tobject.cst_like_beam_port_2_txt,
             telescope=telescope,
             freq_hz=observation_long.start_frequency_hz,
             pol="Y",

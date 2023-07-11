@@ -12,12 +12,12 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.test.test_base import TestObject
+from karabo.test.conftest import TFiles
 
 
-def test_fit_element(test_objects: TestObject):
+def test_fit_element(tobject: TFiles):
     tel = Telescope.get_MEERKAT_Telescope()
-    beam = BeamPattern(test_objects.run5_cst)
+    beam = BeamPattern(tobject.run5_cst)
     beam.fit_elements(tel, freq_hz=1e8, avg_frac_error=0.5)
 
 

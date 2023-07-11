@@ -15,17 +15,17 @@ from karabo.sourcedetection.result import (
     PyBDSFSourceDetectionResult,
     SourceDetectionResult,
 )
-from karabo.test.test_base import TestObject
+from karabo.test.conftest import TFiles
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 
 
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
-def test_source_detection_plot(test_objects: TestObject):
+def test_source_detection_plot(tobject: TFiles):
     phase_center = [250, -80]
-    sky = SkyModel.read_from_file(test_objects.filtered_sky_csv)
+    sky = SkyModel.read_from_file(tobject.filtered_sky_csv)
     sky.setup_default_wcs(phase_center=phase_center)
-    detection = SourceDetectionResult.read_from_file(test_objects.detection_zip)
+    detection = SourceDetectionResult.read_from_file(tobject.detection_zip)
     with tempfile.TemporaryDirectory() as tmpdir:
         detection.write_to_file(os.path.join(tmpdir, "detection.zip"))
 
@@ -141,8 +141,8 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
 
 
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
-def test_detection(test_objects: TestObject):
-    image = Image(path=test_objects.restored_fits)
+def test_detection(tobject: TFiles):
+    image = Image(path=tobject.restored_fits)
     detection = PyBDSFSourceDetectionResult.detect_sources_in_image(image)
     with tempfile.TemporaryDirectory() as tmpdir:
         detection.write_to_file(os.path.join(tmpdir, "result.zip"))

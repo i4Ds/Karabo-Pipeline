@@ -1,3 +1,4 @@
+"""Pytest global fixtures needs to be here!"""
 import os
 from dataclasses import dataclass
 
@@ -9,7 +10,7 @@ from karabo.test import data_path
 
 
 @dataclass
-class TestObject:
+class TFiles:
     """Read-only repo-artifact paths.
 
     It is assumed that all artifacts here exist in the repo
@@ -32,8 +33,8 @@ class TestObject:
 
 
 @pytest.fixture(scope="session")
-def test_objects() -> TestObject:
-    return TestObject()
+def tobject() -> TFiles:
+    return TFiles()
 
 
 @pytest.fixture(scope="function")
