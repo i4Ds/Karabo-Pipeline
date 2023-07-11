@@ -13,6 +13,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test.conftest import TFiles
+from karabo.util.data_util import get_module_absolute_path
 
 
 def test_fit_element(tobject: TFiles):
@@ -144,7 +145,9 @@ def test_compare_karabo_oskar():
                 "length": "03:05:00.000",
             },
             "telescope": {
-                "input_directory": os.path.join(tmpdir, "meerkat.tm"),
+                "input_directory": os.path.join(
+                    get_module_absolute_path(), "data", "meerkat.tm"
+                ),
                 "normalise_beams_at_phase_centre": True,
                 "pol_mode": "Full",
                 "allow_station_beam_duplication": True,
