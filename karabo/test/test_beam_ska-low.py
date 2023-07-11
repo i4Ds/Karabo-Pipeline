@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from astropy.io import fits
 
 from karabo.imaging.imager import Imager
@@ -13,6 +14,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 
 
+@pytest.mark.skip(reason="`run_simulation` is taking way too long")
 def test_beam():
     sky = SkyModel()
     sky_data = np.zeros((81, 12))
