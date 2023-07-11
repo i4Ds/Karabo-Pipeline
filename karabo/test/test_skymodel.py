@@ -19,9 +19,9 @@ def test_init(sky_data_with_ids: NDArray[np.object_]):
     sky1 = SkyModel()
     sky1.add_point_sources(sky_data_with_ids)
     sky2 = SkyModel(sky_data_with_ids)
-    # test if sources are inside now
-    assert sky_data_with_ids.shape == sky1.sources.shape
-    assert sky_data_with_ids.shape == sky2.sources.shape
+    # test if sources are inside now (-1 because ids are in `xarray.DataArray.coord`)
+    assert sky_data_with_ids.shape[1] - 1 == sky1.sources.shape[1]
+    assert sky_data_with_ids.shape[1] - 1 == sky2.sources.shape[1]
 
 
 def test_not_full_array():
@@ -30,8 +30,8 @@ def test_not_full_array():
     sky1.add_point_sources(sky_data)
     sky2 = SkyModel(sky_data)
     # test if doc shape were expanded
-    assert sky1.sources.shape == sky_data.shape
-    assert sky2.sources.shape == sky_data.shape
+    assert sky1.sources.shape == (sky_data.shape[0], 12)
+    assert sky2.sources.shape == (sky_data.shape[0], 12)
 
 
 def test_filter_sky_model():

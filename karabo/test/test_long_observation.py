@@ -43,7 +43,7 @@ def test_eidosbeam():
     B_ah = BeamPattern.get_eidos_holographic_beam(
         npix=npix, ch=ch, dia=dia, thres=thres, mode="AH"
     )
-    with tempfile.TemporaryDirectory as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
         BeamPattern.show_eidos_beam(
             B_ah, path=os.path.join(tmpdir, "eidos_AH_beam.png")
         )

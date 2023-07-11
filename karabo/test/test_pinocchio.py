@@ -10,15 +10,15 @@ from karabo.simulation.telescope import Telescope
 
 
 def test_simple_instance():
-    p = Pinocchio()
-    p.setRunName("pinocchio-test")
-    p.printConfig()
-    p.printRedShiftRequest()
-    p.runPlanner(16, 1)
-    p.run(mpiThreads=2)
-
     with tempfile.TemporaryDirectory() as tmpdir:
-        p.save(tmpdir)
+        p = Pinocchio(working_dir=tmpdir)
+        p.setRunName("test")
+        p.printConfig()
+        p.printRedShiftRequest()
+        p.runPlanner(16, 1)
+        p.run(mpiThreads=2)
+
+        p.save(os.path.join(tmpdir, "subdir"))
         sky = p.getSkyModel()
         sky = sky.filter_by_radius(0, 1, 32, 45)
 
