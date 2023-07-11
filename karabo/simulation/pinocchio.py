@@ -302,7 +302,7 @@ class Pinocchio:
 
         if len(name) > 11:
             raise ValueError(
-                "Max len of run-name is 11 because of bad-coded config-parser!"
+                "Max len of run-name is 11 because of badly-coded config-parser!"
             )
         l: List[PinocchioParams] = self.currConfig.confDict["runProperties"]
         for i in l:
