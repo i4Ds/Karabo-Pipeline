@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import os
 import sys
 from types import TracebackType
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TextIO
 
 import numpy as np
 
@@ -26,6 +28,8 @@ ErrKind = Literal["ignore", "warn", "raise", "call", "print", "log"]
 
 
 class NumpyHandleError:
+    """Captures numpy-errors."""
+
     def __init__(
         self,
         all: Optional[ErrKind] = None,
@@ -59,6 +63,8 @@ class NumpyHandleError:
 
 
 class HiddenPrints:
+    """Captures `sys.stdout` and/or `sys.stderr` to silent ouput."""
+
     def __init__(
         self,
         stdout: bool = True,
@@ -87,3 +93,66 @@ class HiddenPrints:
         if self.stderr:
             sys.stderr.close()
             sys.stderr = self._original_stderr
+
+
+class CaptureSpam:
+    """Captures spam of `sys.stdout` or `sys.stderr`.
+
+    Captures spam-messages of an external library.
+    It checks each new line (not an entire print-message with
+     multiple multiple newlines), if it has already been printed once.
+    Don't use CaptureSpam if the external library function
+     provides a way to suppress their output.
+    """
+
+    def __init__(self, stream: TextIO = sys.stdout):
+        self._buf = ""
+        self._data = ""
+        self._stream = stream
+        self._captured: list[str] = []
+
+    def write(self, buf: str) -> None:
+        while buf:
+            try:
+                newline_index = buf.index("\n")
+            except ValueError:
+                # no newline, buffer for next call
+                self._buf += buf
+                break
+            # get data up to next newline and combine with any buffered data
+            self._data = self._buf + buf[: newline_index + 1]
+            self._buf = ""
+            buf = buf[newline_index + 1 :]
+
+            self.flush()
+
+    def flush(self) -> None:
+        if self._data not in self._captured:
+            self._captured.append(self._data)
+            self._stream.write(self._data)
+            self._data = ""
+
+    def __enter__(self) -> CaptureSpam:
+        if self._stream == sys.stdout:
+            sys.stdout = self  # type: ignore[assignment]
+            self._std = "stdout"
+        elif self._stream == sys.stderr:
+            sys.stderr = self  # type: ignore[assignment]
+            self._std = "stderr"
+        else:
+            raise ValueError(
+                "CaptureSpam only supports `sys.stdout` and `sys.stderr`, "
+                f"but got {self._stream=}."
+            )
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        if self._std == "stdout":
+            sys.stdout = self._stream
+        elif self._std == "stderr":
+            sys.stderr = self._stream
