@@ -98,11 +98,17 @@ class HiddenPrints:
 class CaptureSpam:
     """Captures spam of `sys.stdout` or `sys.stderr`.
 
-    Captures spam-messages of an external library.
+    Captures exact-match spam-messages of an external library.
     It checks each new line (not an entire print-message with
      multiple multiple newlines), if it has already been printed once.
     Don't use CaptureSpam if the external library function
      provides a way to suppress their output.
+
+    Example usage:
+        ```
+        with CaptureSpam():
+            library_spam_fun()
+        ```
     """
 
     def __init__(self, stream: TextIO = sys.stdout):
