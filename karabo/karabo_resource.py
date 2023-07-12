@@ -96,7 +96,7 @@ class HiddenPrints:
 
 
 class CaptureSpam:
-    """Captures spam of `sys.stdout` or `sys.stderr`.
+    """Captures spam of `print` to `sys.stdout` or `sys.stderr`.
 
     Captures exact-match spam-messages of an external library.
     It checks each new line (not an entire print-message with
@@ -113,7 +113,6 @@ class CaptureSpam:
 
     def __init__(self, stream: TextIO = sys.stdout):
         self._buf = ""
-        self._data = ""
         self._stream = stream
         self._captured: list[str] = []
 
@@ -126,17 +125,16 @@ class CaptureSpam:
                 self._buf += buf
                 break
             # get data up to next newline and combine with any buffered data
-            self._data = self._buf + buf[: newline_index + 1]
-            self._buf = ""
+            self._buf = self._buf + buf[: newline_index + 1]
             buf = buf[newline_index + 1 :]
 
             self.flush()
 
     def flush(self) -> None:
-        if self._data not in self._captured:
-            self._captured.append(self._data)
-            self._stream.write(self._data)
-            self._data = ""
+        if self._buf not in self._captured:
+            self._captured.append(self._buf)
+            self._stream.write(self._buf)
+        self._buf = ""
 
     def __enter__(self) -> CaptureSpam:
         if self._stream == sys.stdout:
