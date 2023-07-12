@@ -7,8 +7,8 @@ from math import comb
 from typing import List, Optional
 
 import numpy as np
-import oskar.telescope as os_telescope
 from numpy.typing import NDArray
+from oskar.telescope import Telescope as OskarTelescope
 
 import karabo.error
 from karabo.error import KaraboError
@@ -191,14 +191,14 @@ class Telescope(KaraboResource):
             plt.show(block=False)
             plt.pause(1)
 
-    def get_OSKAR_telescope(self) -> os_telescope:
+    def get_OSKAR_telescope(self) -> OskarTelescope:
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
         self.temp_dir = FileHandle(create_additional_folder_in_dir=True)
         self.write_to_file(self.temp_dir.dir)
-        tel = os_telescope.Telescope()
+        tel = OskarTelescope()
         tel.load(self.temp_dir.dir)
         self.path = self.temp_dir.dir
         return tel

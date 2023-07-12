@@ -450,7 +450,7 @@ class SkyModel:
         """
         if self.sources is None:
             raise KaraboSkyModelError(
-                "`sources` is None, add sources before calling `to_array`."
+                "`sources` is None, add sources before calling `to_np_array`."
             )
         if with_obj_ids:
             if self.source_ids is None:

@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -63,12 +64,17 @@ class Pinocchio:
 
     RAD_TO_DEG = 180 / np.pi
 
-    def __init__(self) -> None:
+    def __init__(self, working_dir: Optional[str] = None) -> None:
         """
-        Creates temp directory (wd) for the pinocchio run.
+        Creates temp directory `wd` for the pinocchio run.
         Load default file paths for config files, load default config files
+
+        Args:
+            working_dir: working directory of Phinocchio
         """
-        self.wd = FileHandle()
+        if working_dir is not None:
+            working_dir = os.path.abspath(working_dir)
+        self.wd = FileHandle(dir=working_dir)
 
         # get default input files
         inputFilesPath = os.environ["CONDA_PREFIX"] + "/etc/"
@@ -294,6 +300,10 @@ class Pinocchio:
         :type name: str
         """
 
+        if len(name) > 11:
+            raise ValueError(
+                "Max len of run-name is 11 because of badly-coded config-parser!"
+            )
         l: List[PinocchioParams] = self.currConfig.confDict["runProperties"]
         for i in l:
             if i.name == "RunFlag":
@@ -515,7 +525,7 @@ class Pinocchio:
 
         fp: str = os.path.join(self.wd.dir, Pinocchio.PIN_PARAM_FILE)
 
-        with open(os.path.join(fp), "w") as temp_file:
+        with open(fp, "w") as temp_file:
             temp_file.write("\n".join(lines))
 
         return fp
@@ -534,7 +544,13 @@ class Pinocchio:
         if not os.path.isdir(outDirPath):
             os.mkdir(outDirPath)
 
-        shutil.copytree(self.wd.dir, outDirPath, dirs_exist_ok=True)
+        if outDirPath != self.wd.dir:
+            shutil.copytree(self.wd.dir, outDirPath, dirs_exist_ok=True)
+        else:
+            print(
+                f"provided {outDirPath=} is already the working_dir {self.wd.dir=}.",
+                file=sys.stderr,
+            )
 
     def plotHalos(self, redshift: str = "0.0", save: bool = False) -> None:
         """

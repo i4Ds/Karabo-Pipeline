@@ -1,5 +1,5 @@
 import os
-import unittest
+import tempfile
 
 from karabo.data.external_data import DilutedBATTYESurveyDownloadObject
 from karabo.simulation.line_emission import (
@@ -9,25 +9,17 @@ from karabo.simulation.line_emission import (
     simple_gaussian_beam_correction,
 )
 from karabo.simulation.sky_model import SkyModel
+from karabo.util.dask import DaskHandler
 
 
-class TestLineEmission(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        # make dir for result files
-        if not os.path.exists("result/lin_em"):
-            os.makedirs("result/lin_em")
+def test_line_emission_run():
+    DaskHandler.n_threads_per_worker = 1
 
-    def test_line_emission_run(self):
-        # Tests parallelized line emission simulation and beam correction
-        from karabo.util.dask import DaskHandler
-
-        DaskHandler.n_threads_per_worker = 1
-
-        # Read in the sky
-        survey = DilutedBATTYESurveyDownloadObject()
-        catalog_path = survey.get()
-        outpath = "result/lin_em/test_line_emission"
+    # Read in the sky
+    survey = DilutedBATTYESurveyDownloadObject()
+    catalog_path = survey.get()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        outpath = os.path.join(tmpdir, "test_line_emission")
         ra = 20
         dec = -30
         cut = 1.0

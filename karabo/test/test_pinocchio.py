@@ -1,6 +1,6 @@
 import datetime
 import os
-import unittest
+import tempfile
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -9,24 +9,16 @@ from karabo.simulation.pinocchio import Pinocchio
 from karabo.simulation.telescope import Telescope
 
 
-class TestPinocchio(unittest.TestCase):
-    RESULT_FOLDER = "./result"
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        # make dir for result files
-        if not os.path.exists(TestPinocchio.RESULT_FOLDER):
-            os.makedirs(TestPinocchio.RESULT_FOLDER)
-
-    def testSimpleInstance(self) -> None:
-        p = Pinocchio()
-        p.setRunName("unittest")
+def test_simple_instance():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        p = Pinocchio(working_dir=tmpdir)
+        p.setRunName("test")
         p.printConfig()
         p.printRedShiftRequest()
         p.runPlanner(16, 1)
         p.run(mpiThreads=2)
 
-        p.save(TestPinocchio.RESULT_FOLDER)
+        p.save(os.path.join(tmpdir, "subdir"))
         sky = p.getSkyModel()
         sky = sky.filter_by_radius(0, 1, 32, 45)
 
@@ -54,5 +46,5 @@ class TestPinocchio(unittest.TestCase):
         imager = Imager(visibility, imaging_npixel=boxsize, imaging_cellsize=cellsize)
 
         dirty = imager.get_dirty_image()
-        dirty.write_to_file(f"{TestPinocchio.RESULT_FOLDER}/dirty.fits", overwrite=True)
+        dirty.write_to_file(os.path.join(tmpdir, "dirty.fits"), overwrite=True)
         dirty.plot("pinocchio sim dirty plot")

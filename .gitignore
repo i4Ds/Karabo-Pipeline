@@ -107,6 +107,8 @@ karabo/examples/karabo/test/data/results/*
 .mypy_cache/*
 # Slurm logs
 **.out
+# pytest
+.pymon
 
 # Other (playground, experiment, ..)
 .experiment/*
