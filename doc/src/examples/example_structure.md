@@ -21,20 +21,16 @@ Please look at the karabo.package documentation for specifics on the individual 
 
 Karabo manages all available nodes through Dask, making the computational power conveniently accessible for the user. The `DaskHandler` class streamlines the creation of a Dask client and offers a user-friendly interface for interaction. This class contains static variables, which when altered, modify the behavior of the Dask client. 
 
-While users are not required to interact with Dask directly - thanks to the background processes managed by Karabo - the Dask client can be used directly if necessary. This method is recommended when there is a need to prevent your Python script from being processed on multiple nodes.
+While users are not required to interact with Dask directly - thanks to the background processes managed by Karabo - the Dask client has to be initialized at the beginning of your script with `DaskHandler.setup` (see example below). This has to do with the spawning of new processes when creating `Nanny` processes.
 
-Protecting the `Nanny` process by the `if __name__ == "__main__":` statement is essential since the nodes cannot be assigned as a `Dask Worker/Nanny` outside of this statement. 
-
-When the client isn't called at the start of the script, either by using the client or calling `DaskHandler.setup()`, the script runs on every node until `Karabo` initializes the Dask client, even on different nodes. 
-
-It's important to remember that this approach is intended to streamline your work. However, if issues or additional requirements arise, one can always interact with the Dask client directly.
+If you need the client yourself, then no `setup()` is needed.
 
 ```python
 from karabo.util.dask import DaskHandler
 
 if __name__ == "__main__":
     # Get the Dask client
-    client = DaskHandler.get_dask_client()
+    client = DaskHandler.get_dask_client() # Not needed anymore to call .setup()
 
     # Use the client as needed
     result = client.submit(my_function, *args)
@@ -44,7 +40,7 @@ from karabo.util.dask import DaskHandler
 
 if __name__ == "__main__":
     DaskHandler.setup()
-    ...
+    result = <function_of_karabo_which_uses_dask_in_the_background>(*args)
 ```
 
 Disable the usage of Dask by Karabo.
