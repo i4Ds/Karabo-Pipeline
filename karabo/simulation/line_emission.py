@@ -638,7 +638,7 @@ def line_emission_pointing(
     dirty_image = cast(NDArray[np.float_], np.einsum("ijk->jk", dirty_images))
 
     print("Save summed dirty images as fits file")
-    dirty_img = fits.PrimaryHDU(dirty_image)
+    dirty_img = fits.PrimaryHDU(dirty_image, header=header)
     dirty_img.writeto(path_outfile + ".fits", overwrite=True)
 
     print("Save 3-dim reconstructed dirty images as h5")
