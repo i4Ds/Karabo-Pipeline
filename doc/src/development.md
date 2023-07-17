@@ -161,8 +161,7 @@ make html
 
 ## Update Tests
 
-We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)).
-The unit tests are run automatically on every push. To add a new test simply go to the `karabo/test` folder.
+We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)). To add a new test simply go to the `karabo/test` folder.
 
 Add tests for when you write some sort of new code that you feel like might break.
 
