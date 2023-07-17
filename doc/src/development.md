@@ -2,7 +2,26 @@
 
 ## Setup local dev environment
 
-First clone the code via git.
+Make sure you have a working installation of Conda, with, e.g.:
+
+```shell
+wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.2-0-Linux-x86_64.sh
+bash Miniconda3-py39_23.5.2-0-Linux-x86_64.sh -b
+source ~/miniconda3/bin/activate
+```
+
+(Optional but recommended for performance) Set the solver to libmamba:
+
+```shell
+conda config --set solver libmamba
+```
+
+Next, clone the code via git, and cd into it:
+```shell
+git clone git@github.com:i4Ds/Karabo-Pipeline.git
+cd Karabo-Pipeline
+```
+
 Then create a local development environment with the provided `environment.yaml` file.
 
 ```shell
@@ -16,11 +35,20 @@ conda activate <your-env-name>
 pip install -r requirements.txt
 ```
 
-With this only the dependencies but not the current version of karabo will be installed into a conda environment.
-Then you can simply run your code inside that environment. To tell Python to treat the reposity as a package, the following links can be helpful:
+NOTE: With these commands, only the dependencies but not the current version of karabo will be installed into a conda environment. To tell Python to treat the reposity as a package, run the following (note that using `conda develop` is not recommended, see [this issue](https://github.com/conda/conda-build/issues/1992)):
 
-[Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
-[how to use conda develop?](https://github.com/conda/conda-build/issues/1992)
+```shell
+pip install -e .
+```
+
+(Optional) For your developer experience, the following link might be useful: [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
+
+You are done! If everything worked as expected, you can start an interactive Python session and test the import:
+
+```shell
+python
+>>> import karabo
+```
 
 ## Formatting
 
@@ -133,30 +161,16 @@ make html
 
 ## Update Tests
 
-We use the basic ``unittest`` python package ([unittest docs](https://docs.python.org/3/library/unittest.html)).
-The unit tests are run automatically on every push.
-To add a new test simply go to the karabo/test folder.
-Add a new file for a new set of tests in this shape.
-
-```python
-class TestSimulation(unittest.TestCase):
-
-    def someTest(self):
-        # run some code that tests some functionality
-        result = someFunction()
-        # use the assertion functions on self
-        self.assertEquals(result, 4)
-```
+We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)). To add a new test simply go to the `karabo/test` folder.
 
 Add tests for when you write some sort of new code that you feel like might break.
-
 
 TIP:
 If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.
 
 ## Create a Release
 When everything is merged which should be merged, a new Release can be deployed on `conda-forge` as following:
-- [Karabo-Pipline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
+- [Karabo-Pipeline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
 - Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
 - Update version in `karabo/version.py`
