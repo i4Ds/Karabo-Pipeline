@@ -40,7 +40,7 @@ def test_parallelization_by_observation():
     sky = SkyModel.get_GLEAM_Sky([76])
     phase_center = [250, -80]
     CENTER_FREQUENCIES_HZ = [100e6, 101e6]
-    CHANNEL_BANDWIDTHS_HZ = [1, 2]
+    CHANNEL_BANDWIDTHS_HZ = [1.0, 2.0]
     N_CHANNELS = [4, 8]
 
     sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])

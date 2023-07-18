@@ -268,7 +268,7 @@ class InterferometerSimulation:
         self.precision = precision
         self.station_type = station_type
         if self.station_type not in typing_get_args(StationTypeType):
-            raise KaraboInterferometerSimulationError(
+            raise TypeError(
                 f"Station type {self.station_type} is not a valid station type. "
                 f"Valid station types are: {typing_get_args(StationTypeType)}"
                 "This limitation comes from OSKAR itself."

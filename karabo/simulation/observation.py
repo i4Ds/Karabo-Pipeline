@@ -116,7 +116,7 @@ class ObservationAbstract(ABC):
         settings_tree: OskarSettingsTreeType,
         central_frequencies_hz: Union[IntFloat, List[IntFloat]],
         channel_bandwidths_hz: Union[IntFloat, List[IntFloat]],
-        n_channels: Union[IntFloat, List[IntFloat]],
+        n_channels: Union[int, List[int]],
     ) -> List[OskarSettingsTreeType]:
         """
         Create observations for OSKAR settings from input lists.
@@ -287,7 +287,7 @@ class ObservationParallized(ObservationAbstract):
         center_frequencies_hz: Union[IntFloat, List[IntFloat]] = 100e6,
         start_date_and_time: Union[datetime, str] = datetime.utcnow(),
         length: timedelta = timedelta(hours=4),
-        n_channels: Union[IntFloat, List[IntFloat]] = [0, 1, 2, 3, 4, 5],
+        n_channels: Union[int, List[int]] = [0, 1, 2, 3, 4, 5],
         channel_bandwidths_hz: Union[IntFloat, List[IntFloat]] = [1],
         phase_centre_ra_deg: IntFloat = 0,
         phase_centre_dec_deg: IntFloat = 0,
