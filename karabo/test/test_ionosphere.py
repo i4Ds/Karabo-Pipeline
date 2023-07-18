@@ -94,7 +94,7 @@ def test_ionosphere(sky_data: NDArray[np.float64]):
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
             noise_enable=False,
-            station_type="Isotropic",
+            station_type="Isotropic beam",
             ionosphere_fits_path=fits_filename,
             ionosphere_screen_type="External",
             ionosphere_screen_height_km=r0,

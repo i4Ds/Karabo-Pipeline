@@ -1,6 +1,8 @@
 import enum
 from copy import deepcopy
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
+from typing import get_args as typing_get_args
+from typing import overload
 
 import numpy as np
 import oskar
@@ -265,6 +267,12 @@ class InterferometerSimulation:
 
         self.precision = precision
         self.station_type = station_type
+        if self.station_type not in typing_get_args(StationTypeType):
+            raise TypeError(
+                f"Station type {self.station_type} is not a valid station type. "
+                f"Valid station types are: {typing_get_args(StationTypeType)}"
+                "This limitation comes from OSKAR itself."
+            )
         self.enable_power_pattern = enable_power_pattern
         if self.enable_power_pattern:
             # Convert power pattern to field pattern
