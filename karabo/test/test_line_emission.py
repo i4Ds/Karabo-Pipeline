@@ -71,6 +71,24 @@ def test_line_emission_run(
     uncorrected_h5_downloader,
     corrected_fits_downloader,
 ):
+    """Executes the line emission pipeline and validates the output files.
+
+    The line emission pipeline consists of the following steps:
+       Load sky model with input sources.
+       Prepare sky pointing, which keeps only sources within
+       a given field of view.
+       Simulate the line emission observation.
+       Prepare a Gaussian beam, and apply beam correction to pointing result.
+
+    Args:
+      uncorrected_fits_filename:
+        Name of FITS file containing added images before beam correction.
+      uncorrected_h5_filename:
+        Name of HDF5 file containing individual images from each channel,
+        before beam correction.
+      corrected_fits_filename:
+        Name of FITS file containing added images after beam correction.
+    """
     DaskHandler.n_threads_per_worker = 1
 
     # Download golden files for comparison
