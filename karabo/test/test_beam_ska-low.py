@@ -37,7 +37,7 @@ def test_beam():
             time_average_sec=1,
             noise_enable=False,
             enable_numerical_beam=True,
-            station_type="Gaussian",
+            station_type="Gaussian beam",
             enable_array_beam=enable_array_beam,
         )
         observation = Observation(

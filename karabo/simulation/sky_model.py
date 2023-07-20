@@ -15,8 +15,9 @@ from typing import (
     Type,
     Union,
     cast,
-    overload,
 )
+from typing import get_args as typing_get_args
+from typing import overload
 from warnings import warn
 
 import dask.array as da
@@ -1201,28 +1202,7 @@ class SkyModel:
             921259
         """
         if frequencies is None:
-            frequencies = [
-                76,
-                84,
-                92,
-                99,
-                107,
-                115,
-                122,
-                130,
-                143,
-                151,
-                158,
-                166,
-                174,
-                181,
-                189,
-                197,
-                204,
-                212,
-                220,
-                227,
-            ]
+            frequencies = list(typing_get_args(GLEAM_freq))
         # Get path to Gleamsurvey
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
