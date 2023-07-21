@@ -9,19 +9,13 @@
 [Example](karabo/examples/source_detection.ipynb) |
 [Contributors](CONTRIBUTORS.md)
 
-Karabo is the name of a software system that we ambitiously call a digital twin pipeline.
-It reproduces in an accessible way the path of sky observation data through processing modules that mimic conceptually
-the pipeline of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/).
+Karabo is a radio astronomy software distribution for validation and benchmarking of radio telescopes and algorithms. It can be used to simulate the behaviour of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/). Our goal is to make installation and ramp-up easier for researchers and developers.
 
-It should serve as a tool to learn and possibly also benchmark some of the processing steps
-from a sky simulation to the science products. 
+Karabo includes and relies on OSKAR, RASCIL, Pinocchio (a Dark Matter halo simulation), PyBDSF, [MIGHTEE](https://arxiv.org/abs/2211.05741), [GLEAM](https://www.mwatelescope.org/science/galactic-science/gleam/), Aratmospy, Bluebild, Eidos, Dask, Tools21cm, katbeam plus configuration of 20 well-known telescopes. Karabo can simulate instrument behavior and atmospheric effects, run imaging algorithms, and evaluate results.
 
-Karabo has multiple skies ready available for experimentation, such as 
+<img src="https://github.com/i4Ds/Karabo-Pipeline/assets/4119188/1b5086c4-9df7-4732-a832-89fdbd8abba9" width="50%" />
 
-- [MIGHTEE](https://arxiv.org/abs/2211.05741)
-- [GLEAM](https://www.mwatelescope.org/science/galactic-science/gleam/)
-
-Karabo is written in Python, composed of modules that can be set up in an interactive Jupyter Notebook environment.
+You can use Karabo to build your own data processing pipelines by combinding existing libraries and your own code. Karabo is written in Python, composed of modules that can be set up in an interactive Jupyter Notebook environment.
 
 Installation
 ------------
