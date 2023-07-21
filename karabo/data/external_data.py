@@ -1,5 +1,7 @@
 import os
+import re
 import site
+from typing import List, Optional
 
 import requests
 
@@ -36,13 +38,21 @@ class DownloadObject:
         self.path = f"{directory}/{name}"
 
     def __download(self) -> None:
-        response = requests.get(self.url, stream=True)
-        response.raise_for_status()
-        with open(self.path, "wb") as file:
-            for chunk in response.iter_content(
-                chunk_size=8192
-            ):  # Download in 8KB chunks
-                file.write(chunk)
+        try:
+            response = requests.get(self.url, stream=True)
+            response.raise_for_status()
+            # Check that path folder exists
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            with open(self.path, "wb") as file:
+                for chunk in response.iter_content(
+                    chunk_size=8192
+                ):  # Download in 8KB chunks
+                    file.write(chunk)
+        except BaseException:
+            # Remove the file if the download is interrupted
+            if os.path.exists(self.path):
+                os.remove(self.path)
+            raise
 
     def __is_downloaded(self) -> bool:
         if os.path.exists(self.path):
@@ -115,3 +125,52 @@ class ExampleHDF5Map(DownloadObject):
             "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
             + "/karabo_public/example_map.h5",
         )
+
+
+class FitsGzDownloadObject(DownloadObject):
+    def __init__(self, file_name: str, folder_name: Optional[str]) -> None:
+        base_path = (
+            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/"
+            "karabo_public"
+        )
+        if folder_name is not None:
+            base_path += f"/karabo_public/{folder_name}"
+        super().__init__(
+            file_name,
+            f"{base_path}/{file_name}",
+        )
+
+
+class ContainerContents:
+    def __init__(self, regexr_pattern: str):
+        self.regexr_pattern = regexr_pattern
+
+    def get_container_content(self) -> str:
+        url = (
+            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
+            "/karabo_public"
+        )
+        # Download the XML content
+        response = requests.get(url)
+
+        # Make sure the request was successful
+        response.raise_for_status()
+
+        # Get the XML content as a string
+        return response.text
+
+    def get_file_paths(self) -> List[str]:
+        xml_content = self.get_container_content()
+        url_pattern = re.compile(self.regexr_pattern)
+        urls = url_pattern.findall(xml_content)
+        return urls
+
+
+class MGCLSFilePaths(ContainerContents):
+    def __init__(self, regexr_pattern: str) -> None:
+        super().__init__(f"MGCLS/{regexr_pattern}")
+
+
+class MGCLSFitsGzDownloadObject(FitsGzDownloadObject):
+    def __init__(self, file_name: str) -> None:
+        super().__init__(file_name, None)
