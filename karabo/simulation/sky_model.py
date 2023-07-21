@@ -1249,11 +1249,20 @@ class SkyModel:
         South African Radio Astronomy Observatory, which is a facility of the National
         Research Foundation, an agency of the Department of Science and Innovation."
 
+        The final enhanced image data products are five-plane cubes
+        (referred to as the 5pln cubes in the following) in which the first
+        plane is the brightness at the reference frequency, and the second
+        is the spectral index, a**1656/908 , both determined by a least-squares fit
+        to log(I) vs. log(v) at each pixel. The third plane is the brightness
+        uncertainty estimate, fourth is the spectral index uncertainty, and
+        fifth is the χ2 of the least-squares fit. Uncertainty estimates are
+        only the statistical noise component and do not include calibration
+        or other systematic effects. The five planes are accessible in the
+        Xarray.Image in the frequency dimension (first dimension).
+
         Data will be accessed from the karabo_public folder. The data was downloaded
         from https://archive-gw-1.kat.ac.za/public/repository/10.48479/7epd-w356/
         data/enhanced_products/bucket_contents.html
-
-
 
         Parameters:
         ----------
