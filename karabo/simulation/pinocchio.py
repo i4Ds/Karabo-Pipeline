@@ -725,7 +725,7 @@ class Pinocchio:
         and translated into RA DEC
 
         :param path: path to the past light cone file, if there is no file,
-        use the a pinocchio run to create such a file.
+        use a pinocchio run to create such a file.
         :type path: str
         :param near: starting distance from the (0,0,0) point in [Mpc/h], defaults to 0
         :type near: float, optional
