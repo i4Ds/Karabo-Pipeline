@@ -1,6 +1,7 @@
 import os
 import shutil
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import List, Optional, Tuple, Union, cast
 
 import h5py
@@ -169,7 +170,7 @@ def oskar_imager(
 def plot_scatter_recon(
     sky: SkyModel,
     recon_image: NDArray[np.float_],
-    outfile: str,
+    outfile: Union[Path, str],
     header: fits.header.Header,
     vmin: IntFloat = 0,
     vmax: Optional[IntFloat] = None,
@@ -181,7 +182,7 @@ def plot_scatter_recon(
 
     :param sky: Oskar or Karabo sky.
     :param recon_image: Reconstructed sky from Oskar or Karabo.
-    :param outfile: The path of the plot.
+    :param outfile: The path where we save the plot.
     :param header: The header of the recon_image.
     :param vmin: Minimum value of the colorbar.
     :param vmax: Maximum value of the colorbar.
@@ -227,7 +228,7 @@ def plot_scatter_recon(
     plt.colorbar(recon_img, ax=ax2, label="Flux Density [Jy]")
 
     plt.tight_layout()
-    plt.savefig(outfile + ".pdf")
+    plt.savefig(outfile)
 
 
 def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
@@ -305,7 +306,7 @@ def freq_channels(
 
 
 def karabo_reconstruction(
-    outfile: str,
+    outfile: Union[Path, str],
     mosaic_pntg_file: Optional[str] = None,
     sky: Optional[SkyModel] = None,
     ra_deg: IntFloat = 20,
@@ -369,7 +370,7 @@ def karabo_reconstruction(
     if verbose:
         print("Sky Simulation...")
     simulation = InterferometerSimulation(
-        vis_path=outfile + ".vis",
+        vis_path=str(outfile) + ".vis",
         channel_bandwidth_hz=1.0e7,
         time_average_sec=8,
         ignore_w_components=True,
@@ -400,11 +401,11 @@ def karabo_reconstruction(
     if rascil:
         if verbose:
             print("Sky reconstruction with Rascil...")
-        dirty_image = rascil_imager(outfile, visibility, cut, img_size)
+        dirty_image = rascil_imager(str(outfile), visibility, cut, img_size)
     else:
         if verbose:
             print("Sky reconstruction with the Oskar Imager")
-        dirty_image = oskar_imager(outfile, ra_deg, dec_deg, cut, img_size)
+        dirty_image = oskar_imager(str(outfile), ra_deg, dec_deg, cut, img_size)
 
     if circle:
         if verbose:
@@ -418,7 +419,7 @@ def karabo_reconstruction(
                 "Creation of a pdf with scatter plot and reconstructed image to ",
                 str(outfile),
             )
-        plot_scatter_recon(sky, dirty_image, outfile, header)
+        plot_scatter_recon(sky, dirty_image, str(outfile) + ".pdf", header)
 
     if mosaic_pntg_file is not None:
         if verbose:
@@ -433,7 +434,7 @@ def karabo_reconstruction(
 
 
 def run_one_channel_simulation(
-    path_outfile: str,
+    path: Union[Path, str],
     sky: SkyModel,
     bin_idx: int,
     z_min: np.float_,
@@ -456,7 +457,7 @@ def run_one_channel_simulation(
     """
     Run simulation for one pointing and one channel
 
-    :param path_outfile: Pathname of the output file and folder.
+    :param path: Pathname of the output file and folder.
     :param sky: Sky model which is used for simulating line emission. This sky model
                 needs to include a 13th axis (extra_column) with the observed redshift
                 of each source.
@@ -484,19 +485,15 @@ def run_one_channel_simulation(
     :param verbose: If True you get more print statements.
     :return: Reconstruction of one bin slice of the sky and its header.
     """
-    if verbose:
-        print(
-            "Channel " + str(bin_idx) + " is being processed...\n"
-            "Extracting the corresponding frequency slice from the sky model..."
-        )
 
     sky_bin = sky_slice(sky, z_min, z_max)
 
     if verbose:
         print("Starting simulation...")
+
     start_freq = freq_min + freq_bin / 2
     dirty_image, header = karabo_reconstruction(
-        path_outfile + os.path.sep + "slice_" + str(bin_idx),
+        path,
         sky=sky_bin,
         ra_deg=ra_deg,
         dec_deg=dec_deg,
@@ -519,8 +516,9 @@ def run_one_channel_simulation(
 
 
 def line_emission_pointing(
-    path_outfile: str,
+    outpath_base: Union[Path, str],
     sky: SkyModel,
+    outfile_stem: str = "test_line_emission",
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     num_bins: int = 10,
@@ -539,10 +537,12 @@ def line_emission_pointing(
     """
     Simulating line emission for one pointing.
 
-    :param path_outfile: Pathname of the output file and folder.
+    :param outpath_base: Path where output files, as well as the output folder,
+                         will be stored.
     :param sky: Sky model which is used for simulating line emission. This sky model
                 needs to include a 13th axis (extra_column) with the observed redshift
                 of each source.
+    :param outfile_stem: Stem used to name output h5 and fits files.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param num_bins: Number of redshift/frequency slices used to simulate line emission.
@@ -574,10 +574,14 @@ def line_emission_pointing(
     and karabo/examples/HIIM_Img_Recovery.ipynb
     """
     # Create folders to save outputs/ delete old one if it already exists
-    if os.path.exists(path_outfile):
-        shutil.rmtree(path_outfile)
+    outpath_base = Path(outpath_base)
 
-    os.makedirs(path_outfile)
+    outpath_inner = outpath_base / "test_line_emission"
+
+    if os.path.exists(outpath_inner):
+        shutil.rmtree(outpath_inner)
+
+    os.makedirs(outpath_inner)
 
     # Load sky into memory and close connection to h5
     sky.compute()
@@ -605,8 +609,13 @@ def line_emission_pointing(
     delayed_results = []
 
     for bin_idx in range(num_bins):
+        if verbose:
+            print(
+                "Channel " + str(bin_idx) + " is being processed...\n"
+                "Extracting the corresponding frequency slice from the sky model..."
+            )
         delayed_ = delayed(run_one_channel_simulation)(
-            path_outfile=path_outfile,
+            path=outpath_base / (f"slice_{bin_idx}"),
             sky=sky,
             bin_idx=bin_idx,
             z_min=redshift_channel[bin_idx],
@@ -628,10 +637,10 @@ def line_emission_pointing(
         )
         delayed_results.append(delayed_)
 
-        result = compute(*delayed_results, scheduler="distributed")
-        dirty_images = [x[0] for x in result]
-        headers = [x[1] for x in result]
-        header = headers[0]
+    result = compute(*delayed_results, scheduler="distributed")
+    dirty_images = [x[0] for x in result]
+    headers = [x[1] for x in result]
+    header = headers[0]
 
     if header is None:
         raise ValueError("No Header found.")
@@ -639,13 +648,19 @@ def line_emission_pointing(
 
     print("Save summed dirty images as fits file")
     dirty_img = fits.PrimaryHDU(dirty_image, header=header)
-    dirty_img.writeto(path_outfile + ".fits", overwrite=True)
+    dirty_img.writeto(
+        outpath_base / (outfile_stem + ".fits"),
+        overwrite=True,
+    )
 
     print("Save 3-dim reconstructed dirty images as h5")
     z_bin = redshift_channel[1] - redshift_channel[0]
     z_channel_mid = redshift_channel + z_bin / 2
 
-    f = h5py.File(path_outfile + ".h5", "w")
+    f = h5py.File(
+        outpath_base / (outfile_stem + ".h5"),
+        "w",
+    )
     dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
     dataset_dirty.attrs["Units"] = "Jy"
     f.create_dataset("Observed Redshift Channel Center", data=z_channel_mid)
@@ -674,7 +689,7 @@ def gaussian_beam(
     img_size: int = 2048,
     cut: IntFloat = 1.2,
     fwhm: NPFloatLikeStrict = 1.0,
-    outfile: str = "beam",
+    outfile: Union[Path, str] = "beam",
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Creates a Gaussian beam at RA, DEC.
@@ -704,13 +719,13 @@ def gaussian_beam(
 
     # make the beam image circular and save it as a fits file
     beam_image = circle_image(beam_image)
-    fits.writeto(outfile + ".fits", beam_image, header, overwrite=True)
+    fits.writeto(outfile, beam_image, header, overwrite=True)
 
     return beam_image, header
 
 
 def simple_gaussian_beam_correction(
-    path_outfile: str,
+    path_outfile: Union[Path, str],
     dirty_image: NDArray[np.float_],
     gaussian_fwhm: NPFloatLikeStrict,
     ra_deg: IntFloat = 20,
@@ -718,6 +733,7 @@ def simple_gaussian_beam_correction(
     cut: IntFloat = 3.0,
     img_size: int = 4096,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
+    path_outfile = Path(path_outfile)
     print("Calculate gaussian beam for primary beam correction...")
     beam, header = gaussian_beam(
         img_size=img_size,
@@ -725,14 +741,14 @@ def simple_gaussian_beam_correction(
         dec_deg=dec_deg,
         cut=cut,
         fwhm=gaussian_fwhm,
-        outfile=path_outfile + os.path.sep + "gaussian_beam",
+        outfile=path_outfile / "gaussian_beam.fits",
     )
 
     print("Apply primary beam correction...")
     dirty_image_corrected = dirty_image / beam
 
     fits.writeto(
-        path_outfile + "_GaussianBeam_Corrected.fits",
+        path_outfile / "test_line_emission_GaussianBeam_Corrected.fits",
         dirty_image_corrected,
         header,
         overwrite=True,

@@ -102,12 +102,10 @@ def test_line_emission_run(
 
     # Directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir_path = Path(tmpdir)
-        uncorrected_fits_path = tmpdir_path / uncorrected_fits_filename
-        uncorrected_h5_path = tmpdir_path / uncorrected_h5_filename
-        corrected_fits_path = tmpdir_path / corrected_fits_filename
-
-        outpath = str(tmpdir_path / "test_line_emission")
+        outpath = Path(tmpdir)
+        uncorrected_fits_path = outpath / uncorrected_fits_filename
+        uncorrected_h5_path = outpath / uncorrected_h5_filename
+        corrected_fits_path = outpath / corrected_fits_filename
 
         # Set sky position for pointing
         ra = 20
@@ -120,7 +118,7 @@ def test_line_emission_run(
 
         # Simulation of line emission observation
         dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-            path_outfile=outpath, sky=sky_pointing, cut=cut, img_size=1024
+            outpath_base=outpath, sky=sky_pointing, cut=cut, img_size=1024
         )
 
         # Validate uncorrected H5 file,
@@ -184,7 +182,13 @@ def test_line_emission_run(
             assert golden_uncorrected_fits_header[k] == uncorrected_fits_header[k]
 
         # Generate scatter plot, to validate that plotting can run
-        plot_scatter_recon(sky_pointing, dirty_im, outpath, header_dirty, cut=cut)
+        plot_scatter_recon(
+            sky_pointing,
+            dirty_im,
+            outpath / "test_line_emission.pdf",
+            header_dirty,
+            cut=cut,
+        )
 
         # Generate Gaussian primary beam for correction,
         # and apply correction to dirty images
@@ -226,7 +230,7 @@ def test_line_emission_run(
         plot_scatter_recon(
             sky_pointing,
             beam_corrected,
-            outpath + "_GaussianBeam_Corrected",
+            outpath / "test_line_emission_GaussianBeam_Corrected.pdf",
             header_dirty,
             cut=cut,
         )
