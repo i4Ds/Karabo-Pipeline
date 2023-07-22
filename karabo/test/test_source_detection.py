@@ -1,5 +1,6 @@
 import os
 import tempfile
+from collections.abc import Callable
 
 import numpy as np
 import pytest
@@ -20,8 +21,7 @@ from karabo.test.conftest import TFiles
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 
 
-@pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
-def test_source_detection_plot(tobject: TFiles):
+def test_source_detection_plot(tobject: TFiles, compare_images: Callable):
     phase_center = [250, -80]
     sky = SkyModel.read_from_file(tobject.filtered_sky_csv)
     sky.setup_default_wcs(phase_center=phase_center)
@@ -47,6 +47,12 @@ def test_source_detection_plot(tobject: TFiles):
         max_dist=10,
         top_k=3,
     )
+    # Compare the assignment
+    np.testing.assert_array_equal(
+        assignments,
+        np.load(tobject.gt_assigment),
+        err_msg="The assignment is not correct",
+    )
     mapping = SourceDetectionEvaluation(
         sky=sky,
         ground_truth=ground_truth,
@@ -54,12 +60,45 @@ def test_source_detection_plot(tobject: TFiles):
         sky_idxs=sky_idxs,
         source_detection=detection,
     )
-    mapping.plot()
-    mapping.plot_error_ra_dec()
-    mapping.plot_quiver_positions()
-    mapping.plot_flux_ratio_to_distance()
-    mapping.plot_flux_ratio_to_ra_dec()
-    mapping.plot_flux_histogram()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        mapping.plot(filename=os.path.join(tmpdir, "plot.png"))
+        mapping.plot_error_ra_dec(
+            filename=os.path.join(tmpdir, "plot_error_ra_dec.png")
+        )
+        mapping.plot_quiver_positions(
+            filename=os.path.join(tmpdir, "plot_quiver_positions.png")
+        )
+        mapping.plot_flux_ratio_to_distance(
+            filename=os.path.join(tmpdir, "plot_flux_ratio_to_distance.png")
+        )
+        mapping.plot_flux_ratio_to_ra_dec(
+            filename=os.path.join(tmpdir, "plot_flux_ratio_to_ra_dec.png")
+        )
+        mapping.plot_flux_histogram(
+            filename=os.path.join(tmpdir, "plot_flux_histogram.png")
+        )
+
+        # Compare the images
+        compare_images(os.path.join(tmpdir, "plot.png"), tobject.gt_plot)
+        compare_images(
+            os.path.join(tmpdir, "plot_error_ra_dec.png"), tobject.gt_plot_error_ra_dec
+        )
+        compare_images(
+            os.path.join(tmpdir, "plot_flux_ratio_to_distance.png"),
+            tobject.gt_plot_flux_ratio_to_distance,
+        )
+        compare_images(
+            os.path.join(tmpdir, "plot_flux_ratio_to_ra_dec.png"),
+            tobject.gt_plot_flux_ratio_to_ra_dec,
+        )
+        compare_images(
+            os.path.join(tmpdir, "plot_quiver_positions.png"),
+            tobject.gt_plot_quiver_positions,
+        )
+        compare_images(
+            os.path.join(tmpdir, "plot_flux_histogram.png"),
+            tobject.gt_plot_flux_histogram,
+        )
 
 
 def test_bdsf_image_blanked():
@@ -140,7 +179,6 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     ), "Automatic assignment of ground truth and detected is not correct"
 
 
-@pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
 def test_detection(tobject: TFiles):
     image = Image(path=tobject.restored_fits)
     detection = PyBDSFSourceDetectionResult.detect_sources_in_image(image)
