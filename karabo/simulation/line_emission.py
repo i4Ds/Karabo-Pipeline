@@ -25,7 +25,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat, NPFloatLikeStrict
+from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
 from karabo.util.dask import DaskHandler
 
 
@@ -170,7 +170,7 @@ def oskar_imager(
 def plot_scatter_recon(
     sky: SkyModel,
     recon_image: NDArray[np.float_],
-    outfile: Union[Path, str],
+    outfile: FilePathType,
     header: fits.header.Header,
     vmin: IntFloat = 0,
     vmax: Optional[IntFloat] = None,
@@ -306,7 +306,7 @@ def freq_channels(
 
 
 def karabo_reconstruction(
-    outfile: Union[Path, str],
+    outfile: FilePathType,
     mosaic_pntg_file: Optional[str] = None,
     sky: Optional[SkyModel] = None,
     ra_deg: IntFloat = 20,
@@ -434,7 +434,7 @@ def karabo_reconstruction(
 
 
 def run_one_channel_simulation(
-    path: Union[Path, str],
+    path: FilePathType,
     sky: SkyModel,
     bin_idx: int,
     z_min: np.float_,
@@ -516,7 +516,7 @@ def run_one_channel_simulation(
 
 
 def line_emission_pointing(
-    outpath_base: Union[Path, str],
+    outpath_base: DirPathType,
     sky: SkyModel,
     outfile_stem: str = "test_line_emission",
     ra_deg: IntFloat = 20,
@@ -689,7 +689,7 @@ def gaussian_beam(
     img_size: int = 2048,
     cut: IntFloat = 1.2,
     fwhm: NPFloatLikeStrict = 1.0,
-    outfile: Union[Path, str] = "beam",
+    outfile: FilePathType = "beam",
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Creates a Gaussian beam at RA, DEC.
@@ -725,7 +725,7 @@ def gaussian_beam(
 
 
 def simple_gaussian_beam_correction(
-    path_outfile: Union[Path, str],
+    path_outfile: DirPathType,
     dirty_image: NDArray[np.float_],
     gaussian_fwhm: NPFloatLikeStrict,
     ra_deg: IntFloat = 20,
