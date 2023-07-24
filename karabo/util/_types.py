@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Union
 
 import numpy as np
@@ -65,3 +66,10 @@ IntFloatList: TypeAlias = Union[List[int], List[float]]
 PrecisionType: TypeAlias = Literal["single", "double"]
 
 OskarSettingsTreeType: TypeAlias = Dict[str, Dict[str, Any]]
+
+# File handling types
+
+# Used for directory paths, to which one can append a file name
+DirPathType: TypeAlias = Union[Path, str]
+# Used for file paths
+FilePathType: TypeAlias = Union[Path, str]
