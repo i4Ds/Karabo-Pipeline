@@ -125,7 +125,7 @@ def rascil_imager(
         imaging_dopsf=True,
     )
     dirty = imager.get_dirty_image()
-    dirty.write_to_file(outfile + ".fits", overwrite=True)
+    dirty.write_to_file(f"{outfile}.fits", overwrite=True)
     dirty_image = cast(NDArray[np.float_], dirty.data[0][0])
 
     return dirty_image
@@ -152,7 +152,7 @@ def oskar_imager(
     # Here plenty of options are available that could be found in the documentation.
     # uv_filter_max can be used to change the baseline length threshold
     imager.set(
-        input_file=outfile + ".vis",
+        input_file=f"{outfile}.vis",
         output_root=outfile,
         fov_deg=cut,
         image_size=img_size,
@@ -370,7 +370,7 @@ def karabo_reconstruction(
     if verbose:
         print("Sky Simulation...")
     simulation = InterferometerSimulation(
-        vis_path=str(outfile) + ".vis",
+        vis_path=f"{outfile}.vis",
         channel_bandwidth_hz=1.0e7,
         time_average_sec=8,
         ignore_w_components=True,
@@ -419,7 +419,7 @@ def karabo_reconstruction(
                 "Creation of a pdf with scatter plot and reconstructed image to ",
                 str(outfile),
             )
-        plot_scatter_recon(sky, dirty_image, str(outfile) + ".pdf", header)
+        plot_scatter_recon(sky, dirty_image, f"{outfile}.pdf", header)
 
     if mosaic_pntg_file is not None:
         if verbose:
@@ -428,7 +428,7 @@ def karabo_reconstruction(
                 "coaddition.",
                 mosaic_pntg_file,
             )
-        fits.writeto(mosaic_pntg_file + ".fits", dirty_image, header, overwrite=True)
+        fits.writeto(f"{mosaic_pntg_file}.fits", dirty_image, header, overwrite=True)
 
     return dirty_image, header
 
@@ -611,7 +611,7 @@ def line_emission_pointing(
     for bin_idx in range(num_bins):
         if verbose:
             print(
-                "Channel " + str(bin_idx) + " is being processed...\n"
+                f"Channel {bin_idx} is being processed...\n"
                 "Extracting the corresponding frequency slice from the sky model..."
             )
         delayed_ = delayed(run_one_channel_simulation)(
@@ -649,7 +649,7 @@ def line_emission_pointing(
     print("Save summed dirty images as fits file")
     dirty_img = fits.PrimaryHDU(dirty_image, header=header)
     dirty_img.writeto(
-        outpath_base / (outfile_stem + ".fits"),
+        outpath_base / (f"{outfile_stem}.fits"),
         overwrite=True,
     )
 
@@ -658,7 +658,7 @@ def line_emission_pointing(
     z_channel_mid = redshift_channel + z_bin / 2
 
     f = h5py.File(
-        outpath_base / (outfile_stem + ".h5"),
+        outpath_base / (f"{outfile_stem}.h5"),
         "w",
     )
     dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
