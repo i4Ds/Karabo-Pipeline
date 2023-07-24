@@ -70,7 +70,7 @@ class Pinocchio:
         Load default file paths for config files, load default config files
 
         Args:
-            working_dir: working directory of Phinocchio
+            working_dir: working directory of Pinocchio
         """
         if working_dir is not None:
             working_dir = os.path.abspath(working_dir)
@@ -712,17 +712,24 @@ class Pinocchio:
         path: str, near: IntFloat = 0, far: IntFloat = 100
     ) -> SkyModel:
         """
+        NOTE: the only meaningful fields on this SkyModel will be RA and Dec.
+        PINOCCHIO outputs Dark Matter halos, not HI sources.
+        Therefore, use this as a convenience function to obtain the halo
+        positions in the projected sky, but not as an input to
+        the HI analysis pipeline in Karabo.
+
         Create a sky model from the pinocchio simulation cone. All halos from the near
         to far plane (euclid distance) will be translated into the
         RA (right ascension - [0,360] in deg)
         and DEC (declination - [0, 90] in deg) format.
+
 
         example in 1D - this function will do the same on pinocchios 3D cone:
 
         |               10              60          |
         (0,0,0) --------near------------far--------->
 
-        and translated into RA DEC
+        and translated into RA and DEC.
 
         :param path: path to the past light cone file, if there is no file,
         use a pinocchio run to create such a file.
@@ -764,10 +771,10 @@ class Pinocchio:
 
             skyModArr[i, Pinocchio.PIN_RIGHT_ASCENSION_IDX] = ra
             skyModArr[i, Pinocchio.PIN_DECLINATION_IDX] = dec
-            skyModArr[i, Pinocchio.PIN_I_FLUS_IDX] = 1
-            skyModArr[i, Pinocchio.PIN_Q_FLUS_IDX] = 0
-            skyModArr[i, Pinocchio.PIN_U_FLUS_IDX] = 0
-            skyModArr[i, Pinocchio.PIN_V_FLUS_IDX] = 0
-            skyModArr[i, Pinocchio.PIN_REF_F_IDX] = 1.0e8
+            skyModArr[i, Pinocchio.PIN_I_FLUS_IDX] = None
+            skyModArr[i, Pinocchio.PIN_Q_FLUS_IDX] = None
+            skyModArr[i, Pinocchio.PIN_U_FLUS_IDX] = None
+            skyModArr[i, Pinocchio.PIN_V_FLUS_IDX] = None
+            skyModArr[i, Pinocchio.PIN_REF_F_IDX] = None
 
         return SkyModel(skyModArr)
