@@ -1293,7 +1293,7 @@ class SkyModel:
         if len(file_paths) == 0:
             raise KaraboSkyModelError("No files found for the provided regex pattern.")
         # Get the files
-        mgcls_files = []
+        mgcls_files: List[Image] = []
         if verbose:
             print(f"Getting {len(file_paths)} files.")
         for file_path in file_paths:

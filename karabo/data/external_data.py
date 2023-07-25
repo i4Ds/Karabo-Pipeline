@@ -1,7 +1,7 @@
 import os
 import re
 import site
-from typing import List, Optional
+from typing import List
 
 import requests
 
@@ -21,50 +21,51 @@ class KaraboCache:
 
     @staticmethod
     def get_cache_directory() -> str:
-        cache_path = f"{KaraboCache.base_path}/karabo_cache"
+        cache_path = f"{KaraboCache.base_path}{os.sep}karabo_cache"
         return cache_path
 
 
 class DownloadObject:
     def __init__(
         self,
-        name: str,
-        url: str,
+        file_path: str,  # e.g. "karabo_public/point_sources_OSKAR1_battye.h5"
+        base_url: str = "https://object.cscs.ch/v1/"
+        + "AUTH_1e1ed97536cf4e8f9e214c7ca2700d62",
     ) -> None:
-        self.name = name
-        self.url = url
         KaraboCache.valida_cache_directory_exists()
         directory = KaraboCache.get_cache_directory()
-        self.path = f"{directory}/{name}"
+        # Create final paths
+        self.local_path = directory + os.sep + file_path
+        self.url = f"{base_url}/{file_path}"
 
     def __download(self) -> None:
         try:
             response = requests.get(self.url, stream=True)
             response.raise_for_status()
             # Check that path folder exists
-            os.makedirs(os.path.dirname(self.path), exist_ok=True)
-            with open(self.path, "wb") as file:
+            os.makedirs(os.path.dirname(self.local_path), exist_ok=True)
+            with open(self.local_path, "wb") as file:
                 for chunk in response.iter_content(
                     chunk_size=8192
                 ):  # Download in 8KB chunks
                     file.write(chunk)
         except BaseException:
             # Remove the file if the download is interrupted
-            if os.path.exists(self.path):
-                os.remove(self.path)
+            if os.path.exists(self.local_path):
+                os.remove(self.local_path)
             raise
 
     def __is_downloaded(self) -> bool:
-        if os.path.exists(self.path):
+        if os.path.exists(self.local_path):
             return True
         return False
 
     def get(self) -> str:
         if not self.__is_downloaded():
-            print(f"{self.name} is not downloaded yet.")
-            print("Downloading and caching for future uses to " f"{self.path} ...")
+            print(f"{self.local_path.split(os.sep)[-1]} is not downloaded yet.")
+            print("Downloading and caching for future uses to " f"{self.local_path} ..")
             self.__download()
-        return self.path
+        return self.local_path
 
     def is_available(self) -> bool:
         """Checks whether the url is available or not.
@@ -76,73 +77,63 @@ class DownloadObject:
             url=self.url,
             headers={"Range": "bytes=0-0"},
         )
-        if resp.status_code == 206:  # succeed & partial content
-            return True
-        else:
-            return False
+        return resp.status_code == 206
 
 
 class GLEAMSurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "GLEAM_ECG.fits",
-            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-            + "/karabo_public/GLEAM_EGC.fits",
+            "karabo_public/GLEAM_EGC.fits",
         )
 
 
 class BATTYESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "point_sources_OSKAR1_battye.h5",
-            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-            + "/karabo_public/point_sources_OSKAR1_battye.h5",
+            "karabo_public/point_sources_OSKAR1_battye.h5",
         )
 
 
 class DilutedBATTYESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "point_sources_OSKAR1_diluted5000.h5",
-            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-            + "/karabo_public/point_sources_OSKAR1_diluted5000.h5",
+            "karabo_public/point_sources_OSKAR1_diluted5000.h5",
         )
 
 
 class MIGHTEESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
-            "https://object.cscs.ch:443/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-            + "/karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
+            "karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
         )
 
 
 class ExampleHDF5Map(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "example_map.h5",
-            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-            + "/karabo_public/example_map.h5",
-        )
-
-
-class FitsGzDownloadObject(DownloadObject):
-    def __init__(self, file_name: str, folder_name: Optional[str]) -> None:
-        base_path = (
-            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/"
-            "karabo_public"
-        )
-        if folder_name is not None:
-            base_path += f"/karabo_public/{folder_name}"
-        super().__init__(
-            file_name,
-            f"{base_path}/{file_name}",
+            "karabo_public/example_map.h5",
         )
 
 
 class ContainerContents:
     def __init__(self, regexr_pattern: str):
+        """
+        Class for handling container contents downloaded from a URL.
+        Also useful to see what is available in a container.
+
+        Parameters
+        ----------
+        regexr_pattern : str
+            Regular expression pattern to match the desired contents in the container.
+
+        Examples
+        --------
+        >>> from karabo.data.external_data import ContainerContents
+        >>> container_contents = ContainerContents("MGCLS/Abell_(?:2744)_.+_I_.+")
+        >>> container_contents.get_file_paths()
+        ["MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz"]
+        >>> download_object = DownloadObject(karabo_public/+"MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz") # noqa
+        """
         self.regexr_pattern = regexr_pattern
 
     def get_container_content(self) -> str:
@@ -171,6 +162,6 @@ class MGCLSFilePaths(ContainerContents):
         super().__init__(f"MGCLS/{regexr_pattern}")
 
 
-class MGCLSFitsGzDownloadObject(FitsGzDownloadObject):
+class MGCLSFitsGzDownloadObject(DownloadObject):
     def __init__(self, file_name: str) -> None:
-        super().__init__(file_name, None)
+        super().__init__("karabo_public/" + file_name)

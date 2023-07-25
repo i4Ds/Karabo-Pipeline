@@ -10,6 +10,7 @@ from karabo.data.external_data import (
     DilutedBATTYESurveyDownloadObject,
     ExampleHDF5Map,
     GLEAMSurveyDownloadObject,
+    MGCLSFitsGzDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.simulation.sky_model import Polarisation, SkyModel
@@ -103,6 +104,8 @@ def test_cscs_resource_availability():
     assert mightee.is_available()
     map = ExampleHDF5Map()
     assert map.is_available()
+    mgcls = MGCLSFitsGzDownloadObject("Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz")
+    assert mgcls.is_available()
 
 
 def test_read_write_sky_model(sky_data: NDArray[np.float64]):
