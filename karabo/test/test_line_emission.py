@@ -38,23 +38,17 @@ def corrected_fits_filename():
 
 @pytest.fixture
 def uncorrected_fits_downloader(uncorrected_fits_filename):
-    return DownloadObject(
-        f"karabo_public/{uncorrected_fits_filename}",
-    )
+    return DownloadObject(uncorrected_fits_filename)
 
 
 @pytest.fixture
 def uncorrected_h5_downloader(uncorrected_h5_filename):
-    return DownloadObject(
-        f"karabo_public/{uncorrected_h5_filename}",
-    )
+    return DownloadObject(uncorrected_h5_filename)
 
 
 @pytest.fixture
 def corrected_fits_downloader(corrected_fits_filename):
-    return DownloadObject(
-        f"karabo_public/{corrected_fits_filename}",
-    )
+    return DownloadObject(corrected_fits_filename)
 
 
 def test_line_emission_run(
