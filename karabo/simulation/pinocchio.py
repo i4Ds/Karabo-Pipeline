@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from karabo.error import KaraboPinocchioError
-from karabo.simulation.sky_model import SkyModel
 from karabo.util._types import IntFloat
 from karabo.util.file_handle import FileHandle
 
@@ -70,7 +69,7 @@ class Pinocchio:
         Load default file paths for config files, load default config files
 
         Args:
-            working_dir: working directory of Phinocchio
+            working_dir: working directory of Pinocchio
         """
         if working_dir is not None:
             working_dir = os.path.abspath(working_dir)
@@ -690,84 +689,3 @@ class Pinocchio:
             plt.savefig("plc.png")
         plt.show(block=False)
         plt.pause(1)
-
-    def getSkyModel(self, near: IntFloat = 0, far: IntFloat = 100) -> SkyModel:
-        """
-        This method should be used on the pinocchio object after run() was called.
-        It is a wrapper for the getSkyModelFromFiles() static method with the correct
-        internal path.
-
-        :param near: near distance, everything below gets clipped, defaults to 0
-        :type near: float, optional
-        :param far: far distance, everything above gets clipped, defaults to 100
-        :type far: float, optional
-        :return: SkyModel with the point sources in radial distance from near to far
-        :rtype: SkyModel
-        """
-        assert self.didRun, "can not get sky model if run() was never called"
-        return Pinocchio.getSkyModelFromFiles(self.outLightConePath, near, far)
-
-    @staticmethod
-    def getSkyModelFromFiles(
-        path: str, near: IntFloat = 0, far: IntFloat = 100
-    ) -> SkyModel:
-        """
-        Create a sky model from the pinocchio simulation cone. All halos from the near
-        to far plane (euclid distance) will be translated into the
-        RA (right ascension - [0,360] in deg)
-        and DEC (declination - [0, 90] in deg) format.
-
-        example in 1D - this function will do the same on pinocchios 3D cone:
-
-        |               10              60          |
-        (0,0,0) --------near------------far--------->
-
-        and translated into RA DEC
-
-        :param path: path to the past light cone file, if there is no file,
-        use the a pinocchio run to create such a file.
-        :type path: str
-        :param near: starting distance from the (0,0,0) point in [Mpc/h], defaults to 0
-        :type near: float, optional
-        :param far: ending distance from the (0,0,0) point in [Mpc/h], default to 100
-        :type far: float, optional
-        :return: SkyModel with the point sources in radial distance from near to far
-        :rtype: SkyModel
-        """
-
-        assert near < far, "near is further or equal to far"
-
-        # load pinocchio data
-        (x, y, z) = np.loadtxt(path, unpack=True, usecols=(2, 3, 4))
-
-        assert x.shape == y.shape == z.shape, "x, y, z do not have the same dimensions"
-
-        length: int = len(x)
-        skyModArr = np.empty((length, 7))
-
-        i: int
-        for i in range(length):
-            xPin = x[i]
-            yPin = y[i]
-            zPin = z[i]
-
-            radDist = np.sqrt(xPin**2 + yPin**2 + zPin**2)  # radial distance
-
-            # skip if not between near and far "plane"
-            if radDist < near and radDist > far:
-                continue
-
-            # calculate RA DEC
-            theta = np.arccos(zPin / radDist)  # theta
-            ra = np.arctan2(yPin, xPin) * Pinocchio.RAD_TO_DEG  # RA
-            dec = (np.pi / 2.0 - theta) * Pinocchio.RAD_TO_DEG  # DEC
-
-            skyModArr[i, Pinocchio.PIN_RIGHT_ASCENSION_IDX] = ra
-            skyModArr[i, Pinocchio.PIN_DECLINATION_IDX] = dec
-            skyModArr[i, Pinocchio.PIN_I_FLUS_IDX] = 1
-            skyModArr[i, Pinocchio.PIN_Q_FLUS_IDX] = 0
-            skyModArr[i, Pinocchio.PIN_U_FLUS_IDX] = 0
-            skyModArr[i, Pinocchio.PIN_V_FLUS_IDX] = 0
-            skyModArr[i, Pinocchio.PIN_REF_F_IDX] = 1.0e8
-
-        return SkyModel(skyModArr)
