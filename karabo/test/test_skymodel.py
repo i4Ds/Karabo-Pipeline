@@ -104,7 +104,9 @@ def test_cscs_resource_availability():
     assert mightee.is_available()
     map = ExampleHDF5Map()
     assert map.is_available()
-    mgcls = MGCLSFitsGzDownloadObject("Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz")
+    mgcls = MGCLSFitsGzDownloadObject(
+        "MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz"
+    )
     assert mgcls.is_available()
 
 

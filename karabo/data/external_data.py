@@ -35,7 +35,7 @@ class DownloadObject:
         KaraboCache.valida_cache_directory_exists()
         directory = KaraboCache.get_cache_directory()
         # Create final paths
-        self.local_path = directory + os.sep + file_path
+        self.local_path = os.path.join(directory, file_path)
         self.url = f"{base_url}/{file_path}"
 
     def __download(self) -> None:

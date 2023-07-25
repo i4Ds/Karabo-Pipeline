@@ -39,27 +39,21 @@ def corrected_fits_filename():
 @pytest.fixture
 def uncorrected_fits_downloader(uncorrected_fits_filename):
     return DownloadObject(
-        uncorrected_fits_filename,
-        "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-        + f"/karabo_public/{uncorrected_fits_filename}",
+        f"karabo_public/{uncorrected_fits_filename}",
     )
 
 
 @pytest.fixture
 def uncorrected_h5_downloader(uncorrected_h5_filename):
     return DownloadObject(
-        uncorrected_h5_filename,
-        "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-        + f"/karabo_public/{uncorrected_h5_filename}",
+        f"karabo_public/{uncorrected_h5_filename}",
     )
 
 
 @pytest.fixture
 def corrected_fits_downloader(corrected_fits_filename):
     return DownloadObject(
-        corrected_fits_filename,
-        "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-        + f"/karabo_public/{corrected_fits_filename}",
+        f"karabo_public/{corrected_fits_filename}",
     )
 
 
