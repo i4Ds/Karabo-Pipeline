@@ -149,8 +149,7 @@ class ExampleHDF5Map(SingleFileDownloadObject):
 class ContainerContents(DownloadObject):
     def __init__(
         self,
-        remote_base_url: str,
-        remote_dir_path: str,
+        remote_url: str,
         regexr_pattern: str,
     ) -> None:
         """
@@ -161,8 +160,6 @@ class ContainerContents(DownloadObject):
         ----------
         remote_base_url: str
             See `DownloadObject.remote_base_url`.
-        remote_dir_path: str
-            Remote directory path to apply `regexr_pattern`.
         regexr_pattern : str
             Regex pattern to match the desired contents in the directory.
 
@@ -174,7 +171,6 @@ class ContainerContents(DownloadObject):
         >>> )
         >>> container_contents = ContainerContents(
         >>>     remote_base_url = cscs_karabo_public_base_url,
-        >>>     remote_dir_path = "MGCLS",
         >>>     regexr_pattern = "MGCLS/Abell_(?:2744)_.+_I_.+",
         >>> )
         >>> container_contents.get_file_paths()
@@ -182,11 +178,8 @@ class ContainerContents(DownloadObject):
         >>> download_object = DownloadObject("MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz") # noqa
         """
         self.regexr_pattern = regexr_pattern
-        self.remote_dir_path = remote_dir_path
-        self._remote_container_url = remote_base_url
-        if remote_dir_path is not None and len(remote_dir_path) > 0:
-            self._remote_container_url = f"{remote_base_url}/{remote_dir_path}"
-        super().__init__(remote_base_url=remote_base_url)
+        self._remote_container_url = remote_url
+        super().__init__(remote_base_url=remote_url)
 
     def get_container_content(self) -> str:
         """Gets the remote container-content as str."""
@@ -202,8 +195,9 @@ class ContainerContents(DownloadObject):
         return urls
 
     def is_available(self) -> bool:
-        """Checks if the container itself is available, not specific files."""
-        return DownloadObject.is_url_available(url=self._remote_container_url)
+        """Checks if the container itself is available, not specific files.
+        Is dependent on the `regexr_pattern`."""
+        return len(self.get_file_paths()) > 0
 
     def get_all(self, verbose: bool = True) -> List[str]:
         """Gets all objects with the according cache paths as a list."""
@@ -220,10 +214,9 @@ class ContainerContents(DownloadObject):
 class MGCLSContainerDownloadObject(ContainerContents):
     def __init__(
         self,
-        regexr_pattern: str = "*",
+        regexr_pattern: str,
     ) -> None:
         super().__init__(
-            remote_base_url=cscs_karabo_public_base_url,
-            remote_dir_path="MGCLS",
+            remote_url=cscs_karabo_public_base_url,
             regexr_pattern=f"MGCLS/{regexr_pattern}",
         )

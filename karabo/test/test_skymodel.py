@@ -104,7 +104,7 @@ def test_cscs_resource_availability():
     assert mightee.is_available()
     map = ExampleHDF5Map()
     assert map.is_available()
-    mgcls = MGCLSContainerDownloadObject()
+    mgcls = MGCLSContainerDownloadObject(".+")
     assert mgcls.is_available()
 
 
