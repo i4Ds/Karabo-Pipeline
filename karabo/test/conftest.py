@@ -1,12 +1,16 @@
 """Pytest global fixtures needs to be here!"""
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy.typing import NDArray
 
 from karabo.test import data_path
+
+NNImageDiffCallable = Callable[[str, str], float]
 
 
 @dataclass
@@ -23,13 +27,32 @@ class TFiles:
     cst_like_beam_port_1_txt: str = os.path.join(data_path, "cst_like_beam_port_1.txt")
     cst_like_beam_port_2_txt: str = os.path.join(data_path, "cst_like_beam_port_2.txt")
     detection_csv: str = os.path.join(data_path, "detection.csv")
-    detection_zip: str = os.path.join(data_path, "detection_zip")
+    detection_zip: str = os.path.join(data_path, "detection.zip")
     detection_result_csv: str = os.path.join(data_path, "detection_result_512.px.csv")
     filtered_sky_csv: str = os.path.join(data_path, "filtered_sky.csv")
     restored_fits: str = os.path.join(data_path, "restored.fits")
     run5_cst: str = os.path.join(data_path, "run5.cst")
     visibilities_gleam_ms: str = os.path.join(data_path, "visibilities_gleam.ms")
     poission_vis_ms: str = os.path.join(data_path, "poisson_vis.ms")
+
+    # Source Detection Plot (sdp) related files
+    gt_assigment: str = os.path.join(data_path, "sdp", "gt_assigment.npy")
+    gt_plot: str = os.path.join(data_path, "sdp", "gt_plot.png")
+    gt_plot_error_ra_dec: str = os.path.join(
+        data_path, "sdp", "gt_plot_error_ra_dec.png"
+    )
+    gt_plot_flux_histogram: str = os.path.join(
+        data_path, "sdp", "gt_plot_flux_histogram.png"
+    )
+    gt_plot_flux_ratio_to_distance: str = os.path.join(
+        data_path, "sdp", "gt_plot_flux_ratio_to_distance.png"
+    )
+    gt_plot_flux_ratio_to_ra_dec: str = os.path.join(
+        data_path, "sdp", "gt_plot_flux_ratio_to_ra_dec.png"
+    )
+    gt_plot_quiver_positions: str = os.path.join(
+        data_path, "sdp", "gt_plot_quiver_positions.png"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -51,3 +74,17 @@ def sky_data_with_ids() -> NDArray[np.object_]:
 @pytest.fixture(scope="function")
 def sky_data(sky_data_with_ids: NDArray[np.object_]) -> NDArray[np.float64]:
     return sky_data_with_ids[:, :-1].astype(np.float64)
+
+
+@pytest.fixture(scope="session")
+def normalized_norm_diff() -> NNImageDiffCallable:
+    """Compare two images."""
+
+    def _normalized_norm_diff(img_path_1, img_path_2):
+        img1 = plt.imread(img_path_1)
+        img2 = plt.imread(img_path_2)
+        assert img1.shape == img2.shape
+        # Calculate the error between the two images
+        return np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1])
+
+    return _normalized_norm_diff
