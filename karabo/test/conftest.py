@@ -10,6 +10,8 @@ from numpy.typing import NDArray
 
 from karabo.test import data_path
 
+NNImageDiffCallable = Callable[[str, str], float]
+
 
 @dataclass
 class TFiles:
@@ -75,16 +77,14 @@ def sky_data(sky_data_with_ids: NDArray[np.object_]) -> NDArray[np.float64]:
 
 
 @pytest.fixture(scope="session")
-def compare_images() -> Callable:
+def normalized_norm_diff() -> NNImageDiffCallable:
     """Compare two images."""
 
-    def _compare_images(img_path_1, img_path_2):
+    def _normalized_norm_diff(img_path_1, img_path_2):
         img1 = plt.imread(img_path_1)
         img2 = plt.imread(img_path_2)
         assert img1.shape == img2.shape
         # Calculate the error between the two images
-        diff = np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1])
-        print(f"Max difference: {diff}")
-        assert diff < 1e-3
+        return np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1])
 
-    return _compare_images
+    return _normalized_norm_diff

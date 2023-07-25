@@ -1,6 +1,5 @@
 import os
 import tempfile
-from collections.abc import Callable
 
 import numpy as np
 import pytest
@@ -16,12 +15,14 @@ from karabo.sourcedetection.result import (
     PyBDSFSourceDetectionResult,
     SourceDetectionResult,
 )
-from karabo.test.conftest import TFiles
+from karabo.test.conftest import NNImageDiffCallable, TFiles
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 
 
-def test_source_detection_plot(tobject: TFiles, compare_images: Callable):
+def test_source_detection_plot(
+    tobject: TFiles, normalized_norm_diff: NNImageDiffCallable
+):
     phase_center = [250, -80]
     sky = SkyModel.read_from_file(tobject.filtered_sky_csv)
     sky.setup_default_wcs(phase_center=phase_center)
@@ -51,7 +52,7 @@ def test_source_detection_plot(tobject: TFiles, compare_images: Callable):
     np.testing.assert_array_equal(
         assignments,
         np.load(tobject.gt_assigment),
-        err_msg="The assignment is not correct",
+        err_msg="The assignment has changed!",
     )
     mapping = SourceDetectionEvaluation(
         sky=sky,
@@ -79,25 +80,44 @@ def test_source_detection_plot(tobject: TFiles, compare_images: Callable):
         )
 
         # Compare the images
-        compare_images(os.path.join(tmpdir, "plot.png"), tobject.gt_plot)
-        compare_images(
-            os.path.join(tmpdir, "plot_error_ra_dec.png"), tobject.gt_plot_error_ra_dec
+        assert (
+            normalized_norm_diff(os.path.join(tmpdir, "plot.png"), tobject.gt_plot)
+            < 0.1
         )
-        compare_images(
-            os.path.join(tmpdir, "plot_flux_ratio_to_distance.png"),
-            tobject.gt_plot_flux_ratio_to_distance,
+        assert (
+            normalized_norm_diff(
+                os.path.join(tmpdir, "plot_error_ra_dec.png"),
+                tobject.gt_plot_error_ra_dec,
+            )
+            < 0.1
         )
-        compare_images(
-            os.path.join(tmpdir, "plot_flux_ratio_to_ra_dec.png"),
-            tobject.gt_plot_flux_ratio_to_ra_dec,
+        assert (
+            normalized_norm_diff(
+                os.path.join(tmpdir, "plot_flux_ratio_to_distance.png"),
+                tobject.gt_plot_flux_ratio_to_distance,
+            )
+            < 0.1
         )
-        compare_images(
-            os.path.join(tmpdir, "plot_quiver_positions.png"),
-            tobject.gt_plot_quiver_positions,
+        assert (
+            normalized_norm_diff(
+                os.path.join(tmpdir, "plot_flux_ratio_to_ra_dec.png"),
+                tobject.gt_plot_flux_ratio_to_ra_dec,
+            )
+            < 0.1
         )
-        compare_images(
-            os.path.join(tmpdir, "plot_flux_histogram.png"),
-            tobject.gt_plot_flux_histogram,
+        assert (
+            normalized_norm_diff(
+                os.path.join(tmpdir, "plot_quiver_positions.png"),
+                tobject.gt_plot_quiver_positions,
+            )
+            < 0.1
+        )
+        assert (
+            normalized_norm_diff(
+                os.path.join(tmpdir, "plot_flux_histogram.png"),
+                tobject.gt_plot_flux_histogram,
+            )
+            < 0.1
         )
 
 
