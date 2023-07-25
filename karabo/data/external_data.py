@@ -21,22 +21,23 @@ class KaraboCache:
 
     @staticmethod
     def get_cache_directory() -> str:
-        cache_path = f"{KaraboCache.base_path}{os.sep}karabo_cache"
+        cache_path = os.path.join(KaraboCache.base_path, "karabo_cache")
         return cache_path
 
 
 class DownloadObject:
     def __init__(
         self,
-        file_path: str,  # e.g. "karabo_public/point_sources_OSKAR1_battye.h5"
+        file_name: str,  # e.g. "karabo_public/point_sources_OSKAR1_battye.h5"
         base_url: str = "https://object.cscs.ch/v1/"
         + "AUTH_1e1ed97536cf4e8f9e214c7ca2700d62",
+        container_name: str = "karabo_public",
     ) -> None:
         KaraboCache.valida_cache_directory_exists()
         directory = KaraboCache.get_cache_directory()
         # Create final paths
-        self.local_path = os.path.join(directory, file_path)
-        self.url = f"{base_url}/{file_path}"
+        self.local_path = os.path.join(directory, container_name, file_name)
+        self.url = f"{base_url}/{container_name}/{file_name}"
 
     def __download(self) -> None:
         try:
@@ -56,9 +57,7 @@ class DownloadObject:
             raise
 
     def __is_downloaded(self) -> bool:
-        if os.path.exists(self.local_path):
-            return True
-        return False
+        return os.path.exists(self.local_path)
 
     def get(self) -> str:
         if not self.__is_downloaded():
@@ -83,35 +82,35 @@ class DownloadObject:
 class GLEAMSurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "karabo_public/GLEAM_EGC.fits",
+            "GLEAM_EGC.fits",
         )
 
 
 class BATTYESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "karabo_public/point_sources_OSKAR1_battye.h5",
+            "point_sources_OSKAR1_battye.h5",
         )
 
 
 class DilutedBATTYESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "karabo_public/point_sources_OSKAR1_diluted5000.h5",
+            "point_sources_OSKAR1_diluted5000.h5",
         )
 
 
 class MIGHTEESurveyDownloadObject(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
+            "MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
         )
 
 
 class ExampleHDF5Map(DownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "karabo_public/example_map.h5",
+            "example_map.h5",
         )
 
 
@@ -132,7 +131,7 @@ class ContainerContents:
         >>> container_contents = ContainerContents("MGCLS/Abell_(?:2744)_.+_I_.+")
         >>> container_contents.get_file_paths()
         ["MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz"]
-        >>> download_object = DownloadObject(karabo_public/+"MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz") # noqa
+        >>> download_object = DownloadObject("MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz") # noqa
         """
         self.regexr_pattern = regexr_pattern
 
@@ -164,4 +163,4 @@ class MGCLSFilePaths(ContainerContents):
 
 class MGCLSFitsGzDownloadObject(DownloadObject):
     def __init__(self, file_name: str) -> None:
-        super().__init__("karabo_public/" + file_name)
+        super().__init__(file_name)
