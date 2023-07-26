@@ -113,11 +113,15 @@ Make objects available through CSCS object-storage REST-API. The GET-request URI
 3. Click the upload option and upload the file of choice.
 
 ### Through CLI
+## Setup
+Read https://user.cscs.ch/tools/openstack/ and implement everything inside `OpenStack CLI Access via Virtual Environment:`
 
-1. Read https://github.com/eth-cscs/openstack/tree/master/cli
-2. `source openstack/cli/castor.env`
-3. `swift post karabo_public --read-acl ".r:*,.rlistings"`
-4. `swift upload karabo_public example_file.fits`
+## Upload Single File
+Upload a single file with `swift upload karabo_public <file>`
+
+## Upload Multiple files
+1. Create a new folder inside the container with `swift post karabo_public <folder_name>`
+2. Upload all files inside the folder with `swift upload karabo_public <folder_name>`
 
 ## Update documentation
 
