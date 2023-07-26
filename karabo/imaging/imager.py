@@ -4,12 +4,14 @@ import numpy as np
 from astropy.wcs import WCS
 from distributed import Client
 from numpy.typing import NDArray
+from rascil import processing_components as rpc
 from rascil.processing_components import create_visibility_from_ms
 from rascil.workflows import (
     continuum_imaging_skymodel_list_rsexecute_workflow,
     create_visibility_from_ms_rsexecute,
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
+from ska_sdp_datamodels.image.image_model import Image as SkaSdpImage
 from ska_sdp_datamodels.science_data_model import PolarisationFrame
 from ska_sdp_func_python.image import image_gather_channels
 from ska_sdp_func_python.imaging import (
@@ -19,12 +21,75 @@ from ska_sdp_func_python.imaging import (
 )
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
+from karabo.data.external_data import MGCLSContainerDownloadObject
 from karabo.error import KaraboError
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandle
+
+
+def get_MGCLS_images(regex_pattern: str, verbose: bool = False) -> List[SkaSdpImage]:
+    """
+    MeerKAT Galaxy Cluster Legacy Survey Data Release 1 (MGCLS DR1)
+    https://doi.org/10.48479/7epd-w356
+    The first data release of the MeerKAT Galaxy Cluster Legacy Survey (MGCLS)
+    consists of the uncalibrated visibilities, a set of continuum imaging products,
+    and several source catalogues. All clusters have Stokes-I products,
+    and approximately 40% have Stokes-Q and U products as well. For full details,
+    including caveats for usage,
+    see the survey overview and DR1 paper (Knowles et al., 2021).
+
+    When using any of the below products, please cite Knowles et al. (2021)
+    and include the following Observatory acknowledgement:
+    "MGCLS data products were provided by the South African Radio
+    Astronomy Observatory and the MGCLS team and were derived from observations
+    with the MeerKAT radio telescope. The MeerKAT telescope is operated by the
+    South African Radio Astronomy Observatory, which is a facility of the National
+    Research Foundation, an agency of the Department of Science and Innovation."
+
+    The final enhanced image data products are five-plane cubes
+    (referred to as the 5pln cubes in the following) in which the first
+    plane is the brightness at the reference frequency, and the second
+    is the spectral index, a**1656/908 , both determined by a least-squares fit
+    to log(I) vs. log(v) at each pixel. The third plane is the brightness
+    uncertainty estimate, fourth is the spectral index uncertainty, and
+    fifth is the χ2 of the least-squares fit. Uncertainty estimates are
+    only the statistical noise component and do not include calibration
+    or other systematic effects. The five planes are accessible in the
+    Xarray.Image in the frequency dimension (first dimension).
+
+    Data will be accessed from the karabo_public folder. The data was downloaded
+    from https://archive-gw-1.kat.ac.za/public/repository/10.48479/7epd-w356/
+    data/enhanced_products/bucket_contents.html
+
+    Parameters:
+    ----------
+    regex_pattern : str
+        Regex pattern to match the files to download. Best is to check in the bucket
+        and paper which data is available and then use the regex pattern to match
+        the files you want to download.
+    verbose : bool, optional
+        If True, prints out the files being downloaded. Defaults to False.
+
+    Returns:
+    -------
+    List[SkaSdpImage]
+        List of images from the MGCLS Enhanced Products bucket.
+    """
+    mgcls_cdo = MGCLSContainerDownloadObject(regexr_pattern=regex_pattern)
+    local_file_paths = mgcls_cdo.get_all(verbose=verbose)
+    if len(local_file_paths) == 0:
+        raise ValueError(
+            f"No files in {mgcls_cdo._remote_container_url} for {regex_pattern=}"
+        )
+    mgcls_images: List[SkaSdpImage] = list()
+    for local_file_path in local_file_paths:
+        mgcls_images.append(
+            rpc.image.operations.import_image_from_fits(local_file_path)
+        )
+    return mgcls_images
 
 
 class Imager:
