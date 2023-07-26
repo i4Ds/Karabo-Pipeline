@@ -33,8 +33,6 @@ from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
 from numpy.typing import NDArray
-from rascil import processing_components as rpc
-from ska_sdp_datamodels.image.image_model import Image
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
@@ -42,8 +40,6 @@ from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
     DilutedBATTYESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
-    MGCLSFilePaths,
-    MGCLSFitsGzDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
@@ -1228,82 +1224,6 @@ class SkyModel:
             filter_data_by_stokes_i=True,
             frequency_to_mhz_multiplier=1e6,
         )
-
-    @staticmethod
-    def get_MGCLS_data(regex_pattern: str, verbose: bool = False) -> List[Image]:
-        """
-        MeerKAT Galaxy Cluster Legacy Survey Data Release 1 (MGCLS DR1)
-        https://doi.org/10.48479/7epd-w356
-        The first data release of the MeerKAT Galaxy Cluster Legacy Survey (MGCLS)
-        consists of the uncalibrated visibilities, a set of continuum imaging products,
-        and several source catalogues. All clusters have Stokes-I products,
-        and approximately 40% have Stokes-Q and U products as well. For full details,
-        including caveats for usage,
-        see the survey overview and DR1 paper (Knowles et al., 2021).
-
-        When using any of the below products, please cite Knowles et al. (2021)
-        and include the following Observatory acknowledgement:
-        "MGCLS data products were provided by the South African Radio
-        Astronomy Observatory and the MGCLS team and were derived from observations
-        with the MeerKAT radio telescope. The MeerKAT telescope is operated by the
-        South African Radio Astronomy Observatory, which is a facility of the National
-        Research Foundation, an agency of the Department of Science and Innovation."
-
-        The final enhanced image data products are five-plane cubes
-        (referred to as the 5pln cubes in the following) in which the first
-        plane is the brightness at the reference frequency, and the second
-        is the spectral index, a**1656/908 , both determined by a least-squares fit
-        to log(I) vs. log(v) at each pixel. The third plane is the brightness
-        uncertainty estimate, fourth is the spectral index uncertainty, and
-        fifth is the χ2 of the least-squares fit. Uncertainty estimates are
-        only the statistical noise component and do not include calibration
-        or other systematic effects. The five planes are accessible in the
-        Xarray.Image in the frequency dimension (first dimension).
-
-        Data will be accessed from the karabo_public folder. The data was downloaded
-        from https://archive-gw-1.kat.ac.za/public/repository/10.48479/7epd-w356/
-        data/enhanced_products/bucket_contents.html
-
-        Parameters:
-        ----------
-        regex_pattern : str
-            Regex pattern to match the files to download. Best is to check in the bucket
-            and paper which data is available and then use the regex pattern to match
-            the files you want to download.
-        verbose : bool, optional
-            If True, prints out the files being downloaded. Defaults to False.
-
-        Returns:
-        -------
-        List[Image]
-            List of images from the MGCLS Enhanced Products bucket.
-
-        Example:
-        --------
-        >>> mgcls_files = SkyModel.get_MGCLS_data('Abell_(?:2744)_.+_I_.+')
-        >>> print(mgcls_files)
-        <Xarray.Image frequency: 5, polarisation: 1, y: 3617, x: 3617>
-        >>> filtered = mgcls_files[0].sel({'frequency': mgcls_files[0].frequency[0], 'polarisation': 'I'}) # type: ignore[index] # noqa: E501
-        >>> filtered['pixels'].plot.imshow()
-        <matplotlib.image.AxesImage object at 0x7f8a1545fc10>
-        """
-        # Get Paths
-        mfg = MGCLSFilePaths(regexr_pattern=regex_pattern)
-        file_paths = mfg.get_file_paths()
-        if len(file_paths) == 0:
-            raise KaraboSkyModelError("No files found for the provided regex pattern.")
-        # Get the files
-        mgcls_files: List[Image] = []
-        if verbose:
-            print(f"Getting {len(file_paths)} files.")
-        for file_path in file_paths:
-            if verbose:
-                print(f"Getting file: {file_path}")
-            mfgdo = MGCLSFitsGzDownloadObject(file_path)
-            image = rpc.image.operations.import_image_from_fits(mfgdo.get())
-            mgcls_files.append(image)
-
-        return mgcls_files
 
     @staticmethod
     def get_sky_model_from_fits(

@@ -5,8 +5,15 @@ from typing import List
 
 import requests
 
+from karabo.util._types import FilePathType
+
 
 class KaraboCache:
+    """Organizes the caching of Karabo.
+
+    Set `KaraboCache.base_path` manually for custom cache directory.
+    """
+
     base_path: str = site.getsitepackages()[0]
     use_scratch_folder_if_exist: bool = True
 
@@ -14,153 +21,209 @@ class KaraboCache:
         base_path = os.environ["SCRATCH"]
 
     @staticmethod
-    def valida_cache_directory_exists() -> None:
-        cache_path = KaraboCache.get_cache_directory()
-        if not os.path.exists(cache_path):
-            os.mkdir(cache_path)
-
-    @staticmethod
-    def get_cache_directory() -> str:
+    def get_cache_directory(mkdir: bool = False) -> str:
         cache_path = os.path.join(KaraboCache.base_path, "karabo_cache")
+        if mkdir and not os.path.exists(cache_path):
+            os.mkdir(cache_path)
         return cache_path
+
+
+cscs_base_url = "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
+cscs_karabo_public_base_url = f"{cscs_base_url}/karabo_public"
 
 
 class DownloadObject:
     def __init__(
         self,
-        file_name: str,  # e.g. "karabo_public/point_sources_OSKAR1_battye.h5"
-        base_url: str = "https://object.cscs.ch/v1/"
-        + "AUTH_1e1ed97536cf4e8f9e214c7ca2700d62",
-        container_name: str = "karabo_public",
+        remote_base_url: str,
     ) -> None:
-        KaraboCache.valida_cache_directory_exists()
-        directory = KaraboCache.get_cache_directory()
-        # Create final paths
-        self.local_path = os.path.join(directory, container_name, file_name)
-        self.url = f"{base_url}/{container_name}/{file_name}"
+        self.remote_base_url = remote_base_url
 
-    def __download(self) -> None:
+    @staticmethod
+    def download(url: str, local_file_path: FilePathType) -> int:
         try:
-            response = requests.get(self.url, stream=True)
+            response = requests.get(url, stream=True)
             response.raise_for_status()
-            # Check that path folder exists
-            os.makedirs(os.path.dirname(self.local_path), exist_ok=True)
-            with open(self.local_path, "wb") as file:
+
+            os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+            with open(local_file_path, "wb") as file:
                 for chunk in response.iter_content(
                     chunk_size=8192
                 ):  # Download in 8KB chunks
                     file.write(chunk)
-        except BaseException:
-            # Remove the file if the download is interrupted
-            if os.path.exists(self.local_path):
-                os.remove(self.local_path)
+        except BaseException:  # cleanup if interrupted
+            if os.path.exists(local_file_path):
+                os.remove(local_file_path)
             raise
+        return response.status_code
 
-    def __is_downloaded(self) -> bool:
-        return os.path.exists(self.local_path)
+    def get_object(self, remote_file_path: str, verbose: bool = True) -> str:
+        local_cache_dir = KaraboCache.get_cache_directory(mkdir=True)
+        local_file_path = os.path.join(
+            local_cache_dir,
+            os.path.join(*remote_file_path.split("/")),  # convert to local filesys sep
+        )
+        if not os.path.exists(local_file_path):
+            remote_url = f"{self.remote_base_url}/{remote_file_path}"
+            if verbose:
+                print(f"Download {remote_file_path} to {local_file_path} for caching.")
+            _ = DownloadObject.download(url=remote_url, local_file_path=local_file_path)
+        return local_file_path
 
-    def get(self) -> str:
-        if not self.__is_downloaded():
-            print(f"{self.local_path.split(os.sep)[-1]} is not downloaded yet.")
-            print("Downloading and caching for future uses to " f"{self.local_path} ..")
-            self.__download()
-        return self.local_path
-
-    def is_available(self) -> bool:
+    @staticmethod
+    def is_url_available(url: str) -> bool:
         """Checks whether the url is available or not.
 
         Returns:
             Ture if available, else False
         """
         resp = requests.get(
-            url=self.url,
+            url=url,
             headers={"Range": "bytes=0-0"},
         )
         return resp.status_code == 206
 
 
-class GLEAMSurveyDownloadObject(DownloadObject):
+class SingleFileDownloadObject(DownloadObject):
+    """Abstract single object download handler."""
+
+    def __init__(
+        self,
+        remote_file_path: str,
+        remote_base_url: str,
+    ) -> None:
+        self.remote_file_path = remote_file_path
+        super().__init__(remote_base_url=remote_base_url)
+
+    def get(self, verbose: bool = True) -> str:
+        return super().get_object(
+            remote_file_path=self.remote_file_path,
+            verbose=verbose,
+        )
+
+    def is_available(self) -> bool:
+        remote_url = f"{self.remote_base_url}/{self.remote_file_path}"
+        return DownloadObject.is_url_available(url=remote_url)
+
+
+class GLEAMSurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "GLEAM_EGC.fits",
+            remote_file_path="GLEAM_EGC.fits",
+            remote_base_url=cscs_karabo_public_base_url,
         )
 
 
-class BATTYESurveyDownloadObject(DownloadObject):
+class BATTYESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "point_sources_OSKAR1_battye.h5",
+            remote_file_path="point_sources_OSKAR1_battye.h5",
+            remote_base_url=cscs_karabo_public_base_url,
         )
 
 
-class DilutedBATTYESurveyDownloadObject(DownloadObject):
+class DilutedBATTYESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "point_sources_OSKAR1_diluted5000.h5",
+            remote_file_path="point_sources_OSKAR1_diluted5000.h5",
+            remote_base_url=cscs_karabo_public_base_url,
         )
 
 
-class MIGHTEESurveyDownloadObject(DownloadObject):
+class MIGHTEESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
+            remote_file_path="MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
+            remote_base_url=cscs_karabo_public_base_url,
         )
 
 
-class ExampleHDF5Map(DownloadObject):
+class ExampleHDF5Map(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            "example_map.h5",
+            remote_file_path="example_map.h5",
+            remote_base_url=cscs_karabo_public_base_url,
         )
 
 
-class ContainerContents:
-    def __init__(self, regexr_pattern: str):
+class ContainerContents(DownloadObject):
+    def __init__(
+        self,
+        remote_base_url: str,
+        remote_dir_path: str,
+        regexr_pattern: str,
+    ) -> None:
         """
         Class for handling container contents downloaded from a URL.
         Also useful to see what is available in a container.
 
         Parameters
         ----------
+        remote_base_url: str
+            See `DownloadObject.remote_base_url`.
+        remote_dir_path: str
+            Remote directory path to apply `regexr_pattern`.
         regexr_pattern : str
-            Regular expression pattern to match the desired contents in the container.
+            Regex pattern to match the desired contents in the directory.
 
         Examples
         --------
-        >>> from karabo.data.external_data import ContainerContents
-        >>> container_contents = ContainerContents("MGCLS/Abell_(?:2744)_.+_I_.+")
+        >>> from karabo.data.external_data import (
+        >>>     ContainerContents,
+        >>>     cscs_karabo_public_base_url,
+        >>> )
+        >>> container_contents = ContainerContents(
+        >>>     remote_base_url = cscs_karabo_public_base_url,
+        >>>     remote_dir_path = "MGCLS",
+        >>>     regexr_pattern = "MGCLS/Abell_(?:2744)_.+_I_.+",
+        >>> )
         >>> container_contents.get_file_paths()
         ["MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz"]
         >>> download_object = DownloadObject("MGCLS/Abell_2744_aFix_pol_I_15arcsec_5pln_cor.fits.gz") # noqa
         """
         self.regexr_pattern = regexr_pattern
+        self.remote_dir_path = remote_dir_path
+        self._remote_container_url = remote_base_url
+        if remote_dir_path is not None and len(remote_dir_path) > 0:
+            self._remote_container_url = f"{remote_base_url}/{remote_dir_path}"
+        super().__init__(remote_base_url=remote_base_url)
 
     def get_container_content(self) -> str:
-        url = (
-            "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-            "/karabo_public"
-        )
-        # Download the XML content
-        response = requests.get(url)
-
-        # Make sure the request was successful
+        """Gets the remote container-content as str."""
+        response = requests.get(self._remote_container_url)
         response.raise_for_status()
-
-        # Get the XML content as a string
         return response.text
 
     def get_file_paths(self) -> List[str]:
+        """Applies `regexr_pattern` to container-objects."""
         xml_content = self.get_container_content()
         url_pattern = re.compile(self.regexr_pattern)
         urls = url_pattern.findall(xml_content)
         return urls
 
+    def is_available(self) -> bool:
+        """Checks if the container itself is available, not specific files."""
+        return DownloadObject.is_url_available(url=self._remote_container_url)
 
-class MGCLSFilePaths(ContainerContents):
-    def __init__(self, regexr_pattern: str) -> None:
-        super().__init__(f"MGCLS/{regexr_pattern}")
+    def get_all(self, verbose: bool = True) -> List[str]:
+        """Gets all objects with the according cache paths as a list."""
+        local_file_paths: List[str] = list()
+        for remote_file_path in self.get_file_paths():
+            local_file_path = self.get_object(
+                remote_file_path=remote_file_path,
+                verbose=verbose,
+            )
+            local_file_paths.append(local_file_path)
+        return local_file_paths
 
 
-class MGCLSFitsGzDownloadObject(DownloadObject):
-    def __init__(self, file_name: str) -> None:
-        super().__init__(file_name)
+class MGCLSContainerDownloadObject(ContainerContents):
+    def __init__(
+        self,
+        regexr_pattern: str = "*",
+    ) -> None:
+        super().__init__(
+            remote_base_url=cscs_karabo_public_base_url,
+            remote_dir_path="MGCLS",
+            regexr_pattern=f"MGCLS/{regexr_pattern}",
+        )
