@@ -6,7 +6,11 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from karabo.data.external_data import DilutedBATTYESurveyDownloadObject, DownloadObject
+from karabo.data.external_data import (
+    DilutedBATTYESurveyDownloadObject,
+    SingleFileDownloadObject,
+    cscs_karabo_public_base_url,
+)
 from karabo.simulation.line_emission import (
     gaussian_fwhm_meerkat,
     line_emission_pointing,
@@ -22,42 +26,51 @@ from karabo.util.dask import DaskHandler
 # - H5 file with channels stored separately, before beam correction
 # - FITS file after beam correction
 @pytest.fixture
-def uncorrected_fits_filename():
+def uncorrected_fits_filename() -> str:
     return "test_line_emission.fits"
 
 
 @pytest.fixture
-def uncorrected_h5_filename():
+def uncorrected_h5_filename() -> str:
     return "test_line_emission.h5"
 
 
 @pytest.fixture
-def corrected_fits_filename():
+def corrected_fits_filename() -> str:
     return "test_line_emission_GaussianBeam_Corrected.fits"
 
 
 @pytest.fixture
-def uncorrected_fits_downloader(uncorrected_fits_filename):
-    return DownloadObject(uncorrected_fits_filename)
+def uncorrected_fits_downloader(uncorrected_fits_filename) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=uncorrected_fits_filename,
+        remote_base_url=cscs_karabo_public_base_url,
+    )
 
 
 @pytest.fixture
-def uncorrected_h5_downloader(uncorrected_h5_filename):
-    return DownloadObject(uncorrected_h5_filename)
+def uncorrected_h5_downloader(uncorrected_h5_filename) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=uncorrected_h5_filename,
+        remote_base_url=cscs_karabo_public_base_url,
+    )
 
 
 @pytest.fixture
-def corrected_fits_downloader(corrected_fits_filename):
-    return DownloadObject(corrected_fits_filename)
+def corrected_fits_downloader(corrected_fits_filename) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=corrected_fits_filename,
+        remote_base_url=cscs_karabo_public_base_url,
+    )
 
 
 def test_line_emission_run(
-    uncorrected_fits_filename,
-    uncorrected_h5_filename,
-    corrected_fits_filename,
-    uncorrected_fits_downloader,
-    uncorrected_h5_downloader,
-    corrected_fits_downloader,
+    uncorrected_fits_filename: str,
+    uncorrected_h5_filename: str,
+    corrected_fits_filename: str,
+    uncorrected_fits_downloader: SingleFileDownloadObject,
+    uncorrected_h5_downloader: SingleFileDownloadObject,
+    corrected_fits_downloader: SingleFileDownloadObject,
 ):
     """Executes the line emission pipeline and validates the output files.
 
