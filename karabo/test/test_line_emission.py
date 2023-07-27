@@ -104,9 +104,9 @@ def test_line_emission_run(
     # Directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
-        uncorrected_fits_path = outpath / uncorrected_fits_filename
-        uncorrected_h5_path = outpath / uncorrected_h5_filename
-        corrected_fits_path = outpath / corrected_fits_filename
+        uncorrected_fits_path = outpath / "line_emission_total_dirty_image.fits"
+        uncorrected_h5_path = outpath / "line_emission_dirty_images.h5"
+        corrected_fits_path = outpath / "line_emission_total_image_beamcorrected.fits"
 
         # Set sky position for pointing
         ra = 20
@@ -114,12 +114,18 @@ def test_line_emission_run(
         cut = 1.0  # degrees
 
         sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
-            path=catalog_path, ra_deg=ra, dec_deg=dec, outer_rad=3
+            path=catalog_path,
+            ra_deg=ra,
+            dec_deg=dec,
+            outer_rad=3,
         )
 
         # Simulation of line emission observation
         dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-            outpath_base=outpath, sky=sky_pointing, cut=cut, img_size=1024
+            outpath=outpath,
+            sky=sky_pointing,
+            cut=cut,
+            img_size=1024,
         )
 
         # Validate uncorrected H5 file,
@@ -231,7 +237,7 @@ def test_line_emission_run(
         plot_scatter_recon(
             sky_pointing,
             beam_corrected,
-            outpath / "test_line_emission_GaussianBeam_Corrected.pdf",
+            outpath / "test_line_emission_beamcorrected.pdf",
             header_dirty,
             cut=cut,
         )
