@@ -536,7 +536,7 @@ def line_emission_pointing(
     """
     Simulating line emission for one pointing.
 
-    :param outpath: Path where output files will be created.
+    :param outpath: Path where output files will be saved.
     :param sky: Sky model which is used for simulating line emission. This sky model
                 needs to include a 13th axis (extra_column) with the observed redshift
                 of each source.
@@ -720,7 +720,7 @@ def gaussian_beam(
 
 
 def simple_gaussian_beam_correction(
-    path_outfile: DirPathType,
+    outpath: DirPathType,
     dirty_image: NDArray[np.float_],
     gaussian_fwhm: NPFloatLikeStrict,
     ra_deg: IntFloat = 20,
@@ -728,7 +728,19 @@ def simple_gaussian_beam_correction(
     cut: IntFloat = 3.0,
     img_size: int = 4096,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
-    path_outfile = Path(path_outfile)
+    """
+    Apply Gaussian Beam correction to the Dirty Image.
+
+    :param outpath: Path where beam data and output image will be saved.
+    :param dirty_image: Dirty Image, e.g. output from line_emission_pointing.
+    :param gaussian_fwhm: FWHM of the Gaussian in degrees.
+    :param ra_deg: Right ascension coordinate of center of Gaussian.
+    :param dec_deg: Declination coordinate of center of Gaussian.
+    :param cut: Image size in degrees.
+    :param img_size: Pixel image size.
+    :return: Corrected image and header data.
+    """
+    outpath = Path(outpath)
     print("Calculate gaussian beam for primary beam correction...")
     beam, header = gaussian_beam(
         img_size=img_size,
@@ -736,14 +748,14 @@ def simple_gaussian_beam_correction(
         dec_deg=dec_deg,
         cut=cut,
         fwhm=gaussian_fwhm,
-        outfile=path_outfile / "gaussian_beam.fits",
+        outfile=outpath / "gaussian_beam.fits",
     )
 
     print("Apply primary beam correction...")
     dirty_image_corrected = dirty_image / beam
 
     fits.writeto(
-        path_outfile / "line_emission_total_image_beamcorrected.fits",
+        outpath / "line_emission_total_image_beamcorrected.fits",
         dirty_image_corrected,
         header,
         overwrite=True,
