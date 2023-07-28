@@ -47,8 +47,8 @@ jobs:
             export RUN_SLOW_TESTS=false
           elif [[ ${{ github.event_name }} == schedule ]]; then
             export RUN_SLOW_TESTS=false
-          elif [[ ${{ github.event_name }} == workflow_dispatch ]] && [[ ${{ inputs.run_slow_tests }} == true ]]; then
-            export RUN_SLOW_TESTS=true
+          elif [[ ${{ github.event_name }} == workflow_dispatch ]]; then
+            export RUN_SLOW_TESTS=false
           elif [[ ${{ github.event_name }} == push ]]; then
             export RUN_SLOW_TESTS=true
           else
@@ -57,7 +57,7 @@ jobs:
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
           pip install . --no-deps
-          pytest --cov .
+          pytest --cov=karabo karabo/test/
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:
