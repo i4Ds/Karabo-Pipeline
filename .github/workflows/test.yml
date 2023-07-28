@@ -47,7 +47,7 @@ jobs:
             export RUN_SLOW_TESTS=false
           elif [[ ${{ github.event_name }} == schedule ]]; then
             export RUN_SLOW_TESTS=false
-          elif [[ ${{ github.event_name }} == workflow_dispatch && ${{ inputs.run_slow_tests }} == true ]]; then
+          elif [[ ${{ github.event_name }} == workflow_dispatch ]] && [[ ${{ inputs.run_slow_tests }} == true ]]; then
             export RUN_SLOW_TESTS=true
           elif [[ ${{ github.event_name }} == push ]]; then
             export RUN_SLOW_TESTS=true
