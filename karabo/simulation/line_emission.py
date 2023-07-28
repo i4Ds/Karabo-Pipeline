@@ -734,8 +734,10 @@ def simple_gaussian_beam_correction(
     :param outpath: Path where beam data and output image will be saved.
     :param dirty_image: Dirty Image, e.g. output from line_emission_pointing.
     :param gaussian_fwhm: FWHM of the Gaussian in degrees.
-    :param ra_deg: Right ascension coordinate of center of Gaussian.
-    :param dec_deg: Declination coordinate of center of Gaussian.
+    :param ra_deg: Right ascension coordinate of the phase center, in degrees.
+        This is also used as the RA for the center of the Gaussian beam.
+    :param dec_deg: Declination coordinate of the phase center, in degrees.
+        This is also used as the Dec for the center of the Gaussian beam.
     :param cut: Image size in degrees.
     :param img_size: Pixel image size.
     :return: Corrected image and header data.
