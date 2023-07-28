@@ -516,9 +516,8 @@ def run_one_channel_simulation(
 
 
 def line_emission_pointing(
-    outpath_base: DirPathType,
+    outpath: DirPathType,
     sky: SkyModel,
-    outfile_stem: str = "test_line_emission",
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     num_bins: int = 10,
@@ -537,12 +536,10 @@ def line_emission_pointing(
     """
     Simulating line emission for one pointing.
 
-    :param outpath_base: Path where output files, as well as the output folder,
-                         will be stored.
+    :param outpath: Path where output files will be saved.
     :param sky: Sky model which is used for simulating line emission. This sky model
                 needs to include a 13th axis (extra_column) with the observed redshift
                 of each source.
-    :param outfile_stem: Stem used to name output h5 and fits files.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param num_bins: Number of redshift/frequency slices used to simulate line emission.
@@ -574,14 +571,12 @@ def line_emission_pointing(
     and karabo/examples/HIIM_Img_Recovery.ipynb
     """
     # Create folders to save outputs/ delete old one if it already exists
-    outpath_base = Path(outpath_base)
+    outpath = Path(outpath)
 
-    outpath_inner = outpath_base / "test_line_emission"
+    if os.path.exists(outpath):
+        shutil.rmtree(outpath)
 
-    if os.path.exists(outpath_inner):
-        shutil.rmtree(outpath_inner)
-
-    os.makedirs(outpath_inner)
+    os.makedirs(outpath)
 
     # Load sky into memory and close connection to h5
     sky.compute()
@@ -615,7 +610,7 @@ def line_emission_pointing(
                 "Extracting the corresponding frequency slice from the sky model..."
             )
         delayed_ = delayed(run_one_channel_simulation)(
-            path=outpath_base / (f"slice_{bin_idx}"),
+            path=outpath / (f"slice_{bin_idx}"),
             sky=sky,
             bin_idx=bin_idx,
             z_min=redshift_channel[bin_idx],
@@ -649,7 +644,7 @@ def line_emission_pointing(
     print("Save summed dirty images as fits file")
     dirty_img = fits.PrimaryHDU(dirty_image, header=header)
     dirty_img.writeto(
-        outpath_base / (f"{outfile_stem}.fits"),
+        outpath / ("line_emission_total_dirty_image.fits"),
         overwrite=True,
     )
 
@@ -658,7 +653,7 @@ def line_emission_pointing(
     z_channel_mid = redshift_channel + z_bin / 2
 
     f = h5py.File(
-        outpath_base / (f"{outfile_stem}.h5"),
+        outpath / ("line_emission_dirty_images.h5"),
         "w",
     )
     dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
@@ -725,7 +720,7 @@ def gaussian_beam(
 
 
 def simple_gaussian_beam_correction(
-    path_outfile: DirPathType,
+    outpath: DirPathType,
     dirty_image: NDArray[np.float_],
     gaussian_fwhm: NPFloatLikeStrict,
     ra_deg: IntFloat = 20,
@@ -733,7 +728,21 @@ def simple_gaussian_beam_correction(
     cut: IntFloat = 3.0,
     img_size: int = 4096,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
-    path_outfile = Path(path_outfile)
+    """
+    Apply Gaussian Beam correction to the Dirty Image.
+
+    :param outpath: Path where beam data and output image will be saved.
+    :param dirty_image: Dirty Image, e.g. output from line_emission_pointing.
+    :param gaussian_fwhm: FWHM of the Gaussian in degrees.
+    :param ra_deg: Right ascension coordinate of the phase center, in degrees.
+        This is also used as the RA for the center of the Gaussian beam.
+    :param dec_deg: Declination coordinate of the phase center, in degrees.
+        This is also used as the Dec for the center of the Gaussian beam.
+    :param cut: Image size in degrees.
+    :param img_size: Pixel image size.
+    :return: Corrected image and header data.
+    """
+    outpath = Path(outpath)
     print("Calculate gaussian beam for primary beam correction...")
     beam, header = gaussian_beam(
         img_size=img_size,
@@ -741,14 +750,14 @@ def simple_gaussian_beam_correction(
         dec_deg=dec_deg,
         cut=cut,
         fwhm=gaussian_fwhm,
-        outfile=path_outfile / "gaussian_beam.fits",
+        outfile=outpath / "gaussian_beam.fits",
     )
 
     print("Apply primary beam correction...")
     dirty_image_corrected = dirty_image / beam
 
     fits.writeto(
-        path_outfile / "test_line_emission_GaussianBeam_Corrected.fits",
+        outpath / "line_emission_total_image_beamcorrected.fits",
         dirty_image_corrected,
         header,
         overwrite=True,
