@@ -1378,7 +1378,7 @@ class SkyModel:
         return SkyModel(result_dataset)
 
     @staticmethod
-    def get_BATTYE_sky(which: Literal["full", "diluted"] = "full") -> SkyModel:
+    def get_BATTYE_sky(which: Literal["full", "diluted"] = "diluted") -> SkyModel:
         """
         Downloads BATTYE survey data and generates a sky
         model using the downloaded data. There are two types of
@@ -1389,7 +1389,7 @@ class SkyModel:
 
         Parameters:
             which (str): The type of BATTYE survey data to download.
-            The options are 'full' and 'diluted'. Defaults to 'full'.
+            The options are 'full' and 'diluted'. Defaults to 'diluted'.
 
         Source:
         The BATTYE survey data was provided by Jennifer Studer

@@ -116,9 +116,8 @@ class GLEAMSurveyDownloadObject(SingleFileDownloadObject):
 
 class BATTYESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
-        super().__init__(
-            remote_file_path="point_sources_OSKAR1_battye.h5",
-            remote_base_url=cscs_karabo_public_base_url,
+        raise NotImplementedError(
+            f"Currently not available at {cscs_karabo_public_base_url}"
         )
 
 
