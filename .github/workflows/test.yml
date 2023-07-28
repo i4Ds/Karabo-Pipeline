@@ -4,7 +4,19 @@ on:
   schedule: # Every night at 5am
     - cron: '0 5 * * *'
   pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      run_slow_tests:
+        required: false
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      run_slow_tests:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   Test_Karabo:
@@ -34,12 +46,15 @@ jobs:
       - name: Test Code
         shell: bash -l {0}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [[ ${{ github.event_name }} == "pull_request" ]]; then
             export RUN_SLOW_TESTS=false
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "Starting scheduled full test!"
+          elif [[ ${{ github.event_name }} == "schedule" ]]; then
+            export RUN_SLOW_TESTS=false
+          elif [[ ${{ github.event_name }} == "workflow_dispatch" && ${{ inputs.run_slow_tests }} == "true" ]]; then
             export RUN_SLOW_TESTS=true
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          elif [[ ${{ github.event_name }} == "workflow_call" && ${{ inputs.run_slow_tests }} == "true" ]]; then
+            export RUN_SLOW_TESTS=true
+          else
             export RUN_SLOW_TESTS=false
           fi
           conda activate test_karabo

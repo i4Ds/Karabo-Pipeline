@@ -1,0 +1,13 @@
+name: Tests-on-closed-merge
+
+on:
+  pull_request:
+    types: [closed]
+  
+
+jobs:
+  if_merged:
+    uses: ./.github/workflows/test.yml
+    with:
+      run_slow_tests: true
+    secrets: inherit
