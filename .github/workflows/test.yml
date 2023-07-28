@@ -45,8 +45,6 @@ jobs:
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
           pip install . --no-deps
-          pytest --cov=./ --cov-report=xml
+          pytest --cov .
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
-        with:
-          directory: ./coverage/reports/
