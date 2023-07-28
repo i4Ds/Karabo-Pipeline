@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import numpy as np
+import pytest
 import xarray as xr
 from numpy.typing import NDArray
 
@@ -96,9 +97,8 @@ def test_get_cartesian(sky_data_with_ids: NDArray[np.object_]):
 def test_cscs_resource_availability():
     gleam = GLEAMSurveyDownloadObject()
     assert gleam.is_available()
-    if False:  # skip because the file is not available atm.
+    with pytest.raises(NotImplementedError):
         battye = BATTYESurveyDownloadObject()
-        assert battye.is_available()
     battye = DilutedBATTYESurveyDownloadObject()
     assert battye.is_available()
     mightee = MIGHTEESurveyDownloadObject()
