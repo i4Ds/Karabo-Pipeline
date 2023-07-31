@@ -30,18 +30,16 @@ def _test_notebook(notebook):
             assert False, f"Failed executing {notebook}"
 
 
-@pytest.mark.skipif(IS_GITHUB_RUNNER, reason="IS_GITHUB_RUNNER")
+@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="IS_GITHUB_RUNNER")
 def test_source_detection_notebook():
     _test_notebook(notebook="source_detection.ipynb")
 
 
-@pytest.mark.skipif(IS_GITHUB_RUNNER, reason="IS_GITHUB_RUNNER")
+@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="IS_GITHUB_RUNNER")
 def test_source_detection_assesment_notebook():
     _test_notebook(notebook="source_detection_assessment.ipynb")
 
 
-@pytest.mark.skipif(
-    IS_GITHUB_RUNNER or not RUN_SLOW_TESTS, reason="SLOW_TESTS or IS_GITHUB_RUNNER"
-)
+@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="SLOW_TESTS or IS_GITHUB_RUNNER")
 def test_HIIM_Img_Recovery_notebook():
     _test_notebook(notebook="HIIM_Img_Recovery.ipynb")
