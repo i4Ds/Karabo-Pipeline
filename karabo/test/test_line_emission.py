@@ -12,6 +12,8 @@ from karabo.data.external_data import (
     cscs_karabo_public_base_url,
 )
 from karabo.simulation.line_emission import (
+    convert_frequency_to_z,
+    convert_z_to_frequency,
     gaussian_fwhm_meerkat,
     line_emission_pointing,
     plot_scatter_recon,
@@ -19,6 +21,28 @@ from karabo.simulation.line_emission import (
 )
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.dask import DaskHandler
+
+
+@pytest.mark.parametrize(
+    "frequency,redshift",
+    [
+        ([1427.58e6, 502.67e6], [0, 1.84]),
+        (301.18e6, 3.74),
+    ],
+)
+def test_conversion_between_redshift_and_frequency(frequency, redshift):
+    assert np.allclose(
+        frequency,
+        convert_z_to_frequency(redshift),
+        rtol=1e-3,
+        atol=1e-3,
+    )
+    assert np.allclose(
+        redshift,
+        convert_frequency_to_z(frequency),
+        rtol=1e-3,
+        atol=1e-3,
+    )
 
 
 # DownloadObject instances used to download different golden files:
