@@ -7,7 +7,6 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from karabo.util.plotting_util import Font
 
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
-IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
 
 
 # Test preparation moved to fixture
@@ -30,16 +29,16 @@ def _test_notebook(notebook):
             assert False, f"Failed executing {notebook}"
 
 
-@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="IS_GITHUB_RUNNER")
+@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
 def test_source_detection_notebook():
     _test_notebook(notebook="source_detection.ipynb")
 
 
-@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="IS_GITHUB_RUNNER")
+@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
 def test_source_detection_assesment_notebook():
     _test_notebook(notebook="source_detection_assessment.ipynb")
 
 
-@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="SLOW_TESTS or IS_GITHUB_RUNNER")
+@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="SLOW_TESTS")
 def test_HIIM_Img_Recovery_notebook():
     _test_notebook(notebook="HIIM_Img_Recovery.ipynb")
