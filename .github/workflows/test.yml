@@ -6,11 +6,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
-    inputs:
-      run_slow_tests:
-        required: false
-        type: boolean
-        default: false
   push:
     branches:
       - main  # is activated once a PR gets merged
