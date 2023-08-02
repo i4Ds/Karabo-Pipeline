@@ -256,20 +256,28 @@ def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
     return sky_bin
 
 
-def convert_z_to_frequency(z):
-    """Turn given redshift into corresponding frequency (Hz) for 21cm emission."""
+def convert_z_to_frequency(
+    z: Union[NDArray[np.float_], xr.DataArray]
+) -> Union[NDArray[np.float_], xr.DataArray]:
+    """Turn given redshift into corresponding frequency (Hz) for 21cm emission.
 
-    if isinstance(z, (list, tuple)):
-        z = np.array(z)
+    :param z: Redshift values to be converted into frequencies.
+
+    :return: Frequencies corresponding to input redshifts.
+    """
 
     return c.value / (0.21 * (1 + z))
 
 
-def convert_frequency_to_z(freq):
-    """Turn given frequency (Hz) into corresponding redshift for 21cm emission."""
+def convert_frequency_to_z(
+    freq: Union[NDArray[np.float_], xr.DataArray]
+) -> Union[NDArray[np.float_], xr.DataArray]:
+    """Turn given frequency (Hz) into corresponding redshift for 21cm emission.
 
-    if isinstance(freq, (list, tuple)):
-        freq = np.array(freq)
+    :param freq: Frequency values to be converted into redshifts.
+
+    :return: Redshifts corresponding to input frequencies.
+    """
 
     return (c.value / (0.21 * freq)) - 1
 
@@ -295,7 +303,7 @@ def freq_channels(
     z_start = np.min(z_obs)
     z_end = np.max(z_obs)
 
-    freq_start, freq_end = convert_z_to_frequency((z_start, z_end))
+    freq_start, freq_end = convert_z_to_frequency(np.array([z_start, z_end]))
 
     freq_mid = freq_start + (freq_end - freq_start) / 2
 
