@@ -33,6 +33,16 @@ jobs:
           export KARABO_VERSION="${KARABO_TAG:1}"
           echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
           conda mambabuild .
+      - name: Test Package
+        shell: bash -l {0}
+        run: |
+          conda activate base
+          conda install -y -c /opt/conda/conda-bld/ -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
+          echo "import karabo" >> run_tests.py
+          echo "from karabo.util.testing import run_tests" >> run_tests.py
+          echo "print(karabo.__version__)" >> run_tests.py
+          echo "run_tests('--ignore-glob=**/test_notebooks.py')" >> run_tests.py
+          python run_tests.py
       - name: Publish to Conda
         shell: bash -l {0}
         run: |

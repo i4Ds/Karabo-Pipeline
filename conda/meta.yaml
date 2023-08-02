@@ -19,6 +19,7 @@ requirements:
     - pip
   run:
     - python=3.9
+    - aratmospy=1.0.0
     - oskarpy=2.8.3
     - rascil=1.0.0
     - numpy=1.22
