@@ -150,6 +150,7 @@ def test_line_emission_run(
             sky=sky_pointing,
             cut=cut,
             img_size=1024,
+            equally_spaced_freq=True,
         )
 
         # Validate uncorrected H5 file,
