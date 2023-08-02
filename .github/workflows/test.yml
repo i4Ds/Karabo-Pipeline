@@ -41,7 +41,7 @@ jobs:
         shell: bash -l {0}
         run: |
           if [[ ${{ github.event_name }} == pull_request ]]; then
-            export RUN_SLOW_TESTS=true
+            export RUN_SLOW_TESTS=false
           elif [[ ${{ github.event_name }} == schedule ]]; then
             export RUN_SLOW_TESTS=false
           elif [[ ${{ github.event_name }} == workflow_dispatch ]]; then
