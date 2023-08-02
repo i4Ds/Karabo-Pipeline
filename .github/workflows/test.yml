@@ -27,6 +27,8 @@ jobs:
           conda activate test_karabo
           mamba env update --file environment.yaml
           pip install -r requirements.txt
+          pip install ipykernel
+          python -m ipykernel install --name python3
       - name: Test Dev-Tools
         shell: bash -l {0}
         run: |
@@ -39,7 +41,7 @@ jobs:
         shell: bash -l {0}
         run: |
           if [[ ${{ github.event_name }} == pull_request ]]; then
-            export RUN_SLOW_TESTS=false
+            export RUN_SLOW_TESTS=true
           elif [[ ${{ github.event_name }} == schedule ]]; then
             export RUN_SLOW_TESTS=false
           elif [[ ${{ github.event_name }} == workflow_dispatch ]]; then
