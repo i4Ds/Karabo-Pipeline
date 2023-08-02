@@ -22,8 +22,8 @@ jobs:
         id: channels
         run: |
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels i4ds
           conda config --append channels conda-forge
       - name: Build Conda
         shell: bash -l {0}
@@ -33,19 +33,18 @@ jobs:
           export KARABO_VERSION="${KARABO_TAG:1}"
           echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
           conda mambabuild .
-      - name: Test Package
+      - name: Test Newly Built Conda Package
         shell: bash -l {0}
         run: |
-          conda activate base
-          conda install -y -c /opt/conda/conda-bld/ -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
+          conda create -y -n karabo-env python=3.9
+          conda activate test_karabo
+          mamba env update --file environment.yaml
+          pip install -r requirements.txt
+          cd ..
+          rm -rf Karabo-Pipeline
           mkdir test_package && cd test_package
-          echo "import karabo" >> run_tests.py
-          echo "import os" >> run_tests.py
-          echo "karabo_env_version = os.environ.get('KARABO_VERSION')" >> run_tests.py
-          echo "assert karabo.__version__ == karabo_env_version" >> run_tests.py
-          echo "from karabo.util.testing import run_tests" >> run_tests.py
-          echo "run_tests('--ignore-glob=**/test_notebooks.py')" >> run_tests.py
-          python run_tests.py
+          conda install -y -c nvidia/label/cuda-11.7.0 -c /opt/conda/conda-bld/ -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
+          pytest --pyargs karabo.test
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
