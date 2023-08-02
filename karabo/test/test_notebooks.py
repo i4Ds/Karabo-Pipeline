@@ -4,9 +4,9 @@ import nbformat
 import pytest
 from nbconvert.preprocessors import ExecutePreprocessor
 
+from karabo.test.conftest import RUN_SLOW_TESTS
 from karabo.util.plotting_util import Font
 
-RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
 # get notebook-dir not matter cwd
 notebook_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples")
 
