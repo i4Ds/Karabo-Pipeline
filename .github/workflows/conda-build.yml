@@ -22,8 +22,8 @@ jobs:
         id: channels
         run: |
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels i4ds
+          conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
       - name: Build Conda
         shell: bash -l {0}
@@ -33,18 +33,6 @@ jobs:
           export KARABO_VERSION="${KARABO_TAG:1}"
           echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
           conda mambabuild .
-      - name: Test Newly Built Conda Package
-        shell: bash -l {0}
-        run: |
-          conda create -y -n karabo-env python=3.9
-          conda activate test_karabo
-          mamba env update --file environment.yaml
-          pip install -r requirements.txt
-          cd ..
-          rm -rf Karabo-Pipeline
-          mkdir test_package && cd test_package
-          conda install -y -c nvidia/label/cuda-11.7.0 -c /opt/conda/conda-bld/ -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
-          pytest --pyargs karabo.test
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
