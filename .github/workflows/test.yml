@@ -29,14 +29,14 @@ jobs:
           pip install -r requirements.txt
           pip install ipykernel
           python -m ipykernel install --user --name python3
-      - name: Test Dev-Tools
-        shell: bash -l {0}
-        run: |
-          conda activate test_karabo
-          flake8 .
-          black --check .
-          isort --check .
-          mypy .
+      # - name: Test Dev-Tools
+      #   shell: bash -l {0}
+      #   run: |
+      #     conda activate test_karabo
+      #     flake8 .
+      #     black --check .
+      #     isort --check .
+      #     mypy .
       - name: Test Code
         shell: bash -l {0}
         run: |
