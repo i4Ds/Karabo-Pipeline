@@ -7,9 +7,12 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from karabo.util.plotting_util import Font
 
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
+# get notebook-dir not matter cwd
+notebook_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples")
 
 
 def _run_notebook(notebook: str) -> None:
+    notebook = os.path.join(notebook_dir, notebook)
     print(Font.BOLD + Font.BLUE + "Testing notebook " + notebook + Font.END)
 
     with open(notebook) as f:
