@@ -26,8 +26,8 @@ from karabo.util.dask import DaskHandler
 @pytest.mark.parametrize(
     "frequency,redshift",
     [
-        ([1427.58e6, 502.67e6], [0, 1.84]),
-        (301.18e6, 3.74),
+        (np.array([1427.58e6, 502.67e6]), np.array([0, 1.84])),
+        (np.array([301.18e6]), np.array([3.74])),
     ],
 )
 def test_conversion_between_redshift_and_frequency(frequency, redshift):
