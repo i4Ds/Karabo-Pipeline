@@ -78,6 +78,30 @@ def test_filter_sky_model_h5():
     )
 
 
+def test_filter_flux_sky_model():
+    sky = SkyModel.get_GLEAM_Sky([76])
+    phase_center = [250, -80]  # ra,dec
+    assert sky[:, 2].max() > 300.0, "Test data is not correct"
+    filtered_sky = sky.filter_by_flux(46.872, 300.0)
+    filtered_sky.explore_sky(
+        phase_center=phase_center,
+        figsize=(8, 6),
+        s=5,
+        with_labels=True,
+        cfun=None,
+    )
+    assert np.all((filtered_sky[:, 2] >= 46.872) & (filtered_sky[:, 2] <= 300.0))
+
+
+def test_filter_flux_sky_model_h5():
+    sky = SkyModel.get_BATTYE_sky(which="diluted")
+    assert sky[:, 2].max() > 1.15626285e-26, "Test data is not correct"
+    filtered_sky = sky.filter_by_flux(9.95626285e-27, 1.15626285e-26)
+    assert np.all(
+        (filtered_sky[:, 2] >= 9.95626285e-27) & (filtered_sky[:, 2] <= 1.15626285e-26)
+    )
+
+
 def test_read_sky_model():
     sky = SkyModel.get_GLEAM_Sky([76])
     with tempfile.TemporaryDirectory() as tmpdir:
