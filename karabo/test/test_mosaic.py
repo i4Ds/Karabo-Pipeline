@@ -1,3 +1,5 @@
+import tempfile
+
 import astropy.units as u
 import numpy as np
 from astropy import coordinates as coords
@@ -9,6 +11,9 @@ from karabo.simulation.sky_model import SkyModel
 
 
 def test_mosaic_run() -> None:
+    """
+    Executes the mosaic pipeline and validate the output files.
+    """
     # Load sky model data
     survey = DilutedBATTYESurveyDownloadObject()
     catalog_path = survey.get()
@@ -40,42 +45,43 @@ def test_mosaic_run() -> None:
     ] + [center2]
 
     # Settings for mosaic
-    workdir = "result/Mosaic_test"
     location = "20.84, -30.0"
     size_w = 4.0 * u.deg
     size_h = 2.5 * u.deg
 
-    mosaic_directories(workdir)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        workdir = tmpdir + "/Mosaic_test"
+        mosaic_directories(workdir)
 
-    # Simulate dirty images
-    outfile = workdir + "/unused_output/pointing"
+        # Simulate dirty images
+        outfile = workdir + "/unused_output/pointing"
 
-    for k in range(len(pointings)):
-        print("Reconstruction of pointing " + str(k) + "...")
+        for k in range(len(pointings)):
+            print("Reconstruction of pointing " + str(k) + "...")
 
-        karabo_reconstruction(
-            outfile=outfile + str(k),
-            mosaic_pntg_file=workdir + "/raw/pointing" + str(k),
-            sky=sky_pointing,
-            ra_deg=pointings[k].ra.deg,
-            dec_deg=pointings[k].dec.deg,
-            img_size=img_size,
-            start_freq=freq_mid,
-            freq_bin=freq_channel[0] - freq_channel[-1],
-            beam_type="Gaussian beam",
-            cut=size_pntg.value,
-            channel_num=1,
-            pdf_plot=False,
-            circle=True,
+            karabo_reconstruction(
+                outfile=outfile + str(k),
+                mosaic_pntg_file=workdir + "/raw/pointing" + str(k),
+                sky=sky_pointing,
+                ra_deg=pointings[k].ra.deg,
+                dec_deg=pointings[k].dec.deg,
+                img_size=img_size,
+                start_freq=freq_mid,
+                freq_bin=freq_channel[0] - freq_channel[-1],
+                beam_type="Gaussian beam",
+                cut=size_pntg.value,
+                channel_num=1,
+                pdf_plot=False,
+                circle=True,
+            )
+
+        # Create mosaic
+        mosaic_header(
+            output_directory_path=workdir,
+            location=location,
+            width=size_w.value,
+            height=size_h.value,
+            resolution=20.0,
+            sin_projection=True,
         )
-
-    # Create mosaic
-    mosaic_header(
-        output_directory_path=workdir,
-        location=location,
-        width=size_w.value,
-        height=size_h.value,
-        resolution=20.0,
-        sin_projection=True,
-    )
-    mosaic(output_directory_path=workdir)
+        mosaic(output_directory_path=workdir)
