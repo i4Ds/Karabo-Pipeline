@@ -36,9 +36,17 @@ def test_source_detection_notebook() -> None:
     _run_notebook(notebook="source_detection.ipynb")
 
 
+@pytest.mark.skipif(
+    IS_GITHUB_RUNNER,
+    reason="System.IO.IOException: No space left on device",
+)
 def test_source_detection_assesment_notebook() -> None:
     _run_notebook(notebook="source_detection_assessment.ipynb")
 
 
+@pytest.mark.skipif(
+    IS_GITHUB_RUNNER,
+    reason="System.IO.IOException: No space left on device",
+)
 def test_HIIM_Img_Recovery_notebook() -> None:
     _run_notebook(notebook="HIIM_Img_Recovery.ipynb")
