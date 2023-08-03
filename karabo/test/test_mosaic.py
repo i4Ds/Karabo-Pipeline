@@ -2,18 +2,73 @@ import tempfile
 
 import astropy.units as u
 import numpy as np
+import pytest
 from astropy import coordinates as coords
+from astropy.io import fits
 
-from karabo.data.external_data import DilutedBATTYESurveyDownloadObject
+from karabo.data.external_data import (
+    DilutedBATTYESurveyDownloadObject,
+    SingleFileDownloadObject,
+    cscs_karabo_public_base_url,
+)
 from karabo.imaging.mosaic import mosaic, mosaic_directories, mosaic_header
 from karabo.simulation.line_emission import freq_channels, karabo_reconstruction
 from karabo.simulation.sky_model import SkyModel
 
 
-def test_mosaic_run() -> None:
+# DownloadObject instances used to download different golden files:
+# - FITS file before beam correction
+# - H5 file with channels stored separately, before beam correction
+# - FITS file after beam correction
+@pytest.fixture
+def uncorrected_mosaic_fits_filename() -> str:
+    return "test_mosaic_uncorrected.fits"
+
+
+@pytest.fixture
+def uncorrected_area_fits_filename() -> str:
+    return "test_mosaic_uncorrected_area.fits"
+
+
+@pytest.fixture
+def uncorrected_mosaic_fits_downloader(
+    uncorrected_mosaic_fits_filename,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=uncorrected_mosaic_fits_filename,
+        remote_base_url=cscs_karabo_public_base_url,
+    )
+
+
+@pytest.fixture
+def uncorrected_area_fits_downloader(
+    uncorrected_area_fits_filename,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=uncorrected_area_fits_filename,
+        remote_base_url=cscs_karabo_public_base_url,
+    )
+
+
+def test_mosaic_run(
+    uncorrected_mosaic_fits_filename: str,
+    uncorrected_area_fits_filename: str,
+    uncorrected_mosaic_fits_downloader: SingleFileDownloadObject,
+    uncorrected_area_fits_downloader: SingleFileDownloadObject,
+) -> None:
     """
     Executes the mosaic pipeline and validate the output files.
+
+    Args:
+        uncorrected_mosaic_fits_filename:
+            Name of FITS file containing the mosaic of the dirty image.
+        uncorrected_area_fits_filename:
+            Name of FITS file containing the coverage of the pointings in the mosaic.
     """
+    # Download golden files for comparison
+    golden_uncorrected_mosaic_fits_path = uncorrected_mosaic_fits_downloader.get()
+    golden_uncorrected_area_fits_path = uncorrected_area_fits_downloader.get()
+
     # Load sky model data
     survey = DilutedBATTYESurveyDownloadObject()
     catalog_path = survey.get()
@@ -52,6 +107,8 @@ def test_mosaic_run() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         workdir = tmpdir + "/Mosaic_test"
         mosaic_directories(workdir)
+        uncorrected_mosaic_fits_path = workdir + "/mosaic.fits"
+        uncorrected_area_fits_path = workdir + "mosaic_area.fits"
 
         # Simulate dirty images
         outfile = workdir + "/unused_output/pointing"
@@ -85,3 +142,45 @@ def test_mosaic_run() -> None:
             sin_projection=True,
         )
         mosaic(output_directory_path=workdir)
+
+        # Verify mosaic FITS file
+        uncorrected_mosaic_fits_data, uncorrected_mosaic_fits_header = fits.getdata(
+            uncorrected_mosaic_fits_path, ext=0, header=True
+        )
+        (
+            golden_uncorrected_mosaic_fits_data,
+            golden_uncorrected_mosaic_fits_header,
+        ) = fits.getdata(golden_uncorrected_mosaic_fits_path, ext=0, header=True)
+
+        # Check FITS data is close to goldenfile
+        assert np.allclose(
+            golden_uncorrected_mosaic_fits_data,
+            uncorrected_mosaic_fits_data,
+            equal_nan=True,
+        )
+
+        # Check that headers contain the same keys
+        assert set(golden_uncorrected_mosaic_fits_header.keys()) == set(
+            uncorrected_mosaic_fits_header.keys()
+        )
+
+        # Verify mosaic area FITS file
+        uncorrected_area_fits_data, uncorrected_area_fits_header = fits.getdata(
+            uncorrected_area_fits_path, ext=0, header=True
+        )
+        (
+            golden_uncorrected_area_fits_data,
+            golden_uncorrected_area_fits_header,
+        ) = fits.getdata(golden_uncorrected_area_fits_path, ext=0, header=True)
+
+        # Check FITS data is close to goldenfile
+        assert np.allclose(
+            golden_uncorrected_area_fits_data,
+            uncorrected_area_fits_data,
+            equal_nan=True,
+        )
+
+        # Check that headers contain the same keys
+        assert set(golden_uncorrected_area_fits_header.keys()) == set(
+            uncorrected_area_fits_header.keys()
+        )
