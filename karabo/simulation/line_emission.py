@@ -282,9 +282,22 @@ def convert_z_to_frequency(z):
     return c.value / (0.21 * (1 + z))
 
 
-def convert_frequency_to_z(
-    freq: Union[NDArray[np.float_], xr.DataArray, IntFloat]
-) -> Union[NDArray[np.float_], xr.DataArray, IntFloat]:
+@overload
+def convert_frequency_to_z(freq: NDArray[np.float_]) -> NDArray[np.float_]:
+    ...
+
+
+@overload
+def convert_frequency_to_z(freq: xr.DataArray) -> xr.DataArray:
+    ...
+
+
+@overload
+def convert_frequency_to_z(freq: IntFloat) -> IntFloat:
+    ...
+
+
+def convert_frequency_to_z(freq):
     """Turn given frequency (Hz) into corresponding redshift for 21cm emission.
 
     :param freq: Frequency values to be converted into redshifts.
