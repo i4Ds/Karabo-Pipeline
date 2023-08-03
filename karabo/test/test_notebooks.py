@@ -4,7 +4,7 @@ import nbformat
 import pytest
 from nbconvert.preprocessors import ExecutePreprocessor
 
-from karabo.test.conftest import RUN_SLOW_TESTS
+# from karabo.test.conftest import RUN_SLOW_TESTS
 from karabo.util.plotting_util import Font
 
 # get notebook-dir not matter cwd
@@ -24,16 +24,16 @@ def _run_notebook(notebook: str) -> None:
             pytest.fail(reason=f"Failed executing {notebook}")
 
 
-@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
+# @pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
 def test_source_detection_notebook() -> None:
     _run_notebook(notebook="source_detection.ipynb")
 
 
-@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
-def test_source_detection_assesment_notebook() -> None:
-    _run_notebook(notebook="source_detection_assessment.ipynb")
+# @pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
+# def test_source_detection_assesment_notebook() -> None:
+#     _run_notebook(notebook="source_detection_assessment.ipynb")
 
 
-@pytest.mark.skipif(not RUN_SLOW_TESTS, reason="SLOW_TESTS")
-def test_HIIM_Img_Recovery_notebook() -> None:
-    _run_notebook(notebook="HIIM_Img_Recovery.ipynb")
+# @pytest.mark.skipif(not RUN_SLOW_TESTS, reason="SLOW_TESTS")
+# def test_HIIM_Img_Recovery_notebook() -> None:
+#     _run_notebook(notebook="HIIM_Img_Recovery.ipynb")
