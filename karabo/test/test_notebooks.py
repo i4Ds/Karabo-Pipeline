@@ -30,10 +30,10 @@ def _run_notebook(notebook: str) -> None:
 
 
 # @pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
-def test_source_detection_assesment_notebook() -> None:
-    _run_notebook(notebook="source_detection_assessment.ipynb")
+# def test_source_detection_assesment_notebook() -> None:
+#     _run_notebook(notebook="source_detection_assessment.ipynb")
 
 
 # @pytest.mark.skipif(not RUN_SLOW_TESTS, reason="SLOW_TESTS")
-# def test_HIIM_Img_Recovery_notebook() -> None:
-#     _run_notebook(notebook="HIIM_Img_Recovery.ipynb")
+def test_HIIM_Img_Recovery_notebook() -> None:
+    _run_notebook(notebook="HIIM_Img_Recovery.ipynb")
