@@ -18,10 +18,14 @@ def _run_notebook(notebook: str) -> None:
     with open(notebook) as f:
         nb = nbformat.read(f, as_version=4)
         ep = ExecutePreprocessor(timeout=-1)
+        cwd = os.getcwd()
+        os.chdir(notebook_dir)
         try:
             assert ep.preprocess(nb) is not None, f"Got empty notebook for {notebook}"
         except Exception:
             pytest.fail(reason=f"Failed executing {notebook}")
+        finally:
+            os.chdir(cwd)
 
 
 # @pytest.mark.skipif(not RUN_SLOW_TESTS, reason="RUN_SLOW_TESTS")
