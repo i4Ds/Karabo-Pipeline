@@ -4,7 +4,6 @@ import nbformat
 import pytest
 from nbconvert.preprocessors import ExecutePreprocessor
 
-# from karabo.test.conftest import RUN_SLOW_TESTS, IS_GITHUB_RUNNER
 from karabo.test.conftest import IS_GITHUB_RUNNER
 from karabo.util.plotting_util import Font
 
@@ -37,10 +36,9 @@ def test_source_detection_notebook() -> None:
     _run_notebook(notebook="source_detection.ipynb")
 
 
-# def test_source_detection_assesment_notebook() -> None:
-#     _run_notebook(notebook="source_detection_assessment.ipynb")
+def test_source_detection_assesment_notebook() -> None:
+    _run_notebook(notebook="source_detection_assessment.ipynb")
 
 
-# @pytest.mark.skipif(not RUN_SLOW_TESTS, reason="SLOW_TESTS")
 def test_HIIM_Img_Recovery_notebook() -> None:
     _run_notebook(notebook="HIIM_Img_Recovery.ipynb")
