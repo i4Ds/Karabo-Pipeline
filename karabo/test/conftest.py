@@ -13,6 +13,7 @@ from karabo.test import data_path
 NNImageDiffCallable = Callable[[str, str], float]
 
 RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
+IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
 
 
 @dataclass
