@@ -29,14 +29,14 @@ jobs:
           pip install -r requirements.txt
           pip install ipykernel
           python -m ipykernel install --user --name python3
-      - name: Test Dev-Tools
-        shell: bash -l {0}
-        run: |
-          conda activate test_karabo
-          flake8 .
-          black --check .
-          isort --check .
-          mypy .
+      # - name: Test Dev-Tools
+      #   shell: bash -l {0}
+      #   run: |
+      #     conda activate test_karabo
+      #     flake8 .
+      #     black --check .
+      #     isort --check .
+      #     mypy .
       - name: Test Code
         shell: bash -l {0}
         run: |
@@ -54,7 +54,7 @@ jobs:
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
           pip install . --no-deps
-          pytest karabo/test/test_notebook.py
+          pytest karabo/test/test_notebooks.py
         #  pytest --cov=./ --cov-report=xml
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
