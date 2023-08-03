@@ -2,7 +2,7 @@ import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, cast
+from typing import List, Optional, Tuple, Union, cast, overload
 
 import h5py
 import matplotlib.pyplot as plt
@@ -256,9 +256,22 @@ def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
     return sky_bin
 
 
-def convert_z_to_frequency(
-    z: Union[NDArray[np.float_], xr.DataArray, IntFloat]
-) -> Union[NDArray[np.float_], xr.DataArray, IntFloat]:
+@overload
+def convert_z_to_frequency(z: NDArray[np.float_]) -> NDArray[np.float_]:
+    ...
+
+
+@overload
+def convert_z_to_frequency(z: xr.DataArray) -> xr.DataArray:
+    ...
+
+
+@overload
+def convert_z_to_frequency(z: IntFloat) -> IntFloat:
+    ...
+
+
+def convert_z_to_frequency(z):
     """Turn given redshift into corresponding frequency (Hz) for 21cm emission.
 
     :param z: Redshift values to be converted into frequencies.
