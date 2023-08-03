@@ -27,7 +27,7 @@ from karabo.util.dask import DaskHandler
     "frequency,redshift",
     [
         (np.array([1427.58e6, 502.67e6]), np.array([0, 1.84])),
-        (np.array([301.18e6]), np.array([3.74])),
+        (301.18e6, 3.74),
     ],
 )
 def test_conversion_between_redshift_and_frequency(frequency, redshift):
