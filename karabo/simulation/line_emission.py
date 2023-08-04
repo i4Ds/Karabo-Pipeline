@@ -2,7 +2,7 @@ import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, cast
+from typing import List, Optional, Tuple, TypeVar, Union, cast
 
 import h5py
 import matplotlib.pyplot as plt
@@ -256,53 +256,79 @@ def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
     return sky_bin
 
 
-def redshift_slices(
-    redshift_obs: Union[NDArray[np.float_], xr.DataArray],
-    channel_num: int = 10,
-) -> NDArray[np.float_]:
+T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
+
+
+def convert_z_to_frequency(z: T) -> T:
+    """Turn given redshift into corresponding frequency (Hz) for 21cm emission.
+
+    :param z: Redshift values to be converted into frequencies.
+
+    :return: Frequencies corresponding to input redshifts.
     """
-    Creation of the redshift bins used for the line emission simulation based on the
-    observed redshift range from the sky.
 
-    :param redshift_obs: Observed redshifts of the sources.
-    :param channel_num: Number of redshift bins/channels.
+    return cast(T, c.value / (0.21 * (1 + z)))
 
-    :return: The channels of the observed redshift range.
+
+def convert_frequency_to_z(freq: T) -> T:
+    """Turn given frequency (Hz) into corresponding redshift for 21cm emission.
+
+    :param freq: Frequency values to be converted into redshifts.
+
+    :return: Redshifts corresponding to input frequencies.
     """
-    print("Smallest redshift:", np.amin(redshift_obs))
-    print("Largest redshift:", np.amax(redshift_obs))
 
-    redshift_channel = np.linspace(
-        np.amin(redshift_obs), np.amax(redshift_obs), channel_num + 1
-    )
-
-    return redshift_channel
+    return cast(T, (c.value / (0.21 * freq)) - 1)
 
 
 def freq_channels(
     z_obs: Union[NDArray[np.float_], xr.DataArray],
     channel_num: int = 10,
-) -> Tuple[NDArray[np.float_], NDArray[np.float_], np.float_, np.float_]:
+    equally_spaced_freq: bool = True,
+) -> Tuple[NDArray[np.float_], NDArray[np.float_], NDArray[np.float_], np.float_]:
     """
     Calculates the frequency channels from the redshifts.
     :param z_obs: Observed redshifts from the HI sources.
-    :param channel_num: Number uf channels.
+    :param channel_num: Number of channels.
+    :param equally_spaced_freq: If True (default), create channels
+        equally spaced in frequency.
+        If False, create channels equally spaced in redshift.
 
-    :return: Redshift channel, frequency channel in Hz, bin width of frequency channel
-             in Hz, middle frequency in Hz
+    :return: Redshift channels array,
+        frequency channels array (in Hz),
+        array of bin widths of frequency channel (in Hz), for convenience,
+        and middle frequency (in Hz)
     """
+    z_start = np.min(z_obs)
+    z_end = np.max(z_obs)
 
-    redshift_channel = redshift_slices(z_obs, channel_num)
+    freq_start, freq_end = convert_z_to_frequency(np.array([z_start, z_end]))
 
-    freq_channel = c.value / (0.21 * (1 + redshift_channel))
-    freq_start = freq_channel[0]
-    freq_end = freq_channel[-1]
     freq_mid = freq_start + (freq_end - freq_start) / 2
-    freq_bin = freq_channel[0] - freq_channel[1]
-    print("The frequency channel starts at:", freq_start, "Hz")
-    print("The bin size of the freq channel is:", freq_bin, "Hz")
 
-    return redshift_channel, freq_channel, freq_bin, freq_mid
+    if equally_spaced_freq is True:
+        freq_channels_array = np.linspace(
+            freq_start,
+            freq_end,
+            channel_num + 1,
+        )
+
+        redshift_channels_array = convert_frequency_to_z(freq_channels_array)
+    else:
+        redshift_channels_array = np.linspace(
+            np.amin(z_obs),
+            np.amax(z_obs),
+            channel_num + 1,
+        )
+
+        freq_channels_array = convert_z_to_frequency(redshift_channels_array)
+
+    freq_bins = np.abs(np.diff(freq_channels_array))
+
+    print("The frequency channel starts at:", freq_start, "Hz")
+    print("The bin sizes of the freq channel are:", freq_bins, "Hz")
+
+    return redshift_channels_array, freq_channels_array, freq_bins, freq_mid
 
 
 def karabo_reconstruction(
@@ -436,11 +462,10 @@ def karabo_reconstruction(
 def run_one_channel_simulation(
     path: FilePathType,
     sky: SkyModel,
-    bin_idx: int,
     z_min: np.float_,
     z_max: np.float_,
-    freq_min: float,
-    freq_bin: float,
+    freq_bin_start: float,
+    freq_bin_width: float,
     ra_deg: IntFloat,
     dec_deg: IntFloat,
     beam_type: StationTypeType,
@@ -461,11 +486,11 @@ def run_one_channel_simulation(
     :param sky: Sky model which is used for simulating line emission. This sky model
                 needs to include a 13th axis (extra_column) with the observed redshift
                 of each source.
-    :param bin_idx: Index of the channel which is currently being simulated.
     :param z_min: Smallest redshift in this bin.
     :param z_max: Largest redshift in this bin.
-    :param freq_min: Smallest frequency in this bin.
-    :param freq_bin: Size of the sky frequency bin which is simulated.
+    :param freq_bin_start: Starting frequency in this bin
+        (i.e., largest frequency in the bin).
+    :param freq_bin_width: Size of the sky frequency bin which is simulated.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
@@ -491,14 +516,14 @@ def run_one_channel_simulation(
     if verbose:
         print("Starting simulation...")
 
-    start_freq = freq_min + freq_bin / 2
+    freq_bin_middle = freq_bin_start - freq_bin_width / 2
     dirty_image, header = karabo_reconstruction(
         path,
         sky=sky_bin,
         ra_deg=ra_deg,
         dec_deg=dec_deg,
-        start_freq=start_freq,
-        freq_bin=freq_bin,
+        start_freq=freq_bin_middle,
+        freq_bin=freq_bin_width,
         beam_type=beam_type,
         gaussian_fwhm=gaussian_fwhm,
         gaussian_ref_freq=gaussian_ref_freq,
@@ -521,6 +546,7 @@ def line_emission_pointing(
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     num_bins: int = 10,
+    equally_spaced_freq: bool = True,
     beam_type: StationTypeType = "Gaussian beam",
     gaussian_fwhm: IntFloat = 1.0,
     gaussian_ref_freq: IntFloat = 1.4639e9,
@@ -546,6 +572,9 @@ def line_emission_pointing(
                      The more the better the line emission is simulated.
                      This value also restricts the parallelization. The number of bins
                      restricts the number of nodes which are effectively used.
+    :param equally_spaced_freq: If True (default), create channels
+        equally spaced in frequency.
+        If False, create channels equally spaced in redshift.
     :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
                       "Aperture Array".
     :param gaussian_fwhm: If the primary beam is gaussian, this is its FWHM. In power
@@ -591,7 +620,9 @@ def line_emission_pointing(
         client = DaskHandler.get_dask_client()
 
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(
-        z_obs=sky.sources[:, 13], channel_num=num_bins
+        z_obs=sky.sources[:, 13],
+        channel_num=num_bins,
+        equally_spaced_freq=equally_spaced_freq,
     )
 
     dirty_images = []
@@ -612,11 +643,10 @@ def line_emission_pointing(
         delayed_ = delayed(run_one_channel_simulation)(
             path=outpath / (f"slice_{bin_idx}"),
             sky=sky,
-            bin_idx=bin_idx,
             z_min=redshift_channel[bin_idx],
             z_max=redshift_channel[bin_idx + 1],
-            freq_min=freq_channel[bin_idx],
-            freq_bin=freq_bin,
+            freq_bin_start=freq_channel[bin_idx],
+            freq_bin_width=freq_bin[bin_idx],
             ra_deg=ra_deg,
             dec_deg=dec_deg,
             beam_type=beam_type,
