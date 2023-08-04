@@ -51,6 +51,7 @@ jobs:
           fi
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
+          export RUN_GPU_TESTS=false
           pip install . --no-deps
           pytest --cov=./ --cov-report=xml
       - name: Upload coverage reports to Codecov
