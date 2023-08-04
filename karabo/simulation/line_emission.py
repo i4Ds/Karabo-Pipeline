@@ -2,7 +2,7 @@ import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, cast, overload
+from typing import List, Optional, Tuple, TypeVar, Union, cast
 
 import h5py
 import matplotlib.pyplot as plt
@@ -256,24 +256,10 @@ def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
     return sky_bin
 
 
-@overload
-def convert_z_to_frequency(z: NDArray[np.float_]) -> NDArray[np.float_]:
-    ...
+T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
 
 
-@overload
-def convert_z_to_frequency(z: xr.DataArray) -> xr.DataArray:
-    ...
-
-
-@overload
-def convert_z_to_frequency(z: IntFloat) -> IntFloat:
-    ...
-
-
-def convert_z_to_frequency(
-    z: Union[NDArray[np.float_], xr.DataArray, IntFloat]
-) -> Union[NDArray[np.float_], xr.DataArray, IntFloat]:
+def convert_z_to_frequency(z: T) -> T:
     """Turn given redshift into corresponding frequency (Hz) for 21cm emission.
 
     :param z: Redshift values to be converted into frequencies.
@@ -284,24 +270,7 @@ def convert_z_to_frequency(
     return c.value / (0.21 * (1 + z))
 
 
-@overload
-def convert_frequency_to_z(freq: NDArray[np.float_]) -> NDArray[np.float_]:
-    ...
-
-
-@overload
-def convert_frequency_to_z(freq: xr.DataArray) -> xr.DataArray:
-    ...
-
-
-@overload
-def convert_frequency_to_z(freq: IntFloat) -> IntFloat:
-    ...
-
-
-def convert_frequency_to_z(
-    freq: Union[NDArray[np.float_], xr.DataArray, IntFloat]
-) -> Union[NDArray[np.float_], xr.DataArray, IntFloat]:
+def convert_frequency_to_z(freq: T) -> T:
     """Turn given frequency (Hz) into corresponding redshift for 21cm emission.
 
     :param freq: Frequency values to be converted into redshifts.
