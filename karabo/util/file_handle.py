@@ -4,6 +4,47 @@ import uuid
 from typing import Optional
 
 
+def _get_default_root_dir() -> str:
+    karabo_folder = "karabo_folder"
+    if os.environ.get("SCRATCH") is not None:
+        return os.path.join(os.environ.get("SCRATCH"), karabo_folder)
+    else:
+        return os.path.join(os.getcwd(), karabo_folder)
+
+
+class FileHandler:
+    """Utility file-handler for unspecified directories.
+
+    Provides directory-management functionality in case no dir-path was specified.
+    `FileHandler.root` is a static root-directory where each subdir is located.
+    Subdirs are `prefix`_{uuid4[:8]} in case `prefix` is defined, otherwise uuid4[:8].
+
+    Args:
+        prefix: Prefix of dir-path where dir-path is `prefix`_{uuid4[:8]}
+    """
+
+    root: str = _get_default_root_dir()
+    fh_dir_identifier = "fhdir"  # additional security to protect against dir-removal
+
+    def __init__(
+        self,
+        prefix: Optional[str] = None,
+    ) -> None:
+        self.subdir = f"{FileHandler.fh_dir_identifier}_{str(uuid.uuid4())[:8]}"
+        if prefix is not None:
+            self.subdir = f"{prefix}_{self.subdir}"
+        os.makedirs(self.subdir, exist_ok=True)
+
+    def clean_up(self) -> None:
+        if os.path.exists(self.subdir):
+            shutil.rmtree(self.subdir)  # make dir-removal protected
+
+    @staticmethod
+    def clean_up_root(force: bool = False) -> None:
+        if os.path.exists(FileHandler.root):
+            shutil.rmtree(FileHandler.root)  # make dir-removal protected
+
+
 class FileHandle:
     """
     Utility class for handling file paths and creating temporary
