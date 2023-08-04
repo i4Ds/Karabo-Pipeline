@@ -41,6 +41,7 @@ jobs:
           conda create -y -n test_karabo python=3.9
           conda activate test_karabo
           conda install -c nvidia/label/cuda-11.7.0 -c /opt/conda/conda-bld -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
+          pytest --pyargs karabo.test
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
