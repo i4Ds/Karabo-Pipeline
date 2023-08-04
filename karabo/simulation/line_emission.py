@@ -594,9 +594,6 @@ def line_emission_pointing(
         z_obs=sky.sources[:, 13], channel_num=num_bins
     )
 
-    dirty_images = []
-    header: Optional[fits.header.Header] = None
-
     # Calculate the number of jobs
     n_jobs = num_bins
     print(f"Submitting {n_jobs} jobs to the cluster.")
