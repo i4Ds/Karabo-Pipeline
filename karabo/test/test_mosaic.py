@@ -104,11 +104,12 @@ def test_mosaic_run(
     size_w = 4.0 * u.deg
     size_h = 2.5 * u.deg
 
+    # Directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         workdir = tmpdir + "/Mosaic_test"
         mosaic_directories(workdir)
-        uncorrected_mosaic_fits_path = workdir + "/mosaic.fits"
-        uncorrected_area_fits_path = workdir + "mosaic_area.fits"
+        uncorrected_mosaic_fits_path = workdir + "/mosaic_uncorrected.fits"
+        uncorrected_area_fits_path = workdir + "/mosaic_uncorrected_area.fits"
 
         # Simulate dirty images
         outfile = workdir + "/unused_output/pointing"
