@@ -267,7 +267,7 @@ def convert_z_to_frequency(z: T) -> T:
     :return: Frequencies corresponding to input redshifts.
     """
 
-    return c.value / (0.21 * (1 + z))
+    return cast(T, c.value / (0.21 * (1 + z)))
 
 
 def convert_frequency_to_z(freq: T) -> T:
@@ -278,7 +278,7 @@ def convert_frequency_to_z(freq: T) -> T:
     :return: Redshifts corresponding to input frequencies.
     """
 
-    return (c.value / (0.21 * freq)) - 1
+    return cast(T, (c.value / (0.21 * freq)) - 1)
 
 
 def freq_channels(
