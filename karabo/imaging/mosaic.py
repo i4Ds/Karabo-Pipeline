@@ -76,9 +76,9 @@ def mosaic_header(
 
 def mosaic(
     output_directory_path: FilePathType,
-    image_directory: Optional[FilePathType] = "raw",
-    projected_directory: Optional[FilePathType] = "projected",
-):
+    image_directory: FilePathType = "raw",
+    projected_directory: FilePathType = "projected",
+) -> None:
     """
     Coadds the images saved in the "raw" folder by using the mean value. This function
     does not do any corrections.
