@@ -174,7 +174,7 @@ class SourceDetectionResult(KaraboResource):
     def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
         x_pos = self.detected_sources[:, 3]
         y_pos = self.detected_sources[:, 4]
-        result = np.vstack((np.array(x_pos), np.array(y_pos)))
+        result = np.vstack((np.array(x_pos), np.array(y_pos))).T
         return result
 
 

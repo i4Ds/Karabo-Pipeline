@@ -50,3 +50,4 @@ jobs:
         run: |
           conda activate base
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
+          

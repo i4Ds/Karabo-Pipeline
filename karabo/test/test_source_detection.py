@@ -4,7 +4,6 @@ import tempfile
 import numpy as np
 import pytest
 
-from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -44,7 +43,7 @@ def test_source_detection_plot(
     )
     assignments = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
         ground_truth=ground_truth.T,
-        detected=detection.get_pixel_position_of_sources().T,
+        detected=detection.get_pixel_position_of_sources(),
         max_dist=10,
         top_k=3,
     )
@@ -197,15 +196,6 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     assert np.all(
         assigment[:, 0] == np.flipud(assigment[:, 1])
     ), "Automatic assignment of ground truth and detected is not correct"
-
-
-def test_detection(tobject: TFiles):
-    image = Image(path=tobject.restored_fits)
-    detection = PyBDSFSourceDetectionResult.detect_sources_in_image(image)
-    with tempfile.TemporaryDirectory() as tmpdir:
-        detection.write_to_file(os.path.join(tmpdir, "result.zip"))
-    pixels = detection.get_pixel_position_of_sources()
-    print(pixels)
 
 
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
