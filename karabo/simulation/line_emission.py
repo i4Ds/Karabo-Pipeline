@@ -15,7 +15,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 # from dask.delayed import Delayed
-from dask import compute, delayed  # type: ignore[attr-defined]
+from dask import compute, delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
 
@@ -335,6 +335,7 @@ def karabo_reconstruction(
     outfile: FilePathType,
     mosaic_pntg_file: Optional[str] = None,
     sky: Optional[SkyModel] = None,
+    telescope: Optional[Telescope] = None,
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
@@ -360,6 +361,8 @@ def karabo_reconstruction(
                              correct format for creating a
                              mosaic with Montage is created and saved at this path.
     :param sky: Sky model. If None, a test sky (out of equally spaced sources) is used.
+    :param telescope: Telescope used. If None, the MEERKAT telescope will be used as a
+                      default.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param start_time: Observation start time.
@@ -391,7 +394,8 @@ def karabo_reconstruction(
     if sky is None:
         sky = SkyModel.sky_test()
 
-    telescope = Telescope.get_MEERKAT_Telescope()
+    if telescope is None:
+        telescope = Telescope.get_MEERKAT_Telescope()
 
     if verbose:
         print("Sky Simulation...")
@@ -462,6 +466,7 @@ def karabo_reconstruction(
 def run_one_channel_simulation(
     path: FilePathType,
     sky: SkyModel,
+    telescope: Telescope,
     z_min: np.float_,
     z_max: np.float_,
     freq_bin_start: float,
@@ -486,6 +491,8 @@ def run_one_channel_simulation(
     :param sky: Sky model which is used for simulating line emission. This sky model
                 needs to include a 13th axis (extra_column) with the observed redshift
                 of each source.
+    :param telescope: Telescope used. If None, the MEERKAT telescope will be used as a
+                      default.
     :param z_min: Smallest redshift in this bin.
     :param z_max: Largest redshift in this bin.
     :param freq_bin_start: Starting frequency in this bin
@@ -520,6 +527,7 @@ def run_one_channel_simulation(
     dirty_image, header = karabo_reconstruction(
         path,
         sky=sky_bin,
+        telescope=telescope,
         ra_deg=ra_deg,
         dec_deg=dec_deg,
         start_freq=freq_bin_middle,
@@ -543,6 +551,7 @@ def run_one_channel_simulation(
 def line_emission_pointing(
     outpath: DirPathType,
     sky: SkyModel,
+    telescope: Optional[Telescope] = None,
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     num_bins: int = 10,
@@ -566,6 +575,8 @@ def line_emission_pointing(
     :param sky: Sky model which is used for simulating line emission. This sky model
                 needs to include a 13th axis (extra_column) with the observed redshift
                 of each source.
+    :param telescope: Telescope used. If None, the MEERKAT telescope will be used as a
+                      default.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param num_bins: Number of redshift/frequency slices used to simulate line emission.
@@ -638,8 +649,9 @@ def line_emission_pointing(
                 "Extracting the corresponding frequency slice from the sky model..."
             )
         delayed_ = delayed(run_one_channel_simulation)(
-            path=outpath / (f"slice_{bin_idx}"),
+            path=outpath / f"slice_{bin_idx}",
             sky=sky,
+            telescope=telescope,
             z_min=redshift_channel[bin_idx],
             z_max=redshift_channel[bin_idx + 1],
             freq_bin_start=freq_channel[bin_idx],
