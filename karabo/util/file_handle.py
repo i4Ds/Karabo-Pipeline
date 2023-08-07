@@ -1,15 +1,22 @@
+import glob
 import os
+import re
 import shutil
 import uuid
 from typing import Optional
 
+from karabo.util.plotting_util import Font
+
 
 def _get_default_root_dir() -> str:
     karabo_folder = "karabo_folder"
-    if os.environ.get("SCRATCH") is not None:
-        return os.path.join(os.environ.get("SCRATCH"), karabo_folder)
+    scratch = os.environ.get("SCRATCH")
+    if scratch is not None:
+        root_parent = scratch
     else:
-        return os.path.join(os.getcwd(), karabo_folder)
+        root_parent = os.getcwd()
+    root_dir = os.path.join(root_parent, karabo_folder)
+    return os.path.abspath(root_dir)
 
 
 class FileHandler:
@@ -29,20 +36,87 @@ class FileHandler:
     def __init__(
         self,
         prefix: Optional[str] = None,
+        verbose: bool = True,
     ) -> None:
-        self.subdir = f"{FileHandler.fh_dir_identifier}_{str(uuid.uuid4())[:8]}"
-        if prefix is not None:
-            self.subdir = f"{prefix}_{self.subdir}"
-        os.makedirs(self.subdir, exist_ok=True)
+        """Creates `FileHandler` instance with the according sub-directory.
+
+        Args:
+            prefix: Prefix for easier identification of sub-directory.
+            verbose: Subdir creation and removal verbose?
+        """
+        self.verbose = verbose
+        subdir_name = str(uuid.uuid4())[:8]
+        if (
+            FileHandler.fh_dir_identifier is not None
+            and len(FileHandler.fh_dir_identifier) > 0
+        ):
+            subdir_name = f"{FileHandler.fh_dir_identifier}_{subdir_name}"
+        if prefix is not None and len(prefix) > 0:
+            subdir_name = f"{prefix}_{subdir_name}"
+        self.subdir = os.path.join(FileHandler.root, subdir_name)
+        if self.verbose:
+            print(
+                f"Creating {Font.BLUE}{Font.BOLD}{self.subdir}{Font.END} "
+                "directory for data object storage."
+            )
+        os.makedirs(self.subdir, exist_ok=False)
 
     def clean_up(self) -> None:
+        """Removes instance-bound `self.subdir`."""
         if os.path.exists(self.subdir):
-            shutil.rmtree(self.subdir)  # make dir-removal protected
+            if self.verbose:
+                print(f"Removing {self.subdir}")
+            shutil.rmtree(self.subdir)
+            if len(os.listdir(FileHandler.root)) == 0:
+                shutil.rmtree(FileHandler.root)
 
     @staticmethod
-    def clean_up_root(force: bool = False) -> None:
+    def clean_up_root(force: bool = False, verbose: bool = True) -> None:
+        """Removes the from `FileHandler` created directories.
+
+        Args:
+            force: Remove `FileHandler.root` entirely regardless of content?
+            verbose: Verbose removal?
+        """
         if os.path.exists(FileHandler.root):
-            shutil.rmtree(FileHandler.root)  # make dir-removal protected
+            if force:
+                if verbose:
+                    print(f"Force remove {FileHandler.root}")
+                shutil.rmtree(FileHandler.root)
+            elif (
+                FileHandler.fh_dir_identifier is None
+                or len(FileHandler.fh_dir_identifier) < 1
+            ):
+                print(
+                    "`clean_up_root` can't remove anything because "
+                    f"{FileHandler.fh_dir_identifier=}. Set `fh_dir_identifier` "
+                    f"correctly or use `force` to remove {FileHandler.root} regardless."
+                )
+            else:
+                if verbose:
+                    print(
+                        f"Remove {FileHandler.root} in case all subdirs match "
+                        f"{FileHandler.fh_dir_identifier=}"
+                    )
+                paths = glob.glob(os.path.join(FileHandler.root, "*"))
+                for path in paths:
+                    if (
+                        os.path.isdir(path)
+                        and re.match(
+                            FileHandler.fh_dir_identifier, os.path.split(path)[-1]
+                        )
+                        is not None
+                    ):
+                        shutil.rmtree(path=path)
+                if len(os.listdir(FileHandler.root)) > 0:
+                    if verbose:
+                        print(
+                            f"`clean_up_root` is not able safely remove "
+                            f"{FileHandler.root} because there are directories which "
+                            f"do not match {FileHandler.fh_dir_identifier=} or files."
+                        )
+                else:
+                    shutil.rmtree(FileHandler.root)
 
 
 class FileHandle:
