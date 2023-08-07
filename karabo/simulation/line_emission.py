@@ -15,7 +15,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 
 # from dask.delayed import Delayed
-from dask import compute, delayed
+from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.distributed import Client
 from numpy.typing import NDArray
 
