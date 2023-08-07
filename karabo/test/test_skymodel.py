@@ -86,6 +86,7 @@ def test_filter_flux_sky_model(sky_data_with_ids: NDArray[np.object_]):
     assert (
         sky.sources[:, 2].min() < flux_min or sky.sources[:, 2].max() > flux_max
     ), "Test data not correct"
+    assert len(sky.sources) > 0, "Test data not correct"
     filtered_sky = sky.filter_by_flux(0, 1)
     assert np.all((filtered_sky[:, 2] >= 0) & (filtered_sky[:, 2] <= 1))
 
