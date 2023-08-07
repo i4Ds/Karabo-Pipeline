@@ -40,10 +40,15 @@ class Image(KaraboResource):
         self._fname = os.path.split(self.path)[-1]
         self.data: NDArray[np.float64]
         self.header: fits.header.Header
-        self.data, self.header = fits.getdata(self.path, ext=0, header=True, **kwargs)
+        self.data, self.header = fits.getdata(
+            str(self.path),
+            ext=0,
+            header=True,
+            **kwargs,
+        )
 
     @staticmethod
-    def read_from_file(path: str) -> Image:
+    def read_from_file(path: FilePathType) -> Image:
         return Image(path=path)
 
     @property
@@ -58,7 +63,7 @@ class Image(KaraboResource):
 
     def write_to_file(
         self,
-        path: str,
+        path: FilePathType,
         overwrite: bool = False,
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
@@ -66,7 +71,7 @@ class Image(KaraboResource):
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
         fits.writeto(
-            filename=path,
+            filename=str(path),
             data=self.data,
             header=self.header,
             overwrite=overwrite,

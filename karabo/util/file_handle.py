@@ -6,8 +6,9 @@ import re
 import shutil
 import uuid
 from types import TracebackType
-from typing import Optional
+from typing import Optional, Union
 
+from karabo.util._types import DirPathType, FilePathType
 from karabo.util.plotting_util import Font
 
 
@@ -185,9 +186,10 @@ class FileHandler:
         self.clean_up()
 
 
-def check_ending(path: str, ending: str) -> None:
-    if not path.endswith(ending):
-        fname = path.split(os.path.sep)[-1]
+def check_ending(path: Union[str, FilePathType, DirPathType], ending: str) -> None:
+    path_ = str(path)
+    if not path_.endswith(ending):
+        fname = path_.split(os.path.sep)[-1]
         raise ValueError(
             f"Invalid file-ending, file {fname} must have {ending} extension!"
         )
