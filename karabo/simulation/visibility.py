@@ -3,22 +3,22 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import List, Optional
+from typing import List, Literal, Optional, overload
 
 import numpy as np
 import oskar
 from numpy.typing import NDArray
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.file_handle import FileHandle
+from karabo.util._types import DirPathType, FilePathType
+from karabo.util.file_handle import FileHandler
 
 
 class Visibility(KaraboResource):
     def __init__(
         self,
-        path: Optional[str] = None,
-        ms_file_path: Optional[str] = None,
-        file_name: str = "visibility.vis",
+        vis_path: Optional[FilePathType] = None,
+        ms_file_path: Optional[DirPathType] = None,
     ) -> None:
         """
         Initializes a Visibility object.
@@ -37,31 +37,49 @@ class Visibility(KaraboResource):
         -------
         None
         """
-        self.file = FileHandle(path=path, file_name=file_name, suffix=".vis")
-        self.ms_file = FileHandle(path=ms_file_path, file_name=None, suffix=".MS")
+        self._fh_prefix = "visibility"
+        self._fh_verbose = False
+        if vis_path is None:
+            fh = FileHandler.get_file_handler(
+                obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            )
+            vis_path = os.path.join(fh.subdir, "visibility.vis")
+        self.vis_path = vis_path
+        if ms_file_path is None:
+            fh = FileHandler.get_file_handler(
+                obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            )
+            ms_file_path = os.path.join(fh.subdir, "measurements.MS")
+        self.ms_file_path = ms_file_path
 
-    def write_to_file(self, path: str) -> None:
-        # Create the directory if it does not exist
-        if os.path.isfile(path):
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-        else:
-            os.makedirs(path, exist_ok=True)
-        if os.path.isfile(self.file.path):
-            shutil.copy(self.file.path, path)
-        else:
-            shutil.copytree(self.file.path, path, dirs_exist_ok=True)
+    def write_to_file(self, path: FilePathType) -> None:
+        """Does just copying .vis file to `path`.
+
+        Args:
+            path: Path to where the .vis file should get copied.
+        """
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        shutil.copy(self.vis_path, path)
 
     @staticmethod
-    def read_from_file(path: str) -> Visibility:
-        if Visibility.is_measurement_set(path):
+    def read_from_file(path: DirPathType) -> Visibility:
+        if Visibility.is_measurement_set(path=path):
             vis = Visibility(ms_file_path=path)
+        elif Visibility.is_vis_file(path=path):
+            vis = Visibility(vis_path=path)
         else:
-            vis = Visibility(path=path)
+            raise ValueError(f"File must be a .ms or .vis file, but is {path=} instead")
         return vis
 
     @staticmethod
-    def is_measurement_set(path: str) -> bool:
-        return path.endswith(".ms") or path.endswith(".MS")
+    def is_measurement_set(path: DirPathType) -> bool:
+        path_ = str(path)
+        return path_.endswith(".ms") or path_.endswith(".MS")
+
+    @staticmethod
+    def is_vis_file(path: FilePathType) -> bool:
+        path_ = str(path)
+        return path_.endswith(".vis") or path_.endswith(".VIS")
 
     @staticmethod
     def combine_spectral_foreground_vis(
@@ -157,24 +175,44 @@ class Visibility(KaraboResource):
             fcc_array,
         )
 
+    @overload
     @staticmethod
     def combine_vis(
-        visiblity_files: List[str],
-        combined_ms_filepath: Optional[str] = None,
+        visiblity_files: List[FilePathType],
+        combined_ms_filepath: Optional[DirPathType],
+        group_by: str,
+        return_path: Literal[False] = False,
+    ) -> None:
+        ...
+
+    @overload
+    @staticmethod
+    def combine_vis(
+        visiblity_files: List[FilePathType],
+        combined_ms_filepath: Optional[DirPathType],
+        group_by: str,
+        return_path: Literal[True],
+    ) -> DirPathType:
+        ...
+
+    @staticmethod
+    def combine_vis(
+        visiblity_files: List[FilePathType],
+        combined_ms_filepath: Optional[DirPathType] = None,
         group_by: str = "day",
         return_path: bool = False,
-    ) -> Optional[str]:
+    ) -> Optional[DirPathType]:
         print(f"Combining {len(visiblity_files)} visibilities...")
         if combined_ms_filepath is None:
-            fh = FileHandle(suffix=".MS")
-            combined_ms_filepath = fh.path
+            fh = FileHandler(prefix="combine_vis", verbose=True)
+            combined_ms_filepath = os.path.join(fh.subdir, "combined.MS")
 
         # Initialize lists to store data
         out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
 
         # Loop over visibility files and read data
         for vis_file in visiblity_files:
-            (header, handle) = oskar.VisHeader.read(vis_file)
+            (header, handle) = oskar.VisHeader.read(str(vis_file))
             block = oskar.VisBlock.create_from_header(header)
             for k in range(header.num_blocks):
                 block.read(header, handle, k)
@@ -188,7 +226,7 @@ class Visibility(KaraboResource):
 
         # Combine visibility data
         ms = oskar.MeasurementSet.create(
-            combined_ms_filepath,
+            str(combined_ms_filepath),
             block.num_stations,
             block.num_channels,
             block.num_pols,
@@ -266,16 +304,34 @@ class Visibility(KaraboResource):
         else:
             return None
 
+    @overload
     @staticmethod
     def combine_vis_sky_chunks(
-        visibility_files: List[str],
-        combined_ms_filepath: Optional[str] = None,
+        visibility_files: List[FilePathType],
+        combined_ms_filepath: Optional[DirPathType],
+        return_path: Literal[False] = False,
+    ) -> None:
+        ...
+
+    @overload
+    @staticmethod
+    def combine_vis_sky_chunks(
+        visibility_files: List[FilePathType],
+        combined_ms_filepath: Optional[DirPathType],
+        return_path: Literal[True],
+    ) -> DirPathType:
+        ...
+
+    @staticmethod
+    def combine_vis_sky_chunks(
+        visibility_files: List[FilePathType],
+        combined_ms_filepath: Optional[DirPathType] = None,
         return_path: bool = False,
-    ) -> Optional[str]:
+    ) -> Optional[DirPathType]:
         print(f"Combining {len(visibility_files)} visibilities...")
         if combined_ms_filepath is None:
-            fh = FileHandle(suffix=".MS")
-            combined_ms_filepath = fh.path
+            fh = FileHandler(prefix="combine_vis_sky_chunks", verbose=True)
+            combined_ms_filepath = os.path.join(fh.subdir, "combined.MS")
 
         # Initialize lists to store data
         out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
@@ -306,7 +362,7 @@ class Visibility(KaraboResource):
         print(f"Num channels: {block.num_channels}")
         # Create a new measurement set
         ms = oskar.MeasurementSet.create(
-            combined_ms_filepath,
+            str(combined_ms_filepath),
             block.num_stations,
             block.num_channels,
             block.num_pols,

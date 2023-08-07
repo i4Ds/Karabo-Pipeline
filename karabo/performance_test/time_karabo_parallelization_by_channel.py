@@ -50,7 +50,6 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     print("Running simulation...")
     interferometer_sim = InterferometerSimulation(
         channel_bandwidth_hz=1e6,
-        folder_for_multiple_observation=dir_intermediate_files,
         use_gpus=False,
         use_dask=True,
         split_observation_by_channels=False,
@@ -70,7 +69,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
         observation_settings,
     )
 
-    print(f"MS Vis is {vis.ms_file.path}")
+    print(f"MS Vis is {vis.ms_file_path.path}")
 
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)

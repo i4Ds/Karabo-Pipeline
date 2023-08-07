@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,7 +15,8 @@ from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
 from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util.file_handle import FileHandle, check_ending
+from karabo.util._types import FilePathType
+from karabo.util.file_handle import check_ending
 from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,
@@ -28,21 +29,15 @@ matplotlib.use(previous_backend)
 class Image(KaraboResource):
     def __init__(
         self,
-        path: Union[str, FileHandle],
+        path: FilePathType,
         **kwargs: Any,
     ) -> None:
         """
         Proxy object class for images.
         Dirty, cleaned or any other type of image in a fits format.
         """
-        if isinstance(
-            path, FileHandle
-        ):  # save FileHandle if used to not lose reference and call it's __del__
-            path_ = path.path
-        else:
-            path_ = path
-        self.path = path_
-        self.__name = self.path.split(os.path.sep)[-1]
+        self.path = path
+        self._fname = os.path.split(self.path)[-1]
         self.data: NDArray[np.float64]
         self.header: fits.header.Header
         self.data, self.header = fits.getdata(self.path, ext=0, header=True, **kwargs)
@@ -317,7 +312,7 @@ class Image(KaraboResource):
 
         plt.plot(theta, profile)
         plt.gca().set_title(
-            f"Power spectrum of {self.__name if self.__name is not None else ''} image"
+            f"Power spectrum of {self._fname if self._fname is not None else ''} image"
         )
         plt.gca().set_xlabel("Angular scale [degrees]")
         plt.gca().set_ylabel("Brightness temperature [K]")
@@ -328,7 +323,7 @@ class Image(KaraboResource):
 
         if save_png:
             power_spectrum_name = (
-                self.__name if self.__name is not None else uuid.uuid4()
+                self._fname if self._fname is not None else uuid.uuid4()
             )
             plt.savefig(f"./power_spectrum_{power_spectrum_name}")
         plt.show(block=False)

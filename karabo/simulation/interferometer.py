@@ -441,7 +441,7 @@ class InterferometerSimulation:
         visibilities = []
         for i in range(len(visibilities_path)):
             visibilities.append(
-                Visibility(path=visibilities_path[i], ms_file_path=ms_file_paths[i])
+                Visibility(vis_path=visibilities_path[i], ms_file_path=ms_file_paths[i])
             )
         return visibilities
 

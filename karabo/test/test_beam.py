@@ -113,7 +113,7 @@ def test_compare_karabo_oskar():
             number_of_channels=1,
         )
         visibility = simulation.run_simulation(telescope, sky, observation)
-        print(visibility.ms_file.path)
+        print(visibility.ms_file_path.path)
 
         # RASCIL IMAGING
         uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
