@@ -27,6 +27,8 @@ jobs:
           conda activate test_karabo
           mamba env update --file environment.yaml
           pip install -r requirements.txt
+          pip install ipykernel
+          python -m ipykernel install --user --name python3
       - name: Test Dev-Tools
         shell: bash -l {0}
         run: |
@@ -38,19 +40,9 @@ jobs:
       - name: Test Code
         shell: bash -l {0}
         run: |
-          if [[ ${{ github.event_name }} == pull_request ]]; then
-            export RUN_SLOW_TESTS=false
-          elif [[ ${{ github.event_name }} == schedule ]]; then
-            export RUN_SLOW_TESTS=false
-          elif [[ ${{ github.event_name }} == workflow_dispatch ]]; then
-            export RUN_SLOW_TESTS=false
-          elif [[ ${{ github.event_name }} == push ]]; then
-            export RUN_SLOW_TESTS=true
-          else
-            export RUN_SLOW_TESTS=false
-          fi
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
+          export RUN_GPU_TESTS=false
           pip install . --no-deps
           pytest --cov=./ --cov-report=xml
       - name: Upload coverage reports to Codecov
@@ -60,4 +52,5 @@ jobs:
           directory: ./coverage/reports/
           env_vars: OS,PYTHON
           files: ./coverage1.xml,./coverage2.xml,!./cache
+          fail_ci_if_error: false
           name: codecov-karabo
