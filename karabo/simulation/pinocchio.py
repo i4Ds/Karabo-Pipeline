@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from karabo.error import KaraboPinocchioError
-from karabo.util._types import IntFloat
+from karabo.util._types import DirPathType, IntFloat
 from karabo.util.file_handle import FileHandler
 
 
@@ -63,7 +63,7 @@ class Pinocchio:
 
     RAD_TO_DEG = 180 / np.pi
 
-    def __init__(self, working_dir: Optional[str] = None) -> None:
+    def __init__(self, working_dir: Optional[DirPathType] = None) -> None:
         """
         Creates temp directory `wd` for the pinocchio run.
         Load default file paths for config files, load default config files
@@ -362,7 +362,7 @@ class Pinocchio:
         cmd.append(self.runConfigPath)
 
         self.out = subprocess.run(
-            cmd, cwd=self.wd.dir, capture_output=not printLiveOutput, text=True
+            cmd, cwd=self.wd, capture_output=not printLiveOutput, text=True
         )
 
         # mark output files
@@ -376,14 +376,14 @@ class Pinocchio:
             outPrefix = f"{Pinocchio.PIN_EXEC_NAME}.{float(i):.04f}.{runName}"
 
             self.outCatalogPath[i] = os.path.join(
-                self.wd.dir, f"{outPrefix}.catalog.{Pinocchio.PIN_OUT_FILEENDING}"
+                self.wd, f"{outPrefix}.catalog.{Pinocchio.PIN_OUT_FILEENDING}"
             )
             self.outMFPath[i] = os.path.join(
-                self.wd.dir, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}"
+                self.wd, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}"
             )
 
         self.outLightConePath = os.path.join(
-            self.wd.dir,
+            self.wd,
             f"{Pinocchio.PIN_EXEC_NAME}.{runName}.plc.{Pinocchio.PIN_OUT_FILEENDING}",
         )
 
@@ -410,7 +410,7 @@ class Pinocchio:
             f"{gbPerNode}",
             f"{tasksPerNode}",
         ]
-        subprocess.run(cmd, cwd=self.wd.dir, text=True)
+        subprocess.run(cmd, cwd=self.wd, text=True)
 
     def getPinocchioStdOutput(self) -> Optional[str]:
         """
@@ -455,7 +455,7 @@ class Pinocchio:
         :rtype: str
         """
 
-        fp: str = os.path.join(self.wd.dir, Pinocchio.PIN_REDSHIFT_FILE)
+        fp: str = os.path.join(self.wd, Pinocchio.PIN_REDSHIFT_FILE)
 
         with open(os.path.join(fp), "w") as temp_file:
             temp_file.write(self.redShiftRequest.header)
@@ -526,7 +526,7 @@ class Pinocchio:
             # add empty line between sections
             lines.append("")
 
-        fp: str = os.path.join(self.wd.dir, Pinocchio.PIN_PARAM_FILE)
+        fp: str = os.path.join(self.wd, Pinocchio.PIN_PARAM_FILE)
 
         with open(fp, "w") as temp_file:
             temp_file.write("\n".join(lines))
@@ -547,11 +547,11 @@ class Pinocchio:
         if not os.path.isdir(outDirPath):
             os.mkdir(outDirPath)
 
-        if outDirPath != self.wd.dir:
-            shutil.copytree(self.wd.dir, outDirPath, dirs_exist_ok=True)
+        if outDirPath != self.wd:
+            shutil.copytree(self.wd, outDirPath, dirs_exist_ok=True)
         else:
             print(
-                f"provided {outDirPath=} is already the working_dir {self.wd.dir=}.",
+                f"provided {outDirPath=} is already the working_dir {self.wd=}.",
                 file=sys.stderr,
             )
 

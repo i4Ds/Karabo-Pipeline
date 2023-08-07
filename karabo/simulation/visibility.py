@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import List, Literal, Optional, overload
+from typing import List, Optional
 
 import numpy as np
 import oskar
@@ -175,26 +175,6 @@ class Visibility(KaraboResource):
             fcc_array,
         )
 
-    @overload
-    @staticmethod
-    def combine_vis(
-        visiblity_files: List[FilePathType],
-        combined_ms_filepath: Optional[DirPathType],
-        group_by: str,
-        return_path: Literal[False] = False,
-    ) -> None:
-        ...
-
-    @overload
-    @staticmethod
-    def combine_vis(
-        visiblity_files: List[FilePathType],
-        combined_ms_filepath: Optional[DirPathType],
-        group_by: str,
-        return_path: Literal[True],
-    ) -> DirPathType:
-        ...
-
     @staticmethod
     def combine_vis(
         visiblity_files: List[FilePathType],
@@ -303,24 +283,6 @@ class Visibility(KaraboResource):
             return combined_ms_filepath
         else:
             return None
-
-    @overload
-    @staticmethod
-    def combine_vis_sky_chunks(
-        visibility_files: List[FilePathType],
-        combined_ms_filepath: Optional[DirPathType],
-        return_path: Literal[False] = False,
-    ) -> None:
-        ...
-
-    @overload
-    @staticmethod
-    def combine_vis_sky_chunks(
-        visibility_files: List[FilePathType],
-        combined_ms_filepath: Optional[DirPathType],
-        return_path: Literal[True],
-    ) -> DirPathType:
-        ...
 
     @staticmethod
     def combine_vis_sky_chunks(

@@ -911,7 +911,7 @@ class BeamPattern:
             raise KaraboError("`telescope` None is but must bet set.")
         if telescope.path is None:
             raise KaraboError("`telescope.path` is None but must be set.")
-        telescope_type = telescope.path.split("/")[-1].split(".tm")[
+        telescope_type = os.path.split(telescope.path)[-1].split(".tm")[
             0
         ]  # works as long as `read_OSKAR_tm_file` sets telescope.path
         success = True

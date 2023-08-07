@@ -25,7 +25,12 @@ from karabo.simulation.observation import (
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat, OskarSettingsTreeType, PrecisionType
+from karabo.util._types import (
+    DirPathType,
+    IntFloat,
+    OskarSettingsTreeType,
+    PrecisionType,
+)
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handle import FileHandler
 from karabo.util.gpu_util import is_cuda_available
@@ -654,7 +659,7 @@ class InterferometerSimulation:
 
     def __get_OSKAR_settings_tree(
         self,
-        input_telpath: str,
+        input_telpath: DirPathType,
         ms_file_path: str,
         vis_path: str,
     ) -> OskarSettingsTreeType:
@@ -686,7 +691,7 @@ class InterferometerSimulation:
                 "noise/rms/end": str(self.noise_rms_end),
             },
             "telescope": {
-                "input_directory": input_telpath,
+                "input_directory": str(input_telpath),
                 "normalise_beams_at_phase_centre": True,
                 "allow_station_beam_duplication": True,
                 "pol_mode": "Full",
