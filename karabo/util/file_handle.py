@@ -27,7 +27,11 @@ class FileHandler:
 
     Provides directory-management functionality in case no dir-path was specified.
     `FileHandler.root` is a static root-directory where each subdir is located.
-    Subdirs are `prefix`_{uuid4[:8]} in case `prefix` is defined, otherwise uuid4[:8].
+    Subdirs are usually {prefix}_{fh_dir_identifier}_{uuid4[:8]} in case `prefix`
+     is defined, otherwise just {fh_dir_identifier}_{uuid4[:8]}.
+    This class provides an additional security layer for the removal of subdirs
+     in case a root is specified where other files and directories live.
+    FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using with.
 
     Args:
         prefix: Prefix of dir-path where dir-path is `prefix`_{uuid4[:8]}
