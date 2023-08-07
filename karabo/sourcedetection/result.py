@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import shutil
+import tempfile
 from typing import Any, Optional, Tuple, Type, TypeVar
 from warnings import warn
 
@@ -13,7 +15,7 @@ from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import KaraboResource
 from karabo.util.data_util import read_CSV_to_ndarray
-from karabo.util.file_handle import FileHandle
+from karabo.util.file_handle import FileHandler
 from karabo.warning import KaraboWarning
 
 T = TypeVar("T")
@@ -100,10 +102,10 @@ class SourceDetectionResult(KaraboResource):
         """
         if path.endswith(".zip"):
             path = path[0 : len(path) - 4]
-        tempdir = FileHandle()
-        self.source_image.write_to_file(tempdir.path + "/source_image.fits")
-        self.__save_sources_to_csv(tempdir.path + "/detected_sources.csv")
-        shutil.make_archive(path, "zip", tempdir.path)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.source_image.write_to_file(os.path.join(tmpdir, "source_image.fits"))
+            self.__save_sources_to_csv(os.path.join(tmpdir, "detected_sources.csv"))
+            shutil.make_archive(path, "zip", tmpdir)
 
     @staticmethod
     def guess_beam_parameters(
@@ -136,12 +138,14 @@ class SourceDetectionResult(KaraboResource):
 
     @staticmethod
     def read_from_file(path: str) -> SourceDetectionResult:
-        tempdir = FileHandle()
-        shutil.unpack_archive(path, tempdir.path)
-        source_image = Image.read_from_file(tempdir.path + "/source_image.fits")
-        source_catalouge = np.loadtxt(
-            tempdir.path + "/detected_sources.csv", delimiter=","
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            shutil.unpack_archive(path, tmpdir)
+            source_image = Image.read_from_file(
+                os.path.join(tmpdir, "source_image.fits")
+            )
+            source_catalouge = np.loadtxt(
+                os.path.join(tmpdir, "detected_sources.csv"), delimiter=","
+            )
         return SourceDetectionResult(source_catalouge, source_image)
 
     def __save_sources_to_csv(self, filepath: str) -> None:
@@ -189,11 +193,16 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         functions on PyBDSF results
         :param bdsf_detection: PyBDSF result image
         """
-        sources_file = FileHandle(file_name="sources", suffix=".csv")
-        bdsf_detection.write_catalog(
-            outfile=sources_file.path, catalog_type="gaul", format="csv", clobber=True
+        self._fh_prefix = "pybdsf_sdr"
+        self._fh_verbose = True
+        fh = FileHandler.get_file_handler(
+            obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
         )
-        bdsf_detected_sources = read_CSV_to_ndarray(sources_file.path)
+        sources_file = os.path.join(fh.subdir, "sources.csv")
+        bdsf_detection.write_catalog(
+            outfile=sources_file, catalog_type="gaul", format="csv", clobber=True
+        )
+        bdsf_detected_sources = read_CSV_to_ndarray(sources_file)
 
         detected_sources = type(self).__transform_bdsf_to_reduced_result_array(
             bdsf_detected_sources=bdsf_detected_sources,
@@ -224,15 +233,18 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         return sources
 
     def __get_result_image(self, image_type: str, **kwargs: Any) -> Image:
-        file_handle = FileHandle(file_name="result", suffix=".fits")
+        fh = FileHandler.get_file_handler(
+            obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        )
+        outfile = os.path.join(fh.subdir, "result.fits")
         self.bdsf_result.export_image(
-            outfile=file_handle.path,
+            outfile=outfile,
             img_format="fits",
             img_type=image_type,
             clobber=True,
             **kwargs,
         )
-        image = Image(path=file_handle.path)
+        image = Image(path=outfile)
         return image
 
     def get_RMS_map_image(self) -> Image:
