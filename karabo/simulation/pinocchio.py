@@ -10,7 +10,7 @@ import numpy as np
 
 from karabo.error import KaraboPinocchioError
 from karabo.util._types import IntFloat
-from karabo.util.file_handle import FileHandle
+from karabo.util.file_handle import FileHandler
 
 
 @dataclass
@@ -73,8 +73,12 @@ class Pinocchio:
         """
         if working_dir is not None:
             working_dir = os.path.abspath(working_dir)
-        self.wd = FileHandle(dir=working_dir)
-
+            self.wd = working_dir
+        else:
+            fh = FileHandler.get_file_handler(
+                obj=self, prefix="pinocchio", verbose=True
+            )
+            self.wd = fh.subdir
         # get default input files
         inputFilesPath = os.environ["CONDA_PREFIX"] + "/etc/"
         self.paramsInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_PARAMS_FILE

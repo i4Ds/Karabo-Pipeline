@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shutil
 from math import comb
 from typing import List, Optional
 
@@ -26,9 +27,9 @@ from karabo.simulation.telescope_versions import (
     SMAVersions,
     VLAVersions,
 )
-from karabo.util._types import NPFloatLike
+from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
-from karabo.util.file_handle import FileHandle
+from karabo.util.file_handle import FileHandler
 from karabo.util.math_util import long_lat_to_cartesian
 
 
@@ -70,8 +71,8 @@ class Telescope(KaraboResource):
         altitude : float, optional
             Altitude (in meters) at the center of the telescope, default is 0.
         """
-        self.temp_dir: Optional[FileHandle] = None
-        self.path: Optional[str] = None
+        self._fh = FileHandler(prefix="telescope", verbose=False)
+        self.path: Optional[DirPathType] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
         self.centre_altitude = altitude
@@ -196,27 +197,31 @@ class Telescope(KaraboResource):
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-        self.temp_dir = FileHandle(create_additional_folder_in_dir=True)
-        self.write_to_file(self.temp_dir.dir)
+
+        self.write_to_file(self._fh.subdir)
         tel = OskarTelescope()
-        tel.load(self.temp_dir.dir)
-        self.path = self.temp_dir.dir
+        tel.load(self._fh.subdir)
+        self.path = self._fh.subdir
         return tel
 
-    def write_to_file(self, dir: str) -> None:
+    def write_to_file(self, dir: DirPathType) -> None:
         """
         Create .tm telescope configuration at the specified path
         :param dir: directory in which the configuration will be saved in.
         """
-        self.__write_position_txt(f"{dir}/position.txt")
+        self.__write_position_txt(os.path.join(dir, "position.txt"))
         self.__write_layout_txt(
-            f"{dir}/layout.txt", [station.position for station in self.stations]
+            os.path.join(dir, "layout.txt"),
+            [station.position for station in self.stations],
         )
         i = 0
         for station in self.stations:
-            station_path = f"{dir}/station{'{:03d}'.format(i)}"
+            station_path = f"{dir}{os.path.sep}station{'{:03d}'.format(i)}"
             os.mkdir(station_path)
-            self.__write_layout_txt(f"{station_path}/layout.txt", station.antennas)
+            self.__write_layout_txt(
+                os.path.join(station_path, "layout.txt"),
+                station.antennas,
+            )
             i += 1
 
     def __write_position_txt(self, position_file_path: str) -> None:
@@ -250,102 +255,119 @@ class Telescope(KaraboResource):
 
     @classmethod
     def get_MEERKAT_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/meerkat.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "meerkat.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_ACA_Telescope(cls, version: ACAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/aca.{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"aca.{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_ALMA_Telescope(cls, version: ALMAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/alma.{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"alma.{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_ASKAP_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/askap.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "askap.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_ATCA_Telescope(cls, version: ATCAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/atca.{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"atca.{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_CARMA_Telescope(cls, version: CARMAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/carma.{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"carma.{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_LOFAR_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/lofar.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "lofar.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_MKATPLUS_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/mkatplus.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "mkatplus.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_NG_VLA_Telescope(cls, version: NGVLAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/ngvla-{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"ngvla-{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_PDBI_Telescope(cls, version: PDBIVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/pdbi-{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"pdbi-{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_SKA1_LOW_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/ska1low.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "ska1low.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_SKA1_MID_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/ska1mid.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "ska1mid.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_SMA_Telescope(cls, version: SMAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/sma.{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"sma.{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_VLA_Telescope(cls, version: VLAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/vla.{version.value}.tm"
+        path = os.path.join(
+            get_module_absolute_path(), "data", f"vla.{version.value}.tm"
+        )
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_VLBA_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/vlba.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "vlba.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_WSRT_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/WSRT.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "WSRT.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
     def get_OSKAR_Example_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/telescope.tm"
+        path = os.path.join(get_module_absolute_path(), "data", "telescope.tm")
         return cls.read_OSKAR_tm_file(path)
 
     @classmethod
-    def read_OSKAR_tm_file(cls, path: str) -> Telescope:
+    def read_OSKAR_tm_file(cls, path: DirPathType) -> Telescope:
+        path_ = str(path)
         abs_station_dir_paths = []
         center_position_file = None
         station_layout_file = None
-        for file_or_dir in os.listdir(path):
+        for file_or_dir in os.listdir(path_):
             if file_or_dir.startswith("position"):
-                center_position_file = os.path.abspath(os.path.join(path, file_or_dir))
+                center_position_file = os.path.abspath(os.path.join(path_, file_or_dir))
             if file_or_dir.startswith("layout"):
-                station_layout_file = os.path.abspath(os.path.join(path, file_or_dir))
+                station_layout_file = os.path.abspath(os.path.join(path_, file_or_dir))
             if file_or_dir.startswith("station"):
                 abs_station_dir_paths.append(
-                    os.path.abspath(os.path.join(path, file_or_dir))
+                    os.path.abspath(os.path.join(path_, file_or_dir))
                 )
 
         if center_position_file is None:
@@ -457,7 +479,7 @@ def create_baseline_cut_telelescope(
 ) -> str:
     if tel.path is None:
         raise KaraboError("`tel.path` None is not allowed.")
-    stations = np.loadtxt(tel.path + "/layout.txt")
+    stations = np.loadtxt(os.path.join(tel.path, "layout.txt"))
     station_x = stations[:, 0]
     station_y = stations[:, 1]
     nb = comb(stations.shape[0], 2)
@@ -475,24 +497,26 @@ def create_baseline_cut_telelescope(
     cut_baseline_x = baseline_x[cut_idx]
     cut_baseline_y = baseline_y[cut_idx]
     cut_station_list = np.unique(np.hstack((cut_baseline_x, cut_baseline_y)))
-    output_path = tel.path.split("data/")[0] + "data/" + "tel_baseline_cut.tm"
-    os.system("rm -rf " + output_path)
-    os.system("mkdir " + output_path)
+    output_path_prefix = str(tel.path).split(f"data{os.path.sep}")[0]
+    output_path = os.path.join(output_path_prefix, "data", "tel_baseline_cut.tm")
+    shutil.rmtree(output_path)
+    os.mkdir(output_path)
     count = 0
     for ns in cut_station_list:
-        os.system("cp -r " + tel.path + "/station0" + str(int(ns)) + " " + output_path)
+        source_path = os.path.join(str(tel.path), f"station0{str(int(ns))}")
+        os.system(f"cp -r {source_path} {output_path}")
         os.system(
             "mv "
             + output_path
-            + "/station0"
+            + f"{os.path.sep}station0"
             + str(int(ns))
             + " "
             + output_path
-            + "/station0"
+            + f"{os.path.sep}station0"
             + "%02d" % (int(count))
         )
         count = count + 1
     cut_stations = stations[cut_station_list.astype(int)]
-    os.system("cp -r " + tel.path + "/position.txt " + output_path)
-    np.savetxt(output_path + "/layout.txt", cut_stations)
+    os.system("cp -r " + str(tel.path) + f"{os.path.sep}position.txt " + output_path)
+    np.savetxt(os.path.join(output_path, "layout.txt"), cut_stations)
     return output_path

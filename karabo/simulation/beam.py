@@ -1,4 +1,6 @@
+import os
 import subprocess
+import tempfile
 from typing import List, Literal, Optional, Tuple, Union, cast
 
 import eidos
@@ -19,7 +21,6 @@ from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
 from karabo.util._types import IntFloat, NPIntFloat
 from karabo.util.data_util import get_module_path_of_module
-from karabo.util.file_handle import FileHandle
 
 ElementFitPolType: TypeAlias = Literal[
     "x",
@@ -124,20 +125,16 @@ class BeamPattern:
             f"output_directory={self.telescope.path} \n"
         )
 
-        # test = os.listdir(telescope.path)
-        # for item in test:
-        #    if item.endswith(".bin"):
-        #        os.remove(os.path.join(telescope.path, item))
-
-        settings_file = FileHandle(file_name="settings.txt")
-        file = open(settings_file.path, "wt")
-        file.write(content)
-        file.flush()
-
-        fit_data_process = subprocess.Popen(
-            ["oskar_fit_element_data", f"{settings_file.path}"]
-        )
-        fit_data_process.communicate()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            settings_file = os.path.join(tmpdir, "settings.txt")
+            file = open(settings_file, "wt")
+            file.write(content)
+            file.flush()
+            file.close()
+            fit_data_process = subprocess.Popen(
+                ["oskar_fit_element_data", f"{settings_file}"]
+            )
+            fit_data_process.communicate()
 
     def make_cst_from_arr(
         self,
