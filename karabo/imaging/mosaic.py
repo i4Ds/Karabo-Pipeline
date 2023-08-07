@@ -5,10 +5,10 @@ from typing import Optional
 
 from MontagePy.main import mAdd, mHdr, mImgtbl, mProjExec
 
-from karabo.util._types import FilePathType
+from karabo.util._types import DirPathType
 
 
-def mosaic_directories(output_directory_path: FilePathType) -> None:
+def mosaic_directories(output_directory_path: DirPathType) -> None:
     """
     Creating a directory structure which can be used for coadding several fits files
     with MontagePy.
@@ -35,7 +35,7 @@ def mosaic_directories(output_directory_path: FilePathType) -> None:
 
 
 def mosaic_header(
-    output_directory_path: FilePathType,
+    output_directory_path: DirPathType,
     location: str,
     width: float,
     height: Optional[float] = None,
@@ -82,9 +82,9 @@ def mosaic_header(
 
 
 def mosaic(
-    output_directory_path: FilePathType,
-    image_directory: FilePathType = "raw",
-    projected_directory: FilePathType = "projected",
+    output_directory_path: DirPathType,
+    image_directory: DirPathType = "raw",
+    projected_directory: DirPathType = "projected",
 ) -> None:
     """
     Coadds the images saved in the "raw" folder by using the mean value. This function
