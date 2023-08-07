@@ -3,7 +3,6 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from MontagePy.archive import *  # noqa
 from MontagePy.main import mAdd, mHdr, mImgtbl, mProjExec
 
 from karabo.util._types import FilePathType
@@ -16,6 +15,12 @@ def mosaic_directories(output_directory_path: FilePathType) -> None:
 
     :param output_directory_path: The new folder (path) which is created and in which
                                   all subfolders used for the mosaic are created.
+                                  A graphical representation of the directory structure
+                                  created:
+                                  output_directory_path
+                                  |-projected
+                                  |-raw
+                                  |-unused_output
     """
     output_directory_path = Path(output_directory_path)
 
@@ -48,7 +53,9 @@ def mosaic_header(
     :param resolution: Image pixel resolution (in arcsec).
     :param sin_projection: Set to true if you want the output mosaic to be in SIN
                            projection. The output fits files from a karabo simulation of
-                           a dirty image are in SIN projection.
+                           a dirty image are in SIN projection. So if you want your that
+                           your mosaic is in the same format as the outputs from karabo
+                           set sin_projection to True.
     """
     output_directory_path = Path(output_directory_path)
 

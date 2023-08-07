@@ -17,9 +17,8 @@ from karabo.simulation.sky_model import SkyModel
 
 
 # DownloadObject instances used to download different golden files:
-# - FITS file before beam correction
-# - H5 file with channels stored separately, before beam correction
-# - FITS file after beam correction
+# - FITS file of the uncorrected (for primary beam) mosaic
+# - FITS file of areas covered by the patches which form the uncorrected mosaic.
 @pytest.fixture
 def uncorrected_mosaic_fits_filename() -> str:
     return "test_mosaic_uncorrected.fits"
@@ -95,14 +94,12 @@ def test_mosaic_run(
     offset = FWHM_real * fac
     center1 = coords.SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame="icrs")
     center2 = coords.SkyCoord(ra=ra * u.deg + offset, dec=dec * u.deg, frame="icrs")
-    pointings = [
-        center1,
-    ] + [center2]
+    pointings = [center1, center2]
 
     # Settings for mosaic
-    location = "20.84, -30.0"
-    size_w = 4.0 * u.deg
-    size_h = 2.5 * u.deg
+    location = "20.84, -30.0"  # Center of the mosaic
+    size_w = 4.0 * u.deg  # Width of the mosaic
+    size_h = 2.5 * u.deg  # Height of the mosaic
 
     # Directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
