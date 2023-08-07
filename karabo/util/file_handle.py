@@ -6,7 +6,7 @@ import re
 import shutil
 import uuid
 from types import TracebackType
-from typing import Any, Optional
+from typing import Optional
 
 from karabo.util.plotting_util import Font
 
@@ -27,6 +27,7 @@ class FileHandler:
 
     Provides directory-management functionality in case no dir-path was specified.
     `FileHandler.root` is a static root-directory where each subdir is located.
+    Set `FileHandler.root` to change the directory where files and dirs will be saved.
     Subdirs are usually {prefix}_{fh_dir_identifier}_{uuid4[:8]} in case `prefix`
      is defined, otherwise just {fh_dir_identifier}_{uuid4[:8]}.
     This class provides an additional security layer for the removal of subdirs
@@ -78,6 +79,28 @@ class FileHandler:
                 shutil.rmtree(FileHandler.root)
 
     @staticmethod
+    def remove_empty_dirs(consider_fh_dir_identifier: bool = True) -> None:
+        """Removes emtpy directories in `FileHandler.root`.
+
+        Just manual use recommended since it doesn't consider directories which
+         are currently in use and therefore it could interrupt running code.
+
+        Args:
+            consider_fh_dir_identifier: Consider `fh_dir_identifier` for dir matching?
+        """
+        paths = glob.glob(os.path.join(FileHandler.root, "*"))
+        for path in paths:
+            if os.path.isdir(path) and len(os.listdir(path=path)) == 0:
+                if consider_fh_dir_identifier:
+                    if (
+                        re.match(FileHandler.fh_dir_identifier, os.path.split(path)[-1])
+                        is not None
+                    ):
+                        shutil.rmtree(path=path)
+                else:
+                    shutil.rmtree(path=path)
+
+    @staticmethod
     def clean_up_fh_root(force: bool = False, verbose: bool = True) -> None:
         """Removes the from `FileHandler` created directories.
 
@@ -126,11 +149,18 @@ class FileHandler:
                     shutil.rmtree(FileHandler.root)
 
     @staticmethod
-    def get_file_handler(obj: object, *args: Any, **kwargs: Any) -> FileHandler:
+    def get_file_handler(
+        obj: object,
+        prefix: Optional[str] = None,
+        verbose: bool = True,
+    ) -> FileHandler:
         """Utility function to always get unique `FileHandler` bound to `obj`.
+        `FileHandler` args have just an effect while the first instance is created.
 
         Args:
             obj: Any object which should have an unique `FileHandler` assigned.
+            prefix: See `FileHandler.__init__`
+            verbose: See `FileHandler.__init__`
 
         Returns:
             The `FileHandler` bound to `obj`.
@@ -139,7 +169,7 @@ class FileHandler:
             attr = getattr(obj, attr_name)
             if isinstance(attr, FileHandler):
                 return attr
-        fh = FileHandler(*args, **kwargs)
+        fh = FileHandler(prefix=prefix, verbose=verbose)
         setattr(obj, "file_handler", fh)
         return fh
 
