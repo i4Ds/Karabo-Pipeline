@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import glob
 import os
 import re
 import shutil
 import uuid
+from types import TracebackType
 from typing import Optional
 
 from karabo.util.plotting_util import Font
@@ -71,7 +74,7 @@ class FileHandler:
                 shutil.rmtree(FileHandler.root)
 
     @staticmethod
-    def clean_up_root(force: bool = False, verbose: bool = True) -> None:
+    def clean_up_fh_root(force: bool = False, verbose: bool = True) -> None:
         """Removes the from `FileHandler` created directories.
 
         Args:
@@ -79,16 +82,16 @@ class FileHandler:
             verbose: Verbose removal?
         """
         if os.path.exists(FileHandler.root):
-            if force:
+            if force:  # force remove fh-root
                 if verbose:
                     print(f"Force remove {FileHandler.root}")
                 shutil.rmtree(FileHandler.root)
-            elif (
+            elif (  # check if fh-dir-identifier is properly set for safe removal
                 FileHandler.fh_dir_identifier is None
                 or len(FileHandler.fh_dir_identifier) < 1
             ):
                 print(
-                    "`clean_up_root` can't remove anything because "
+                    "`clean_up_fh_root` can't remove anything because "
                     f"{FileHandler.fh_dir_identifier=}. Set `fh_dir_identifier` "
                     f"correctly or use `force` to remove {FileHandler.root} regardless."
                 )
@@ -106,17 +109,28 @@ class FileHandler:
                             FileHandler.fh_dir_identifier, os.path.split(path)[-1]
                         )
                         is not None
-                    ):
+                    ):  # safe removal of subdir because it has the fh-dir-identifier
                         shutil.rmtree(path=path)
                 if len(os.listdir(FileHandler.root)) > 0:
                     if verbose:
                         print(
-                            f"`clean_up_root` is not able safely remove "
+                            f"`clean_up_fh_root` is not able safely remove "
                             f"{FileHandler.root} because there are directories which "
-                            f"do not match {FileHandler.fh_dir_identifier=} or files."
+                            f"don't match {FileHandler.fh_dir_identifier=} or files."
                         )
-                else:
+                else:  # remove fh-root if dir is empty
                     shutil.rmtree(FileHandler.root)
+
+    def __enter__(self) -> str:
+        return self.subdir
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        self.clean_up()
 
 
 class FileHandle:
