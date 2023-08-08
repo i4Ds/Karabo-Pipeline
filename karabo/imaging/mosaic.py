@@ -8,7 +8,9 @@ from MontagePy.main import mAdd, mHdr, mImgtbl, mProjExec
 from karabo.util._types import DirPathType
 
 
-def mosaic_directories(output_directory_path: DirPathType) -> None:
+def mosaic_directories(
+    output_directory_path: DirPathType, overwrite: bool = False
+) -> None:
     """
     Creating a directory structure which can be used for coadding several fits files
     with MontagePy.
@@ -21,10 +23,18 @@ def mosaic_directories(output_directory_path: DirPathType) -> None:
                                   |-projected
                                   |-raw
                                   |-unused_output
+    :param overwrite: If the directory already exists and overwrite is True, then the
+                      directory is overwritten.
     """
     output_directory_path = Path(output_directory_path)
 
     if os.path.exists(output_directory_path):
+        if not overwrite:
+            raise FileExistsError(
+                f"Could not delete {output_directory_path}, because"
+                f"overwrite is False. Set overwrite to True, if you "
+                f"want {output_directory_path} to be overwritten."
+            )
         shutil.rmtree(output_directory_path)
 
     os.makedirs(output_directory_path)

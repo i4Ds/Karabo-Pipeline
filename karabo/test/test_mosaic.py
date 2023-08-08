@@ -104,7 +104,7 @@ def test_mosaic_run(
     # Directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         workdir = tmpdir + "/Mosaic_test"
-        mosaic_directories(workdir)
+        mosaic_directories(workdir, overwrite=True)
         uncorrected_mosaic_fits_path = workdir + "/mosaic_uncorrected.fits"
         uncorrected_area_fits_path = workdir + "/mosaic_uncorrected_area.fits"
 
