@@ -32,7 +32,7 @@ from karabo.util._types import (
     PrecisionType,
 )
 from karabo.util.dask import DaskHandler
-from karabo.util.file_handle import FileHandler
+from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
 

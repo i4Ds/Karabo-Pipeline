@@ -29,7 +29,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 from karabo.util.dask import DaskHandler
-from karabo.util.file_handle import FileHandler
+from karabo.util.file_handler import FileHandler
 
 ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
 CleanAlgorithmType = Literal["hogbom", "msclean", "mmclean"]

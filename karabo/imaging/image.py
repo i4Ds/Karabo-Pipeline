@@ -16,7 +16,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util._types import FilePathType
-from karabo.util.file_handle import check_ending
+from karabo.util.file_handler import check_ending
 from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,

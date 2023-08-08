@@ -15,7 +15,7 @@ from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import KaraboResource
 from karabo.util.data_util import read_CSV_to_ndarray
-from karabo.util.file_handle import FileHandler
+from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
 
 T = TypeVar("T")

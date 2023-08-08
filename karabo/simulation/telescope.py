@@ -29,7 +29,7 @@ from karabo.simulation.telescope_versions import (
 )
 from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
-from karabo.util.file_handle import FileHandler
+from karabo.util.file_handler import FileHandler
 from karabo.util.math_util import long_lat_to_cartesian
 
 

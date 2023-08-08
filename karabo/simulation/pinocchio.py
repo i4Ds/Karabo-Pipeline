@@ -10,7 +10,7 @@ import numpy as np
 
 from karabo.error import KaraboPinocchioError
 from karabo.util._types import DirPathType, IntFloat
-from karabo.util.file_handle import FileHandler
+from karabo.util.file_handler import FileHandler
 
 
 @dataclass

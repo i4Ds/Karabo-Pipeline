@@ -9,7 +9,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.util.dask import DaskHandler
 
-# from karabo.util.file_handle import FileHandler
+# from karabo.util.file_handler import FileHandler
 
 
 def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
