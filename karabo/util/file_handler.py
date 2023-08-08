@@ -33,9 +33,6 @@ class FileHandler:
     This class provides an additional security layer for the removal of subdirs
      in case a root is specified where other files and directories live.
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using with.
-
-    Args:
-        prefix: Prefix of dir-path where dir-path is `prefix`_{uuid4[:8]}
     """
 
     root: str = _get_default_root_dir()
@@ -149,6 +146,7 @@ class FileHandler:
         verbose: bool = True,
     ) -> FileHandler:
         """Utility function to always get unique `FileHandler` bound to `obj`.
+
         `FileHandler` args have just an effect while the first instance is created.
 
         Args:
