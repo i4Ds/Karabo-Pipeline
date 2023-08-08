@@ -1,4 +1,5 @@
 import tempfile
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -103,20 +104,21 @@ def test_mosaic_run(
 
     # Directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
-        workdir = tmpdir + "/Mosaic_test"
+        outpath = Path(tmpdir)
+        workdir = outpath / "Mosaic_test"
         mosaic_directories(workdir, overwrite=True)
-        uncorrected_mosaic_fits_path = workdir + "/mosaic_uncorrected.fits"
-        uncorrected_area_fits_path = workdir + "/mosaic_uncorrected_area.fits"
+        uncorrected_mosaic_fits_path = workdir / "mosaic_uncorrected.fits"
+        uncorrected_area_fits_path = workdir / "mosaic_uncorrected_area.fits"
 
         # Simulate dirty images
-        outfile = workdir + "/unused_output/pointing"
+        outfile = workdir / "unused_output" / "pointing"
 
         for k in range(len(pointings)):
-            print("Reconstruction of pointing " + str(k) + "...")
+            print(f"Reconstruction of pointing {k} ...")
 
             karabo_reconstruction(
-                outfile=outfile + str(k),
-                mosaic_pntg_file=workdir + "/raw/pointing" + str(k),
+                outfile=f"{outfile}{k}",
+                mosaic_pntg_file=str(workdir / "raw" / f"pointing{k}"),
                 sky=sky_pointing,
                 ra_deg=pointings[k].ra.deg,
                 dec_deg=pointings[k].dec.deg,
