@@ -9,6 +9,7 @@ import pytest
 from numpy.typing import NDArray
 
 from karabo.test import data_path
+from karabo.util.file_handler import FileHandler
 
 NNImageDiffCallable = Callable[[str, str], float]
 
@@ -60,6 +61,19 @@ class TFiles:
 @pytest.fixture(scope="session")
 def tobject() -> TFiles:
     return TFiles()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def clean_disk():
+    """Automatically clears FileHandler.root after each test.
+
+    Needed in some cases where the underlying functions do use FileHanlder
+     which could lead to IOError because of disk-space limitations.
+    """
+    # Setup: fill with logic
+    yield  # testing happens here
+    # Teardown: fill with logic
+    FileHandler.clean_up_fh_root(force=True, verbose=False)
 
 
 @pytest.fixture(scope="function")
