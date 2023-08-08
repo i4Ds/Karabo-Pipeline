@@ -168,6 +168,13 @@ def test_line_emission_run(
             == uncorrected_h5_file["Dirty Images"].attrs["Units"]
         )
 
+        assert set(golden_uncorrected_h5_file.attrs.keys()) == set(
+            uncorrected_h5_file.attrs.keys()
+        )
+
+        for k in golden_uncorrected_h5_file.attrs.keys():
+            assert golden_uncorrected_h5_file.attrs[k] == uncorrected_h5_file.attrs[k]
+
         for golden_dirty_image, dirty_image in zip(
             golden_uncorrected_h5_file["Dirty Images"],
             uncorrected_h5_file["Dirty Images"],
@@ -178,9 +185,9 @@ def test_line_emission_run(
                 equal_nan=True,
             )
 
-        assert (
-            golden_uncorrected_h5_file["Observed Redshift Bin Size"][()]
-            == uncorrected_h5_file["Observed Redshift Bin Size"][()]
+        assert np.array_equal(
+            golden_uncorrected_h5_file["Observed Redshift Bin Size"],
+            uncorrected_h5_file["Observed Redshift Bin Size"],
         )
 
         assert np.array_equal(

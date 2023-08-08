@@ -540,6 +540,40 @@ def run_one_channel_simulation(
     return dirty_image, header
 
 
+def create_line_emission_h5_file(
+    filename: FilePathType,
+    dirty_images: List[NDArray[np.float_]],
+    redshift_channel: NDArray[np.float_],
+    header: fits.header.Header,
+) -> None:
+    """
+    Create a h5 file containing line emission outputs as datasets,
+    and relevant metadata as attributes.
+
+    :param filename: Filename and path of the output h5 file.
+    :param dirty_images: List of dirty images created by the
+        line emission simulation.
+    :param redshift_channel: Array of redshift bin endpoints
+        used as channels for line emission.
+    :param header: FITS-compatible header, with metadata to be stored
+        as H5 attributes.
+    """
+    # Compute redshift channel widths and centers
+    z_bins = np.diff(redshift_channel)
+    z_channel_mid = redshift_channel[:-1] + z_bins / 2
+
+    f = h5py.File(filename, "w")
+    # Store relevant metadata as attributes
+    for k, v in header.items():
+        f.attrs[k] = v
+
+    # Store datasets
+    dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
+    dataset_dirty.attrs["Units"] = "Jy"
+    f.create_dataset("Observed Redshift Channel Center", data=z_channel_mid)
+    f.create_dataset("Observed Redshift Bin Size", data=z_bins)
+
+
 def line_emission_pointing(
     outpath: DirPathType,
     sky: SkyModel,
@@ -679,17 +713,12 @@ def line_emission_pointing(
     )
 
     print("Save 3-dim reconstructed dirty images as h5")
-    z_bin = redshift_channel[1] - redshift_channel[0]
-    z_channel_mid = redshift_channel + z_bin / 2
-
-    f = h5py.File(
-        outpath / ("line_emission_dirty_images.h5"),
-        "w",
+    create_line_emission_h5_file(
+        filename=outpath / ("line_emission_dirty_images.h5"),
+        dirty_images=dirty_images,
+        redshift_channel=redshift_channel,
+        header=header,
     )
-    dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
-    dataset_dirty.attrs["Units"] = "Jy"
-    f.create_dataset("Observed Redshift Channel Center", data=z_channel_mid)
-    f.create_dataset("Observed Redshift Bin Size", data=z_bin)
 
     return dirty_image, dirty_images, header, freq_mid
 
