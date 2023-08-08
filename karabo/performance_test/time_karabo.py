@@ -140,7 +140,7 @@ def main(n_random_sources: int) -> None:
     assignments_restored = (
         SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(
             ground_truth=ground_truth.T,
-            detected=detection_result.get_pixel_position_of_sources().T,
+            detected=detection_result.get_pixel_position_of_sources(),
             max_dist=10,
             top_k=3,
         )
