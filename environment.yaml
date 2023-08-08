@@ -34,3 +34,4 @@ dependencies:
   - ska-sdp-func-python=0.1.4
   - tools21cm=2.0.2
   - xarray
+  - montagepy=6.0.0
