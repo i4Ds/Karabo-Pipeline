@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import glob
 import os
-import re
 import shutil
 import uuid
 from types import TracebackType
@@ -89,14 +88,11 @@ class FileHandler:
         Args:
             consider_fh_dir_identifier: Consider `fh_dir_identifier` for dir matching?
         """
-        paths = glob.glob(os.path.join(FileHandler.root, "*"))
+        paths = glob.glob(os.path.join(FileHandler.root, "*"), recursive=False)
         for path in paths:
             if os.path.isdir(path) and len(os.listdir(path=path)) == 0:
                 if consider_fh_dir_identifier:
-                    if (
-                        re.match(FileHandler.fh_dir_identifier, os.path.split(path)[-1])
-                        is not None
-                    ):
+                    if FileHandler.fh_dir_identifier in os.path.split(path)[-1]:
                         shutil.rmtree(path=path)
                 else:
                     shutil.rmtree(path=path)
@@ -133,10 +129,7 @@ class FileHandler:
                 for path in paths:
                     if (
                         os.path.isdir(path)
-                        and re.match(
-                            FileHandler.fh_dir_identifier, os.path.split(path)[-1]
-                        )
-                        is not None
+                        and FileHandler.fh_dir_identifier in os.path.split(path)[-1]
                     ):  # safe removal of subdir because it has the fh-dir-identifier
                         shutil.rmtree(path=path)
                 if len(os.listdir(FileHandler.root)) > 0:
