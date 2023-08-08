@@ -499,7 +499,8 @@ def create_baseline_cut_telelescope(
     cut_station_list = np.unique(np.hstack((cut_baseline_x, cut_baseline_y)))
     output_path_prefix = str(tel.path).split(f"data{os.path.sep}")[0]
     output_path = os.path.join(output_path_prefix, "data", "tel_baseline_cut.tm")
-    shutil.rmtree(output_path)
+    if os.path.exists(output_path):
+        shutil.rmtree(output_path)
     os.mkdir(output_path)
     count = 0
     for ns in cut_station_list:
@@ -517,6 +518,6 @@ def create_baseline_cut_telelescope(
         )
         count = count + 1
     cut_stations = stations[cut_station_list.astype(int)]
-    os.system("cp -r " + str(tel.path) + f"{os.path.sep}position.txt " + output_path)
+    os.system(f"cp -r {tel.path}{os.path.sep}position.txt {output_path}")
     np.savetxt(os.path.join(output_path, "layout.txt"), cut_stations)
     return output_path
