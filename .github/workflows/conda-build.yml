@@ -40,7 +40,6 @@ jobs:
       - name: Install Package
         shell: bash -l {0}
         run: |
-          rm -rf *
           export RUN_SLOW_TESTS=false
           export IS_GITHUB_RUNNER=true
           export RUN_GPU_TESTS=false
