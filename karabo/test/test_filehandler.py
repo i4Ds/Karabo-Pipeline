@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 
+from karabo.test.conftest import file_handler_test_dir
 from karabo.util.file_handler import FileHandler
 
 
@@ -9,7 +10,7 @@ def test_file_handler_global():
     """Test global FileHanlder functionality."""
     with tempfile.TemporaryDirectory() as tmpdir:
         # test root
-        assert FileHandler.root == os.path.join(os.getcwd(), "karabo_folder")
+        assert FileHandler.root == file_handler_test_dir
         FileHandler.root = tmpdir
 
         # add 2 dirs created through FileHanlder with and without random content

@@ -14,6 +14,7 @@ from karabo.util.file_handler import FileHandler
 NNImageDiffCallable = Callable[[str, str], float]
 
 IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
+file_handler_test_dir = os.path.join(os.path.dirname(__file__), "karabo_test")
 
 
 @dataclass
@@ -71,7 +72,7 @@ def clean_disk():
      which could lead to IOError because of disk-space limitations.
     """
     # Setup: fill with logic
-    FileHandler.root = os.path.join(os.path.dirname(__file__), "karabo_test")
+    FileHandler.root = file_handler_test_dir
     yield  # testing happens here
     # Teardown: fill with logic
     FileHandler.clean_up_fh_root(force=True, verbose=False)
