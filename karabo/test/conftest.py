@@ -71,6 +71,7 @@ def clean_disk():
      which could lead to IOError because of disk-space limitations.
     """
     # Setup: fill with logic
+    FileHandler.root = os.path.join(os.path.dirname(__file__), "karabo_test")
     yield  # testing happens here
     # Teardown: fill with logic
     FileHandler.clean_up_fh_root(force=True, verbose=False)
