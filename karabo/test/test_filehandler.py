@@ -20,7 +20,7 @@ def test_file_handler_global():
         _ = FileHandler(prefix="my_other_domain", verbose=False)
         assert len(os.listdir(tmpdir)) == 2
 
-        # create 2 additional random other dirs and files with and without content
+        # create 3 additional random other dirs and files with and without content
         os.mkdir(path=os.path.join(tmpdir, "my_dir1"))
         with open(os.path.join(tmpdir, "my_dir1", "my_json.json"), "w") as outfile2:
             json.dump({"A": "B"}, outfile2)
