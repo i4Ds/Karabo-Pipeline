@@ -122,7 +122,7 @@ def rascil_imager(
         visibility,
         imaging_npixel=img_size,
         imaging_cellsize=cut / img_size,
-        imaging_dopsf=True,
+        imaging_dopsf=False,
     )
     dirty = imager.get_dirty_image()
     dirty.write_to_file(f"{outfile}.fits", overwrite=True)
@@ -405,7 +405,7 @@ def karabo_reconstruction(
         time_average_sec=8,
         ignore_w_components=True,
         uv_filter_max=3000,
-        use_gpus=False,
+        use_gpus=True,
         station_type=beam_type,
         enable_power_pattern=True,
         gauss_beam_fwhm_deg=gaussian_fwhm,
