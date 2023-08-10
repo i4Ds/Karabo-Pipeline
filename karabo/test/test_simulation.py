@@ -1,15 +1,39 @@
 import os
 import tempfile
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
+import pytest
+from astropy.io import fits
 from numpy.typing import NDArray
 
+from karabo.data.external_data import (
+    SingleFileDownloadObject,
+    cscs_karabo_public_testing_base_url,
+)
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationParallized
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+
+
+# DownloadObject instances used to download different golden files:
+# - FITS file of the test continuous emission simulation of MeerKAT.
+@pytest.fixture
+def continuous_fits_filename() -> str:
+    return "test_continuous_emission.fits"
+
+
+@pytest.fixture
+def continuous_fits_downloader(
+    continuous_fits_filename,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=continuous_fits_filename,
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    )
 
 
 def test_oskar_simulation_basic(sky_data: NDArray[np.float64]):
@@ -37,7 +61,20 @@ def test_oskar_simulation_basic(sky_data: NDArray[np.float64]):
     simulation.run_simulation(telescope, sky, observation)
 
 
-def test_simulation_meerkat():
+def test_simulation_meerkat(
+    continuous_fits_filename: str, continuous_fits_downloader: SingleFileDownloadObject
+) -> None:
+    """
+    Executes a simulation of continuous emission and validates the output files.
+
+    Args:
+        continuous_fits_filename:
+            Name of FITS file containing the simulated dirty image.
+    """
+    # Download golden files for comparison
+    golden_continuous_fits_path = continuous_fits_downloader.get()
+
+    # Parameter defintion
     ra_deg = 20
     dec_deg = -30
     start_time = datetime(2000, 3, 20, 12, 6, 39)
@@ -45,8 +82,11 @@ def test_simulation_meerkat():
     start_freq = 1.5e9
     freq_bin = 1.0e7
 
+    # Load test sky and MeerKAT telescope
     sky = SkyModel.sky_test()
     telescope = Telescope.get_MEERKAT_Telescope()
+
+    # Simulating visibilities
     simulation = InterferometerSimulation(
         channel_bandwidth_hz=1.0e7,
         time_average_sec=8,
@@ -76,7 +116,29 @@ def test_simulation_meerkat():
         imaging_dopsf=True,
     )
     dirty = imager.get_dirty_image()
-    dirty.write_to_file("result/test_continuous_emission.fits", overwrite=True)
+    # Temporary directory containging output files for validation
+    with tempfile.TemporaryDirectory() as tmpdir:
+        outpath = Path(tmpdir)
+        continuous_fits_path = outpath / "test_continuous_emission.fits"
+        dirty.write_to_file(str(continuous_fits_path), overwrite=True)
+
+        # Verify mosaic fits
+        continuous_fits_data, continuous_fits_header = fits.getdata(
+            continuous_fits_path, ext=0, header=True
+        )
+        golden_continuous_fits_data, golden_continuous_fits_header = fits.getdata(
+            golden_continuous_fits_path, ext=0, header=True
+        )
+
+        # Check FITS data is close to goldenfile
+        assert np.allclose(
+            golden_continuous_fits_data, continuous_fits_data, equal_nan=True
+        )
+
+        # Check that headers contain the same keys
+        assert set(golden_continuous_fits_header.keys()) == set(
+            continuous_fits_header.keys()
+        )
 
 
 def test_parallelization_by_observation():
