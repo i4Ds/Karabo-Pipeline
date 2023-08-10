@@ -113,7 +113,6 @@ def test_simulation_meerkat(
         visibility,
         imaging_npixel=1024,
         imaging_cellsize=3 / 180 * np.pi / 1024,
-        imaging_dopsf=True,
     )
     dirty = imager.get_dirty_image()
     # Temporary directory containging output files for validation
