@@ -10,7 +10,7 @@ from astropy.io import fits
 from karabo.data.external_data import (
     DilutedBATTYESurveyDownloadObject,
     SingleFileDownloadObject,
-    cscs_karabo_public_base_url,
+    cscs_karabo_public_testing_base_url,
 )
 from karabo.imaging.mosaic import mosaic, mosaic_directories, mosaic_header
 from karabo.simulation.line_emission import freq_channels, karabo_reconstruction
@@ -36,7 +36,7 @@ def uncorrected_mosaic_fits_downloader(
 ) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=uncorrected_mosaic_fits_filename,
-        remote_base_url=cscs_karabo_public_base_url,
+        remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
 
@@ -46,7 +46,7 @@ def uncorrected_area_fits_downloader(
 ) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=uncorrected_area_fits_filename,
-        remote_base_url=cscs_karabo_public_base_url,
+        remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
 

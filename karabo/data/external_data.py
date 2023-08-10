@@ -30,6 +30,7 @@ class KaraboCache:
 
 cscs_base_url = "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
 cscs_karabo_public_base_url = f"{cscs_base_url}/karabo_public"
+cscs_karabo_public_testing_base_url = f"{cscs_karabo_public_base_url}/testing"
 
 
 class DownloadObject:
