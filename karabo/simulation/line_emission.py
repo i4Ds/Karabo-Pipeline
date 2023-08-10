@@ -405,7 +405,7 @@ def karabo_reconstruction(
         time_average_sec=8,
         ignore_w_components=True,
         uv_filter_max=3000,
-        use_gpus=False,
+        use_gpus=True,
         station_type=beam_type,
         enable_power_pattern=True,
         gauss_beam_fwhm_deg=gaussian_fwhm,

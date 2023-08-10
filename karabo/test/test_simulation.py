@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import datetime, timedelta
 
 import numpy as np
 from numpy.typing import NDArray
@@ -34,6 +35,43 @@ def test_oskar_simulation_basic(sky_data: NDArray[np.float64]):
     )
 
     simulation.run_simulation(telescope, sky, observation)
+
+
+def test_simulation_meerkat():
+    ra_deg = 20
+    dec_deg = -30
+    start_time = datetime(2000, 3, 20, 12, 6, 39)
+    obs_length = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0)
+    start_freq = 1.5e9
+    freq_bin = 1.0e7
+
+    sky = SkyModel.sky_test()
+    telescope = Telescope.get_MEERKAT_Telescope()
+    simulation = InterferometerSimulation(
+        channel_bandwidth_hz=1.0e7,
+        time_average_sec=8,
+        ignore_w_components=True,
+        uv_filter_max=3000,
+        use_gpus=False,
+        enable_power_pattern=True,
+        use_dask=False,
+    )
+    observation = Observation(
+        phase_centre_ra_deg=ra_deg,
+        phase_centre_dec_deg=dec_deg,
+        start_date_and_time=start_time,
+        length=obs_length,
+        number_of_time_steps=10,
+        start_frequency_hz=start_freq,
+        frequency_increment_hz=freq_bin,
+        number_of_channels=3,
+    )
+    visibility = simulation.run_simulation(telescope, sky, observation)
+
+    # We use the Imager to check the simulation
+    imager = Imager(visibility, imaging_npixel=1024, imaging_dopsf=True)
+    dirty = imager.get_dirty_image()
+    dirty.write_to_file("result/dirty_image.fits", overwrite=True)
 
 
 def test_parallelization_by_observation():
