@@ -69,9 +69,14 @@ def test_simulation_meerkat():
     visibility = simulation.run_simulation(telescope, sky, observation)
 
     # We use the Imager to check the simulation
-    imager = Imager(visibility, imaging_npixel=1024, imaging_dopsf=True)
+    imager = Imager(
+        visibility,
+        imaging_npixel=1024,
+        imaging_cellsize=3 / 180 * np.pi / 1024,
+        imaging_dopsf=True,
+    )
     dirty = imager.get_dirty_image()
-    dirty.write_to_file("result/dirty_image.fits", overwrite=True)
+    dirty.write_to_file("result/test_continuous_emission.fits", overwrite=True)
 
 
 def test_parallelization_by_observation():

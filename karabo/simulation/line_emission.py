@@ -122,7 +122,7 @@ def rascil_imager(
         visibility,
         imaging_npixel=img_size,
         imaging_cellsize=cut / img_size,
-        imaging_dopsf=True,
+        imaging_dopsf=False,
     )
     dirty = imager.get_dirty_image()
     dirty.write_to_file(f"{outfile}.fits", overwrite=True)
