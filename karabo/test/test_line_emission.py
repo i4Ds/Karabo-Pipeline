@@ -10,6 +10,7 @@ from karabo.data.external_data import (
     DilutedBATTYESurveyDownloadObject,
     SingleFileDownloadObject,
     cscs_karabo_public_base_url,
+    cscs_karabo_public_testing_base_url,
 )
 from karabo.simulation.line_emission import (
     convert_frequency_to_z,
@@ -68,7 +69,7 @@ def corrected_fits_filename() -> str:
 def uncorrected_fits_downloader(uncorrected_fits_filename) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=uncorrected_fits_filename,
-        remote_base_url=cscs_karabo_public_base_url,
+        remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
 
@@ -84,7 +85,7 @@ def uncorrected_h5_downloader(uncorrected_h5_filename) -> SingleFileDownloadObje
 def corrected_fits_downloader(corrected_fits_filename) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=corrected_fits_filename,
-        remote_base_url=cscs_karabo_public_base_url,
+        remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
 
