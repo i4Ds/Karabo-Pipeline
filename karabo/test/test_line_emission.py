@@ -9,7 +9,6 @@ from astropy.io import fits
 from karabo.data.external_data import (
     DilutedBATTYESurveyDownloadObject,
     SingleFileDownloadObject,
-    cscs_karabo_public_base_url,
     cscs_karabo_public_testing_base_url,
 )
 from karabo.simulation.line_emission import (
@@ -77,7 +76,7 @@ def uncorrected_fits_downloader(uncorrected_fits_filename) -> SingleFileDownload
 def uncorrected_h5_downloader(uncorrected_h5_filename) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=uncorrected_h5_filename,
-        remote_base_url=cscs_karabo_public_base_url,
+        remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
 
@@ -169,6 +168,13 @@ def test_line_emission_run(
             == uncorrected_h5_file["Dirty Images"].attrs["Units"]
         )
 
+        assert set(golden_uncorrected_h5_file.attrs.keys()) == set(
+            uncorrected_h5_file.attrs.keys()
+        )
+
+        for k in golden_uncorrected_h5_file.attrs.keys():
+            assert golden_uncorrected_h5_file.attrs[k] == uncorrected_h5_file.attrs[k]
+
         for golden_dirty_image, dirty_image in zip(
             golden_uncorrected_h5_file["Dirty Images"],
             uncorrected_h5_file["Dirty Images"],
@@ -179,9 +185,9 @@ def test_line_emission_run(
                 equal_nan=True,
             )
 
-        assert (
-            golden_uncorrected_h5_file["Observed Redshift Bin Size"][()]
-            == uncorrected_h5_file["Observed Redshift Bin Size"][()]
+        assert np.array_equal(
+            golden_uncorrected_h5_file["Observed Redshift Bin Size"],
+            uncorrected_h5_file["Observed Redshift Bin Size"],
         )
 
         assert np.array_equal(
