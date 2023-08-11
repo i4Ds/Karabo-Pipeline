@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional, Tuple, Union
+import os
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 from astropy.wcs import WCS
@@ -26,8 +27,16 @@ from karabo.error import KaraboError
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
+from karabo.util._types import FilePathType
 from karabo.util.dask import DaskHandler
-from karabo.util.file_handle import FileHandle
+from karabo.util.file_handler import FileHandler
+
+ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
+CleanAlgorithmType = Literal["hogbom", "msclean", "mmclean"]
+CleanBeamInDegType = Literal["bmaj", "bmin", "bpa"]
+CleanComponentMethodType = Literal["fit", "extract"]
+CleanTaperType = Literal["none", "linear", "tukey"]
+CleanRestoredOutputType = Literal["taylor", "list", "integrated"]
 
 
 def get_MGCLS_images(regex_pattern: str, verbose: bool = False) -> List[SkaSdpImage]:
@@ -198,81 +207,116 @@ class Imager:
         self.imaging_uvmax = imaging_uvmax
         self.imaging_uvmin = imaging_uvmin
 
-    def get_dirty_image(self) -> Image:
+        self._fh_prefix = "imager"
+        self._fh_verbose = True
+
+    def get_dirty_image(self, fits_path: Optional[FilePathType] = None) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
-        :return: dirty image of visibilities.
+
+        Args:
+            fits_path: Path to where the .fits file will get exported.
+
+        Returns:
+            Dirty Image
         """
-        # Code that triggers assertion statements
-        block_visibilities = create_visibility_from_ms(self.visibility.ms_file.path)
+        if fits_path is None:
+            fh = FileHandler.get_file_handler(
+                obj=self,
+                prefix=self._fh_prefix,
+                verbose=self._fh_verbose,
+            )
+            fits_path = os.path.join(fh.subdir, "dirty.fits")
+
+        block_visibilities = create_visibility_from_ms(
+            str(self.visibility.ms_file_path)
+        )
 
         if len(block_visibilities) != 1:
             raise EnvironmentError("Visibilities are too large")
         visibility = block_visibilities[0]
-        file_handle = FileHandle(
-            file_name="dirty.fits", create_additional_folder_in_dir=True
-        )
         model = create_image_from_visibility(
             visibility,
             npixel=self.imaging_npixel,
             cellsize=self.imaging_cellsize,
             override_cellsize=self.override_cellsize,
         )
-        dirty, sumwt = invert_visibility(visibility, model, context="2d")
-        dirty.image_acc.export_to_fits(fits_file=f"{file_handle.path}")
+        dirty, _ = invert_visibility(visibility, model, context="2d")
+        dirty.image_acc.export_to_fits(fits_file=f"{fits_path}")
 
-        image = Image(path=file_handle)
+        image = Image(path=fits_path)
         return image
 
     def imaging_rascil(
         self,
+        deconvolved_fits_path: Optional[FilePathType] = None,
+        restored_fits_path: Optional[FilePathType] = None,
+        residual_fits_path: Optional[FilePathType] = None,
         client: Optional[Client] = None,
         use_dask: bool = False,
         n_threads: int = 1,
-        use_cuda: bool = False,  # If True, use CUDA for Nifty Gridder
-        # Imaging context: Which nifty gridder to use.
-        # See: https://ska-telescope.gitlab.io/external/rascil/RASCIL_wagg.html
-        img_context: str = "ng",
-        # Type of deconvolution algorithm (hogbom or msclean or mmclean)
-        clean_algorithm: str = "hogbom",
-        # Clean beam: major axis, minor axis, position angle (deg) DataFormat. 3 args.
-        clean_beam: Optional[Dict[str, float]] = None,
-        # Scales for multiscale clean (pixels) e.g. [0, 6, 10]
+        use_cuda: bool = False,
+        img_context: ImageContextType = "ng",
+        clean_algorithm: CleanAlgorithmType = "hogbom",
+        clean_beam: Optional[Dict[CleanBeamInDegType, float]] = None,
         clean_scales: List[int] = [0],
-        # Number of frequency moments in mmclean (1 is a constant, 2 is linear, etc.)
         clean_nmoment: int = 4,
-        clean_nmajor: int = 5,  # Number of major cycles in cip or ical
-        # Number of minor cycles in CLEAN (i.e. clean iterations)
+        clean_nmajor: int = 5,
         clean_niter: int = 1000,
-        clean_psf_support: int = 256,  # Half-width of psf used in cleaning (pixels)
-        clean_gain: float = 0.1,  # Clean loop gain
-        clean_threshold: float = 1e-4,  # Clean stopping threshold (Jy/beam)
-        # Sources with absolute flux > this level (Jy)
-        # are fit or extracted using skycomponents
+        clean_psf_support: int = 256,
+        clean_gain: float = 0.1,
+        clean_threshold: float = 1e-4,
         clean_component_threshold: Optional[float] = None,
-        # Method to convert sources in image to skycomponents:
-        # 'fit' in frequency or 'extract' actual values
-        clean_component_method: str = "fit",
-        # Fractional stopping threshold for major cycle
+        clean_component_method: CleanComponentMethodType = "fit",
         clean_fractional_threshold: float = 0.3,
-        # Number of overlapping facets in faceted clean (along each axis)
         clean_facets: int = 1,
-        clean_overlap: int = 32,  # Overlap of facets in clean (pixels)
-        # Type of interpolation between facets in deconvolution:
-        # (none or linear or tukey)
-        clean_taper: str = "tukey",
-        # Number of overlapping facets in restore step (along each axis)
+        clean_overlap: int = 32,
+        clean_taper: CleanTaperType = "tukey",
         clean_restore_facets: int = 1,
-        clean_restore_overlap: int = 32,  # Overlap of facets in restore step (pixels)
-        # Type of interpolation between facets in restore step (none, linear or tukey)
-        clean_restore_taper: str = "tukey",
-        # Type of restored image output: taylor, list, or integrated
-        clean_restored_output: str = "list",
+        clean_restore_overlap: int = 32,
+        clean_restore_taper: CleanTaperType = "tukey",
+        clean_restored_output: CleanRestoredOutputType = "list",
     ) -> Tuple[Image, Image, Image]:
-        """
-        Starts imaging process using RASCIL, will run a CLEAN algorithm
-        on the passed visibilities to the Imager.
+        """Starts imaging process using RASCIL using CLEAN.
 
-        :returns (Deconvolved Image, Restored Image, Residual Image)
+        Clean args see https://developer.skao.int/_/downloads/rascil/en/latest/pdf/
+
+        Args:
+            deconvolved_fits_path: Fits file path to save deconvolved image.
+            restored_fits_path: Fits file path to save restored image.
+            residual_fits_path: Fits file path to save residual image.
+            client: Dask client.
+            use_dask: Use dask?
+            n_threads: n_threads per worker.
+            use_cuda: use CUDA for Nifty Gridder?
+            img_context: Which nifty gridder to use.
+            clean_algorithm: Deconvolution algorithm (hogbom or msclean or mmclean).
+            clean_beam: major axis, minor axis, position angle (deg).
+            clean_scales: Scales for multiscale clean (pixels) e.g. [0, 6, 10].
+            clean_nmoment: Number of frequency moments in mmclean (1=constant, 2=linear)
+            clean_nmajor: Number of major cycles in cip or ical.
+            clean_niter: Number of minor cycles in CLEAN.
+            clean_psf_support: Half-width of psf used in cleaning (pixels).
+            clean_gain: Clean loop gain.
+            clean_threshold: Clean stopping threshold (Jy/beam).
+            clean_component_threshold:  Sources with absolute flux > this level (Jy)
+                are fit or extracted using skycomponents.
+            clean_component_method: Method to convert sources in image to skycomponents:
+                "fit" in frequency or "extract" actual values.
+            clean_fractional_threshold: Fractional stopping threshold for major cycle
+            clean_facets: Number of overlapping facets in faceted clean along each axis.
+            clean_overlap: Overlap of facets in clean (pixels)
+            clean_taper: Type of interpolation between facets in deconvolution:
+                none or linear or tukey.
+            clean_restore_facets: Number of overlapping facets in restore step
+                along each axis.
+            clean_restore_overlap: Overlap of facets in restore step (pixels)
+            clean_restore_taper: Type of interpolation between facets in
+                restore step (none, linear or tukey).
+            clean_restored_output: Type of restored image output:
+                taylor, list, or integrated.
+
+        Returns:
+            deconvolved, restored, residual
         """
         if client and not use_dask:
             raise EnvironmentError("Client passed but use_dask is False")
@@ -289,7 +333,7 @@ class Imager:
             raise KaraboError("`ingest_vis_nchan` is None but must be of type 'int'.")
 
         blockviss = create_visibility_from_ms_rsexecute(
-            msname=self.visibility.ms_file.path,
+            msname=str(self.visibility.ms_file_path),
             nchan_per_vis=self.ingest_chan_per_vis,
             nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,  # pyright: ignore
             dds=self.ingest_dd,
@@ -311,31 +355,25 @@ class Imager:
             )
             for bvis in blockviss
         ]
-        # WAGG support for rascil does currently not work:
-        # https://github.com/i4Ds/Karabo-Pipeline/issues/360
         if img_context == "wg":
             raise NotImplementedError("WAGG support for rascil does currently not work")
 
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
-            vis_list=blockviss,  # List of BlockVisibilitys
-            model_imagelist=models,  # List of model images
+            vis_list=blockviss,
+            model_imagelist=models,
             context=img_context,
             threads=n_threads,
-            wstacking=self.imaging_w_stacking
-            == "True",  # Correct for w term in gridding
-            niter=clean_niter,  # iterations in minor cycle
-            nmajor=clean_nmajor,  # Number of major cycles
+            wstacking=self.imaging_w_stacking == "True",
+            niter=clean_niter,
+            nmajor=clean_nmajor,
             algorithm=clean_algorithm,
-            gain=clean_gain,  # CLEAN loop gain
-            scales=clean_scales,  # Scales for multi-scale cleaning
+            gain=clean_gain,
+            scales=clean_scales,
             fractional_threshold=clean_fractional_threshold,
-            # Threshold per major cycle
-            threshold=clean_threshold,  # Final stopping threshold
+            threshold=clean_threshold,
             nmoment=clean_nmoment,
-            # Number of frequency moments (1 = no dependence)
             psf_support=clean_psf_support,
-            # Support of PSF used in minor cycles (halfwidth in pixels)
-            restored_output=clean_restored_output,  # Type of restored image
+            restored_output=clean_restored_output,
             deconvolve_facets=clean_facets,
             deconvolve_overlap=clean_overlap,
             deconvolve_taper=clean_taper,
@@ -356,26 +394,47 @@ class Imager:
 
         residual, restored, skymodel = result
 
+        if deconvolved_fits_path is None:
+            fh = FileHandler.get_file_handler(
+                obj=self,
+                prefix=self._fh_prefix,
+                verbose=self._fh_verbose,
+            )
+            deconvolved_fits_path = os.path.join(fh.subdir, "deconvolved.fits")
+
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
-        file_handle_deconvolved = FileHandle(file_name="deconvolved", suffix=".fits")
         deconvolved_image_rascil.image_acc.export_to_fits(
-            fits_file=file_handle_deconvolved.path
+            fits_file=str(deconvolved_fits_path)
         )
-        deconvolved_image = Image(path=file_handle_deconvolved.path)
+        deconvolved_image = Image(path=deconvolved_fits_path)
+
+        if restored_fits_path is None:
+            fh = FileHandler.get_file_handler(
+                obj=self,
+                prefix=self._fh_prefix,
+                verbose=self._fh_verbose,
+            )
+            restored_fits_path = os.path.join(fh.subdir, "restored.fits")
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
-        file_handle_restored = FileHandle(file_name="restored", suffix=".fits")
-        restored.image_acc.export_to_fits(fits_file=file_handle_restored.path)
-        restored_image = Image(path=file_handle_restored.path)
+        restored.image_acc.export_to_fits(fits_file=str(restored_fits_path))
+        restored_image = Image(path=restored_fits_path)
+
+        if residual_fits_path is None:
+            fh = FileHandler.get_file_handler(
+                obj=self,
+                prefix=self._fh_prefix,
+                verbose=self._fh_verbose,
+            )
+            residual_fits_path = os.path.join(fh.subdir, "residual.fits")
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
-        file_handle_residual = FileHandle(file_name="residual", suffix=".fits")
-        residual.image_acc.export_to_fits(fits_file=file_handle_residual.path)
-        residual_image = Image(path=file_handle_residual.path)
+        residual.image_acc.export_to_fits(fits_file=str(residual_fits_path))
+        residual_image = Image(path=residual_fits_path)
 
         return deconvolved_image, restored_image, residual_image
 

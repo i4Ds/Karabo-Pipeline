@@ -8,7 +8,8 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.util.dask import DaskHandler
-from karabo.util.file_handle import FileHandle
+
+# from karabo.util.file_handler import FileHandler
 
 
 def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
@@ -41,16 +42,9 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
         number_of_time_steps=24,
     )
 
-    # Create dir for intermediate files
-    fh = FileHandle(create_additional_folder_in_dir=True)
-    dir_intermediate_files = fh.dir
-
-    print("Saving intermediate files to dir:", dir_intermediate_files)
-
     print("Running simulation...")
     interferometer_sim = InterferometerSimulation(
         channel_bandwidth_hz=1e6,
-        folder_for_multiple_observation=dir_intermediate_files,
         use_gpus=False,
         use_dask=True,
         split_observation_by_channels=False,
@@ -70,7 +64,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
         observation_settings,
     )
 
-    print(f"MS Vis is {vis.ms_file.path}")
+    print(f"MS Vis is {vis.ms_file_path}")
 
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
@@ -87,7 +81,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
         file.flush()
 
     # Clean up
-    # fh.remove_dir(dir_intermediate_files)
+    # FileHandler.clean_up_fh_root()
 
 
 if __name__ == "__main__":

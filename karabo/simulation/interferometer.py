@@ -1,4 +1,5 @@
 import enum
+import os
 from copy import deepcopy
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 from typing import get_args as typing_get_args
@@ -24,9 +25,14 @@ from karabo.simulation.observation import (
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat, OskarSettingsTreeType, PrecisionType
+from karabo.util._types import (
+    DirPathType,
+    IntFloat,
+    OskarSettingsTreeType,
+    PrecisionType,
+)
 from karabo.util.dask import DaskHandler
-from karabo.util.file_handle import FileHandle
+from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
 
@@ -67,9 +73,6 @@ class InterferometerSimulation:
     Class containing all configuration for the Interferometer Simulation.
     :ivar ms_file_path: Optional. File path of the MS (mass spectrometry) file.
     :ivar vis_path: Optional. File path for visualization output.
-    :ivar folder_for_multiple_observation: Optional.
-        Folder path for multiple observations.
-
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
                                 smearing. (Note that this can be different to the
                                 frequency increment if channels do not cover a
@@ -166,7 +169,6 @@ class InterferometerSimulation:
         self,
         ms_file_path: Optional[str] = None,
         vis_path: Optional[str] = None,
-        folder_for_multiple_observation: Optional[str] = None,
         channel_bandwidth_hz: IntFloat = 0,
         time_average_sec: IntFloat = 0,
         max_time_per_samples: int = 8,
@@ -207,9 +209,8 @@ class InterferometerSimulation:
         ionosphere_screen_pixel_size_m: Optional[float] = 0,
         ionosphere_isoplanatic_screen: Optional[bool] = False,
     ) -> None:
-        self.ms_file_path = ms_file_path
-        self.vis_path = vis_path
-        self.folder_for_multiple_observation = folder_for_multiple_observation
+        self._ms_file_path = ms_file_path
+        self._vis_path = vis_path
 
         self.channel_bandwidth_hz: IntFloat = channel_bandwidth_hz
         self.time_average_sec: IntFloat = time_average_sec
@@ -285,6 +286,40 @@ class InterferometerSimulation:
         self.ionosphere_screen_height_km = ionosphere_screen_height_km
         self.ionosphere_screen_pixel_size_m = ionosphere_screen_pixel_size_m
         self.ionosphere_isoplanatic_screen = ionosphere_isoplanatic_screen
+
+        # FileHandler args if needed
+        self._fh_prefix = "interferometer_sim"
+        self._fh_verbose = True
+
+    @property
+    def ms_file_path(self) -> str:
+        ms_file_path = self._ms_file_path
+        if ms_file_path is None:
+            fh = FileHandler.get_file_handler(
+                self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            )
+            ms_file_path = os.path.join(fh.subdir, "measurements.MS")
+            self._ms_file_path = ms_file_path
+        return ms_file_path
+
+    @ms_file_path.setter
+    def ms_file_path(self, value: str) -> None:
+        self._ms_file_path = value
+
+    @property
+    def vis_path(self) -> str:
+        vis_path = self._vis_path
+        if vis_path is None:
+            fh = FileHandler.get_file_handler(
+                self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            )
+            vis_path = os.path.join(fh.subdir, "visibility.vis")
+            self._vis_path = vis_path
+        return vis_path
+
+    @vis_path.setter
+    def vis_path(self, value: str) -> None:
+        self._vis_path = value
 
     @overload
     def run_simulation(
@@ -372,11 +407,21 @@ class InterferometerSimulation:
 
         # Scatter sky
         array_sky = self.client.scatter(array_sky)
-
+        fh = FileHandler.get_file_handler(
+            self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        )
+        ms_dir = os.path.join(fh.subdir, "measurements")
+        os.makedirs(ms_dir, exist_ok=True)
+        vis_dir = os.path.join(fh.subdir, "visibilities")
+        os.makedirs(vis_dir, exist_ok=True)
         for observation_params in observations:
-            # Create params
-            interferometer_params = (
-                self.__create_interferometer_params_with_random_paths(input_telpath)
+            start_freq = observation_params["observation"]["start_frequency_hz"]
+            ms_file_path = os.path.join(ms_dir, f"start_freq_{start_freq}.MS")
+            vis_path = os.path.join(ms_dir, f"start_freq_{start_freq}.vis")
+            interferometer_params = self.__get_OSKAR_settings_tree(
+                input_telpath=input_telpath,
+                ms_file_path=ms_file_path,
+                vis_path=vis_path,
             )
 
             params_total = {**interferometer_params, **observation_params}
@@ -401,7 +446,7 @@ class InterferometerSimulation:
         visibilities = []
         for i in range(len(visibilities_path)):
             visibilities.append(
-                Visibility(path=visibilities_path[i], ms_file_path=ms_file_paths[i])
+                Visibility(vis_path=visibilities_path[i], ms_file_path=ms_file_paths[i])
             )
         return visibilities
 
@@ -447,30 +492,6 @@ class InterferometerSimulation:
         vis_path = params_total["interferometer"]["oskar_vis_filename"]
         print(f"Saved visibility to {vis_path}")
         return Visibility(vis_path, ms_file_path)
-
-    def __create_interferometer_params_with_random_paths(
-        self, input_telpath: str
-    ) -> OskarSettingsTreeType:
-        # Create visiblity object
-        vis_path = FileHandle(
-            dir=self.folder_for_multiple_observation,
-            file_name="visibility",
-            create_additional_folder_in_dir=True,
-            suffix=".vis",
-        ).path
-        ms_file_path = FileHandle(
-            dir=self.folder_for_multiple_observation,
-            create_additional_folder_in_dir=True,
-            file_is_dir=True,
-            suffix=".MS",
-        ).path
-
-        interferometer_params = self.__get_OSKAR_settings_tree(
-            input_telpath=input_telpath,
-            ms_file_path=ms_file_path,
-            vis_path=vis_path,
-        )
-        return interferometer_params
 
     @staticmethod
     def __run_simulation_oskar(
@@ -526,6 +547,14 @@ class InterferometerSimulation:
                 "`telescope.path` must be set but is None."
             )
 
+        fh = FileHandler.get_file_handler(
+            self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        )
+        ms_dir = os.path.join(fh.subdir, "measurements")
+        os.makedirs(ms_dir, exist_ok=True)
+        vis_dir = os.path.join(fh.subdir, "visibilities")
+        os.makedirs(vis_dir, exist_ok=True)
+
         # Loop over days
         for i, current_date in enumerate(
             pd.date_range(
@@ -549,9 +578,12 @@ class InterferometerSimulation:
                 pb.save_cst_file(beam[4], telescope=telescope)
                 pb.fit_elements(telescope)
 
-            # Create params
-            interferometer_params = (
-                self.__create_interferometer_params_with_random_paths(input_telpath)
+            ms_file_path = os.path.join(ms_dir, f"{current_date}.MS")
+            vis_path = os.path.join(ms_dir, f"{current_date}.vis")
+            interferometer_params = self.__get_OSKAR_settings_tree(
+                input_telpath=input_telpath,
+                ms_file_path=ms_file_path,
+                vis_path=vis_path,
             )
 
             params_total = {**interferometer_params, **observation_params}
@@ -626,19 +658,10 @@ class InterferometerSimulation:
 
     def __get_OSKAR_settings_tree(
         self,
-        input_telpath: str,
-        ms_file_path: Optional[str] = None,
-        vis_path: Optional[str] = None,
+        input_telpath: DirPathType,
+        ms_file_path: str,
+        vis_path: str,
     ) -> OskarSettingsTreeType:
-        # Create the paths if they are not given
-        if ms_file_path is None:
-            fh = FileHandle(suffix=".MS")
-            ms_file_path = fh.path
-
-        if vis_path is None:
-            vis = Visibility()
-            vis_path = vis.file.path
-
         settings: OskarSettingsTreeType = {
             "simulator": {
                 "use_gpus": self.use_gpus,
@@ -667,7 +690,7 @@ class InterferometerSimulation:
                 "noise/rms/end": str(self.noise_rms_end),
             },
             "telescope": {
-                "input_directory": input_telpath,
+                "input_directory": str(input_telpath),
                 "normalise_beams_at_phase_centre": True,
                 "allow_station_beam_duplication": True,
                 "pol_mode": "Full",

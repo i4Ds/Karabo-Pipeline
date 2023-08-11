@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from karabo.error import KaraboPinocchioError
-from karabo.util._types import IntFloat
-from karabo.util.file_handle import FileHandle
+from karabo.util._types import DirPathType, IntFloat
+from karabo.util.file_handler import FileHandler
 
 
 @dataclass
@@ -63,7 +63,7 @@ class Pinocchio:
 
     RAD_TO_DEG = 180 / np.pi
 
-    def __init__(self, working_dir: Optional[str] = None) -> None:
+    def __init__(self, working_dir: Optional[DirPathType] = None) -> None:
         """
         Creates temp directory `wd` for the pinocchio run.
         Load default file paths for config files, load default config files
@@ -73,12 +73,23 @@ class Pinocchio:
         """
         if working_dir is not None:
             working_dir = os.path.abspath(working_dir)
-        self.wd = FileHandle(dir=working_dir)
-
+            self.wd = working_dir
+        else:
+            fh = FileHandler.get_file_handler(
+                obj=self, prefix="pinocchio", verbose=True
+            )
+            self.wd = fh.subdir
         # get default input files
-        inputFilesPath = os.environ["CONDA_PREFIX"] + "/etc/"
-        self.paramsInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_PARAMS_FILE
-        self.redShiftInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_OUTPUT_FILE
+        conda_prefix = os.environ.get("CONDA_PREFIX")
+        if conda_prefix is None:
+            raise OSError("$CONDA_PREFIX not found for Pinocchio file-path discovery.")
+        inputFilesPath = os.path.join(conda_prefix, "etc")
+        self.paramsInputPath = os.path.join(
+            inputFilesPath, Pinocchio.PIN_DEFAULT_PARAMS_FILE
+        )
+        self.redShiftInputPath = os.path.join(
+            inputFilesPath, Pinocchio.PIN_DEFAULT_OUTPUT_FILE
+        )
 
         self.currConfig = self.__loadPinocchioDefaultConfig()
         self.redShiftRequest = self.__loadPinocchioDefaultRedShiftRequest()
@@ -358,7 +369,7 @@ class Pinocchio:
         cmd.append(self.runConfigPath)
 
         self.out = subprocess.run(
-            cmd, cwd=self.wd.dir, capture_output=not printLiveOutput, text=True
+            cmd, cwd=self.wd, capture_output=not printLiveOutput, text=True
         )
 
         # mark output files
@@ -372,14 +383,14 @@ class Pinocchio:
             outPrefix = f"{Pinocchio.PIN_EXEC_NAME}.{float(i):.04f}.{runName}"
 
             self.outCatalogPath[i] = os.path.join(
-                self.wd.dir, f"{outPrefix}.catalog.{Pinocchio.PIN_OUT_FILEENDING}"
+                self.wd, f"{outPrefix}.catalog.{Pinocchio.PIN_OUT_FILEENDING}"
             )
             self.outMFPath[i] = os.path.join(
-                self.wd.dir, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}"
+                self.wd, f"{outPrefix}.mf.{Pinocchio.PIN_OUT_FILEENDING}"
             )
 
         self.outLightConePath = os.path.join(
-            self.wd.dir,
+            self.wd,
             f"{Pinocchio.PIN_EXEC_NAME}.{runName}.plc.{Pinocchio.PIN_OUT_FILEENDING}",
         )
 
@@ -406,7 +417,7 @@ class Pinocchio:
             f"{gbPerNode}",
             f"{tasksPerNode}",
         ]
-        subprocess.run(cmd, cwd=self.wd.dir, text=True)
+        subprocess.run(cmd, cwd=self.wd, text=True)
 
     def getPinocchioStdOutput(self) -> Optional[str]:
         """
@@ -451,7 +462,7 @@ class Pinocchio:
         :rtype: str
         """
 
-        fp: str = os.path.join(self.wd.dir, Pinocchio.PIN_REDSHIFT_FILE)
+        fp: str = os.path.join(self.wd, Pinocchio.PIN_REDSHIFT_FILE)
 
         with open(os.path.join(fp), "w") as temp_file:
             temp_file.write(self.redShiftRequest.header)
@@ -522,7 +533,7 @@ class Pinocchio:
             # add empty line between sections
             lines.append("")
 
-        fp: str = os.path.join(self.wd.dir, Pinocchio.PIN_PARAM_FILE)
+        fp: str = os.path.join(self.wd, Pinocchio.PIN_PARAM_FILE)
 
         with open(fp, "w") as temp_file:
             temp_file.write("\n".join(lines))
@@ -543,11 +554,11 @@ class Pinocchio:
         if not os.path.isdir(outDirPath):
             os.mkdir(outDirPath)
 
-        if outDirPath != self.wd.dir:
-            shutil.copytree(self.wd.dir, outDirPath, dirs_exist_ok=True)
+        if outDirPath != self.wd:
+            shutil.copytree(self.wd, outDirPath, dirs_exist_ok=True)
         else:
             print(
-                f"provided {outDirPath=} is already the working_dir {self.wd.dir=}.",
+                f"provided {outDirPath=} is already the working_dir {self.wd=}.",
                 file=sys.stderr,
             )
 
