@@ -51,5 +51,6 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
+          conda install anaconda-client
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
-          
+  
