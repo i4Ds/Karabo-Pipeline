@@ -578,9 +578,8 @@ class InterferometerSimulation:
                 pb.save_cst_file(beam[4], telescope=telescope)
                 pb.fit_elements(telescope)
 
-            start_freq = observation_params["observation"]["start_frequency_hz"]
-            ms_file_path = os.path.join(ms_dir, f"start_freq_{start_freq}.MS")
-            vis_path = os.path.join(ms_dir, f"start_freq_{start_freq}.vis")
+            ms_file_path = os.path.join(ms_dir, f"{current_date}.MS")
+            vis_path = os.path.join(ms_dir, f"{current_date}.vis")
             interferometer_params = self.__get_OSKAR_settings_tree(
                 input_telpath=input_telpath,
                 ms_file_path=ms_file_path,

@@ -50,7 +50,7 @@ class FileHandler:
             verbose: Subdir creation and removal verbose?
         """
         self.verbose = verbose
-        subdir_name = str(uuid.uuid4())[:8]
+        subdir_name = str(uuid.uuid4())
         if (
             FileHandler.fh_dir_identifier is not None
             and len(FileHandler.fh_dir_identifier) > 0

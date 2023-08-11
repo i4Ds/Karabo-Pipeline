@@ -73,13 +73,11 @@ class Visibility(KaraboResource):
 
     @staticmethod
     def is_measurement_set(path: DirPathType) -> bool:
-        path_ = str(path)
-        return path_.endswith(".ms") or path_.endswith(".MS")
+        return str(path).lower().endswith(".ms")
 
     @staticmethod
     def is_vis_file(path: FilePathType) -> bool:
-        path_ = str(path)
-        return path_.endswith(".vis") or path_.endswith(".VIS")
+        return str(path).lower().endswith(".vis")
 
     @staticmethod
     def combine_spectral_foreground_vis(

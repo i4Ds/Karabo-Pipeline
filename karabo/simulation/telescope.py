@@ -214,15 +214,13 @@ class Telescope(KaraboResource):
             os.path.join(dir, "layout.txt"),
             [station.position for station in self.stations],
         )
-        i = 0
-        for station in self.stations:
+        for i, station in enumerate(self.stations):
             station_path = f"{dir}{os.path.sep}station{'{:03d}'.format(i)}"
             os.mkdir(station_path)
             self.__write_layout_txt(
                 os.path.join(station_path, "layout.txt"),
                 station.antennas,
             )
-            i += 1
 
     def __write_position_txt(self, position_file_path: str) -> None:
         position_file = open(position_file_path, "a")

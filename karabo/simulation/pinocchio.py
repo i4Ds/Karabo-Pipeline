@@ -80,9 +80,16 @@ class Pinocchio:
             )
             self.wd = fh.subdir
         # get default input files
-        inputFilesPath = os.environ["CONDA_PREFIX"] + "/etc/"
-        self.paramsInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_PARAMS_FILE
-        self.redShiftInputPath = inputFilesPath + Pinocchio.PIN_DEFAULT_OUTPUT_FILE
+        conda_prefix = os.environ.get("CONDA_PREFIX")
+        if conda_prefix is None:
+            raise OSError("$CONDA_PREFIX not found for Pinocchio file-path discovery.")
+        inputFilesPath = os.path.join(conda_prefix, "etc")
+        self.paramsInputPath = os.path.join(
+            inputFilesPath, Pinocchio.PIN_DEFAULT_PARAMS_FILE
+        )
+        self.redShiftInputPath = os.path.join(
+            inputFilesPath, Pinocchio.PIN_DEFAULT_OUTPUT_FILE
+        )
 
         self.currConfig = self.__loadPinocchioDefaultConfig()
         self.redShiftRequest = self.__loadPinocchioDefaultRedShiftRequest()
