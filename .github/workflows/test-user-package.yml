@@ -25,7 +25,7 @@ jobs:
           conda config --set solver libmamba
           conda create -y -n karabo-env python=3.9
           conda activate karabo-env
-          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipelinekarabo-pipeline
+          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
           pip install ipykernel
           python -m ipykernel install --user --name python3
       - name: Test Package
