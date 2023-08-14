@@ -9,7 +9,7 @@ on:
 jobs:
   conda-build:
     runs-on: ubuntu-latest
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
@@ -21,13 +21,11 @@ jobs:
           export RUN_SLOW_TESTS=false
           export IS_GITHUB_RUNNER=true
           export RUN_GPU_TESTS=false
-          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          export KARABO_VERSION="${KARABO_TAG:1}"
           conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
           conda create -y -n karabo-env python=3.9
           conda activate karabo-env
-          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
+          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipelinekarabo-pipeline
           pip install ipykernel
           python -m ipykernel install --user --name python3
       - name: Test Package
