@@ -1,0 +1,37 @@
+name: Test User Package
+
+on:
+  workflow_run:
+    workflows: ["Conda Build"]
+    types:
+      - completed
+
+jobs:
+  conda-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+      - name: Get Previous tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+      - name: Set variables, install package
+        shell: bash -l {0}
+        run: |
+          export RUN_SLOW_TESTS=false
+          export IS_GITHUB_RUNNER=true
+          export RUN_GPU_TESTS=false
+          conda install -y -n base conda-libmamba-solver
+          conda config --set solver libmamba
+          conda create -y -n karabo-env python=3.9
+          conda activate karabo-env
+          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
+      - name: Test Package
+        shell: bash -l {0}
+        run: |
+          conda activate karabo-env
+          pytest --pyargs karabo.test
+  
