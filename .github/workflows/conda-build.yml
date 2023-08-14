@@ -8,30 +8,33 @@ on:
 
 jobs:
   conda-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container: ghcr.io/i4ds/mambabuild-docker:latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
       - name: Get Previous tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
-      - name: Set variables, Build Karabo
+      - name: Install conda build
+        shell: bash -l {0}
+        id: channels
+        run: |
+          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          conda config --append channels i4ds
+          conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels conda-forge
+      - name: Build Conda
         shell: bash -l {0}
         run: |
+          cd conda
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
           export KARABO_VERSION="${KARABO_TAG:1}"
           echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
-          conda install conda-build
-          conda build -c i4ds/label/main -c i4ds -c conda-forge .
+          conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
           conda activate base
-          conda install anaconda-client
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
-  
