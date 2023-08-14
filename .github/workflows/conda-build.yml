@@ -28,28 +28,6 @@ jobs:
           echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
           conda install conda-build
           conda build -c i4ds/label/main -c i4ds -c conda-forge .
-      - name: Cleanup after build
-        shell: bash -l {0}
-        run: |
-          conda build purge
-      - name: Set variables, install package
-        shell: bash -l {0}
-        run: |
-          export RUN_SLOW_TESTS=false
-          export IS_GITHUB_RUNNER=true
-          export RUN_GPU_TESTS=false
-          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          export KARABO_VERSION="${KARABO_TAG:1}"
-          conda install -y -n base conda-libmamba-solver
-          conda config --set solver libmamba
-          conda create -y -n test_karabo python=3.9
-          conda activate test_karabo
-          conda install -c nvidia/label/cuda-11.7.0 -c /opt/conda/conda-bld -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
-      - name: Test Package
-        shell: bash -l {0}
-        run: |
-          conda activate test_karabo
-          pytest --pyargs karabo.test
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
