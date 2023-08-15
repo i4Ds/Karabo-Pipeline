@@ -28,7 +28,7 @@ def continuous_fits_filename() -> str:
 
 @pytest.fixture
 def continuous_fits_downloader(
-    continuous_fits_filename,
+    continuous_fits_filename: str,
 ) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=continuous_fits_filename,
@@ -36,7 +36,7 @@ def continuous_fits_downloader(
     )
 
 
-def test_oskar_simulation_basic(sky_data: NDArray[np.float64]):
+def test_oskar_simulation_basic(sky_data: NDArray[np.float64]) -> None:
     # Tests oskar simulation. Should use GPU if available and if not, CPU.
     sky = SkyModel()
     sky.add_point_sources(sky_data)
@@ -140,7 +140,58 @@ def test_simulation_meerkat(
         )
 
 
-def test_parallelization_by_observation():
+def test_simulation_noise_meerkat() -> None:
+    # Parameter defintion
+    ra_deg = 20
+    dec_deg = -30
+    start_time = datetime(2000, 3, 20, 12, 6, 39)
+    obs_length = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0)
+    start_freq = 1.5e9
+    freq_bin = 1.0e7
+
+    # Load test sky and MeerKAT telescope
+    sky = SkyModel.sky_test()
+    telescope = Telescope.get_MEERKAT_Telescope()
+
+    # Simulating visibilities
+    simulation = InterferometerSimulation(
+        channel_bandwidth_hz=1.0e7,
+        time_average_sec=8,
+        ignore_w_components=True,
+        uv_filter_max=3000,
+        use_gpus=False,
+        enable_power_pattern=True,
+        use_dask=False,
+        noise_enable=True,
+        noise_freq="Observation settings",
+        noise_rms_start=10,
+        noise_rms_end=10,
+    )
+    observation = Observation(
+        phase_centre_ra_deg=ra_deg,
+        phase_centre_dec_deg=dec_deg,
+        start_date_and_time=start_time,
+        length=obs_length,
+        number_of_time_steps=10,
+        start_frequency_hz=start_freq,
+        frequency_increment_hz=freq_bin,
+        number_of_channels=3,
+    )
+    visibility = simulation.run_simulation(telescope, sky, observation)
+
+    # We use the Imager to check the simulation
+    imager = Imager(
+        visibility,
+        imaging_npixel=1024,
+        imaging_cellsize=3 / 180 * np.pi / 1024,
+    )
+    dirty = imager.get_dirty_image()
+    outpath = Path("result")
+    continuous_fits_path = outpath / "test_continuous_emission_noise.fits"
+    dirty.write_to_file(str(continuous_fits_path), overwrite=True)
+
+
+def test_parallelization_by_observation() -> None:
     sky = SkyModel.get_GLEAM_Sky([76])
     phase_center = [250, -80]
     CENTER_FREQUENCIES_HZ = [100e6, 101e6]
