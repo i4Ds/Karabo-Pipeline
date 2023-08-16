@@ -18,7 +18,6 @@ jobs:
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
-          export RUN_SLOW_TESTS=false
           export IS_GITHUB_RUNNER=true
           export RUN_NOTEBOOK_TESTS=false
           conda install -y -n base conda-libmamba-solver
