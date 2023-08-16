@@ -169,7 +169,7 @@ def test_simulation_noise_meerkat(
             Name of FITS file containing the simulated dirty image.
     """
     # Download golden files for comparison
-    # golden_continuous_noise_fits_path = continuous_noise_fits_downloader.get()
+    golden_continuous_noise_fits_path = continuous_noise_fits_downloader.get()
 
     # Parameter defintion
     ra_deg = 20
@@ -219,8 +219,29 @@ def test_simulation_noise_meerkat(
     # Temporary directory containging output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
-        continuous_fits_path = outpath / "test_continuous_emission_noise.fits"
-        dirty.write_to_file(str(continuous_fits_path), overwrite=True)
+        continuous_noise_fits_path = outpath / "test_continuous_emission_noise.fits"
+        dirty.write_to_file(str(continuous_noise_fits_path), overwrite=True)
+
+        # Verify mosaic fits
+        continuous_noise_fits_data, continuous_noise_fits_header = fits.getdata(
+            continuous_noise_fits_path, ext=0, header=True
+        )
+        (
+            golden_continuous_noise_fits_data,
+            golden_continuous_noise_fits_header,
+        ) = fits.getdata(golden_continuous_noise_fits_path, ext=0, header=True)
+
+        # Check FITS data is close to goldenfile
+        assert np.allclose(
+            golden_continuous_noise_fits_data,
+            continuous_noise_fits_data,
+            equal_nan=True,
+        )
+
+        # Check that headers contain the same keys
+        assert set(golden_continuous_noise_fits_header.keys()) == set(
+            continuous_noise_fits_header.keys()
+        )
 
 
 def test_parallelization_by_observation() -> None:
