@@ -21,9 +21,15 @@ from karabo.simulation.telescope import Telescope
 
 # DownloadObject instances used to download different golden files:
 # - FITS file of the test continuous emission simulation of MeerKAT.
+# - FITS files of the test continuous emission simulation with noise of MeerKAT.
 @pytest.fixture
 def continuous_fits_filename() -> str:
     return "test_continuous_emission.fits"
+
+
+@pytest.fixture
+def continuous_noise_fits_filename() -> str:
+    return "test_continuous_emission_noise.fits"
 
 
 @pytest.fixture
@@ -32,6 +38,16 @@ def continuous_fits_downloader(
 ) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=continuous_fits_filename,
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    )
+
+
+@pytest.fixture
+def continuous_noise_fits_downloader(
+    continuous_noise_fits_filename: str,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=continuous_noise_fits_filename,
         remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
@@ -140,7 +156,21 @@ def test_simulation_meerkat(
         )
 
 
-def test_simulation_noise_meerkat() -> None:
+def test_simulation_noise_meerkat(
+    continuous_noise_fits_filename: str,
+    continuous_noise_fits_downloader: SingleFileDownloadObject,
+) -> None:
+    """
+    Executes a simulation of continuous emission with noise and validates
+    the output files.
+
+    Args:
+        continuous_noise_fits_filename:
+            Name of FITS file containing the simulated dirty image.
+    """
+    # Download golden files for comparison
+    # golden_continuous_noise_fits_path = continuous_noise_fits_downloader.get()
+
     # Parameter defintion
     ra_deg = 20
     dec_deg = -30
@@ -186,9 +216,11 @@ def test_simulation_noise_meerkat() -> None:
         imaging_cellsize=3 / 180 * np.pi / 1024,
     )
     dirty = imager.get_dirty_image()
-    outpath = Path("result")
-    continuous_fits_path = outpath / "test_continuous_emission_noise.fits"
-    dirty.write_to_file(str(continuous_fits_path), overwrite=True)
+    # Temporary directory containging output files for validation
+    with tempfile.TemporaryDirectory() as tmpdir:
+        outpath = Path(tmpdir)
+        continuous_fits_path = outpath / "test_continuous_emission_noise.fits"
+        dirty.write_to_file(str(continuous_fits_path), overwrite=True)
 
 
 def test_parallelization_by_observation() -> None:
