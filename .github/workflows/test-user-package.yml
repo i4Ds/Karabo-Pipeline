@@ -18,9 +18,8 @@ jobs:
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
-          export RUN_SLOW_TESTS=false
           export IS_GITHUB_RUNNER=true
-          export RUN_GPU_TESTS=false
+          export RUN_NOTEBOOK_TESTS=false
           conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
           conda create -y -n karabo-env python=3.9
