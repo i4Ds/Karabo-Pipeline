@@ -226,7 +226,6 @@ def test_line_emission_run(
             dirty_im,
             outpath / "test_line_emission.pdf",
             header_dirty,
-            cut=cut,
         )
 
         # Generate Gaussian primary beam for correction,
@@ -271,7 +270,6 @@ def test_line_emission_run(
             beam_corrected,
             outpath / "test_line_emission_beamcorrected.pdf",
             header_dirty,
-            cut=cut,
         )
 
         print("Finished")
