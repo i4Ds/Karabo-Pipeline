@@ -27,6 +27,7 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
 from karabo.util.dask import DaskHandler
+from karabo.util.plotting_util import get_slices
 
 
 def polar_corrdinates_grid(
@@ -175,7 +176,6 @@ def plot_scatter_recon(
     vmin: IntFloat = 0,
     vmax: Optional[IntFloat] = None,
     f_min: Optional[IntFloat] = None,
-    cut: Optional[IntFloat] = None,
 ) -> None:
     """
     Plotting the sky as a scatter plot and its reconstruction and saving it as a pdf.
@@ -187,18 +187,10 @@ def plot_scatter_recon(
     :param vmin: Minimum value of the colorbar.
     :param vmax: Maximum value of the colorbar.
     :param f_min: Minimal flux of the sources to be plotted in the scatter plot
-    :param cut: Smaller FOV
     """
 
     wcs = WCS(header)
-    slices = []
-    for i in range(wcs.pixel_n_dim):
-        if i == 0:
-            slices.append("x")
-        elif i == 1:
-            slices.append("y")
-        else:
-            slices.append(0)  # type: ignore [arg-type]
+    slices = get_slices(wcs)
 
     # Do only plot sources with a flux above f_min if f_min is not None
     if f_min is not None:
@@ -212,11 +204,14 @@ def plot_scatter_recon(
     scatter = ax1.scatter(sky[:, 0], sky[:, 1], c=sky[:, 2], vmin=0, s=10, cmap="jet")
     ax1.set_aspect("equal")
     plt.colorbar(scatter, ax=ax1, label="Flux [Jy]")
-    if cut is not None:
-        ra_deg = header["CRVAL1"]
-        dec_deg = header["CRVAL2"]
-        ax1.set_xlim((ra_deg - cut / 2, ra_deg + cut / 2))
-        ax1.set_ylim((dec_deg - cut / 2, dec_deg + cut / 2))
+    ra_deg = header["CRVAL1"]
+    dec_deg = header["CRVAL2"]
+    img_size_ra = header["NAXIS1"]
+    img_size_dec = header["NAXIS2"]
+    cut_ra = -header["CDELT1"] * float(img_size_ra)
+    cut_dec = header["CDELT2"] * float(img_size_dec)
+    ax1.set_xlim((ra_deg - cut_ra / 2, ra_deg + cut_ra / 2))
+    ax1.set_ylim((dec_deg - cut_dec / 2, dec_deg + cut_dec / 2))
     ax1.set_xlabel("RA [deg]")
     ax1.set_ylabel("DEC [deg]")
     ax1.invert_xaxis()
@@ -449,7 +444,7 @@ def karabo_reconstruction(
                 "Creation of a pdf with scatter plot and reconstructed image to ",
                 str(outfile),
             )
-        plot_scatter_recon(sky, dirty_image, f"{outfile}.pdf", header, cut=cut)
+        plot_scatter_recon(sky, dirty_image, f"{outfile}.pdf", header)
 
     if mosaic_pntg_file is not None:
         if verbose:
