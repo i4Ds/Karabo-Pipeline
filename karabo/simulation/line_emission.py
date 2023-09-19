@@ -13,10 +13,6 @@ from astropy.constants import c
 from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
 from astropy.wcs import WCS
-
-# from dask.delayed import Delayed
-from dask import compute, delayed  # type: ignore[attr-defined]
-from dask.distributed import Client
 from numpy.typing import NDArray
 
 from karabo.imaging.imager import Imager
@@ -26,7 +22,9 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
-from karabo.util.dask import DaskHandler
+
+# from dask.delayed import Delayed
+from karabo.util.dask import parallelize_with_dask
 from karabo.util.plotting_util import get_slices
 
 
@@ -462,8 +460,6 @@ def run_one_channel_simulation(
     path: FilePathType,
     sky: SkyModel,
     telescope: Telescope,
-    z_min: np.float_,
-    z_max: np.float_,
     freq_bin_start: float,
     freq_bin_width: float,
     ra_deg: IntFloat,
@@ -488,8 +484,6 @@ def run_one_channel_simulation(
                 of each source.
     :param telescope: Telescope used. If None, the MEERKAT telescope will be used as a
                       default.
-    :param z_min: Smallest redshift in this bin.
-    :param z_max: Largest redshift in this bin.
     :param freq_bin_start: Starting frequency in this bin
         (i.e., largest frequency in the bin).
     :param freq_bin_width: Size of the sky frequency bin which is simulated.
@@ -513,15 +507,13 @@ def run_one_channel_simulation(
     :return: Reconstruction of one bin slice of the sky and its header.
     """
 
-    sky_bin = sky_slice(sky, z_min, z_max)
-
     if verbose:
         print("Starting simulation...")
 
     freq_bin_middle = freq_bin_start - freq_bin_width / 2
     dirty_image, header = karabo_reconstruction(
         path,
-        sky=sky_bin,
+        sky=sky,
         telescope=telescope,
         ra_deg=ra_deg,
         dec_deg=dec_deg,
@@ -594,7 +586,6 @@ def line_emission_pointing(
     img_size: int = 4096,
     circle: bool = True,
     rascil: bool = True,
-    client: Optional[Client] = None,
     verbose: bool = False,
 ) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, np.float_]:
     """
@@ -629,7 +620,6 @@ def line_emission_pointing(
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
                    used.
-    :param client: Setting a dask client is optional.
     :param verbose: If True you get more print statements.
     :return: Total line emission reconstruction, 3D line emission reconstruction,
              Header of reconstruction and mean frequency.
@@ -647,17 +637,11 @@ def line_emission_pointing(
 
     os.makedirs(outpath)
 
-    # Load sky into memory and close connection to h5
-    sky.compute()
-
     if sky.sources is None:
         raise TypeError(
             "`sources` None is not allowed! Please set them in"
             " the `SkyModel` before calling this function."
         )
-
-    if not client:
-        client = DaskHandler.get_dask_client()
 
     redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(
         z_obs=sky.sources[:, 13],
@@ -669,20 +653,37 @@ def line_emission_pointing(
     n_jobs = num_bins
     print(f"Submitting {n_jobs} jobs to the cluster.")
 
-    delayed_results = []
+    # Helper function to parallise with dask
+    def process_channel(  # type: ignore[no-untyped-def]
+        bin_idx,
+        outpath,
+        sky,
+        telescope,
+        redshift_channel,
+        freq_channel,
+        ra_deg,
+        dec_deg,
+        beam_type,
+        gaussian_fwhm,
+        gaussian_ref_freq,
+        start_time,
+        obs_length,
+        cut,
+        img_size,
+        circle,
+        rascil,
+        verbose,
+    ):
+        # Do the sky slicing here, so that less data is sent to each worker
+        z_min = redshift_channel[bin_idx]
+        z_max = redshift_channel[bin_idx + 1]
+        sky_bin = sky_slice(sky, z_min, z_max)
+        sky_bin.compute()
 
-    for bin_idx in range(num_bins):
-        if verbose:
-            print(
-                f"Channel {bin_idx} is being processed...\n"
-                "Extracting the corresponding frequency slice from the sky model..."
-            )
-        delayed_ = delayed(run_one_channel_simulation)(
+        return run_one_channel_simulation(
             path=outpath / f"slice_{bin_idx}",
-            sky=sky,
+            sky=sky_bin,
             telescope=telescope,
-            z_min=redshift_channel[bin_idx],
-            z_max=redshift_channel[bin_idx + 1],
             freq_bin_start=freq_channel[bin_idx],
             freq_bin_width=freq_bin[bin_idx],
             ra_deg=ra_deg,
@@ -698,9 +699,29 @@ def line_emission_pointing(
             rascil=rascil,
             verbose=verbose,
         )
-        delayed_results.append(delayed_)
 
-    result = compute(*delayed_results, scheduler="distributed")
+    result = parallelize_with_dask(
+        process_channel,
+        range(num_bins),
+        outpath=outpath,
+        sky=sky,
+        telescope=telescope,
+        redshift_channel=redshift_channel,
+        freq_channel=freq_channel,
+        ra_deg=ra_deg,
+        dec_deg=dec_deg,
+        beam_type=beam_type,
+        gaussian_fwhm=gaussian_fwhm,
+        gaussian_ref_freq=gaussian_ref_freq,
+        start_time=start_time,
+        obs_length=obs_length,
+        cut=cut,
+        img_size=img_size,
+        circle=circle,
+        rascil=rascil,
+        verbose=verbose,
+    )
+
     dirty_images = [x[0] for x in result]
     headers = [x[1] for x in result]
     header = headers[0]

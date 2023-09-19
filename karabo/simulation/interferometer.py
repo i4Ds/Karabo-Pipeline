@@ -403,7 +403,6 @@ class InterferometerSimulation:
 
         # Some dask stuff
         run_simu_delayed = delayed(self.__run_simulation_oskar)
-        delayed_results = []
 
         # Scatter sky
         array_sky = self.client.scatter(array_sky)
@@ -414,7 +413,11 @@ class InterferometerSimulation:
         os.makedirs(ms_dir, exist_ok=True)
         vis_dir = os.path.join(fh.subdir, "visibilities")
         os.makedirs(vis_dir, exist_ok=True)
-        for observation_params in observations:
+
+        from karabo.util.dask import parallelize_with_dask
+
+        # Helper function for processing observation:
+        def process_observation(observation_params, ms_dir, input_telpath, precision):  # type: ignore[no-untyped-def]
             start_freq = observation_params["observation"]["start_frequency_hz"]
             ms_file_path = os.path.join(ms_dir, f"start_freq_{start_freq}.MS")
             vis_path = os.path.join(ms_dir, f"start_freq_{start_freq}.vis")
@@ -426,17 +429,17 @@ class InterferometerSimulation:
 
             params_total = {**interferometer_params, **observation_params}
 
-            # Submit the jobs
-            delayed_ = run_simu_delayed(
+            return run_simu_delayed(
                 os_sky=array_sky,
                 params_total=params_total,
-                precision=self.precision,
+                precision=precision,
             )
-            delayed_results.append(delayed_)
 
         results = cast(
             List[OskarSettingsTreeType],
-            compute(*delayed_results, scheduler="distributed"),
+            parallelize_with_dask(
+                process_observation, observations, ms_dir, input_telpath, self.precision
+            ),
         )
         # Extract visibilities
         visibilities_path = [x["interferometer"]["oskar_vis_filename"] for x in results]
