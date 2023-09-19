@@ -224,7 +224,7 @@ def plot_scatter_recon(
     plt.savefig(outfile)
 
 
-def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
+def sky_slice(sky: SkyModel, z_min: IntFloat, z_max: IntFloat) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
     and z_max.
@@ -238,15 +238,7 @@ def sky_slice(sky: SkyModel, z_min: np.float_, z_max: np.float_) -> SkyModel:
     :return: Sky model only including the sources with redshifts between z_min and
              z_max.
     """
-    sky_bin = SkyModel.copy_sky(sky)
-    if sky_bin.sources is None:
-        raise TypeError("`sky.sources` is None which is not allowed.")
-
-    z_obs = sky_bin.sources[:, 13]
-    sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
-    sky_bin.sources = sky_bin.sources[sky_bin_idx]
-
-    return sky_bin
+    return sky.filter_by_column(13, z_min, z_max)
 
 
 T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
@@ -653,6 +645,9 @@ def line_emission_pointing(
     n_jobs = num_bins
     print(f"Submitting {n_jobs} jobs to the cluster.")
 
+    # Load the sky into memory
+    sky.compute()
+
     # Helper function to parallise with dask
     def process_channel(  # type: ignore[no-untyped-def]
         bin_idx,
@@ -678,7 +673,6 @@ def line_emission_pointing(
         z_min = redshift_channel[bin_idx]
         z_max = redshift_channel[bin_idx + 1]
         sky_bin = sky_slice(sky, z_min, z_max)
-        sky_bin.compute()
 
         return run_one_channel_simulation(
             path=outpath / f"slice_{bin_idx}",
