@@ -51,6 +51,8 @@ Following these guidelines will help ensure that you get the most out of Karabo'
 - tuple: A tuple containing the results of the iterate_function for each element in the iterable. Results are gathered using Dask's compute function.
 
 ### Additional Notes
+It's important when working on a `Slurm Cluster` to call DaskHandler.setup() at the beginning.
+
 If 'verbose' is specified in kwargs and is set to True, progress messages will be printed during processing.
 
 The function internally uses the distributed scheduler of Dask.
