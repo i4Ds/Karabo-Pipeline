@@ -24,7 +24,8 @@ from karabo.util.dask import (
 @pytest.fixture(scope="module")
 def setup_dask():
     DaskHandler.setup()
-    
+
+
 @pytest.fixture
 def env_vars():
     return {
@@ -195,8 +196,10 @@ def test_dask_job():
     assert result == (4, 7, 10, 13, 16)
     assert sum(result) == 50
 
+
 def simple_function(x: int, multiplier: int = 1) -> int:
     return x * multiplier
+
 
 def test_parallelize_with_dask(setup_dask):
     iterable = [1, 2, 3, 4, 5]
