@@ -167,12 +167,12 @@ def parallelize_with_dask(
         positional arguments, and then any keyword arguments.
 
     iterable : iterable
-        The iterable over which the function will be applied. Each element of this iterable
-        will be passed to the `iterate_function`.
+        The iterable over which the function will be applied. Each element of this
+        iterable will be passed to the `iterate_function`.
 
     *args : tuple
-        Positional arguments that will be passed to the `iterate_function` after the current
-        element of the iterable.
+        Positional arguments that will be passed to the `iterate_function` after the
+        current element of the iterable.
 
     **kwargs : dict
         Keyword arguments that will be passed to the `iterate_function`.
@@ -180,13 +180,13 @@ def parallelize_with_dask(
     Returns
     -------
     tuple
-        A tuple containing the results of the `iterate_function` for each element in the iterable.
-        The results are gathered using Dask's compute function.
+        A tuple containing the results of the `iterate_function` for each element in the
+        iterable. The results are gathered using Dask's compute function.
 
     Notes
     -----
-    - If 'verbose' is present in **kwargs and is set to True, additional progress messages will
-    be printed.
+    - If 'verbose' is present in **kwargs and is set to True, additional progress
+    messages will be printed.
     - This function utilizes the distributed scheduler of Dask.
     """
     if not DaskHandler._setup_called:

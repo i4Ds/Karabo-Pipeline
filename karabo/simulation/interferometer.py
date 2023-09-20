@@ -9,7 +9,7 @@ import numpy as np
 import oskar
 import pandas as pd
 import xarray as xr
-from dask import compute, delayed  # type: ignore[attr-defined]
+from dask import delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
@@ -417,7 +417,9 @@ class InterferometerSimulation:
         from karabo.util.dask import parallelize_with_dask
 
         # Helper function for processing observation:
-        def process_observation(observation_params, ms_dir, input_telpath, precision):  # type: ignore[no-untyped-def]
+        def process_observation(  # type: ignore[no-untyped-def]
+            observation_params, ms_dir, input_telpath, precision
+        ):
             start_freq = observation_params["observation"]["start_frequency_hz"]
             ms_file_path = os.path.join(ms_dir, f"start_freq_{start_freq}.MS")
             vis_path = os.path.join(ms_dir, f"start_freq_{start_freq}.vis")

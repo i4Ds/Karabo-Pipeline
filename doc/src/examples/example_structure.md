@@ -66,6 +66,14 @@ def parallelize_with_dask(
     *args: Any,
     **kwargs: Any,
 ) -> Union[Any, Tuple[Any, ...], List[Any]]:
+
+# Example
+def my_function(element, *args, **kwargs):
+    # Do something with element
+    return result
+
+parallelize_with_dask(my_function, my_iterable, *args, **kwargs) # The current element of the iterable is passed as the first argument to my_function
+>>> (result1, result2, result3, ...)
 ```
 
 ## Use Karabo on a SLURM cluster
