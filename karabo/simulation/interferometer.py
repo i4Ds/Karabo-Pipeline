@@ -9,7 +9,7 @@ import numpy as np
 import oskar
 import pandas as pd
 import xarray as xr
-from dask import delayed  # type: ignore[attr-defined]
+from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
@@ -31,7 +31,7 @@ from karabo.util._types import (
     OskarSettingsTreeType,
     PrecisionType,
 )
-from karabo.util.dask import DaskHandler, parallelize_with_dask
+from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
@@ -403,6 +403,7 @@ class InterferometerSimulation:
 
         # Some dask stuff
         run_simu_delayed = delayed(self.__run_simulation_oskar)
+        delayed_results = []
 
         # Scatter sky
         array_sky = self.client.scatter(array_sky)
@@ -413,11 +414,7 @@ class InterferometerSimulation:
         os.makedirs(ms_dir, exist_ok=True)
         vis_dir = os.path.join(fh.subdir, "visibilities")
         os.makedirs(vis_dir, exist_ok=True)
-
-        # Helper function for processing observation:
-        def process_observation(  # type: ignore[no-untyped-def]
-            observation_params, ms_dir, input_telpath, precision
-        ):
+        for observation_params in observations:
             start_freq = observation_params["observation"]["start_frequency_hz"]
             ms_file_path = os.path.join(ms_dir, f"start_freq_{start_freq}.MS")
             vis_path = os.path.join(ms_dir, f"start_freq_{start_freq}.vis")
@@ -429,17 +426,17 @@ class InterferometerSimulation:
 
             params_total = {**interferometer_params, **observation_params}
 
-            return run_simu_delayed(
+            # Submit the jobs
+            delayed_ = run_simu_delayed(
                 os_sky=array_sky,
                 params_total=params_total,
-                precision=precision,
+                precision=self.precision,
             )
+            delayed_results.append(delayed_)
 
         results = cast(
             List[OskarSettingsTreeType],
-            parallelize_with_dask(
-                process_observation, observations, ms_dir, input_telpath, self.precision
-            ),
+            compute(*delayed_results, scheduler="distributed"),
         )
         # Extract visibilities
         visibilities_path = [x["interferometer"]["oskar_vis_filename"] for x in results]
