@@ -31,7 +31,7 @@ from karabo.util._types import (
     OskarSettingsTreeType,
     PrecisionType,
 )
-from karabo.util.dask import DaskHandler
+from karabo.util.dask import DaskHandler, parallelize_with_dask
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
 from karabo.warning import KaraboWarning
@@ -413,8 +413,6 @@ class InterferometerSimulation:
         os.makedirs(ms_dir, exist_ok=True)
         vis_dir = os.path.join(fh.subdir, "visibilities")
         os.makedirs(vis_dir, exist_ok=True)
-
-        from karabo.util.dask import parallelize_with_dask
 
         # Helper function for processing observation:
         def process_observation(  # type: ignore[no-untyped-def]
