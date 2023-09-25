@@ -39,14 +39,29 @@ How to use Singularity containers can be seen in the [Singularity documentation]
 
 ## Sarus Container
 
-On CSCS it is recommended to use [Sarus containers](https://user.cscs.ch/tools/containers/sarus/). Sarus commands are similar to Docker or Singularity. It is recommended to create a sarus image in an interactive SLURM job using `srun --pty bash`. You may have to load Sarus first using `module load sarus`.
+On CSCS it is recommended to use [Sarus containers](https://sarus.readthedocs.io/en/stable/index.html) (see CSCS [Sarus guide](https://user.cscs.ch/tools/containers/sarus/)). Sarus commands are similar to Docker or Singularity. It is recommended to create a sarus image in an interactive SLURM job using `srun --pty bash`. 
+
+**Setup**
+
+You should load `daint-gpu` or `daint-mc` before loading the `sarus` modulefile:
+
+```shell
+module load daint-gpu \# or daint-mc
+module load sarus
+```
+
+Then you can pull a docker image to a sarus image as follows:
 
 ```shell
 sarus pull ghcr.io/i4ds/karabo-pipeline:latest
 ```
 
-Then you can create a container similar to Docker. An overview of the images are given using the `sarus images` command. Afterwards, you can run a container as follows.
+**Native MPI support (MPICH-based)**
 
-```shell
-sarus run ghcr.io/i4ds/karabo-pipeline:latest
-```
+In order to access the high-speed Cray Aries interconnect, the container application must be dynamically linked to an MPI implementation that is [ABI-compatible](https://www.mpich.org/abi/) with the compute node's MPI on Piz Daint, CSCS recommends one of the following MPI implementations:
+
+[MPICH v3.1.4](http://www.mpich.org/static/downloads/3.1.4/mpich-3.1.4.tar.gz) (Feburary 2015)
+[MVAPICH2 2.2](http://mvapich.cse.ohio-state.edu/download/mvapich/mv2/mvapich2-2.2.tar.gz) (September 2016)
+Intel MPI Library 2017 Update 1
+
+How to use: TODO
