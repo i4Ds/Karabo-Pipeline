@@ -10,17 +10,6 @@ docker pull ghcr.io/i4ds/karabo-pipeline:latest
 
 Docker images have the advantage that the packages needed for karabo-pipeline are already pre-installed and you can usually run them on other operating systems. In addition, Docker images can easily create singularity containers (see [Singularity Container](#singularity-container)), which are often used in HPC clusters.
 
-## Singularity Container
-
-Singularity containers are often standard on HPC clusters, which do not require special permissions (unlike Docker).
-We do not provide ready-made [Singularity containers](https://sylabs.io/). However, they can be easily created from Docker images with the following command (may take a while):
-
-```shell
-singularity pull https://ghcr.io/i4ds/karabo-pipeline:latest
-```
-
-How to use Singularity containers can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html).
-
 ## Docker Container
 
 What is possible with Docker is far too extensive to describe here. We refer to the official [Docker reference](https://docs.docker.com/reference/) for this. We only show here a minimal example of how Docker could be used, so you can use a [Jupyter Notebook](https://jupyter.org/) with sample code and working Karabo environment.
@@ -36,3 +25,28 @@ jupyter lab --ip 0.0.0.0 --no-browser --port=8888 --allow-root
 ```
 
 This will start the server on the same port we forwarded. Then copy the url which is given at the bottom and replace `hostname` with `localhost` and open it in the browser.
+
+## Singularity Container
+
+Singularity containers are often standard on HPC clusters, which do not require special permissions (unlike Docker).
+We do not provide ready-made [Singularity containers](https://sylabs.io/). However, they can be easily created from Docker images with the following command (may take a while):
+
+```shell
+singularity pull docker://ghcr.io/i4ds/karabo-pipeline:latest
+```
+
+How to use Singularity containers can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html).
+
+## Sarus Container
+
+On CSCS it is recommended to use [Sarus containers](https://user.cscs.ch/tools/containers/sarus/). Sarus commands are similar to Docker or Singularity. It is recommended to create a sarus image in an interactive SLURM job using `srun --pty bash`. You may have to load Sarus first using `module load sarus`.
+
+```shell
+sarus pull ghcr.io/i4ds/karabo-pipeline:latest
+```
+
+Then you can create a container similar to Docker. An overview of the images are given using the `sarus images` command. Afterwards, you can run a container as follows.
+
+```shell
+sarus run ghcr.io/i4ds/karabo-pipeline:latest
+```

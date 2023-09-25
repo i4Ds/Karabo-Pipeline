@@ -23,9 +23,9 @@ conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipel
 conda clean --all -y
 ```
 
-Karabo releases older than `v0.15.0` are deprecated and therefore we don't guarantee a successful installation.
+Karabo versions older than `v0.15.0` are deprecated and therefore installation will most likely fail. In addition, we do not support versions of Karabo older than latest-patch when dependency resolving or online resources are outdated. Therefore, we strongly recommend using the latest version of Karabo. If an older version of Karabo is required, we strongly recommend using a [container](container.md), as the environment is fixed in a container. However, outdated online resources may still occur.
 
-## Update to the current Karabo version
+## Update to latest Karabo version
 A Karabo installation can be updated the following way:
 ```
 conda update -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
