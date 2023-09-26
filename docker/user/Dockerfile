@@ -9,7 +9,7 @@ ARG KARABO_TAG
 RUN apt-get update && apt-get install -y libarchive13 wget curl nano
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda
-ENV PATH=/opt/conda/bin:$PATH
+ENV PATH=/opt/conda/bin:$PATH CONDA_PREFIX=/opt/conda
 RUN conda init
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda update -y conda && \
