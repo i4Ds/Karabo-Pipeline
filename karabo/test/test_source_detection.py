@@ -14,9 +14,7 @@ from karabo.sourcedetection.result import (
     PyBDSFSourceDetectionResult,
     SourceDetectionResult,
 )
-from karabo.test.conftest import NNImageDiffCallable, TFiles
-
-RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
+from karabo.test.conftest import RUN_GPU_TESTS, NNImageDiffCallable, TFiles
 
 
 def test_source_detection_plot(

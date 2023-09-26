@@ -14,6 +14,7 @@ from karabo.util.file_handler import FileHandler
 NNImageDiffCallable = Callable[[str, str], float]
 
 IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
+RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 file_handler_test_dir = os.path.join(os.path.dirname(__file__), "karabo_test")
 
 
