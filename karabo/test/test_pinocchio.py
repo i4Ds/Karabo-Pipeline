@@ -2,10 +2,12 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from karabo.simulation.pinocchio import Pinocchio
 
 
+@pytest.mark.skip(reason="`pinocchio.test.plc.out` not found on CSCS Sarus container")
 def test_pinocchio_run():
     """Validate a simple PINOCCHIO run.
 
