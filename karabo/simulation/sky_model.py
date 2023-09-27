@@ -618,29 +618,29 @@ class SkyModel:
         else:
             return copied_sky
 
-    def filter_by_flux(
+    def filter_by_column(
         self,
-        min_flux_jy: IntFloat,
-        max_flux_jy: IntFloat,
+        col_idx: int,
+        min_val: IntFloat,
+        max_val: IntFloat,
     ) -> SkyModel:
         """
-        Filters the sky using the Stokes-I-flux
-        Values outside the range are removed
+        Filters the sky based on a specific column index
 
-        :param min_flux_jy: Minimum flux in Jy
-        :param max_flux_jy: Maximum flux in Jy
+        :param col_idx: Column index to filter by
+        :param min_val: Minimum value for the column
+        :param max_val: Maximum value for the column
         :return sky: Filtered copy of the sky
         """
         copied_sky = SkyModel.copy_sky(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
-                "`sources` None is not allowed. "
-                + "Add sources before calling `filter_by_flux`."
+                "`sources` is None, add sources before filtering."
             )
 
         # Create mask
-        filter_mask = (copied_sky[:, 2] >= min_flux_jy) & (
-            copied_sky[:, 2] <= max_flux_jy
+        filter_mask = (copied_sky.sources[:, col_idx] >= min_val) & (
+            copied_sky.sources[:, col_idx] <= max_val
         )
         filter_mask = self.rechunk_array_based_on_self(filter_mask)
 
@@ -648,35 +648,20 @@ class SkyModel:
         copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
 
         return copied_sky
+
+    def filter_by_flux(
+        self,
+        min_flux_jy: IntFloat,
+        max_flux_jy: IntFloat,
+    ) -> SkyModel:
+        return self.filter_by_column(2, min_flux_jy, max_flux_jy)
 
     def filter_by_frequency(
         self,
         min_freq: IntFloat,
         max_freq: IntFloat,
     ) -> SkyModel:
-        """
-        Filters the sky using the reference frequency in Hz
-
-        :param min_freq: Minimum frequency in Hz
-        :param max_freq: Maximum frequency in Hz
-        :return sky: Filtered copy of the sky
-        """
-        copied_sky = SkyModel.copy_sky(self)
-        if copied_sky.sources is None:
-            raise KaraboSkyModelError(
-                "`sources` is None, add sources before calling `filter_by_frequency`."
-            )
-
-        # Create mask
-        filter_mask = (copied_sky.sources[:, 6] >= min_freq) & (
-            copied_sky.sources[:, 6] <= max_freq
-        )
-        filter_mask = self.rechunk_array_based_on_self(filter_mask)
-
-        # Apply the filter mask and drop the unmatched rows
-        copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
-
-        return copied_sky
+        return self.filter_by_column(6, min_freq, max_freq)
 
     def get_wcs(self) -> WCS:
         """

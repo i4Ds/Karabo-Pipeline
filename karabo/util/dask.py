@@ -6,9 +6,11 @@ import json
 import os
 import sys
 import time
+from collections.abc import Iterable
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import psutil
+from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.distributed import Client, LocalCluster, Nanny, Worker
 
 from karabo.error import KaraboDaskError
@@ -96,7 +98,15 @@ class DaskHandler:
 
     @staticmethod
     def get_dask_client() -> Client:
-        if DaskHandler.dask_client is None:
+        # Get IS_DOCKER_CONTAINER variable
+        if os.environ.get("IS_DOCKER_CONTAINER", "false").lower() == "true":
+            from dask.distributed import Client
+            from dask_mpi import initialize
+            from mpi4py import MPI
+
+            initialize(nthreads=DaskHandler.n_threads_per_worker, comm=MPI.COMM_WORLD)
+            DaskHandler.dask_client = Client()
+        elif DaskHandler.dask_client is None:
             if (
                 not DaskHandler._setup_called
                 and is_on_slurm_cluster()
@@ -138,6 +148,60 @@ class DaskHandler:
             return True
         else:
             return False
+
+
+def parallelize_with_dask(
+    iterate_function: Callable[..., Any],
+    iterable: Iterable[Any],
+    *args: Any,
+    **kwargs: Any,
+) -> Union[Any, Tuple[Any, ...], List[Any]]:
+    """
+    Run a function over an iterable in parallel using Dask, and gather the results.
+
+    Parameters
+    ----------
+    iterate_function : callable
+        The function to be applied to each element of the iterable. The function should
+        take the current element of the iterable as its first argument, followed by any
+        positional arguments, and then any keyword arguments.
+
+    iterable : iterable
+        The iterable over which the function will be applied. Each element of this
+        iterable will be passed to the `iterate_function`.
+
+    *args : tuple
+        Positional arguments that will be passed to the `iterate_function` after the
+        current element of the iterable.
+
+    **kwargs : dict
+        Keyword arguments that will be passed to the `iterate_function`.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the results of the `iterate_function` for each element in the
+        iterable. The results are gathered using Dask's compute function.
+
+    Notes
+    -----
+    - If 'verbose' is present in **kwargs and is set to True, additional progress
+    messages will be printed.
+    - This function utilizes the distributed scheduler of Dask.
+    """
+    if not DaskHandler._setup_called:
+        DaskHandler.setup()
+
+    delayed_results = []
+
+    for element in iterable:
+        if "verbose" in kwargs and kwargs["verbose"]:
+            print(f"Processing element {element}...\nExtracting data...")
+
+        delayed_result = delayed(iterate_function)(element, *args, **kwargs)
+        delayed_results.append(delayed_result)
+
+    return compute(*delayed_results, scheduler="distributed")
 
 
 def dask_cleanup(client: Client) -> None:
