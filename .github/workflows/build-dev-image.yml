@@ -6,10 +6,10 @@ on:
       IMAGE_TAG:
         required: true
         type: string
-  workflow_run:
-    workflows: ["Test User Package"]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["Test User Package"]
+  #   types:
+  #     - completed
 
 env:
   REGISTRY: ghcr.io

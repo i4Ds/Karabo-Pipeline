@@ -1,88 +1,14 @@
 # This is a template workflow that exists at the default branch for testing purpose at another branch.
 # DO NOT CHANGE THIS WORKFLOW when you merge your branch to the default branch!
 
-# name: Dev Workflow
-
-# on:
-#   workflow_dispatch:
-
-# jobs:
-#   job-name:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
-
-
-name: Build Dev Image
+name: Dev Workflow
 
 on:
   workflow_dispatch:
-    inputs:
-      IMAGE_TAG:
-        required: true
-        type: string
-  workflow_run:
-    workflows: ["Test User Package"]
-    types:
-      - completed
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: karabo-dev
-
 
 jobs:
-  Build_Dev_Image:
+  job-name:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Get Previous tag
-        uses: actions-ecosystem/action-get-latest-tag@v1
-        id: get-latest-tag
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create image tag
-        id: imagetag
-        shell: bash -l {0}
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            IMAGE_TAG=${{ inputs.IMAGE_TAG }}
-          else
-            IMAGE_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          fi
-          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw, value=${{ steps.imagetag.outputs.tag }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          file: docker/dev/Dockerfile
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
