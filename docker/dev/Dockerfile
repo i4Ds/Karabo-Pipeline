@@ -1,6 +1,5 @@
-FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04 as build
-RUN apt-get update && apt-get install -y git
-RUN git clone --branch ${KARABO_TAG} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
+# This Dockerfile is for developing purpose only
+# Make sure to call `docker build` at the root of the repo to have access to the required files
 
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 RUN apt-get update && apt-get install -y libarchive13 wget curl nano
@@ -11,8 +10,7 @@ RUN conda init
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda update -y conda && \
     conda install mamba -y -c conda-forge
-COPY --from=build environment.yaml environment.yaml
-COPY --from=build requirements.txt requirements.txt
+COPY environment.yaml requirements.txt ./
 RUN mamba env update --file environment.yaml && \
     pip install -r requirements.txt && \
     pip install jupyterlab ipykernel && \
