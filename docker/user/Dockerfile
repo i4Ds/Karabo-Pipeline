@@ -1,6 +1,7 @@
 # Create build container to not have copied filed in real container afterwards
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04 as build
 ARG KARABO_TAG
+ARG IS_DOCKER_CONTAINER=true
 RUN apt-get update && apt-get install -y git
 RUN git clone --branch ${KARABO_TAG} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
 

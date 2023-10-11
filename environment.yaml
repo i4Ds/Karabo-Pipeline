@@ -10,6 +10,8 @@ dependencies:
   - bluebild
   - cuda-cudart
   - dask=2022.12.1
+  - dask-mpi
+  - mpi4py
   - distributed
   - eidos=1.1.0
   - healpy
