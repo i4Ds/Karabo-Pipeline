@@ -25,6 +25,7 @@ requirements:
     - bluebild
     - cuda-cudart
     - dask=2022.12.1
+    - dask-mpi
     - distributed
     - eidos=1.1.0
     - healpy
@@ -33,6 +34,8 @@ requirements:
     - katbeam=0.1.0
     - libcufft
     - matplotlib
+    - montagepy=6.0.0
+    - mpi4py
     - nbformat
     - nbconvert
     - numpy=1.22
@@ -49,7 +52,6 @@ requirements:
     - ska-sdp-func-python=0.1.4
     - tools21cm=2.0.2
     - xarray
-    - montagepy=6.0.0
 
 
 
