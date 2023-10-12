@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y git
 RUN git clone --branch ${KARABO_TAG} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
 
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
-ARG KARABO_TAG MPICH_VERSION="4.1.*" CONDA_PATH="/opt/conda"
+ARG KARABO_TAG MPICH_VERSION="4.1.2" CONDA_PATH="/opt/conda"
 ENV IS_DOCKER_CONTAINER=true
 RUN apt-get update && apt-get install -y gcc gfortran libarchive13 wget curl nano
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
