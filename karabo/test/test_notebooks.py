@@ -1,18 +1,19 @@
 import os
 
 import nbformat
+import nest_asyncio
 import pytest
 from nbconvert.preprocessors import ExecutePreprocessor
 
 from karabo.test.conftest import IS_GITHUB_RUNNER
 from karabo.util.plotting_util import Font
 
+nest_asyncio.apply()
+
 RUN_NOTEBOOK_TESTS = os.environ.get("RUN_NOTEBOOK_TESTS", "false").lower() == "true"
-print(RUN_NOTEBOOK_TESTS)
 
 # get notebook-dir not matter cwd
 notebook_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples")
-print(notebook_dir)
 
 
 def _run_notebook(notebook: str) -> None:
