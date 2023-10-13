@@ -76,6 +76,7 @@ def clean_disk():
     yield  # testing happens here
     # Teardown: fill with logic
     FileHandler.clean_up_fh_root(force=True, verbose=False)
+    plt.close("all")
 
 
 @pytest.fixture(scope="function")
