@@ -5,16 +5,11 @@ RUN apt-get update && apt-get install -y git
 RUN git clone --branch ${KARABO_TAG} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
 
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
-ARG KARABO_TAG MPICH_VERSION="4.1.2" CONDA_PATH="/opt/conda"
-ENV IS_DOCKER_CONTAINER=true
+# compilers & wget needed for MPI-installation
 RUN apt-get update && apt-get install -y gcc gfortran libarchive13 wget curl nano
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p ${CONDA_PATH}
-ENV PATH=${CONDA_PATH}/bin:$PATH CONDA_PREFIX=${CONDA_PATH}
-RUN conda init
-SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN conda install mamba -y -c conda-forge
 # install mpich on standard location (needed for mpi-hook)
+# starting-layer because compilation can require hours.
+ARG MPICH_VERSION="4.1.2"
 RUN mkdir -p /tmp/mpich-build \
     && cd /tmp/mpich-build \
     && wget http://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz \
@@ -27,6 +22,13 @@ RUN mkdir -p /tmp/mpich-build \
     && cp -p /tmp/mpich-build/mpich-${MPICH_VERSION}/examples/cpi /usr/bin/ \
     && cd / \
     && rm -rf /tmp/mpich-build
+ARG KARABO_TAG
+ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda" IS_DOCKER_CONTAINER="true"
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p ${CONDA_PREFIX}
+RUN conda init
+SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
+RUN conda install mamba -y -c conda-forge
 RUN mamba install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${KARABO_TAG:1}"
 # replace openmpi with mpich-dummy (see issue #512)
 RUN conda remove --force-remove -y openmpi mpi && \
