@@ -45,7 +45,9 @@ jobs:
           export RUN_GPU_TESTS=false
           export RUN_NOTEBOOK_TESTS=true
           pip install . --no-deps
-          pytest --cov=./ --cov-report=xml
+          mpirun -n 2 coverage run --rcfile=setup.cfg -m pytest --cov=./ --only-mpi
+          coverage combine
+          pytest --cov=./ --cov-append --cov-report=xml
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:
