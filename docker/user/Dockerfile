@@ -26,11 +26,12 @@ RUN mkdir -p /tmp/mpich-build \
     && cp -p /tmp/mpich-build/mpich-${MPICH_VERSION}/examples/cpi /usr/bin/ \
     && cd / \
     && rm -rf /tmp/mpich-build
-RUN conda install mamba -y -c conda-forge
-RUN mamba install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${KARABO_TAG:1}"
+RUN conda install -n base conda-libmamba-solver && \
+    conda config --set solver libmamba
+RUN conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${KARABO_TAG:1}"
 # replace openmpi with mpich-dummy (see issue #512)
-RUN conda remove --force-remove -y openmpi mpi && \
-    mamba install -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
+# RUN conda remove --force-remove -y openmpi mpi && \
+#     conda install -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
 RUN pip install jupyterlab ipykernel pytest && \
     python -m ipykernel install --user --name=karabo && \
     mkdir /workspace
