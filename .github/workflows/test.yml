@@ -53,6 +53,6 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           directory: ./coverage/reports/
           env_vars: OS,PYTHON
-          files: ./coverage1.xml,./coverage2.xml,!./cache
+          files: ./coverage.xml,!./cache
           fail_ci_if_error: false
           name: codecov-karabo
