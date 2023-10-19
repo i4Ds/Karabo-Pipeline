@@ -56,7 +56,6 @@ def test_source_detection_big_files_notebook() -> None:
     reason="'Error: The operation was canceled' when running this test on the package",
 )
 def test_source_detection_assesment_notebook() -> None:
-    print("HEHEHE")
     _run_notebook(notebook="source_detection_assessment.ipynb")
 
 
