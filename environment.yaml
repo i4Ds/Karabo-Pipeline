@@ -14,7 +14,7 @@ dependencies:
   - distributed
   - eidos=1.1.0
   - healpy
-  - h5py
+  - h5py=*=mpi*
   - ipython
   - katbeam=0.1.0
   - libcufft

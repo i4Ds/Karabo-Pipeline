@@ -13,6 +13,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Li
 RUN conda init
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 # install mpich on standard location (needed for mpi-hook)
+# be sure that it's version is consistent with the latest-builds of the Karabo-Feedstock
 ARG MPICH_VERSION="4.1.2"
 RUN mkdir -p /tmp/mpich-build \
     && cd /tmp/mpich-build \
