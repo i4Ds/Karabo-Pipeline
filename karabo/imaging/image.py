@@ -16,7 +16,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util._types import FilePathType
-from karabo.util.file_handler import check_ending
+from karabo.util.file_handler import FileHandler, check_ending
 from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,
@@ -46,6 +46,8 @@ class Image(KaraboResource):
             header=True,
             **kwargs,
         )
+        self._fh_prefix = "image"
+        self._fh_verbose = False
 
     @staticmethod
     def read_from_file(path: FilePathType) -> Image:
@@ -135,6 +137,50 @@ class Image(KaraboResource):
 
         self.header["CDELT1"] = self.header["CDELT1"] * old_shape[1] / new_shape[1]
         self.header["CDELT2"] = self.header["CDELT2"] * old_shape[0] / new_shape[0]
+
+    def cutout(self, x_range: Tuple[int, int], y_range: Tuple[int, int]) -> None:
+        """
+        Cuts out a portion of the image based on the specified x and y ranges and 
+        returns a copy.
+
+        :param x_range: The start and end coordinates in the x direction
+        :param y_range: The start and end coordinates in the y direction
+        """
+        # Create a working copy
+        fh = FileHandler.get_file_handler(
+            obj=self,
+            prefix=self._fh_prefix,
+            verbose=self._fh_verbose,
+            )
+        restored_fits_path = os.path.join(fh.subdir, "cutout.fits")
+        self.write_to_file(restored_fits_path)
+
+        # Ensure the ranges are within the image dimensions
+        x_range = (max(0, x_range[0]), min(self.data.shape[3], x_range[1]))
+        y_range = (max(0, y_range[0]), min(self.data.shape[2], y_range[1]))
+
+        # Extract the sub-image
+        data = self.data[:, :, y_range[0]:y_range[1], x_range[0]:x_range[1]].copy()
+        header = self.header.copy()
+
+        ## Update the header
+        # Adjust the reference pixel coordinates
+        header["CRPIX1"] -= x_range[0]
+        header["CRPIX2"] -= y_range[0]
+
+        # Update the NAXIS values to reflect the new shape
+        header["NAXIS1"] = self.data.shape[3]
+        header["NAXIS2"] = self.data.shape[2]
+
+        # Save the image 
+        cutout_image = Image(restored_fits_path)
+        cutout_image.data = data
+        cutout_image.header = header
+
+        # Write the updated image to file
+        cutout_image.write_to_file(restored_fits_path, overwrite=True)
+
+        return cutout_image
 
     def plot(
         self,
