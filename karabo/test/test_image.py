@@ -50,6 +50,42 @@ def test_dirty_image_resample(tobject: TFiles):
     assert np.sum(np.isnan(dirty.data)) == 0
 
 
+def test_dirty_image_cutout(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
+
+    dirty = imager.get_dirty_image()
+    shape_before = dirty.data.shape
+
+    cutout1 = dirty.cutout(x_range=[500, 1500], y_range=[500, 1500])
+
+    assert cutout1.data.shape[2] == 1000
+    assert cutout1.data.shape[3] == 1000
+    assert cutout1.data.shape[0] == shape_before[0]
+    assert cutout1.data.shape[1] == shape_before[1]
+    assert np.sum(np.isnan(cutout1.data)) == 0
+    assert np.all(np.equal(cutout1.data, dirty.data[:, :, 500:1500, 500:1500]))
+
+
+def test_dirty_image_N_cutout(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
+
+    dirty = imager.get_dirty_image()
+    shape_before = dirty.data.shape
+
+    cutouts = dirty.split_image(dirty, N=4)
+
+    assert len(cutouts) == 16
+
+    for cutout in cutouts:
+        assert cutout.data.shape[2] == 512
+        assert cutout.data.shape[3] == 512
+        assert cutout.data.shape[0] == shape_before[0]
+        assert cutout.data.shape[1] == shape_before[1]
+        assert np.sum(np.isnan(cutout.data)) == 0
+
+
 def test_cellsize_overwrite(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     imager = Imager(

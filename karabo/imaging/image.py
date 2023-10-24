@@ -29,23 +29,25 @@ matplotlib.use(previous_backend)
 class Image(KaraboResource):
     def __init__(
         self,
-        path: FilePathType,
+        path: Optional[FilePathType],
         **kwargs: Any,
     ) -> None:
         """
         Proxy object class for images.
         Dirty, cleaned or any other type of image in a fits format.
+        By passing no path, an empty Image object is created.
         """
-        self.path = path
-        self._fname = os.path.split(self.path)[-1]
-        self.data: NDArray[np.float64]
-        self.header: fits.header.Header
-        self.data, self.header = fits.getdata(
-            str(self.path),
-            ext=0,
-            header=True,
-            **kwargs,
-        )
+        if path is not None:
+            self.path = path
+            self._fname = os.path.split(self.path)[-1]
+            self.data: NDArray[np.float64]
+            self.header: fits.header.Header
+            self.data, self.header = fits.getdata(
+                str(self.path),
+                ext=0,
+                header=True,
+                **kwargs,
+            )
         self._fh_prefix = "image"
         self._fh_verbose = False
 
@@ -140,30 +142,32 @@ class Image(KaraboResource):
 
     def cutout(self, x_range: Tuple[int, int], y_range: Tuple[int, int]) -> None:
         """
-        Cuts out a portion of the image based on the specified x and y ranges and 
+        Cuts out a portion of the image based on the specified x and y ranges and
         returns a copy.
 
         :param x_range: The start and end coordinates in the x direction
         :param y_range: The start and end coordinates in the y direction
         """
-        # Create a working copy
-        fh = FileHandler.get_file_handler(
-            obj=self,
-            prefix=self._fh_prefix,
-            verbose=self._fh_verbose,
-            )
-        restored_fits_path = os.path.join(fh.subdir, "cutout.fits")
-        self.write_to_file(restored_fits_path)
-
         # Ensure the ranges are within the image dimensions
         x_range = (max(0, x_range[0]), min(self.data.shape[3], x_range[1]))
         y_range = (max(0, y_range[0]), min(self.data.shape[2], y_range[1]))
 
         # Extract the sub-image
-        data = self.data[:, :, y_range[0]:y_range[1], x_range[0]:x_range[1]].copy()
+        data = self.data[:, :, y_range[0] : y_range[1], x_range[0] : x_range[1]].copy()
         header = self.header.copy()
 
         ## Update the header
+        # Pass information that the image is a cutout
+        header["CUTOUT"] = True
+
+        # Keep the original reference pixel coordinates
+        header["OGCRPIX1"] = header["CRPIX1"]
+        header["OGCRPIX2"] = header["CRPIX2"]
+
+        # Save the movement of the reference pixel coordinates
+        header["OGCRPIX1"] = x_range[0]
+        header["OGCRPIX2"] = y_range[0]
+
         # Adjust the reference pixel coordinates
         header["CRPIX1"] -= x_range[0]
         header["CRPIX2"] -= y_range[0]
@@ -172,15 +176,45 @@ class Image(KaraboResource):
         header["NAXIS1"] = self.data.shape[3]
         header["NAXIS2"] = self.data.shape[2]
 
-        # Save the image 
-        cutout_image = Image(restored_fits_path)
+        # Create path for the cutout image
+        cutout_image = Image(None)
+        fh = FileHandler.get_file_handler(
+            obj=cutout_image,
+            prefix=self._fh_prefix,
+            verbose=self._fh_verbose,
+        )
+        restored_fits_path = os.path.join(fh.subdir, "cutout.fits")
+        print(restored_fits_path)
+
+        # Save the image
         cutout_image.data = data
         cutout_image.header = header
+        cutout_image.path = restored_fits_path
 
         # Write the updated image to file
         cutout_image.write_to_file(restored_fits_path, overwrite=True)
 
         return cutout_image
+
+    @staticmethod
+    def split_image(image: Image, N: int) -> List[Image]:
+        """
+        Splits the image into N*N cutouts and returns a list of the cutouts.
+        """
+        _, _, x_size, y_size = image.data.shape
+        x_step = x_size // N
+        y_step = y_size // N
+
+        cutouts = []
+        for i in range(N):
+            for j in range(N):
+                print(j)
+                cut = image.cutout(
+                    x_range=[i * x_step, (i + 1) * x_step],
+                    y_range=[j * y_step, (j + 1) * y_step],
+                )
+                cutouts.append(cut)
+        return cutouts
 
     def plot(
         self,
