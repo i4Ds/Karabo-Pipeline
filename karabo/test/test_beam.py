@@ -17,7 +17,7 @@ from karabo.util.data_util import get_module_absolute_path
 
 
 def test_fit_element(tobject: TFiles):
-    tel = Telescope.get_MEERKAT_Telescope()
+    tel = Telescope.constructor("MeerKAT")
     beam = BeamPattern(tobject.run5_cst)
     beam.fit_elements(tel, freq_hz=1e8, avg_frac_error=0.5)
 
@@ -80,7 +80,7 @@ def test_compare_karabo_oskar():
 
     sky.add_point_sources(sky_data)
 
-    telescope = Telescope.get_MEERKAT_Telescope()
+    telescope = Telescope.constructor("MeerKAT")
     # Remove beam if already present
     test = os.listdir(telescope.path)
     for item in test:
@@ -215,7 +215,7 @@ def test_gaussian_beam():
 
     sky = SkyModel.sky_test()
 
-    telescope = Telescope.get_MEERKAT_Telescope()
+    telescope = Telescope.constructor("MeerKAT")
     # Remove beam if already present
     test = os.listdir(telescope.path)
     for item in test:
