@@ -14,13 +14,14 @@ dependencies:
   - distributed
   - eidos=1.1.0
   - healpy
-  - h5py=*=mpi*
+  - h5py=*=mpi_mpich*
   - ipython
   - katbeam=0.1.0
   - libcufft
   - matplotlib
   - montagepy=6.0.0
   - mpi4py
+  - mpich
   - nbformat
   - nbconvert
   - numpy=1.22
@@ -36,3 +37,5 @@ dependencies:
   - ska-sdp-func-python=0.1.4
   - tools21cm=2.0.2
   - xarray
+  # transversal dependencies which we need to reference to get mpi-wheels
+  - fftw=*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft)
