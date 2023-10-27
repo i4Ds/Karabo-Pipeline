@@ -72,8 +72,9 @@ class Image(KaraboResource):
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
         check_ending(path=path, ending=".fits")
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+        dir_name = os.path.dirname(path)
+        if dir_name != "" and not os.path.exists(dir_name):
+            os.makedirs(dir_name)
         fits.writeto(
             filename=str(path),
             data=self.data,
@@ -164,17 +165,13 @@ class Image(KaraboResource):
         header["OGCRPIX1"] = header["CRPIX1"]
         header["OGCRPIX2"] = header["CRPIX2"]
 
-        # Save the movement of the reference pixel coordinates
-        header["OGCRPIX1"] = x_range[0]
-        header["OGCRPIX2"] = y_range[0]
-
         # Adjust the reference pixel coordinates
         header["CRPIX1"] -= x_range[0]
         header["CRPIX2"] -= y_range[0]
 
         # Update the NAXIS values to reflect the new shape
-        header["NAXIS1"] = self.data.shape[3]
-        header["NAXIS2"] = self.data.shape[2]
+        header["NAXIS1"] = data.shape[3]
+        header["NAXIS2"] = data.shape[2]
 
         # Create path for the cutout image
         cutout_image = Image(None)
@@ -184,7 +181,6 @@ class Image(KaraboResource):
             verbose=self._fh_verbose,
         )
         restored_fits_path = os.path.join(fh.subdir, "cutout.fits")
-        print(restored_fits_path)
 
         # Save the image
         cutout_image.data = data
@@ -197,9 +193,9 @@ class Image(KaraboResource):
         return cutout_image
 
     @staticmethod
-    def split_image(image: Image, N: int) -> List[Image]:
+    def split_image(image: Image, N: int, overlap: int = 0):
         """
-        Splits the image into N*N cutouts and returns a list of the cutouts.
+        Splits the image into N*N cutouts and returns a list of the cutouts with optional overlap.
         """
         _, _, x_size, y_size = image.data.shape
         x_step = x_size // N
@@ -208,11 +204,12 @@ class Image(KaraboResource):
         cutouts = []
         for i in range(N):
             for j in range(N):
-                print(j)
-                cut = image.cutout(
-                    x_range=[i * x_step, (i + 1) * x_step],
-                    y_range=[j * y_step, (j + 1) * y_step],
-                )
+                x_start = max(0, i * x_step - overlap)
+                x_end = min(x_size, (i + 1) * x_step + overlap)
+                y_start = max(0, j * y_step - overlap)
+                y_end = min(y_size, (j + 1) * y_step + overlap)
+
+                cut = image.cutout(x_range=[x_start, x_end], y_range=[y_start, y_end])
                 cutouts.append(cut)
         return cutouts
 

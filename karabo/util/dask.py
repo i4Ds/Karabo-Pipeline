@@ -287,10 +287,9 @@ def get_local_dask_client(
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(memory_limit)
     client = Client(
-        LocalCluster(
-            n_workers=n_workers,
-            threads_per_worker=DaskHandler.n_threads_per_worker,
-        )
+        n_workers=n_workers,
+        threads_per_worker=DaskHandler.n_threads_per_worker,
+        processes=False,
     )
     return client
 

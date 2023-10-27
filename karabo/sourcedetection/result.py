@@ -14,7 +14,8 @@ from numpy.typing import NDArray
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
-from karabo.karabo_resource import HiddenPrints, KaraboResource
+from karabo.karabo_resource import KaraboResource
+from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
@@ -55,6 +56,8 @@ class SourceDetectionResult(KaraboResource):
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
         n_splits: int = 1,
+        use_dask: Optional[bool] = None,
+        client: Optional[Any] = None,
         **kwargs: Any,
     ) -> Optional[List[T]]:
         """
@@ -67,6 +70,19 @@ class SourceDetectionResult(KaraboResource):
             None means it will try to be extracted from the Image data.
         :return: Source Detection Result containing the found sources
         """
+        if use_dask is None and not client:
+            print(
+                KaraboWarning(
+                    "Parameter 'use_dask' is None! Using function "
+                    "'karabo.util.dask.DaskHandler.should_dask_be_used()' "
+                    "to overwrite parameter 'use_dask' to "
+                    f"{DaskHandler.should_dask_be_used()}."
+                )
+            )
+            use_dask = DaskHandler.should_dask_be_used()
+
+        if use_dask and not client:
+            client = DaskHandler.get_dask_client()
         if beam is None:
             if image.has_beam_parameters():
                 beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
@@ -91,8 +107,8 @@ class SourceDetectionResult(KaraboResource):
                             **kwargs,
                         )
                     )
-                with HiddenPrints(): # Remove multiple spam by PyBDSF.
-                    results = compute(*results, scheduler="processes")
+                # with HiddenPrints():  # Remove multiple spam by PyBDSF.
+                results = compute(*results, scheduler="distributed")
 
                 return [cls(result) for result in results]
             else:
@@ -103,6 +119,10 @@ class SourceDetectionResult(KaraboResource):
                     format="csv",
                     **kwargs,
                 )
+                print("Detection results:")
+                print(detection)
+                print(detection.filename)
+                return cls(detection)  # type: ignore
         except RuntimeError as e:
             wmsg = "All pixels in the image are blanked."
             if str(e) == wmsg:
@@ -111,8 +131,6 @@ class SourceDetectionResult(KaraboResource):
                 return None
             else:
                 raise e
-
-        return cls(detection)  # type: ignore
 
     def write_to_file(self, path: str) -> None:
         """
@@ -219,26 +237,29 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
         )
         sources_file = os.path.join(fh.subdir, "sources.csv")
-        # Check if the sources file already exists. If not, create it.
+        bdsf_detection.write_catalog(
+            outfile=sources_file, catalog_type="gaul", format="csv", clobber=True
+        )
+        # If no sources are written, the file is not created
         if os.path.exists(sources_file):
-            bdsf_detection.write_catalog(
-                outfile=sources_file, catalog_type="gaul", format="csv", clobber=True
-            )
             bdsf_detected_sources = read_CSV_to_ndarray(sources_file)
+            print(f"{bdsf_detected_sources=}")
+            print(f"{bdsf_detected_sources.shape=}")
 
             detected_sources = type(self).__transform_bdsf_to_reduced_result_array(
                 bdsf_detected_sources=bdsf_detected_sources,
             )
-
-            self.bdsf_detected_sources = bdsf_detected_sources
-            self.bdsf_result = bdsf_detection
-            source_image = self.__get_result_image("ch0")
-            super().__init__(detected_sources, source_image)
         else:
-            KaraboWarning(
-                "No sources.csv file found. Is this expected? "
-                + "If not, please check your PyBDSF run."
-            )
+            # Empty array with shape (1,7) if no sources are found
+            detected_sources = np.empty((1, 7))
+            # Empty array with shape (1,46) if no sources are found
+            bdsf_detected_sources = np.empty((1, 46))
+
+        self.bdsf_detected_sources = bdsf_detected_sources
+        self.bdsf_result = bdsf_detection
+        source_image = self.__get_result_image("ch0")
+        super().__init__(detected_sources, source_image)
+
     @staticmethod
     def __transform_bdsf_to_reduced_result_array(
         bdsf_detected_sources: NDArray[np.float_],
@@ -256,6 +277,9 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             )
             warn(KaraboWarning(wmsg))
             sources = bdsf_detected_sources
+        print("reduced sources shape", sources.shape)
+        print(sources)
+
         return sources
 
     def __get_result_image(self, image_type: str, **kwargs: Any) -> Image:
