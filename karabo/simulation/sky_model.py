@@ -85,7 +85,7 @@ _SourceIdType = Union[
     List[str],
     List[int],
     List[float],
-    NDArray[np.object0],
+    NDArray[np.object_],
     NDArray[np.int_],
     NDArray[np.float_],
     DataArrayCoordinates[xr.DataArray],
