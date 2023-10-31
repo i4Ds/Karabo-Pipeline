@@ -12,46 +12,47 @@ build:
 
 requirements:
   build:
-    - python=3.9
+    - python                  {{ python }}
     - pip
   host:
-    - python=3.9
+    - python                  {{ python }}
     - pip
   run:
-    - python=3.9
-    - aratmospy=1.0.0
+    - python                  {{ python }}
+    - aratmospy               =1.0.0
     - astropy
     - bdsf
     - bluebild
     - cuda-cudart
-    - dask=2022.12.1
+    - dask                    >=2022.12.1
     - dask-mpi
     - distributed
     - eidos=1.1.0
     - healpy
-    - h5py=*=mpi*
+    - h5py                    =*=mpi_mpich*
     - ipython
-    - katbeam=0.1.0
+    - katbeam                 =0.1.0
     - libcufft
     - matplotlib
-    - montagepy=6.0.0
+    - montagepy               =6.0.0
     - mpi4py
     - nbformat
     - nbconvert
-    - numpy=1.22
-    - oskarpy=2.8.3
+    - numpy                   >=1.21, !=1.24.0
+    - oskarpy                 =2.8.3
     - pandas
-    - pinocchio=5.0.0
     - psutil
-    - rascil=1.0.0
+    - rascil                  =1.0.0
     - reproject
     - requests
-    - scipy=1.10.1
-    - ska-gridder-nifty-cuda=0.3.0
-    - ska-sdp-datamodels=0.1.3
-    - ska-sdp-func-python=0.1.4
-    - tools21cm=2.0.2
+    - scipy                   >=1.10.1
+    - ska-gridder-nifty-cuda  =0.3.0
+    - ska-sdp-datamodels      =0.1.3
+    - ska-sdp-func-python     =0.1.4
+    - tools21cm               =2.0.2
     - xarray
+    # transversal dependencies which we need to reference to get mpi-wheels
+    - conda-forge::fftw       =*=mpi_mpich*
 
 
 
