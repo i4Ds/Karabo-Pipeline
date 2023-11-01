@@ -29,27 +29,41 @@ matplotlib.use(previous_backend)
 class Image(KaraboResource):
     def __init__(
         self,
-        path: Optional[FilePathType],
+        path: Optional[str] = None,
+        data: Optional[np.ndarray] = None,
+        header: Optional[fits.header.Header] = None,
         **kwargs: Any,
     ) -> None:
-        """
-        Proxy object class for images.
-        Dirty, cleaned or any other type of image in a fits format.
-        By passing no path, an empty Image object is created.
-        """
+        self._fh_prefix = "image"
+        self._fh_verbose = False
         if path is not None:
             self.path = path
-            self._fname = os.path.split(self.path)[-1]
-            self.data: NDArray[np.float64]
-            self.header: fits.header.Header
             self.data, self.header = fits.getdata(
                 str(self.path),
                 ext=0,
                 header=True,
                 **kwargs,
             )
-        self._fh_prefix = "image"
-        self._fh_verbose = False
+        elif data is not None and header is not None:
+            self.data = data
+            self.header = header
+
+            # Generate a random path for the data
+            fh = FileHandler.get_file_handler(
+                obj=self,
+                prefix=self._fh_prefix,
+                verbose=self._fh_verbose,
+            )
+            restored_fits_path = os.path.join(fh.subdir, "image.fits")
+
+            # Write the FITS file
+            self.write_to_file(restored_fits_path, overwrite=True)
+            self.path = restored_fits_path
+        else:
+            raise ValueError("Either path or both data and header must be provided.")
+
+        self._fname = os.path.split(self.path)[-1]
+
 
     @staticmethod
     def read_from_file(path: FilePathType) -> Image:
@@ -164,10 +178,16 @@ class Image(KaraboResource):
         # Keep the original reference pixel coordinates
         header["OGCRPIX1"] = header["CRPIX1"]
         header["OGCRPIX2"] = header["CRPIX2"]
+        header["OGCRVAL1"] = header["CRVAL1"]
+        header["OGCRVAL2"] = header["CRVAL2"]
 
         # Adjust the reference pixel coordinates
         header["CRPIX1"] -= x_range[0]
         header["CRPIX2"] -= y_range[0]
+
+        # Update the CRVAL values to reflect the new reference pixel coordinates
+        header["CRVAL1"] = header["CRVAL1"] + (header["CRPIX1"] - header["OGCRPIX1"]) * header["CDELT1"]
+        header["CRVAL2"] = header["CRVAL2"] + (header["CRPIX2"] - header["OGCRPIX2"]) * header["CDELT2"]
 
         # Update the NAXIS values to reflect the new shape
         header["NAXIS1"] = data.shape[3]
@@ -201,7 +221,7 @@ class Image(KaraboResource):
         x_step = x_size // N
         y_step = y_size // N
 
-        cutouts = []
+        cutouts = [[None]*N for _ in range(N)]
         for i in range(N):
             for j in range(N):
                 x_start = max(0, i * x_step - overlap)
@@ -210,7 +230,7 @@ class Image(KaraboResource):
                 y_end = min(y_size, (j + 1) * y_step + overlap)
 
                 cut = image.cutout(x_range=[x_start, x_end], y_range=[y_start, y_end])
-                cutouts.append(cut)
+                cutouts[i][j] = cut
         return cutouts
 
     def plot(
