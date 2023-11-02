@@ -13,6 +13,7 @@ from karabo.simulation.telescope_versions import (
     SMAVersions,
     VLAVersions,
 )
+from karabo.simulator_backend import SimulatorBackend
 
 
 def test_read_tm_file():
@@ -100,3 +101,18 @@ def test_read_VLBA():
 def test_read_WSRT():
     tel = Telescope.constructor("WSRT")
     tel.plot_telescope()
+
+
+def test_RASCIL_telescope():
+    tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+    assert tel.backend is SimulatorBackend.RASCIL
+
+    tel.plot_telescope()
+
+
+def test_invalid_RASCIL_telescope():
+    with pytest.raises(
+        ValueError,
+        match="Requested telescope FAKEEXAMPLE is not supported by this backend",
+    ):
+        Telescope.constructor("FAKEEXAMPLE", backend=SimulatorBackend.RASCIL)
