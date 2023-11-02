@@ -13,9 +13,13 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Li
 RUN conda init
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 # install mpich on standard location (needed for mpi-hook)
-# be sure that it's version is consistent with the latest-builds of the Karabo-Feedstock
-ARG MPICH_VERSION="4.1.2"
-RUN mkdir -p /tmp/mpich-build \
+RUN conda install -n base conda-libmamba-solver && \
+    conda config --set solver libmamba
+RUN conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${KARABO_TAG:1}"
+# fetch mpich-version to have it consistent with it's installation from karabo
+ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/")'
+RUN MPICH_VERSION=$(eval $MPICH_EVAL) \
+    mkdir -p /tmp/mpich-build \
     && cd /tmp/mpich-build \
     && wget http://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz \
     && tar xvzf mpich-${MPICH_VERSION}.tar.gz \
@@ -27,12 +31,9 @@ RUN mkdir -p /tmp/mpich-build \
     && cp -p /tmp/mpich-build/mpich-${MPICH_VERSION}/examples/cpi /usr/bin/ \
     && cd / \
     && rm -rf /tmp/mpich-build
-RUN conda install -n base conda-libmamba-solver && \
-    conda config --set solver libmamba
-RUN conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${KARABO_TAG:1}"
 # replace openmpi with mpich-dummy (see issue #512)
-# RUN conda remove --force-remove -y openmpi mpi && \
-#     conda install -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
+RUN MPICH_VERSION=$(eval $MPICH_EVAL) \
+    conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
 RUN pip install jupyterlab ipykernel pytest && \
     python -m ipykernel install --user --name=karabo && \
     mkdir /workspace
