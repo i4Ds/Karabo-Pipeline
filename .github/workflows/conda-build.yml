@@ -4,6 +4,16 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      buildNumber:
+        type: string
+        required: false
+        default: "0"
+  workflow_call:
+    inputs:
+      buildNumber:
+        type: string
+        required: true
 
 
 jobs:
@@ -13,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Get Previous tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
@@ -25,6 +35,23 @@ jobs:
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
+      - name: Export Build Number
+        id: buildnr
+        shell: bash -l {0}
+        run: |
+          if [[ ${{ github.event_name }} == "release" ]]
+          then
+            BUILD_NR="0"
+          fi
+          if [[ ${{ github.event_name }} == "workflow_dispatch" ]]
+          then
+            BUILD_NR=${{ inputs.buildNumber }}
+          fi
+          if [[ ${{ github.event_name }} == "workflow_call" ]]
+          then
+            BUILD_NR=${{ inputs.buildNumber }}
+          fi
+          echo "BUILD_NUMBER=$BUILD_NR" >> "$GITHUB_ENV"
       - name: Build Conda
         shell: bash -l {0}
         run: |

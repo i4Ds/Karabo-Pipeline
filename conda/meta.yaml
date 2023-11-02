@@ -8,7 +8,8 @@ source:
   path: ../
 
 build:
-  string: {{ KARABO_VERSION }}
+  number: {{ BUILD_NUMBER }}
+  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ BUILD_NUMBER }}
 
 requirements:
   build:
@@ -51,7 +52,7 @@ requirements:
     - ska-sdp-datamodels      =0.1.3
     - ska-sdp-func-python     =0.1.4
     - tools21cm               =2.0.2
-    - xarray
+    - xarray                  >=2022.10.0
     # transversal dependencies which we need to reference to get mpi-wheels
     - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel prio i4ds > conda-forge
     # - casacore                =*=mpi_openmpi*  # oskarpy(oskar) -> casacore has just nompi & openmpi-wheels
