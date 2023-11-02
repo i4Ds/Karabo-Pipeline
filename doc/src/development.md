@@ -167,8 +167,8 @@ If you validate your code manually, consider just writing a method in a test cla
 When everything is merged which should be merged, a new Release can be deployed on `conda-forge` as following:
 - [Karabo-Pipeline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
-- Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
-- Update version in `karabo/version.py`
+- Define a Version by clicking `Choose a tag`. Currently we increment the minor version by 1.
+- Set the version in pyproject.toml
 - Check that the `Target` is set to `main`.
 - Describe the release (get inspired by the previous releases).
 - Click `Publish release`. 

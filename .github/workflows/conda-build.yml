@@ -58,7 +58,6 @@ jobs:
           cd conda
           KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
           export KARABO_VERSION="${KARABO_TAG:1}"
-          echo "__version__ = \"${KARABO_VERSION}\"" > karabo/version.py
           conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}

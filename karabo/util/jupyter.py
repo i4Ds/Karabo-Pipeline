@@ -1,20 +1,4 @@
-import os
-from distutils.sysconfig import get_python_lib
-
 from IPython.core.getipython import get_ipython
-
-
-def set_rascil_data_directory_env() -> None:
-    """
-    Sets specific environment variables
-    that the jupyter kernel is not loading by default.
-
-    This function is idempotent (running it more than once brings no side effects).
-
-    """
-
-    data_folder = f"{get_python_lib()}/../../../data"
-    os.environ["RASCIL_DATA"] = data_folder
 
 
 def isNotebook() -> bool:
