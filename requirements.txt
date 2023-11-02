@@ -12,6 +12,9 @@ pytest-mpi==0.6
 pytest-cov==4.1.0
 pre-commit==3.5.0
 
+# for notebook test runs
+nest_asyncio
+
 # types for mypy
 types-requests
 

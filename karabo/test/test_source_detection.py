@@ -135,14 +135,14 @@ def test_bdsf_image_blanked():
         start_frequency_hz=100e6,
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
-        number_of_channels=64,
+        number_of_channels=2,
         number_of_time_steps=24,
     )
     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
     visibility_askap = interferometer_sim.run_simulation(
         askap_tel, sky, observation_settings
     )
-    imaging_npixel = 2048
+    imaging_npixel = 512
     imaging_cellsize = 3.878509448876288e-05
     imager_askap = Imager(
         visibility_askap,

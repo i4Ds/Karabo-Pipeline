@@ -1,11 +1,14 @@
 import os
 
 import nbformat
+import nest_asyncio
 import pytest
 from nbconvert.preprocessors import ExecutePreprocessor
 
 from karabo.test.conftest import IS_GITHUB_RUNNER
 from karabo.util.plotting_util import Font
+
+nest_asyncio.apply()
 
 RUN_NOTEBOOK_TESTS = os.environ.get("RUN_NOTEBOOK_TESTS", "false").lower() == "true"
 
@@ -24,8 +27,10 @@ def _run_notebook(notebook: str) -> None:
         os.chdir(notebook_dir)
         try:
             assert ep.preprocess(nb) is not None, f"Got empty notebook for {notebook}"
-        except Exception:
-            pytest.fail(reason=f"Failed executing {notebook}")
+        except AssertionError as e:
+            pytest.fail(reason=f"Assertion error, details: {e}")
+        except Exception as e:
+            pytest.fail(reason=f"Failed executing {notebook}, Exception: {e}")
         finally:
             os.chdir(cwd)
 

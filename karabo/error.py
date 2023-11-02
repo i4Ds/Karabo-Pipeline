@@ -16,10 +16,6 @@ class KaraboSkyModelError(KaraboError):
     ...
 
 
-class KaraboPinocchioError(KaraboError):
-    ...
-
-
 class KaraboSourceDetectionEvaluationError(KaraboError):
     ...
 
