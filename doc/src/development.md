@@ -28,26 +28,18 @@ Then create a local development environment with the provided `environment.yaml`
 conda env create -n <your-env-name> -f environment.yaml
 ```
 
-Then install the development dependencies using `requirements.txt`.
+Then install karabo as a package and the development dependencies.
 
 ```shell
 conda activate <your-env-name>
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
-NOTE: With these commands, only the dependencies but not the current version of karabo will be installed into a conda environment. To tell Python to treat the reposity as a package, run the following (note that using `conda develop` is not recommended, see [this issue](https://github.com/conda/conda-build/issues/1992)):
+Afterwards, activating you dev-tools in your IDE and SHELL is recommended. For the setup of your IDE of choice you have to do it yourself. For the SHELL setup, we recommend to do the following in the repo-root:
 
 ```shell
-pip install -e .
-```
-
-(Optional) For your developer experience, the following link might be useful: [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
-
-You are done! If everything worked as expected, you can start an interactive Python session and test the import:
-
-```shell
-python
->>> import karabo
+pre-commit install
+podmena add local
 ```
 
 ## Formatting
@@ -156,10 +148,9 @@ So an md file can reference like ``[some file](path/to/some/file)``.
 When adding new submodules or modules. You need to update the modules.rst file accordingly and add new files similiar to the karabo.simulation.rst. To enable the automatic generation of the documentation via the python docstrings.
 There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that can automate this.
 
-If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, use the following commands to generate the documentation:
+If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, assuming you've installed the dev-dependencies from pyproject.toml, use the following commands to generate the documentation:
 
 ```shell
-pip install -r requirements.txt
 make html
 ```
 

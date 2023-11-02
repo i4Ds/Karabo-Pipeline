@@ -1,6 +1,7 @@
 import os
 import re
-from distutils.core import setup
+
+from setuptools import setup
 
 with open(os.path.join("karabo", "version.py"), mode="r") as file:
     version_txt = file.readline()
