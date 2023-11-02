@@ -380,7 +380,7 @@ def karabo_reconstruction(
         sky = SkyModel.sky_test()
 
     if telescope is None:
-        telescope = Telescope.get_MEERKAT_Telescope()
+        telescope = Telescope.constructor("MeerKAT")
 
     if verbose:
         print("Sky Simulation...")
