@@ -24,7 +24,7 @@ def test_read_tm_file():
 
 
 def test_convert_to_oskar():
-    tel = Telescope.get_OSKAR_Example_Telescope()
+    tel = Telescope.constructor("EXAMPLE")
     oskar_tel = tel.get_OSKAR_telescope()
     assert oskar_tel.get_num_stations() == 30
 

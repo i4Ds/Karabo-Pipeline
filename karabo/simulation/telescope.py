@@ -42,19 +42,19 @@ from karabo.util.math_util import long_lat_to_cartesian
 OSKAR_TELESCOPE_TO_FILENAMES = {
     "EXAMPLE": "telescope.tm",
     "MeerKAT": "meerkat.tm",
-    "ACA": "aca.{version.value}.tm",
-    "ALMA": "alma.{version.value}.tm",
+    "ACA": "aca.{0}.tm",
+    "ALMA": "alma.{0}.tm",
     "ASKAP": "askap.tm",
-    "ATCA": "atca.{version.value}.tm",
-    "CARMA": "carma.{version.value}.tm",
+    "ATCA": "atca.{0}.tm",
+    "CARMA": "carma.{0}.tm",
     "LOFAR": "lofar.tm",
     "MKATPlus": "mkatplus.tm",
-    "NGVLA": "ngvla-{version.value}.tm",
-    "PDBI": "pdbi-{version.value}.tm",
+    "NGVLA": "ngvla-{0}.tm",
+    "PDBI": "pdbi-{0}.tm",
     "SKA1LOW": "ska1low.tm",
     "SKA1MID": "ska1mid.tm",
-    "SMA": "sma.{version.value}.tm",
-    "VLA": "vla.{version.value}.tm",
+    "SMA": "sma.{0}.tm",
+    "VLA": "vla.{0}.tm",
     "VLBA": "vlba.tm",
     "WSRT": "WSRT.tm",
 }
@@ -144,17 +144,30 @@ class Telescope(KaraboResource):
         :returns: Telescope instance.
         """
         if backend is SimulatorBackend.OSKAR:
-            if name not in OSKAR_TELESCOPE_TO_FILENAMES.keys():
+            # Verify if requested telescope has an existing configuration
+            datapath = OSKAR_TELESCOPE_TO_FILENAMES.get(name, None)
+            if datapath is None:
                 raise ValueError(
                     f"""{name} not supported for backend {SimulatorBackend.OSKAR.value}.
                     The valid options for name are:
                     {list(OSKAR_TELESCOPE_TO_FILENAMES.keys())}."""
                 )
-            datapath = OSKAR_TELESCOPE_TO_FILENAMES[name]
 
+            # Verify if version is provided if telescope requires a version,
+            # and is not provided otherwise
             accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS.get(name, None)
 
-            if accepted_versions is not None:
+            # Telescope requires a version value
+            is_version_required = accepted_versions is not None
+            is_version_provided = version is not None
+
+            if is_version_required != is_version_provided:
+                raise ValueError(
+                    """If a version if required, make sure to provided a version value.
+                If a version is not required, please do not provide a value."""
+                )
+
+            if is_version_provided:
                 if version not in accepted_versions:
                     raise ValueError(
                         f"""{version} is not valid for telescope {name}.
