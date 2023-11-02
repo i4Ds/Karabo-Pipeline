@@ -161,20 +161,20 @@ class Telescope(KaraboResource):
             is_version_required = accepted_versions is not None
             is_version_provided = version is not None
 
-            if is_version_required != is_version_provided:
+            if is_version_provided != is_version_required:
                 raise ValueError(
                     """If a version if required, make sure to provided a version value.
                 If a version is not required, please do not provide a value."""
                 )
 
-            if is_version_provided:
-                if version not in accepted_versions:
+            if is_version_provided and is_version_required:
+                if version not in accepted_versions:  # type: ignore[operator]
                     raise ValueError(
                         f"""{version} is not valid for telescope {name}.
                         List of valid versions: {accepted_versions}."""
                     )
 
-                datapath = datapath.format(version.value)
+                    datapath = datapath.format(version.value)  # type: ignore[union-attr] # noqa: E501
 
             path = os.path.join(get_module_absolute_path(), "data", datapath)
             return cls.read_OSKAR_tm_file(path)
