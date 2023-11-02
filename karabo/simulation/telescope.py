@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 from math import comb
-from typing import List, Optional
+from typing import List, Optional, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -174,9 +174,7 @@ class Telescope(KaraboResource):
                         List of valid versions: {accepted_versions}."""
                     )
 
-                    datapath = datapath.format(  # type: ignore[union-attr]
-                        version.value
-                    )
+                datapath = datapath.format(cast(enum.Enum, version).value)  # noqa
 
             path = os.path.join(get_module_absolute_path(), "data", datapath)
             return cls.read_OSKAR_tm_file(path)
