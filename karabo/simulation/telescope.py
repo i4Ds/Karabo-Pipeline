@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import logging
 import os
 import re
@@ -10,6 +11,9 @@ from typing import List, Optional
 import numpy as np
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
+from rascil.processing_components.simulation.simulation_helpers import (
+    plot_configuration,
+)
 from ska_sdp_datamodels.configuration.config_create import create_named_configuration
 from ska_sdp_datamodels.configuration.config_model import Configuration
 
@@ -118,7 +122,10 @@ class Telescope(KaraboResource):
 
     @classmethod
     def constructor(
-        cls, name: str, version=None, backend: SimulatorBackend = SimulatorBackend.OSKAR
+        cls,
+        name: str,
+        version: Optional[enum.Enum] = None,
+        backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
         """Main constructor to obtain a pre-configured telescope instance.
         :param name: Name of the desired telescope configuration.
@@ -174,10 +181,11 @@ class Telescope(KaraboResource):
     https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels/-/blob/d6dcce6288a7bf6d9ce63ab16e799977723e7ae5/src/ska_sdp_datamodels/configuration/config_create.py"""  # noqa
                 )
 
+            config_earth_location = configuration.location
             telescope = Telescope(
-                longitude=configuration.TODO,
-                latitude=configuration.TODO,
-                altitude=configuration.TODO,
+                longitude=config_earth_location.lon.to("deg").value,
+                latitude=config_earth_location.lat.to("deg").value,
+                altitude=config_earth_location.height.to("m").value,
             )
             telescope.backend = SimulatorBackend.RASCIL
             telescope.RASCIL_configuration = configuration
@@ -272,6 +280,22 @@ class Telescope(KaraboResource):
             )
 
     def plot_telescope(self, file: Optional[str] = None) -> None:
+        """
+        Plot the telescope according to which backend is being used,
+        and save the resulting image into a file, if any is provided.
+        """
+        if self.backend is SimulatorBackend.OSKAR:
+            self.plot_telescope_OSKAR(file)
+        elif self.backend is SimulatorBackend.RASCIL:
+            plot_configuration(self.get_backend_specific_information())
+        else:
+            print(
+                f"""Backend {self.backend} is not valid.
+            Proceeding without any further actions."""
+            )
+            return
+
+    def plot_telescope_OSKAR(self, file: Optional[str] = None) -> None:
         """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
