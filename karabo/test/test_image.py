@@ -55,16 +55,20 @@ def test_dirty_image_cutout(tobject: TFiles):
     imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
     dirty = imager.get_dirty_image()
-    shape_before = dirty.data.shape
 
-    cutout1 = dirty.cutout(x_range=[500, 1500], y_range=[500, 1500])
+    cutout1 = dirty.cutout((1000, 1000), (500, 500))
 
-    assert cutout1.data.shape[2] == 1000
-    assert cutout1.data.shape[3] == 1000
-    assert cutout1.data.shape[0] == shape_before[0]
-    assert cutout1.data.shape[1] == shape_before[1]
+    assert cutout1.data.shape[2] == 500
+    assert cutout1.data.shape[3] == 500
+    assert cutout1.header["CRPIX1"] == 275  # Don't understand why but this is the value
+    assert cutout1.header["CRPIX2"] == 275
+    assert cutout1.header["CRVAL1"] == 250
+    assert cutout1.header["CRVAL2"] == -80
+
     assert np.sum(np.isnan(cutout1.data)) == 0
-    assert np.all(np.equal(cutout1.data, dirty.data[:, :, 500:1500, 500:1500]))
+    assert np.all(
+        np.equal(cutout1.data[0, 0, :, :], dirty.data[0, 0, 750:1250, 750:1250])
+    )
 
 
 def test_dirty_image_N_cutout(tobject: TFiles):
@@ -72,17 +76,23 @@ def test_dirty_image_N_cutout(tobject: TFiles):
     imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
     dirty = imager.get_dirty_image()
-    shape_before = dirty.data.shape
 
-    cutouts = dirty.split_image(dirty, N=4)
+    cutouts = dirty.split_image(N=4)
 
     assert len(cutouts) == 16
 
     for cutout in cutouts:
         assert cutout.data.shape[2] == 512
         assert cutout.data.shape[3] == 512
-        assert cutout.data.shape[0] == shape_before[0]
-        assert cutout.data.shape[1] == shape_before[1]
+        assert np.sum(np.isnan(cutout.data)) == 0
+
+    cutouts = dirty.split_image(N=2, overlap=50)
+
+    assert len(cutouts) == 4
+
+    for cutout in cutouts:
+        assert cutout.data.shape[2] == 1024 + 50
+        assert cutout.data.shape[3] == 1024 + 50
         assert np.sum(np.isnan(cutout.data)) == 0
 
 

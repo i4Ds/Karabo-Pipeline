@@ -9,13 +9,17 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
+from astropy.nddata import Cutout2D, NDData
 from astropy.wcs import WCS
 from numpy.typing import NDArray
 from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
+from reproject import reproject_interp
+from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
+from karabo.error import KaraboError
 from karabo.karabo_resource import KaraboResource
-from karabo.util._types import FilePathType
+from karabo.util._types import FilePathType, IntLike
 from karabo.util.file_handler import FileHandler, check_ending
 from karabo.util.plotting_util import get_slices
 
@@ -63,7 +67,6 @@ class Image(KaraboResource):
             raise ValueError("Either path or both data and header must be provided.")
 
         self._fname = os.path.split(self.path)[-1]
-
 
     @staticmethod
     def read_from_file(path: FilePathType) -> Image:
@@ -155,73 +158,29 @@ class Image(KaraboResource):
         self.header["CDELT1"] = self.header["CDELT1"] * old_shape[1] / new_shape[1]
         self.header["CDELT2"] = self.header["CDELT2"] * old_shape[0] / new_shape[0]
 
-    def cutout(self, x_range: Tuple[int, int], y_range: Tuple[int, int]) -> None:
+    def cutout(self, center_xy: Tuple[float, float], size_xy: Tuple[float, float]):
         """
-        Cuts out a portion of the image based on the specified x and y ranges and
-        returns a copy.
+        Cutout the image to the given size and center.
 
-        :param x_range: The start and end coordinates in the x direction
-        :param y_range: The start and end coordinates in the y direction
+        :param center_xy: Center of the cutout in pixel coordinates
+        :param size_xy: Size of the cutout in pixel coordinates
+        :return: Cutout of the image
         """
-        # Ensure the ranges are within the image dimensions
-        x_range = (max(0, x_range[0]), min(self.data.shape[3], x_range[1]))
-        y_range = (max(0, y_range[0]), min(self.data.shape[2], y_range[1]))
-
-        # Extract the sub-image
-        data = self.data[:, :, y_range[0] : y_range[1], x_range[0] : x_range[1]].copy()
-        header = self.header.copy()
-
-        ## Update the header
-        # Pass information that the image is a cutout
-        header["CUTOUT"] = True
-
-        # Keep the original reference pixel coordinates
-        header["OGCRPIX1"] = header["CRPIX1"]
-        header["OGCRPIX2"] = header["CRPIX2"]
-        header["OGCRVAL1"] = header["CRVAL1"]
-        header["OGCRVAL2"] = header["CRVAL2"]
-
-        # Adjust the reference pixel coordinates
-        header["CRPIX1"] -= x_range[0]
-        header["CRPIX2"] -= y_range[0]
-
-        # Update the CRVAL values to reflect the new reference pixel coordinates
-        header["CRVAL1"] = header["CRVAL1"] + (header["CRPIX1"] - header["OGCRPIX1"]) * header["CDELT1"]
-        header["CRVAL2"] = header["CRVAL2"] + (header["CRPIX2"] - header["OGCRPIX2"]) * header["CDELT2"]
-
-        # Update the NAXIS values to reflect the new shape
-        header["NAXIS1"] = data.shape[3]
-        header["NAXIS2"] = data.shape[2]
-
-        # Create path for the cutout image
-        cutout_image = Image(None)
-        fh = FileHandler.get_file_handler(
-            obj=cutout_image,
-            prefix=self._fh_prefix,
-            verbose=self._fh_verbose,
+        cut = Cutout2D(
+            self.data[0, 0, :, :],
+            center_xy,
+            size_xy,
+            wcs=self.get_2d_wcs(),
         )
-        restored_fits_path = os.path.join(fh.subdir, "cutout.fits")
+        header = cut.wcs.to_header()
+        return Image(data=cut.data[np.newaxis, np.newaxis, :, :], header=header)
 
-        # Save the image
-        cutout_image.data = data
-        cutout_image.header = header
-        cutout_image.path = restored_fits_path
-
-        # Write the updated image to file
-        cutout_image.write_to_file(restored_fits_path, overwrite=True)
-
-        return cutout_image
-
-    @staticmethod
-    def split_image(image: Image, N: int, overlap: int = 0):
-        """
-        Splits the image into N*N cutouts and returns a list of the cutouts with optional overlap.
-        """
-        _, _, x_size, y_size = image.data.shape
+    def split_image(self, N: int, overlap: int = 0):
+        _, _, x_size, y_size = self.data.shape
         x_step = x_size // N
         y_step = y_size // N
 
-        cutouts = [[None]*N for _ in range(N)]
+        cutouts = []
         for i in range(N):
             for j in range(N):
                 x_start = max(0, i * x_step - overlap)
@@ -229,9 +188,40 @@ class Image(KaraboResource):
                 y_start = max(0, j * y_step - overlap)
                 y_end = min(y_size, (j + 1) * y_step + overlap)
 
-                cut = image.cutout(x_range=[x_start, x_end], y_range=[y_start, y_end])
-                cutouts[i][j] = cut
+                center_x = (x_start + x_end) // 2
+                center_y = (y_start + y_end) // 2
+                size_x = x_end - x_start
+                size_y = y_end - y_start
+
+                cut = self.cutout((center_x, center_y), (size_x, size_y))
+                cutouts.append(cut)
         return cutouts
+
+    def to_NNData(self) -> NDData:
+        return NDData(data=self.data, wcs=self.get_wcs())
+
+    def to_2dNNData(self) -> NDData:
+        return NDData(data=self.data[0, 0, :, :], wcs=self.get_2d_wcs())
+
+    def combine_images(images: List[Image]):
+        """
+        Combine a list of images into one image.
+        :param images: List of images to combine
+        :return: Combined image
+        """
+        if len(images) < 2:
+            raise KaraboError("At least two images are required to combine them.")
+        NNData_list = [image.to_2dNNData() for image in images]
+        optimal_wcs = find_optimal_celestial_wcs(NNData_list, projection="SIN")
+        array, footprint = reproject_and_coadd(
+            NNData_list,
+            output_projection=optimal_wcs[0],
+            shape_out=optimal_wcs[1],
+            reproject_function=reproject_interp,
+        )
+        return Image(
+            data=array[np.newaxis, np.newaxis, :, :], header=optimal_wcs[0].to_header()
+        )
 
     def plot(
         self,
@@ -448,20 +438,8 @@ class Image(KaraboResource):
     def get_wcs(self) -> WCS:
         return WCS(self.header)
 
-    def get_2d_wcs(
-        self,
-        invert_ra: bool = True,
-    ) -> WCS:
-        wcs = WCS(naxis=2)
+    def get_2d_wcs(self, ra_dec_axis: Tuple[IntLike, IntLike] = [1, 2]) -> WCS:
+        wcs = WCS(self.header)
+        wcs_2d = wcs.sub(ra_dec_axis)
 
-        def radian_degree(rad: np.float64) -> np.float64:
-            return rad * (180 / np.pi)
-
-        cdelt = radian_degree(self.get_cellsize())
-        crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
-        wcs.wcs.crpix = np.array([crpix, crpix])
-        ra_sign = -1 if invert_ra else 1
-        wcs.wcs.cdelt = np.array([ra_sign * cdelt, cdelt])
-        wcs.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
-        wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
-        return wcs
+        return wcs_2d

@@ -8,6 +8,7 @@ from warnings import warn
 
 import bdsf
 import numpy as np
+from astropy.io.fits.header import Header
 from bdsf.image import Image as bdsf_image
 from dask import compute, delayed
 from numpy.typing import NDArray
@@ -15,6 +16,7 @@ from numpy.typing import NDArray
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import KaraboResource
+from karabo.util._types import IntFloat
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
@@ -56,6 +58,7 @@ class SourceDetectionResult(KaraboResource):
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
         n_splits: int = 1,
+        overlap: int = 0,
         use_dask: Optional[bool] = None,
         client: Optional[Any] = None,
         **kwargs: Any,
@@ -83,6 +86,7 @@ class SourceDetectionResult(KaraboResource):
 
         if use_dask and not client:
             client = DaskHandler.get_dask_client()
+
         if beam is None:
             if image.has_beam_parameters():
                 beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
@@ -95,22 +99,30 @@ class SourceDetectionResult(KaraboResource):
 
         try:
             if n_splits > 1:
-                cutouts = Image.split_image(image, n_splits)
+                cutouts = Image.split_image(image, n_splits, overlap)
                 results = []
-                for cut in cutouts:
-                    results.append(
-                        delayed(bdsf.process_image)(
-                            input=cut.path,
-                            beam=beam,
-                            quiet=quiet,
-                            format="csv",
-                            **kwargs,
+                for col in cutouts:
+                    for cut in col:
+                        results.append(
+                            delayed(bdsf.process_image)(
+                                input=cut.path,
+                                beam=beam,
+                                quiet=quiet,
+                                format="csv",
+                                **kwargs,
+                            )
                         )
-                    )
                 # with HiddenPrints():  # Remove multiple spam by PyBDSF.
-                results = compute(*results, scheduler="distributed")
+                results = [
+                    cls(result) for result in compute(*results, scheduler="distributed")
+                ]
 
-                return [cls(result) for result in results]
+                # Remake them into a list of lists
+                results = [
+                    results[i : i + n_splits] for i in range(0, len(results), n_splits)
+                ]
+
+                return PyBDSFSourceDetectionResultList(results, image.header, overlap)
             else:
                 detection = bdsf.process_image(
                     input=image.path,
@@ -335,3 +347,68 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
 
     def get_island_mask(self) -> Image:
         return self.__get_result_image("island_mask")
+
+
+class PyBDSFSourceDetectionResultList:
+    def __init__(
+        self,
+        results: List[List[PyBDSFSourceDetectionResult]],
+        org_header: Header,
+        overlap: IntFloat,
+    ) -> None:
+        self.results = results
+        self.org_header = org_header
+        self.overlap = overlap
+
+    def combine_images(self, image_list: List[List[Image]]) -> Image:
+        # Create an empty array for the combined image
+        original_shape = self.org_header["NAXIS1"], self.org_header["NAXIS2"]
+        combined_array = np.zeros(original_shape, dtype=np.float32)
+
+        N = len(image_list)  # Assuming square grid N x N
+        _, _, x_size, y_size = image_list[0][0].data.shape
+        x_step = original_shape[0] // N
+        y_step = original_shape[1] // N
+
+        for i in range(N):
+            for j in range(N):
+                x_start = i * x_step
+                x_end = (i + 1) * x_step
+                y_start = j * y_step
+                y_end = (j + 1) * y_step
+
+                # Remove overlaps; crop to original image dimensions
+                x_crop_start = max(0, self.overlap // 2)
+                x_crop_end = min(x_size, x_step + self.overlap // 2)
+                y_crop_start = max(0, self.overlap // 2)
+                y_crop_end = min(y_size, y_step + self.overlap // 2)
+
+                cropped_data = image_list[i][j].data[
+                    0, 0, y_crop_start:y_crop_end, x_crop_start:x_crop_end
+                ]
+
+                combined_array[y_start:y_end, x_start:x_end] = cropped_data
+
+        # Create a new FITS header based on the original header
+        new_header = self.org_header.copy()
+
+        # Add/Update the FITS header as needed
+        self.edit_fits_header(new_header)
+
+        # Create a new Image with the combined data and updated header
+        combined_image = Image()  # Assuming Image takes these parameters
+
+        return combined_image
+
+    def edit_fits_header(self, header) -> None:
+        # Logic to edit FITS header
+        pass
+
+    def get_RMS_map_image(self) -> Image:
+        individual_images = [result.get_RMS_map_image() for result in self.results]
+        combined_image = self.combine_images(individual_images)
+
+        # Edit the FITS header if necessary
+        self.edit_fits_header(combined_image.header)
+
+        return combined_image
