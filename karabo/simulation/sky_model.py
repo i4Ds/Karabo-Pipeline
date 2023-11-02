@@ -604,11 +604,13 @@ class SkyModel:
         distances_sq = np.add(np.square(x), np.square(y))
 
         # Filter sources based on inner and outer radius
-        filter_mask = (distances_sq >= np.square(inner_radius_deg)) & (
-            distances_sq <= np.square(outer_radius_deg)
+        filter_mask = cast(  # distances_sq actually an xr.DataArray because x & y are
+            xr.DataArray,
+            (distances_sq >= np.square(inner_radius_deg))
+            & (distances_sq <= np.square(outer_radius_deg)),
         )
 
-        copied_sky.sources = copied_sky.sources[filter_mask]
+        copied_sky.sources = copied_sky.sources[filter_mask.compute()]
 
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
