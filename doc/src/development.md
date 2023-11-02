@@ -44,7 +44,7 @@ podmena add local
 
 ## Formatting
 
-To increase the readability of the code and to better detect potential errors already during development, a number of tools are used. These tools must first be installed in the virtual environment using `pip install -r requirements.txt`. If possible use the versions defined in `requirements.txt`, so that all developers work with the same versions. The configurations of the tools are handled in `setup.cfg`. If changes to the configurations are desired, the team members should agree to this (e.g. via a meeting).
+To increase the readability of the code and to better detect potential errors already during development, a number of tools are used. The configurations of the tools are handled in `setup.cfg` or `pyproject.toml`. If changes to the configurations are desired, the team members should agree to this (e.g. via a meeting).
 
 It is possible that certain tools complain about something that is not easy or even impossible to fix. ONLY then, there are options to ignore certain lines of code or even whole files for the checker. E.g. `# noqa` ignores inline flake8 complaints. But be careful not to accidentally ignore the whole file (e.g. with `# flake8: noqa`). Please refer to the documentation of the respective tool to learn how to ignore the errors.
 
