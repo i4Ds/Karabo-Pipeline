@@ -174,7 +174,7 @@ class Telescope(KaraboResource):
                         List of valid versions: {accepted_versions}."""
                     )
 
-                    datapath = datapath.format(version.value)  # type: ignore[union-attr] # noqa: E501
+                    datapath = datapath.format(version.value)  # noqa
 
             path = os.path.join(get_module_absolute_path(), "data", datapath)
             return cls.read_OSKAR_tm_file(path)
