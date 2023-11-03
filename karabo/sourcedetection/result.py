@@ -57,7 +57,7 @@ class SourceDetectionResult(KaraboResource):
         image: Image,
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
-        n_splits: int = 1,
+        n_splits: int = 0,
         overlap: int = 0,
         use_dask: Optional[bool] = None,
         client: Optional[Any] = None,
