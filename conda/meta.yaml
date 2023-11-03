@@ -16,9 +16,12 @@ requirements:
     - python                  {{ python }}
     - pip
     - versioneer
+    - tomli
   host:
     - python                  {{ python }}
     - pip
+    - versioneer
+    - tomli
   run:
     - python                  {{ python }}
     - aratmospy               =1.0.dev0
