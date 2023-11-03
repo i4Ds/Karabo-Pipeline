@@ -71,15 +71,19 @@ class SourceDetectionResult(KaraboResource):
         image : Image
             Image object for source detection.
         beam : Optional[Tuple[float, float, float]], optional
-            The Full Width Half Maximum (FWHM) of the restoring beam, given as a tuple (major axis, minor axis, position angle). If None, tries to extract from image metadata.
+            The Full Width Half Maximum (FWHM) of the restoring beam, given as a tuple
+            (major axis, minor axis, position angle). If None, tries to extract from
+            image metadata.
         quiet : bool, default False
             If True, suppresses verbose output.
         n_splits : int, default 0
-            The number of parts to split the image into for processing. A value greater than 1 requires Dask.
+            The number of parts to split the image into for processing. A value
+            greater than 1 requires Dask.
         overlap : int, default 0
             The overlap between split parts of the image in pixels.
         use_dask : Optional[bool], optional
-            Indicates whether to use Dask for parallel processing. If None, decides based on the presence of a Dask client.
+            Indicates whether to use Dask for parallel processing. If None,
+            decides based on the presence of a Dask client.
         client : Optional[Any], optional
             A Dask client for distributed computing.
         **kwargs : Any
@@ -88,7 +92,8 @@ class SourceDetectionResult(KaraboResource):
         Returns
         -------
         Optional[List[T]]
-            A list of detected sources, or None if all pixels in the image are blanked or on failure.
+            A list of detected sources, or None if all pixels in the image are blanked
+            or on failure.
 
         Raises
         ------
@@ -97,18 +102,20 @@ class SourceDetectionResult(KaraboResource):
 
         Notes
         -----
-        If 'use_dask' is None and no Dask client is provided, the method will determine whether to use Dask based on internal utility functions.
+        If 'use_dask' is None and no Dask client is provided, the method will determine
+        whether to use Dask based on internal utility functions.
 
-        If 'n_splits' is greater than 1 and 'use_dask' is True, the image will be split into multiple parts and processed in parallel using Dask. Overlap can be specified to prevent edge artifacts.
+        If 'n_splits' is greater than 1 and 'use_dask' is True, the image will be split
+        into multiple parts and processed in parallel using Dask. Overlap can be
+        specified to prevent edge artifacts.
 
-        If the 'beam' parameter is not provided, the method will attempt to extract the beam parameters from the image metadata. A warning is raised if beam parameters are not found.
+        If the 'beam' parameter is not provided, the method will attempt to extract the
+        beam parameters from the image metadata. A warning is raised if beam parameters
+        are not found.
 
-        The PyBDSF process_image function is called for source detection, which is particularly designed for radio astronomical images. For details on this function, refer to the PyBDSF documentation.
-
-        Examples
-        --------
-        >>> detected_sources = ClassName.detect_sources_in_image(image_obj, beam=(45, 45, 0))
-        >>> print(detected_sources)
+        The PyBDSF process_image function is called for source detection, which is
+        particularly designed for radio astronomical images. For details on this
+        function, refer to the PyBDSF documentation.
         """
         if use_dask is None and not client:
             print(
@@ -450,14 +457,15 @@ class PyBDSFSourceDetectionResultList:
         Parameters
         ----------
         min_pixel_distance_between_sources : int, optional
-            The minimum number of pixels that must separate sources to be considered distinct.
-            Defaults to 5.
+            The minimum number of pixels that must separate sources to be considered
+            distinct. Defaults to 5.
 
         Returns
         -------
         NDArray[np.float_]
-            An array of the corrected pixel positions of the remaining sources after removing
-            sources that are too close to each other based on the specified minimum distance.
+            An array of the corrected pixel positions of the remaining sources after
+            removing sources that are too close to each other based on the specified
+            minimum distance.
 
         Notes
         -----

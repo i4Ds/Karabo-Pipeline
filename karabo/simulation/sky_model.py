@@ -578,17 +578,17 @@ class SkyModel:
         indices: bool = False,
     ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int_]]]:
         """
-        Filters sources within an annular region using a flat Euclidean distance 
+        Filters sources within an annular region using a flat Euclidean distance
         approximation suitable for large datasets managed by Xarray.
 
-        This function is designed for scenarios where the dataset size precludes 
-        in-memory spherical geometry calculations. By leveraging a flat Euclidean 
-        approximation, it permits the use of Xarray's out-of-core computation 
-        capabilities, thus bypassing the limitations imposed by the incompatibility 
-        of `astropy.visualization.wcsaxes.SphericalCircle` with Xarray's data 
-        structures. Although this method trades off geometric accuracy against 
-        computational efficiency, it remains a practical choice for large angular 
-        fields where the curvature of the celestial sphere can be reasonably 
+        This function is designed for scenarios where the dataset size precludes
+        in-memory spherical geometry calculations. By leveraging a flat Euclidean
+        approximation, it permits the use of Xarray's out-of-core computation
+        capabilities, thus bypassing the limitations imposed by the incompatibility
+        of `astropy.visualization.wcsaxes.SphericalCircle` with Xarray's data
+        structures. Although this method trades off geometric accuracy against
+        computational efficiency, it remains a practical choice for large angular
+        fields where the curvature of the celestial sphere can be reasonably
         neglected.
 
         Parameters
@@ -602,40 +602,27 @@ class SkyModel:
         dec0_deg : IntFloat
             The declination of the search region's center, in degrees.
         indices : bool, optional
-            If True, returns the indices of the filtered sources in addition to the 
+            If True, returns the indices of the filtered sources in addition to the
             SkyModel object. Defaults to False.
 
         Returns
         -------
         SkyModel or tuple of (SkyModel, NDArray[np.int_])
-            The filtered SkyModel object, and optionally the indices of the filtered 
+            The filtered SkyModel object, and optionally the indices of the filtered
             sources if `indices` is set to True.
 
         Raises
         ------
         KaraboSkyModelError
-            If the `sources` attribute is not populated in the SkyModel instance prior 
+            If the `sources` attribute is not populated in the SkyModel instance prior
             to invoking this function.
 
         Notes
         -----
-        Use this function for large sky models where a full spherical geometry 
-        calculation is not feasible due to memory constraints. It is particularly 
-        beneficial when working with Xarray and Dask, facilitating scalable data 
+        Use this function for large sky models where a full spherical geometry
+        calculation is not feasible due to memory constraints. It is particularly
+        beneficial when working with Xarray and Dask, facilitating scalable data
         analysis on datasets that are too large to fit into memory.
-
-        Examples
-        --------
-        >>> # Assuming `self` is an initialized SkyModel object with a `sources` 
-        >>> # attribute containing right ascension and declination data.
-        >>> filtered_model = self.filter_by_radius_euclidean_flat_approximation(
-                inner_radius_deg=2.0,
-                outer_radius_deg=5.0,
-                ra0_deg=180.0,
-                dec0_deg=-45.0
-            )
-        >>> # The returned object is an instance of SkyModel containing the filtered 
-        >>> # sources.
         """
         copied_sky = SkyModel.copy_sky(self)
 

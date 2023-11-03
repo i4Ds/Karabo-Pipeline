@@ -1,4 +1,3 @@
-import os
 import tempfile
 from pathlib import Path
 
@@ -13,7 +12,7 @@ from karabo.data.external_data import (
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
-from karabo.imaging.image import Image, ImageMosaicker
+from karabo.imaging.image import ImageMosaicker
 from karabo.imaging.imager import Imager
 from karabo.imaging.mosaic import mosaic, mosaic_directories, mosaic_header
 from karabo.simulation.line_emission import freq_channels, karabo_reconstruction

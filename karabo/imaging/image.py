@@ -17,7 +17,6 @@ from reproject import reproject_interp
 from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
-from karabo.error import KaraboError
 from karabo.karabo_resource import KaraboResource
 from karabo.util._types import FilePathType, IntLike
 from karabo.util.file_handler import FileHandler, check_ending
@@ -175,7 +174,7 @@ class Image(KaraboResource):
         self.header["CDELT1"] = self.header["CDELT1"] * old_shape[1] / new_shape[1]
         self.header["CDELT2"] = self.header["CDELT2"] * old_shape[0] / new_shape[0]
 
-    def cutout(self, center_xy: Tuple[float, float], size_xy: Tuple[float, float]):
+    def cutout(self, center_xy: Tuple[float, float], size_xy: Tuple[float, float]) -> Image:
         """
         Cutout the image to the given size and center.
 
@@ -198,9 +197,9 @@ class Image(KaraboResource):
         new_header: fits.header.Header,
         old_header: fits.header.Header,
         keys_to_copy=HEADER_KEYS_TO_COPY_AFTER_CUTOUT,
-    ) -> None:
+    ) -> FIts.header.Header:
         for key in keys_to_copy:
-            if key in old_header and not key in new_header:
+            if key in old_header and key not in new_header:
                 new_header[key] = old_header[key]
         return new_header
 
@@ -245,7 +244,8 @@ class Image(KaraboResource):
         --------
         >>> # Assuming `self.data` is a 4D array with shape (C, Z, X, Y)
         >>> # and `self.cutout` method is defined
-        >>> cutouts = split_image(4, overlap=10)
+        >>> image = Image()
+        >>> cutouts = image.split_image(4, overlap=10)
         >>> len(cutouts)
         16  # because 4x4 grid
         """
@@ -522,7 +522,10 @@ class ImageMosaicker:
 
     Methods
     -------
-    process(images, weights=None, shape_out=None, output_array=None, output_footprint=None)
+    process(
+        images, weights=None, shape_out=None, output_array=None,
+        output_footprint=None
+        )
         Combine the provided images into a single mosaicked image.
 
     """
@@ -542,17 +545,20 @@ class ImageMosaicker:
         ----------
         reproject_function : callable, optional
             The function to use for the reprojection.
-        combine_function : {'mean', 'sum', 'median', 'first', 'last', 'min', 'max'}, optional
+        combine_function : {'mean', 'sum', 'median', 'first', 'last', 'min', 'max'}
             The type of function to use for combining the values into the final image.
         match_background : bool, optional
             Whether to match the backgrounds of the images.
         background_reference : None or int, optional
-            If None, the background matching will make it so that the average of the corrections for all images is zero.
+            If None, the background matching will make it so that the average of the
+            corrections for all images is zero.
             If an integer, this specifies the index of the image to use as a reference.
         hdu_in : int or str, optional
-            If one or more items in input_data is a FITS file or an HDUList instance, specifies the HDU to use.
+            If one or more items in input_data is a FITS file or an HDUList instance,
+            specifies the HDU to use.
         hdu_weights : int or str, optional
-            If one or more items in input_weights is a FITS file or an HDUList instance, specifies the HDU to use.
+            If one or more items in input_weights is a FITS file or an HDUList instance,
+            specifies the HDU to use.
         **kwargs : dict, optional
             Additional keyword arguments to be passed to the reprojection function.
         """
@@ -582,12 +588,13 @@ class ImageMosaicker:
         images : list
             A list of images to combine.
         weights : list, optional
-            If specified, an iterable with the same length as images, containing weights for each image.
+            If specified, an iterable with the same length as images, containing weights
+            for each image.
         shape_out : tuple, optional
             The shape of the output data. If None, it will be computed from the images.
         image_for_header : Image, optional
-            From which image the header should be used to readd the lost information by the
-            mosaicking because some information is not propagated.
+            From which image the header should be used to readd the lost information
+            by the mosaicking because some information is not propagated.
 
         Returns
         -------
