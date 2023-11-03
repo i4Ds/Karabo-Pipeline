@@ -197,13 +197,13 @@ class Image(KaraboResource):
         new_header: fits.header.Header,
         old_header: fits.header.Header,
         keys_to_copy=HEADER_KEYS_TO_COPY_AFTER_CUTOUT,
-    ) -> FIts.header.Header:
+    ) -> fits.header.Header:
         for key in keys_to_copy:
             if key in old_header and key not in new_header:
                 new_header[key] = old_header[key]
         return new_header
 
-    def split_image(self, N: int, overlap: int = 0):
+    def split_image(self, N: int, overlap: int = 0) -> List[Image]:
         """
         Split the image into N x N equal-sized sections with optional overlap.
 
@@ -493,7 +493,7 @@ class Image(KaraboResource):
 
     def get_2d_wcs(self, ra_dec_axis: Tuple[IntLike, IntLike] = [1, 2]) -> WCS:
         wcs = WCS(self.header)
-        wcs_2d = wcs.sub(ra_dec_axis)
+        wcs_2d = wcs.sub(ra_dec_axis) # type: ignore
 
         return wcs_2d
 
