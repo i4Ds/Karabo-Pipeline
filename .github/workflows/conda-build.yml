@@ -9,9 +9,15 @@ on:
         type: string
         required: false
         default: "0"
+      version:
+        type: string
+        required: true
   workflow_call:
     inputs:
       buildNumber:
+        type: string
+        required: true
+      version:
         type: string
         required: true
 
@@ -27,37 +33,28 @@ jobs:
       - name: Get Previous tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
-      - name: Install conda build
-        shell: bash -l {0}
-        id: channels
-        run: |
-          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          conda config --append channels i4ds
-          conda config --append channels nvidia/label/cuda-11.7.0
-          conda config --append channels conda-forge
-      - name: Export Build Number
-        id: buildnr
+      - name: Build Conda
         shell: bash -l {0}
         run: |
           if [[ ${{ github.event_name }} == "release" ]]
           then
             BUILD_NR="0"
+            KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+            KARABO_VER="${KARABO_TAG:1}"
           fi
-          if [[ ${{ github.event_name }} == "workflow_dispatch" ]]
+          if [[ ${{ github.event_name }} == "workflow_dispatch" ]] || [[ ${{ github.event_name }} == "workflow_call" ]]
           then
             BUILD_NR=${{ inputs.buildNumber }}
+            KARABO_VER=${{ inputs.version }}
           fi
-          if [[ ${{ github.event_name }} == "workflow_call" ]]
-          then
-            BUILD_NR=${{ inputs.buildNumber }}
-          fi
+          echo "KARABO_VERSION=$KARABO_VER" >> "$GITHUB_ENV"
           echo "BUILD_NUMBER=$BUILD_NR" >> "$GITHUB_ENV"
-      - name: Build Conda
-        shell: bash -l {0}
-        run: |
+
+          conda config --append channels i4ds
+          conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels conda-forge
+
           cd conda
-          KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-          export KARABO_VERSION="${KARABO_TAG:1}"
           conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}
