@@ -15,6 +15,7 @@ requirements:
   build:
     - python                  {{ python }}
     - pip
+    - versioneer
   host:
     - python                  {{ python }}
     - pip
