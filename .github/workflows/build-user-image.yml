@@ -92,7 +92,7 @@ jobs:
         with:
           context: .
           push: false
-          build-args: GIT_REV=${{ env.gitrev }}
+          build-args: GIT_REV=${{ env.gitrev }} build=${{ env.build }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: test
