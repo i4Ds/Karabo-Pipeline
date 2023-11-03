@@ -8,7 +8,6 @@ from warnings import warn
 
 import bdsf
 import numpy as np
-from astropy.io.fits.header import Header
 from bdsf.image import Image as bdsf_image
 from dask import compute, delayed
 from numpy.typing import NDArray
@@ -16,7 +15,6 @@ from numpy.typing import NDArray
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
 from karabo.karabo_resource import HiddenPrints, KaraboResource
-from karabo.util._types import IntFloat
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
@@ -64,14 +62,53 @@ class SourceDetectionResult(KaraboResource):
         **kwargs: Any,
     ) -> Optional[List[T]]:
         """
-        Detecting sources in an image. The Source detection is implemented with
-        the PyBDSF.process_image function.
-        See https://www.astron.nl/citt/pybdsf/process_image.html for more information.
+        Detect sources in an astronomical image using PyBDSF.process_image function.
 
-        :param image: Image to perform source detection on.
-        :param beam: FWHM of restoring beam. Specify as (maj, min. pos angle E of N).
-            None means it will try to be extracted from the Image data.
-        :return: Source Detection Result containing the found sources
+        Parameters
+        ----------
+        cls : Type[T]
+            The class on which this method is called.
+        image : Image
+            Image object for source detection.
+        beam : Optional[Tuple[float, float, float]], optional
+            The Full Width Half Maximum (FWHM) of the restoring beam, given as a tuple (major axis, minor axis, position angle). If None, tries to extract from image metadata.
+        quiet : bool, default False
+            If True, suppresses verbose output.
+        n_splits : int, default 0
+            The number of parts to split the image into for processing. A value greater than 1 requires Dask.
+        overlap : int, default 0
+            The overlap between split parts of the image in pixels.
+        use_dask : Optional[bool], optional
+            Indicates whether to use Dask for parallel processing. If None, decides based on the presence of a Dask client.
+        client : Optional[Any], optional
+            A Dask client for distributed computing.
+        **kwargs : Any
+            Additional keyword arguments to pass to PyBDSF.process_image function.
+
+        Returns
+        -------
+        Optional[List[T]]
+            A list of detected sources, or None if all pixels in the image are blanked or on failure.
+
+        Raises
+        ------
+        RuntimeError
+            If an unexpected error occurs during the source detection process.
+
+        Notes
+        -----
+        If 'use_dask' is None and no Dask client is provided, the method will determine whether to use Dask based on internal utility functions.
+
+        If 'n_splits' is greater than 1 and 'use_dask' is True, the image will be split into multiple parts and processed in parallel using Dask. Overlap can be specified to prevent edge artifacts.
+
+        If the 'beam' parameter is not provided, the method will attempt to extract the beam parameters from the image metadata. A warning is raised if beam parameters are not found.
+
+        The PyBDSF process_image function is called for source detection, which is particularly designed for radio astronomical images. For details on this function, refer to the PyBDSF documentation.
+
+        Examples
+        --------
+        >>> detected_sources = ClassName.detect_sources_in_image(image_obj, beam=(45, 45, 0))
+        >>> print(detected_sources)
         """
         if use_dask is None and not client:
             print(
@@ -223,8 +260,7 @@ class SourceDetectionResult(KaraboResource):
     def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
         x_pos = self.detected_sources[:, 3]
         y_pos = self.detected_sources[:, 4]
-        result = np.vstack((np.array(x_pos), np.array(y_pos))).T
-        return result
+        return np.vstack((np.array(x_pos), np.array(y_pos))).T
 
 
 class PyBDSFSourceDetectionResult(SourceDetectionResult):
@@ -250,9 +286,6 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         # If no sources are written, the file is not created
         if os.path.exists(sources_file):
             bdsf_detected_sources = read_CSV_to_ndarray(sources_file)
-            print(f"{bdsf_detected_sources=}")
-            print(f"{bdsf_detected_sources.shape=}")
-
             detected_sources = type(self).__transform_bdsf_to_reduced_result_array(
                 bdsf_detected_sources=bdsf_detected_sources,
             )
@@ -275,6 +308,13 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             len(bdsf_detected_sources.shape) == 2
             and bdsf_detected_sources.shape[1] > 14
         ):
+            # 0: Gaus_id
+            # 4: RA
+            # 6: DEC
+            # 12: Total_flux
+            # 14: Peak_flux
+            # 8: RA_max
+            # 9: E_RA_max
             sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         else:
             wmsg = (
@@ -284,8 +324,6 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             )
             warn(KaraboWarning(wmsg))
             sources = bdsf_detected_sources
-        print("reduced sources shape", sources.shape)
-        print(sources)
 
         return sources
 
@@ -400,3 +438,78 @@ class PyBDSFSourceDetectionResultList:
 
     def get_source_image(self) -> Image:
         return self.__get_result_image("source")
+
+    def get_pixel_position_of_sources(
+        self, min_pixel_distance_between_sources: int = 5
+    ) -> NDArray[np.float_]:
+        """
+        Calculate the pixel positions of sources in a mosaic image and remove sources
+        that are closer than a minimum specified pixel distance, preferring sources with
+        higher total flux.
+
+        Parameters
+        ----------
+        min_pixel_distance_between_sources : int, optional
+            The minimum number of pixels that must separate sources to be considered distinct.
+            Defaults to 5.
+
+        Returns
+        -------
+        NDArray[np.float_]
+            An array of the corrected pixel positions of the remaining sources after removing
+            sources that are too close to each other based on the specified minimum distance.
+
+        Notes
+        -----
+        This function assumes that `self.bdsf_detection` is a list of detection results
+        containing the positions of sources and their total fluxes. It also assumes a
+        single mosaic header is applicable for all detections for CRPIX calibration.
+        """
+        # Get XY pixel position for each result
+        xy_poss = [
+            result.get_pixel_position_of_sources() for result in self.bdsf_detection
+        ]
+        # Get headers
+        headers = [result.get_source_image().header for result in self.bdsf_detection]
+        # Get Total Flux per Source
+        total_fluxes = np.concatenate(
+            [x.bdsf_detected_sources[:, 12] for x in self.bdsf_detection], axis=0
+        )
+        # Get mosaic header
+        mosaic_header = self.get_source_image().header
+        # Calculate delta CRPIX for each header relative to the mosaic
+        header_crpixs = np.array(
+            [[header["CRPIX1"], header["CRPIX2"]] for header in headers]
+        )
+        mosaic_crpixs = np.array([mosaic_header["CRPIX1"], mosaic_header["CRPIX2"]])
+        # Apply delta to xy positions
+        corrected_positions = []
+        for xy_pos, crpix in zip(xy_poss, header_crpixs):
+            delta_crpixs = crpix - mosaic_crpixs
+            corrected_positions.append(
+                xy_pos - delta_crpixs
+            )  # Subtract delta to align with the mosaic
+
+        # Combine all positions into one array
+        combined_positions = np.concatenate(corrected_positions, axis=0)
+        # Check if some sources overlap
+        to_drop = []
+        for i in range(len(combined_positions)):
+            for j in range(
+                i + 1, len(combined_positions)
+            ):  # Compare with subsequent sources to avoid repetition
+                dist = np.linalg.norm(combined_positions[i] - combined_positions[j])
+                if dist < min_pixel_distance_between_sources:
+                    print(f"Source {i} and {j} are too close")
+                    if total_fluxes[i] > total_fluxes[j]:
+                        to_drop.append(j)
+                    else:
+                        to_drop.append(i)
+        if len(to_drop) > 0:
+            print(f"Dropping {len(to_drop)} sources")
+            # Create a boolean mask to keep sources not in to_drop
+            mask = np.ones(len(combined_positions), dtype=bool)
+            mask[np.array(to_drop)] = False
+            combined_positions = combined_positions[mask]
+
+        return combined_positions

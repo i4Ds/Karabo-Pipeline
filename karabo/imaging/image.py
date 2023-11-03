@@ -205,6 +205,50 @@ class Image(KaraboResource):
         return new_header
 
     def split_image(self, N: int, overlap: int = 0):
+        """
+        Split the image into N x N equal-sized sections with optional overlap.
+
+        Parameters
+        ----------
+        N : int
+            The number of sections to split the image into along one axis. The
+            total number of image sections will be N^2.
+            It is assumed that the image can be divided into N equal parts along
+            both axes. If this is not the case (e.g., image size is not a
+            multiple of N), the sections on the edges will have fewer pixels.
+
+        overlap : int, optional
+            The number of pixels by which adjacent image sections will overlap.
+            Default is 0, meaning no overlap.
+
+        Returns
+        -------
+        cutouts : list
+            A list of cutout sections of the image. Each element in the list is
+            a 2D array representing a section of the image.
+
+        Notes
+        -----
+        The function calculates the step size for both the x and y dimensions
+        by dividing the dimension size by N. It then iterates over N steps
+        in both dimensions to generate starting and ending indices for each
+        cutout section, taking the overlap into account.
+
+        The `cutout` function (not shown) is assumed to take the center
+        (x, y) coordinates and the (width, height) of the desired cutout
+        section and return the corresponding 2D array from the image.
+
+        The edge sections will be equal to or smaller than the sections in
+        the center of the image if the image size is not an exact multiple of N.
+
+        Examples
+        --------
+        >>> # Assuming `self.data` is a 4D array with shape (C, Z, X, Y)
+        >>> # and `self.cutout` method is defined
+        >>> cutouts = split_image(4, overlap=10)
+        >>> len(cutouts)
+        16  # because 4x4 grid
+        """
         _, _, x_size, y_size = self.data.shape
         x_step = x_size // N
         y_step = y_size // N
@@ -542,7 +586,7 @@ class ImageMosaicker:
         shape_out : tuple, optional
             The shape of the output data. If None, it will be computed from the images.
         image_for_header : Image, optional
-            From which image the header should be used to readd the lost information by the 
+            From which image the header should be used to readd the lost information by the
             mosaicking because some information is not propagated.
 
         Returns

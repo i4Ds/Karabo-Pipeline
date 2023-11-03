@@ -1,3 +1,4 @@
+import os
 import tempfile
 from pathlib import Path
 
@@ -12,9 +13,13 @@ from karabo.data.external_data import (
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
+from karabo.imaging.image import Image, ImageMosaicker
+from karabo.imaging.imager import Imager
 from karabo.imaging.mosaic import mosaic, mosaic_directories, mosaic_header
 from karabo.simulation.line_emission import freq_channels, karabo_reconstruction
 from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.visibility import Visibility
+from karabo.test.conftest import TFiles
 
 
 # DownloadObject instances used to download different golden files:
@@ -184,3 +189,16 @@ def test_mosaic_run(
         assert set(golden_uncorrected_area_fits_header.keys()) == set(
             uncorrected_area_fits_header.keys()
         )
+
+
+def test_ImageMosaicker(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
+
+    dirty = imager.get_dirty_image()
+
+    dirties = dirty.split_image(N=4, overlap=50)
+    mosaicker = ImageMosaicker()
+    dirty_mosaic = mosaicker.process(dirties)[0]
+    assert dirty.data.shape[2:] == dirty_mosaic.data.shape[2:]
+    assert np.linalg.norm(dirty.data[0, 0, :, :] - dirty_mosaic.data[0, 0, :, :]) < 1e-6

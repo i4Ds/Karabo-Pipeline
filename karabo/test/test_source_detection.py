@@ -4,6 +4,7 @@ import tempfile
 import numpy as np
 import pytest
 
+from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -196,6 +197,34 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     assert np.all(
         assigment[:, 0] == np.flipud(assigment[:, 1])
     ), "Automatic assignment of ground truth and detected is not correct"
+
+
+def test_source_detection(tobject: TFiles):
+    restored = Image.read_from_file(tobject.restored_fits)
+    detection_results = PyBDSFSourceDetectionResult.detect_sources_in_image(
+        restored, thresh_isl=15, thresh_pix=20
+    )
+    gtruth = np.array(
+        [[ 981.74904041,  843.23261492],
+            [ 923.99869192,  856.80790319],
+            [ 875.39219674,  889.2266872 ],
+            [ 811.14161381,  929.42900662],
+            [1018.00786977,  925.23273295],
+            [1045.25482933, 1039.90727384],
+            [1212.06660484,  930.03800074]
+        ]
+    )
+    detected = detection_results.get_pixel_position_of_sources()
+    closest_distances = np.linalg.norm(gtruth - detected, axis=1)
+    assert np.all(closest_distances < 5), "Source detection is not correct"
+
+    # Now compare it with splitting the image
+    detection_results = PyBDSFSourceDetectionResult.detect_sources_in_image(
+        restored, thresh_isl=15, thresh_pix=20, n_splits=4
+    )
+    assert len(detection_results) == 4, "Splitting the image did not work"
+    detected = detection_results.get_pixel_position_of_sources()
+    assert np.all(closest_distances < 5), "Source detection is not correct"
 
 
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
