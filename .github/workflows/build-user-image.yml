@@ -7,6 +7,21 @@ on:
       - completed
 
   workflow_dispatch:
+    inputs:
+      gitrev:
+        type: string
+        required: true
+      verstag:
+        type: string
+        required: true
+      latest:
+        type: boolean
+        required: false
+        default: false
+      test:
+        type: boolean
+        required: false
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -41,21 +56,43 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup metadata img-name & img-tag
+        shell: bash -l {0}
+        run: |
+          if [[ ${{ github.event_name }} == "workflow_run" ]]
+          then
+            echo "latest=true" >> "$GITHUB_ENV"
+            echo "version=${{ steps.get-latest-tag.outputs.tag }}" >> "$GITHUB_ENV"
+            echo "gitrev=${{ steps.get-latest-tag.outputs.tag }}" >> "$GITHUB_ENV"
+            echo "build=user" >> "$GITHUB_ENV"
+          fi
+          if [[ ${{ github.event_name }} == "workflow_dispatch" ]]
+          then
+            echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
+            echo "version=${{ inputs.verstag }}" >> "$GITHUB_ENV"
+            echo "gitrev=${{ inputs.gitrev }}" >> "$GITHUB_ENV"
+            if [[ ${{ inputs.test }} == "true" ]]
+            then
+              echo "build=test" >> "$GITHUB_ENV"
+            else
+              echo "build=user" >> "$GITHUB_ENV"
+            fi
+          fi
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
-            type=raw, value=latest
-            type=pep440, pattern={{version}}, value=${{ steps.get-latest-tag.outputs.tag }}
+            type=raw, enable=${{ env.latest }}, value=latest
+            type=pep440, pattern={{version}}, value=${{ env.version }}
 
       - name: Build and export to Docker
         uses: docker/build-push-action@v5
         with:
           context: .
           push: false
-          build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          build-args: KARABO_TAG=${{ env.version }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: test
@@ -69,6 +106,6 @@ jobs:
           file: docker/user/Dockerfile
           context: .
           push: true
-          build-args: KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          build-args: GIT_REV=${{ env.gitrev }} build=${{ env.build }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
