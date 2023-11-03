@@ -13,9 +13,9 @@ from bdsf.image import Image as bdsf_image
 from dask import compute, delayed
 from numpy.typing import NDArray
 
-from karabo.imaging.image import Image
+from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
-from karabo.karabo_resource import KaraboResource
+from karabo.karabo_resource import HiddenPrints, KaraboResource
 from karabo.util._types import IntFloat
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
@@ -99,30 +99,28 @@ class SourceDetectionResult(KaraboResource):
 
         try:
             if n_splits > 1:
-                cutouts = Image.split_image(image, n_splits, overlap)
+                # Check if there is a dask client
+                if DaskHandler.dask_client is None:
+                    _ = DaskHandler.get_dask_client()
+                cutouts = image.split_image(n_splits, overlap)
                 results = []
-                for col in cutouts:
-                    for cut in col:
-                        results.append(
-                            delayed(bdsf.process_image)(
-                                input=cut.path,
-                                beam=beam,
-                                quiet=quiet,
-                                format="csv",
-                                **kwargs,
-                            )
+                for cutout in cutouts:
+                    results.append(
+                        delayed(bdsf.process_image)(
+                            input=cutout.path,
+                            beam=beam,
+                            quiet=quiet,
+                            format="csv",
+                            **kwargs,
                         )
-                # with HiddenPrints():  # Remove multiple spam by PyBDSF.
-                results = [
-                    cls(result) for result in compute(*results, scheduler="distributed")
-                ]
+                    )
+                with HiddenPrints():  # Remove multiple spam by PyBDSF.
+                    results = [
+                        cls(result)
+                        for result in compute(*results, scheduler="distributed")
+                    ]
 
-                # Remake them into a list of lists
-                results = [
-                    results[i : i + n_splits] for i in range(0, len(results), n_splits)
-                ]
-
-                return PyBDSFSourceDetectionResultList(results, image.header, overlap)
+                return PyBDSFSourceDetectionResultList(results)
             else:
                 detection = bdsf.process_image(
                     input=image.path,
@@ -131,9 +129,6 @@ class SourceDetectionResult(KaraboResource):
                     format="csv",
                     **kwargs,
                 )
-                print("Detection results:")
-                print(detection)
-                print(detection.filename)
                 return cls(detection)  # type: ignore
         except RuntimeError as e:
             wmsg = "All pixels in the image are blanked."
@@ -345,70 +340,63 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def get_peak_to_aperture_flux_variation_image(self) -> Image:
         return self.__get_result_image("psf_ratio_aper")
 
-    def get_island_mask(self) -> Image:
+    def get_island_mask_image(self) -> Image:
         return self.__get_result_image("island_mask")
 
 
 class PyBDSFSourceDetectionResultList:
     def __init__(
         self,
-        results: List[List[PyBDSFSourceDetectionResult]],
-        org_header: Header,
-        overlap: IntFloat,
+        bdsf_detection: List[PyBDSFSourceDetectionResult],
     ) -> None:
-        self.results = results
-        self.org_header = org_header
-        self.overlap = overlap
+        self.bdsf_detection = bdsf_detection
 
-    def combine_images(self, image_list: List[List[Image]]) -> Image:
-        # Create an empty array for the combined image
-        original_shape = self.org_header["NAXIS1"], self.org_header["NAXIS2"]
-        combined_array = np.zeros(original_shape, dtype=np.float32)
-
-        N = len(image_list)  # Assuming square grid N x N
-        _, _, x_size, y_size = image_list[0][0].data.shape
-        x_step = original_shape[0] // N
-        y_step = original_shape[1] // N
-
-        for i in range(N):
-            for j in range(N):
-                x_start = i * x_step
-                x_end = (i + 1) * x_step
-                y_start = j * y_step
-                y_end = (j + 1) * y_step
-
-                # Remove overlaps; crop to original image dimensions
-                x_crop_start = max(0, self.overlap // 2)
-                x_crop_end = min(x_size, x_step + self.overlap // 2)
-                y_crop_start = max(0, self.overlap // 2)
-                y_crop_end = min(y_size, y_step + self.overlap // 2)
-
-                cropped_data = image_list[i][j].data[
-                    0, 0, y_crop_start:y_crop_end, x_crop_start:x_crop_end
-                ]
-
-                combined_array[y_start:y_end, x_start:x_end] = cropped_data
-
-        # Create a new FITS header based on the original header
-        new_header = self.org_header.copy()
-
-        # Add/Update the FITS header as needed
-        self.edit_fits_header(new_header)
-
-        # Create a new Image with the combined data and updated header
-        combined_image = Image()  # Assuming Image takes these parameters
-
-        return combined_image
-
-    def edit_fits_header(self, header) -> None:
-        # Logic to edit FITS header
-        pass
+    def __get_result_image(self, image_type: str) -> Image:
+        mi = ImageMosaicker()
+        images = [
+            getattr(result, f"get_{image_type}_image")()
+            for result in self.bdsf_detection
+        ]
+        return mi.process(images)[0]
 
     def get_RMS_map_image(self) -> Image:
-        individual_images = [result.get_RMS_map_image() for result in self.results]
-        combined_image = self.combine_images(individual_images)
+        return self.__get_result_image("RMS_map")
 
-        # Edit the FITS header if necessary
-        self.edit_fits_header(combined_image.header)
+    def get_mean_map_image(self) -> Image:
+        return self.__get_result_image("mean_map")
 
-        return combined_image
+    def get_polarized_intensity_image(self) -> Image:
+        return self.__get_result_image("polarized_intensity")
+
+    def get_gaussian_residual_image(self) -> Image:
+        return self.__get_result_image("gaussian_residual")
+
+    def get_gaussian_model_image(self) -> Image:
+        return self.__get_result_image("gaussian_model")
+
+    def get_shapelet_residual_image(self) -> Image:
+        return self.__get_result_image("shapelet_residual")
+
+    def get_shapelet_model_image(self) -> Image:
+        return self.__get_result_image("shapelet_model")
+
+    def get_major_axis_FWHM_variation_image(self) -> Image:
+        return self.__get_result_image("major_axis_FWHM_variation")
+
+    def get_minor_axis_FWHM_variation_image(self) -> Image:
+        return self.__get_result_image("minor_axis_FWHM_variation")
+
+    def get_position_angle_variation_image(self) -> Image:
+        return self.__get_result_image("position_angle_variation")
+
+    def get_peak_to_total_flux_variation_image(self) -> Image:
+        return self.__get_result_image("peak_to_total_flux_variation")
+
+    def get_peak_to_aperture_flux_variation_image(self) -> Image:
+        return self.__get_result_image("peak_to_aperture_flux_variation")
+
+    def get_island_mask(self) -> Image:
+        return self.__get_result_image("island_mask")
+
+    def get_source_image(self) -> Image:
+        return self.__get_result_image("source")

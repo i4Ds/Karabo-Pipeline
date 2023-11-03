@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -28,6 +28,23 @@ from karabo.util.plotting_util import get_slices
 previous_backend = matplotlib.get_backend()
 
 matplotlib.use(previous_backend)
+
+# Parameters to copy from the original header to the cutout header
+HEADER_KEYS_TO_COPY_AFTER_CUTOUT = [
+    "CTYPE3",
+    "CRPIX3",
+    "CDELT3",
+    "CRVAL3",
+    "CUNIT3",
+    "CTYPE4",
+    "CRPIX4",
+    "CDELT4",
+    "CRVAL4",
+    "CUNIT4",
+    "BMAJ",
+    "BMIN",
+    "BPA",
+]
 
 
 class Image(KaraboResource):
@@ -173,7 +190,19 @@ class Image(KaraboResource):
             wcs=self.get_2d_wcs(),
         )
         header = cut.wcs.to_header()
+        header = self.update_header_from_image_header(header, self.header)
         return Image(data=cut.data[np.newaxis, np.newaxis, :, :], header=header)
+
+    @staticmethod
+    def update_header_from_image_header(
+        new_header: fits.header.Header,
+        old_header: fits.header.Header,
+        keys_to_copy=HEADER_KEYS_TO_COPY_AFTER_CUTOUT,
+    ) -> None:
+        for key in keys_to_copy:
+            if key in old_header and not key in new_header:
+                new_header[key] = old_header[key]
+        return new_header
 
     def split_image(self, N: int, overlap: int = 0):
         _, _, x_size, y_size = self.data.shape
@@ -202,26 +231,6 @@ class Image(KaraboResource):
 
     def to_2dNNData(self) -> NDData:
         return NDData(data=self.data[0, 0, :, :], wcs=self.get_2d_wcs())
-
-    def combine_images(images: List[Image]):
-        """
-        Combine a list of images into one image.
-        :param images: List of images to combine
-        :return: Combined image
-        """
-        if len(images) < 2:
-            raise KaraboError("At least two images are required to combine them.")
-        NNData_list = [image.to_2dNNData() for image in images]
-        optimal_wcs = find_optimal_celestial_wcs(NNData_list, projection="SIN")
-        array, footprint = reproject_and_coadd(
-            NNData_list,
-            output_projection=optimal_wcs[0],
-            shape_out=optimal_wcs[1],
-            reproject_function=reproject_interp,
-        )
-        return Image(
-            data=array[np.newaxis, np.newaxis, :, :], header=optimal_wcs[0].to_header()
-        )
 
     def plot(
         self,
@@ -443,3 +452,138 @@ class Image(KaraboResource):
         wcs_2d = wcs.sub(ra_dec_axis)
 
         return wcs_2d
+
+
+class ImageMosaicker:
+    """
+    A class to handle the combination of multiple images into a single mosaicked image.
+    See: https://reproject.readthedocs.io/en/stable/mosaicking.html
+
+    Attributes
+    ----------
+    reproject_function : callable
+        The function to use for the reprojection.
+    combine_function : {'mean', 'sum', 'median', 'first', 'last', 'min', 'max'}
+        The type of function to use for combining the values into the final image.
+    match_background : bool
+        Whether to match the backgrounds of the images.
+    background_reference : None or int
+        The index of the reference image for background matching.
+    hdu_in : int or str, optional
+        Specifies the HDU to use from the input FITS files or HDUList.
+    hdu_weights : int or str, optional
+        Specifies the HDU to use from the input weights FITS files or HDUList.
+    kwargs : dict
+        Additional keyword arguments to pass to the reprojection function.
+
+    Methods
+    -------
+    process(images, weights=None, shape_out=None, output_array=None, output_footprint=None)
+        Combine the provided images into a single mosaicked image.
+
+    """
+
+    def __init__(
+        self,
+        reproject_function: Callable = reproject_interp,
+        combine_function: str = "mean",
+        match_background: bool = False,
+        background_reference: Optional[int] = None,
+        hdu_in: Optional[Union[int, str]] = None,
+        hdu_weights: Optional[Union[int, str]] = None,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        reproject_function : callable, optional
+            The function to use for the reprojection.
+        combine_function : {'mean', 'sum', 'median', 'first', 'last', 'min', 'max'}, optional
+            The type of function to use for combining the values into the final image.
+        match_background : bool, optional
+            Whether to match the backgrounds of the images.
+        background_reference : None or int, optional
+            If None, the background matching will make it so that the average of the corrections for all images is zero.
+            If an integer, this specifies the index of the image to use as a reference.
+        hdu_in : int or str, optional
+            If one or more items in input_data is a FITS file or an HDUList instance, specifies the HDU to use.
+        hdu_weights : int or str, optional
+            If one or more items in input_weights is a FITS file or an HDUList instance, specifies the HDU to use.
+        **kwargs : dict, optional
+            Additional keyword arguments to be passed to the reprojection function.
+        """
+        self.reproject_function = reproject_function
+        self.combine_function = combine_function
+        self.match_background = match_background
+        self.background_reference = background_reference
+        self.hdu_in = hdu_in
+        self.hdu_weights = hdu_weights
+        self.kwargs = kwargs
+
+    def process(
+        self,
+        images: List[Union[str, fits.HDUList, fits.PrimaryHDU, NDData]],
+        projection: str = "SIN",
+        weights: Optional[
+            List[Union[str, fits.HDUList, fits.PrimaryHDU, np.ndarray]]
+        ] = None,
+        shape_out: Optional[Tuple[int]] = None,
+        image_for_header: Optional[Image] = None,
+    ) -> Tuple[Image, np.ndarray]:
+        """
+        Combine the provided images into a single mosaicked image.
+
+        Parameters
+        ----------
+        images : list
+            A list of images to combine.
+        weights : list, optional
+            If specified, an iterable with the same length as images, containing weights for each image.
+        shape_out : tuple, optional
+            The shape of the output data. If None, it will be computed from the images.
+        image_for_header : Image, optional
+            From which image the header should be used to readd the lost information by the 
+            mosaicking because some information is not propagated.
+
+        Returns
+        -------
+        fits.PrimaryHDU
+            The final mosaicked image as a FITS HDU.
+        np.ndarray
+            The footprint of the final mosaicked image.
+
+        Raises
+        ------
+        ValueError
+            If less than two images are provided.
+
+        """
+        if not image_for_header:
+            image_for_header = images[0]
+
+        if isinstance(images[0], Image):
+            images = [image.to_2dNNData() for image in images]
+        optimal_wcs = find_optimal_celestial_wcs(images, projection=projection)
+
+        array, footprint = reproject_and_coadd(
+            images,
+            output_projection=optimal_wcs[0],
+            shape_out=optimal_wcs[1] if shape_out is None else shape_out,
+            input_weights=weights,
+            hdu_in=self.hdu_in,
+            reproject_function=reproject_interp,
+            hdu_weights=self.hdu_weights,
+            combine_function=self.combine_function,
+            match_background=self.match_background,
+            background_reference=self.background_reference,
+            **self.kwargs,
+        )
+        header = optimal_wcs[0].to_header()
+        header = Image.update_header_from_image_header(header, image_for_header.header)
+        return (
+            Image(
+                data=array[np.newaxis, np.newaxis, :, :],
+                header=optimal_wcs[0].to_header(),
+            ),
+            footprint,
+        )
