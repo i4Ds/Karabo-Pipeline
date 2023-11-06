@@ -251,7 +251,7 @@ def test_parallelization_by_observation() -> None:
     CHANNEL_BANDWIDTHS_HZ = [1.0, 2.0]
     N_CHANNELS = [2, 4]
 
-    sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    sky = sky.filter_by_radius(0, 2.0, phase_center[0], phase_center[1])
     telescope = Telescope.constructor("ASKAP")
 
     simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=1)

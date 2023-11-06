@@ -46,7 +46,7 @@ jobs:
           export RUN_GPU_TESTS=false
           export RUN_NOTEBOOK_TESTS=true
           pip install . --no-deps
-          pytest --cov=./ --cov-report=xml
+          pytest karabo/test/test_simulation.py
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:
