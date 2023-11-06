@@ -525,7 +525,6 @@ class SkyModel:
             raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
             )
-        print(copied_sky.sources)
         inner_circle = SphericalCircle(
             (ra0_deg * u.deg, dec0_deg * u.deg),
             inner_radius_deg * u.deg,  # pyright: ignore
@@ -536,7 +535,6 @@ class SkyModel:
         )
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2])
         inner_sources = inner_circle.contains_points(copied_sky[:, 0:2])
-        print(np.version.version)
         filtered_sources = np.logical_and(outer_sources, np.logical_not(inner_sources))
         filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
