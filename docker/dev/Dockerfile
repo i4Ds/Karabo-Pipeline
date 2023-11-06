@@ -15,6 +15,7 @@ RUN conda install -n base conda-libmamba-solver && \
 WORKDIR /workspace
 
 # second stage is to build an image which is changing very often (e.g. env installation for CI-jobs)
+# please ALWAYS pass the git-commit-rev (NOT the branch) as build-arg to ensure that not a cached layer is used.
 # because dev-image is used for ci-purpose and it's mpi-implementation and version is not known prior,
 # we don't compile the mpi from source here because it takes just too long. This makes an mpi-hook not possible.
 FROM karabo-base
