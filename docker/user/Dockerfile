@@ -6,31 +6,29 @@ FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04 as karabo-repo
 RUN apt-get update && apt-get install -y git
 ADD https://github.com/i4Ds/Karabo-Pipeline.git#${GIT_REV} Karabo-Pipeline/
 
-FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04 as karabo-base
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
-ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda"
+ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda" IS_DOCKER_CONTAINER="true"
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p ${CONDA_PREFIX}
 RUN conda init
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
     conda config --set solver libmamba
-
-FROM karabo-base as build-user
-ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda"
-RUN conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${GIT_REV:1}"
-
-FROM karabo-base as build-test
-ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda"
 COPY --from=karabo-repo Karabo-Pipeline/ repo/
-RUN cd repo && \
+RUN if [[ ${build} = "user" ]] && \
+    then && \
+    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${GIT_REV:1}" && \
+    fi && \
+    if [[ ${build} = "test" ]] && \
+    then && \
+    cd repo && \
     conda env update -f=environment.yaml && \
     pip install --no-deps . && \
     cd .. && \
+    fi && \
+    cp -r repo/karabo/examples /workspace/examples/ && \
     rm -rf repo/
-
-FROM build-${build}
-ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda" IS_DOCKER_CONTAINER="true"
 # fetch mpich-version to have it consistent with it's installation from karabo
 ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/")'
 # install mpich on standard location to enable mpi-hook (may take a while)
@@ -49,11 +47,8 @@ RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     rm -rf /tmp/mpich-build
 # replace mpi with dummy-install (see issue #512)
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
-    conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
-RUN pip install jupyterlab ipykernel pytest && \
+    conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*" && \
+    pip install jupyterlab ipykernel pytest && \
     python -m ipykernel install --user --name=karabo && \
     mkdir /workspace
 WORKDIR /workspace
-COPY --from=karabo-repo Karabo-Pipeline/ repo/
-RUN cp -r repo/karabo/examples /workspace/examples/ && \
-    rm -rf repo/
