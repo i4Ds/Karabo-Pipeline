@@ -21,10 +21,9 @@ FROM karabo-base
 # redefine envs because they're just scoped per build-stage
 ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda" IS_DOCKER_CONTAINER="true"
 ARG GIT_REV
-# keep ADD instead of RUN because ADD always evaluates it's content to decide whether to use the cache or not
-ADD https://github.com/i4Ds/Karabo-Pipeline.git#${GIT_REV} Karabo-Pipeline/
 # note that installation like this has several assumptions about the used files like:
 # conda-channel definition & not naming env in `environment.yaml`, dev-optional dep in pyproject.toml
-RUN cd Karabo-Pipeline && \
+RUN git clone --branch ${GIT_REV} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git && \
+    cd Karabo-Pipeline && \
     conda env update -f=environment.yaml && \
     pip install -e ".[dev]"
