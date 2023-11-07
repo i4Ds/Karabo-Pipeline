@@ -10,11 +10,14 @@ ARG GIT_REV \
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
 ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda" IS_DOCKER_CONTAINER="true"
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p ${CONDA_PREFIX}
-RUN conda init
+    /bin/bash ~/miniconda.sh -b -p ${CONDA_PREFIX} && \
+    conda init
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
-    conda config --set solver libmamba
+    conda config --set solver libmamba && \
+    conda create -y -n karabo
+# change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
+SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 COPY --from=karabo-repo Karabo-Pipeline/ repo/
 RUN if [ "$BUILD" = "user" ] ; then \
     conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${GIT_REV:1}"; \
@@ -26,6 +29,7 @@ RUN if [ "$BUILD" = "user" ] ; then \
     else \
     echo "Invalid build $BUILD"; \
     fi && \
+    echo "conda activate karabo" >> ~/.bashrc  && \
     mkdir /workspace && \
     cp -r "repo/karabo/examples" "/workspace/examples/" && \
     rm -rf "repo/"
