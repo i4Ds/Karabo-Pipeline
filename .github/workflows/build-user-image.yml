@@ -97,7 +97,9 @@ jobs:
           file: docker/user/Dockerfile
           context: .
           push: false
-          build-args: GIT_REV=${{ env.gitrev }},BUILD=${{ env.build }}
+          build-args: |
+            GIT_REV=${{ env.gitrev }}
+            BUILD=${{ env.build }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: test
@@ -111,6 +113,8 @@ jobs:
           file: docker/user/Dockerfile
           context: .
           push: true
-          build-args: GIT_REV=${{ env.gitrev }},BUILD=${{ env.build }}
+          build-args: |
+            GIT_REV=${{ env.gitrev }}
+            BUILD=${{ env.build }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
