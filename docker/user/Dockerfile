@@ -1,7 +1,12 @@
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04 as karabo-repo
 ARG GIT_REV
 RUN apt-get update && apt-get install -y git && \
-    git clone --branch ${GIT_REV} --depth=1 https://github.com/i4Ds/Karabo-Pipeline.git
+    mkdir Karabo-Pipeline && \
+    cd Karabo-Pipeline && \
+    git init && \
+    git remote add origin git@github.com:i4Ds/Karabo-Pipeline.git && \
+    git fetch origin ${GIT_REV} && \
+    git reset --hard ${GIT_REV}
 
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, GIT_REV: in case of "user", ONLY `v{major}.{minor}.{patch}`

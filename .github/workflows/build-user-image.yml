@@ -11,7 +11,7 @@ on:
       gitrev:
         type: string
         required: true
-        description: "commit, tag or branch (careful with branch if docker-build environment is caching)"
+        description: "commit (full), tag or branch (branch is not unique and therefore step could get cached)"
       verstag:
         type: string
         required: true
@@ -25,7 +25,7 @@ on:
         type: boolean
         required: false
         default: false
-        description: "Test build? If yes, the environment gets installed from the according `gitrev` environment.yaml instead"
+        description: "Install from `gitrev` environment.yaml instead?"
 
 env:
   REGISTRY: ghcr.io
