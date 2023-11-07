@@ -14,6 +14,10 @@ on:
         type: string
         required: true
         description: "version: PEP440 package-version (incl. leading 'v')"
+      dev:
+        required: true
+        type: boolean
+        description: "dev-build? If yes, it sets an offset to build-nr"
   workflow_call:
     inputs:
       buildNumber:
@@ -22,6 +26,10 @@ on:
       version:
         type: string
         required: true
+      dev:
+        required: false
+        default: false
+        type: boolean
 
 
 jobs:
@@ -48,6 +56,10 @@ jobs:
           then
             BUILD_NR=${{ inputs.buildNumber }}
             KARABO_VER=${{ inputs.version }}
+          fi
+          if [[ ${{ inputs.dev }} == "true" ]]
+          then
+            BUILD_NR="$(($BUILD_NR + 999))"
           fi
           echo "KARABO_VERSION=$KARABO_VER" >> "$GITHUB_ENV"
           echo "BUILD_NUMBER=$BUILD_NR" >> "$GITHUB_ENV"
