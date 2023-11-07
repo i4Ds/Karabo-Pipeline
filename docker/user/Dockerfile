@@ -4,14 +4,13 @@ RUN apt-get update && apt-get install -y git && \
     mkdir Karabo-Pipeline && \
     cd Karabo-Pipeline && \
     git init && \
-    git remote add origin git@github.com:i4Ds/Karabo-Pipeline.git && \
+    git remote add origin https://github.com/i4Ds/Karabo-Pipeline.git && \
     git fetch origin ${GIT_REV} && \
     git reset --hard ${GIT_REV}
 
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, GIT_REV: in case of "user", ONLY `v{major}.{minor}.{patch}`
-ARG GIT_REV \
-    BUILD=user
+ARG BUILD=user
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
 ENV PATH="/opt/conda/bin:${PATH}" CONDA_PREFIX="/opt/conda" IS_DOCKER_CONTAINER="true"
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
