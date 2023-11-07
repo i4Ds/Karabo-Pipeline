@@ -59,7 +59,16 @@ jobs:
           fi
           if [[ ${{ inputs.dev }} == "true" ]]
           then
+            if [[ "dev" != *"$KARABO_VER"* ]]
+            then
+              exit 2
+            fi
             BUILD_NR="$(($BUILD_NR + 999))"
+          else
+            if [[ "dev" == *"$KARABO_VER"* ]]
+            then
+              exit 2
+            fi
           fi
           echo "KARABO_VERSION=$KARABO_VER" >> "$GITHUB_ENV"
           echo "BUILD_NUMBER=$BUILD_NR" >> "$GITHUB_ENV"
