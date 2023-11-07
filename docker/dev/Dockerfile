@@ -11,7 +11,10 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Li
 RUN conda init
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
-    conda config --set solver libmamba
+    conda config --set solver libmamba && \
+    conda create -y -n karabo
+SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
+RUN echo "conda activate karabo" >> ~/.bashrc
 WORKDIR /workspace
 
 # second stage is to build an image which is changing very often (e.g. env installation for CI-jobs)
