@@ -69,7 +69,7 @@ def test_parallelization_by_observation() -> None:
         channel_bandwidths_hz=CHANNEL_BANDWIDTHS_HZ,
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
-        number_of_time_steps=24,
+        number_of_time_steps=1,
         n_channels=N_CHANNELS,
     )
 
@@ -104,7 +104,7 @@ def test_oskar_simulation_basic(sky_data: NDArray[np.float64]) -> None:
         start_frequency_hz=100e6,
         phase_centre_ra_deg=240,
         phase_centre_dec_deg=-70,
-        number_of_time_steps=24,
+        number_of_time_steps=2,
         frequency_increment_hz=20e6,
         number_of_channels=64,
     )

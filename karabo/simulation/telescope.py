@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 from math import comb
-from typing import List, Optional, cast
+from typing import Dict, List, Literal, Optional, Type
 
 import numpy as np
 from numpy.typing import NDArray
@@ -39,7 +39,32 @@ from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import FileHandler
 from karabo.util.math_util import long_lat_to_cartesian
 
-OSKAR_TELESCOPE_TO_FILENAMES = {
+OSKARTelescopesWithVersionType = Literal[
+    "ACA",
+    "ALMA",
+    "ATCA",
+    "CARMA",
+    "NGVLA",
+    "PDBI",
+    "SMA",
+    "VLA",
+]
+OSKARTelescopesWithoutVersionType = Literal[
+    "EXAMPLE",
+    "MeerKAT",
+    "ASKAP",
+    "LOFAR",
+    "MKATPlus",
+    "PDBI",
+    "SKA1LOW",
+    "SKA1MID",
+    "VLBA",
+    "WSRT",
+]
+
+OSKAR_TELESCOPE_TO_FILENAMES: Dict[
+    OSKARTelescopesWithVersionType | OSKARTelescopesWithoutVersionType, Type[enum.Enum]
+] = {
     "EXAMPLE": "telescope.tm",
     "MeerKAT": "meerkat.tm",
     "ACA": "aca.{0}.tm",
@@ -58,7 +83,7 @@ OSKAR_TELESCOPE_TO_FILENAMES = {
     "VLBA": "vlba.tm",
     "WSRT": "WSRT.tm",
 }
-OSKAR_TELESCOPE_TO_VERSIONS = {
+OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum]] = {
     "ACA": ACAVersions,
     "ALMA": ALMAVersions,
     "ATCA": ATCAVersions,
@@ -123,7 +148,7 @@ class Telescope(KaraboResource):
     @classmethod
     def constructor(
         cls,
-        name: str,
+        name: OSKARTelescopesWithVersionType | OSKARTelescopesWithoutVersionType,
         version: Optional[enum.Enum] = None,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
@@ -174,7 +199,7 @@ class Telescope(KaraboResource):
                         List of valid versions: {accepted_versions}."""
                     )
 
-                datapath = datapath.format(cast(enum.Enum, version).value)  # noqa
+                datapath = datapath.format(version.value)
 
             path = os.path.join(get_module_absolute_path(), "data", datapath)
             return cls.read_OSKAR_tm_file(path)
