@@ -94,6 +94,7 @@ jobs:
       - name: Build and export to Docker
         uses: docker/build-push-action@v5
         with:
+          file: docker/user/Dockerfile
           context: .
           push: false
           build-args: GIT_REV=${{ env.gitrev }} build=${{ env.build }}
