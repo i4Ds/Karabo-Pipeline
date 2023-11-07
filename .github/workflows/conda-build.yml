@@ -71,8 +71,8 @@ jobs:
               exit 2
             fi
           fi
-          echo "KARABO_VERSION=$KARABO_VER" >> "$GITHUB_ENV"
-          echo "BUILD_NUMBER=$BUILD_NR" >> "$GITHUB_ENV"
+          export KARABO_VERSION=$KARABO_VER
+          export BUILD_NUMBER=$BUILD_NR
 
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
