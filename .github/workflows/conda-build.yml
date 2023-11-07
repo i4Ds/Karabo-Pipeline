@@ -9,11 +9,11 @@ on:
         type: string
         required: false
         default: "0"
-        description: "Conda build-number on anaconda.org"
+        description: "build-nr: conda build-nr of anaconda.org"
       version:
         type: string
         required: true
-        description: "PEP440 package version (incl. leading 'v')"
+        description: "version: PEP440 package-version (incl. leading 'v')"
   workflow_call:
     inputs:
       buildNumber:

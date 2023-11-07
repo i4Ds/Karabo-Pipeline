@@ -11,11 +11,11 @@ on:
       gitrev:
         type: string
         required: true
-        description: "commit (full), tag or branch (branch is not unique and therefore step could get cached)"
+        description: "gitrev: commit (full), tag or branch (branch is not unique and therefore step could get cached)"
       verstag:
         type: string
         required: true
-        description: "PEP440 conform version-tag of Karabo (incl. leading 'v')"
+        description: "version: PEP440 version-tag of Karabo (incl. leading 'v')"
       latest:
         type: boolean
         required: false
