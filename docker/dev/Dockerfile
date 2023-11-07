@@ -13,6 +13,7 @@ SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
     conda create -y -n karabo
+# create venv to not f*** up base-env in which libmamba solver lives
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN echo "conda activate karabo" >> ~/.bashrc
 WORKDIR /workspace
