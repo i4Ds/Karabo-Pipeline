@@ -4,13 +4,19 @@ on:
   schedule: # Every night at 5am
     - cron: '0 5 * * *'
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
   push:
     branches:
       - main  # is activated once a PR gets merged
 
 jobs:
+  Fail-if-PR-is-Draft:
+    if: ${{ (github.event_name == 'pull_request') && (github.event.pull_request.draft == true) }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fail with exit 1 if PR is draft
+      run: exit 1
   Test_Karabo:
     runs-on: ubuntu-latest
     steps:
