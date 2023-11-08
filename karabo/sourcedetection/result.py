@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import tempfile
-from typing import Any, List, Optional, Tuple, Type, TypeVar
+from typing import Any, List, Optional, Tuple, Type, TypeVar, Union
 from warnings import warn
 
 import bdsf
@@ -52,11 +52,9 @@ class SourceDetectionResult(KaraboResource):
     @classmethod
     def detect_sources_in_image(
         cls: Type[T],
-        image: Image,
+        image: Union[Image, List[Image]],
         beam: Optional[Tuple[float, float, float]] = None,
         quiet: bool = False,
-        n_splits: int = 0,
-        overlap: int = 0,
         use_dask: Optional[bool] = None,
         client: Optional[Any] = None,
         **kwargs: Any,
@@ -68,8 +66,9 @@ class SourceDetectionResult(KaraboResource):
         ----------
         cls : Type[T]
             The class on which this method is called.
-        image : Image
-            Image object for source detection.
+        image : Image or List[Image]
+            Image object for source detection. Can be a single image or a list of
+            images.
         beam : Optional[Tuple[float, float, float]], optional
             The Full Width Half Maximum (FWHM) of the restoring beam, given as a tuple
             (major axis, minor axis, position angle). If None, tries to extract from
@@ -131,6 +130,19 @@ class SourceDetectionResult(KaraboResource):
         if use_dask and not client:
             client = DaskHandler.get_dask_client()
 
+        if isinstance(image, List):
+            if beam is None:
+                warn(
+                    KaraboWarning(
+                        "Beam was not passed, trying to extract from image metadata."
+                    )
+                )
+            beam = (
+                image[0].header["BMAJ"],
+                image[0].header["BMIN"],
+                image[0].header["BPA"],
+            )
+
         if beam is None:
             if image.has_beam_parameters():
                 beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
@@ -142,13 +154,12 @@ class SourceDetectionResult(KaraboResource):
                 )
 
         try:
-            if n_splits > 1:
+            if isinstance(image, List):
                 # Check if there is a dask client
                 if DaskHandler.dask_client is None:
                     _ = DaskHandler.get_dask_client()
-                cutouts = image.split_image(n_splits, overlap)
                 results = []
-                for cutout in cutouts:
+                for cutout in image:
                     results.append(
                         delayed(bdsf.process_image)(
                             input=cutout.path,

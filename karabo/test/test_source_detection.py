@@ -201,7 +201,7 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
 
 def test_source_detection(tobject: TFiles):
     restored = Image.read_from_file(tobject.restored_fits)
-    detection_results = PyBDSFSourceDetectionResult.detect_sources_in_image(
+    detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(
         restored, thresh_isl=15, thresh_pix=20
     )
     gtruth = np.array(
@@ -215,17 +215,21 @@ def test_source_detection(tobject: TFiles):
             [1212.06660484, 930.03800074],
         ]
     )
-    detected = detection_results.get_pixel_position_of_sources()
-    closest_distances = np.linalg.norm(gtruth - detected, axis=1)
-    assert np.all(closest_distances < 5), "Source detection is not correct"
+    detected = detection_result.get_pixel_position_of_sources()
+    mse = np.linalg.norm(gtruth - detected, axis=1)
+    assert np.all(mse < 1), "Source detection is not correct"
 
     # Now compare it with splitting the image
+    restored_cuts = restored.split_image(N=2, overlap=100)
     detection_results = PyBDSFSourceDetectionResult.detect_sources_in_image(
-        restored, thresh_isl=15, thresh_pix=20, n_splits=4
+        restored_cuts, thresh_isl=15, thresh_pix=20
     )
-    assert len(detection_results) == 4, "Splitting the image did not work"
     detected = detection_results.get_pixel_position_of_sources()
-    assert np.all(closest_distances < 5), "Source detection is not correct"
+    # Sometimes the order of the sources is different, so we need to sort them
+    detected = detected[np.argsort(detected[:, 0])]
+    gtruth = gtruth[np.argsort(gtruth[:, 0])]
+    mse = np.linalg.norm(gtruth - detected, axis=1)
+    assert np.all(mse < 1), "Source detection is not correct"
 
 
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")

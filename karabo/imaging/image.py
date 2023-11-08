@@ -49,8 +49,8 @@ HEADER_KEYS_TO_COPY_AFTER_CUTOUT = [
 class Image(KaraboResource):
     def __init__(
         self,
-        path: Optional[str] = None,
-        data: Optional[np.ndarray] = None,
+        path: Optional[Union[str, FilePathType]] = None,
+        data: Optional[np.ndarray[np.float_]] = None,  # type: ignore
         header: Optional[fits.header.Header] = None,
         **kwargs: Any,
     ) -> None:
@@ -174,7 +174,9 @@ class Image(KaraboResource):
         self.header["CDELT1"] = self.header["CDELT1"] * old_shape[1] / new_shape[1]
         self.header["CDELT2"] = self.header["CDELT2"] * old_shape[0] / new_shape[0]
 
-    def cutout(self, center_xy: Tuple[float, float], size_xy: Tuple[float, float]) -> Image:
+    def cutout(
+        self, center_xy: Tuple[float, float], size_xy: Tuple[float, float]
+    ) -> Image:
         """
         Cutout the image to the given size and center.
 
@@ -196,7 +198,7 @@ class Image(KaraboResource):
     def update_header_from_image_header(
         new_header: fits.header.Header,
         old_header: fits.header.Header,
-        keys_to_copy=HEADER_KEYS_TO_COPY_AFTER_CUTOUT,
+        keys_to_copy: List[str] = HEADER_KEYS_TO_COPY_AFTER_CUTOUT,
     ) -> fits.header.Header:
         for key in keys_to_copy:
             if key in old_header and key not in new_header:
@@ -491,10 +493,9 @@ class Image(KaraboResource):
     def get_wcs(self) -> WCS:
         return WCS(self.header)
 
-    def get_2d_wcs(self, ra_dec_axis: Tuple[IntLike, IntLike] = [1, 2]) -> WCS:
+    def get_2d_wcs(self, ra_dec_axis: Tuple[int, int] = tuple(1,2)) -> WCS:
         wcs = WCS(self.header)
-        wcs_2d = wcs.sub(ra_dec_axis) # type: ignore
-
+        wcs_2d = wcs.sub(ra_dec_axis)
         return wcs_2d
 
 
@@ -532,7 +533,7 @@ class ImageMosaicker:
 
     def __init__(
         self,
-        reproject_function: Callable = reproject_interp,
+        reproject_function: Callable[..., Any] = reproject_interp,
         combine_function: str = "mean",
         match_background: bool = False,
         background_reference: Optional[int] = None,
@@ -575,11 +576,11 @@ class ImageMosaicker:
         images: List[Union[str, fits.HDUList, fits.PrimaryHDU, NDData]],
         projection: str = "SIN",
         weights: Optional[
-            List[Union[str, fits.HDUList, fits.PrimaryHDU, np.ndarray]]
+            List[Union[str, fits.HDUList, fits.PrimaryHDU, np.ndarray[np.float_]]],
         ] = None,
         shape_out: Optional[Tuple[int]] = None,
         image_for_header: Optional[Image] = None,
-    ) -> Tuple[Image, np.ndarray]:
+    ) -> Tuple[Image, np.ndarray[np.float_]]:
         """
         Combine the provided images into a single mosaicked image.
 
