@@ -1,17 +1,22 @@
 name: Build User Image
 
 on:
-  workflow_run:
-    workflows: ["Test User Package"]
-    types:
-      - completed
+  workflow_call:
+    inputs:
+      verstag:
+        type: string
+        required: true
+      latest:
+        type: boolean
+        required: false
+        default: false
 
   workflow_dispatch:
     inputs:
       gitrev:
         type: string
         required: true
-        description: "gitrev: commit (full), tag or branch (branch is not unique and therefore step could get cached)"
+        description: "gitrev: commit-hash (full), tag or branch (branch is not unique and therefore checkout-step could get cached)"
       verstag:
         type: string
         required: true
@@ -31,13 +36,8 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-and-push-image:
+  build-test-and-push-image:
     runs-on: ubuntu-latest
-    if: ${{ (github.event.workflow_run.conclusion == 'success') || (github.event_name == 'workflow_dispatch') }}
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -63,24 +63,26 @@ jobs:
       - name: Setup metadata img-name & img-tag
         shell: bash -l {0}
         run: |
-          if [[ ${{ github.event_name }} == "workflow_run" ]]
-          then
-            echo "latest=true" >> "$GITHUB_ENV"
-            echo "version=${{ steps.get-latest-tag.outputs.tag }}" >> "$GITHUB_ENV"
-            echo "gitrev=${{ steps.get-latest-tag.outputs.tag }}" >> "$GITHUB_ENV"
+          if [[ ${{ github.event_name }} == "workflow_call" ]]; then
+            echo "gitrev=${{ inputs.verstag }}" >> "$GITHUB_ENV"
             echo "build=user" >> "$GITHUB_ENV"
-          fi
-          if [[ ${{ github.event_name }} == "workflow_dispatch" ]]
-          then
-            echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
-            echo "version=${{ inputs.verstag }}" >> "$GITHUB_ENV"
+          elif [[ ${{ github.event_name }} == "workflow_dispatch" ]]; then
             echo "gitrev=${{ inputs.gitrev }}" >> "$GITHUB_ENV"
-            if [[ ${{ inputs.test }} == "true" ]]
-            then
+            if [[ ${{ inputs.test }} == "true" ]]; then
               echo "build=test" >> "$GITHUB_ENV"
             else
               echo "build=user" >> "$GITHUB_ENV"
             fi
+          else
+            echo "Invalid github-event!"
+            exit 2
+          fi
+          echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
+          echo "version=${{ inputs.verstag }}" >> "$GITHUB_ENV"
+          DEV_STR="dev"
+          if [[ "${{ inputs.verstag }}" == *"$DEV_STR"* ]] && [[ $LATEST_DOCKER == 'true' ]]; then
+            echo "Invalid configuration of workflow-inputs!"
+            exit 2
           fi
       - name: Extract metadata (tags, labels) for Docker
         id: meta

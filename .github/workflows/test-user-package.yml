@@ -1,13 +1,38 @@
 name: Test User Package
 
 on:
-  workflow_run:
-    workflows: ["Conda Build"]
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        required: true
+        description: "version: PEP440 package-version (incl. leading 'v')"
+      buildDocker:
+        type: boolean
+        required: false
+        default: false
+        description: "build docker-img if tests succeeded?"
+      latestDocker:
+        type: boolean
+        required: false
+        default: false
+        description: "tag docker-img as latest (if `buildDocker` is enabled)"
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      buildDocker:
+        type: boolean
+        required: false
+        default: false
+      latestDocker:
+        type: boolean
+        required: false
+        default: false
 
 jobs:
-  conda-build:
+  test-conda-build:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
@@ -18,13 +43,20 @@ jobs:
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
+          KARABO_TAG=${{ inputs.version }}
+          KARABO_VERSION="${KARABO_TAG:1}"
+          DEV_STR="dev"
+          if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]] && [[ "${{ inputs.latestDocker }}" == 'true' ]]; then
+            echo "Invalid configuration of workflow-inputs!"
+            exit 2
+          fi
           export IS_GITHUB_RUNNER=true
           export RUN_NOTEBOOK_TESTS=false
           conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
           conda create -y -n karabo-env python=3.9
           conda activate karabo-env
-          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
+          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
           pip install ipykernel
           python -m ipykernel install --user --name python3
       - name: Test Package
@@ -32,4 +64,14 @@ jobs:
         run: |
           conda activate karabo-env
           pytest --pyargs karabo.test
+
+  build-docker:
+    needs: test-conda-build
+    if: ${{ inputs.buildDocker == 'true' }}
+    uses: ./.github/workflows/build-user-image.yml
+    with:
+      verstag: ${{ inputs.version }}
+      latest: ${{ inputs.latestDocker }}
+
+
   

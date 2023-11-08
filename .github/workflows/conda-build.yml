@@ -15,9 +15,19 @@ on:
         required: true
         description: "version: PEP440 package-version (incl. leading 'v')"
       dev:
-        required: true
         type: boolean
+        required: true
         description: "dev-build? If yes, it sets an offset to build-nr"
+      buildDocker:
+        type: boolean
+        required: false
+        default: false
+        description: "build docker-img if conda-build & tests succeeded?"
+      latestDocker:
+        type: boolean
+        required: false
+        default: false
+        description: "tag docker-img as latest (if `buildDocker` is enabled)"
   workflow_call:
     inputs:
       buildNumber:
@@ -27,16 +37,27 @@ on:
         type: string
         required: true
       dev:
+        type: boolean
         required: false
         default: false
+      buildDocker:
         type: boolean
+        required: false
+        default: false
+      latestDocker:
+        type: boolean
+        required: false
+        default: false
 
 
 jobs:
   conda-build:
     runs-on: ubuntu-latest
     container: ghcr.io/i4ds/mambabuild-docker:latest
-
+    outputs:
+      karabo-tag: ${{ steps.bcs.outputs.karabo_tag }}
+      build-docker: ${{ steps.bcs.outputs.build_docker }}
+      latest-docker: ${{ steps.bcs.outputs.latest_docker }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,35 +65,45 @@ jobs:
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
       - name: Build Conda
+        id: bcs
         shell: bash -l {0}
         run: |
           if [[ ${{ github.event_name }} == "release" ]]
           then
-            BUILD_NR="0"
+            BUILD_NUMBER="0"
             KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
-            KARABO_VER="${KARABO_TAG:1}"
+            BUILD_DOCKER=true
+            LATEST_DOCKER=true
           fi
           if [[ ${{ github.event_name }} == "workflow_dispatch" ]] || [[ ${{ github.event_name }} == "workflow_call" ]]
           then
-            BUILD_NR=${{ inputs.buildNumber }}
-            KARABO_VER=${{ inputs.version }}
+            BUILD_NUMBER=${{ inputs.buildNumber }}
+            KARABO_TAG=${{ inputs.version }}
+            BUILD_DOCKER=${{ inputs.buildDocker }}
+            LATEST_DOCKER=${{ inputs.latestDocker }}
           fi
+          KARABO_VERSION="${KARABO_TAG:1}"
           DEV_STR="dev"
           if [[ ${{ inputs.dev }} == "true" ]]
           then
-            if [[ "$KARABO_VER" != *"$DEV_STR"* ]]
+            if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]] || [[ $LATEST_DOCKER == 'true' ]]
             then
+              echo "Invalid configuration of workflow-inputs!"
               exit 2
             fi
-            BUILD_NR="$(($BUILD_NR + 999))"
+            BUILD_NUMBER="$(($BUILD_NUMBER + 999))"
           else
-            if [[ "$KARABO_VER" == *"$DEV_STR"* ]]
+            if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]]
             then
+              echo "Invalid configuration of workflow-inputs!"
               exit 2
             fi
           fi
-          export KARABO_VERSION=$KARABO_VER
-          export BUILD_NUMBER=$BUILD_NR
+          echo "KARABO_VERSION=$KARABO_VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "karabo_tag=$KARABO_TAG" >> "$GITHUB_OUTPUT"
+          echo "build_docker=$BUILD_DOCKER" >> "$"$GITHUB_OUTPUT""
+          echo "latest_docker=$LATEST_DOCKER" >> "$GITHUB_OUTPUT"
 
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
@@ -85,3 +116,11 @@ jobs:
         run: |
           conda activate base
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
+  
+  test-build:
+    needs: conda-build
+    uses: ./.github/workflows/test-user-package.yml
+    with:
+      version: ${{ needs.conda-build.outputs.karabo-tag }}
+      buildDocker: ${{ needs.conda-build.outputs.build-docker }}
+      latestDocker: ${{ needs.conda-build.outputs.latest-docker }}
