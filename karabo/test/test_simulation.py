@@ -52,6 +52,7 @@ def continuous_noise_fits_downloader(
     )
 
 
+@pytest.mark.order(1)
 def test_parallelization_by_observation() -> None:
     sky = SkyModel.get_GLEAM_Sky([76])
     phase_center = [250, -80]
