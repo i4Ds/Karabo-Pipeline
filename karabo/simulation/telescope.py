@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 from math import comb
-from typing import Dict, List, Literal, Optional, Type
+from typing import Dict, List, Literal, Optional, Type, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -63,7 +63,8 @@ OSKARTelescopesWithoutVersionType = Literal[
 ]
 
 OSKAR_TELESCOPE_TO_FILENAMES: Dict[
-    OSKARTelescopesWithVersionType | OSKARTelescopesWithoutVersionType, Type[enum.Enum]
+    Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
+    Type[enum.Enum],
 ] = {
     "EXAMPLE": "telescope.tm",
     "MeerKAT": "meerkat.tm",
