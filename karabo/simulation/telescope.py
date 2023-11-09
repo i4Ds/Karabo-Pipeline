@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 from math import comb
-from typing import Dict, List, Literal, Optional, Type, Union
+from typing import Dict, List, Literal, Optional, Type, Union, cast, get_args
 
 import numpy as np
 from numpy.typing import NDArray
@@ -64,7 +64,7 @@ OSKARTelescopesWithoutVersionType = Literal[
 
 OSKAR_TELESCOPE_TO_FILENAMES: Dict[
     Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
-    Type[enum.Enum],
+    str,
 ] = {
     "EXAMPLE": "telescope.tm",
     "MeerKAT": "meerkat.tm",
@@ -179,28 +179,26 @@ class Telescope(KaraboResource):
                     {list(OSKAR_TELESCOPE_TO_FILENAMES.keys())}."""
                 )
 
-            # Verify if version is provided if telescope requires a version,
-            # and is not provided otherwise
-            accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS.get(name, None)
-
-            # Telescope requires a version value
-            is_version_required = accepted_versions is not None
-            is_version_provided = version is not None
-
-            if is_version_provided != is_version_required:
-                raise ValueError(
-                    """If a version if required, make sure to provided a version value.
-                If a version is not required, please do not provide a value."""
-                )
-
-            if is_version_provided and is_version_required:
-                if version not in accepted_versions:  # type: ignore[operator]
+            # Explicitly cast name depending on whether it requires a telescope version
+            # This should no longer be necessary when mypy starts supporting
+            # type narrowing with get_args.
+            # https://github.com/python/mypy/issues/12535
+            if name in get_args(OSKARTelescopesWithVersionType):
+                name = cast(OSKARTelescopesWithVersionType, name)
+                accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS[name]
+                if (version is None) or (version not in accepted_versions):
                     raise ValueError(
                         f"""{version} is not valid for telescope {name}.
                         List of valid versions: {accepted_versions}."""
                     )
-
                 datapath = datapath.format(version.value)
+            else:
+                if version is not None:
+                    raise ValueError(
+                        f"""version is not a required field for telescope {name},
+                    but {version} was provided.
+                    Please do not provide a value for the version field."""
+                    )
 
             path = os.path.join(get_module_absolute_path(), "data", datapath)
             return cls.read_OSKAR_tm_file(path)
