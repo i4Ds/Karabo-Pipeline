@@ -174,10 +174,8 @@ class SourceDetectionResult(KaraboResource):
                 with HiddenPrints():  # Remove multiple spam by PyBDSF.
                     # TODO: Somehow log this?
                     results = [
-                        cls(result)
-                        for result in compute(
-                            *results, scheduler="distributed"
-                        )  # type: ignore
+                        cls(result)  # type: ignore
+                        for result in compute(*results, scheduler="distributed")
                     ]
 
                 return PyBDSFSourceDetectionResultList(results)
