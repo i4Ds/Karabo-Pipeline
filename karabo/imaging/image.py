@@ -18,7 +18,7 @@ from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
-from karabo.util._types import FilePathType, IntLike
+from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler, check_ending
 from karabo.util.plotting_util import get_slices
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import tempfile
-from typing import Any, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, List, Optional, Tuple, Type, TypeVar, Union, cast
 from warnings import warn
 
 import bdsf
@@ -171,9 +171,13 @@ class SourceDetectionResult(KaraboResource):
                             **kwargs,
                         )
                     )
-                with HiddenPrints():  # Remove multiple spam by PyBDSF. TODO: Somehow log this?
+                with HiddenPrints():  # Remove multiple spam by PyBDSF.
+                    # TODO: Somehow log this?
                     results = [
-                        cls(x) for x in compute(*results, scheduler="distributed")  # type: ignore
+                        cls(result)
+                        for result in compute(
+                            *results, scheduler="distributed"
+                        )  # type: ignore
                     ]
 
                 return PyBDSFSourceDetectionResultList(results)
@@ -504,7 +508,7 @@ class PyBDSFSourceDetectionResultList:
         )
         mosaic_crpixs = np.array([mosaic_header["CRPIX1"], mosaic_header["CRPIX2"]])
         # Apply delta to xy positions
-        corrected_positions = []
+        corrected_positions: List[NDArray[np.float_]] = []
         for xy_pos, crpix in zip(xy_poss, header_crpixs):
             delta_crpixs = crpix - mosaic_crpixs
             corrected_positions.append(
@@ -514,7 +518,7 @@ class PyBDSFSourceDetectionResultList:
         # Combine all positions into one array
         combined_positions = np.concatenate(corrected_positions, axis=0)
         # Check if some sources overlap
-        to_drop = []
+        to_drop: List[int] = []
         for i in range(len(combined_positions)):
             for j in range(
                 i + 1, len(combined_positions)
@@ -529,8 +533,9 @@ class PyBDSFSourceDetectionResultList:
         if len(to_drop) > 0:
             print(f"Removed in total {len(to_drop)} sources")
             # Create a boolean mask to keep sources not in to_drop
-            mask = np.ones(len(combined_positions), dtype=bool)
+            mask = np.ones(len(combined_positions), dtype=np.bool_)
             mask[np.array(to_drop)] = False
             combined_positions = combined_positions[mask]
+            combined_positions = cast(NDArray[np.float_], combined_positions)
 
         return combined_positions
