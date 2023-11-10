@@ -493,7 +493,7 @@ class Image(KaraboResource):
     def get_wcs(self) -> WCS:
         return WCS(self.header)
 
-    def get_2d_wcs(self, ra_dec_axis: Tuple[int, int] = tuple(1,2)) -> WCS:
+    def get_2d_wcs(self, ra_dec_axis: Tuple[int, int] = (1, 2)) -> WCS:
         wcs = WCS(self.header)
         wcs_2d = wcs.sub(ra_dec_axis)
         return wcs_2d
@@ -539,7 +539,7 @@ class ImageMosaicker:
         background_reference: Optional[int] = None,
         hdu_in: Optional[Union[int, str]] = None,
         hdu_weights: Optional[Union[int, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         """
         Parameters
@@ -573,14 +573,14 @@ class ImageMosaicker:
 
     def process(
         self,
-        images: List[Union[str, fits.HDUList, fits.PrimaryHDU, NDData]],
+        images: List[Image],
         projection: str = "SIN",
         weights: Optional[
-            List[Union[str, fits.HDUList, fits.PrimaryHDU, np.ndarray[np.float_]]],
+            List[Union[str, fits.HDUList, fits.PrimaryHDU, NDArray[np.float64]]],
         ] = None,
         shape_out: Optional[Tuple[int]] = None,
         image_for_header: Optional[Image] = None,
-    ) -> Tuple[Image, np.ndarray[np.float_]]:
+    ) -> Tuple[Image, NDArray[np.float64]]:
         """
         Combine the provided images into a single mosaicked image.
 
@@ -610,7 +610,7 @@ class ImageMosaicker:
             If less than two images are provided.
 
         """
-        if not image_for_header:
+        if image_for_header is None:
             image_for_header = images[0]
 
         if isinstance(images[0], Image):

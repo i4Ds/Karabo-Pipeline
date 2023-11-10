@@ -9,7 +9,7 @@ from warnings import warn
 import bdsf
 import numpy as np
 from bdsf.image import Image as bdsf_image
-from dask import compute, delayed
+from dask import compute, delayed  # type: ignore
 from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
@@ -21,6 +21,8 @@ from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
 
 T = TypeVar("T")
+
+PYBDSF_TOTAL_FLUX = 12
 
 
 class SourceDetectionResult(KaraboResource):
@@ -58,7 +60,7 @@ class SourceDetectionResult(KaraboResource):
         use_dask: Optional[bool] = None,
         client: Optional[Any] = None,
         **kwargs: Any,
-    ) -> Optional[List[T]]:
+    ) -> Optional[Union[PyBDSFSourceDetectionResultList, T]]:
         """
         Detect sources in an astronomical image using PyBDSF.process_image function.
 
@@ -143,7 +145,7 @@ class SourceDetectionResult(KaraboResource):
                 image[0].header["BPA"],
             )
 
-        if beam is None:
+        if beam is None and not isinstance(image, List):
             if image.has_beam_parameters():
                 beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
             else:
@@ -169,10 +171,9 @@ class SourceDetectionResult(KaraboResource):
                             **kwargs,
                         )
                     )
-                with HiddenPrints():  # Remove multiple spam by PyBDSF.
+                with HiddenPrints():  # Remove multiple spam by PyBDSF. TODO: Somehow log this?
                     results = [
-                        cls(result)
-                        for result in compute(*results, scheduler="distributed")
+                        cls(x) for x in compute(*results, scheduler="distributed")  # type: ignore
                     ]
 
                 return PyBDSFSourceDetectionResultList(results)
@@ -265,15 +266,12 @@ class SourceDetectionResult(KaraboResource):
             return True
         return False
 
-    def get_source_image(self) -> Optional[Image]:
+    def get_source_image(self) -> Image:
         """
         Return the source image, where the source detection was performed on.
         :return: Karabo Image or None (if not supplied)
         """
-        if self.has_source_image():
-            return self.source_image
-        else:
-            return None
+        return self.source_image
 
     def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
         x_pos = self.detected_sources[:, 3]
@@ -458,7 +456,7 @@ class PyBDSFSourceDetectionResultList:
         return self.__get_result_image("source")
 
     def get_pixel_position_of_sources(
-        self, min_pixel_distance_between_sources: int = 5
+        self, min_pixel_distance_between_sources: int = 5  # IDX to use for total flux
     ) -> NDArray[np.float_]:
         """
         Calculate the pixel positions of sources in a mosaic image and remove sources
@@ -492,7 +490,11 @@ class PyBDSFSourceDetectionResultList:
         headers = [result.get_source_image().header for result in self.bdsf_detection]
         # Get Total Flux per Source
         total_fluxes = np.concatenate(
-            [x.bdsf_detected_sources[:, 12] for x in self.bdsf_detection], axis=0
+            [
+                x.bdsf_detected_sources[:, PYBDSF_TOTAL_FLUX]
+                for x in self.bdsf_detection
+            ],
+            axis=0,
         )
         # Get mosaic header
         mosaic_header = self.get_source_image().header
@@ -519,13 +521,13 @@ class PyBDSFSourceDetectionResultList:
             ):  # Compare with subsequent sources to avoid repetition
                 dist = np.linalg.norm(combined_positions[i] - combined_positions[j])
                 if dist < min_pixel_distance_between_sources:
-                    print(f"Source {i} and {j} are too close")
+                    print(f"Source {i} and {j} are being merged")
                     if total_fluxes[i] > total_fluxes[j]:
                         to_drop.append(j)
                     else:
                         to_drop.append(i)
         if len(to_drop) > 0:
-            print(f"Dropping {len(to_drop)} sources")
+            print(f"Removed in total {len(to_drop)} sources")
             # Create a boolean mask to keep sources not in to_drop
             mask = np.ones(len(combined_positions), dtype=bool)
             mask[np.array(to_drop)] = False
