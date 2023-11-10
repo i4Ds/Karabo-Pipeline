@@ -529,7 +529,7 @@ class PyBDSFSourceDetectionResultList:
                     else:
                         to_drop.append(i)
         if len(to_drop) > 0:
-            print(f"Removed in total {len(to_drop)} sources")
+            print(f"Merged in total {len(to_drop)*2} sources into {len(to_drop)}")
             # Create a boolean mask to keep sources not in to_drop
             mask = np.ones(len(combined_positions), dtype=np.bool_)
             mask[np.array(to_drop)] = False
