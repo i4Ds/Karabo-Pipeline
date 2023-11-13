@@ -233,7 +233,7 @@ class Telescope(KaraboResource):
                 f"{backend} not supported, see valid options within SimulatorBackend."
             )
 
-    def get_backend_specific_information(self) -> DirPathType | Configuration:
+    def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
             return self.path
         if self.backend is SimulatorBackend.RASCIL:
