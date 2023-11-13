@@ -1,5 +1,6 @@
 import os
 import tempfile
+from unittest import mock
 
 import pytest
 
@@ -23,10 +24,39 @@ def test_read_tm_file():
         assert len(tel.stations) == 30
 
 
+def test_deprecated_read_from_file():
+    tel = Telescope.constructor("EXAMPLE")
+    with pytest.raises(DeprecationWarning):
+        tel.read_from_file("fakefilename")
+
+
 def test_convert_to_oskar():
     tel = Telescope.constructor("EXAMPLE")
     oskar_tel = tel.get_OSKAR_telescope()
     assert oskar_tel.get_num_stations() == 30
+
+
+def test_invalid_OSKAR_telescope():
+    with pytest.raises(ValueError):
+        Telescope.constructor("FAKETELESCOPE")
+
+
+def test_OSKAR_telescope_with_missing_version():
+    # ALMA requires a version
+    with pytest.raises(ValueError):
+        Telescope.constructor("ALMA", version=None)
+
+
+def test_OSKAR_telescope_with_invalid_version():
+    # Use NGVLA version for ALMA telescope
+    with pytest.raises(ValueError):
+        Telescope.constructor("ALMA", version=NGVLAVersions.CORE_rev_B)
+
+
+def test_OSKAR_telescope_with_version_but_version_not_required():
+    # MeerKAT does not require a version
+    with pytest.raises(ValueError):
+        Telescope.constructor("MeerKAT", version="Not None version")
 
 
 def test_read_alma_file():
@@ -110,9 +140,56 @@ def test_RASCIL_telescope():
     tel.plot_telescope()
 
 
+# Interesting and funny article on asserting with mocks:
+# https://engineeringblog.yelp.com/2015/02/assert_called_once-threat-or-menace.html
+@mock.patch("logging.warning", autospec=True)
+def test_RASCIL_telescope_with_version_triggers_logging(mock_logging_warning):
+    Telescope.constructor(
+        "MID", backend=SimulatorBackend.RASCIL, version="Not None version"
+    )
+    assert mock_logging_warning.call_count == 1
+
+
 def test_invalid_RASCIL_telescope():
     with pytest.raises(
         ValueError,
         match="Requested telescope FAKETELESCOPE is not supported by this backend",
     ):
         Telescope.constructor("FAKETELESCOPE", backend=SimulatorBackend.RASCIL)
+
+
+def test_invalid_backend():
+    with pytest.raises(ValueError):
+        Telescope.constructor("FAKETELESCOPE", backend="FAKEBACKEND")
+
+
+def test_get_OSKAR_backend_information():
+    tel = Telescope.constructor("MeerKAT", backend=SimulatorBackend.OSKAR)
+    info = tel.get_backend_specific_information()
+    assert isinstance(info, str)
+
+
+def test_get_RASCIL_backend_information():
+    from ska_sdp_datamodels.configuration.config_model import Configuration
+
+    tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+    info = tel.get_backend_specific_information()
+    assert isinstance(info, Configuration)
+
+
+def test_get_invalid_backend_information():
+    tel = Telescope.constructor("MeerKAT", backend=SimulatorBackend.OSKAR)
+    # Modify backend
+    tel.backend = "FAKEBACKEND"
+    with pytest.raises(ValueError):
+        tel.get_backend_specific_information()
+
+
+@mock.patch("logging.warning", autospec=True)
+def test_plot_invalid_backend(mock_logging_warning):
+    tel = Telescope.constructor("MeerKAT", backend=SimulatorBackend.OSKAR)
+    # Modify backend
+    tel.backend = "FAKEBACKEND"
+    # Attempt plotting, which triggers logging but no plot
+    tel.plot_telescope()
+    assert mock_logging_warning.call_count == 1

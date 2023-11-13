@@ -326,7 +326,7 @@ class Telescope(KaraboResource):
         elif self.backend is SimulatorBackend.RASCIL:
             plot_configuration(self.get_backend_specific_information())
         else:
-            print(
+            logging.warning(
                 f"""Backend {self.backend} is not valid.
             Proceeding without any further actions."""
             )
