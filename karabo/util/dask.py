@@ -32,7 +32,9 @@ DASK_RUN_STATUS = os.path.join(DASK_INFO_FOLDER, DASK_RUN_STATUS)
 
 class DaskHandler:
     """
-    A class for managing a Dask client.
+    A class for managing a Dask client. This class is a singleton, meaning that
+    only one instance of this class can exist at any given time. This also
+    allows you to create your own client and pass it to this class.
 
     Attributes
     ----------
@@ -85,6 +87,8 @@ class DaskHandler:
     n_threads_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
     use_workers_or_nannies: Optional[str] = "nannies"
+    use_proccesses: bool = False  # Some packages, such as pybdsf, do not work
+    # with processes because they spawn subprocesses.
     TIMEOUT: int = 60
 
     # Some internal variables
@@ -105,7 +109,7 @@ class DaskHandler:
             from mpi4py import MPI
 
             initialize(nthreads=DaskHandler.n_threads_per_worker, comm=MPI.COMM_WORLD)
-            DaskHandler.dask_client = Client()
+            DaskHandler.dask_client = Client(processes=DaskHandler.use_proccesses)
         elif DaskHandler.dask_client is None:
             if (
                 not DaskHandler._setup_called
@@ -121,8 +125,7 @@ class DaskHandler:
                 )
             if is_on_slurm_cluster() and get_number_of_nodes() > 1:
                 DaskHandler.dask_client = setup_dask_for_slurm(
-                    DaskHandler.n_workers_scheduler_node,
-                    DaskHandler.memory_limit,
+                    DaskHandler.n_workers_scheduler_node, DaskHandler.memory_limit
                 )
             else:
                 DaskHandler.dask_client = get_local_dask_client(
@@ -283,13 +286,14 @@ def calculate_number_of_workers_per_node(
 
 def get_local_dask_client(
     memory_limit: Optional[IntFloat],
+    processes: bool = True,
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(memory_limit)
     client = Client(
         n_workers=n_workers,
         threads_per_worker=DaskHandler.n_threads_per_worker,
-        processes=False,
+        processes=DaskHandler.use_proccesses,
     )
     return client
 
@@ -364,6 +368,7 @@ def setup_nannies_workers_for_slurm() -> None:
 def setup_dask_for_slurm(
     n_workers_scheduler_node: int,
     memory_limit: Optional[IntFloat],
+    **kwargs: Any,
 ) -> Client:
     if is_first_node():
         # Create file to show that the run is still ongoing
@@ -375,8 +380,9 @@ def setup_dask_for_slurm(
             ip=get_node_name(),
             n_workers=n_workers_scheduler_node,
             threads_per_worker=DaskHandler.n_threads_per_worker,
+            **kwargs,
         )
-        dask_client = Client(cluster)
+        dask_client = Client(cluster, proccesses=DaskHandler.use_proccesses)
 
         # Calculate number of workers per node
         n_workers_per_node = calculate_number_of_workers_per_node(memory_limit)
