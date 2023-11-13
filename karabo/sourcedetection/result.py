@@ -515,7 +515,8 @@ class PyBDSFSourceDetectionResultList:
         assert all([result.has_source_image() for result in self.bdsf_detection])
         # Get headers
         headers = [
-            result.get_source_image().header for result in self.bdsf_detection  # type: ignore
+            result.get_source_image().header  # type: ignore
+            for result in self.bdsf_detection
         ]
         # Get Total Flux per Source
         total_fluxes = np.concatenate(
