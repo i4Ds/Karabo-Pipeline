@@ -501,31 +501,35 @@ class PyBDSFSourceDetectionResultList:
         sources_images = [x.has_source_image() for x in self.bdsf_detection]
         return all(sources_images)
 
-    def __get_idx_of_overlapping_sources(
+    def __get_corrected_positions(
         self,
-    ) -> List[int]:
+        xy_poss: List[NDArray[np.float_]],
+    ) -> NDArray[np.float_]:
         """
-        Calculate the pixel positions of sources in a mosaic image and remove sources
-        that are closer than a minimum specified pixel distance.
+        Calculate corrected positions of detected sources in a mosaic image.
+
+        This method adjusts the positions of detected sources from individual images
+        to align them within the context of a larger mosaic image. It considers the
+        differences in reference pixel positions ('CRPIX') from each image's header
+        relative to the mosaic's header.
+
+        Parameters
+        ----------
+        xy_poss : List[NDArray[np.float_]]
+            A list of NumPy arrays. Each array contains the x and y pixel positions
+            of detected sources in individual images that comprise the mosaic.
+
+        Returns
+        -------
+        NDArray[np.float_]
+            A NumPy array containing the combined and corrected pixel positions
+            of the sources in the mosaic image.
         """
-        # Get XY pixel position for each result
-        xy_poss = [
-            result.get_pixel_position_of_sources() for result in self.bdsf_detection
-        ]
-        assert all([result.has_source_image() for result in self.bdsf_detection])
         # Get headers
         headers = [
             result.get_source_image().header  # type: ignore
             for result in self.bdsf_detection
         ]
-        # Get Total Flux per Source
-        total_fluxes = np.concatenate(
-            [
-                x.bdsf_detected_sources[:, PYBDSF_TOTAL_FLUX]
-                for x in self.bdsf_detection
-            ],
-            axis=0,
-        )
         # Get mosaic header
         mosaic_header = self.get_source_image().header
         # Calculate delta CRPIX for each header relative to the mosaic
@@ -542,7 +546,41 @@ class PyBDSFSourceDetectionResultList:
             )  # Subtract delta to align with the mosaic
 
         # Combine all positions into one array
-        combined_positions = np.concatenate(corrected_positions, axis=0)
+        return np.concatenate(corrected_positions, axis=0)
+
+    def __get_idx_of_overlapping_sources(
+        self,
+    ) -> List[int]:
+        """
+        Identify indices of overlapping sources in a mosaic image.
+
+        This method calculates the pixel positions of sources in a mosaic image
+        and identifies sources that are closer than a specified minimum pixel
+        distance. It decides which sources to drop based on their total flux,
+        preferring sources with higher total flux.
+
+        Returns
+        -------
+        List[int]
+            A list of indices corresponding to the sources that should be dropped
+            due to overlapping.
+        """
+        # Get XY pixel position for each result
+        xy_poss = [
+            result.get_pixel_position_of_sources() for result in self.bdsf_detection
+        ]
+        assert all([result.has_source_image() for result in self.bdsf_detection])
+
+        # Combine all positions into one array
+        combined_positions = self.__get_corrected_positions(xy_poss=xy_poss)
+        # Get Total Flux per Source
+        total_fluxes = np.concatenate(
+            [
+                x.bdsf_detected_sources[:, PYBDSF_TOTAL_FLUX]
+                for x in self.bdsf_detection
+            ],
+            axis=0,
+        )
         # Check if some sources overlap
         to_drop: List[int] = []
         for i in range(len(combined_positions)):
@@ -562,20 +600,21 @@ class PyBDSFSourceDetectionResultList:
 
     def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
         """
-        Calculate the pixel positions of sources in a mosaic image and remove sources
-        that are closer than a minimum specified pixel distance, preferring sources with
-        higher total flux.
+        Calculate and return corrected pixel positions of sources in a mosaic image.
+
+        This public method calculates the pixel positions of sources in a mosaic
+        image, corrects them, and removes overlapping sources based on a specified
+        minimum distance and total flux criteria.
 
         Returns
         -------
         NDArray[np.float_]
-            An array of the corrected pixel positions of the remaining sources after
-            removing sources that are too close to each other based on the specified
-            minimum distance.
+            A NumPy array of the corrected and filtered pixel positions of sources
+            in the mosaic image.
         """
         to_drop = self.__get_idx_of_overlapping_sources()
-        combined_positions = np.concatenate(
-            [x.get_pixel_position_of_sources() for x in self.bdsf_detection], axis=0
+        combined_positions = self.__get_corrected_positions(
+            [x.get_pixel_position_of_sources() for x in self.bdsf_detection]
         )
         if len(to_drop) > 0:
             print(f"Merged in total {len(to_drop)*2} sources into {len(to_drop)}")

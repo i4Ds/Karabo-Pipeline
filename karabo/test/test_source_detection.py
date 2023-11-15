@@ -199,7 +199,7 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     ), "Automatic assignment of ground truth and detected is not correct"
 
 
-def test_source_detection(tobject: TFiles):
+def test_full_source_detection(tobject: TFiles):
     restored = Image.read_from_file(tobject.restored_fits)
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(
         restored, thresh_isl=15, thresh_pix=20
@@ -217,6 +217,7 @@ def test_source_detection(tobject: TFiles):
     )
     detected = detection_result.get_pixel_position_of_sources()
     mse = np.linalg.norm(gtruth - detected, axis=1)
+    print(mse)
     assert np.all(mse < 1), "Source detection is not correct"
 
     # Now compare it with splitting the image
@@ -228,6 +229,8 @@ def test_source_detection(tobject: TFiles):
     # Sometimes the order of the sources is different, so we need to sort them
     detected = detected[np.argsort(detected[:, 0])]
     gtruth = gtruth[np.argsort(gtruth[:, 0])]
+    print(detected)
+    print(gtruth)
     mse = np.linalg.norm(gtruth - detected, axis=1)
     assert np.all(mse < 1), "Source detection is not correct"
 
