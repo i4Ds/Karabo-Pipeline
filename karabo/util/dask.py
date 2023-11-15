@@ -286,7 +286,6 @@ def calculate_number_of_workers_per_node(
 
 def get_local_dask_client(
     memory_limit: Optional[IntFloat],
-    processes: bool = True,
 ) -> Client:
     # Calculate number of workers per node
     n_workers = calculate_number_of_workers_per_node(memory_limit)
@@ -366,9 +365,7 @@ def setup_nannies_workers_for_slurm() -> None:
 
 
 def setup_dask_for_slurm(
-    n_workers_scheduler_node: int,
-    memory_limit: Optional[IntFloat],
-    **kwargs: Any,
+    n_workers_scheduler_node: int, memory_limit: Optional[IntFloat]
 ) -> Client:
     if is_first_node():
         # Create file to show that the run is still ongoing
@@ -380,7 +377,6 @@ def setup_dask_for_slurm(
             ip=get_node_name(),
             n_workers=n_workers_scheduler_node,
             threads_per_worker=DaskHandler.n_threads_per_worker,
-            **kwargs,
         )
         dask_client = Client(cluster, proccesses=DaskHandler.use_proccesses)
 

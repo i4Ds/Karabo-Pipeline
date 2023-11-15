@@ -217,7 +217,6 @@ def test_full_source_detection(tobject: TFiles):
     )
     detected = detection_result.get_pixel_position_of_sources()
     mse = np.linalg.norm(gtruth - detected, axis=1)
-    print(mse)
     assert np.all(mse < 1), "Source detection is not correct"
 
     # Now compare it with splitting the image
@@ -229,8 +228,6 @@ def test_full_source_detection(tobject: TFiles):
     # Sometimes the order of the sources is different, so we need to sort them
     detected = detected[np.argsort(detected[:, 0])]
     gtruth = gtruth[np.argsort(gtruth[:, 0])]
-    print(detected)
-    print(gtruth)
     mse = np.linalg.norm(gtruth - detected, axis=1)
     assert np.all(mse < 1), "Source detection is not correct"
 
