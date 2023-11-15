@@ -78,8 +78,12 @@ def test_mosaic_run(
     dec = -30
     outer_rad = 3
 
-    sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
-        path=catalog_path, ra_deg=ra, dec_deg=dec, outer_rad=outer_rad
+    sky_pointing = SkyModel.get_sky_model_from_h5_to_xarray(path=catalog_path)
+    sky_pointing = sky_pointing.filter_by_radius_euclidean_flat_approximation(
+        inner_radius_deg=0,
+        outer_radius_deg=outer_rad,
+        ra0_deg=ra,
+        dec0_deg=dec,
     )
     sky_pointing.compute()
 

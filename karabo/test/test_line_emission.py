@@ -137,11 +137,14 @@ def test_line_emission_run(
         dec = -30
         cut = 1.0  # degrees
 
-        sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
+        sky_pointing = SkyModel.get_sky_model_from_h5_to_xarray(
             path=catalog_path,
-            ra_deg=ra,
-            dec_deg=dec,
-            outer_rad=3,
+        )
+        sky_pointing = sky_pointing.filter_by_radius_euclidean_flat_approximation(
+            inner_radius_deg=0,
+            outer_radius_deg=3,
+            ra0_deg=ra,
+            dec0_deg=dec,
         )
 
         # Simulation of line emission observation

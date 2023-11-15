@@ -114,6 +114,8 @@ class SkyPrefixMapping:
     minor: Optional[str] = None
     pa: Optional[str] = None
     id: Optional[str] = None
+    true_redshift: Optional[str] = None
+    observed_redshift: Optional[str] = None
 
 
 XARRAY_DIM_0_DEFAULT, XARRAY_DIM_1_DEFAULT = cast(
@@ -1101,8 +1103,12 @@ class SkyModel:
     @staticmethod
     def get_sky_model_from_h5_to_xarray(
         path: str,
-        prefix_mapping: SkyPrefixMapping,
-        extra_columns: Optional[List[str]] = None,
+        prefix_mapping: SkyPrefixMapping = SkyPrefixMapping(
+            ra="Right Ascension",
+            dec="Declination",
+            stokes_i="Flux",
+            observed_redshift="Observed Redshift",
+        ),
         load_as: Literal["numpy_array", "dask_array"] = "dask_array",
         chunksize: Union[int, Literal["auto"]] = "auto",
     ) -> SkyModel:
@@ -1118,9 +1124,6 @@ class SkyModel:
             Mapping column names to their corresponding dataset paths
             in the HDF5 file.
             If the column is not present in the HDF5 file, set its value to None.
-        extra_columns : Optional[List[str]], default=None
-            A list of additional column names to include in the output DataArray.
-            If not provided, only the default columns will be included.
         load_as : Literal["numpy_array", "dask_array"], default="dask_array"
             What type of array to load the data inside the xarray Data Array as.
         chunksize : Union[int, str], default=auto
@@ -1145,13 +1148,6 @@ class SkyModel:
             else:
                 dask_array = da.from_array(f[field_value], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
-
-        if extra_columns is not None:
-            for col in extra_columns:
-                dask_array = da.from_array(f[col], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
-                data_arrays.append(
-                    xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT])
-                )
 
         if load_as == "numpy_array":
             data_arrays = [x.compute() for x in data_arrays]
@@ -1405,16 +1401,7 @@ class SkyModel:
         else:
             raise ValueError(f"Invalid value for 'which': {which}")
         path = survey.get()
-        column_mapping = SkyPrefixMapping(
-            ra="Right Ascension",
-            dec="Declination",
-            stokes_i="Flux",
-        )
-        extra_columns = ["Observed Redshift"]
-
-        sky = SkyModel.get_sky_model_from_h5_to_xarray(
-            path=path, prefix_mapping=column_mapping, extra_columns=extra_columns
-        )
+        sky = SkyModel.get_sky_model_from_h5_to_xarray(path=path)
         if sky.sources is None:
             raise KaraboSkyModelError("`sky.sources` is None but shouldn't be.")
 
@@ -1507,64 +1494,9 @@ class SkyModel:
     def sky_from_h5_with_redshift_filtered(
         path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
     ) -> SkyModel:
-        """
-        A sky model is created from a h5 file containing a catalog with right ascension,
-        declination, flux and observed redshift of HI distribution. The sky model only
-        takes into account sources around a certain radius of the phase center.
-
-        :param path: Path of the h5 file.
-        :param ra_deg: Phase center, right ascension.
-        :param dec_deg: Phase center, declination.
-        :param outer_rad: The radius size of the sky model to be considered.
-        :return: The sky model and the corresponding redshifts.
-        """
-        SOUTH_CATALOG_FACTOR = -1
-
-        # Read in the catalog
-        prefix_mapping = SkyPrefixMapping(
-            ra="Right Ascension", dec="Declination", stokes_i="Flux"
+        raise DeprecationWarning(
+            """This method will be removed in a future release.
+        To obtain the same functionality, use
+        sky = SkyModel.get_sky_model_from_h5_to_xarray()
+        and sky.filter_by_radius_euclidean_flat_approximation()."""
         )
-        extra_columns = ["Observed Redshift"]
-        sky = SkyModel.get_sky_model_from_h5_to_xarray(
-            path=path, prefix_mapping=prefix_mapping, extra_columns=extra_columns
-        )
-
-        if sky.h5_file_connection is None:
-            raise ConnectionError("Please provide an h5 file to create the sky model.")
-
-        print("The catalog keys are:", list(sky.h5_file_connection.keys()))
-        print(
-            "The unit of the flux given here is:",
-            sky.h5_file_connection["Flux"].attrs["Units"],
-        )
-        print(
-            "Number of elements in the complete catalog:",
-            len(sky.h5_file_connection["Declination"][()]),
-        )
-
-        # We only take into account a certain FOV, we filter the sky for this FOV
-        sky_filter = sky.filter_by_radius_euclidean_flat_approximation(
-            ra0_deg=ra_deg,
-            dec0_deg=dec_deg * SOUTH_CATALOG_FACTOR,
-            inner_radius_deg=0.0,
-            outer_radius_deg=outer_rad,
-        )
-
-        # Delete large sky
-        del sky
-
-        if sky_filter.sources is None:
-            raise TypeError(
-                "`sources` None is not allowed! Please set them in"
-                " the `SkyModel` before calling this function."
-            )
-
-        # Transform the sky to the southern sky
-        sky_filter.sources[:, 1] *= SOUTH_CATALOG_FACTOR
-
-        print(
-            "Number of elements in diluted catalog in the interesting FOV:",
-            len(sky_filter[:, 0]),
-        )
-
-        return sky_filter
