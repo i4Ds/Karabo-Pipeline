@@ -244,7 +244,6 @@ def test_simulation_noise_meerkat(
         )
 
 
-@pytest.mark.skip(reason="Causes runner to hang, but works locally")
 def test_parallelization_by_observation() -> None:
     sky = SkyModel.get_GLEAM_Sky([76])
     phase_center = [250, -80]
@@ -252,7 +251,7 @@ def test_parallelization_by_observation() -> None:
     CHANNEL_BANDWIDTHS_HZ = [1.0, 2.0]
     N_CHANNELS = [2, 4]
 
-    sky = sky.filter_by_radius(0, 1.0, phase_center[0], phase_center[1])
+    sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
     telescope = Telescope.constructor("ASKAP")
 
     simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=1)
@@ -262,7 +261,7 @@ def test_parallelization_by_observation() -> None:
         channel_bandwidths_hz=CHANNEL_BANDWIDTHS_HZ,
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
-        number_of_time_steps=1,
+        number_of_time_steps=24,
         n_channels=N_CHANNELS,
     )
 
@@ -270,7 +269,7 @@ def test_parallelization_by_observation() -> None:
 
     for i, vis in enumerate(visibilities):
         imager = Imager(
-            vis, imaging_npixel=1024, imaging_cellsize=3.878509448876288e-05
+            vis, imaging_npixel=512, imaging_cellsize=3.878509448876288e-05
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
         with tempfile.TemporaryDirectory() as tmpdir:
