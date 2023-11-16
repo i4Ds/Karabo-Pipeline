@@ -37,9 +37,8 @@ from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
 from karabo.data.external_data import (
-    BATTYESurveyDownloadObject,
-    DilutedBATTYESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
@@ -1360,24 +1359,25 @@ class SkyModel:
 
     @staticmethod
     def get_BATTYE_sky(which: Literal["full", "diluted"] = "diluted") -> SkyModel:
+        raise DeprecationWarning(
+            """This catalog has an error in the source flux values.
+            This method will be removed in a future version.
+            Please use get_sample_simulated_catalog() instead."""
+        )
+
+    @staticmethod
+    def get_sample_simulated_catalog() -> SkyModel:
         """
-        Downloads BATTYE survey data and generates a sky
-        model using the downloaded data. There are two types of
-        BATTYE survey data available: 'full' and 'diluted'.
-        They vary in the number of sources they contain. Diluted
-        is around 7 MB and full is around 35 GB.
-
-
-        Parameters:
-            which (str): The type of BATTYE survey data to download.
-            The options are 'full' and 'diluted'. Defaults to 'diluted'.
+        Downloads a sample simulated HI source catalog and generates a sky
+        model using the downloaded data. The catalog size is around 8MB.
 
         Source:
-        The BATTYE survey data was provided by Jennifer Studer
-        (https://github.com/jejestern)
+        The simulated catalog data was provided by Luis Machado
+        (https://github.com/lmachadopolettivalle) in collaboration
+        with the ETHZ Cosmology Research Group.
 
         Returns:
-            SkyModel: A sky model generated from the BATTYE survey data.
+            SkyModel: The corresponding sky model.
             The sky model contains the following information:
 
             - 'Right Ascension' (ra): The right ascension coordinates
@@ -1393,19 +1393,11 @@ class SkyModel:
             are not included in the sky model.
 
         """
-        survey: Union[BATTYESurveyDownloadObject, DilutedBATTYESurveyDownloadObject]
-        if which == "full":
-            survey = BATTYESurveyDownloadObject()
-        elif which == "diluted":
-            survey = DilutedBATTYESurveyDownloadObject()
-        else:
-            raise ValueError(f"Invalid value for 'which': {which}")
+        survey = HISourcesSmallCatalogDownloadObject()
         path = survey.get()
         sky = SkyModel.get_sky_model_from_h5_to_xarray(path=path)
         if sky.sources is None:
-            raise KaraboSkyModelError("`sky.sources` is None but shouldn't be.")
-
-        sky.sources[:, 1] *= -1
+            raise KaraboSkyModelError("`sky.sources` is None, which is unexpected.")
 
         return sky
 

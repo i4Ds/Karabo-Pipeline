@@ -115,18 +115,18 @@ class GLEAMSurveyDownloadObject(SingleFileDownloadObject):
         )
 
 
-class BATTYESurveyDownloadObject(SingleFileDownloadObject):
-    def __init__(self) -> None:
-        raise NotImplementedError(
-            f"Currently not available at {cscs_karabo_public_base_url}"
-        )
-
-
 class HISourcesSmallCatalogDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
             remote_file_path="HI_sources_small_catalog.h5",
             remote_base_url=cscs_karabo_public_base_url,
+        )
+
+
+class BATTYESurveyDownloadObject(SingleFileDownloadObject):
+    def __init__(self) -> None:
+        raise NotImplementedError(
+            f"Currently not available at {cscs_karabo_public_base_url}"
         )
 
 
