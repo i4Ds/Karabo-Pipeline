@@ -112,7 +112,8 @@ jobs:
       - name: Test image
         run: |
           docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} \
-            "pip install pytest && pytest /opt/conda/lib/python3.9/site-packages/karabo/test"
+            pip install pytest && \
+            pytest /opt/conda/lib/python3.9/site-packages/karabo/test
 
       - name: Docker push
         shell: bash -l {0}
