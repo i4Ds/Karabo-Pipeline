@@ -105,6 +105,8 @@ jobs:
           fi
           echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
           echo "version=${{ inputs.verstag }}" >> "$GITHUB_ENV"
+          REPO_OWNER=${{ github.repository_owner }}
+          echo "REPO_OWNER=${REPO_OWNER@L}" >> "$GITHUB_ENV"
           DEV_STR="dev"
           if [[ "${{ inputs.verstag }}" == *"$DEV_STR"* ]] && [[ $LATEST_DOCKER == 'true' ]]; then
             echo "Invalid configuration of workflow-inputs!"
@@ -133,20 +135,23 @@ jobs:
       - name: Docker build manually
         shell: bash -l {0}
         run: |
-          docker build --build-arg GIT_REV=${{ env.gitrev }} --build-arg BUILD=${{ env.build }} -f docker/user/Dockerfile -t ${{ env.IMG_NAME }}:${{ env.version }} .
+          docker build \
+            --build-arg GIT_REV=${{ env.gitrev }} \
+            --build-arg BUILD=${{ env.build }} \
+            -f docker/user/Dockerfile \
+            -t ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMG_NAME }}:${{ env.version }} \
+            .
           if [[ ${{ env.latest }} == "true" ]]; then
-            docker tag ${{ env.IMG_NAME }}:${{ env.version }} ${{ env.IMG_NAME }}:latest
+            docker tag ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMG_NAME }}:${{ env.version }} \
+              ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMG_NAME }}:latest
           fi
           echo $(df -h)
 
       - name: push docker-image
         shell: bash -l {0}
         run: |
-          REPO_OWNER=${{ github.repository_owner }}
-          echo ${{ env.REGISTRY }}
-          echo ${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}
           docker logout docker.io
-          docker push --all-tags ${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}
+          docker push --all-tags ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMG_NAME }}
           echo $(df -h)
 
       - name: Build and export to Docker
