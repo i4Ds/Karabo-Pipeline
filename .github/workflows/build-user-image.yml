@@ -142,8 +142,11 @@ jobs:
       - name: push docker-image
         shell: bash -l {0}
         run: |
+          REPO_OWNER=${{ github.repository_owner }}
+          echo ${{ env.REGISTRY }}
+          echo ${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}
           docker logout docker.io
-          docker push --all-tags ${{ env.IMG_NAME }}
+          docker push --all-tags ${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}
           echo $(df -h)
 
       - name: Build and export to Docker
