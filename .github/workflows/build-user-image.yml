@@ -111,7 +111,7 @@ jobs:
 
       - name: Test image
         run: |
-          docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} \
+          docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash && \
             pip install pytest && \
             pytest /opt/conda/lib/python3.9/site-packages/karabo/test
 
