@@ -93,11 +93,12 @@ jobs:
             type=raw, enable=${{ env.latest }}, value=latest
             type=pep440, pattern={{version}}, value=${{ env.version }}
 
-      - name: Monitor-disk-sapce-1
+      - name: Docker build & monitor
         shell: bash -l {0}
         run: |
           echo $(df -h)
-
+          docker build --build-arg GIT_REV=${{ env.gitrev }} --build-arg BUILD=${{ env.build }} -f docker/user/Dockerfile -t "karabo-pipeline":${{ env.version }} .
+          echo $(df -h)
       - name: Build and export to Docker
         uses: docker/build-push-action@v5
         with:
