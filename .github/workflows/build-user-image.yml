@@ -93,6 +93,11 @@ jobs:
             type=raw, enable=${{ env.latest }}, value=latest
             type=pep440, pattern={{version}}, value=${{ env.version }}
 
+      - name: Monitor-disk-sapce-1
+        shell: bash -l {0}
+        run: |
+          echo $(df -h)
+
       - name: Build and export to Docker
         uses: docker/build-push-action@v5
         with:
@@ -105,9 +110,20 @@ jobs:
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: test
+
+      - name: Monitor-disk-sapce-2
+        shell: bash -l {0}
+        run: |
+          echo $(df -h)
+
       - name: Test container
         run: |
           docker run --rm ${{ steps.meta.outputs.tags }}:test pytest /opt/conda/lib/python3.9/site-packages/karabo/test
+
+      - name: Monitor-disk-sapce-3
+        shell: bash -l {0}
+        run: |
+          echo $(df -h)
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -120,3 +136,8 @@ jobs:
             BUILD=${{ env.build }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Monitor-disk-sapce-4
+        shell: bash -l {0}
+        run: |
+          echo $(df -h)
