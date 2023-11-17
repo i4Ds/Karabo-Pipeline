@@ -34,6 +34,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMG_NAME: karabo-pipeline
 
 jobs:
   build-test-and-push-image:
@@ -132,9 +133,9 @@ jobs:
       - name: Docker build manually
         shell: bash -l {0}
         run: |
-          docker build --build-arg GIT_REV=${{ env.gitrev }} --build-arg BUILD=${{ env.build }} -f docker/user/Dockerfile -t karabo-pipeline:${{ env.version }} .
+          docker build --build-arg GIT_REV=${{ env.gitrev }} --build-arg BUILD=${{ env.build }} -f docker/user/Dockerfile -t ${{ env.IMG_NAME }}:${{ env.version }} .
           if [[ ${{ env.latest }} == "true" ]]; then
-            docker tag karabo-pipeline:${{ env.version }} karabo-pipeline:latest
+            docker tag ${{ env.IMG_NAME }}:${{ env.version }} ${{ env.IMG_NAME }}:latest
           fi
           echo $(df -h)
 
@@ -142,7 +143,7 @@ jobs:
         shell: bash -l {0}
         run: |
           docker logout docker.io
-          docker push ${{ env.REGISTRY }}/${{ github.actor }}/karabo-pipeline --all-tags
+          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMG_NAME }} --all-tags
           echo $(df -h)
 
       - name: Build and export to Docker
