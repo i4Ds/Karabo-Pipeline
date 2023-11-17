@@ -4,6 +4,10 @@ import tempfile
 import numpy as np
 import pytest
 
+from karabo.data.external_data import (
+    SingleFileDownloadObject,
+    cscs_karabo_public_testing_base_url,
+)
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -18,6 +22,21 @@ from karabo.sourcedetection.result import (
 from karabo.test.conftest import NNImageDiffCallable, TFiles
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
+
+
+@pytest.fixture
+def restored_filtered_example_gleam() -> str:
+    return "restored_filtered_example_gleam.fits"
+
+
+@pytest.fixture
+def test_restored_filtered_example_gleam_downloader(
+    restored_filtered_example_gleam,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=restored_filtered_example_gleam,
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    )
 
 
 def test_source_detection_plot(
@@ -199,8 +218,12 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     ), "Automatic assignment of ground truth and detected is not correct"
 
 
-def test_full_source_detection(tobject: TFiles):
-    restored = Image.read_from_file(tobject.restored_fits)
+def test_full_source_detection(
+    test_restored_filtered_example_gleam_downloader: SingleFileDownloadObject,
+):
+    restored = Image.read_from_file(
+        test_restored_filtered_example_gleam_downloader.get()
+    )
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(
         restored, thresh_isl=15, thresh_pix=20
     )

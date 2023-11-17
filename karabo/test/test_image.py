@@ -3,7 +3,6 @@ import tempfile
 
 import numpy as np
 
-from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
@@ -180,14 +179,6 @@ def test_explore_sky():
 #     restored_image.save_to_file("result/restored.fits")
 #     residual_image.save_to_file("result/residual.fits")
 #     sky.save_to_file("result/imaging_sky.txt")
-
-
-def test_power_spectrum(tobject: TFiles):
-    restored_image = Image(path=tobject.restored_fits)
-    # restored_image.plot_power_spectrum(save_png=True)
-    restored_image.get_cellsize()
-    # restored_image.plot_histogram()
-
 
 # def test_source_detection():
 #     restored = open_fits_image("karabo/test/data/restored.fits")

@@ -28,34 +28,21 @@ previous_backend = matplotlib.get_backend()
 
 matplotlib.use(previous_backend)
 
-# Parameters to copy from the original header to the cutout header
-HEADER_KEYS_TO_COPY_AFTER_CUTOUT = [
-    "CTYPE3",
-    "CRPIX3",
-    "CDELT3",
-    "CRVAL3",
-    "CUNIT3",
-    "CTYPE4",
-    "CRPIX4",
-    "CDELT4",
-    "CRVAL4",
-    "CUNIT4",
-    "BMAJ",
-    "BMIN",
-    "BPA",
-]
-
 
 class Image(KaraboResource):
     def __init__(
         self,
         path: Optional[Union[str, FilePathType]] = None,
-        data: Optional[np.ndarray[np.float_]] = None,  # type: ignore
+        data: Optional[NDArray[np.float_]] = None,
         header: Optional[fits.header.Header] = None,
         **kwargs: Any,
     ) -> None:
         self._fh_prefix = "image"
         self._fh_verbose = False
+
+        if path is not None and (data is not None or header is not None):
+            raise RuntimeError("Provide either path or both data and header.")
+
         if path is not None:
             self.path = path
             self.data, self.header = fits.getdata(
@@ -77,10 +64,10 @@ class Image(KaraboResource):
             restored_fits_path = os.path.join(fh.subdir, "image.fits")
 
             # Write the FITS file
-            self.write_to_file(restored_fits_path, overwrite=True)
+            self.write_to_file(restored_fits_path)
             self.path = restored_fits_path
         else:
-            raise ValueError("Either path or both data and header must be provided.")
+            raise RuntimeError("Provide either path or both data and header.")
 
         self._fname = os.path.split(self.path)[-1]
 
@@ -105,9 +92,8 @@ class Image(KaraboResource):
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
         check_ending(path=path, ending=".fits")
-        dir_name = os.path.dirname(path)
-        if dir_name != "" and not os.path.exists(dir_name):
-            os.makedirs(dir_name)
+        dir_name = os.path.abspath(os.path.dirname(path))
+        os.makedirs(dir_name, exist_ok=True)
         fits.writeto(
             filename=str(path),
             data=self.data,
@@ -198,8 +184,24 @@ class Image(KaraboResource):
     def update_header_from_image_header(
         new_header: fits.header.Header,
         old_header: fits.header.Header,
-        keys_to_copy: List[str] = HEADER_KEYS_TO_COPY_AFTER_CUTOUT,
+        keys_to_copy: Optional[List[str]] = None,
     ) -> fits.header.Header:
+        if keys_to_copy is None:
+            keys_to_copy = [
+                "CTYPE3",
+                "CRPIX3",
+                "CDELT3",
+                "CRVAL3",
+                "CUNIT3",
+                "CTYPE4",
+                "CRPIX4",
+                "CDELT4",
+                "CRVAL4",
+                "CUNIT4",
+                "BMAJ",
+                "BMIN",
+                "BPA",
+            ]
         for key in keys_to_copy:
             if key in old_header and key not in new_header:
                 new_header[key] = old_header[key]
@@ -220,7 +222,8 @@ class Image(KaraboResource):
 
         overlap : int, optional
             The number of pixels by which adjacent image sections will overlap.
-            Default is 0, meaning no overlap.
+            Default is 0, meaning no overlap. Negative overlap means that there
+            will be empty sections between the cutouts.
 
         Returns
         -------
@@ -251,6 +254,8 @@ class Image(KaraboResource):
         >>> len(cutouts)
         16  # because 4x4 grid
         """
+        if N < 1:
+            raise ValueError("N must be >= 1")
         _, _, x_size, y_size = self.data.shape
         x_step = x_size // N
         y_step = y_size // N
@@ -504,22 +509,29 @@ class ImageMosaicker:
     A class to handle the combination of multiple images into a single mosaicked image.
     See: https://reproject.readthedocs.io/en/stable/mosaicking.html
 
-    Attributes
+    Parameters
+    More information on the parameters can be found in the documentation:
+    https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.reproject_and_coadd.html # noqa: E501
+    However, here the most common to tune are explained.
     ----------
-    reproject_function : callable
+    reproject_function : callable, optional
         The function to use for the reprojection.
     combine_function : {'mean', 'sum', 'median', 'first', 'last', 'min', 'max'}
         The type of function to use for combining the values into the final image.
-    match_background : bool
+    match_background : bool, optional
         Whether to match the backgrounds of the images.
-    background_reference : None or int
-        The index of the reference image for background matching.
+    background_reference : None or int, optional
+        If None, the background matching will make it so that the average of the
+        corrections for all images is zero.
+        If an integer, this specifies the index of the image to use as a reference.
     hdu_in : int or str, optional
-        Specifies the HDU to use from the input FITS files or HDUList.
+        If one or more items in input_data is a FITS file or an HDUList instance,
+        specifies the HDU to use.
     hdu_weights : int or str, optional
-        Specifies the HDU to use from the input weights FITS files or HDUList.
-    kwargs : dict
-        Additional keyword arguments to pass to the reprojection function.
+        If one or more items in input_weights is a FITS file or an HDUList instance,
+        specifies the HDU to use.
+    **kwargs : dict, optional
+        Additional keyword arguments to be passed to the reprojection function.
 
     Methods
     -------
@@ -541,28 +553,6 @@ class ImageMosaicker:
         hdu_weights: Optional[Union[int, str]] = None,
         **kwargs: Any,
     ):
-        """
-        Parameters
-        ----------
-        reproject_function : callable, optional
-            The function to use for the reprojection.
-        combine_function : {'mean', 'sum', 'median', 'first', 'last', 'min', 'max'}
-            The type of function to use for combining the values into the final image.
-        match_background : bool, optional
-            Whether to match the backgrounds of the images.
-        background_reference : None or int, optional
-            If None, the background matching will make it so that the average of the
-            corrections for all images is zero.
-            If an integer, this specifies the index of the image to use as a reference.
-        hdu_in : int or str, optional
-            If one or more items in input_data is a FITS file or an HDUList instance,
-            specifies the HDU to use.
-        hdu_weights : int or str, optional
-            If one or more items in input_weights is a FITS file or an HDUList instance,
-            specifies the HDU to use.
-        **kwargs : dict, optional
-            Additional keyword arguments to be passed to the reprojection function.
-        """
         self.reproject_function = reproject_function
         self.combine_function = combine_function
         self.match_background = match_background
