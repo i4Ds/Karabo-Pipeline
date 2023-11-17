@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import tempfile
-from typing import Any, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar, Union
 from warnings import warn
 
 import bdsf
@@ -23,6 +23,23 @@ from karabo.warning import KaraboWarning
 T = TypeVar("T")
 
 PYBDSF_TOTAL_FLUX = 12
+
+ImageType = Literal[
+    "RMS_map",
+    "mean_map",
+    "polarized_intensity",
+    "gaussian_residual",
+    "gaussian_model",
+    "shapelet_residual",
+    "shapelet_model",
+    "major_axis_FWHM_variation",
+    "minor_axis_FWHM_variation",
+    "position_angle_variation",
+    "peak_to_total_flux_variation",
+    "peak_to_aperture_flux_variation",
+    "island_mask",
+    "source",
+]
 
 
 class SourceDetectionResult(KaraboResource):
@@ -407,6 +424,8 @@ class PyBDSFSourceDetectionResultList:
         The minimum number of pixels that must separate sources to be considered
         distinct. Defaults to 5. This attribute can be modified before calling
         any function that relies on it to adjust the minimum distance criterion.
+    verbose : bool
+        If True, prints verbose output. Defaults to False.
 
     Methods
     -------
@@ -429,31 +448,18 @@ class PyBDSFSourceDetectionResultList:
     ) -> None:
         self.bdsf_detection = bdsf_detection
         self.min_pixel_distance_between_sources = 5
-        self._detected_sources: Optional[NDArray[np.float_]] = None
+        self.verbose = False
 
     @property
     def detected_sources(self) -> NDArray[np.float_]:
-        self._detected_sources = np.concatenate(
+        _detected_sources = np.concatenate(
             [x.detected_sources for x in self.bdsf_detection],
             axis=0,
         )
         to_drop = self.__get_idx_of_overlapping_sources()
         if len(to_drop) > 0:
-            print(f"Merged in total {len(to_drop)*2} sources into {len(to_drop)}")
-            # Create a boolean mask to keep sources not in to_drop
-            mask = np.ones(len(self._detected_sources), dtype=np.bool_)
-            mask[np.array(to_drop)] = False
-            self._detected_sources = self._detected_sources[mask]
-            self._detected_sources = cast(NDArray[np.float_], self._detected_sources)
-        return self._detected_sources
-
-    def __get_result_image(self, image_type: str) -> Image:
-        mi = ImageMosaicker()
-        images = [
-            getattr(result, f"get_{image_type}_image")()
-            for result in self.bdsf_detection
-        ]
-        return mi.process(images)[0]
+            _detected_sources = self.__drop_cast_sources(_detected_sources, to_drop)
+        return _detected_sources
 
     def get_RMS_map_image(self) -> Image:
         return self.__get_result_image("RMS_map")
@@ -500,6 +506,54 @@ class PyBDSFSourceDetectionResultList:
     def has_source_image(self) -> bool:
         sources_images = [x.has_source_image() for x in self.bdsf_detection]
         return all(sources_images)
+
+    def __get_result_image(self, image_type: ImageType) -> Image:
+        mi = ImageMosaicker()
+        if self.verbose:
+            print(f"Getting {image_type} image by mosaicking.")
+        images = [
+            getattr(result, f"get_{image_type}_image")()
+            for result in self.bdsf_detection
+        ]
+        return mi.process(images)[0]
+
+    def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
+        """
+        Calculate and return corrected pixel positions of sources in a mosaic image.
+
+        This public method calculates the pixel positions of sources in a mosaic
+        image, corrects them, and removes overlapping sources based on a specified
+        minimum distance and total flux criteria.
+
+        Returns
+        -------
+        NDArray[np.float_]
+            A NumPy array of the corrected and filtered pixel positions of sources
+            in the mosaic image.
+        """
+        to_drop = self.__get_idx_of_overlapping_sources()
+        combined_positions = self.__get_corrected_positions(
+            [x.get_pixel_position_of_sources() for x in self.bdsf_detection]
+        )
+        if len(to_drop) > 0:
+            combined_positions = self.__drop_cast_sources(combined_positions, to_drop)
+        else:
+            if self.verbose:
+                print("No sources were merged.")
+        return combined_positions
+
+    def __drop_cast_sources(
+        self,
+        detected_sources: NDArray[np.float_],
+        to_drop: List[int],
+    ) -> NDArray[np.float_]:
+        if self.verbose:
+            print(f"Merged in total {len(to_drop)*2} sources into {len(to_drop)}")
+        # Create a boolean mask to keep sources not in to_drop
+        mask = np.ones(len(detected_sources), dtype=np.bool_)
+        mask[np.array(to_drop)] = False
+        detected_sources = detected_sources[mask]
+        return detected_sources
 
     def __get_corrected_positions(
         self,
@@ -589,7 +643,11 @@ class PyBDSFSourceDetectionResultList:
             ):  # Compare with subsequent sources to avoid repetition
                 dist = np.linalg.norm(combined_positions[i] - combined_positions[j])
                 if dist < self.min_pixel_distance_between_sources:
-                    print(f"Source {i} and {j} are being merged")
+                    if self.verbose:
+                        print(
+                            f"Source {i} and {j} are being merged "
+                            f"because distance between them is {dist}."
+                        )
                     if total_fluxes[i] > total_fluxes[j]:
                         to_drop.append(j)
                     else:
@@ -597,31 +655,3 @@ class PyBDSFSourceDetectionResultList:
         # Remove duplicates
         to_drop = list(set(to_drop))
         return to_drop
-
-    def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
-        """
-        Calculate and return corrected pixel positions of sources in a mosaic image.
-
-        This public method calculates the pixel positions of sources in a mosaic
-        image, corrects them, and removes overlapping sources based on a specified
-        minimum distance and total flux criteria.
-
-        Returns
-        -------
-        NDArray[np.float_]
-            A NumPy array of the corrected and filtered pixel positions of sources
-            in the mosaic image.
-        """
-        to_drop = self.__get_idx_of_overlapping_sources()
-        combined_positions = self.__get_corrected_positions(
-            [x.get_pixel_position_of_sources() for x in self.bdsf_detection]
-        )
-        if len(to_drop) > 0:
-            print(f"Merged in total {len(to_drop)*2} sources into {len(to_drop)}")
-            # Create a boolean mask to keep sources not in to_drop
-            mask = np.ones(len(combined_positions), dtype=np.bool_)
-            mask[np.array(to_drop)] = False
-            combined_positions = combined_positions[mask]
-            combined_positions = cast(NDArray[np.float_], combined_positions)
-
-        return combined_positions
