@@ -141,7 +141,8 @@ jobs:
       - name: push docker-image
         shell: bash -l {0}
         run: |
-          docker push karabo-pipeline --all-tags
+          docker logout docker.io
+          docker push ${{ env.REGISTRY }}/${{ github.actor }}/karabo-pipeline --all-tags
           echo $(df -h)
 
       - name: Build and export to Docker
