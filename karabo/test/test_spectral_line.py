@@ -51,7 +51,7 @@ def simulate_spectral_vis(
         )
         freq_spec[i] = spectral_freq0 + dfreq_sampled[i]
         spectral_sky = SkyModel()
-        telescope = Telescope.get_MEERKAT_Telescope()
+        telescope = Telescope.constructor("MeerKAT")
         spectral_sky_data[i, 2] = line_sampled[i]
         spectral_sky_data[i, 6] = freq_spec[i]
         spectral_sky.add_point_sources(spectral_sky_data)
@@ -99,7 +99,7 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
         write_foreground_ms = True
         foreground = SkyModel()
         foreground.add_point_sources(sky_data)
-        telescope = Telescope.get_MEERKAT_Telescope()
+        telescope = Telescope.constructor("MeerKAT")
         simulation = InterferometerSimulation(
             vis_path=foreground_vis_file,
             channel_bandwidth_hz=bandwidth_smearing,

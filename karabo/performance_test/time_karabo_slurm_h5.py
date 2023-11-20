@@ -22,7 +22,7 @@ def main() -> None:
     )
 
     sky.setup_default_wcs(phase_center=phase_center)
-    telescope = Telescope.get_OSKAR_Example_Telescope()
+    telescope = Telescope.constructor("EXAMPLE")
 
     observation_settings = Observation(
         start_frequency_hz=100e6,
