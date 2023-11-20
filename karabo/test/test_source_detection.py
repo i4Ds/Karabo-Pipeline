@@ -130,7 +130,7 @@ def test_bdsf_image_blanked():
     gleam_sky = SkyModel.get_GLEAM_Sky([76])
     sky = gleam_sky.filter_by_radius(0, 0.01, phase_center[0], phase_center[1])
     sky.setup_default_wcs(phase_center=phase_center)
-    askap_tel = Telescope.get_ASKAP_Telescope()
+    askap_tel = Telescope.constructor("ASKAP")
     observation_settings = Observation(
         start_frequency_hz=100e6,
         phase_centre_ra_deg=phase_center[0],
@@ -207,7 +207,7 @@ def test_create_detection_from_ms_cuda():
         0.4,
     )
 
-    telescope = Telescope.get_MEERKAT_Telescope()
+    telescope = Telescope.constructor("MeerKAT")
     # telescope.centre_longitude = 3
 
     simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=1)

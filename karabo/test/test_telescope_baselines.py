@@ -15,7 +15,7 @@ from karabo.simulation.telescope import Telescope, create_baseline_cut_telelesco
 def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
     lcut = 5000
     hcut = 10000  # Lower cut off and higher cut-off in meters
-    parant_tel = Telescope.get_MEERKAT_Telescope()
+    parant_tel = Telescope.constructor("MeerKAT")
     telescope_path = create_baseline_cut_telelescope(lcut, hcut, parant_tel)
     telescope = Telescope.read_OSKAR_tm_file(telescope_path)
     sky = SkyModel()

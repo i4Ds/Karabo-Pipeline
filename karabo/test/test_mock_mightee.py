@@ -51,7 +51,7 @@ def test_mock_mightee():
                     inner_radius_deg=0,
                     outer_radius_deg=2.0,
                 )
-                telescope = Telescope.get_MEERKAT_Telescope()
+                telescope = Telescope.constructor("MeerKAT")
                 # telescope.centre_longitude = 3
                 simulation = InterferometerSimulation(
                     channel_bandwidth_hz=chan_bandwidth,
