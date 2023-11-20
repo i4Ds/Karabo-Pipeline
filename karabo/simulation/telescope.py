@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import enum
 import logging
 import os
 import re
 import shutil
 from math import comb
-from typing import List, Optional
+from typing import Dict, List, Literal, Optional, Type, Union, cast, get_args
 
 import numpy as np
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
+from rascil.processing_components.simulation.simulation_helpers import (
+    plot_configuration,
+)
+from ska_sdp_datamodels.configuration.config_create import create_named_configuration
+from ska_sdp_datamodels.configuration.config_model import Configuration
 
 import karabo.error
 from karabo.error import KaraboError
@@ -27,10 +33,67 @@ from karabo.simulation.telescope_versions import (
     SMAVersions,
     VLAVersions,
 )
+from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import FileHandler
 from karabo.util.math_util import long_lat_to_cartesian
+
+OSKARTelescopesWithVersionType = Literal[
+    "ACA",
+    "ALMA",
+    "ATCA",
+    "CARMA",
+    "NGVLA",
+    "PDBI",
+    "SMA",
+    "VLA",
+]
+OSKARTelescopesWithoutVersionType = Literal[
+    "EXAMPLE",
+    "MeerKAT",
+    "ASKAP",
+    "LOFAR",
+    "MKATPlus",
+    "PDBI",
+    "SKA1LOW",
+    "SKA1MID",
+    "VLBA",
+    "WSRT",
+]
+
+OSKAR_TELESCOPE_TO_FILENAMES: Dict[
+    Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
+    str,
+] = {
+    "EXAMPLE": "telescope.tm",
+    "MeerKAT": "meerkat.tm",
+    "ACA": "aca.{0}.tm",
+    "ALMA": "alma.{0}.tm",
+    "ASKAP": "askap.tm",
+    "ATCA": "atca.{0}.tm",
+    "CARMA": "carma.{0}.tm",
+    "LOFAR": "lofar.tm",
+    "MKATPlus": "mkatplus.tm",
+    "NGVLA": "ngvla-{0}.tm",
+    "PDBI": "pdbi-{0}.tm",
+    "SKA1LOW": "ska1low.tm",
+    "SKA1MID": "ska1mid.tm",
+    "SMA": "sma.{0}.tm",
+    "VLA": "vla.{0}.tm",
+    "VLBA": "vlba.tm",
+    "WSRT": "WSRT.tm",
+}
+OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum]] = {
+    "ACA": ACAVersions,
+    "ALMA": ALMAVersions,
+    "ATCA": ATCAVersions,
+    "CARMA": CARMAVersions,
+    "NGVLA": NGVLAVersions,
+    "PDBI": PDBIVersions,
+    "SMA": SMAVersions,
+    "VLA": VLAVersions,
+}
 
 
 class Telescope(KaraboResource):
@@ -78,6 +141,109 @@ class Telescope(KaraboResource):
         self.centre_altitude = altitude
 
         self.stations: List[Station] = []
+
+        self.backend: SimulatorBackend = SimulatorBackend.OSKAR
+
+        self.RASCIL_configuration: Optional[Configuration] = None
+
+    @classmethod
+    def constructor(
+        cls,
+        name: Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
+        version: Optional[enum.Enum] = None,
+        backend: SimulatorBackend = SimulatorBackend.OSKAR,
+    ) -> Telescope:
+        """Main constructor to obtain a pre-configured telescope instance.
+        :param name: Name of the desired telescope configuration.
+            This name, together with the backend, is used as the key
+            to look up the correct telescope specification file.
+        :param version: Version details required for some
+            telescope configurations. Defaults to None.
+        :param backend: Underlying package to be used for the telescope configuration,
+            since each package stores the arrays in a different format.
+            Defaults to OSKAR.
+        :raises: ValueError if the combination of input parameters is invalid.
+            Specifically, if the requested telescope requires a version,
+            but an invalid version (or no version) is provided,
+            or if the requested telescope name is not
+            supported by the requested backend.
+        :returns: Telescope instance.
+        """
+        if backend is SimulatorBackend.OSKAR:
+            # Verify if requested telescope has an existing configuration
+            datapath = OSKAR_TELESCOPE_TO_FILENAMES.get(name, None)
+            if datapath is None:
+                raise ValueError(
+                    f"""{name} not supported for backend {SimulatorBackend.OSKAR.value}.
+                    The valid options for name are:
+                    {list(OSKAR_TELESCOPE_TO_FILENAMES.keys())}."""
+                )
+
+            # Explicitly cast name depending on whether it requires a telescope version
+            # This should no longer be necessary when mypy starts supporting
+            # type narrowing with get_args.
+            # https://github.com/python/mypy/issues/12535
+            if name in get_args(OSKARTelescopesWithVersionType):
+                name = cast(OSKARTelescopesWithVersionType, name)
+                accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS[name]
+                if (version is None) or (version not in accepted_versions):
+                    raise ValueError(
+                        f"""{version} is not valid for telescope {name}.
+                        List of valid versions: {accepted_versions}."""
+                    )
+                datapath = datapath.format(version.value)
+            else:
+                if version is not None:
+                    raise ValueError(
+                        f"""version is not a required field for telescope {name},
+                    but {version} was provided.
+                    Please do not provide a value for the version field."""
+                    )
+
+            path = os.path.join(get_module_absolute_path(), "data", datapath)
+            return cls.read_OSKAR_tm_file(path)
+        elif backend is SimulatorBackend.RASCIL:
+            if version is not None:
+                logging.warning(
+                    f"""The version parameter is not supported
+    by the backend {backend}.
+    The version value {version} provided will be ignored."""
+                )
+            try:
+                configuration = create_named_configuration(name)
+            except ValueError:
+                raise ValueError(
+                    f"""Requested telescope {name} is not supported by this backend.
+                    For more details, see
+    https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels/-/blob/d6dcce6288a7bf6d9ce63ab16e799977723e7ae5/src/ska_sdp_datamodels/configuration/config_create.py"""  # noqa
+                )
+
+            config_earth_location = configuration.location
+            telescope = Telescope(
+                longitude=config_earth_location.lon.to("deg").value,
+                latitude=config_earth_location.lat.to("deg").value,
+                altitude=config_earth_location.height.to("m").value,
+            )
+            telescope.backend = SimulatorBackend.RASCIL
+            telescope.RASCIL_configuration = configuration
+
+            return telescope
+        else:
+            raise ValueError(
+                f"{backend} not supported, see valid options within SimulatorBackend."
+            )
+
+    def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
+        if self.backend is SimulatorBackend.OSKAR:
+            return self.path
+        if self.backend is SimulatorBackend.RASCIL:
+            return self.RASCIL_configuration
+
+        raise ValueError(
+            f"""Unexpected: current backend is set to {self.backend},
+        but expected one of {SimulatorBackend}.
+        Verify the construction of this Telescope instance."""
+        )
 
     def add_station(
         self,
@@ -151,6 +317,22 @@ class Telescope(KaraboResource):
             )
 
     def plot_telescope(self, file: Optional[str] = None) -> None:
+        """
+        Plot the telescope according to which backend is being used,
+        and save the resulting image into a file, if any is provided.
+        """
+        if self.backend is SimulatorBackend.OSKAR:
+            self.plot_telescope_OSKAR(file)
+        elif self.backend is SimulatorBackend.RASCIL:
+            plot_configuration(self.get_backend_specific_information())
+        else:
+            logging.warning(
+                f"""Backend {self.backend} is not valid.
+            Proceeding without any further actions."""
+            )
+            return
+
+    def plot_telescope_OSKAR(self, file: Optional[str] = None) -> None:
         """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
@@ -245,112 +427,75 @@ class Telescope(KaraboResource):
 
     @classmethod
     def read_from_file(cls, path: str) -> Optional[Telescope]:
-        if path.endswith(".tm"):
-            logging.info("Supplied file is a .tm file. Read as OSKAR Telescope file.")
-            return cls.read_OSKAR_tm_file(path)
-        else:
-            return None
+        raise DeprecationWarning("Use Telescope.read_OSKAR_tm_file(path) instead.")
 
     @classmethod
     def get_MEERKAT_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "meerkat.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("MeerKAT") instead.')
 
     @classmethod
     def get_ACA_Telescope(cls, version: ACAVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"aca.{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ACA", version) instead.')
 
     @classmethod
     def get_ALMA_Telescope(cls, version: ALMAVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"alma.{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ALMA", version) instead.')
 
     @classmethod
     def get_ASKAP_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "askap.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ASKAP") instead.')
 
     @classmethod
     def get_ATCA_Telescope(cls, version: ATCAVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"atca.{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ATCA", version) instead.')
 
     @classmethod
     def get_CARMA_Telescope(cls, version: CARMAVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"carma.{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("CARMA", version) instead.')
 
     @classmethod
     def get_LOFAR_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "lofar.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("LOFAR") instead.')
 
     @classmethod
     def get_MKATPLUS_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "mkatplus.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("MKATPlus") instead.')
 
     @classmethod
     def get_NG_VLA_Telescope(cls, version: NGVLAVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"ngvla-{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("NGVLA", version) instead.')
 
     @classmethod
     def get_PDBI_Telescope(cls, version: PDBIVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"pdbi-{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("PDBI", version) instead.')
 
     @classmethod
     def get_SKA1_LOW_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "ska1low.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("SKA1LOW") instead.')
 
     @classmethod
     def get_SKA1_MID_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "ska1mid.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("SKA1MID") instead.')
 
     @classmethod
     def get_SMA_Telescope(cls, version: SMAVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"sma.{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("SMA", version) instead.')
 
     @classmethod
     def get_VLA_Telescope(cls, version: VLAVersions) -> Telescope:
-        path = os.path.join(
-            get_module_absolute_path(), "data", f"vla.{version.value}.tm"
-        )
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("VLA", version) instead.')
 
     @classmethod
     def get_VLBA_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "vlba.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("VLBA") instead.')
 
     @classmethod
     def get_WSRT_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "WSRT.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("WSRT") instead.')
 
     @classmethod
     def get_OSKAR_Example_Telescope(cls) -> Telescope:
-        path = os.path.join(get_module_absolute_path(), "data", "telescope.tm")
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("EXAMPLE") instead.')
 
     @classmethod
     def read_OSKAR_tm_file(cls, path: DirPathType) -> Telescope:
@@ -442,6 +587,7 @@ class Telescope(KaraboResource):
                 )
 
         telescope.path = path
+        telescope.backend = SimulatorBackend.OSKAR
         return telescope
 
     @classmethod

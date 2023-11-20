@@ -16,7 +16,7 @@ from karabo.test.conftest import TFiles
 
 # Test cases
 def test_fit_element(tobject: TFiles):
-    tel = Telescope.get_MEERKAT_Telescope()
+    tel = Telescope.constructor("MeerKAT")
     beam = BeamPattern(tobject.run5_cst)
     beam.fit_elements(tel, freq_hz=1.0e08, avg_frac_error=0.5)
 
@@ -68,7 +68,7 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
         combined_ms_filepath = os.path.join(tmpdir, "combined_vis.ms")
         sky = SkyModel()
         sky.add_point_sources(sky_data)
-        telescope = Telescope.get_MEERKAT_Telescope()
+        telescope = Telescope.constructor("MeerKAT")
         observation_long = ObservationLong(
             mode="Tracking",
             phase_centre_ra_deg=20.0,

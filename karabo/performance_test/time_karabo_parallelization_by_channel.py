@@ -31,7 +31,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     sky.setup_default_wcs(phase_center=phase_center)
 
     print("Setting up telescope...")
-    askap_tel = Telescope.get_ASKAP_Telescope()
+    askap_tel = Telescope.constructor("ASKAP")
 
     print("Setting up observation...")
     observation_settings = Observation(

@@ -18,7 +18,7 @@ sky.add_point_sources(sky_data)
 
 # get different predefined telescopes,
 # like here the OSKAR example telescope.png, with a handy functions
-telescope = Telescope.get_OSKAR_Example_Telescope()
+telescope = Telescope.constructor("EXAMPLE")
 
 # overwrite or set any of the implemented configuration values
 telescope.centre_longitude = 3

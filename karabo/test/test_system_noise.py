@@ -15,7 +15,7 @@ from karabo.simulation.telescope import Telescope
 def test_basic(sky_data: NDArray[np.float64]):
     sky = SkyModel()
     sky.add_point_sources(sky_data)
-    telescope = Telescope.get_SKA1_MID_Telescope()
+    telescope = Telescope.constructor("SKA1MID")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         ms_path = os.path.join(tmpdir, "noise_vis.ms")
