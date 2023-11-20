@@ -130,7 +130,7 @@ def test_bdsf_image_blanked():
     """
     phase_center = [250, -80]
     gleam_sky = SkyModel.get_GLEAM_Sky([76])
-    sky = gleam_sky.filter_by_radius(0, 0.01, phase_center[0], phase_center[1])
+    sky = gleam_sky.filter_by_radius(0, 1, phase_center[0], phase_center[1])
     sky.setup_default_wcs(phase_center=phase_center)
     askap_tel = Telescope.get_ASKAP_Telescope()
     observation_settings = Observation(
