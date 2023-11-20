@@ -7,7 +7,7 @@ import pytest
 from astropy.io import fits
 
 from karabo.data.external_data import (
-    DilutedBATTYESurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
@@ -122,7 +122,7 @@ def test_line_emission_run(
     golden_corrected_fits_path = corrected_fits_downloader.get()
 
     # Load sky model data
-    survey = DilutedBATTYESurveyDownloadObject()
+    survey = HISourcesSmallCatalogDownloadObject()
     catalog_path = survey.get()
 
     # Directory containing output files for validation

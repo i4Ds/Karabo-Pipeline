@@ -8,7 +8,7 @@ from astropy import coordinates as coords
 from astropy.io import fits
 
 from karabo.data.external_data import (
-    DilutedBATTYESurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
@@ -70,7 +70,7 @@ def test_mosaic_run(
     golden_uncorrected_area_fits_path = uncorrected_area_fits_downloader.get()
 
     # Load sky model data
-    survey = DilutedBATTYESurveyDownloadObject()
+    survey = HISourcesSmallCatalogDownloadObject()
     catalog_path = survey.get()
 
     # Set sky position for sky outcut
