@@ -25,7 +25,7 @@ def test_beam():
     sky_data[:, 1] = dec_arr.flatten()
     sky_data[:, 2] = 10
     sky.add_point_sources(sky_data)
-    telescope = Telescope.get_SKA1_LOW_Telescope()
+    telescope = Telescope.constructor("SKA1LOW")
     # telescope.centre_longitude = 3
     enable_array_beam = True
     # Remove beam if already present
