@@ -56,12 +56,18 @@ Then you can pull a Docker image to a sarus image as follows:
 sarus pull ghcr.io/i4ds/karabo-pipeline:latest
 ```
 
-**Native MPI support (MPICH-based)**
+**MPI (MPICH) Support**
 
-Karabo >= `v0.21.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI). Our containers provide native MPI by hooking CSCS MPI into the container using the `--mpi` flag as follows:
+Karabo >= `v0.21.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI).
+
+```shell
+srun -N16 -n16 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline:latest <mpi_application>
+```
+
+Here, an MPI application with 16 processes is launched with your repository mounted in the container (/workspace is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
+
+Currently, native-mpi-hook is NOT enabled, because the mpi-installation needs to live at a standard-location, which is not the case here since mpich lives in a conda-venv. If this is a feature you need, don't hesitate to contact us. In the container, you would have to install mpich from source (the same version which lives in the conda-venv), and replace the mpich in the conda-env with a dummy-installation. Then, you're able to use to use native MPI by hooking CSCS MPI into the container adding the `--mpi` flag as follows:
 
 ```shell
 srun -N16 -n16 -C gpu sarus run --mpi --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline:latest <mpi_application>
 ```
-
-Here, an MPI application with 16 processes is launched with your repository mounted in the container (/workspace is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
