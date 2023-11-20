@@ -36,13 +36,13 @@ RUN if [ "$BUILD" = "user" ] ; then \
     else \
     exit 2; \
     fi && \
-    echo "conda activate karabo" >> ~/.bashrc  && \
     mkdir /workspace && \
     cp -r "repo/karabo/examples" "/workspace/examples/" && \
     rm -rf "repo/" && \
     pip install jupyterlab ipykernel pytest && \
     python -m ipykernel install --user --name=karabo
 WORKDIR /workspace
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
 
 # The following steps are needed if an mpi-hook through sarus must be allowed.
 # However, because this steps takes more than 2 hours, and the github-runners run out
