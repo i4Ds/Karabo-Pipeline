@@ -110,10 +110,11 @@ jobs:
           fi
 
       - name: Test image
-        run: |
+        run: |  # what is installed and the package location relies entirely on the user Dockerfile
           docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash && \
             pip install pytest && \
-            pytest /opt/conda/lib/python3.9/site-packages/karabo/test
+            SITE_PKGS=$(pip show karabo-pipeline | grep Location | sed 's/.*\(\/opt\/conda.*\).*/\1/') && \
+            pytest $SITE_PKGS/karabo/test
 
       - name: Docker push
         shell: bash -l {0}
