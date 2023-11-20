@@ -323,7 +323,8 @@ class Image(KaraboResource):
         plt.gca().set_ylabel("Brightness temperature [K]")
         plt.gca().set_xscale("log")
         plt.gca().set_yscale("log")
-        plt.gca().set_ylim(1e-6 * np.max(profile), 2.0 * np.max(profile))
+        max_profile = float(np.max(profile))
+        plt.gca().set_ylim(1e-6 * max_profile, 2.0 * max_profile)
         plt.tight_layout()
 
         if save_png:

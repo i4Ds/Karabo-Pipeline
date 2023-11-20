@@ -1,6 +1,6 @@
 """Pytest global fixtures needs to be here!"""
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
@@ -66,7 +66,7 @@ def tobject() -> TFiles:
 
 
 @pytest.fixture(scope="function", autouse=True)
-def clean_disk():
+def clean_disk() -> Generator[None, None, None]:
     """Automatically clears FileHandler.root after each test.
 
     Needed in some cases where the underlying functions do use FileHanlder
@@ -100,11 +100,11 @@ def sky_data(sky_data_with_ids: NDArray[np.object_]) -> NDArray[np.float64]:
 def normalized_norm_diff() -> NNImageDiffCallable:
     """Compare two images."""
 
-    def _normalized_norm_diff(img_path_1, img_path_2):
+    def _normalized_norm_diff(img_path_1: str, img_path_2: str) -> float:
         img1 = plt.imread(img_path_1)
         img2 = plt.imread(img_path_2)
         assert img1.shape == img2.shape
         # Calculate the error between the two images
-        return np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1])
+        return float(np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1]))
 
     return _normalized_norm_diff

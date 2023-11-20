@@ -1160,7 +1160,7 @@ class SkyModel:
         sky = xr.concat(data_arrays, dim=XARRAY_DIM_1_DEFAULT)
         sky = sky.T
         sky = sky.chunk(
-            {XARRAY_DIM_0_DEFAULT: chunksize, XARRAY_DIM_1_DEFAULT: sky.shape[1]}  # type: ignore [dict-item] # noqa: E501
+            {XARRAY_DIM_0_DEFAULT: chunksize, XARRAY_DIM_1_DEFAULT: sky.shape[1]}
         )
         return SkyModel(sky, h5_file_connection=f)
 
@@ -1354,11 +1354,11 @@ class SkyModel:
             data_arrays.append(data_array)
 
         for freq_dataset in data_arrays:
-            freq_dataset.chunk({XARRAY_DIM_0_DEFAULT: chunksize})  # type: ignore [dict-item] # noqa: E501
+            freq_dataset.chunk({XARRAY_DIM_0_DEFAULT: chunksize})
 
         result_dataset = (
             xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT)
-            .chunk({XARRAY_DIM_0_DEFAULT: chunksize})  # type: ignore [dict-item]
+            .chunk({XARRAY_DIM_0_DEFAULT: chunksize})
             .T
         )
 

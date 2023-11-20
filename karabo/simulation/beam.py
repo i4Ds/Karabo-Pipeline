@@ -333,7 +333,7 @@ class BeamPattern:
         """
         plt.imshow(
             beampixels,
-            extent=[-beamextent / 2, beamextent / 2, -beamextent / 2, beamextent / 2],
+            extent=(-beamextent / 2, beamextent / 2, -beamextent / 2, beamextent / 2),
         )
         plt.title("%s pol beam\nfor %s at %dMHz" % (pol, "", freq))
         plt.xlabel("deg")
@@ -359,7 +359,7 @@ class BeamPattern:
         :return: polar plot
         """
         fig = plt.figure()
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+        ax = fig.add_axes((0.1, 0.1, 0.8, 0.8), polar=True)
         ax.pcolormesh(
             phi, theta, absdir
         )  # TODO (Add check for this) X,Y & data2D must all be same dimensions
