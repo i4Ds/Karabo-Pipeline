@@ -149,7 +149,7 @@ class Telescope(KaraboResource):
     @classmethod
     def constructor(
         cls,
-        name: OSKARTelescopesWithVersionType | OSKARTelescopesWithoutVersionType,
+        name: Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
         version: Optional[enum.Enum] = None,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
