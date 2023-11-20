@@ -25,12 +25,12 @@ on:
         type: boolean
         required: false
         default: false
-        description: "Tag image as 'latest'?"
+        description: "tag image as 'latest'?"
       test:
         type: boolean
         required: false
         default: false
-        description: "Install from `gitrev` environment.yaml instead?"
+        description: "install from `gitrev` environment.yaml instead?"
 
 env:
   REGISTRY: ghcr.io
