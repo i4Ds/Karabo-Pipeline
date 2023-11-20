@@ -36,6 +36,7 @@ RUN if [ "$BUILD" = "user" ] ; then \
     else \
     exit 2; \
     fi && \
+    echo "conda activate karabo" >> ~/.bashrc  && \
     mkdir /workspace && \
     cp -r "repo/karabo/examples" "/workspace/examples/" && \
     rm -rf "repo/" && \
