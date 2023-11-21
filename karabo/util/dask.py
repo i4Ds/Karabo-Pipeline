@@ -110,7 +110,6 @@ class DaskHandler:
                 initialize(comm=MPI.COMM_WORLD)
             else:
                 initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
-            initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
             DaskHandler.dask_client = Client()
         elif DaskHandler.dask_client is None:
             if (
