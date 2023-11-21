@@ -121,5 +121,5 @@ jobs:
     uses: ./.github/workflows/test-user-package.yml
     with:
       version: ${{ needs.conda-build.outputs.karabo-tag }}
-      buildDocker: ${{ needs.conda-build.outputs.build-docker }}
-      latestDocker: ${{ needs.conda-build.outputs.latest-docker }}
+      buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
+      latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
