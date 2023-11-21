@@ -37,9 +37,7 @@ versionfile_build = "karabo/_version.py"
 tag_prefix = "v"
 
 [tool.pytest.ini_options]
-markers = [
-    "mpi: mpi-tests (launch with: 'mpirun -n <n-processes> pytest .')",
-]
+testpaths = "karabo/test"
 
 [project.optional-dependencies]
     dev = [

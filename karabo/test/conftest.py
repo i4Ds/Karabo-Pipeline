@@ -19,6 +19,60 @@ RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 file_handler_test_dir = os.path.join(os.path.dirname(__file__), "karabo_test")
 
 
+def pytest_addoption(parser: Parser) -> None:
+    """Pytest custom argparse hook.
+
+    Add custom argparse options here.
+
+    Pytest argparse-options have to be declared in the root conftest.py.
+    For some reason, the root conftest.py has to live near the project-root, even if
+    only a single conftest.py exists. However, this prevents using `pytest .` with
+    custom argparse-coptions from the root. Instead, either specify the test-dir
+    or leave it out entirely.
+
+    Args:
+        parser: pytest.Parser
+    """
+    parser.addoption(
+        "--only-mpi",
+        action="store_true",
+        default=False,
+        help="run only mpi tests",
+    )
+
+
+def pytest_configure(config: Config) -> None:
+    """Pytest add ini-values.
+
+    Args:
+        config: pytest.Config
+    """
+    config.addinivalue_line("markers", "mpi: mark mpi-tests as mpi")
+
+
+def pytest_collection_modifyitems(config: Config, items: Iterable[Item]) -> None:
+    """Pytest modify-items hook.
+
+    Change pytest-behavior dependent on parsed input.
+
+    See https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
+
+    Args:
+        config: pytest.Config
+        items: iterable of pytest.Item
+    """  # noqa: E501
+    if not config.getoption("--only-mpi"):
+        skipper = pytest.mark.skip(reason="Only run when --only-mpi is given")
+        for item in items:
+            if "mpi" in item.keywords:
+                item.add_marker(skipper)
+    else:
+        skipper = pytest.mark.skip(reason="Don't run when --only-mpi is given")
+        for item in items:
+            if "mpi" not in item.keywords:
+                item.add_marker(skipper)
+
+
 @dataclass
 class TFiles:
     """Read-only repo-artifact paths.
@@ -109,42 +163,3 @@ def normalized_norm_diff() -> NNImageDiffCallable:
         return float(np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1]))
 
     return _normalized_norm_diff
-
-
-def pytest_addoption(parser: Parser) -> None:
-    """Pytest custom argparse hook.
-
-    Add custom argparse options here.
-
-    Args:
-        parser: pytest.Parser
-    """
-    parser.addoption(
-        "--only-mpi",
-        action="store_true",
-        default=False,
-        help="Run only mpi tests",
-    )
-
-
-def pytest_collection_modifyitems(config: Config, items: Iterable[Item]) -> None:
-    """Pytest modify-items hook.
-
-    Change pytest-behavior dependent on parsed input.
-
-    See https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
-
-    Args:
-        config: pytest.Config
-        items: iterable of pytest.Item
-    """  # noqa: E501
-    if not config.getoption("--only-mpi"):
-        skipper = pytest.mark.skip(reason="Only run when --only-mpi is given")
-        for item in items:
-            if "mpi" in item.keywords:
-                item.add_marker(skipper)
-    else:
-        skipper = pytest.mark.skip(reason="Don't run when --only-mpi is given")
-        for item in items:
-            if "mpi" not in item.keywords:
-                item.add_marker(skipper)
