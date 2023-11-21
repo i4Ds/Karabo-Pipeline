@@ -198,6 +198,7 @@ def test_ImageMosaicker(tobject: TFiles):
 
     dirties = dirty.split_image(N=4, overlap=50)
     mosaicker = ImageMosaicker()
+    mosaicker.set_optimal_wcs(dirties)
     dirty_mosaic = mosaicker.process(dirties)[0]
     assert dirty.data.shape[2:] == dirty_mosaic.data.shape[2:]
     assert np.linalg.norm(dirty.data[0, 0, :, :] - dirty_mosaic.data[0, 0, :, :]) < 1e-6

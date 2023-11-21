@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import tempfile
-from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar
 from warnings import warn
 
 import bdsf
@@ -19,8 +19,6 @@ from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
-
-T = TypeVar("T")
 
 PYBDSF_TOTAL_FLUX = 12
 
@@ -40,6 +38,8 @@ ImageType = Literal[
     "island_mask",
     "source",
 ]
+
+BeamType = Tuple[float, float, float]
 
 
 class SourceDetectionResult(KaraboResource):
@@ -70,23 +70,23 @@ class SourceDetectionResult(KaraboResource):
 
     @classmethod
     def detect_sources_in_image(
-        cls: Type[T],
-        image: Union[Image, List[Image]],
-        beam: Optional[Tuple[float, float, float]] = None,
+        cls: Type[_SourceDetectionResultType],
+        image: Image,
+        beam: Optional[BeamType] = None,
         quiet: bool = False,
         **kwargs: Any,
-    ) -> Optional[Union[PyBDSFSourceDetectionResultList, T]]:
+    ) -> Optional[_SourceDetectionResultType]:
         """
         Detect sources in an astronomical image using PyBDSF.process_image function.
 
         Parameters
         ----------
-        cls : Type[T]
+        cls : Type[_SourceDetectionResultType]
             The class on which this method is called.
         image : Image or List[Image]
             Image object for source detection. Can be a single image or a list of
             images.
-        beam : Optional[Tuple[float, float, float]], optional
+        beam : Optional[BeamType], optional
             The Full Width Half Maximum (FWHM) of the restoring beam, given as a tuple
             (major axis, minor axis, position angle). If None, tries to extract from
             image metadata.
@@ -102,7 +102,7 @@ class SourceDetectionResult(KaraboResource):
 
         Returns
         -------
-        Optional[List[T]]
+        Optional[List[_SourceDetectionResultType]]
             A list of detected sources, or None if all pixels in the image are blanked
             or on failure.
 
@@ -128,21 +128,6 @@ class SourceDetectionResult(KaraboResource):
         particularly designed for radio astronomical images. For details on this
         function, refer to the PyBDSF documentation.
         """
-        if isinstance(image, List):
-            if beam is None:
-                warn(
-                    KaraboWarning(
-                        "Beam was not passed, trying to extract from image metadata."
-                    )
-                )
-                beam = (
-                    image[0].header["BMAJ"],
-                    image[0].header["BMIN"],
-                    image[0].header["BPA"],
-                )
-            # Overwrite quite to avoid spam
-            quiet = True
-
         if beam is None and not isinstance(image, List):
             if image.has_beam_parameters():
                 beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
@@ -154,36 +139,14 @@ class SourceDetectionResult(KaraboResource):
                 )
 
         try:
-            if isinstance(image, List):
-                # Check if there is a dask client
-                if DaskHandler.dask_client is None:
-                    _ = DaskHandler.get_dask_client()
-                results = []
-                for cutout in image:
-                    results.append(
-                        delayed(bdsf.process_image)(
-                            input=cutout.path,
-                            beam=beam,
-                            quiet=quiet,
-                            format="csv",
-                            **kwargs,
-                        )
-                    )
-                results = [
-                    cls(result)  # type: ignore
-                    for result in compute(*results, scheduler="distributed")
-                ]
-
-                return PyBDSFSourceDetectionResultList(results)
-            else:
-                detection = bdsf.process_image(
-                    input=image.path,
-                    beam=beam,
-                    quiet=quiet,
-                    format="csv",
-                    **kwargs,
-                )
-                return cls(detection)  # type: ignore
+            detection = bdsf.process_image(
+                input=image.path,
+                beam=beam,
+                quiet=quiet,
+                format="csv",
+                **kwargs,
+            )
+            return cls(detection)  # type: ignore
         except RuntimeError as e:
             wmsg = "All pixels in the image are blanked."
             if str(e) == wmsg:
@@ -210,7 +173,7 @@ class SourceDetectionResult(KaraboResource):
     def guess_beam_parameters(
         imager: Imager,
         method: str = "rascil_1_iter",
-    ) -> Tuple[float, float, float]:
+    ) -> BeamType:
         """
         Guess the beam parameters from the image header.
         :param imager: Imager to guess the beam parameters from
@@ -280,6 +243,11 @@ class SourceDetectionResult(KaraboResource):
         return np.vstack((np.array(x_pos), np.array(y_pos))).T
 
 
+_SourceDetectionResultType = TypeVar(
+    "_SourceDetectionResultType", bound=SourceDetectionResult
+)
+
+
 class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def __init__(
         self,
@@ -332,6 +300,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             # 14: Peak_flux
             # 8: RA_max
             # 9: E_RA_max
+            # TODO: Private list with idx of columns and above with len()
             sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
         else:
             wmsg = (
@@ -409,7 +378,7 @@ class PyBDSFSourceDetectionResultList:
 
     Parameters
     ----------
-    bdsf_detection : List[PyBDSFSourceDetectionResult]
+    bdsf_detection : Optional[List[PyBDSFSourceDetectionResult]
         A list of PyBDSF source detection results.
 
     Attributes
@@ -444,14 +413,82 @@ class PyBDSFSourceDetectionResultList:
 
     def __init__(
         self,
-        bdsf_detection: List[PyBDSFSourceDetectionResult],
+        bdsf_detection: Optional[List[PyBDSFSourceDetectionResult]] = None,
     ) -> None:
-        self.bdsf_detection = bdsf_detection
         self.min_pixel_distance_between_sources = 5
         self.verbose = False
+        self.bdsf_detection = bdsf_detection
+
+    @staticmethod
+    def detect_sources_in_images(
+        images: List[Image],
+        beams: Optional[List[BeamType]] = None,
+        quiet: bool = True,
+        **kwargs: Any,
+    ) -> Optional[PyBDSFSourceDetectionResultList]:
+        # Check if a list of beams is provided
+        if beams is None:
+            warn(
+                KaraboWarning(
+                    "Beam was not passed, trying to extract from image metadata."
+                )
+            )
+            beams = [
+                (
+                    image.header["BMAJ"],
+                    image.header["BMIN"],
+                    image.header["BPA"],
+                )
+                for image in images
+            ]
+        # Check if there is a dask client
+        if DaskHandler.dask_client is not None:
+            func = delayed(PyBDSFSourceDetectionResult.detect_sources_in_image)
+        else:
+            func = PyBDSFSourceDetectionResult.detect_sources_in_image
+        results = []
+        for cutout, beam in zip(images, beams):
+            results.append(
+                func(
+                    image=cutout,
+                    beam=beam,
+                    quiet=quiet,
+                    **kwargs,
+                )
+            )
+        if DaskHandler.dask_client is not None:
+            results = compute(*results, scheduler="distributed")
+        print(results[0])
+
+        return PyBDSFSourceDetectionResultList(results)
 
     @property
     def detected_sources(self) -> NDArray[np.float_]:
+        """
+        Aggregate detected sources from multiple pybdsf detection instances.
+
+        This method concatenates detected sources from all instances in the
+        `bdsf_detection`attribute.
+        It identifies and removes overlapping sources using pixel overlap.
+
+        Returns
+        -------
+        NDArray[np.float_]
+            A numpy array of detected sources after removing overlaps. The array
+            structure and content depend on the format used by individual
+            detection instances.
+
+        Notes
+        -----
+        This method relies on `self.__get_idx_of_overlapping_sources()` to
+        identify indices of overlapping sources and `self.__drop_cast_sources()`
+        to remove them.
+        """
+        if self.bdsf_detection is None:
+            raise ValueError(
+                "No PyBDSF detection results found. Did you run "
+                "detect_sources_in_images()?"
+            )
         _detected_sources = np.concatenate(
             [x.detected_sources for x in self.bdsf_detection],
             axis=0,
@@ -504,18 +541,30 @@ class PyBDSFSourceDetectionResultList:
         return self.__get_result_image("source")
 
     def has_source_image(self) -> bool:
+        if self.bdsf_detection is None:
+            raise ValueError(
+                "No PyBDSF detection results found. Did you run "
+                "detect_sources_in_images()?"
+            )
         sources_images = [x.has_source_image() for x in self.bdsf_detection]
         return all(sources_images)
 
     def __get_result_image(self, image_type: ImageType) -> Image:
-        mi = ImageMosaicker()
-        if self.verbose:
-            print(f"Getting {image_type} image by mosaicking.")
+        if self.bdsf_detection is None:
+            raise ValueError(
+                "No PyBDSF detection results found. Did you run "
+                "detect_sources_in_images()?"
+            )
         images = [
             getattr(result, f"get_{image_type}_image")()
             for result in self.bdsf_detection
         ]
-        return mi.process(images)[0]
+        mi = ImageMosaicker()
+        mi.set_optimal_wcs(images)
+        if self.verbose:
+            print(f"Getting {image_type} image by mosaicking.")
+
+        return mi.mosaic(images)[0]
 
     def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
         """
@@ -531,6 +580,11 @@ class PyBDSFSourceDetectionResultList:
             A NumPy array of the corrected and filtered pixel positions of sources
             in the mosaic image.
         """
+        if self.bdsf_detection is None:
+            raise ValueError(
+                "No PyBDSF detection results found. Did you run "
+                "detect_sources_in_images()?"
+            )
         to_drop = self.__get_idx_of_overlapping_sources()
         combined_positions = self.__get_corrected_positions(
             [x.get_pixel_position_of_sources() for x in self.bdsf_detection]
@@ -579,6 +633,11 @@ class PyBDSFSourceDetectionResultList:
             A NumPy array containing the combined and corrected pixel positions
             of the sources in the mosaic image.
         """
+        if self.bdsf_detection is None:
+            raise ValueError(
+                "No PyBDSF detection results found. Did you run "
+                "detect_sources_in_images()?"
+            )
         # Get headers
         headers = [
             result.get_source_image().header  # type: ignore
@@ -619,6 +678,11 @@ class PyBDSFSourceDetectionResultList:
             A list of indices corresponding to the sources that should be dropped
             due to overlapping.
         """
+        if self.bdsf_detection is None:
+            raise ValueError(
+                "No PyBDSF detection results found. Did you run "
+                "detect_sources_in_images()?"
+            )
         # Get XY pixel position for each result
         xy_poss = [
             result.get_pixel_position_of_sources() for result in self.bdsf_detection

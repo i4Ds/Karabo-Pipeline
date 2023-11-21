@@ -3,7 +3,18 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -30,9 +41,32 @@ matplotlib.use(previous_backend)
 
 
 class Image(KaraboResource):
+    @overload
     def __init__(
         self,
-        path: Optional[Union[str, FilePathType]] = None,
+        *,
+        path: FilePathType,
+        data: Literal[None] = None,
+        header: Literal[None] = None,
+        **kwargs: Any,
+    ) -> None:
+        ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        data: NDArray[np.float_],
+        header: fits.header.Header,
+        path: Optional[FilePathType] = None,
+        **kwargs: Any,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        *,
+        path: Optional[FilePathType] = None,
         data: Optional[NDArray[np.float_]] = None,
         header: Optional[fits.header.Header] = None,
         **kwargs: Any,
@@ -516,7 +550,7 @@ class ImageMosaicker:
     ----------
     reproject_function : callable, optional
         The function to use for the reprojection.
-    combine_function : {'mean', 'sum', 'median', 'first', 'last', 'min', 'max'}
+    combine_function : {'mean', 'sum'}
         The type of function to use for combining the values into the final image.
     match_background : bool, optional
         Whether to match the backgrounds of the images.
@@ -524,20 +558,14 @@ class ImageMosaicker:
         If None, the background matching will make it so that the average of the
         corrections for all images is zero.
         If an integer, this specifies the index of the image to use as a reference.
-    hdu_in : int or str, optional
-        If one or more items in input_data is a FITS file or an HDUList instance,
-        specifies the HDU to use.
-    hdu_weights : int or str, optional
-        If one or more items in input_weights is a FITS file or an HDUList instance,
-        specifies the HDU to use.
-    **kwargs : dict, optional
-        Additional keyword arguments to be passed to the reprojection function.
 
     Methods
     -------
+    set_optimal_wcs(images, projection='SIN', **kwargs)
+        Get the optimal WCS for the given images. See:
+        https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.find_optimal_celestial_wcs.html # noqa: E501
     process(
-        images, weights=None, shape_out=None, output_array=None,
-        output_footprint=None
+        images
         )
         Combine the provided images into a single mosaicked image.
 
@@ -549,43 +577,93 @@ class ImageMosaicker:
         combine_function: str = "mean",
         match_background: bool = False,
         background_reference: Optional[int] = None,
-        hdu_in: Optional[Union[int, str]] = None,
-        hdu_weights: Optional[Union[int, str]] = None,
-        **kwargs: Any,
     ):
         self.reproject_function = reproject_function
         self.combine_function = combine_function
         self.match_background = match_background
         self.background_reference = background_reference
-        self.hdu_in = hdu_in
-        self.hdu_weights = hdu_weights
-        self.kwargs = kwargs
 
-    def process(
+    def set_optimal_wcs(
         self,
         images: List[Image],
         projection: str = "SIN",
-        weights: Optional[
-            List[Union[str, fits.HDUList, fits.PrimaryHDU, NDArray[np.float64]]],
-        ] = None,
-        shape_out: Optional[Tuple[int]] = None,
-        image_for_header: Optional[Image] = None,
-    ) -> Tuple[Image, NDArray[np.float64]]:
+        **kwargs: Any,
+    ) -> None:
         """
-        Combine the provided images into a single mosaicked image.
+        Get the optimal WCS for the given images.
 
         Parameters
         ----------
         images : list
             A list of images to combine.
-        weights : list, optional
+        projection : str, optional
+            Three-letter code for the WCS projection, such as 'SIN' or 'TAN'.
+        **kwargs : dict, optional
+            Additional keyword arguments to be passed to the reprojection function.
+
+        Returns
+        -------
+        WCS
+            The optimal WCS for the given images.
+        tuple
+            The shape of the optimal WCS.
+
+        Raises
+        ------
+        ValueError
+            If less than two images are provided.
+
+        """
+        if len(images) < 2:
+            raise ValueError("At least two images are needed to mosaic.")
+
+        optimal_wcs = find_optimal_celestial_wcs(
+            [image.to_2dNNData() for image in images]
+            if isinstance(images[0], Image)
+            else images,
+            projection=projection,
+            **kwargs,
+        )
+        self.optimal_wcs = optimal_wcs
+
+    def mosaic(
+        self,
+        images: List[Image],
+        input_weights: Optional[
+            List[Union[str, fits.HDUList, fits.PrimaryHDU, NDArray[np.float64]]],
+        ] = None,
+        hdu_in: Optional[Union[int, str]] = None,
+        hdu_weights: Optional[Union[int, str]] = None,
+        shape_out: Optional[Tuple[int]] = None,
+        image_for_header: Optional[Image] = None,
+        **kwargs: Any,
+    ) -> Tuple[Image, NDArray[np.float64]]:
+        """
+        Combine the provided images into a single mosaicked image.
+        `set_optimal_wcs` must be called before this function.
+
+        Parameters
+        ----------
+        images : list
+            A list of images to combine.
+        projection : str, optional
+            Three-letter code for the WCS projection, such as 'SIN' or 'TAN'.
+        input_weights : list, optional
             If specified, an iterable with the same length as images, containing weights
             for each image.
         shape_out : tuple, optional
             The shape of the output data. If None, it will be computed from the images.
+        hdu_in : int or str, optional
+            If one or more items in input_data is a FITS file or an HDUList instance,
+            specifies the HDU to use.
+        hdu_weights : int or str, optional
+            If one or more items in input_weights is a FITS file or an HDUList instance,
+            specifies the HDU to use.
         image_for_header : Image, optional
             From which image the header should be used to readd the lost information
             by the mosaicking because some information is not propagated.
+        **kwargs : dict, optional
+            Additional keyword arguments to be passed to the reprojection function.
 
         Returns
         -------
@@ -600,32 +678,32 @@ class ImageMosaicker:
             If less than two images are provided.
 
         """
+
         if image_for_header is None:
             image_for_header = images[0]
 
         if isinstance(images[0], Image):
             images = [image.to_2dNNData() for image in images]
-        optimal_wcs = find_optimal_celestial_wcs(images, projection=projection)
 
         array, footprint = reproject_and_coadd(
             images,
-            output_projection=optimal_wcs[0],
-            shape_out=optimal_wcs[1] if shape_out is None else shape_out,
-            input_weights=weights,
-            hdu_in=self.hdu_in,
+            output_projection=self.optimal_wcs[0],
+            shape_out=self.optimal_wcs[1] if shape_out is None else shape_out,
+            input_weights=input_weights,
+            hdu_in=hdu_in,
             reproject_function=reproject_interp,
-            hdu_weights=self.hdu_weights,
+            hdu_weights=hdu_weights,
             combine_function=self.combine_function,
             match_background=self.match_background,
             background_reference=self.background_reference,
-            **self.kwargs,
+            **kwargs,
         )
-        header = optimal_wcs[0].to_header()
+        header = self.optimal_wcs[0].to_header()
         header = Image.update_header_from_image_header(header, image_for_header.header)
         return (
             Image(
                 data=array[np.newaxis, np.newaxis, :, :],
-                header=optimal_wcs[0].to_header(),
+                header=self.optimal_wcs[0].to_header(),
             ),
             footprint,
         )
