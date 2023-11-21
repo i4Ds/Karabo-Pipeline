@@ -99,8 +99,7 @@ jobs:
               exit 2
             fi
           fi
-          echo "KARABO_VERSION=$KARABO_VERSION" >> "$GITHUB_ENV"
-          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          export $KARABO_VERSION $BUILD_NUMBER
           echo "karabo_tag=$KARABO_TAG" >> "$GITHUB_OUTPUT"
           echo "build_docker=$BUILD_DOCKER" >> "$"$GITHUB_OUTPUT""
           echo "latest_docker=$LATEST_DOCKER" >> "$GITHUB_OUTPUT"
