@@ -608,9 +608,9 @@ class SkyModel:
             xr.DataArray,
             (distances_sq >= np.square(inner_radius_deg))
             & (distances_sq <= np.square(outer_radius_deg)),
-        )
+        ).compute()
 
-        copied_sky.sources = copied_sky.sources[filter_mask.compute()]
+        copied_sky.sources = copied_sky.sources[filter_mask]
 
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
@@ -644,7 +644,7 @@ class SkyModel:
         filter_mask = (copied_sky.sources[:, col_idx] >= min_val) & (
             copied_sky.sources[:, col_idx] <= max_val
         )
-        filter_mask = self.rechunk_array_based_on_self(filter_mask)
+        filter_mask = self.rechunk_array_based_on_self(filter_mask).compute()
 
         # Apply the filter mask and drop the unmatched rows
         copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
