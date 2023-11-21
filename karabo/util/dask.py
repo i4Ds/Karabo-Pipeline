@@ -104,7 +104,13 @@ class DaskHandler:
             from dask_mpi import initialize
             from mpi4py import MPI
 
-            initialize(nthreads=DaskHandler.n_threads_per_worker, comm=MPI.COMM_WORLD)
+            # mpi4py.MPI.Intracomm
+            n_threads_per_worker = DaskHandler.n_threads_per_worker
+            if n_threads_per_worker is None:  # ugly hotfix to be able to initialize
+                initialize(comm=MPI.COMM_WORLD)
+            else:
+                initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
+            initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
             DaskHandler.dask_client = Client()
         elif DaskHandler.dask_client is None:
             if (
