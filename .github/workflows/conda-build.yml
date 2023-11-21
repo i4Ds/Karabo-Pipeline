@@ -100,9 +100,9 @@ jobs:
             fi
           fi
           export KARABO_VERSION=$KARABO_VERSION BUILD_NUMBER=$BUILD_NUMBER
-          echo "karabo_tag=$KARABO_TAG" >> "$GITHUB_OUTPUT"
-          echo "build_docker=$BUILD_DOCKER" >> "$"$GITHUB_OUTPUT""
-          echo "latest_docker=$LATEST_DOCKER" >> "$GITHUB_OUTPUT"
+          echo "karabo_tag=$KARABO_TAG" >> $GITHUB_OUTPUT
+          echo "build_docker=$BUILD_DOCKER" >> $GITHUB_OUTPUT
+          echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
 
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
