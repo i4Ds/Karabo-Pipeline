@@ -17,6 +17,7 @@ from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import (
     PyBDSFSourceDetectionResult,
+    PyBDSFSourceDetectionResultList,
     SourceDetectionResult,
 )
 from karabo.test.conftest import NNImageDiffCallable, TFiles
@@ -244,7 +245,7 @@ def test_full_source_detection(
 
     # Now compare it with splitting the image
     restored_cuts = restored.split_image(N=2, overlap=100)
-    detection_results = PyBDSFSourceDetectionResult.detect_sources_in_image(
+    detection_results = PyBDSFSourceDetectionResultList.detect_sources_in_images(
         restored_cuts, thresh_isl=15, thresh_pix=20
     )
     detected = detection_results.get_pixel_position_of_sources()

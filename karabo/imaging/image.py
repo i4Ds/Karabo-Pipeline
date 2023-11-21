@@ -561,7 +561,7 @@ class ImageMosaicker:
 
     Methods
     -------
-    set_optimal_wcs(images, projection='SIN', **kwargs)
+    get_optimal_wcs(images, projection='SIN', **kwargs)
         Get the optimal WCS for the given images. See:
         https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.find_optimal_celestial_wcs.html # noqa: E501
     process(
@@ -583,14 +583,15 @@ class ImageMosaicker:
         self.match_background = match_background
         self.background_reference = background_reference
 
-    def set_optimal_wcs(
+    def get_optimal_wcs(
         self,
         images: List[Image],
         projection: str = "SIN",
         **kwargs: Any,
-    ) -> None:
+    ) -> Tuple[WCS, tuple[int, int]]:
         """
-        Get the optimal WCS for the given images.
+        Set the optimal WCS for the given images.
+        See: https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.find_optimal_celestial_wcs.html # noqa: E501
 
         Parameters
         ----------
@@ -608,15 +609,7 @@ class ImageMosaicker:
         tuple
             The shape of the optimal WCS.
 
-        Raises
-        ------
-        ValueError
-            If less than two images are provided.
-
         """
-        if len(images) < 2:
-            raise ValueError("At least two images are needed to mosaic.")
-
         optimal_wcs = find_optimal_celestial_wcs(
             [image.to_2dNNData() for image in images]
             if isinstance(images[0], Image)
@@ -624,11 +617,13 @@ class ImageMosaicker:
             projection=projection,
             **kwargs,
         )
-        self.optimal_wcs = optimal_wcs
+        # Somehow, a cast is needed here otherwise mypy complains
+        return cast(Tuple[WCS, Tuple[int, int]], optimal_wcs)
 
     def mosaic(
         self,
         images: List[Image],
+        wcs: Optional[Tuple[WCS, Tuple[int, int]]] = None,
         input_weights: Optional[
             List[Union[str, fits.HDUList, fits.PrimaryHDU, NDArray[np.float64]]],
         ] = None,
@@ -640,14 +635,14 @@ class ImageMosaicker:
     ) -> Tuple[Image, NDArray[np.float64]]:
         """
         Combine the provided images into a single mosaicked image.
-        `set_optimal_wcs` must be called before this function.
 
         Parameters
         ----------
         images : list
             A list of images to combine.
-        projection : str, optional
-            Three-letter code for the WCS projection, such as 'SIN' or 'TAN'.
+        wcs : tuple, optional
+            The WCS to use for the mosaicking. Will be calculated with `get_optimal_wcs`
+            if not passed.
         input_weights : list, optional
             If specified, an iterable with the same length as images, containing weights
             for each image.
@@ -684,11 +679,13 @@ class ImageMosaicker:
 
         if isinstance(images[0], Image):
             images = [image.to_2dNNData() for image in images]
+        if wcs is None:
+            wcs = self.get_optimal_wcs(images)
 
         array, footprint = reproject_and_coadd(
             images,
-            output_projection=self.optimal_wcs[0],
-            shape_out=self.optimal_wcs[1] if shape_out is None else shape_out,
+            output_projection=wcs[0],
+            shape_out=wcs[1] if shape_out is None else shape_out,
             input_weights=input_weights,
             hdu_in=hdu_in,
             reproject_function=reproject_interp,
@@ -698,12 +695,12 @@ class ImageMosaicker:
             background_reference=self.background_reference,
             **kwargs,
         )
-        header = self.optimal_wcs[0].to_header()
+        header = wcs[0].to_header()
         header = Image.update_header_from_image_header(header, image_for_header.header)
         return (
             Image(
                 data=array[np.newaxis, np.newaxis, :, :],
-                header=self.optimal_wcs[0].to_header(),
+                header=wcs[0].to_header(),
             ),
             footprint,
         )

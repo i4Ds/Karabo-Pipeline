@@ -560,7 +560,6 @@ class PyBDSFSourceDetectionResultList:
             for result in self.bdsf_detection
         ]
         mi = ImageMosaicker()
-        mi.set_optimal_wcs(images)
         if self.verbose:
             print(f"Getting {image_type} image by mosaicking.")
 
