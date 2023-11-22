@@ -7,6 +7,7 @@ from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar
 from warnings import warn
 
 import bdsf
+import fits
 import numpy as np
 from bdsf.image import Image as bdsf_image
 from dask import compute, delayed  # type: ignore
@@ -645,11 +646,18 @@ class PyBDSFSourceDetectionResultList:
                 "No PyBDSF detection results found. Did you run "
                 "detect_sources_in_images()?"
             )
+
         # Get headers
-        headers = [
-            result.get_source_image().header  # type: ignore
-            for result in self.bdsf_detection
-        ]
+        headers: List[fits.header.Header] = []
+        for result in self.bdsf_detection:
+            source_image = result.get_source_image()
+            if source_image is None:
+                raise ValueError(
+                    "Not all PyBDSF detection results have source images. "
+                    "Did you run detect_sources_in_images()?"
+                )
+            headers.append(source_image.header)
+
         # Get mosaic header
         mosaic_header = self.get_source_image().header
         # Calculate delta CRPIX for each header relative to the mosaic
