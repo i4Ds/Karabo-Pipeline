@@ -59,6 +59,11 @@ jobs:
           conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
           pip install ipykernel
           python -m ipykernel install --user --name python3
+
+          version=${{ inputs.version }}
+          echo "inputs-version: $version"
+          latest=${{ inputs.latestDocker == 'true' }}
+          echo "latest-docker: $latest"
       - name: Test Package
         shell: bash -l {0}
         run: |

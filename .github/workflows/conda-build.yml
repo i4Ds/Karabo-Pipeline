@@ -104,6 +104,10 @@ jobs:
           echo "build_docker=$BUILD_DOCKER" >> $GITHUB_OUTPUT
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
 
+          echo "karabo-tag: $KARABO_TAG"
+          echo "build-docker: $BUILD_DOCKER"
+          echo "latest-docker: $LATEST_DOCKER"
+
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge

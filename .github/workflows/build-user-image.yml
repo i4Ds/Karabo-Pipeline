@@ -65,13 +65,18 @@ jobs:
         run: |
           if [[ ${{ github.event_name }} == "workflow_call" ]]; then
             echo "gitrev=${{ inputs.verstag }}" >> "$GITHUB_ENV"
+            gitrev=${{ inputs.verstag }}
             echo "build=user" >> "$GITHUB_ENV"
+            build=user
           elif [[ ${{ github.event_name }} == "workflow_dispatch" ]]; then
             echo "gitrev=${{ inputs.gitrev }}" >> "$GITHUB_ENV"
+            gitrev=${{ inputs.gitrev }}
             if [[ ${{ inputs.test }} == "true" ]]; then
               echo "build=test" >> "$GITHUB_ENV"
+              build=test
             else
               echo "build=user" >> "$GITHUB_ENV"
+              build=user
             fi
           else
             echo "Invalid github-event!"
@@ -86,6 +91,17 @@ jobs:
             echo "Invalid configuration of workflow-inputs!"
             exit 2
           fi
+
+          latest=${{ inputs.latest }}
+          echo "latest: $latest"
+          version=${{ inputs.verstag }}
+          echo "vesion: $version"
+          imgaddr=${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}
+          echo "img-addr: $imgaddr"
+          echo "gitrev: $gitrev"
+          echo "build: $build"
+
+
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
