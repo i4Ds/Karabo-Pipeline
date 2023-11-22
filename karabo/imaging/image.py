@@ -56,9 +56,9 @@ class Image(KaraboResource):
     def __init__(
         self,
         *,
+        path: Literal[None] = None,
         data: NDArray[np.float_],
         header: fits.header.Header,
-        path: Optional[FilePathType] = None,
         **kwargs: Any,
     ) -> None:
         ...
@@ -74,10 +74,7 @@ class Image(KaraboResource):
         self._fh_prefix = "image"
         self._fh_verbose = False
 
-        if path is not None and (data is not None or header is not None):
-            raise RuntimeError("Provide either path or both data and header.")
-
-        if path is not None:
+        if path is not None and (data is None and header is None):
             self.path = path
             self.data, self.header = fits.getdata(
                 str(self.path),
@@ -85,7 +82,7 @@ class Image(KaraboResource):
                 header=True,
                 **kwargs,
             )
-        elif data is not None and header is not None:
+        elif path is None and (data is not None and header is not None):
             self.data = data
             self.header = header
 
@@ -101,7 +98,7 @@ class Image(KaraboResource):
             self.write_to_file(restored_fits_path)
             self.path = restored_fits_path
         else:
-            raise RuntimeError("Provide either path or both data and header.")
+            raise RuntimeError("Provide either `path` or both `data` and `header`.")
 
         self._fname = os.path.split(self.path)[-1]
 
