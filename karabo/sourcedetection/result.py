@@ -20,8 +20,6 @@ from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
 
-PYBDSF_TOTAL_FLUX = 12
-
 ImageType = Literal[
     "RMS_map",
     "mean_map",
@@ -40,6 +38,19 @@ ImageType = Literal[
 ]
 
 BeamType = Tuple[float, float, float]
+
+PYBDSF_TOTAL_FLUX_IDX = 12
+
+BDSFResultIdxsToUseForKarabo = [
+    0,
+    4,
+    6,
+    12,
+    14,
+    8,
+    9,
+]  # 0: Gaus_id, 4: RA, 6: DEC, 12: Total_flux, 14: Peak_flux, 8: RA_max, 9: E_RA_max
+# See: https://pybdsf.readthedocs.io/en/latest/write_catalog.html#definition-of-output-columns # noqa E501
 
 
 class SourceDetectionResult(KaraboResource):
@@ -276,8 +287,10 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             )
         else:
             # Empty array with shape (1,7) if no sources are found
-            detected_sources = np.empty((1, 7))
-            # Empty array with shape (1,46) if no sources are found
+            detected_sources = np.empty((1, len(BDSFResultIdxsToUseForKarabo)))
+            # Empty array with shape (1,46).
+            # 46 because those are the total columns in the bdsf catalog
+            # See: https://pybdsf.readthedocs.io/en/latest/write_catalog.html#definition-of-output-columns # noqa
             bdsf_detected_sources = np.empty((1, 46))
 
         self.bdsf_detected_sources = bdsf_detected_sources
@@ -293,15 +306,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
             len(bdsf_detected_sources.shape) == 2
             and bdsf_detected_sources.shape[1] > 14
         ):
-            # 0: Gaus_id
-            # 4: RA
-            # 6: DEC
-            # 12: Total_flux
-            # 14: Peak_flux
-            # 8: RA_max
-            # 9: E_RA_max
-            # TODO: Private list with idx of columns and above with len()
-            sources = bdsf_detected_sources[:, [0, 4, 6, 12, 14, 8, 9]]
+            sources = bdsf_detected_sources[:, BDSFResultIdxsToUseForKarabo]
         else:
             wmsg = (
                 "Got unexpected shape of `bdsf_detected_sources` of "
@@ -693,7 +698,7 @@ class PyBDSFSourceDetectionResultList:
         # Get Total Flux per Source
         total_fluxes = np.concatenate(
             [
-                x.bdsf_detected_sources[:, PYBDSF_TOTAL_FLUX]
+                x.bdsf_detected_sources[:, PYBDSF_TOTAL_FLUX_IDX]
                 for x in self.bdsf_detection
             ],
             axis=0,
