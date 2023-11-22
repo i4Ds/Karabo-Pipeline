@@ -7,8 +7,8 @@ from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar
 from warnings import warn
 
 import bdsf
-import fits
 import numpy as np
+from astropy.io import fits
 from bdsf.image import Image as bdsf_image
 from dask import compute, delayed  # type: ignore
 from numpy.typing import NDArray
