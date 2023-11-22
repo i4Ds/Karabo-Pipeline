@@ -139,7 +139,7 @@ class SourceDetectionResult(KaraboResource):
         particularly designed for radio astronomical images. For details on this
         function, refer to the PyBDSF documentation.
         """
-        if beam is None and not isinstance(image, List):
+        if beam is None and not isinstance(image, list):
             if image.has_beam_parameters():
                 beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
             else:
@@ -451,19 +451,22 @@ class PyBDSFSourceDetectionResultList:
             func = delayed(PyBDSFSourceDetectionResult.detect_sources_in_image)
         else:
             func = PyBDSFSourceDetectionResult.detect_sources_in_image
-        results = []
+        results: List[PyBDSFSourceDetectionResult] = []
         for cutout, beam in zip(images, beams):
-            results.append(
-                func(
-                    image=cutout,
-                    beam=beam,
-                    quiet=quiet,
-                    **kwargs,
-                )
+            result = func(
+                image=cutout,
+                beam=beam,
+                quiet=quiet,
+                **kwargs,
             )
+            results.append(result)
         if DaskHandler.dask_client is not None:
             results = compute(*results, scheduler="distributed")
-        print(results[0])
+        # Keep only results that are not None
+        results = [result for result in results if result is not None]
+
+        if len(results) == 0:
+            return None
 
         return PyBDSFSourceDetectionResultList(results)
 
@@ -691,7 +694,11 @@ class PyBDSFSourceDetectionResultList:
         xy_poss = [
             result.get_pixel_position_of_sources() for result in self.bdsf_detection
         ]
-        assert all([result.has_source_image() for result in self.bdsf_detection])
+        if not all([result.has_source_image() for result in self.bdsf_detection]):
+            raise ValueError(
+                "Not all PyBDSF detection results have source images. "
+                "Did you run detect_sources_in_images()?"
+            )
 
         # Combine all positions into one array
         combined_positions = self.__get_corrected_positions(xy_poss=xy_poss)

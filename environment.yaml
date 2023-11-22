@@ -27,7 +27,7 @@ dependencies:
   - pandas
   - psutil
   - rascil=1.0.0
-  - reproject
+  - reproject<= 0.10.*
   - requests
   - scipy=1.10.1
   - ska-gridder-nifty-cuda=0.3.0
