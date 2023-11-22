@@ -155,7 +155,7 @@ def test_explore_sky():
 #     phase_center = [250, -80]
 #     sky = sky.filter_by_radius(0, .55, phase_center[0], phase_center[1])
 #     sky.setup_default_wcs(phase_center=phase_center)
-#     tel = Telescope.get_ASKAP_Telescope()
+#     tel = Telescope.constructor("ASKAP")
 #     observation_settings = Observation(100e6,
 #                                        phase_centre_ra_deg=phase_center[0],
 #                                        phase_centre_dec_deg=phase_center[1],

@@ -88,7 +88,7 @@ def test_ionosphere(sky_data: NDArray[np.float64]):
         sky.add_point_sources(sky_data)
         # sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 1, 1, 1)
         # sky.explore_sky([240, -70])
-        telescope = Telescope.get_SKA1_LOW_Telescope()
+        telescope = Telescope.constructor("SKA1LOW")
         # telescope.centre_longitude = 3
         simulation = InterferometerSimulation(
             channel_bandwidth_hz=1e6,
