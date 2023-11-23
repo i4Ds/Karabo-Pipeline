@@ -870,8 +870,8 @@ class SkyModel:
 
         :return: oskar sky model
         """
-        if sky.shape[1] > SkyModel.SOURCES_COLS:
-            return oskar.Sky.from_array(sky[:, : SkyModel.SOURCES_COLS], precision)
+        if sky.shape[1] > 12:
+            return oskar.Sky.from_array(sky[:, :12], precision)
         else:
             return oskar.Sky.from_array(sky, precision)
 
