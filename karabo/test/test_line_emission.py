@@ -51,17 +51,17 @@ def test_conversion_between_redshift_and_frequency(frequency, redshift):
 # - FITS file after beam correction
 @pytest.fixture
 def uncorrected_fits_filename() -> str:
-    return "golden_test_line_emission.fits"
+    return "golden_test_line_emission_totalimage_v1.fits"
 
 
 @pytest.fixture
 def uncorrected_h5_filename() -> str:
-    return "golden_test_line_emission.h5"
+    return "golden_test_line_emission_images_v1.h5"
 
 
 @pytest.fixture
 def corrected_fits_filename() -> str:
-    return "golden_test_line_emission_GaussianBeam_Corrected.fits"
+    return "golden_test_line_emission_gaussianbeamcorrected_v1.fits"
 
 
 @pytest.fixture
