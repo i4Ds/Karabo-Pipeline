@@ -112,9 +112,9 @@ class SkyPrefixMapping:
     major: Optional[str] = None
     minor: Optional[str] = None
     pa: Optional[str] = None
-    id: Optional[str] = None
     true_redshift: Optional[str] = None
     observed_redshift: Optional[str] = None
+    id: Optional[str] = None
 
 
 XARRAY_DIM_0_DEFAULT, XARRAY_DIM_1_DEFAULT = cast(
