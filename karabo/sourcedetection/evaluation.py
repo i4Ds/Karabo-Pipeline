@@ -13,10 +13,7 @@ from scipy.spatial import KDTree
 
 from karabo.error import KaraboSourceDetectionEvaluationError
 from karabo.simulation.sky_model import SkyModel
-from karabo.sourcedetection.result import (
-    PyBDSFSourceDetectionResultList,
-    SourceDetectionResult,
-)
+from karabo.sourcedetection.result import ISourceDetectionResult
 from karabo.util.plotting_util import get_slices
 
 
@@ -27,7 +24,7 @@ class SourceDetectionEvaluation:
         ground_truth: NDArray[np.float_],
         assignments: NDArray[np.float_],
         sky_idxs: NDArray[np.int_],
-        source_detection: Union[SourceDetectionResult, PyBDSFSourceDetectionResultList],
+        source_detection: ISourceDetectionResult,
     ) -> None:
         """Class that holds the mapping of a source detection to truth mapping.
         :param sky: `SkyModel` where the `assignment` comes from

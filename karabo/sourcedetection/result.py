@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar
 from warnings import warn
+from abc import ABC, abstractmethod
 
 import bdsf
 import numpy as np
@@ -54,7 +55,24 @@ BDSFResultIdxsToUseForKarabo = [
 # See: https://pybdsf.readthedocs.io/en/latest/write_catalog.html#definition-of-output-columns # noqa E501
 
 
-class SourceDetectionResult(KaraboResource):
+class ISourceDetectionResult(ABC):
+    """SourceDetectionResult interface."""
+
+    @property
+    @abstractmethod
+    def detected_sources(self) -> NDArray[np.float_]:
+        ...
+
+    @abstractmethod
+    def has_source_image(self) -> bool:
+        ...
+
+    @abstractmethod
+    def get_source_image(self) -> Optional[Image]:
+        ...
+
+
+class SourceDetectionResult(ISourceDetectionResult, KaraboResource):
     def __init__(
         self,
         detected_sources: NDArray[np.float_],
@@ -79,6 +97,14 @@ class SourceDetectionResult(KaraboResource):
         """
         self.source_image = source_image
         self.detected_sources = detected_sources
+
+    @property
+    def detected_sources(self) -> NDArray[np.float_]:
+        return self._detected_sources
+
+    @detected_sources.setter
+    def detected_sources(self, sources: NDArray[np.float_]) -> None:
+        self._detected_sources = sources
 
     @classmethod
     def detect_sources_in_image(
@@ -374,7 +400,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         return self.__get_result_image("island_mask")
 
 
-class PyBDSFSourceDetectionResultList:
+class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
     """
     A class to handle the detection results of sources from PyBDSF detections.
 
