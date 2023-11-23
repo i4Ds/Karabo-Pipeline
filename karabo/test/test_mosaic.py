@@ -22,12 +22,12 @@ from karabo.simulation.sky_model import SkyModel
 # - FITS file of areas covered by the patches which form the uncorrected mosaic.
 @pytest.fixture
 def uncorrected_mosaic_fits_filename() -> str:
-    return "test_mosaic_uncorrected.fits"
+    return "golden_test_mosaic_uncorrected_v1.fits"
 
 
 @pytest.fixture
 def uncorrected_area_fits_filename() -> str:
-    return "test_mosaic_uncorrected_area.fits"
+    return "golden_test_mosaic_uncorrected_area_v1.fits"
 
 
 @pytest.fixture
