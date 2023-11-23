@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import shutil
 import tempfile
+from abc import ABC, abstractmethod
 from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar
 from warnings import warn
-from abc import ABC, abstractmethod
 
 import bdsf
 import numpy as np
