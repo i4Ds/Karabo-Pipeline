@@ -331,7 +331,9 @@ class SkyModel:
             else:
                 da = sources
         elif isinstance(sources, np.ndarray):
-            if sources.shape[1] == 13:  # is last col source_id?
+            if (
+                sources.shape[1] == 13
+            ):  # if last col is source_id, and there is no redshift data
                 source_ids = sources[:, 12]
                 sources = np.delete(sources, np.s_[12], axis=1)  # type: ignore [assignment] # noqa: E501
                 try:
