@@ -218,7 +218,7 @@ class SkyModel:
 
     def __set_sky_xarr_dims(self, sources: SkySourcesType) -> None:
         if isinstance(sources, np.ndarray):
-            pass  # nothing toDo here
+            pass  # nothing to do here
         elif isinstance(sources, xr.DataArray):  # checks xarray dims through setter
             self._sources_dim_sources, self._sources_dim_data = cast(
                 Tuple[str, str], sources.dims
@@ -331,9 +331,9 @@ class SkyModel:
             else:
                 da = sources
         elif isinstance(sources, np.ndarray):
-            if sources.shape[1] == SkyModel.SOURCES_COLS + 1:  # is last col source_id?
-                source_ids = sources[:, SkyModel.SOURCES_COLS]
-                sources = np.delete(sources, np.s_[SkyModel.SOURCES_COLS], axis=1)  # type: ignore [assignment] # noqa: E501
+            if sources.shape[1] == 13:  # is last col source_id?
+                source_ids = sources[:, 12]
+                sources = np.delete(sources, np.s_[12], axis=1)  # type: ignore [assignment] # noqa: E501
                 try:
                     sources = sources.astype(self.precision)
                 except ValueError:
@@ -343,7 +343,7 @@ class SkyModel:
                     dims=[self._sources_dim_sources, self._sources_dim_data],
                     coords={self._sources_dim_sources: source_ids},
                 )
-            elif sources.shape[1] == SkyModel.SOURCES_COLS:
+            elif sources.shape[1] == 12:
                 da = xr.DataArray(
                     sources,
                     dims=[self._sources_dim_sources, self._sources_dim_data],
