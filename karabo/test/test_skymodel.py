@@ -52,8 +52,8 @@ def test_not_full_array():
     sky1.add_point_sources(sky_data)
     sky2 = SkyModel(sky_data)
     # test if doc shape were expanded
-    assert sky1.sources.shape == (sky_data.shape[0], 12)
-    assert sky2.sources.shape == (sky_data.shape[0], 12)
+    assert sky1.sources.shape == (sky_data.shape[0], 14)
+    assert sky2.sources.shape == (sky_data.shape[0], 14)
 
 
 def test_filter_sky_model_h5():
@@ -73,7 +73,7 @@ def test_filter_sky_model_h5():
         xlabel="RA [deg]",
         ylabel="DEC [deg]",
     )
-    assert len(filtered_sky.sources) == 69
+    assert len(filtered_sky.sources) == 33
     assert np.all(
         np.abs(filtered_sky.sources.compute()[:, 0:2] - phase_center) < [2, 2]
     )

@@ -138,7 +138,7 @@ class SkyModel:
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
                     through `xarray.sources.coords` with an arbitrary string key
-                    as index or `np.ndarray` as idx 12.
+                    as index or `np.ndarray` as idx SOURCES_COLS.
                     A single point source is described using the following col-order:
 
                     - [0] right ascension (deg)
@@ -153,7 +153,9 @@ class SkyModel:
                     - [9] major axis FWHM (arcsec): defaults to 0
                     - [10] minor axis FWHM (arcsec): defaults to 0
                     - [11] position angle (deg): defaults to 0
-                    - [12] object-id: just for `np.ndarray`
+                    - [12] true redshift: defaults to 0
+                    - [13] observed redshift: defaults to 0
+                    - [14] object-id: just for `np.ndarray`
                         it is removed in the `xr.DataArray`
                         and exists then in `xr.DataArray.coords` as index.
     :ivar wcs: World Coordinate System (WCS) object representing the coordinate
@@ -165,7 +167,7 @@ class SkyModel:
         that can be used to store or retrieve data related to the SkyModel.
     """
 
-    SOURCES_COLS = 12
+    SOURCES_COLS = 14
     _STOKES_IDX: Dict[StokesType, int] = {
         "Stokes I": 2,
         "Stokes Q": 3,
@@ -330,8 +332,8 @@ class SkyModel:
                 da = sources
         elif isinstance(sources, np.ndarray):
             if sources.shape[1] == SkyModel.SOURCES_COLS + 1:  # is last col source_id?
-                source_ids = sources[:, 12]
-                sources = np.delete(sources, np.s_[12], axis=1)  # type: ignore [assignment] # noqa: E501
+                source_ids = sources[:, SkyModel.SOURCES_COLS]
+                sources = np.delete(sources, np.s_[SkyModel.SOURCES_COLS], axis=1)  # type: ignore [assignment] # noqa: E501
                 try:
                     sources = sources.astype(self.precision)
                 except ValueError:
@@ -359,14 +361,15 @@ class SkyModel:
     def add_point_sources(self, sources: SkySourcesType) -> None:
         """Add new point sources to the sky model.
 
-        :param sources: `np.ndarray` with shape (number of sources, 13), where you can
-        place the "source_id" at index 12.
-        OR an `xarray.DataArray` with shape (number of sources, 12) where you can place
-        the "source_id" at `xarray.DataArray.coord` or use `SkyModel.source_ids` later.
+        :param sources: `np.ndarray` with shape (number of sources, 1 + SOURCES_COLS),
+        where you can place the "source_id" at index SOURCES_COLS.
+        OR an `xarray.DataArray` with shape (number of sources, SOURCES_COLS),
+        where you can place the "source_id" at `xarray.DataArray.coord`
+        or use `SkyModel.source_ids` later.
 
         The column indices correspond to:
 
-            - [0] right ascension (deg)-
+            - [0] right ascension (deg)
             - [1] declination (deg)
             - [2] stokes I Flux (Jy)
             - [3] stokes Q Flux (Jy): defaults to 0
@@ -378,8 +381,9 @@ class SkyModel:
             - [9] major axis FWHM (arcsec): defaults to 0
             - [10] minor axis FWHM (arcsec): defaults to 0
             - [11] position angle (deg): defaults to 0
-            - source id (object): is in `SkyModel.source_ids` if provided
-
+            - [12] true redshift: defaults to 0
+            - [13] observed redshift: defaults to 0
+            - [14] source id (object): is in `SkyModel.source_ids` if provided
         """
         try:
             sds, sdd = self._sources_dim_sources, self._sources_dim_data
@@ -420,6 +424,8 @@ class SkyModel:
         - major axis FWHM (arcsec): if no information available, set to 0
         - minor axis FWHM (arcsec): if no information available, set to 0
         - position angle (deg): if no information available, set to 0
+        - true redshift: defaults to 0
+        - observed redshift: defaults to 0
         - source id (object): is in `SkyModel.source_ids` if provided
 
         :param path: file to read in
@@ -433,10 +439,10 @@ class SkyModel:
                 f"STOKES I), but only {dataframe.shape[1]} columns."
             )
 
-        if dataframe.shape[1] >= 13:
+        if dataframe.shape[1] > SkyModel.SOURCES_COLS:
             print(
-                f"CSV has {dataframe.shape[1] - 13} too many rows. "
-                + "The extra rows will be cut off."
+                f"""CSV has {dataframe.shape[1] - SkyModel.SOURCES_COLS + 1}
+            too many rows. The extra rows will be cut off."""
             )
 
         sky = SkyModel(dataframe)
@@ -864,8 +870,8 @@ class SkyModel:
 
         :return: oskar sky model
         """
-        if sky.shape[1] > 12:
-            return oskar.Sky.from_array(sky[:, :12], precision)
+        if sky.shape[1] > SkyModel.SOURCES_COLS:
+            return oskar.Sky.from_array(sky[:, : SkyModel.SOURCES_COLS], precision)
         else:
             return oskar.Sky.from_array(sky, precision)
 
@@ -1060,6 +1066,8 @@ class SkyModel:
                 "minor axis FWHM (arcsec)",
                 "position angle (deg)",
                 "source id (object)",
+                "true redshift",
+                "observed redshift",
             ],
         )
 
@@ -1470,7 +1478,7 @@ class SkyModel:
              The test sky model.
         """
         sky = SkyModel()
-        sky_data = np.zeros((81, 12))
+        sky_data = np.zeros((81, SkyModel.SOURCES_COLS))
         a = np.arange(-32, -27.5, 0.5)
         b = np.arange(18, 22.5, 0.5)
         dec_arr, ra_arr = np.meshgrid(a, b)
