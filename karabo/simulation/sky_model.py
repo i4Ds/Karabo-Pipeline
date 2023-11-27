@@ -345,7 +345,7 @@ class SkyModel:
                     dims=[self._sources_dim_sources, self._sources_dim_data],
                     coords={self._sources_dim_sources: source_ids},
                 )
-            elif sources.shape[1] == 12:
+            elif sources.shape[1] == SkyModel.SOURCES_COLS:
                 da = xr.DataArray(
                     sources,
                     dims=[self._sources_dim_sources, self._sources_dim_data],
