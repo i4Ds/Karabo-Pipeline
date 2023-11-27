@@ -4,6 +4,11 @@ import tempfile
 import numpy as np
 import pytest
 
+from karabo.data.external_data import (
+    SingleFileDownloadObject,
+    cscs_karabo_public_testing_base_url,
+)
+from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -12,11 +17,27 @@ from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import (
     PyBDSFSourceDetectionResult,
+    PyBDSFSourceDetectionResultList,
     SourceDetectionResult,
 )
 from karabo.test.conftest import NNImageDiffCallable, TFiles
 
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
+
+
+@pytest.fixture
+def restored_filtered_example_gleam() -> str:
+    return "restored_filtered_example_gleam.fits"
+
+
+@pytest.fixture
+def test_restored_filtered_example_gleam_downloader(
+    restored_filtered_example_gleam,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=restored_filtered_example_gleam,
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    )
 
 
 def test_source_detection_plot(
@@ -196,6 +217,43 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     assert np.all(
         assigment[:, 0] == np.flipud(assigment[:, 1])
     ), "Automatic assignment of ground truth and detected is not correct"
+
+
+def test_full_source_detection(
+    test_restored_filtered_example_gleam_downloader: SingleFileDownloadObject,
+):
+    restored = Image.read_from_file(
+        test_restored_filtered_example_gleam_downloader.get()
+    )
+    detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(
+        restored, thresh_isl=15, thresh_pix=20
+    )
+    gtruth = np.array(
+        [
+            [981.74904041, 843.23261492],
+            [923.99869192, 856.80790319],
+            [875.39219674, 889.2266872],
+            [811.14161381, 929.42900662],
+            [1018.00786977, 925.23273295],
+            [1045.25482933, 1039.90727384],
+            [1212.06660484, 930.03800074],
+        ]
+    )
+    detected = detection_result.get_pixel_position_of_sources()
+    mse = np.linalg.norm(gtruth - detected, axis=1)
+    assert np.all(mse < 1), "Source detection is not correct"
+
+    # Now compare it with splitting the image
+    restored_cuts = restored.split_image(N=2, overlap=100)
+    detection_results = PyBDSFSourceDetectionResultList.detect_sources_in_images(
+        restored_cuts, thresh_isl=15, thresh_pix=20
+    )
+    detected = detection_results.get_pixel_position_of_sources()
+    # Sometimes the order of the sources is different, so we need to sort them
+    detected = detected[np.argsort(detected[:, 0])]
+    gtruth = gtruth[np.argsort(gtruth[:, 0])]
+    mse = np.linalg.norm(gtruth - detected, axis=1)
+    assert np.all(mse < 1), "Source detection is not correct"
 
 
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")

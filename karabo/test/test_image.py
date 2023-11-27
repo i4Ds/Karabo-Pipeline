@@ -3,7 +3,6 @@ import tempfile
 
 import numpy as np
 
-from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
@@ -48,6 +47,52 @@ def test_dirty_image_resample(tobject: TFiles):
     assert dirty.data.shape[0] == shape_before[0]
     assert dirty.data.shape[1] == shape_before[1]
     assert np.sum(np.isnan(dirty.data)) == 0
+
+
+def test_dirty_image_cutout(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
+
+    dirty = imager.get_dirty_image()
+
+    cutout1 = dirty.cutout((1000, 1000), (500, 500))
+
+    assert cutout1.data.shape[2] == 500
+    assert cutout1.data.shape[3] == 500
+    assert cutout1.header["CRPIX1"] == 275  # Don't understand why but this is the value
+    assert cutout1.header["CRPIX2"] == 275
+    assert cutout1.header["CRVAL1"] == 250
+    assert cutout1.header["CRVAL2"] == -80
+
+    assert np.sum(np.isnan(cutout1.data)) == 0
+    assert np.all(
+        np.equal(cutout1.data[0, 0, :, :], dirty.data[0, 0, 750:1250, 750:1250])
+    )
+
+
+def test_dirty_image_N_cutout(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
+
+    dirty = imager.get_dirty_image()
+
+    cutouts = dirty.split_image(N=4)
+
+    assert len(cutouts) == 16
+
+    for cutout in cutouts:
+        assert cutout.data.shape[2] == 512
+        assert cutout.data.shape[3] == 512
+        assert np.sum(np.isnan(cutout.data)) == 0
+
+    cutouts = dirty.split_image(N=2, overlap=50)
+
+    assert len(cutouts) == 4
+
+    for cutout in cutouts:
+        assert cutout.data.shape[2] == 1024 + 50
+        assert cutout.data.shape[3] == 1024 + 50
+        assert np.sum(np.isnan(cutout.data)) == 0
 
 
 def test_cellsize_overwrite(tobject: TFiles):
@@ -134,14 +179,6 @@ def test_explore_sky():
 #     restored_image.save_to_file("result/restored.fits")
 #     residual_image.save_to_file("result/residual.fits")
 #     sky.save_to_file("result/imaging_sky.txt")
-
-
-def test_power_spectrum(tobject: TFiles):
-    restored_image = Image(path=tobject.restored_fits)
-    # restored_image.plot_power_spectrum(save_png=True)
-    restored_image.get_cellsize()
-    # restored_image.plot_histogram()
-
 
 # def test_source_detection():
 #     restored = open_fits_image("karabo/test/data/restored.fits")
