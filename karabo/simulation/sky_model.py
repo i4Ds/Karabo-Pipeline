@@ -331,15 +331,11 @@ class SkyModel:
             else:
                 da = sources
         elif isinstance(sources, np.ndarray):
-            if (
-                sources.shape[1] == 13
-            ):  # if last col is source_id, and there is no redshift data
-                source_ids = sources[:, 12]
-                sources = np.delete(sources, np.s_[12], axis=1)  # type: ignore [assignment] # noqa: E501
-                try:
-                    sources = sources.astype(self.precision)
-                except ValueError:
-                    pass  # convertion failed
+            # For numpy ndarrays, we delete the ID column of the sources
+            if sources.shape[1] == 1 + SkyModel.SOURCES_COLS:  # sources have IDs
+                source_ids = sources[:, SkyModel.SOURCES_COLS]
+                sources = np.delete(sources, np.s_[SkyModel.SOURCES_COLS], axis=1)  # type: ignore [assignment] # noqa: E501
+                sources = sources.astype(self.precision)
                 da = xr.DataArray(
                     sources,
                     dims=[self._sources_dim_sources, self._sources_dim_data],
