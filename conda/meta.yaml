@@ -14,14 +14,15 @@ build:
 requirements:
   build:
     - python                  {{ python }}
-    - pip
-    - versioneer
-    - tomli
+    - cython
+    - numpy
   host:
     - python                  {{ python }}
+    - cython
     - pip
-    - versioneer
+    - numpy
     - tomli
+    - versioneer
   run:
     - python                  {{ python }}
     - aratmospy               =1.0.dev0
@@ -44,7 +45,7 @@ requirements:
     - mpich  # explicit mpich as dep for `mpi4py`. mpich & openmpi support linux & mac (not windows)
     - nbformat
     - nbconvert
-    - numpy                   >=1.21, !=1.24.0  # 1.24.0 is a buggy release
+    - {{ pin_compatible('numpy') }}
     - oskarpy                 =2.8.dev3
     - pandas
     - psutil
