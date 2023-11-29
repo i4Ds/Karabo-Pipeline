@@ -237,16 +237,6 @@ class SkyModel:
             self.h5_file_connection.close()
             self.h5_file_connection = None
 
-    def __del__(self) -> None:
-        """
-        Destructor method that closes the connection to the HDF5 file.
-
-        This method is automatically called when the instance of the class
-        is no longer referenced. It ensures that the connection to the
-        HDF5 file is closed before the instance is destroyed.
-        """
-        self.close()
-
     @staticmethod
     def copy_sky(sky: SkyModel) -> SkyModel:
         if sky.h5_file_connection is not None:
@@ -332,9 +322,13 @@ class SkyModel:
                 da = sources
         elif isinstance(sources, np.ndarray):
             # For numpy ndarrays, we delete the ID column of the sources
-            if sources.shape[1] == 1 + SkyModel.SOURCES_COLS:  # sources have IDs
-                source_ids = sources[:, SkyModel.SOURCES_COLS]
-                sources = np.delete(sources, np.s_[SkyModel.SOURCES_COLS], axis=1)  # type: ignore [assignment] # noqa: E501
+            if sources.shape[1] in (
+                1 + SkyModel.SOURCES_COLS,
+                13,
+            ):  # sources have IDs. 13 is for backwards compatibility
+                index_of_ids_column = sources.shape[1] - 1
+                source_ids = sources[:, index_of_ids_column]
+                sources = np.delete(sources, np.s_[index_of_ids_column], axis=1)  # type: ignore [assignment] # noqa: E501
                 sources = sources.astype(self.precision)
                 da = xr.DataArray(
                     sources,
