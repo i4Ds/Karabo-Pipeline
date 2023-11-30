@@ -7,7 +7,7 @@ import pytest
 from astropy.io import fits
 
 from karabo.data.external_data import (
-    DilutedBATTYESurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
@@ -51,17 +51,17 @@ def test_conversion_between_redshift_and_frequency(frequency, redshift):
 # - FITS file after beam correction
 @pytest.fixture
 def uncorrected_fits_filename() -> str:
-    return "test_line_emission.fits"
+    return "golden_test_line_emission_totalimage_v1.fits"
 
 
 @pytest.fixture
 def uncorrected_h5_filename() -> str:
-    return "test_line_emission.h5"
+    return "golden_test_line_emission_images_v1.h5"
 
 
 @pytest.fixture
 def corrected_fits_filename() -> str:
-    return "test_line_emission_GaussianBeam_Corrected.fits"
+    return "golden_test_line_emission_gaussianbeamcorrected_v1.fits"
 
 
 @pytest.fixture
@@ -122,7 +122,7 @@ def test_line_emission_run(
     golden_corrected_fits_path = corrected_fits_downloader.get()
 
     # Load sky model data
-    survey = DilutedBATTYESurveyDownloadObject()
+    survey = HISourcesSmallCatalogDownloadObject()
     catalog_path = survey.get()
 
     # Directory containing output files for validation
@@ -137,11 +137,14 @@ def test_line_emission_run(
         dec = -30
         cut = 1.0  # degrees
 
-        sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
+        sky_pointing = SkyModel.get_sky_model_from_h5_to_xarray(
             path=catalog_path,
-            ra_deg=ra,
-            dec_deg=dec,
-            outer_rad=3,
+        )
+        sky_pointing = sky_pointing.filter_by_radius_euclidean_flat_approximation(
+            inner_radius_deg=0,
+            outer_radius_deg=3,
+            ra0_deg=ra,
+            dec0_deg=dec,
         )
 
         # Simulation of line emission observation

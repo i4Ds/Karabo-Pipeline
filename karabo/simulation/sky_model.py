@@ -37,9 +37,8 @@ from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
 from karabo.data.external_data import (
-    BATTYESurveyDownloadObject,
-    DilutedBATTYESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
@@ -113,6 +112,8 @@ class SkyPrefixMapping:
     major: Optional[str] = None
     minor: Optional[str] = None
     pa: Optional[str] = None
+    true_redshift: Optional[str] = None
+    observed_redshift: Optional[str] = None
     id: Optional[str] = None
 
 
@@ -137,7 +138,7 @@ class SkyModel:
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
                     through `xarray.sources.coords` with an arbitrary string key
-                    as index or `np.ndarray` as idx 12.
+                    as index or `np.ndarray` as idx SOURCES_COLS.
                     A single point source is described using the following col-order:
 
                     - [0] right ascension (deg)
@@ -152,7 +153,9 @@ class SkyModel:
                     - [9] major axis FWHM (arcsec): defaults to 0
                     - [10] minor axis FWHM (arcsec): defaults to 0
                     - [11] position angle (deg): defaults to 0
-                    - [12] object-id: just for `np.ndarray`
+                    - [12] true redshift: defaults to 0
+                    - [13] observed redshift: defaults to 0
+                    - [14] object-id: just for `np.ndarray`
                         it is removed in the `xr.DataArray`
                         and exists then in `xr.DataArray.coords` as index.
     :ivar wcs: World Coordinate System (WCS) object representing the coordinate
@@ -164,7 +167,7 @@ class SkyModel:
         that can be used to store or retrieve data related to the SkyModel.
     """
 
-    SOURCES_COLS = 12
+    SOURCES_COLS = 14
     _STOKES_IDX: Dict[StokesType, int] = {
         "Stokes I": 2,
         "Stokes Q": 3,
@@ -215,7 +218,7 @@ class SkyModel:
 
     def __set_sky_xarr_dims(self, sources: SkySourcesType) -> None:
         if isinstance(sources, np.ndarray):
-            pass  # nothing toDo here
+            pass  # nothing to do here
         elif isinstance(sources, xr.DataArray):  # checks xarray dims through setter
             self._sources_dim_sources, self._sources_dim_data = cast(
                 Tuple[str, str], sources.dims
@@ -233,16 +236,6 @@ class SkyModel:
         if self.h5_file_connection:
             self.h5_file_connection.close()
             self.h5_file_connection = None
-
-    def __del__(self) -> None:
-        """
-        Destructor method that closes the connection to the HDF5 file.
-
-        This method is automatically called when the instance of the class
-        is no longer referenced. It ensures that the connection to the
-        HDF5 file is closed before the instance is destroyed.
-        """
-        self.close()
 
     @staticmethod
     def copy_sky(sky: SkyModel) -> SkyModel:
@@ -328,13 +321,15 @@ class SkyModel:
             else:
                 da = sources
         elif isinstance(sources, np.ndarray):
-            if sources.shape[1] == SkyModel.SOURCES_COLS + 1:  # is last col source_id?
-                source_ids = sources[:, 12]
-                sources = np.delete(sources, np.s_[12], axis=1)  # type: ignore [assignment] # noqa: E501
-                try:
-                    sources = sources.astype(self.precision)
-                except ValueError:
-                    pass  # convertion failed
+            # For numpy ndarrays, we delete the ID column of the sources
+            if sources.shape[1] in (
+                1 + SkyModel.SOURCES_COLS,
+                13,
+            ):  # sources have IDs. 13 is for backwards compatibility
+                index_of_ids_column = sources.shape[1] - 1
+                source_ids = sources[:, index_of_ids_column]
+                sources = np.delete(sources, np.s_[index_of_ids_column], axis=1)  # type: ignore [assignment] # noqa: E501
+                sources = sources.astype(self.precision)
                 da = xr.DataArray(
                     sources,
                     dims=[self._sources_dim_sources, self._sources_dim_data],
@@ -358,14 +353,15 @@ class SkyModel:
     def add_point_sources(self, sources: SkySourcesType) -> None:
         """Add new point sources to the sky model.
 
-        :param sources: `np.ndarray` with shape (number of sources, 13), where you can
-        place the "source_id" at index 12.
-        OR an `xarray.DataArray` with shape (number of sources, 12) where you can place
-        the "source_id" at `xarray.DataArray.coord` or use `SkyModel.source_ids` later.
+        :param sources: `np.ndarray` with shape (number of sources, 1 + SOURCES_COLS),
+        where you can place the "source_id" at index SOURCES_COLS.
+        OR an `xarray.DataArray` with shape (number of sources, SOURCES_COLS),
+        where you can place the "source_id" at `xarray.DataArray.coord`
+        or use `SkyModel.source_ids` later.
 
         The column indices correspond to:
 
-            - [0] right ascension (deg)-
+            - [0] right ascension (deg)
             - [1] declination (deg)
             - [2] stokes I Flux (Jy)
             - [3] stokes Q Flux (Jy): defaults to 0
@@ -377,8 +373,9 @@ class SkyModel:
             - [9] major axis FWHM (arcsec): defaults to 0
             - [10] minor axis FWHM (arcsec): defaults to 0
             - [11] position angle (deg): defaults to 0
-            - source id (object): is in `SkyModel.source_ids` if provided
-
+            - [12] true redshift: defaults to 0
+            - [13] observed redshift: defaults to 0
+            - [14] source id (object): is in `SkyModel.source_ids` if provided
         """
         try:
             sds, sdd = self._sources_dim_sources, self._sources_dim_data
@@ -419,6 +416,8 @@ class SkyModel:
         - major axis FWHM (arcsec): if no information available, set to 0
         - minor axis FWHM (arcsec): if no information available, set to 0
         - position angle (deg): if no information available, set to 0
+        - true redshift: defaults to 0
+        - observed redshift: defaults to 0
         - source id (object): is in `SkyModel.source_ids` if provided
 
         :param path: file to read in
@@ -432,10 +431,10 @@ class SkyModel:
                 f"STOKES I), but only {dataframe.shape[1]} columns."
             )
 
-        if dataframe.shape[1] >= 13:
+        if dataframe.shape[1] > SkyModel.SOURCES_COLS:
             print(
-                f"CSV has {dataframe.shape[1] - 13} too many rows. "
-                + "The extra rows will be cut off."
+                f"""CSV has {dataframe.shape[1] - SkyModel.SOURCES_COLS + 1}
+            too many rows. The extra rows will be cut off."""
             )
 
         sky = SkyModel(dataframe)
@@ -1092,6 +1091,8 @@ class SkyModel:
                 "minor axis FWHM (arcsec)",
                 "position angle (deg)",
                 "source id (object)",
+                "true redshift",
+                "observed redshift",
             ],
         )
 
@@ -1134,8 +1135,12 @@ class SkyModel:
     @staticmethod
     def get_sky_model_from_h5_to_xarray(
         path: str,
-        prefix_mapping: SkyPrefixMapping,
-        extra_columns: Optional[List[str]] = None,
+        prefix_mapping: SkyPrefixMapping = SkyPrefixMapping(
+            ra="Right Ascension",
+            dec="Declination",
+            stokes_i="Flux",
+            observed_redshift="Observed Redshift",
+        ),
         load_as: Literal["numpy_array", "dask_array"] = "dask_array",
         chunksize: Union[int, Literal["auto"]] = "auto",
     ) -> SkyModel:
@@ -1151,9 +1156,6 @@ class SkyModel:
             Mapping column names to their corresponding dataset paths
             in the HDF5 file.
             If the column is not present in the HDF5 file, set its value to None.
-        extra_columns : Optional[List[str]], default=None
-            A list of additional column names to include in the output DataArray.
-            If not provided, only the default columns will be included.
         load_as : Literal["numpy_array", "dask_array"], default="dask_array"
             What type of array to load the data inside the xarray Data Array as.
         chunksize : Union[int, str], default=auto
@@ -1178,13 +1180,6 @@ class SkyModel:
             else:
                 dask_array = da.from_array(f[field_value], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
-
-        if extra_columns is not None:
-            for col in extra_columns:
-                dask_array = da.from_array(f[col], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
-                data_arrays.append(
-                    xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT])
-                )
 
         if load_as == "numpy_array":
             data_arrays = [x.compute() for x in data_arrays]
@@ -1397,24 +1392,25 @@ class SkyModel:
 
     @staticmethod
     def get_BATTYE_sky(which: Literal["full", "diluted"] = "diluted") -> SkyModel:
+        raise DeprecationWarning(
+            """This catalog has an error in the source flux values.
+            This method will be removed in a future version.
+            Please use get_sample_simulated_catalog() instead."""
+        )
+
+    @staticmethod
+    def get_sample_simulated_catalog() -> SkyModel:
         """
-        Downloads BATTYE survey data and generates a sky
-        model using the downloaded data. There are two types of
-        BATTYE survey data available: 'full' and 'diluted'.
-        They vary in the number of sources they contain. Diluted
-        is around 7 MB and full is around 35 GB.
-
-
-        Parameters:
-            which (str): The type of BATTYE survey data to download.
-            The options are 'full' and 'diluted'. Defaults to 'diluted'.
+        Downloads a sample simulated HI source catalog and generates a sky
+        model using the downloaded data. The catalog size is around 8MB.
 
         Source:
-        The BATTYE survey data was provided by Jennifer Studer
-        (https://github.com/jejestern)
+        The simulated catalog data was provided by Luis Machado
+        (https://github.com/lmachadopolettivalle) in collaboration
+        with the ETHZ Cosmology Research Group.
 
         Returns:
-            SkyModel: A sky model generated from the BATTYE survey data.
+            SkyModel: The corresponding sky model.
             The sky model contains the following information:
 
             - 'Right Ascension' (ra): The right ascension coordinates
@@ -1430,28 +1426,11 @@ class SkyModel:
             are not included in the sky model.
 
         """
-        survey: Union[BATTYESurveyDownloadObject, DilutedBATTYESurveyDownloadObject]
-        if which == "full":
-            survey = BATTYESurveyDownloadObject()
-        elif which == "diluted":
-            survey = DilutedBATTYESurveyDownloadObject()
-        else:
-            raise ValueError(f"Invalid value for 'which': {which}")
+        survey = HISourcesSmallCatalogDownloadObject()
         path = survey.get()
-        column_mapping = SkyPrefixMapping(
-            ra="Right Ascension",
-            dec="Declination",
-            stokes_i="Flux",
-        )
-        extra_columns = ["Observed Redshift"]
-
-        sky = SkyModel.get_sky_model_from_h5_to_xarray(
-            path=path, prefix_mapping=column_mapping, extra_columns=extra_columns
-        )
+        sky = SkyModel.get_sky_model_from_h5_to_xarray(path=path)
         if sky.sources is None:
-            raise KaraboSkyModelError("`sky.sources` is None but shouldn't be.")
-
-        sky.sources[:, 1] *= -1
+            raise KaraboSkyModelError("`sky.sources` is None, which is unexpected.")
 
         return sky
 
@@ -1524,7 +1503,7 @@ class SkyModel:
              The test sky model.
         """
         sky = SkyModel()
-        sky_data = np.zeros((81, 12))
+        sky_data = np.zeros((81, SkyModel.SOURCES_COLS))
         a = np.arange(-32, -27.5, 0.5)
         b = np.arange(18, 22.5, 0.5)
         dec_arr, ra_arr = np.meshgrid(a, b)
@@ -1540,64 +1519,9 @@ class SkyModel:
     def sky_from_h5_with_redshift_filtered(
         path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
     ) -> SkyModel:
-        """
-        A sky model is created from a h5 file containing a catalog with right ascension,
-        declination, flux and observed redshift of HI distribution. The sky model only
-        takes into account sources around a certain radius of the phase center.
-
-        :param path: Path of the h5 file.
-        :param ra_deg: Phase center, right ascension.
-        :param dec_deg: Phase center, declination.
-        :param outer_rad: The radius size of the sky model to be considered.
-        :return: The sky model and the corresponding redshifts.
-        """
-        SOUTH_CATALOG_FACTOR = -1
-
-        # Read in the catalog
-        prefix_mapping = SkyPrefixMapping(
-            ra="Right Ascension", dec="Declination", stokes_i="Flux"
+        raise DeprecationWarning(
+            """This method will be removed in a future release.
+        To obtain the same functionality, use
+        sky = SkyModel.get_sky_model_from_h5_to_xarray()
+        and sky.filter_by_radius_euclidean_flat_approximation()."""
         )
-        extra_columns = ["Observed Redshift"]
-        sky = SkyModel.get_sky_model_from_h5_to_xarray(
-            path=path, prefix_mapping=prefix_mapping, extra_columns=extra_columns
-        )
-
-        if sky.h5_file_connection is None:
-            raise ConnectionError("Please provide an h5 file to create the sky model.")
-
-        print("The catalog keys are:", list(sky.h5_file_connection.keys()))
-        print(
-            "The unit of the flux given here is:",
-            sky.h5_file_connection["Flux"].attrs["Units"],
-        )
-        print(
-            "Number of elements in the complete catalog:",
-            len(sky.h5_file_connection["Declination"][()]),
-        )
-
-        # We only take into account a certain FOV, we filter the sky for this FOV
-        sky_filter = sky.filter_by_radius_euclidean_flat_approximation(
-            ra0_deg=ra_deg,
-            dec0_deg=dec_deg * SOUTH_CATALOG_FACTOR,
-            inner_radius_deg=0.0,
-            outer_radius_deg=outer_rad,
-        )
-
-        # Delete large sky
-        del sky
-
-        if sky_filter.sources is None:
-            raise TypeError(
-                "`sources` None is not allowed! Please set them in"
-                " the `SkyModel` before calling this function."
-            )
-
-        # Transform the sky to the southern sky
-        sky_filter.sources[:, 1] *= SOUTH_CATALOG_FACTOR
-
-        print(
-            "Number of elements in diluted catalog in the interesting FOV:",
-            len(sky_filter[:, 0]),
-        )
-
-        return sky_filter

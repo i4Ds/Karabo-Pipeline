@@ -8,7 +8,7 @@ from astropy import coordinates as coords
 from astropy.io import fits
 
 from karabo.data.external_data import (
-    DilutedBATTYESurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
@@ -26,12 +26,12 @@ from karabo.test.conftest import TFiles
 # - FITS file of areas covered by the patches which form the uncorrected mosaic.
 @pytest.fixture
 def uncorrected_mosaic_fits_filename() -> str:
-    return "test_mosaic_uncorrected.fits"
+    return "golden_test_mosaic_uncorrected_v1.fits"
 
 
 @pytest.fixture
 def uncorrected_area_fits_filename() -> str:
-    return "test_mosaic_uncorrected_area.fits"
+    return "golden_test_mosaic_uncorrected_area_v1.fits"
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ def test_mosaic_run(
     golden_uncorrected_area_fits_path = uncorrected_area_fits_downloader.get()
 
     # Load sky model data
-    survey = DilutedBATTYESurveyDownloadObject()
+    survey = HISourcesSmallCatalogDownloadObject()
     catalog_path = survey.get()
 
     # Set sky position for sky outcut
@@ -82,8 +82,12 @@ def test_mosaic_run(
     dec = -30
     outer_rad = 3
 
-    sky_pointing = SkyModel.sky_from_h5_with_redshift_filtered(
-        path=catalog_path, ra_deg=ra, dec_deg=dec, outer_rad=outer_rad
+    sky_pointing = SkyModel.get_sky_model_from_h5_to_xarray(path=catalog_path)
+    sky_pointing = sky_pointing.filter_by_radius_euclidean_flat_approximation(
+        inner_radius_deg=0,
+        outer_radius_deg=outer_rad,
+        ra0_deg=ra,
+        dec0_deg=dec,
     )
     sky_pointing.compute()
 
