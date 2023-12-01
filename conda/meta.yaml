@@ -8,17 +8,15 @@ source:
   path: ../
 
 build:
-  number: {{ BUILD_NUMBER }}
-  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ BUILD_NUMBER }}
+  number: {{ build }}
+  string: py{{ py }}h{{ PKG_HASH }}_{{ build }}
 
 requirements:
   build:
-    - python                  {{ python }}
-    - cython
+    - python
     - numpy
   host:
     - python                  {{ python }}
-    - cython
     - pip
     - numpy
     - tomli
