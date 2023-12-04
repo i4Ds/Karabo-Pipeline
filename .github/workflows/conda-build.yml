@@ -7,9 +7,8 @@ on:
     inputs:
       buildNumber:
         type: string
-        required: false
-        default: "0"
-        description: "build-nr: conda build-nr of anaconda.org"
+        required: true
+        description: "build-nr: anaconda.org build-nr (SET CORRECTLY)"
       version:
         type: string
         required: true
@@ -74,7 +73,12 @@ jobs:
             BUILD_DOCKER=${{ inputs.buildDocker }}
             LATEST_DOCKER=${{ inputs.latestDocker }}
           fi
-          KARABO_VERSION="${KARABO_TAG:1}"
+          if [[ ${KARABO_TAG:1} == "v" ]]; then
+            KARABO_VERSION="${KARABO_TAG:1}"
+          else
+            echo "invalid karabo-tag: has no leading v"
+            exit 2
+          fi
           DEV_STR="dev"
           if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]]; then
             if [[ $LATEST_DOCKER == 'true' ]]; then
