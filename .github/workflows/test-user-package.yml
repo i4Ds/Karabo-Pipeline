@@ -43,7 +43,7 @@ jobs:
           KARABO_TAG=${{ inputs.version }}
           KARABO_VERSION="${KARABO_TAG:1}"
           DEV_STR="dev"
-          if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]] && [[ "${{ inputs.latestDocker }}" == 'true' ]]; then
+          if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]] && [[ ${{ inputs.latestDocker }} == 'true' ]]; then
             echo "Invalid configuration of workflow-inputs!"
             exit 2
           fi

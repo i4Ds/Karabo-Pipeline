@@ -47,8 +47,8 @@ jobs:
     container: ghcr.io/i4ds/mambabuild-docker:latest
     outputs:
       karabo-tag: ${{ steps.bcs.outputs.karabo_tag }}
-      build-docker: ${{ steps.bcs.outputs.build_docker }}
-      latest-docker: ${{ steps.bcs.outputs.latest_docker }}
+      build-docker: ${{ steps.bcs.outputs.build_docker == 'true' }}
+      latest-docker: ${{ steps.bcs.outputs.latest_docker == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
