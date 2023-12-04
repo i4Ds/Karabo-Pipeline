@@ -8,11 +8,11 @@ on:
       buildNumber:
         type: string
         required: true
-        description: "build-nr: anaconda.org build-nr (SET CORRECTLY)"
+        description: "build-nr: anaconda.org build-nr (DON'T trigger build if you don't know how to set it)"
       version:
         type: string
         required: true
-        description: "version: PEP440 package-version (incl. leading 'v')"
+        description: "version: PEP440 package-version incl. leading 'v' (DON'T trigger build if you don't know what PEP440 is)"
       buildDocker:
         type: boolean
         required: false
@@ -73,7 +73,7 @@ jobs:
             BUILD_DOCKER=${{ inputs.buildDocker }}
             LATEST_DOCKER=${{ inputs.latestDocker }}
           fi
-          if [[ ${KARABO_TAG:1} == "v" ]]; then
+          if [[ ${KARABO_TAG:0:1} == "v" ]]; then
             KARABO_VERSION="${KARABO_TAG:1}"
           else
             echo "invalid karabo-tag: has no leading v"
