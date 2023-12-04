@@ -34,12 +34,9 @@ on:
 jobs:
   test-conda-build:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
@@ -60,10 +57,6 @@ jobs:
           pip install ipykernel
           python -m ipykernel install --user --name python3
 
-          version=${{ inputs.version }}
-          echo "inputs-version: $version"
-          latest=${{ inputs.latestDocker == 'true' }}
-          echo "latest-docker: $latest"
       - name: Test Package
         shell: bash -l {0}
         run: |

@@ -14,10 +14,6 @@ on:
         type: string
         required: true
         description: "version: PEP440 package-version (incl. leading 'v')"
-      dev:
-        type: boolean
-        required: true
-        description: "dev-build? If yes, it sets an offset to build-nr"
       buildDocker:
         type: boolean
         required: false
@@ -36,10 +32,6 @@ on:
       version:
         type: string
         required: true
-      dev:
-        type: boolean
-        required: false
-        default: false
       buildDocker:
         type: boolean
         required: false
@@ -84,29 +76,18 @@ jobs:
           fi
           KARABO_VERSION="${KARABO_TAG:1}"
           DEV_STR="dev"
-          if [[ ${{ inputs.dev }} == "true" ]]
-          then
-            if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]] || [[ $LATEST_DOCKER == 'true' ]]
-            then
+          if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]]; then
+            if [[ $LATEST_DOCKER == 'true' ]]; then
               echo "Invalid configuration of workflow-inputs!"
               exit 2
             fi
             build="$(($build + 1000))"
-          else
-            if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]]
-            then
-              echo "Invalid configuration of workflow-inputs!"
-              exit 2
-            fi
           fi
+
           export KARABO_VERSION=$KARABO_VERSION build=$build
           echo "karabo_tag=$KARABO_TAG" >> $GITHUB_OUTPUT
           echo "build_docker=$BUILD_DOCKER" >> $GITHUB_OUTPUT
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
-
-          echo "karabo-tag: $KARABO_TAG"
-          echo "build-docker: $BUILD_DOCKER"
-          echo "latest-docker: $LATEST_DOCKER"
 
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0

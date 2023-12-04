@@ -15,8 +15,9 @@ on:
     inputs:
       gitrev:
         type: string
-        required: true
-        description: "gitrev: commit-hash (full), tag or branch (branch is not unique and therefore checkout-step could get cached)"
+        required: false
+        default: ""
+        description: "gitrev: commit-hash (full) if not current commit."
       verstag:
         type: string
         required: true
@@ -64,26 +65,32 @@ jobs:
         shell: bash -l {0}
         run: |
           if [[ ${{ github.event_name }} == "workflow_call" ]]; then
-            echo "gitrev=${{ inputs.verstag }}" >> "$GITHUB_ENV"
-            gitrev=${{ inputs.verstag }}
+            echo "gitrev=$GITHUB_SHA" >> "$GITHUB_ENV"
             echo "build=user" >> "$GITHUB_ENV"
-            build=user
           elif [[ ${{ github.event_name }} == "workflow_dispatch" ]]; then
-            echo "gitrev=${{ inputs.gitrev }}" >> "$GITHUB_ENV"
-            gitrev=${{ inputs.gitrev }}
+            if [[ ${{ inputs.gitrev }} != "" ]]; then
+              echo "gitrev=${{ inputs.gitrev }}" >> "$GITHUB_ENV"
+            else
+              echo "gitrev=$GITHUB_SHA" >> "$GITHUB_ENV"
+            fi
             if [[ ${{ inputs.test }} == "true" ]]; then
               echo "build=test" >> "$GITHUB_ENV"
-              build=test
             else
               echo "build=user" >> "$GITHUB_ENV"
-              build=user
             fi
           else
             echo "Invalid github-event!"
             exit 2
           fi
           echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
-          echo "version=${{ inputs.verstag }}" >> "$GITHUB_ENV"
+          verstag=${{ inputs.verstag }}"
+          if [[ ${verstag:0:1} == "v" ]]; then
+            version=${verstag:1}
+            echo "version=$version" >> "$GITHUB_ENV"
+          else
+            echo "invalid verstag: has no leading v"
+            exit 2
+          fi
           REPO_OWNER=${{ github.repository_owner }}
           echo "IMG_ADDR=${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}" >> "$GITHUB_ENV"
           DEV_STR="dev"
@@ -92,17 +99,6 @@ jobs:
             exit 2
           fi
 
-          latest=${{ inputs.latest }}
-          echo "latest: $latest"
-          version=${{ inputs.verstag }}
-          echo "vesion: $version"
-          imgaddr=${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}
-          echo "img-addr: $imgaddr"
-          echo "gitrev: $gitrev"
-          echo "build: $build"
-
-
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -110,7 +106,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
             type=raw, enable=${{ env.latest }}, value=latest
-            type=pep440, pattern={{version}}, value=${{ env.version }}
+            type=raw, value=${{ env.version }}
 
       - name: Docker build
         shell: bash -l {0}
@@ -126,10 +122,9 @@ jobs:
           fi
 
       - name: Test image
-        run: |  # what is installed and the package location relies entirely on the user Dockerfile
+        run: |  # karabo-sitepackage-location used instead of --pyargs because --only-mpi is a custom-flag of karabo which lives in the site-packages
           docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash -c \
-            'export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=false; SITE_PKGS=$(pip show karabo-pipeline | grep Location | sed "s/.*\(\/opt\/conda.*\).*/\1/"); mpirun -n 2 pytest --only-mpi; pytest --verbose $SITE_PKGS/karabo/test'
-
+            'export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=false; SITE_PKGS=$(pip show karabo-pipeline | grep Location | sed "s/.*\(\/opt\/conda.*\).*/\1/"); mpirun -n 2 pytest --only-mpi; pytest $SITE_PKGS/karabo/test'
       - name: Docker push
         shell: bash -l {0}
         run: |
