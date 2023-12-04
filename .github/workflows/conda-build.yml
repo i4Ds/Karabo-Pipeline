@@ -80,7 +80,7 @@ jobs:
             exit 2
           fi
           DEV_STR="dev"
-          if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]]; then
+          if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]]; then
             if [[ $LATEST_DOCKER == 'true' ]]; then
               echo "Invalid configuration of workflow-inputs!"
               exit 2
