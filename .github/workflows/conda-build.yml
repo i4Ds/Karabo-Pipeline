@@ -59,19 +59,28 @@ jobs:
         id: bcs
         shell: bash -l {0}
         run: |
+          DEV_STR="dev"
           if [[ ${{ github.event_name }} == "release" ]]
           then
             build="0"
             KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
             BUILD_DOCKER=true
             LATEST_DOCKER=true
-          fi
-          if [[ ${{ github.event_name }} == "workflow_dispatch" ]] || [[ ${{ github.event_name }} == "workflow_call" ]]
+          elif [[ ${{ github.event_name }} == "workflow_dispatch" ]] || [[ ${{ github.event_name }} == "workflow_call" ]]
           then
             build=${{ inputs.buildNumber }}
-            KARABO_TAG=${{ inputs.version }}
             BUILD_DOCKER=${{ inputs.buildDocker }}
             LATEST_DOCKER=${{ inputs.latestDocker }}
+            KARABO_TAG=${{ inputs.version }}
+            pip install versioneer
+            VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
+            if [[ "$VERSIONEER_VERSION" == *"+"* ]] && [[ "$KARABO_TAG" != *"$DEV_STR"* ]]; then
+              echo "Dirty version needs to be a PEP440 conform dev-version"
+              exit 2
+            fi
+          else
+            echo "Not specified github-event occured"
+            exit 2
           fi
           if [[ ${KARABO_TAG:0:1} == "v" ]]; then
             KARABO_VERSION="${KARABO_TAG:1}"
@@ -79,13 +88,14 @@ jobs:
             echo "invalid karabo-tag: has no leading v"
             exit 2
           fi
-          DEV_STR="dev"
           if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]]; then
             if [[ $LATEST_DOCKER == 'true' ]]; then
               echo "Invalid configuration of workflow-inputs!"
               exit 2
             fi
             build="$(($build + 1000))"
+          else
+
           fi
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
