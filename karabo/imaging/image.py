@@ -3,20 +3,34 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
+from astropy.nddata import Cutout2D, NDData
 from astropy.wcs import WCS
 from numpy.typing import NDArray
 from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
+from reproject import reproject_interp
+from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
 from karabo.karabo_resource import KaraboResource
 from karabo.util._types import FilePathType
-from karabo.util.file_handler import check_ending
+from karabo.util.file_handler import FileHandler, check_ending
 from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,
@@ -27,25 +41,66 @@ matplotlib.use(previous_backend)
 
 
 class Image(KaraboResource):
+    @overload
     def __init__(
         self,
+        *,
         path: FilePathType,
+        data: Literal[None] = None,
+        header: Literal[None] = None,
         **kwargs: Any,
     ) -> None:
-        """
-        Proxy object class for images.
-        Dirty, cleaned or any other type of image in a fits format.
-        """
-        self.path = path
+        ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        path: Literal[None] = None,
+        data: NDArray[np.float_],
+        header: fits.header.Header,
+        **kwargs: Any,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        *,
+        path: Optional[FilePathType] = None,
+        data: Optional[NDArray[np.float_]] = None,
+        header: Optional[fits.header.Header] = None,
+        **kwargs: Any,
+    ) -> None:
+        self._fh_prefix = "image"
+        self._fh_verbose = False
+
+        if path is not None and (data is None and header is None):
+            self.path = path
+            self.data, self.header = fits.getdata(
+                str(self.path),
+                ext=0,
+                header=True,
+                **kwargs,
+            )
+        elif path is None and (data is not None and header is not None):
+            self.data = data
+            self.header = header
+
+            # Generate a random path for the data
+            fh = FileHandler.get_file_handler(
+                obj=self,
+                prefix=self._fh_prefix,
+                verbose=self._fh_verbose,
+            )
+            restored_fits_path = os.path.join(fh.subdir, "image.fits")
+
+            # Write the FITS file
+            self.write_to_file(restored_fits_path)
+            self.path = restored_fits_path
+        else:
+            raise RuntimeError("Provide either `path` or both `data` and `header`.")
+
         self._fname = os.path.split(self.path)[-1]
-        self.data: NDArray[np.float64]
-        self.header: fits.header.Header
-        self.data, self.header = fits.getdata(
-            str(self.path),
-            ext=0,
-            header=True,
-            **kwargs,
-        )
 
     @staticmethod
     def read_from_file(path: FilePathType) -> Image:
@@ -68,8 +123,8 @@ class Image(KaraboResource):
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
         check_ending(path=path, ending=".fits")
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+        dir_name = os.path.abspath(os.path.dirname(path))
+        os.makedirs(dir_name, exist_ok=True)
         fits.writeto(
             filename=str(path),
             data=self.data,
@@ -135,6 +190,129 @@ class Image(KaraboResource):
 
         self.header["CDELT1"] = self.header["CDELT1"] * old_shape[1] / new_shape[1]
         self.header["CDELT2"] = self.header["CDELT2"] * old_shape[0] / new_shape[0]
+
+    def cutout(
+        self, center_xy: Tuple[float, float], size_xy: Tuple[float, float]
+    ) -> Image:
+        """
+        Cutout the image to the given size and center.
+
+        :param center_xy: Center of the cutout in pixel coordinates
+        :param size_xy: Size of the cutout in pixel coordinates
+        :return: Cutout of the image
+        """
+        cut = Cutout2D(
+            self.data[0, 0, :, :],
+            center_xy,
+            size_xy,
+            wcs=self.get_2d_wcs(),
+        )
+        header = cut.wcs.to_header()
+        header = self.update_header_from_image_header(header, self.header)
+        return Image(data=cut.data[np.newaxis, np.newaxis, :, :], header=header)
+
+    @staticmethod
+    def update_header_from_image_header(
+        new_header: fits.header.Header,
+        old_header: fits.header.Header,
+        keys_to_copy: Optional[List[str]] = None,
+    ) -> fits.header.Header:
+        if keys_to_copy is None:
+            keys_to_copy = [
+                "CTYPE3",
+                "CRPIX3",
+                "CDELT3",
+                "CRVAL3",
+                "CUNIT3",
+                "CTYPE4",
+                "CRPIX4",
+                "CDELT4",
+                "CRVAL4",
+                "CUNIT4",
+                "BMAJ",
+                "BMIN",
+                "BPA",
+            ]
+        for key in keys_to_copy:
+            if key in old_header and key not in new_header:
+                new_header[key] = old_header[key]
+        return new_header
+
+    def split_image(self, N: int, overlap: int = 0) -> List[Image]:
+        """
+        Split the image into N x N equal-sized sections with optional overlap.
+
+        Parameters
+        ----------
+        N : int
+            The number of sections to split the image into along one axis. The
+            total number of image sections will be N^2.
+            It is assumed that the image can be divided into N equal parts along
+            both axes. If this is not the case (e.g., image size is not a
+            multiple of N), the sections on the edges will have fewer pixels.
+
+        overlap : int, optional
+            The number of pixels by which adjacent image sections will overlap.
+            Default is 0, meaning no overlap. Negative overlap means that there
+            will be empty sections between the cutouts.
+
+        Returns
+        -------
+        cutouts : list
+            A list of cutout sections of the image. Each element in the list is
+            a 2D array representing a section of the image.
+
+        Notes
+        -----
+        The function calculates the step size for both the x and y dimensions
+        by dividing the dimension size by N. It then iterates over N steps
+        in both dimensions to generate starting and ending indices for each
+        cutout section, taking the overlap into account.
+
+        The `cutout` function (not shown) is assumed to take the center
+        (x, y) coordinates and the (width, height) of the desired cutout
+        section and return the corresponding 2D array from the image.
+
+        The edge sections will be equal to or smaller than the sections in
+        the center of the image if the image size is not an exact multiple of N.
+
+        Examples
+        --------
+        >>> # Assuming `self.data` is a 4D array with shape (C, Z, X, Y)
+        >>> # and `self.cutout` method is defined
+        >>> image = Image()
+        >>> cutouts = image.split_image(4, overlap=10)
+        >>> len(cutouts)
+        16  # because 4x4 grid
+        """
+        if N < 1:
+            raise ValueError("N must be >= 1")
+        _, _, x_size, y_size = self.data.shape
+        x_step = x_size // N
+        y_step = y_size // N
+
+        cutouts = []
+        for i in range(N):
+            for j in range(N):
+                x_start = max(0, i * x_step - overlap)
+                x_end = min(x_size, (i + 1) * x_step + overlap)
+                y_start = max(0, j * y_step - overlap)
+                y_end = min(y_size, (j + 1) * y_step + overlap)
+
+                center_x = (x_start + x_end) // 2
+                center_y = (y_start + y_end) // 2
+                size_x = x_end - x_start
+                size_y = y_end - y_start
+
+                cut = self.cutout((center_x, center_y), (size_x, size_y))
+                cutouts.append(cut)
+        return cutouts
+
+    def to_NNData(self) -> NDData:
+        return NDData(data=self.data, wcs=self.get_wcs())
+
+    def to_2dNNData(self) -> NDData:
+        return NDData(data=self.data[0, 0, :, :], wcs=self.get_2d_wcs())
 
     def plot(
         self,
@@ -352,20 +530,175 @@ class Image(KaraboResource):
     def get_wcs(self) -> WCS:
         return WCS(self.header)
 
-    def get_2d_wcs(
+    def get_2d_wcs(self, ra_dec_axis: Tuple[int, int] = (1, 2)) -> WCS:
+        wcs = WCS(self.header)
+        wcs_2d = wcs.sub(ra_dec_axis)
+        return wcs_2d
+
+
+class ImageMosaicker:
+    """
+    A class to handle the combination of multiple images into a single mosaicked image.
+    See: https://reproject.readthedocs.io/en/stable/mosaicking.html
+
+    Parameters
+    More information on the parameters can be found in the documentation:
+    https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.reproject_and_coadd.html # noqa: E501
+    However, here the most common to tune are explained.
+    ----------
+    reproject_function : callable, optional
+        The function to use for the reprojection.
+    combine_function : {'mean', 'sum'}
+        The type of function to use for combining the values into the final image.
+    match_background : bool, optional
+        Whether to match the backgrounds of the images.
+    background_reference : None or int, optional
+        If None, the background matching will make it so that the average of the
+        corrections for all images is zero.
+        If an integer, this specifies the index of the image to use as a reference.
+
+    Methods
+    -------
+    get_optimal_wcs(images, projection='SIN', **kwargs)
+        Get the optimal WCS for the given images. See:
+        https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.find_optimal_celestial_wcs.html # noqa: E501
+    process(
+        images
+        )
+        Combine the provided images into a single mosaicked image.
+
+    """
+
+    def __init__(
         self,
-        invert_ra: bool = True,
-    ) -> WCS:
-        wcs = WCS(naxis=2)
+        reproject_function: Callable[..., Any] = reproject_interp,
+        combine_function: str = "mean",
+        match_background: bool = False,
+        background_reference: Optional[int] = None,
+    ):
+        self.reproject_function = reproject_function
+        self.combine_function = combine_function
+        self.match_background = match_background
+        self.background_reference = background_reference
 
-        def radian_degree(rad: np.float64) -> np.float64:
-            return rad * (180 / np.pi)
+    def get_optimal_wcs(
+        self,
+        images: List[Image],
+        projection: str = "SIN",
+        **kwargs: Any,
+    ) -> Tuple[WCS, tuple[int, int]]:
+        """
+        Set the optimal WCS for the given images.
+        See: https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.find_optimal_celestial_wcs.html # noqa: E501
 
-        cdelt = radian_degree(self.get_cellsize())
-        crpix = np.floor((self.get_dimensions_of_image()[0] / 2)) + 1
-        wcs.wcs.crpix = np.array([crpix, crpix])
-        ra_sign = -1 if invert_ra else 1
-        wcs.wcs.cdelt = np.array([ra_sign * cdelt, cdelt])
-        wcs.wcs.crval = [self.header["CRVAL1"], self.header["CRVAL2"]]
-        wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
-        return wcs
+        Parameters
+        ----------
+        images : list
+            A list of images to combine.
+        projection : str, optional
+            Three-letter code for the WCS projection, such as 'SIN' or 'TAN'.
+        **kwargs : dict, optional
+            Additional keyword arguments to be passed to the reprojection function.
+
+        Returns
+        -------
+        WCS
+            The optimal WCS for the given images.
+        tuple
+            The shape of the optimal WCS.
+
+        """
+        optimal_wcs = find_optimal_celestial_wcs(
+            [image.to_2dNNData() for image in images]
+            if isinstance(images[0], Image)
+            else images,
+            projection=projection,
+            **kwargs,
+        )
+        # Somehow, a cast is needed here otherwise mypy complains
+        return cast(Tuple[WCS, Tuple[int, int]], optimal_wcs)
+
+    def mosaic(
+        self,
+        images: List[Image],
+        wcs: Optional[Tuple[WCS, Tuple[int, int]]] = None,
+        input_weights: Optional[
+            List[Union[str, fits.HDUList, fits.PrimaryHDU, NDArray[np.float64]]],
+        ] = None,
+        hdu_in: Optional[Union[int, str]] = None,
+        hdu_weights: Optional[Union[int, str]] = None,
+        shape_out: Optional[Tuple[int]] = None,
+        image_for_header: Optional[Image] = None,
+        **kwargs: Any,
+    ) -> Tuple[Image, NDArray[np.float64]]:
+        """
+        Combine the provided images into a single mosaicked image.
+
+        Parameters
+        ----------
+        images : list
+            A list of images to combine.
+        wcs : tuple, optional
+            The WCS to use for the mosaicking. Will be calculated with `get_optimal_wcs`
+            if not passed.
+        input_weights : list, optional
+            If specified, an iterable with the same length as images, containing weights
+            for each image.
+        shape_out : tuple, optional
+            The shape of the output data. If None, it will be computed from the images.
+        hdu_in : int or str, optional
+            If one or more items in input_data is a FITS file or an HDUList instance,
+            specifies the HDU to use.
+        hdu_weights : int or str, optional
+            If one or more items in input_weights is a FITS file or an HDUList instance,
+            specifies the HDU to use.
+        image_for_header : Image, optional
+            From which image the header should be used to readd the lost information
+            by the mosaicking because some information is not propagated.
+        **kwargs : dict, optional
+            Additional keyword arguments to be passed to the reprojection function.
+
+        Returns
+        -------
+        fits.PrimaryHDU
+            The final mosaicked image as a FITS HDU.
+        np.ndarray
+            The footprint of the final mosaicked image.
+
+        Raises
+        ------
+        ValueError
+            If less than two images are provided.
+
+        """
+
+        if image_for_header is None:
+            image_for_header = images[0]
+
+        if isinstance(images[0], Image):
+            images = [image.to_2dNNData() for image in images]
+        if wcs is None:
+            wcs = self.get_optimal_wcs(images)
+
+        array, footprint = reproject_and_coadd(
+            images,
+            output_projection=wcs[0],
+            shape_out=wcs[1] if shape_out is None else shape_out,
+            input_weights=input_weights,
+            hdu_in=hdu_in,
+            reproject_function=reproject_interp,
+            hdu_weights=hdu_weights,
+            combine_function=self.combine_function,
+            match_background=self.match_background,
+            background_reference=self.background_reference,
+            **kwargs,
+        )
+        header = wcs[0].to_header()
+        header = Image.update_header_from_image_header(header, image_for_header.header)
+        return (
+            Image(
+                data=array[np.newaxis, np.newaxis, :, :],
+                header=wcs[0].to_header(),
+            ),
+            footprint,
+        )

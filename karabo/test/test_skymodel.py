@@ -11,6 +11,7 @@ from karabo.data.external_data import (
     DilutedBATTYESurveyDownloadObject,
     ExampleHDF5Map,
     GLEAMSurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     MGCLSContainerDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
@@ -51,12 +52,12 @@ def test_not_full_array():
     sky1.add_point_sources(sky_data)
     sky2 = SkyModel(sky_data)
     # test if doc shape were expanded
-    assert sky1.sources.shape == (sky_data.shape[0], 12)
-    assert sky2.sources.shape == (sky_data.shape[0], 12)
+    assert sky1.sources.shape == (sky_data.shape[0], 14)
+    assert sky2.sources.shape == (sky_data.shape[0], 14)
 
 
 def test_filter_sky_model_h5():
-    sky = SkyModel.get_BATTYE_sky(which="diluted")
+    sky = SkyModel.get_sample_simulated_catalog()
     phase_center = [21.44213503, -30.70729488]
     filtered_sky = sky.filter_by_radius_euclidean_flat_approximation(
         0, 1, phase_center[0], phase_center[1]
@@ -72,7 +73,7 @@ def test_filter_sky_model_h5():
         xlabel="RA [deg]",
         ylabel="DEC [deg]",
     )
-    assert len(filtered_sky.sources) == 69
+    assert len(filtered_sky.sources) == 33
     assert np.all(
         np.abs(filtered_sky.sources.compute()[:, 0:2] - phase_center) < [2, 2]
     )
@@ -110,9 +111,11 @@ def test_cscs_resource_availability():
     gleam = GLEAMSurveyDownloadObject()
     assert gleam.is_available()
     with pytest.raises(NotImplementedError):
-        battye = BATTYESurveyDownloadObject()
-    battye = DilutedBATTYESurveyDownloadObject()
-    assert battye.is_available()
+        BATTYESurveyDownloadObject()
+    with pytest.raises(NotImplementedError):
+        DilutedBATTYESurveyDownloadObject()
+    sample_sky = HISourcesSmallCatalogDownloadObject()
+    assert sample_sky.is_available()
     mightee = MIGHTEESurveyDownloadObject()
     assert mightee.is_available()
     map = ExampleHDF5Map()

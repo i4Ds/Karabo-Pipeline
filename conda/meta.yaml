@@ -48,7 +48,7 @@ requirements:
     - pandas
     - psutil
     - rascil                  =1.0.dev0
-    - reproject
+    - reproject               >=0.9,<=10.0
     - requests
     - scipy                   >=1.10.1
     - ska-gridder-nifty-cuda  =0.3.dev0

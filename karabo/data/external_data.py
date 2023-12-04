@@ -115,6 +115,14 @@ class GLEAMSurveyDownloadObject(SingleFileDownloadObject):
         )
 
 
+class HISourcesSmallCatalogDownloadObject(SingleFileDownloadObject):
+    def __init__(self) -> None:
+        super().__init__(
+            remote_file_path="HI_sources_small_catalog.h5",
+            remote_base_url=cscs_karabo_public_base_url,
+        )
+
+
 class BATTYESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         raise NotImplementedError(
@@ -124,9 +132,9 @@ class BATTYESurveyDownloadObject(SingleFileDownloadObject):
 
 class DilutedBATTYESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
-        super().__init__(
-            remote_file_path="point_sources_OSKAR1_diluted5000.h5",
-            remote_base_url=cscs_karabo_public_base_url,
+        raise NotImplementedError(
+            """This catalog has incorrect flux data.
+            Use HISourcesSmallCatalogDownloadObject instead."""
         )
 
 
