@@ -94,8 +94,6 @@ jobs:
               exit 2
             fi
             build="$(($build + 1000))"
-          else
-
           fi
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
