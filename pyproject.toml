@@ -57,4 +57,5 @@ testpaths = "karabo/test"
         'sphinx',
         'sphinx_rtd_theme',
         'types-requests',  # types for mypy
+        'versioneer',
     ]
