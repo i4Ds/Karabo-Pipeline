@@ -58,7 +58,7 @@ sarus pull ghcr.io/i4ds/karabo-pipeline:latest
 
 **MPI (MPICH) Support**
 
-Karabo >= `v0.21.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI).
+Karabo >= `v0.22.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI).
 
 ```shell
 srun -N16 -n16 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline:latest <mpi_application>
