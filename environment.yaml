@@ -7,7 +7,7 @@ dependencies:
   - aratmospy               =1.0.dev0
   - astropy
   - bdsf                    =1.10.dev2
-  - bluebild
+  - bluebild                =0.1.dev0
   - cuda-cudart
   - dask                    >=2022.12.1
   - dask-mpi
