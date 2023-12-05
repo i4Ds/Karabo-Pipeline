@@ -62,12 +62,13 @@ jobs:
           DEV_STR="dev"
           if [[ ${{ github.event_name }} == "release" ]]
           then
+            echo "Conda build from release"
             build="0"
             KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
             BUILD_DOCKER=true
             LATEST_DOCKER=true
-          elif [[ ${{ github.event_name }} == "workflow_dispatch" ]] || [[ ${{ github.event_name }} == "workflow_call" ]]
-          then
+          elif [[ ${{ github.event_name }} == "workflow_dispatch" ]] || [[ ${{ github.event_name }} == "workflow_call" ]]; then
+            echo "Conda build from dispatch | call"
             build=${{ inputs.buildNumber }}
             BUILD_DOCKER=${{ inputs.buildDocker }}
             LATEST_DOCKER=${{ inputs.latestDocker }}
