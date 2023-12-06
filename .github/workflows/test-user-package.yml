@@ -6,12 +6,12 @@ on:
       version:
         type: string
         required: true
-        description: "version: PEP440 package-version (incl. leading 'v')"
+        description: "version: PEP440 package-version"
       buildDocker:
         type: boolean
         required: false
         default: false
-        description: "build docker-img if tests succeeded?"
+        description: "build docker-img if tests succeeded? DON't enable if you don't know what PEP440 is!"
       latestDocker:
         type: boolean
         required: false
@@ -40,8 +40,7 @@ jobs:
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
-          KARABO_TAG=${{ inputs.version }}
-          KARABO_VERSION="${KARABO_TAG:1}"
+          KARABO_VERSION=${{ inputs.version }}
           DEV_STR="dev"
           if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]] && [[ ${{ inputs.latestDocker }} == 'true' ]]; then
             echo "Invalid configuration of workflow-inputs!"

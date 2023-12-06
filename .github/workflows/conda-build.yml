@@ -12,7 +12,7 @@ on:
       version:
         type: string
         required: true
-        description: "version: PEP440 package-version incl. leading 'v' (DON'T trigger build if you don't know what PEP440 is)"
+        description: "version: PEP440 package-version (DON'T trigger build if you don't know what PEP440 is)"
       buildDocker:
         type: boolean
         required: false
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/i4ds/mambabuild-docker:latest
     outputs:
-      karabo-tag: ${{ steps.bcs.outputs.karabo_tag }}
+      karabo-version: ${{ steps.bcs.outputs.karabo_version }}
       build-docker: ${{ steps.bcs.outputs.build_docker == 'true' }}
       latest-docker: ${{ steps.bcs.outputs.latest_docker == 'true' }}
     steps:
@@ -60,29 +60,35 @@ jobs:
         shell: bash -l {0}
         run: |
           DEV_STR="dev"
-          if [[ ${{ github.event_name }} == "release" ]]
+          if [[ ${{ github.event_name }} == 'release' ]]
           then
             echo "Conda build from release"
             build="0"
             KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
+            if [[ ${KARABO_TAG:0:1} == "v" ]]; then
+              KARABO_VERSION="${KARABO_TAG:1}"
+            else
+              echo "invalid karabo-tag: has no leading v"
+              exit 1
+            fi
             BUILD_DOCKER=true
             LATEST_DOCKER=true
-          elif [[ ${{ github.event_name }} == "workflow_dispatch" ]] || [[ ${{ github.event_name }} == "workflow_call" ]]; then
+          elif [[ ${{ github.event_name }} == 'workflow_dispatch' ]] || [[ ${{ github.event_name }} == 'workflow_call' ]]; then
             echo "Conda build from dispatch | call"
             build=${{ inputs.buildNumber }}
             BUILD_DOCKER=${{ inputs.buildDocker }}
             LATEST_DOCKER=${{ inputs.latestDocker }}
-            KARABO_TAG=${{ inputs.version }}
+            KARABO_VERSION=${{ inputs.version }}
             pip install versioneer
             VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
             if [[ "$VERSIONEER_VERSION" == *"+"* ]]; then
-              if [[ "$KARABO_TAG" != *"$DEV_STR"* ]]; then
-                echo "Dirty version needs to be a PEP440 conform dev-version"
+              if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]]; then
+                echo "Dirty commit-version needs to be a PEP440 conform dev-version"
                 exit 1
               fi
             else
-              if [[ "$KARABO_TAG" != *"$VERSIONEER_VERSION"* ]]; then
-                echo "Provided version doesn't match the actual version"
+              if [[ "$KARABO_VERSION" != "$VERSIONEER_VERSION" ]]; then
+                echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
                 exit 1
               fi
             fi
@@ -90,22 +96,16 @@ jobs:
             echo "Not specified github-event occured"
             exit 1
           fi
-          if [[ ${KARABO_TAG:0:1} == "v" ]]; then
-            KARABO_VERSION="${KARABO_TAG:1}"
-          else
-            echo "invalid karabo-tag: has no leading v"
-            exit 1
-          fi
           if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]]; then
             if [[ $LATEST_DOCKER == 'true' ]]; then
-              echo "Invalid configuration of workflow-inputs!"
+              echo "Dev build docker image can not be tagged as latest!"
               exit 1
             fi
             build="$(($build + 1000))"
           fi
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
-          echo "karabo_tag=$KARABO_TAG" >> $GITHUB_OUTPUT
+          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
           echo "build_docker=$BUILD_DOCKER" >> $GITHUB_OUTPUT
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
 
@@ -125,6 +125,6 @@ jobs:
     needs: conda-build
     uses: ./.github/workflows/test-user-package.yml
     with:
-      version: ${{ needs.conda-build.outputs.karabo-tag }}
+      version: ${{ needs.conda-build.outputs.karabo-version }}
       buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
       latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
