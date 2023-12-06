@@ -17,7 +17,7 @@ on:
         type: string
         required: false
         default: ""
-        description: "gitrev: commit-hash (full) if not current commit."
+        description: "gitrev: commit-hash (full) | branch | tag if not current commit."
       verstag:
         type: string
         required: true
@@ -31,7 +31,7 @@ on:
         type: boolean
         required: false
         default: false
-        description: "install from `gitrev` environment.yaml instead?"
+        description: "create env from environment.yaml instead of conda-wheel?"
 
 env:
   REGISTRY: ghcr.io
