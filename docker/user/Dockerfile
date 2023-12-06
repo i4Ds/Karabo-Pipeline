@@ -1,3 +1,4 @@
+# for copying example-notebooks & in case env is installed through `environment.yaml`
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04 as karabo-repo
 ARG GIT_REV
 RUN apt-get update && apt-get install -y git && \
@@ -8,9 +9,10 @@ RUN apt-get update && apt-get install -y git && \
     git fetch origin ${GIT_REV} && \
     git reset --hard ${GIT_REV}
 
+# main build
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
-# build: user|test, GIT_REV: in case of "user", ONLY `v{major}.{minor}.{patch}`
-ARG BUILD=user
+# build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
+ARG BUILD=user KARABO_VERSION=""
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
@@ -27,7 +29,7 @@ RUN conda install -n base conda-libmamba-solver && \
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 COPY --from=karabo-repo Karabo-Pipeline/ repo/
 RUN if [ "$BUILD" = "user" ] ; then \
-    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="${GIT_REV:1}"; \
+    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     cd "repo"; \
     conda env update -f="environment.yaml"; \

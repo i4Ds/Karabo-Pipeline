@@ -110,6 +110,7 @@ jobs:
           docker build \
             --build-arg GIT_REV=${{ env.gitrev }} \
             --build-arg BUILD=${{ env.build }} \
+            --build-arg KARABO_VERSION=${{ env.version }} \
             -f docker/user/Dockerfile \
             -t ${{ env.IMG_ADDR }}:${{ env.version }} \
             .
