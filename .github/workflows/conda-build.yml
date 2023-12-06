@@ -79,7 +79,7 @@ jobs:
             BUILD_DOCKER=${{ inputs.buildDocker }}
             LATEST_DOCKER=${{ inputs.latestDocker }}
             KARABO_VERSION=${{ inputs.version }}
-            pip install versioneer
+            conda install -c conda-forge python versioneer
             VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
             if [[ "$VERSIONEER_VERSION" == *"+"* ]]; then
               if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]]; then
