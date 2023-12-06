@@ -64,12 +64,12 @@ jobs:
             echo "gitrev=$GITHUB_SHA" >> "$GITHUB_ENV"
             echo "build=user" >> "$GITHUB_ENV"
           elif [[ ${{ github.event_name }} == "workflow_dispatch" ]]; then
-            if [[ ${{ inputs.gitrev }} != "" ]]; then
+            if [[ "${{ inputs.gitrev }}" != "" ]]; then
               echo "gitrev=${{ inputs.gitrev }}" >> "$GITHUB_ENV"
             else
               echo "gitrev=$GITHUB_SHA" >> "$GITHUB_ENV"
             fi
-            if [[ ${{ inputs.test }} == "true" ]]; then
+            if [[ "${{ inputs.test }}" == 'true' ]]; then
               echo "build=test" >> "$GITHUB_ENV"
             else
               echo "build=user" >> "$GITHUB_ENV"
@@ -79,9 +79,9 @@ jobs:
             exit 2
           fi
           echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
-          verstag=${{ inputs.verstag }}"
-          if [[ ${verstag:0:1} == "v" ]]; then
-            version=${verstag:1}
+          verstag="${{ inputs.verstag }}"
+          if [[ "${verstag:0:1}" == "v" ]]; then
+            version="${verstag:1}"
             echo "version=$version" >> "$GITHUB_ENV"
           else
             echo "invalid verstag: has no leading v"
@@ -90,7 +90,7 @@ jobs:
           REPO_OWNER=${{ github.repository_owner }}
           echo "IMG_ADDR=${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}" >> "$GITHUB_ENV"
           DEV_STR="dev"
-          if [[ "${{ inputs.verstag }}" == *"$DEV_STR"* ]] && [[ $LATEST_DOCKER == 'true' ]]; then
+          if [[ "${{ inputs.verstag }}" == *"$DEV_STR"* ]] && [[ "${{ inputs.latest }}" == 'true' ]]; then
             echo "Invalid configuration of workflow-inputs!"
             exit 2
           fi
