@@ -34,7 +34,7 @@ RUN if [ "$BUILD" = "user" ] ; then \
     pip install --no-deps "."; \
     cd ".." ; \
     else \
-    exit 2; \
+    exit 1; \
     fi && \
     echo "conda activate karabo" >> ~/.bashrc  && \
     mkdir /workspace && \

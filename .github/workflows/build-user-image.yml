@@ -76,7 +76,7 @@ jobs:
             fi
           else
             echo "Invalid github-event!"
-            exit 2
+            exit 1
           fi
           echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
           verstag="${{ inputs.verstag }}"
@@ -85,14 +85,14 @@ jobs:
             echo "version=$version" >> "$GITHUB_ENV"
           else
             echo "invalid verstag: has no leading v"
-            exit 2
+            exit 1
           fi
           REPO_OWNER=${{ github.repository_owner }}
           echo "IMG_ADDR=${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}" >> "$GITHUB_ENV"
           DEV_STR="dev"
           if [[ "${{ inputs.verstag }}" == *"$DEV_STR"* ]] && [[ "${{ inputs.latest }}" == 'true' ]]; then
             echo "Invalid configuration of workflow-inputs!"
-            exit 2
+            exit 1
           fi
 
       - name: Extract metadata (tags, labels) for Docker

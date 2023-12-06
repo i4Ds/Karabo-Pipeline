@@ -45,7 +45,7 @@ jobs:
           DEV_STR="dev"
           if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]] && [[ ${{ inputs.latestDocker }} == 'true' ]]; then
             echo "Invalid configuration of workflow-inputs!"
-            exit 2
+            exit 1
           fi
           export IS_GITHUB_RUNNER=true
           export RUN_NOTEBOOK_TESTS=false
