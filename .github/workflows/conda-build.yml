@@ -80,7 +80,7 @@ jobs:
             LATEST_DOCKER=${{ inputs.latestDocker }}
             KARABO_VERSION=${{ inputs.version }}
             conda install -c conda-forge python versioneer
-            VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
+            VERSIONEER_VERSION=$($CONDA_PREFIX/bin/python -c 'import versioneer; print(versioneer.get_version())')
             if [[ "$VERSIONEER_VERSION" == *"+"* ]]; then
               if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]]; then
                 echo "Dirty commit-version needs to be a PEP440 conform dev-version"
