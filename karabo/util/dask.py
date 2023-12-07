@@ -90,7 +90,11 @@ class DaskHandler:
         print("Number of nodes: ", get_number_of_nodes())
         if DaskHandler.should_dask_be_used():
             # Check which type of client to use. Dask MPI or a local dask client?
-            if MPI.COMM_WORLD.Get_size() > 1 or get_number_of_nodes() > 1:
+            if (
+                is_on_slurm_cluster()
+                and get_number_of_nodes() > 1
+                or MPI.COMM_WORLD.Get_size() > 1
+            ):
                 n_threads_per_worker = DaskHandler.n_threads_per_worker
                 initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
                 DaskHandler.dask_client = Client()
