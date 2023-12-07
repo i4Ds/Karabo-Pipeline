@@ -1187,9 +1187,11 @@ class SkyModel:
             data_arrays = [x.compute() for x in data_arrays]
         sky = xr.concat(data_arrays, dim=XARRAY_DIM_1_DEFAULT)
         sky = sky.T
-        sky = sky.chunk(
-            {XARRAY_DIM_0_DEFAULT: chunksize, XARRAY_DIM_1_DEFAULT: sky.shape[1]}
-        )
+        chunks = {
+            XARRAY_DIM_0_DEFAULT: chunksize,
+            XARRAY_DIM_1_DEFAULT: sky.shape[1],
+        }
+        sky = sky.chunk(chunks=chunks)
         return SkyModel(sky, h5_file_connection=f)
 
     @staticmethod
@@ -1381,13 +1383,12 @@ class SkyModel:
                 data_array.coords[XARRAY_DIM_0_DEFAULT] = source_ids
             data_arrays.append(data_array)
 
+        chunks = {XARRAY_DIM_0_DEFAULT: chunksize}
         for freq_dataset in data_arrays:
-            freq_dataset.chunk({XARRAY_DIM_0_DEFAULT: chunksize})
+            freq_dataset.chunk(chunks=chunks)
 
         result_dataset = (
-            xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT)
-            .chunk({XARRAY_DIM_0_DEFAULT: chunksize})
-            .T
+            xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT).chunk(chunks=chunks).T
         )
 
         return SkyModel(result_dataset)

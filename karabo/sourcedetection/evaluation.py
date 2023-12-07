@@ -331,7 +331,7 @@ class SourceDetectionEvaluation:
         conf_matrix = self.get_confusion_matrix()
         ax: Axes
         _, ax = plt.subplots()
-        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)  # type: ignore[attr-defined]  # noqa: E501
+        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
         for i in range(conf_matrix.shape[0]):
             for j in range(conf_matrix.shape[1]):
                 ax.text(
