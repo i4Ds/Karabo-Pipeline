@@ -23,38 +23,38 @@ requirements:
     - versioneer
   run:
     - python                  {{ python }}
-    - aratmospy               =1.0.dev0
+    - aratmospy               =1.0.0
     - astropy
-    - bdsf                    =1.10.dev2
-    - bluebild                =0.1.dev0
+    - bdsf                    =1.10.2
+    - bluebild                =0.1.0
     - cuda-cudart
     - dask                    >=2022.12.1
     - dask-mpi
     - distributed
-    - eidos                   =1.1.dev0
+    - eidos                   =1.1.0
     - healpy
     - h5py                    =*=mpi_mpich*  # hdf5 mpich-whl python bindings
     - ipython
-    - katbeam                 =0.1.dev0
+    - katbeam                 =0.1.0
     - libcufft
     - matplotlib
-    - montagepy               =6.0.dev0
+    - montagepy               =6.0.0
     - mpi4py  # python bindings for mpi, it's implementation (mpich or openmpi) depends on other wheels
     - mpich  # explicit mpich as dep for `mpi4py`. mpich & openmpi support linux & mac (not windows)
     - nbformat
     - nbconvert
     - {{ pin_compatible('numpy') }}
-    - oskarpy                 =2.8.dev3
+    - oskarpy                 =2.8.3
     - pandas
     - psutil
-    - rascil                  =1.0.dev0
+    - rascil                  =1.0.0
     - reproject               >=0.9,<=10.0
     - requests
     - scipy                   >=1.10.1
-    - ska-gridder-nifty-cuda  =0.3.dev0
-    - ska-sdp-datamodels      =0.1.dev3
-    - ska-sdp-func-python     =0.1.dev4
-    - tools21cm               =2.0.dev2
+    - ska-gridder-nifty-cuda  =0.3.0
+    - ska-sdp-datamodels      =0.1.3
+    - ska-sdp-func-python     =0.1.4
+    - tools21cm               =2.0.2
     - xarray                  >=2022.10.0
     # transversal dependencies which we need to reference to get mpi-wheels
     - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel prio i4ds > conda-forge
