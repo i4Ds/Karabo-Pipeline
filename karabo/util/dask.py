@@ -86,7 +86,7 @@ class DaskHandler:
     dask_client: Optional[Client] = None
     n_workers_scheduler_node: int = 1
     memory_limit: Optional[int] = None
-    n_threads_per_worker: Optional[int] = None
+    n_threads_per_worker: Optional[int] = 1
     use_dask: Optional[bool] = None
     use_workers_or_nannies: Optional[str] = "nannies"
     use_proccesses: bool = False  # Some packages, such as pybdsf, do not work
@@ -106,11 +106,8 @@ class DaskHandler:
     def get_dask_client() -> Client:
         if MPI.COMM_WORLD.Get_size() > 1:
             n_threads_per_worker = DaskHandler.n_threads_per_worker
-            if n_threads_per_worker is None:
-                initialize(comm=MPI.COMM_WORLD)
-            else:
-                initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
-            DaskHandler.dask_client = Client(processes=DaskHandler.use_proccesses)
+            initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
+            DaskHandler.dask_client = Client()
         elif DaskHandler.dask_client is None:
             if (
                 not DaskHandler._setup_called
@@ -293,7 +290,6 @@ def get_local_dask_client(
     client = Client(
         n_workers=n_workers,
         threads_per_worker=DaskHandler.n_threads_per_worker,
-        processes=DaskHandler.use_proccesses,
     )
     return client
 

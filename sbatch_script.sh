@@ -1,16 +1,16 @@
 #!/bin/bash -l
-#SBATCH --job-name="karabo_test_dask"
+#SBATCH --job-name="slurm_dask_timing"
 #SBATCH --account="sk05"
-#SBATCH --nodes=2
-#SBATCH --time=00:15:00
+#SBATCH --nodes=4
+#SBATCH --time=00:30:00
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=gpu
 #SBATCH --hint=nomultithread
-#SBATCH --partition=debug
+#SBATCH --partition=normal
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export CRAY_CUDA_MPS=1
-conda activate karabo_sarus
-mpirun python3 karabo_test_dask.py
+conda activate karabo_dev_env
+srun python3 test_observation_paral.py

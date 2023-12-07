@@ -6,6 +6,8 @@ import os
 import platform
 import sys
 
+from mpi4py import MPI
+
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -27,7 +29,7 @@ if "WSL" in platform.release() and (
     os.execv(sys.executable, ["python"] + sys.argv)
 
 # Setup dask for slurm
-if "SLURM_JOB_ID" in os.environ:
+if "SLURM_JOB_ID" in os.environ and not MPI.COMM_WORLD.Get_size() == 1:
     # ugly workaraound to not import stuff not available at build-time, but on import.
     from karabo.util.dask import prepare_slurm_nodes_for_dask
 
