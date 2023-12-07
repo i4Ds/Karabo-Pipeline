@@ -20,7 +20,9 @@ def sleep_and_print_info(sleep_time):
 
 
 if __name__ == "__main__":
-    print(f"MPI Rank: {MPI.COMM_WORLD.Get_rank()}")
+    DaskHandler.setup()
+    print("MPI Rank: ", MPI.COMM_WORLD.Get_rank())
+    print("MPI Size: ", MPI.COMM_WORLD.Get_size())
     # Initialize Dask client
     client = DaskHandler.get_dask_client()
 

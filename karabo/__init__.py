@@ -6,8 +6,6 @@ import os
 import platform
 import sys
 
-from mpi4py import MPI
-
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -27,13 +25,6 @@ if "WSL" in platform.release() and (
     # Restart Python Interpreter
     # https://stackoverflow.com/questions/6543847/setting-ld-library-path-from-inside-python
     os.execv(sys.executable, ["python"] + sys.argv)
-
-# Setup dask for slurm
-if "SLURM_JOB_ID" in os.environ and not MPI.COMM_WORLD.Get_size() == 1:
-    # ugly workaraound to not import stuff not available at build-time, but on import.
-    from karabo.util.dask import prepare_slurm_nodes_for_dask
-
-    prepare_slurm_nodes_for_dask()
 
 # set rascil data directory environment variable
 # see https://ska-telescope.gitlab.io/external/rascil/RASCIL_install.html

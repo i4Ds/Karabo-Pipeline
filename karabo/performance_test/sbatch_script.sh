@@ -13,4 +13,4 @@
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export CRAY_CUDA_MPS=1
 conda activate karabo_sarus
-mpirun python3 karabo_test_dask.py
+srun python karabo_test_dask.py

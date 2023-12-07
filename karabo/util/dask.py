@@ -1,35 +1,18 @@
 from __future__ import annotations
 
-import asyncio
-import atexit
-import json
 import os
-import sys
-import time
 from collections.abc import Iterable
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import psutil
 from dask import compute, delayed  # type: ignore[attr-defined]
-from dask.distributed import Client, LocalCluster, Nanny, Worker
+from dask.distributed import Client
 from dask_mpi import initialize
 from mpi4py import MPI
 
 from karabo.error import KaraboDaskError
 from karabo.util._types import IntFloat
-from karabo.util.data_util import extract_chars_from_string, extract_digit_from_string
 from karabo.warning import KaraboWarning
-
-DASK_INFO_FOLDER = ".karabo_dask"
-DASK_INFO_FILE = "dask_info.json"
-DASK_RUN_STATUS = "dask_run_status.txt"
-
-##
-if "SLURM_JOB_ID" in os.environ:
-    DASK_INFO_FOLDER = os.path.join(DASK_INFO_FOLDER, str(os.environ["SLURM_JOB_ID"]))
-os.makedirs(DASK_INFO_FOLDER, exist_ok=True)
-DASK_INFO_ADDRESS = os.path.join(DASK_INFO_FOLDER, DASK_INFO_FILE)
-DASK_RUN_STATUS = os.path.join(DASK_INFO_FOLDER, DASK_RUN_STATUS)
 
 
 class DaskHandler:
@@ -104,37 +87,21 @@ class DaskHandler:
 
     @staticmethod
     def get_dask_client() -> Client:
-        if MPI.COMM_WORLD.Get_size() > 1:
-            n_threads_per_worker = DaskHandler.n_threads_per_worker
-            initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
-            DaskHandler.dask_client = Client()
-        elif DaskHandler.dask_client is None:
-            if (
-                not DaskHandler._setup_called
-                and is_on_slurm_cluster()
-                and is_first_node()
-            ):
-                print(
-                    KaraboWarning(
-                        "DaskHandler.setup() has to be called at the beginning "
-                        "of the script. This could lead to unexpected behaviour "
-                        "on a SLURM cluster if not (see documentation)."
-                    )
-                )
-            if is_on_slurm_cluster() and get_number_of_nodes() > 1:
-                DaskHandler.dask_client = setup_dask_for_slurm(
-                    DaskHandler.n_workers_scheduler_node, DaskHandler.memory_limit
-                )
+        print("Number of nodes: ", get_number_of_nodes())
+        if DaskHandler.should_dask_be_used():
+            # Check which type of client to use. Dask MPI or a local dask client?
+            if MPI.COMM_WORLD.Get_size() > 1 or get_number_of_nodes() > 1:
+                n_threads_per_worker = DaskHandler.n_threads_per_worker
+                initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
+                DaskHandler.dask_client = Client()
+                # Write the dashboard link to a file
+                with open("karabo-dask-dashboard.txt", "w") as f:
+                    f.write(DaskHandler.dask_client.dashboard_link)
+                # Register cleanup function
+                print(f"Dashboard link: {DaskHandler.dask_client.dashboard_link}")
             else:
-                DaskHandler.dask_client = get_local_dask_client(
-                    DaskHandler.memory_limit
-                )
-            # Write the dashboard link to a file
-            with open("karabo-dask-dashboard.txt", "w") as f:
-                f.write(DaskHandler.dask_client.dashboard_link)
-            # Register cleanup function
-            print(f"Dashboard link: {DaskHandler.dask_client.dashboard_link}")
-            atexit.register(dask_cleanup, DaskHandler.dask_client)
+                client = get_local_dask_client(DaskHandler.memory_limit)
+                DaskHandler.dask_client = client
         return DaskHandler.dask_client
 
     @staticmethod
@@ -145,7 +112,9 @@ class DaskHandler:
             return DaskHandler.use_dask
         elif DaskHandler.dask_client is not None:
             return True
-        elif is_on_slurm_cluster() and get_number_of_nodes() > 1:
+        elif (
+            is_on_slurm_cluster() and get_number_of_nodes() > 1
+        ) or MPI.COMM_WORLD.Get_size() > 1:
             return True
         else:
             return False
@@ -205,56 +174,6 @@ def parallelize_with_dask(
     return compute(*delayed_results, scheduler="distributed")
 
 
-def dask_cleanup(client: Client) -> None:
-    # Renove run status file
-    if os.path.exists(DASK_RUN_STATUS):
-        os.remove(DASK_RUN_STATUS)
-
-    # Wait for nannys to shut down
-    time.sleep(10)
-
-    # Remove the scheduler file if somehow it was not removed
-    if os.path.exists(DASK_INFO_ADDRESS):
-        os.remove(DASK_INFO_ADDRESS)
-
-    # Remove the dashboard file if somehow it was not removed
-    if os.path.exists("karabo-dask-dashboard.txt"):
-        os.remove("karabo-dask-dashboard.txt")
-
-    if client is not None:
-        client.shutdown()
-        client.close()
-
-
-def prepare_slurm_nodes_for_dask() -> None:
-    # Detect if we are on a slurm cluster
-    if not is_on_slurm_cluster() or get_number_of_nodes() <= 1:
-        DaskHandler.use_dask = False
-        return
-    elif (
-        is_first_node()
-        and DaskHandler.dask_client is None
-        and not DaskHandler._nodes_prepared
-    ):
-        DaskHandler._nodes_prepared = True
-        slurm_job_nodelist = check_env_var(
-            var="SLURM_JOB_NODELIST", fun=prepare_slurm_nodes_for_dask
-        )
-        print(
-            f"""
-            Preparing SLURM nodes for dask...
-            First Node, containing the scheduler, is: {get_node_name()}
-            With the help of dask, the following nodes will be used:
-            {slurm_job_nodelist}
-            """
-        )
-
-    elif not is_first_node() and not DaskHandler._nodes_prepared:
-        # TODO: Here setup_nannies_workers_for_slurm() could be called
-        # but there is no if name == main guard in this file.
-        pass
-
-
 def calculate_number_of_workers_per_node(
     memory_limit: Optional[IntFloat],
 ) -> int:
@@ -294,185 +213,9 @@ def get_local_dask_client(
     return client
 
 
-def setup_nannies_workers_for_slurm() -> None:
-    # Wait until dask info file is created
-    while not os.path.exists(DASK_INFO_ADDRESS):
-        time.sleep(1)
-
-    # Load dask info file
-    with open(DASK_INFO_ADDRESS, "r") as f:
-        dask_info = json.load(f)
-
-    # Calculate memory usage of each worker
-    if DaskHandler.memory_limit is None:
-        memory_limit = f"{psutil.virtual_memory().available / 1e9}GB"
-    else:
-        memory_limit = f"{DaskHandler.memory_limit}GB"
-
-    async def start_worker(scheduler_address: str) -> Worker:
-        worker = await Worker(
-            scheduler_address,
-            nthreads=DaskHandler.n_threads_per_worker,
-            memory_limit=memory_limit,
-        )
-        await worker.finished()
-        return worker  # type: ignore
-
-    async def start_nanny(scheduler_address: str) -> Nanny:
-        nanny = await Nanny(
-            scheduler_address,
-            nthreads=DaskHandler.n_threads_per_worker,
-            memory_limit=memory_limit,
-        )
-        await nanny.finished()
-        return nanny  # type: ignore
-
-    scheduler_address = str(dask_info["scheduler_address"])
-    n_workers = int(str(dask_info["n_workers_per_node"]))
-
-    # Start workers or nannies
-    workers_or_nannies: List[Union[Worker, Nanny]] = []
-    for _ in range(n_workers):
-        if DaskHandler.use_workers_or_nannies == "workers":
-            worker = asyncio.run(start_worker(scheduler_address))
-            workers_or_nannies.append(worker)
-        else:
-            nanny = asyncio.run(start_nanny(scheduler_address))
-            workers_or_nannies.append(nanny)
-
-    # Keep the process alive
-    while os.path.exists(DASK_RUN_STATUS):
-        time.sleep(1)
-
-    # Shutdown process
-    for worker_or_nanny in workers_or_nannies:
-        result = asyncio.run(worker_or_nanny.close())
-        if result == "OK":
-            pass
-        else:
-            print(
-                f"""
-                There was an issue closing the worker or nanny at
-                 {worker_or_nanny.address}
-                """
-            )
-
-    # Stop the script successfully
-    sys.exit(0)
-
-
-def setup_dask_for_slurm(
-    n_workers_scheduler_node: int, memory_limit: Optional[IntFloat]
-) -> Client:
-    if is_first_node():
-        # Create file to show that the run is still ongoing
-        with open(DASK_RUN_STATUS, "w") as f:
-            f.write("ongoing")
-
-        # Create client and scheduler
-        cluster = LocalCluster(
-            ip=get_node_name(),
-            n_workers=n_workers_scheduler_node,
-            threads_per_worker=DaskHandler.n_threads_per_worker,
-        )
-        dask_client = Client(cluster, proccesses=DaskHandler.use_proccesses)
-
-        # Calculate number of workers per node
-        n_workers_per_node = calculate_number_of_workers_per_node(memory_limit)
-
-        # Create dictionary with the information
-        dask_info = {
-            "scheduler_address": cluster.scheduler_address,
-            "n_workers_per_node": n_workers_per_node,
-        }
-
-        # Write scheduler file
-        with open(DASK_INFO_ADDRESS, "w") as f:
-            json.dump(dask_info, f)
-
-        # Wait until all workers are connected
-        n_workers_requested = (
-            get_number_of_nodes() - 1
-        ) * n_workers_per_node + n_workers_scheduler_node
-
-        dask_client.wait_for_workers(
-            n_workers=n_workers_requested, timeout=DaskHandler.TIMEOUT
-        )
-
-        print(f"All {len(dask_client.scheduler_info()['workers'])} workers connected!")
-        return dask_client
-
-    else:
-        setup_nannies_workers_for_slurm()
-        return None  # type: ignore
-
-
-def extract_node_ids_from_node_list() -> List[int]:
-    slurm_job_nodelist = check_env_var(
-        var="SLURM_JOB_NODELIST", fun=extract_node_ids_from_node_list
-    )
-    if get_number_of_nodes() == 1:
-        # Node name will be something like "psanagpu115"
-        return [extract_digit_from_string(slurm_job_nodelist)]
-    node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
-    id_ranges = node_list.split(",")
-    node_ids = []
-    for id_range in id_ranges:
-        if "-" in id_range:
-            min_id, max_id = id_range.split("-")
-            node_ids += [i for i in range(int(min_id), int(max_id) + 1)]
-        else:
-            node_ids.append(int(id_range))
-
-    return node_ids
-
-
-def get_min_max_of_node_id() -> Tuple[int, int]:
-    """
-    Returns the min max from SLURM_JOB_NODELIST.
-    Works if it's run only on two nodes (separated with a comma)
-    of if it runs on more than two nodes (separated with a dash).
-    """
-    node_list = extract_node_ids_from_node_list()
-    return min(node_list), max(node_list)
-
-
-def get_lowest_node_id() -> int:
-    return get_min_max_of_node_id()[0]
-
-
-def get_base_string_node_list() -> str:
-    slurm_job_nodelist = check_env_var(
-        var="SLURM_JOB_NODELIST", fun=get_base_string_node_list
-    )
-    if get_number_of_nodes() == 1:
-        return extract_chars_from_string(slurm_job_nodelist)
-    else:
-        return slurm_job_nodelist.split("[")[0]
-
-
-def get_lowest_node_name() -> str:
-    return get_base_string_node_list() + str(get_lowest_node_id())
-
-
 def get_number_of_nodes() -> int:
     n_nodes = check_env_var(var="SLURM_JOB_NUM_NODES", fun=get_number_of_nodes)
     return int(n_nodes)
-
-
-def get_node_id() -> int:
-    # Attention, often the node id starts with a 0.
-    slurmd_nodename = check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
-    len_id = len(get_base_string_node_list())
-    return int(slurmd_nodename[-len_id:])
-
-
-def get_node_name() -> str:
-    return check_env_var(var="SLURMD_NODENAME", fun=get_node_id)
-
-
-def is_first_node() -> bool:
-    return get_node_id() == get_lowest_node_id()
 
 
 def is_on_slurm_cluster() -> bool:
