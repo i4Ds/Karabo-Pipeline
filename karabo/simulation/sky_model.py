@@ -473,7 +473,8 @@ class SkyModel:
             raise KaraboSkyModelError("Rechunking of `sources` None is not allowed.")
         if self.sources.chunks is not None:
             chunk_size = max(self.sources.chunks[0][0], 1)
-            array = array.chunk({self._sources_dim_sources: chunk_size})
+            chunks: Dict[str, Any] = {self._sources_dim_sources: chunk_size}
+            array = array.chunk(chunks=chunks)
         else:
             pass
         return array
@@ -1187,7 +1188,7 @@ class SkyModel:
             data_arrays = [x.compute() for x in data_arrays]
         sky = xr.concat(data_arrays, dim=XARRAY_DIM_1_DEFAULT)
         sky = sky.T
-        chunks = {
+        chunks: Dict[str, Any] = {
             XARRAY_DIM_0_DEFAULT: chunksize,
             XARRAY_DIM_1_DEFAULT: sky.shape[1],
         }
@@ -1383,7 +1384,7 @@ class SkyModel:
                 data_array.coords[XARRAY_DIM_0_DEFAULT] = source_ids
             data_arrays.append(data_array)
 
-        chunks = {XARRAY_DIM_0_DEFAULT: chunksize}
+        chunks: Dict[str, Any] = {XARRAY_DIM_0_DEFAULT: chunksize}
         for freq_dataset in data_arrays:
             freq_dataset.chunk(chunks=chunks)
 
