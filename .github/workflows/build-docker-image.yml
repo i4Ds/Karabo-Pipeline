@@ -1,4 +1,4 @@
-name: Build User Image
+name: Build Docker Image
 
 on:
   workflow_call:

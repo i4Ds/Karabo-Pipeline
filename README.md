@@ -3,7 +3,7 @@
 [![Test Software](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml)
 [![Build Docs](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yml)
 [![Build Conda](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml)
-[![Build Docker User Image](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-user-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-user-image.yml)
+[![Build Docker User Image](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docker-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docker-image.yml)
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
 [Example](karabo/examples/source_detection.ipynb) |

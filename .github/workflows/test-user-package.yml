@@ -65,7 +65,7 @@ jobs:
   build-docker:
     needs: test-conda-build
     if: ${{ inputs.buildDocker }}
-    uses: ./.github/workflows/build-user-image.yml
+    uses: ./.github/workflows/build-docker-image.yml
     with:
       verstag: ${{ inputs.version }}
       latest: ${{ inputs.latestDocker }}
