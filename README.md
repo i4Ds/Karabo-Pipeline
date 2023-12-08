@@ -1,9 +1,10 @@
 ![Alt text](doc/src/_static/logo.png?raw=true "Karabo")
 ===========
-[![Test Software](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml)
-[![Build Docs](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yml)
-[![Build Conda](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml)
-[![Build Docker User Image](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docker-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docker-image.yml)
+| | |
+| --- | --- |
+| Testing | [![CI - Test](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml) [![codecov](https://codecov.io/gh/i4Ds/Karabo-Pipeline/graph/badge.svg?token=WU4IC2MOXV)](https://codecov.io/gh/i4Ds/Karabo-Pipeline) |
+| Package | [![Conda Latest Release](https://anaconda.org/i4ds/karabo-pipeline/badges/version.svg)](https://anaconda.org/i4ds/karabo-pipeline) [![Conda Downloads](https://anaconda.org/i4ds/karabo-pipeline/badges/downloads.svg)](https://anaconda.org/i4ds/karabo-pipeline) |
+| Meta | [![License - BSD 3-Clause](https://anaconda.org/i4ds/karabo-pipeline/badges/license.svg)](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) |
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
 [Example](karabo/examples/source_detection.ipynb) |
