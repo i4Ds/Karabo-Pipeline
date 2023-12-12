@@ -48,18 +48,14 @@ WORKDIR /workspace
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
 
 # The folowwing steps install mpich at a standard location to allow a native mpi-hook
-# To make this work, conda additionally needs to link their mpi-installation in the 
-# virtual environment to the standard-location. Be aware that the mpi-installation  
+# To make this work, conda additionally needs to link their mpi-installation in the virtual 
+# environment to the standard-location (see issue #512). Be aware that the mpi-installation  
 # and version is determined through `apt`. Therefore, to ensure abi-compatibility of mpi the 
 # version installed using `apt` and the version specified in the environment-files must match.
 
 # fetch mpich-version to have it consistent with it's installation from karabo
-ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/")'
-# install mpich at standard location
-RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
+RUN MPICH_VERSION=$(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/") && \
     MPICH_VERSION_APT=$(echo "$MPICH_VERSION" | awk -F. '{print $1 "." $2 "-*"}') && \
     apt update && \
-    apt install mpich=$MPICH_VERSION_APT
-# replace mpi with dummy-install (see issue #512)
-RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
+    apt install mpich=$MPICH_VERSION_APT && \
     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"

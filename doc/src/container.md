@@ -35,11 +35,11 @@ We do not provide ready-made [Singularity containers](https://sylabs.io/). Howev
 singularity pull docker://ghcr.io/i4ds/karabo-pipeline:latest
 ```
 
-How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html).
+How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html). Be aware that Singularity mounts the home-directory by default if start a container from your home-directory, which may not be desirable (e.g. `conda init` is done through .bashrc of the image). Be sure to disable this behavior by setting the `--no-home` flag when starting a container.
 
 ## Sarus Container
 
-On CSCS, it is recommended to use [Sarus containers](https://sarus.readthedocs.io/en/stable/index.html) (see CSCS [Sarus guide](https://user.cscs.ch/tools/containers/sarus/)). Sarus commands are similar to Docker or Singularity. It is recommended to create a sarus image in an interactive SLURM job using `srun --pty bash`. 
+On CSCS, it is recommended to use [Sarus containers](https://sarus.readthedocs.io/en/stable/index.html) (see CSCS [Sarus guide](https://user.cscs.ch/tools/containers/sarus/)). Sarus commands are similar to Docker or Singularity. It is recommended to create a Sarus image in an interactive SLURM job using `srun --pty bash`. 
 
 **Setup**
 
@@ -50,7 +50,7 @@ module load daint-gpu \# or daint-mc
 module load sarus
 ```
 
-Then you can pull a Docker image to a sarus image as follows:
+Then you can pull a Docker image to a Sarus image as follows:
 
 ```shell
 sarus pull ghcr.io/i4ds/karabo-pipeline:latest
@@ -66,7 +66,7 @@ srun -N16 -n16 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination
 
 Here, an MPI application with 16 processes is launched with your repository mounted in the container (/workspace is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
 
-Currently, native-mpi-hook is NOT enabled, because the mpi-installation needs to live at a standard-location, which is not the case here since mpich lives in a conda-venv. If this is a feature you need, don't hesitate to contact us. In the container, you would have to install mpich from source (the same version which lives in the conda-venv), and replace the mpich in the conda-env with a dummy-installation. Then, you're able to use to use native MPI by hooking CSCS MPI into the container adding the `--mpi` flag as follows:
+We support native-mpi hook, which allows to utilize the mpi of CSCS at optimized performance. To enable the hook, just add the `--mpi` flag of the `sarus run` command as follows:
 
 ```shell
 srun -N16 -n16 -C gpu sarus run --mpi --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline:latest <mpi_application>
