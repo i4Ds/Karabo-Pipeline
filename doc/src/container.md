@@ -15,10 +15,10 @@ Docker images have the advantage that the packages needed for Karabo-pipeline ar
 What the possibilities using Docker are is far too extensive to describe here. We refer to the official [Docker reference](https://docs.docker.com/reference/) for this. We only show here a minimal example of how Docker could be used, so you can use e.g. a [Jupyter Notebook](https://jupyter.org/) with sample code and an existing Karabo environment.
 
 ```shell
-docker run -it --rm -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest
+docker run -it -v <source-dir>:<target-dir> -p 8888:8888 ghcr.io/i4ds/karabo-pipeline
 ```
 
-This starts the Docker container of the image interactively, where we forward port 8888. After that, we start the jupyter service in the container with the following command:
+This starts the Docker container of the image interactively, where the port 8888 is forwarded and an editable directory is mounted. After that, you could do whatever you want. For demonstration purpose, we start the jupyter-server in the container with the following command:
 
 ```shell
 jupyter lab --ip 0.0.0.0 --no-browser --port=8888 --allow-root
@@ -26,18 +26,18 @@ jupyter lab --ip 0.0.0.0 --no-browser --port=8888 --allow-root
 
 This will start a server on the same port as forwarded. Then copy the url which is given at the bottom and replace `hostname` with `localhost` and open it in a browser.
 
-## Singularity Container
+## Singularity Containers
 
 Singularity containers are often standard on HPC clusters, which do not require special permissions (unlike Docker).
-We do not provide ready-made [Singularity containers](https://sylabs.io/). However, they can be easily created from Docker images with the following command (may take a while):
+We do not provide ready-made [Singularity containers](https://sylabs.io/). However, they can be easily created from Docker images with the following command (may take a while). You may first have to load the module if it's not available `module load singularity`:
 
 ```shell
-singularity pull docker://ghcr.io/i4ds/karabo-pipeline:latest
+singularity pull docker://ghcr.io/i4ds/karabo-pipeline
 ```
 
-How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html). Be aware that Singularity mounts the home-directory by default if start a container from your home-directory, which may not be desirable (e.g. `conda init` is done through .bashrc of the image). Be sure to disable this behavior by setting the `--no-home` flag when starting a container.
+This creates a `.sif` file which acts as a singularity image and can be used to launch your application. How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html). Be aware that Singularity mounts the home-directory by default if start a container from your home-directory, which may not be desirable (e.g. `conda init` is done through .bashrc of the image). Be sure to disable this behavior by setting the `--no-home` flag when starting a container.
 
-## Sarus Container
+## Sarus Containers
 
 On CSCS, it is recommended to use [Sarus containers](https://sarus.readthedocs.io/en/stable/index.html) (see CSCS [Sarus guide](https://user.cscs.ch/tools/containers/sarus/)). Sarus commands are similar to Docker or Singularity. It is recommended to create a Sarus image in an interactive SLURM job using `srun --pty bash`. 
 
@@ -53,7 +53,7 @@ module load sarus
 Then you can pull a Docker image to a Sarus image as follows:
 
 ```shell
-sarus pull ghcr.io/i4ds/karabo-pipeline:latest
+sarus pull ghcr.io/i4ds/karabo-pipeline
 ```
 
 **MPI (MPICH) Support**
@@ -61,7 +61,7 @@ sarus pull ghcr.io/i4ds/karabo-pipeline:latest
 Karabo >= `v0.22.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI).
 
 ```shell
-srun -N16 -n16 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline:latest <mpi_application>
+srun -N16 -n16 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline <mpi_application>
 ```
 
 Here, an MPI application with 16 processes is launched with your repository mounted in the container (/workspace is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
@@ -69,5 +69,5 @@ Here, an MPI application with 16 processes is launched with your repository moun
 We support native-mpi hook, which allows to utilize the mpi of CSCS at optimized performance. To enable the hook, just add the `--mpi` flag of the `sarus run` command as follows:
 
 ```shell
-srun -N16 -n16 -C gpu sarus run --mpi --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline:latest <mpi_application>
+srun -N16 -n16 -C gpu sarus run --mpi --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline <mpi_application>
 ```

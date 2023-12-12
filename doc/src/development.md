@@ -158,20 +158,17 @@ make html
 
 We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)). To add a new test simply go to the `karabo/test` folder.
 
-Add tests for when you write some sort of new code that you feel like might break.
-
-TIP:
-If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.
+Add tests for when you write some sort of new code that you feel like might break. Be aware that tests utilize the functionality of the testing-framework and therefore might not behave exaclty the same as you whould execute the code just as a function. The most important file to consider is `conftest.py`, which could impact the other tests.
 
 ## Create a Release
-When everything is merged which should be merged, a new Release can be deployed on `conda-forge` as following:
+When everything is merged which should be merged, a new Release can be deployed as following:
 - [Karabo-Pipeline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
-- Define a Version by clicking `Choose a tag`. Currently we increment the minor version by 1.
-- Set the version in pyproject.toml
+- Define a Version by clicking `Choose a tag`. We follow PEP440 {major}.{minor}.{path} with a leading `v` at the beginning (see previous versions). Usually we increment the minor version by 1.
 - Check that the `Target` is set to `main`.
 - Describe the release (get inspired by the previous releases).
 - Click `Publish release`. 
 - Check on [Karabo-Pipeline | Github Actions](https://github.com/i4Ds/Karabo-Pipeline/actions) that the release is succesful. 
 - Check that the new version is on [Anaconda.org | Packages](https://anaconda.org/i4ds/karabo-pipeline)
+- Check on [Karabo-Pipeline | Docker Images](https://github.com/i4ds/Karabo-Pipeline/pkgs/container/karabo-pipeline) that the released image is live.
 
