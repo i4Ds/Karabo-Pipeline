@@ -57,5 +57,5 @@ ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
 RUN MPICH_VERSION=$(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/") && \
     MPICH_VERSION_APT=$(echo "$MPICH_VERSION" | awk -F. '{print $1 "." $2 "-*"}') && \
     apt update && \
-    apt install mpich=$MPICH_VERSION_APT && \
+    apt install -y mpich=$MPICH_VERSION_APT && \
     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
