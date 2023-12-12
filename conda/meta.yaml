@@ -21,7 +21,7 @@ requirements:
     - numpy
     - tomli
     - versioneer
-  run:
+  run:  # constrain-notes see `environment.yaml`
     - python                  {{ python }}
     - aratmospy               =1.0.0=*_0
     - astropy
@@ -33,14 +33,14 @@ requirements:
     - distributed
     - eidos                   =1.1.0=*_0
     - healpy
-    - h5py                    =*=mpi_mpich*  # hdf5 mpich-whl python bindings
+    - h5py
     - ipython
     - katbeam                 =0.1.0=*_0
     - libcufft
     - matplotlib
     - montagepy               =6.0.0=*_0
-    - mpi4py  # python bindings for mpi, it's implementation (mpich or openmpi) depends on other wheels
-    - mpich  # explicit mpich as dep for `mpi4py`. mpich & openmpi support linux & mac (not windows)
+    - mpi4py
+    - mpich                   =4.0
     - nbformat
     - nbconvert
     - {{ pin_compatible('numpy') }}
@@ -57,9 +57,7 @@ requirements:
     - tools21cm               =2.0.2=*_0
     - xarray                  >=2022.10.0
     # transversal dependencies which we need to reference to get mpi-wheels
-    - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel prio i4ds > conda-forge
-    # - casacore                =*=mpi_openmpi*  # oskarpy(oskar) -> casacore has just nompi & openmpi-wheels
-
+    - conda-forge::fftw       =*=mpi_mpich*
 
 
 test:

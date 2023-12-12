@@ -47,26 +47,19 @@ RUN if [ "$BUILD" = "user" ] ; then \
 WORKDIR /workspace
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
 
-# The following steps are needed if an mpi-hook through sarus must be allowed.
-# However, because this steps takes more than 2 hours, and the github-runners run out
-# of memory, these steps are outcommented at the time-beeing.
+# The folowwing steps install mpich at a standard location to allow a native mpi-hook
+# To make this work, conda additionally needs to link their mpi-installation in the 
+# virtual environment to the standard-location. Be aware that the mpi-installation  
+# and version is determined through `apt`. Therefore, to ensure abi-compatibility of mpi the 
+# version installed using `apt` and the version specified in the environment-files must match.
 
-# # fetch mpich-version to have it consistent with it's installation from karabo
-# ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/")'
-# # install mpich on standard location to enable mpi-hook (may take a while)
-# RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
-#     mkdir -p /tmp/mpich-build && \
-#     cd /tmp/mpich-build && \
-#     wget http://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz && \
-#     tar xvzf mpich-${MPICH_VERSION}.tar.gz && \
-#     cd mpich-${MPICH_VERSION}  && \
-#     ./configure --enable-fast=all,O3 --prefix=/usr --with-cuda=/usr/local/cuda && \
-#     make -j4 && \
-#     make install && \
-#     ldconfig && \
-#     cp -p /tmp/mpich-build/mpich-${MPICH_VERSION}/examples/cpi /usr/bin/ && \
-#     cd / && \
-#     rm -rf /tmp/mpich-build
-# # replace mpi with dummy-install (see issue #512)
-# RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
-#     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
+# fetch mpich-version to have it consistent with it's installation from karabo
+ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/")'
+# install mpich at standard location
+RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
+    MPICH_VERSION_APT=$(echo "$MPICH_VERSION" | awk -F. '{print $1 "." $2 "-*"}') && \
+    apt update && \
+    apt install mpich=$MPICH_VERSION_APT
+# replace mpi with dummy-install (see issue #512)
+RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
+    conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"

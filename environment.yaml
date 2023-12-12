@@ -2,7 +2,7 @@ channels:
   - i4ds
   - nvidia/label/cuda-11.7.0
   - conda-forge
-dependencies:
+dependencies:  # package-version & build-number of Karabo-Feedstock deps should be fixed (see PR #526)
   - python                  =3.9
   - aratmospy               =1.0.0=*_0
   - astropy
@@ -14,14 +14,14 @@ dependencies:
   - distributed
   - eidos                   =1.1.0=*_0
   - healpy
-  - h5py                    =*=mpi_mpich*
+  - h5py  # has mpich-wheel, but is not compatible with apt-compiled binary (see PR #526)
   - ipython
   - katbeam                 =0.1.0=*_0
   - libcufft
   - matplotlib
   - montagepy               =6.0.0=*_0
   - mpi4py
-  - mpich
+  - mpich                   =4.0  # version needs to be compatible with the `apt` installer in Dockerfile (see PR #526)
   - nbformat
   - nbconvert
   - numpy                   >=1.21, !=1.24.0
@@ -38,4 +38,5 @@ dependencies:
   - tools21cm               =2.0.2=*_0
   - xarray                  >=2022.10.0
   # transversal dependencies which we need to reference to get mpi-wheels
-  - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft)
+  # casacore hast just no-mpi & open-mpi, but no mpich-wheel
+  - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel-prio & not take our legacy fftw-wheel
