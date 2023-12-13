@@ -21,7 +21,7 @@ docker run -it -v <source-dir>:<target-dir> -p 8888:8888 ghcr.io/i4ds/karabo-pip
 This starts the Docker container of the image interactively, where the port 8888 is forwarded and an editable directory is mounted. After that, you could do whatever you want. For demonstration purpose, we start the jupyter-server in the container with the following command:
 
 ```shell
-jupyter lab --ip 0.0.0.0 --no-browser --port=8888 --allow-root
+jupyter lab --ip 0.0.0.0 --no-browser --port=8888
 ```
 
 This will start a server on the same port as forwarded. Then copy the url which is given at the bottom and replace `hostname` with `localhost` and open it in a browser.
