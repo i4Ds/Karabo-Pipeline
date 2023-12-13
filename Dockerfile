@@ -7,7 +7,7 @@ ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     IS_DOCKER_CONTAINER="true"
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    conda init --system --all && \
+    conda init && \
     rm ~/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
@@ -51,6 +51,11 @@ RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     apt-get install -y mpich=$MPICH_VERSION_APT
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
+
+# add bashrc to non-root directory & set bash-env accordingly (important for singularity containers)
+RUN mkdir opt/etc && \
+    cp ~/.bashrc /opt/etc/bashrc
+ENV BASH_ENV=/opt/etc/bashrc
 
 # Additional setup
 WORKDIR /workspace
