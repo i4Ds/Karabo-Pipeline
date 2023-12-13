@@ -16,6 +16,7 @@ SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
     conda create -y -n karabo && \
+    echo "conda activate karabo" >> ~/.bashrc && \
     conda config --set auto_activate_base false
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
@@ -33,7 +34,6 @@ RUN mkdir Karabo-Pipeline && \
     else \
     exit 1; \
     fi && \
-    echo "conda activate karabo" >> ~/.bashrc  && \
     mkdir ~/karabo && \
     cp -r "karabo/examples" ~/karabo/examples/ && \
     cd ".." && \
