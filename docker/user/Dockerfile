@@ -15,7 +15,8 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Li
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
-    conda create -y -n karabo
+    conda create -y -n karabo && \
+    conda config --set auto_activate_base false
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN mkdir Karabo-Pipeline && \
