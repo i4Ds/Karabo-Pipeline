@@ -104,7 +104,7 @@ jobs:
             --build-arg GIT_REV=${{ env.gitrev }} \
             --build-arg BUILD=${{ env.build }} \
             --build-arg KARABO_VERSION=${{ env.version }} \
-            -f docker/user/Dockerfile \
+            -f Dockerfile \
             -t ${{ env.IMG_ADDR }}:${{ env.version }} \
             .
           if [[ ${{ env.latest }} == 'true' ]]; then
