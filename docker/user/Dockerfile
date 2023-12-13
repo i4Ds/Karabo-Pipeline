@@ -3,21 +3,17 @@ FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 ARG GIT_REV="main" BUILD="user" KARABO_VERSION=""
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
-    PATH="/home/andromeda/miniconda3/bin:${PATH}" \
+    PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
-RUN useradd -ms /bin/bash andromeda
-USER andromeda
-WORKDIR /home/andromeda
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b && \
-    conda init bash && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    conda init --system --all && \
     rm ~/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
     conda create -y -n karabo && \
-    echo "conda activate karabo" >> ~/.bashrc && \
-    conda config --set auto_activate_base false
+    echo "conda activate karabo" >> ~/.bashrc
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN mkdir Karabo-Pipeline && \
@@ -49,12 +45,13 @@ RUN mkdir Karabo-Pipeline && \
 
 # fetch mpich-version to have it consistent with it's installation from karabo
 ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/")'
-USER root
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     MPICH_VERSION_APT=$(echo "$MPICH_VERSION" | awk -F. '{print $1 "." $2 "-*"}') && \
     apt-get update && \
     apt-get install -y mpich=$MPICH_VERSION_APT
-USER andromeda
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
+
+# Additional setup
+WORKDIR /workspace
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
