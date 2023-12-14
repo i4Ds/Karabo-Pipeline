@@ -58,7 +58,6 @@ RUN mkdir opt/etc && \
     cat ~/.bashrc | sed -n '/conda initialize/,/conda activate/p' > /opt/etc/conda_init_script
 ENV BASH_ENV=/opt/etc/conda_init_script
 RUN echo "source $BASH_ENV" >> /etc/bash.bashrc && \
-    echo "source $BASH_ENV" >> /etc/skel/.bashrc && \
     echo "source $BASH_ENV" >> /etc/profile
 
 # Additional setup
