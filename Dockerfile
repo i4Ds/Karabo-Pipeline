@@ -12,8 +12,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Li
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
-    conda create -y -n karabo && \
-    echo "conda activate karabo" >> ~/.bashrc
+    conda create -y -n karabo
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN mkdir Karabo-Pipeline && \
@@ -48,8 +47,7 @@ ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     MPICH_VERSION_APT=$(echo "$MPICH_VERSION" | awk -F. '{print $1 "." $2 "-*"}') && \
     apt-get update && \
-    apt-get install -y mpich=$MPICH_VERSION_APT && \
-    ldconfig
+    apt-get install -y mpich=$MPICH_VERSION_APT
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
 
