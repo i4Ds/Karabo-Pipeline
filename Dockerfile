@@ -48,7 +48,8 @@ ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     MPICH_VERSION_APT=$(echo "$MPICH_VERSION" | awk -F. '{print $1 "." $2 "-*"}') && \
     apt-get update && \
-    apt-get install -y mpich=$MPICH_VERSION_APT
+    apt-get install -y mpich=$MPICH_VERSION_APT && \
+    ldconfig
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
 
