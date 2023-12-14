@@ -52,10 +52,13 @@ RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
 RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
 
-# add bashrc to non-root directory & set bash-env accordingly (important for singularity containers)
+# add conda-init script to non-root directory & set bash-env accordingly for interactive and 
+# non-interactive shells for docker & singularity
 RUN mkdir opt/etc && \
-    cp ~/.bashrc /opt/etc/bashrc
-ENV BASH_ENV=/opt/etc/bashrc
+    echo "conda activate karabo" >> ~/.bashrc && \
+    cat ~/.bashrc | sed -n '/conda initialize/,/conda activate/p' > /opt/etc/conda_init_script && \
+    echo "source /opt/etc/conda_init_script" >> /etc/profile
+ENV BASH_ENV=/opt/etc/conda_init_script
 
 # Additional setup
 WORKDIR /workspace
