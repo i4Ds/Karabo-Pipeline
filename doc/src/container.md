@@ -28,6 +28,8 @@ This will start a server on the same port as forwarded. Then copy the url which 
 
 ## Singularity Containers
 
+**Note:** Currently, building a Singularity container from our docker-registry and run karabo within it doesn't work properly. This is work in progress. Therfore, the following doc regarding Singularity are not relevant.
+
 Singularity containers are often standard on HPC clusters, which do not require special permissions (unlike Docker).
 We do not provide ready-made [Singularity containers](https://sylabs.io/). However, they can be easily created from Docker images with the following command (may take a while). You may first have to load the module if it's not available `module load singularity`:
 
@@ -66,8 +68,4 @@ srun -N16 -n16 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination
 
 Here, an MPI application with 16 processes is launched with your repository mounted in the container (/workspace is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
 
-We support native-mpi hook, which allows to utilize the mpi of CSCS at optimized performance. To enable the hook, just add the `--mpi` flag of the `sarus run` command as follows:
-
-```shell
-srun -N16 -n16 -C gpu sarus run --mpi --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline <mpi_application>
-```
+Sarus containers allow native mpi-hook to utilize the mpi of CSCS at optimized performance. However, this feature currently is not available from the karabo image. This is work in progress.
