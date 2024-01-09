@@ -112,9 +112,9 @@ jobs:
           fi
 
       - name: Test image
-        run: |  # karabo-sitepackage-location used instead of --pyargs because --only-mpi is a custom-flag of karabo which lives in the site-packages
+        run: |  # karabo-sitepackage-location used for mpirun instead of --pyargs because --only-mpi is a custom-flag of karabo which lives in the site-packages
           docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash -c \
-            'export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=false; SITE_PKGS=$(pip show karabo-pipeline | grep Location | sed "s/.*\(\/opt\/conda.*\).*/\1/"); mpirun -n 2 pytest --only-mpi; pytest $SITE_PKGS/karabo/test'
+            'export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=false; pytest --pyargs karabo.test; SITE_PKGS=$(pip show karabo-pipeline | grep Location | sed "s/.*\(\/opt\/conda.*\).*/\1/"); cd $SITE_PKGS/karabo; mpirun -n 2 pytest --only-mpi'
       - name: Docker push
         shell: bash -l {0}
         run: |
