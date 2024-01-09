@@ -36,21 +36,6 @@ RUN mkdir Karabo-Pipeline && \
     pip install jupyterlab ipykernel pytest && \
     python -m ipykernel install --user --name=karabo
 
-# The following steps installs mpich at a standard location to allow a native mpi-hook
-# To make this work, conda additionally needs to link their mpi-installation in the virtual 
-# environment to the standard-location (see issue #512). Be aware that the mpi-installation  
-# and version is determined through `apt`. Therefore, to ensure abi-compatibility of mpi the 
-# version installed using `apt` and the version specified in the environment-files must match.
-
-# fetch mpich-version to have it consistent with it's installation from karabo
-# ARG MPICH_EVAL='echo $(conda list mpich -c | sed "s/.*mpich-\([0-9]\+\(\.[0-9]\+\)\+\)-.*/\1/")'
-# RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
-#     MPICH_VERSION_APT=$(echo "$MPICH_VERSION" | awk -F. '{print $1 "." $2 "-*"}') && \
-#     apt-get update && \
-#     apt-get install -y mpich=$MPICH_VERSION_APT
-# RUN MPICH_VERSION=$(eval $MPICH_EVAL) && \
-#     conda install --force-reinstall -c conda-forge -y "mpich=${MPICH_VERSION}=external_*"
-
 # set bash-env accordingly for interactive and non-interactive shells for docker & singularity
 RUN mkdir opt/etc && \
     echo "conda activate karabo" >> ~/.bashrc && \
@@ -58,6 +43,10 @@ RUN mkdir opt/etc && \
 ENV BASH_ENV=/opt/etc/conda_init_script
 RUN echo "source $BASH_ENV" >> /etc/bash.bashrc && \
     echo "source $BASH_ENV" >> /etc/profile
+
+# link packaged mpich-version with ldconfig to enable mpi-hook (it also links everything else, but shouldn't be an issue)
+RUN echo "$CONDA_PREFIX"/lib > /etc/ld.so.conf.d/conda.conf && \
+    ldconfig
 
 # Additional setup
 WORKDIR /workspace
