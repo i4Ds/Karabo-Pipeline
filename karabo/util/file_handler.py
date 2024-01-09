@@ -11,31 +11,75 @@ from karabo.util._types import DirPathType, FilePathType
 from karabo.util.plotting_util import Font
 
 
-def _get_default_root_dir() -> str:
-    karabo_folder = "karabo_folder"
-    scratch = os.environ.get("SCRATCH")
-    if scratch is not None:
-        root_parent = scratch
-    else:
-        root_parent = os.getcwd()
-    root_dir = os.path.join(root_parent, karabo_folder)
-    return os.path.abspath(root_dir)
+def _get_tmp_dir() -> str:
+    """Gets the according tmpdir.
+
+    Honors TMPDIR, TEMP and TMP environment variable(s).
+    The only thing not allowed is a collision between the mentioned env-vars.
+
+    Returns:
+        path of tmpdir
+    """
+    tmpdir = f"{os.path.sep}tmp"
+    env_check: Optional[str] = None  # variable to check previous environment variables
+    environment_varname = ""
+    if (TMPDIR := os.environ.get("TMPDIR")) is not None:
+        tmpdir = os.path.abspath(TMPDIR)
+        env_check = TMPDIR
+        environment_varname = "TMPDIR"
+    if (TEMP := os.environ.get("TEMP")) is not None:
+        if env_check is not None:
+            if TEMP != env_check:
+                raise RuntimeError(
+                    f"Environment variables collision: TEMP={TEMP} != "
+                    + f"{environment_varname}={env_check}"
+                )
+        else:
+            tmpdir = os.path.abspath(TEMP)
+            env_check = TEMP
+            environment_varname = "TEMP"
+    if (TMP := os.environ.get("TMP")) is not None:
+        if env_check is not None:
+            if TMP != env_check:
+                raise RuntimeError(
+                    f"Environment variables collision: TMP={TMP} != "
+                    + f"{environment_varname}={env_check}"
+                )
+        else:
+            tmpdir = os.path.abspath(TMP)
+            env_check = TEMP
+            environment_varname = "TEMP"
+    return tmpdir
+
+
+def _get_cache_dir() -> str:
+    """Gets a default cache-dir.
+
+    Returns:
+        path of cache-dir
+    """
+    tmpdir = _get_tmp_dir()
+    return os.path.join(tmpdir, "karabo-cache")
 
 
 class FileHandler:
     """Utility file-handler for unspecified directories.
 
-    Provides directory-management functionality in case no dir-path was specified.
-    `FileHandler.root` is a static root-directory where each subdir is located.
+    Provides chache-management functionality.
+    `FileHandler.root` is a static root-directory where each cache-dir is located.
+    In case you want to extract something specific from the cache, the path is usually
+    printed blue & bold in stdout.
+
     Set `FileHandler.root` to change the directory where files and dirs will be saved.
-    Subdirs are usually {prefix}_{fh_dir_identifier}_{uuid4[:8]} in case `prefix`
-     is defined, otherwise just {fh_dir_identifier}_{uuid4[:8]}.
+    Otherwise, we provide $TMP, $TMPDIR & $TEMP with a following /karabo-cache as root.
+    Subdirs are usually {prefix}_{fh_dir_identifier}_{uuid4} in case `prefix`
+    is defined, otherwise just {fh_dir_identifier}_{uuid4}.
     This class provides an additional security layer for the removal of subdirs
-     in case a root is specified where other files and directories live.
-    FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using with.
+    in case a root is specified where other files and directories live.
+    FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
-    root: str = _get_default_root_dir()
+    root: str = _get_cache_dir()
     fh_dir_identifier = "fhdir"  # additional security to protect against dir-removal
 
     def __init__(
