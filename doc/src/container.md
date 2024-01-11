@@ -60,14 +60,12 @@ sarus pull ghcr.io/i4ds/karabo-pipeline
 
 **MPI (MPICH) Support**
 
-This is something which is still in progress... Thus the support is not given atm.
-
-Karabo >= `v0.22.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI).
+Karabo >= `v0.22.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI). Note, on CSCS, mpi-runs are launched through SLURM (not through mpirun or mpiexec) by setting the `-n` (total-mpi-tasks) and `-N` (mpi-tasks-per-node) options when launching a job. So you have to set them according to your task.
 
 ```shell
-srun -N16 -n16 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline <mpi_application>
+srun -N2 -n2 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline <mpi_application>
 ```
 
-Here, an MPI application with 16 processes is launched with your repository mounted in the container (/workspace is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
+Here, an MPI application with 2 processes is launched with your repository mounted in the container (/workspace is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
 
 Sarus containers allow native mpi-hook to utilize the mpi of CSCS at optimized performance. This can be done by simply adding the `--mpi` flag to the sarus run command. Probably, there will be some warning about the minor version of some libmpi-files. However, according to [sarus abi-compatibility](https://sarus.readthedocs.io/en/stable/user/abi_compatibility.html) this shouldn't be an issue.
