@@ -21,7 +21,7 @@ dependencies:  # package-version & build-number of Karabo-Feedstock deps should 
   - matplotlib
   - montagepy               =6.0.0=*_0
   - mpi4py
-  - mpich                   =4.0  # version needs to be compatible with the `apt` installer in Dockerfile (see PR #526)
+  - mpich
   - nbformat
   - nbconvert
   - numpy                   >=1.21, !=1.24.0

@@ -40,7 +40,7 @@ requirements:
     - matplotlib
     - montagepy               =6.0.0=*_0
     - mpi4py
-    - mpich                   =4.0
+    - mpich
     - nbformat
     - nbconvert
     - {{ pin_compatible('numpy') }}
