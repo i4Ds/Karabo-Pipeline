@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import glob
 import os
+import random
 import shutil
+import string
 import uuid
 from types import TracebackType
 from typing import Optional, Union
@@ -55,11 +57,21 @@ def _get_tmp_dir() -> str:
 def _get_cache_dir() -> str:
     """Gets a default cache-dir.
 
+    dir-name: karabo-($USER-)<10-rnd-asci-letters-and-digits>
+
     Returns:
         path of cache-dir
     """
     tmpdir = _get_tmp_dir()
-    return os.path.join(tmpdir, "karabo-cache")
+    delimiter = "-"
+    prefix = "karabo"
+    user = os.environ.get("USER")
+    if user is not None:
+        prefix = delimiter.join((prefix, user))
+    suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    cache_dir_name = delimiter.join((prefix, suffix))
+    cache_dir = os.path.join(tmpdir, cache_dir_name)
+    return cache_dir
 
 
 class FileHandler:
