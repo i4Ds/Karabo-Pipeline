@@ -18,7 +18,7 @@ def _get_tmp_dir() -> str:
 
     Defined env-var-dir > scratch-dir > tmp-dir
 
-    Honors TMPDIR, TEMP and TMP environment variable(s).
+    Honors TMPDIR and TMP environment variable(s).
     The only thing not allowed is a collision between the mentioned env-vars.
 
     Returns:
@@ -27,8 +27,7 @@ def _get_tmp_dir() -> str:
     # first guess is just /tmp (low prio)
     tmpdir = f"{os.path.sep}tmp"
     # second guess is if scratch is available (mid prio)
-    scratch = os.environ.get("SCRATCH")
-    if scratch is not None and os.path.exists(scratch):
+    if (scratch := os.environ.get("SCRATCH")) is not None and os.path.exists(scratch):
         tmpdir = scratch
     # third guess is to honor the env-variables mentioned (high prio)
     env_check: Optional[str] = None  # variable to check previous environment variables
@@ -37,17 +36,6 @@ def _get_tmp_dir() -> str:
         tmpdir = os.path.abspath(TMPDIR)
         env_check = TMPDIR
         environment_varname = "TMPDIR"
-    if (TEMP := os.environ.get("TEMP")) is not None:
-        if env_check is not None:
-            if TEMP != env_check:
-                raise RuntimeError(
-                    f"Environment variables collision: TEMP={TEMP} != "
-                    + f"{environment_varname}={env_check}"
-                )
-        else:
-            tmpdir = os.path.abspath(TEMP)
-            env_check = TEMP
-            environment_varname = "TEMP"
     if (TMP := os.environ.get("TMP")) is not None:
         if env_check is not None:
             if TMP != env_check:
@@ -57,8 +45,8 @@ def _get_tmp_dir() -> str:
                 )
         else:
             tmpdir = os.path.abspath(TMP)
-            env_check = TEMP
-            environment_varname = "TEMP"
+            env_check = TMP
+            environment_varname = "TMP"
     return tmpdir
 
 
@@ -100,7 +88,7 @@ class FileHandler:
     """
 
     root: str = _get_cache_dir()
-    fh_dir_identifier = "fhdir"  # additional security to protect against dir-removal
+    fh_dir_identifier = "fhdir"  # additional protection against dir-removal
 
     def __init__(
         self,
