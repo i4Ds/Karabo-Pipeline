@@ -16,13 +16,21 @@ from karabo.util.plotting_util import Font
 def _get_tmp_dir() -> str:
     """Gets the according tmpdir.
 
+    Defined env-var-dir > scratch-dir > tmp-dir
+
     Honors TMPDIR, TEMP and TMP environment variable(s).
     The only thing not allowed is a collision between the mentioned env-vars.
 
     Returns:
         path of tmpdir
     """
+    # first guess is just /tmp (low prio)
     tmpdir = f"{os.path.sep}tmp"
+    # second guess is if scratch is available (mid prio)
+    scratch = os.environ.get("SCRATCH")
+    if scratch is not None and os.path.exists(scratch):
+        tmpdir = scratch
+    # third guess is to honor the env-variables mentioned (high prio)
     env_check: Optional[str] = None  # variable to check previous environment variables
     environment_varname = ""
     if (TMPDIR := os.environ.get("TMPDIR")) is not None:
