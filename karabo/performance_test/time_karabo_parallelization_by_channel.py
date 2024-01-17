@@ -8,8 +8,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.util.dask import DaskHandler
-
-# from karabo.util.file_handler import FileHandler
+from karabo.util.file_handler import FileHandler
 
 
 def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
@@ -80,8 +79,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
         )
         file.flush()
 
-    # Clean up
-    # FileHandler.clean_up_fh_root()
+    FileHandler().clean()
 
 
 if __name__ == "__main__":

@@ -71,9 +71,6 @@ class Image(KaraboResource):
         header: Optional[fits.header.Header] = None,
         **kwargs: Any,
     ) -> None:
-        self._fh_prefix = "image"
-        self._fh_verbose = False
-
         if path is not None and (data is None and header is None):
             self.path = path
             self.data, self.header = fits.getdata(
@@ -86,13 +83,12 @@ class Image(KaraboResource):
             self.data = data
             self.header = header
 
-            # Generate a random path for the data
-            fh = FileHandler.get_file_handler(
-                obj=self,
-                prefix=self._fh_prefix,
-                verbose=self._fh_verbose,
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="Image-",
+                purpose="restored fits-path",
             )
-            restored_fits_path = os.path.join(fh.subdir, "image.fits")
+
+            restored_fits_path = os.path.join(tmp_dir, "image.fits")
 
             # Write the FITS file
             self.write_to_file(restored_fits_path)
