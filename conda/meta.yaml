@@ -27,6 +27,7 @@ requirements:
     - astropy
     - bdsf                    =1.10.2=*_0
     - bluebild                =0.1.0=*_0
+    - cachetools
     - cuda-cudart
     - dask                    >=2022.12.1
     - dask-mpi
