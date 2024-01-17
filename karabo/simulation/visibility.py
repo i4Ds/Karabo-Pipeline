@@ -37,19 +37,19 @@ class Visibility(KaraboResource):
         -------
         None
         """
-        self._fh_prefix = "visibility"
-        self._fh_verbose = False
-        if vis_path is None:
-            fh = FileHandler.get_file_handler(
-                obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        tmp_dir = ""
+        if vis_path is None or ms_file_path is None:
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="visibility-",
+                purpose="visibility disk-cache.",
+                unique=self,
             )
-            vis_path = os.path.join(fh.subdir, "visibility.vis")
+
+        if vis_path is None:
+            vis_path = os.path.join(tmp_dir, "visibility.vis")
         self.vis_path = vis_path
         if ms_file_path is None:
-            fh = FileHandler.get_file_handler(
-                obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
-            )
-            ms_file_path = os.path.join(fh.subdir, "measurements.MS")
+            ms_file_path = os.path.join(tmp_dir, "measurements.MS")
         self.ms_file_path = ms_file_path
 
     def write_to_file(self, path: FilePathType) -> None:
@@ -182,8 +182,10 @@ class Visibility(KaraboResource):
     ) -> Optional[DirPathType]:
         print(f"Combining {len(visiblity_files)} visibilities...")
         if combined_ms_filepath is None:
-            fh = FileHandler(prefix="combine_vis", verbose=True)
-            combined_ms_filepath = os.path.join(fh.subdir, "combined.MS")
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="combine-vis-", purpose="combine-vis disk-cache."
+            )
+            combined_ms_filepath = os.path.join(tmp_dir, "combined.MS")
 
         # Initialize lists to store data
         out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
@@ -290,8 +292,11 @@ class Visibility(KaraboResource):
     ) -> Optional[DirPathType]:
         print(f"Combining {len(visibility_files)} visibilities...")
         if combined_ms_filepath is None:
-            fh = FileHandler(prefix="combine_vis_sky_chunks", verbose=True)
-            combined_ms_filepath = os.path.join(fh.subdir, "combined.MS")
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="combine-vis-sky-chunks-",
+                purpose="combine-vis-sky-chunks disk-cache.",
+            )
+            combined_ms_filepath = os.path.join(tmp_dir, "combined.MS")
 
         # Initialize lists to store data
         out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
