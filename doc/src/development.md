@@ -94,28 +94,28 @@ def fun(arg1: int, arg2: int) -> int:
 
 It is recommended to run *black* before manually checking with *flake8* because *black* might fix a lot of *flake8* related issues. It is possible that the settings of *isort* and *black* are not compatible with *flake8* and therefore should get changed.
 
-## Upload Objects to CSCS
+## Add Data Sets by Uploading to CSCS
 
-Make objects available through CSCS object-storage REST-API. The GET-request URI follows the following format: `{CSCS-object-store-prefix}/{container}/{object}` where the prefix comes from [CSCS API access](https://castor.cscs.ch/dashboard/project/api_access/).
+Make new datasets available through CSCS object-storage REST-API. The GET-request URI follows the following format: `{CSCS-object-store-prefix}/{container}/{object}` where the prefix comes from [CSCS API access](https://castor.cscs.ch/dashboard/project/api_access/).
 
-### Through Web Interface
+### Upload through Web Interface
 
 1. Go to [Castor](https://castor.cscs.ch/) and authenticate yourself.
 2. Navigate to `project/object-storage/container` and choose the container you want to upload (e.g. `karabo_public`). 
 3. Click the upload option and upload the file of choice.
 
-### Through CLI
-## Setup
+### Upload Through CLI
+#### Setup
 Read https://user.cscs.ch/tools/openstack/ and implement everything inside `OpenStack CLI Access via Virtual Environment:`
 
-## Upload Single File
+#### Upload Single File
 Upload a single file with `swift upload karabo_public <file>`
 
-## Upload Multiple files
+#### Upload Multiple files
 1. Create a new folder inside the container with `swift post karabo_public <folder_name>`
 2. Upload all files inside the folder with `swift upload karabo_public <folder_name>`
 
-## Update documentation
+## Update Documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
 The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation
