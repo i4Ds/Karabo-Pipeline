@@ -287,18 +287,16 @@ class InterferometerSimulation:
         self.ionosphere_screen_pixel_size_m = ionosphere_screen_pixel_size_m
         self.ionosphere_isoplanatic_screen = ionosphere_isoplanatic_screen
 
-        # FileHandler args if needed
-        self._fh_prefix = "interferometer_sim"
-        self._fh_verbose = True
-
     @property
     def ms_file_path(self) -> str:
         ms_file_path = self._ms_file_path
         if ms_file_path is None:
-            fh = FileHandler.get_file_handler(
-                self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="interferometer-",
+                purpose="interferometer disk-cache.",
+                unique=self,
             )
-            ms_file_path = os.path.join(fh.subdir, "measurements.MS")
+            ms_file_path = os.path.join(tmp_dir, "measurements.MS")
             self._ms_file_path = ms_file_path
         return ms_file_path
 
@@ -310,10 +308,12 @@ class InterferometerSimulation:
     def vis_path(self) -> str:
         vis_path = self._vis_path
         if vis_path is None:
-            fh = FileHandler.get_file_handler(
-                self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="interferometer-",
+                purpose="interferometer disk-cache.",
+                unique=self,
             )
-            vis_path = os.path.join(fh.subdir, "visibility.vis")
+            vis_path = os.path.join(tmp_dir, "visibility.vis")
             self._vis_path = vis_path
         return vis_path
 
@@ -407,12 +407,14 @@ class InterferometerSimulation:
 
         # Scatter sky
         array_sky = self.client.scatter(array_sky)
-        fh = FileHandler.get_file_handler(
-            self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="simulation-praallezed-observation-",
+            purpose="simulation praallezed observation",
+            unique=self,
         )
-        ms_dir = os.path.join(fh.subdir, "measurements")
+        ms_dir = os.path.join(tmp_dir, "measurements")
         os.makedirs(ms_dir, exist_ok=True)
-        vis_dir = os.path.join(fh.subdir, "visibilities")
+        vis_dir = os.path.join(tmp_dir, "visibilities")
         os.makedirs(vis_dir, exist_ok=True)
         for observation_params in observations:
             start_freq = observation_params["observation"]["start_frequency_hz"]
@@ -547,12 +549,14 @@ class InterferometerSimulation:
                 "`telescope.path` must be set but is None."
             )
 
-        fh = FileHandler.get_file_handler(
-            self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="simulation-long-",
+            purpose="simulation long",
+            unique=self,
         )
-        ms_dir = os.path.join(fh.subdir, "measurements")
+        ms_dir = os.path.join(tmp_dir, "measurements")
         os.makedirs(ms_dir, exist_ok=True)
-        vis_dir = os.path.join(fh.subdir, "visibilities")
+        vis_dir = os.path.join(tmp_dir, "visibilities")
         os.makedirs(vis_dir, exist_ok=True)
 
         # Loop over days

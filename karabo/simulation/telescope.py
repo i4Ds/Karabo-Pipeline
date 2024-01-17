@@ -114,10 +114,6 @@ class Telescope(KaraboResource):
         WGS84 latitude at the center of the telescope.
     centre_altitude : float
         Altitude (in meters) at the center of the telescope.
-    temp_dir : None
-        Temporary directory.
-    path : None
-        Hotfix for issue #59.
     """
 
     def __init__(
@@ -134,7 +130,6 @@ class Telescope(KaraboResource):
         altitude : float, optional
             Altitude (in meters) at the center of the telescope, default is 0.
         """
-        self._fh = FileHandler(prefix="telescope", verbose=False)
         self.path: Optional[DirPathType] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
@@ -379,11 +374,16 @@ class Telescope(KaraboResource):
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-
-        self.write_to_file(self._fh.subdir)
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="oskar-telescope-",
+            purpose="saving files to disk for oskar-telescope.",
+            unique=self,
+        )
+        if FileHandler.is_dir_empty(dirname=tmp_dir):
+            self.write_to_file(tmp_dir)
         tel = OskarTelescope()
-        tel.load(self._fh.subdir)
-        self.path = self._fh.subdir
+        tel.load(tmp_dir)
+        self.path = tmp_dir
         return tel
 
     def write_to_file(self, dir: DirPathType) -> None:

@@ -253,6 +253,24 @@ class FileHandler:
             shutil.rmtree(dir_)
 
     @staticmethod
+    def is_dir_empty(dirname: DirPathType) -> bool:
+        """Checks if `dirname` is empty assuming `dirname` exists.
+
+        Args:
+            dirname: Directory to check.
+
+        Raises:
+            NotADirectoryError: If `dirname` is not an existing directory.
+
+        Returns:
+            True if dir is empty, else False
+        """
+        if not os.path.isdir(dirname):
+            raise NotADirectoryError(f"{dirname} is not an existing directory.")
+        is_empty = len(os.listdir(path=dirname)) == 0
+        return is_empty
+
+    @staticmethod
     def remove_empty_dirs(term: _LongShortTermType = "short") -> None:
         """Removes emtpy directories in the chosen cache-dir.
 
