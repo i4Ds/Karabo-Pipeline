@@ -99,11 +99,11 @@ class FileHandler:
 
     tmp
     ├── karabo-LTM-<user>-<10 rnd chars+digits>
-    │   ├── some-dir
-    │   └── some-file
+    │   ├── a-dir
+    │   └── another-dir
     └── karabo-STM-<user>-<10 rnd chars+digits>
-        ├── some-dir
-        └── some-file
+        ├── a-dir
+        └── another-dir
 
     LTM stand for long-term-memory (self.ltm) and STM for short-term-memory (self.stm).
     The data-products usually get into in the STM directory.
@@ -146,9 +146,10 @@ class FileHandler:
     @overload
     def get_tmp_dir(
         self,
-        prefix: str | None = None,
+        prefix: Union[str, None] = None,
         term: Literal["short"] = "short",
-        purpose: str | None = None,
+        purpose: Union[str, None] = None,
+        unique: object = None,
     ) -> str:
         ...
 
@@ -157,15 +158,17 @@ class FileHandler:
         self,
         prefix: str,
         term: Literal["long"],
-        purpose: str | None = None,
+        purpose: Union[str, None] = None,
+        unique: object = None,
     ) -> str:
         ...
 
     def get_tmp_dir(
         self,
-        prefix: str | None = None,
+        prefix: Union[str, None] = None,
         term: _LongShortTermType = "short",
-        purpose: str | None = None,
+        purpose: Union[str, None] = None,
+        unique: object = None,
     ) -> str:
         """Gets a tmp-dir path.
 
@@ -175,10 +178,31 @@ class FileHandler:
             prefix: Dir-name prefix for STM (optional) and dir-name for LTM (required).
             term: "short" for STM or "long" for LTM.
             purpose: Creates a verbose print-msg with it's purpose if set.
+            unique: If an object which has attributes is provided, then you get
+                the same tmp-dir for the unique instance.
 
         Returns:
             tmp-dir path
         """
+        set_unique = False
+        obj_tmp_dir_name = "_karabo_tmp_dir"
+        if unique is not None:
+            if term != "short":
+                raise RuntimeError(
+                    "`unique` not None is just supported for short-term tmp-dirs."
+                )
+            try:
+                unique.__dict__  # just to test try-except
+                if hasattr(unique, obj_tmp_dir_name):
+                    return getattr(unique, obj_tmp_dir_name)
+                else:
+                    set_unique = True
+            except AttributeError:
+                raise AttributeError(
+                    "`unique` must be an object with attributes, "
+                    + f"but is of type {type(unique)} instead."
+                )
+
         dir_path = self._get_term_dir(term=term)
         if term == "short":
             dir_name = _get_rnd_str(k=10, seed=None)
@@ -197,6 +221,8 @@ class FileHandler:
             os.makedirs(dir_path, exist_ok=True)
         else:
             assert_never(term)
+        if set_unique:
+            setattr(unique, obj_tmp_dir_name, dir_path)
         if purpose:
             if len(purpose) > 0:
                 purpose = f" for {purpose}"
@@ -215,41 +241,29 @@ class FileHandler:
         self,
         term: _LongShortTermType = "short",
     ) -> None:
-        """Removes the entire directory specified by `term`."""
+        """Removes the entire directory specified by `term`.
+
+        Be careful with cleaning, to not mess up dirs of other processes.
+
+        Args:
+            term: "long" or "short" term memory
+        """
         dir_ = self._get_term_dir(term=term)
         if os.path.exists(dir_):
             shutil.rmtree(dir_)
 
     @staticmethod
     def remove_empty_dirs(term: _LongShortTermType = "short") -> None:
-        """Removes emtpy directories in the chosen cache-dir."""
+        """Removes emtpy directories in the chosen cache-dir.
+
+        Args:
+            term: "long" or "short" term memory
+        """
         dir_ = _get_cache_dir(term=term)
         paths = glob.glob(os.path.join(dir_, "*"), recursive=False)
         for path in paths:
             if os.path.isdir(path) and len(os.listdir(path=path)) == 0:
                 shutil.rmtree(path=path)
-
-    @staticmethod
-    def get_file_handler(
-        obj: object,
-    ) -> FileHandler:
-        """Utility function to always get & set unique `FileHandler` bound to `obj`.
-
-        Assumes that `FileHandler` is unique in each `obj`.
-
-        Args:
-            obj: Any object which should have an unique `FileHandler` assigned.
-
-        Returns:
-            `FileHandler` bound to `obj`.
-        """
-        for attr_name in obj.__dict__:
-            attr = getattr(obj, attr_name)
-            if isinstance(attr, FileHandler):
-                return attr
-        fh = FileHandler()
-        setattr(obj, "file_handler", fh)
-        return fh
 
     def __enter__(self) -> str:
         return self.get_tmp_dir(prefix=None, term="short")
@@ -264,6 +278,15 @@ class FileHandler:
 
 
 def check_ending(path: Union[str, FilePathType, DirPathType], ending: str) -> None:
+    """Utility function to check if the ending of `path` is `ending`.
+
+    Args:
+        path: Path to check.
+        ending: Ending match.
+
+    Raises:
+        ValueError: When the ending of `path` doesn't match `ending`.
+    """
     path_ = str(path)
     if not path_.endswith(ending):
         fname = path_.split(os.path.sep)[-1]
