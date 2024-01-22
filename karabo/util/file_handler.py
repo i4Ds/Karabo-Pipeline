@@ -94,16 +94,27 @@ class FileHandler:
     In case you want to extract something specific from the cache, the path is usually
     printed blue & bold in stdout.
 
+    The root STM and LTM should be unique per user (seeded rnd chars+digits), thus just
+    having two disk-cache directories per user.
+
     Set `FileHandler.root` to change the directory where files and dirs will be saved.
     The dir-structure is as follows where "tmp" is `FileHandler.root`:
 
     tmp
     ├── karabo-LTM-<user>-<10 rnd chars+digits>
-    │   ├── a-dir
-    │   └── another-dir
+    │   ├── <prefix><10 rnd chars+digits>
+    |   |    ├── <sbudir>
+    |   |    └── <file>
+    │   └── <prefix><10 rnd chars+digits>
+    |        ├── <sbudir>
+    |        └── <file>
     └── karabo-STM-<user>-<10 rnd chars+digits>
-        ├── a-dir
-        └── another-dir
+        ├── <prefix><10 rnd chars+digits>
+        |    ├── <sbudir>
+        |    └── <file>
+        └── <prefix><10 rnd chars+digits>
+             ├── <sbudir>
+             └── <file>
 
     LTM stand for long-term-memory (self.ltm) and STM for short-term-memory (self.stm).
     The data-products usually get into in the STM directory.
@@ -150,6 +161,8 @@ class FileHandler:
         term: Literal["short"] = "short",
         purpose: Union[str, None] = None,
         unique: object = None,
+        subdir: Union[DirPathType, None] = None,
+        mkdir: bool = True,
     ) -> str:
         ...
 
@@ -160,6 +173,8 @@ class FileHandler:
         term: Literal["long"],
         purpose: Union[str, None] = None,
         unique: object = None,
+        subdir: Union[DirPathType, None] = None,
+        mkdir: bool = True,
     ) -> str:
         ...
 
@@ -169,6 +184,8 @@ class FileHandler:
         term: _LongShortTermType = "short",
         purpose: Union[str, None] = None,
         unique: object = None,
+        subdir: Union[DirPathType, None] = None,
+        mkdir: bool = True,
     ) -> str:
         """Gets a tmp-dir path.
 
@@ -180,53 +197,66 @@ class FileHandler:
             purpose: Creates a verbose print-msg with it's purpose if set.
             unique: If an object which has attributes is provided, then you get
                 the same tmp-dir for the unique instance.
+            subdir: If set, it directly creates & returns <tmp_dir>/subdir
+            mkdir: Make-dir directly?
 
         Returns:
             tmp-dir path
         """
-        set_unique = False
-        obj_tmp_dir_name = "_karabo_tmp_dir"
+        obj_tmp_dir_short_name = "_karabo_tmp_dir_short"
+        tmp_dir: Union[str, None] = None  # without subdir
         if unique is not None:
             if term != "short":
                 raise RuntimeError(
                     "`unique` not None is just supported for short-term tmp-dirs."
                 )
             try:
-                unique.__dict__  # just to test try-except
-                if hasattr(unique, obj_tmp_dir_name):
-                    return getattr(unique, obj_tmp_dir_name)
-                else:
-                    set_unique = True
+                unique.__dict__  # just to test try-except AttributeError
+                if hasattr(unique, obj_tmp_dir_short_name):
+                    tmp_dir = getattr(unique, obj_tmp_dir_short_name)
             except AttributeError:
                 raise AttributeError(
                     "`unique` must be an object with attributes, "
                     + f"but is of type {type(unique)} instead."
                 )
 
-        dir_path = self._get_term_dir(term=term)
-        if term == "short":
+        if tmp_dir is not None:
+            dir_path = tmp_dir
+            if subdir is not None:
+                dir_path = os.path.join(dir_path, subdir)
+            exist_ok = True
+        elif term == "short":
+            dir_path = self._get_term_dir(term=term)
             dir_name = _get_rnd_str(k=10, seed=None)
             if prefix is not None:
                 dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
-            os.makedirs(dir_path, exist_ok=False)
+            setattr(unique, obj_tmp_dir_short_name, dir_path)
             self.tmps.append(dir_path)
+            if subdir is not None:
+                dir_path = os.path.join(dir_path, subdir)
+            exist_ok = False
         elif term == "long":
+            dir_path = self._get_term_dir(term=term)
             if prefix is None:
                 raise RuntimeError(
                     "For long-term-memory, `prefix` must be set to have unique dirs."
                 )
-            dir_name = prefix
+            dir_name = _get_rnd_str(k=10, seed=prefix)
+            dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
-            os.makedirs(dir_path, exist_ok=True)
+            if subdir is not None:
+                dir_path = os.path.join(dir_path, subdir)
+            exist_ok = True
         else:
             assert_never(term)
-        if set_unique:
-            setattr(unique, obj_tmp_dir_name, dir_path)
-        if purpose:
-            if len(purpose) > 0:
+        if not exist_ok and os.path.exists(dir_path):
+            raise FileExistsError(f"{dir_path} already exists")
+        if mkdir:
+            os.makedirs(dir_path, exist_ok=exist_ok)
+            if purpose and len(purpose) > 0:
                 purpose = f" for {purpose}"
-            print(f"Creating {Font.BLUE}{Font.BOLD}{dir_path}{Font.END}{purpose}")
+                print(f"Creating {Font.BLUE}{Font.BOLD}{dir_path}{Font.END}{purpose}")
         return dir_path
 
     def clean_instance(self) -> None:
