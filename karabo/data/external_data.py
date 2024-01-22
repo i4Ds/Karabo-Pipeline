@@ -1,32 +1,11 @@
 import os
 import re
-import site
 from typing import List
 
 import requests
 
 from karabo.util._types import FilePathType
-
-
-class KaraboCache:
-    """Organizes the caching of Karabo.
-
-    Set `KaraboCache.base_path` manually for custom cache directory.
-    """
-
-    base_path: str = site.getsitepackages()[0]
-    use_scratch_folder_if_exist: bool = True
-
-    if "SCRATCH" in os.environ and use_scratch_folder_if_exist:
-        base_path = os.environ["SCRATCH"]
-
-    @staticmethod
-    def get_cache_directory(mkdir: bool = False) -> str:
-        cache_path = os.path.join(KaraboCache.base_path, "karabo_cache")
-        if mkdir and not os.path.exists(cache_path):
-            os.mkdir(cache_path)
-        return cache_path
-
+from karabo.util.file_handler import FileHandler
 
 cscs_base_url = "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
 cscs_karabo_public_base_url = f"{cscs_base_url}/karabo_public"
@@ -34,6 +13,22 @@ cscs_karabo_public_testing_base_url = f"{cscs_karabo_public_base_url}/testing"
 
 
 class DownloadObject:
+    """Download handler for remote files & dirs.
+
+    Important: There is a remote file-naming-convention, to be able to provide
+    updates of cached dirs/files & to simplify maintainability.
+    The convention for each object is <dirname><file|dir>_v<version>, where the version
+    should be an integer, starting from 1. <dirname> should be the same as <file|dir>.
+    The additional <dirname> is to have a single directory for each object, so that
+    additional file/dir versions don't disturb the overall remote structure.
+
+    The version of a downloaded object is determined by the current version of Karabo,
+    meaning that they're hard-coded. Because Karabo relies partially on remote-objects,
+    we don't guarantee their availability for deprecated Karabo versions.
+    """
+
+    split = "/"
+
     def __init__(
         self,
         remote_base_url: str,
@@ -59,15 +54,27 @@ class DownloadObject:
         return response.status_code
 
     def get_object(self, remote_file_path: str, verbose: bool = True) -> str:
-        local_cache_dir = KaraboCache.get_cache_directory(mkdir=True)
+        if verbose:
+            purpose = "download-objects caching"
+        else:
+            purpose = None
+        local_cache_dir = FileHandler().get_tmp_dir(
+            prefix="objects-download",
+            term="long",
+            purpose=purpose,
+        )
         local_file_path = os.path.join(
             local_cache_dir,
-            os.path.join(*remote_file_path.split("/")),  # convert to local filesys sep
+            os.path.join(
+                *remote_file_path.split(DownloadObject.split)
+            ),  # convert to local filesys.sep
         )
         if not os.path.exists(local_file_path):
-            remote_url = f"{self.remote_base_url}/{remote_file_path}"
+            remote_url = (
+                f"{self.remote_base_url}{DownloadObject.split}{remote_file_path}"
+            )
             if verbose:
-                print(f"Download {remote_file_path} to {local_file_path} for caching.")
+                print(f"Download {remote_file_path} to {local_file_path} ...")
             _ = DownloadObject.download(url=remote_url, local_file_path=local_file_path)
         return local_file_path
 
@@ -103,7 +110,9 @@ class SingleFileDownloadObject(DownloadObject):
         )
 
     def is_available(self) -> bool:
-        remote_url = f"{self.remote_base_url}/{self.remote_file_path}"
+        remote_url = (
+            f"{self.remote_base_url}{DownloadObject.split}{self.remote_file_path}"
+        )
         return DownloadObject.is_url_available(url=remote_url)
 
 
@@ -226,5 +235,5 @@ class MGCLSContainerDownloadObject(ContainerContents):
     ) -> None:
         super().__init__(
             remote_url=cscs_karabo_public_base_url,
-            regexr_pattern=f"MGCLS/{regexr_pattern}",
+            regexr_pattern=f"MGCLS{DownloadObject.split}{regexr_pattern}",
         )
