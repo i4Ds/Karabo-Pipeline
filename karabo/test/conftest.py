@@ -129,7 +129,7 @@ def clean_disk() -> Generator[None, None, None]:
     # Setup: fill with logic
     yield  # testing happens here
     # Teardown: fill with logic
-    FileHandler().clean()
+    FileHandler.clean()
     plt.close("all")
 
 

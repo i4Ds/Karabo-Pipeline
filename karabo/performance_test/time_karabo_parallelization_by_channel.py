@@ -79,7 +79,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
         )
         file.flush()
 
-    FileHandler().clean()
+    FileHandler.clean()
 
 
 if __name__ == "__main__":

@@ -116,15 +116,22 @@ class FileHandler:
              ├── <sbudir>
              └── <file>
 
-    LTM stand for long-term-memory (FileHandler.ltm) and STM for short-term-memory
-    (FileHandler.stm). The data-products usually get into in the STM directory.
+    LTM stand for long-term-memory (FileHandler.ltm()) and STM for short-term-memory
+    (FileHandler.stm()). The data-products usually get into in the STM directory.
 
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
     root: str = _get_tmp_dir()
-    ltm = os.path.join(root, _get_cache_dir(term="long"))
-    stm = os.path.join(root, _get_cache_dir(term="short"))
+
+    @staticmethod
+    def ltm() -> str:
+        """Gives LTM (long-term-memory) path."""
+        return os.path.join(FileHandler.root, _get_cache_dir(term="long"))
+
+    def stm() -> str:
+        """Gives the STM (short-term-memory) path."""
+        return os.path.join(FileHandler.root, _get_cache_dir(term="short"))
 
     def __init__(
         self,
@@ -133,11 +140,12 @@ class FileHandler:
         # tmps is an instance bound dirs and/or files registry for STM
         self.tmps: list[str] = list()
 
-    def _get_term_dir(self, term: _LongShortTermType) -> str:
+    @staticmethod
+    def _get_term_dir(term: _LongShortTermType) -> str:
         if term == "short":
-            dir_ = FileHandler.stm
+            dir_ = FileHandler.stm()
         elif term == "long":
-            dir_ = FileHandler.ltm
+            dir_ = FileHandler.ltm()
         else:
             assert_never(term)
         return dir_
@@ -214,7 +222,7 @@ class FileHandler:
                 dir_path = os.path.join(dir_path, subdir)
             exist_ok = True
         elif term == "short":
-            dir_path = self._get_term_dir(term=term)
+            dir_path = FileHandler._get_term_dir(term=term)
             dir_name = _get_rnd_str(k=10, seed=None)
             if prefix is not None:
                 dir_name = "".join((prefix, dir_name))
@@ -226,7 +234,7 @@ class FileHandler:
                 dir_path = os.path.join(dir_path, subdir)
             exist_ok = False
         elif term == "long":
-            dir_path = self._get_term_dir(term=term)
+            dir_path = FileHandler._get_term_dir(term=term)
             if prefix is None:
                 raise RuntimeError(
                     "For long-term-memory, `prefix` must be set to have unique dirs."
@@ -256,8 +264,8 @@ class FileHandler:
                 shutil.rmtree(tmp)
             self.tmps.remove(tmp)
 
+    @staticmethod
     def clean(
-        self,
         term: _LongShortTermType = "short",
     ) -> None:
         """Removes the entire directory specified by `term`.
@@ -267,7 +275,7 @@ class FileHandler:
         Args:
             term: "long" or "short" term memory
         """
-        dir_ = self._get_term_dir(term=term)
+        dir_ = FileHandler._get_term_dir(term=term)
         if os.path.exists(dir_):
             shutil.rmtree(dir_)
 
