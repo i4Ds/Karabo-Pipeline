@@ -372,15 +372,23 @@ class Telescope(KaraboResource):
     def get_OSKAR_telescope(self) -> OskarTelescope:
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
+
+        Note: Once this function is called, it returns the same `OskarTelescope`
+            for each function call bound to this object-instance. Thus, changing
+            Telescope-parameters on this instance after calling this function
+            won't have an effect on the returned `OskarTelescope` anymore.
+
         :return: OSKAR Telescope object
         """
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="oskar-telescope-",
-            purpose="saving files to disk for oskar-telescope.",
+            purpose="oskar-telescope disk-cache",
             unique=self,
+            subdir="oskar-telescope",  # in case other files should get cached by self
         )
-        if FileHandler.is_dir_empty(dirname=tmp_dir):
-            self.write_to_file(tmp_dir)
+        if not FileHandler.is_dir_empty(dirname=tmp_dir):
+            FileHandler.empty_dir(dir_path=tmp_dir)
+        self.write_to_file(tmp_dir)
         tel = OskarTelescope()
         tel.load(tmp_dir)
         self.path = tmp_dir

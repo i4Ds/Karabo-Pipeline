@@ -299,7 +299,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         """
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="pybdsf-sdr-",
-            purpose="pybdsf source-detection-result disk-cache.",
+            purpose="pybdsf source-detection-result disk-cache",
             unique=self,
         )
         sources_file = os.path.join(tmp_dir, "sources.csv")
@@ -348,7 +348,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def __get_result_image(self, image_type: str, **kwargs: Any) -> Image:
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="pybdsf-sdr-",
-            purpose="pybdsf source-detection-result disk-cache.",
+            purpose="pybdsf source-detection-result disk-cache",
             unique=self,
         )
         outfile = os.path.join(tmp_dir, f"{image_type}-result.fits")

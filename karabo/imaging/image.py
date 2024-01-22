@@ -86,6 +86,7 @@ class Image(KaraboResource):
             tmp_dir = FileHandler().get_tmp_dir(
                 prefix="Image-",
                 purpose="restored fits-path",
+                unique=self,
             )
 
             restored_fits_path = os.path.join(tmp_dir, "image.fits")

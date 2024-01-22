@@ -37,19 +37,17 @@ class Visibility(KaraboResource):
         -------
         None
         """
-        tmp_dir = ""
         if vis_path is None or ms_file_path is None:
             tmp_dir = FileHandler().get_tmp_dir(
                 prefix="visibility-",
-                purpose="visibility disk-cache.",
+                purpose="visibility disk-cache",
                 unique=self,
             )
-
-        if vis_path is None:
-            vis_path = os.path.join(tmp_dir, "visibility.vis")
+            if vis_path is None:
+                vis_path = os.path.join(tmp_dir, "visibility.vis")
+            if ms_file_path is None:
+                ms_file_path = os.path.join(tmp_dir, "measurements.MS")
         self.vis_path = vis_path
-        if ms_file_path is None:
-            ms_file_path = os.path.join(tmp_dir, "measurements.MS")
         self.ms_file_path = ms_file_path
 
     def write_to_file(self, path: FilePathType) -> None:
@@ -183,7 +181,8 @@ class Visibility(KaraboResource):
         print(f"Combining {len(visiblity_files)} visibilities...")
         if combined_ms_filepath is None:
             tmp_dir = FileHandler().get_tmp_dir(
-                prefix="combine-vis-", purpose="combine-vis disk-cache."
+                prefix="combine-vis-",
+                purpose="combine-vis disk-cache.",
             )
             combined_ms_filepath = os.path.join(tmp_dir, "combined.MS")
 
@@ -219,7 +218,7 @@ class Visibility(KaraboResource):
         )
 
         # Write combined visibility data
-        print("### Writing combined visibilities in ", combined_ms_filepath)
+        print(f"### Writing combined visibilities in {combined_ms_filepath} ...")
 
         num_files = len(visiblity_files)
         if group_by == "day":

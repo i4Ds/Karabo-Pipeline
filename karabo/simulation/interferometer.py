@@ -409,13 +409,12 @@ class InterferometerSimulation:
         array_sky = self.client.scatter(array_sky)
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="simulation-praallezed-observation-",
-            purpose="simulation praallezed observation",
-            unique=self,
+            purpose="disk-cache simulation-praallezed-observation",
         )
         ms_dir = os.path.join(tmp_dir, "measurements")
-        os.makedirs(ms_dir, exist_ok=True)
+        os.makedirs(ms_dir, exist_ok=False)
         vis_dir = os.path.join(tmp_dir, "visibilities")
-        os.makedirs(vis_dir, exist_ok=True)
+        os.makedirs(vis_dir, exist_ok=False)
         for observation_params in observations:
             start_freq = observation_params["observation"]["start_frequency_hz"]
             ms_file_path = os.path.join(ms_dir, f"start_freq_{start_freq}.MS")
@@ -551,13 +550,12 @@ class InterferometerSimulation:
 
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="simulation-long-",
-            purpose="simulation long",
-            unique=self,
+            purpose="disk-cache simulation-long",
         )
         ms_dir = os.path.join(tmp_dir, "measurements")
-        os.makedirs(ms_dir, exist_ok=True)
+        os.makedirs(ms_dir, exist_ok=False)
         vis_dir = os.path.join(tmp_dir, "visibilities")
-        os.makedirs(vis_dir, exist_ok=True)
+        os.makedirs(vis_dir, exist_ok=False)
 
         # Loop over days
         for i, current_date in enumerate(

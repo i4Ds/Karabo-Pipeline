@@ -16,7 +16,6 @@ NNImageDiffCallable = Callable[[str, str], float]
 
 IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
 RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
-file_handler_test_dir = os.path.join(os.path.dirname(__file__), "karabo_test")
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -122,16 +121,15 @@ def tobject() -> TFiles:
 
 @pytest.fixture(scope="function", autouse=True)
 def clean_disk() -> Generator[None, None, None]:
-    """Automatically clears FileHandler.root after each test.
+    """Automatically clears FileHandler's short-term-memory after each test.
 
     Needed in some cases where the underlying functions do use FileHanlder
      which could lead to IOError because of disk-space limitations.
     """
     # Setup: fill with logic
-    FileHandler.root = file_handler_test_dir
     yield  # testing happens here
     # Teardown: fill with logic
-    FileHandler.clean_up_fh_root(force=True, verbose=False)
+    FileHandler().clean()
     plt.close("all")
 
 

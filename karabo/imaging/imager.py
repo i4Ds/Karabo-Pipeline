@@ -23,7 +23,6 @@ from ska_sdp_func_python.imaging import (
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
 from karabo.data.external_data import MGCLSContainerDownloadObject
-from karabo.error import KaraboError
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
@@ -210,33 +209,26 @@ class Imager:
     def get_dirty_image(
         self,
         fits_path: Optional[FilePathType] = None,
-        exist_ok: bool = False,
     ) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
 
+        Note: If `fits_path` is provided and already exists, then this function will
+        overwrite `fits_path`.
+
         Args:
             fits_path: Path to where the .fits file will get saved.
-            exist_ok: When True and an existing .fits file is found, then
-                the Image is created from the .fits file and not from the .ms file.
 
         Returns:
             Dirty Image
         """
         if fits_path is None:
             tmp_dir = FileHandler().get_tmp_dir(
-                prefix="dirty-",
-                purpose="saving dirty.fits",
-                unique=self,
+                prefix="Imager-Dirty-",
+                purpose="disk-cache for dirty.fits",
             )
             fits_path = os.path.join(tmp_dir, "dirty.fits")
         else:
             check_ending(path=fits_path, ending=".fits")
-
-        if os.path.exists(fits_path):
-            if not exist_ok:
-                raise FileExistsError(f"{fits_path} already exists.")
-            else:
-                return Image(path=fits_path)
 
         block_visibilities = create_visibility_from_ms(
             str(self.visibility.ms_file_path)
@@ -252,6 +244,8 @@ class Imager:
             override_cellsize=self.override_cellsize,
         )
         dirty, _ = invert_visibility(visibility, model, context="2d")
+        if os.path.exists(fits_path):
+            os.remove(fits_path)
         dirty.image_acc.export_to_fits(fits_file=fits_path)
 
         image = Image(path=fits_path)
@@ -286,9 +280,12 @@ class Imager:
         clean_restore_overlap: int = 32,
         clean_restore_taper: CleanTaperType = "tukey",
         clean_restored_output: CleanRestoredOutputType = "list",
-        exist_ok: bool = False,
     ) -> Tuple[Image, Image, Image]:
         """Starts imaging process using RASCIL using CLEAN.
+
+        Note: For `deconvolved_fits_path`, `restored_fits_path` & `residual_fits_path`,
+        if one or more of them are provided and already exist on the disk, then
+        they will get overwritten if the imaging succeeds.
 
         Clean args see https://developer.skao.int/_/downloads/rascil/en/latest/pdf/
 
@@ -326,58 +323,31 @@ class Imager:
                 restore step (none, linear or tukey).
             clean_restored_output: Type of restored image output:
                 taylor, list, or integrated.
-            exist_ok: Whether it's ok if the output-images already exist.
 
         Returns:
             deconvolved, restored, residual
         """
-        tmp_dir = ""  # workaround for Unbound complaints
+        if deconvolved_fits_path is not None:
+            check_ending(path=deconvolved_fits_path, ending=".fits")
+        if restored_fits_path is not None:
+            check_ending(path=deconvolved_fits_path, ending=".fits")
+        if residual_fits_path is not None:
+            check_ending(path=residual_fits_path, ending=".fits")
         if (
             deconvolved_fits_path is None
             or restored_fits_path is None
             or residual_fits_path is None
         ):
             tmp_dir = FileHandler().get_tmp_dir(
-                prefix="imaging-",
+                prefix="Imaging-Rascil-",
                 purpose="disk-cache for non-specified .fits files.",
-                unique=self,
             )
-
-        if deconvolved_fits_path is None:
-            deconvolved_fits_path = os.path.join(tmp_dir, "deconvolved.fits")
-        if restored_fits_path is None:
-            restored_fits_path = os.path.join(tmp_dir, "restored.fits")
-        if residual_fits_path is None:
-            residual_fits_path = os.path.join(tmp_dir, "residual.fits")
-
-        # handle if already existing images could be used before computing anything
-        if (
-            os.path.exists(deconvolved_fits_path)
-            or os.path.exists(restored_fits_path)
-            or os.path.exists(residual_fits_path)
-        ):
-            if (
-                os.path.exists(deconvolved_fits_path)
-                and os.path.exists(restored_fits_path)
-                and os.path.exists(residual_fits_path)
-            ):
-                if exist_ok:
-                    deconvolved_image = Image(path=deconvolved_fits_path)
-                    restored_image = Image(path=restored_fits_path)
-                    residual_image = Image(path=residual_fits_path)
-
-                    return deconvolved_image, restored_image, residual_image
-                else:
-                    raise RuntimeError(
-                        f"{deconvolved_fits_path=}, {restored_fits_path=}, "
-                        + f"{residual_fits_path=}\n exist, but this {exist_ok=}"
-                    )
-            else:
-                raise RuntimeError(
-                    f"{deconvolved_fits_path=}, {restored_fits_path=}, "
-                    + f"{residual_fits_path=}\nThey exist partially, but this "
-                    + "use-case is not supported."
-                )
+            if deconvolved_fits_path is None:
+                deconvolved_fits_path = os.path.join(tmp_dir, "deconvolved.fits")
+            if restored_fits_path is None:
+                restored_fits_path = os.path.join(tmp_dir, "restored.fits")
+            if residual_fits_path is None:
+                residual_fits_path = os.path.join(tmp_dir, "residual.fits")
 
         if client and not use_dask:
             raise EnvironmentError("Client passed but use_dask is False")
@@ -391,7 +361,7 @@ class Imager:
         rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
         if self.ingest_vis_nchan is None:
-            raise KaraboError("`ingest_vis_nchan` is None but must be of type 'int'.")
+            raise ValueError("`ingest_vis_nchan` is None but must be of type 'int'.")
 
         blockviss = create_visibility_from_ms_rsexecute(
             msname=str(self.visibility.ms_file_path),
@@ -451,14 +421,6 @@ class Imager:
             imaging_uvmin=self.imaging_uvmin,
         )
 
-        # perform checks before doing anything to capture errors early
-        if deconvolved_fits_path is not None:
-            check_ending(path=deconvolved_fits_path, ending=".fits")
-        if restored_fits_path is not None:
-            check_ending(path=restored_fits_path, ending=".fits")
-        if residual_fits_path is not None:
-            check_ending(path=residual_fits_path, ending=".fits")
-
         result = rsexecute.compute(result, sync=True)
 
         residual, restored, skymodel = result
@@ -473,10 +435,16 @@ class Imager:
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
 
+        if os.path.exists(deconvolved_fits_path):
+            os.remove(deconvolved_fits_path)
         deconvolved_image_rascil.image_acc.export_to_fits(
             fits_file=str(deconvolved_fits_path)
         )
+        if os.path.exists(restored_fits_path):
+            os.remove(restored_fits_path)
         restored.image_acc.export_to_fits(fits_file=str(restored_fits_path))
+        if os.path.exists(residual_fits_path):
+            os.remove(residual_fits_path)
         residual.image_acc.export_to_fits(fits_file=str(residual_fits_path))
         deconvolved_image = Image(path=deconvolved_fits_path)
         restored_image = Image(path=restored_fits_path)

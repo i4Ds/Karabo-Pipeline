@@ -252,7 +252,7 @@ class FileHandler:
             assert_never(term)
         if not exist_ok and os.path.exists(dir_path):
             raise FileExistsError(f"{dir_path} already exists")
-        if mkdir:
+        if mkdir and not os.path.exists(dir_path):
             os.makedirs(dir_path, exist_ok=exist_ok)
             if purpose and len(purpose) > 0:
                 purpose = f" for {purpose}"
@@ -312,6 +312,19 @@ class FileHandler:
         for path in paths:
             if os.path.isdir(path) and len(os.listdir(path=path)) == 0:
                 shutil.rmtree(path=path)
+
+    @staticmethod
+    def empty_dir(dir_path: DirPathType) -> None:
+        """Deletes all contents of `dir_path`, but not the directory itself.
+
+        This function assumes that all filed and directories are owned by
+        the function-user.
+
+        Args:
+            dir_path: Directory to empty.
+        """
+        shutil.rmtree(dir_path)
+        os.makedirs(dir_path, exist_ok=False)
 
     def __enter__(self) -> str:
         return self.get_tmp_dir(prefix=None, term="short")
