@@ -116,40 +116,28 @@ class FileHandler:
              ├── <sbudir>
              └── <file>
 
-    LTM stand for long-term-memory (self.ltm) and STM for short-term-memory (self.stm).
-    The data-products usually get into in the STM directory.
+    LTM stand for long-term-memory (FileHandler.ltm) and STM for short-term-memory
+    (FileHandler.stm). The data-products usually get into in the STM directory.
 
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
     root: str = _get_tmp_dir()
+    ltm = os.path.join(root, _get_cache_dir(term="long"))
+    stm = os.path.join(root, _get_cache_dir(term="short"))
 
     def __init__(
         self,
     ) -> None:
         """Creates `FileHandler` instance."""
-        self._ltm_dir_name = _get_cache_dir(term="long")
-        self._stm_dir_name = _get_cache_dir(term="short")
         # tmps is an instance bound dirs and/or files registry for STM
         self.tmps: list[str] = list()
 
-    @property
-    def ltm(self) -> str:
-        ltm_path = os.path.join(FileHandler.root, self._ltm_dir_name)
-        os.makedirs(ltm_path, exist_ok=True)
-        return ltm_path
-
-    @property
-    def stm(self) -> str:
-        stm_path = os.path.join(FileHandler.root, self._stm_dir_name)
-        os.makedirs(stm_path, exist_ok=True)
-        return stm_path
-
     def _get_term_dir(self, term: _LongShortTermType) -> str:
         if term == "short":
-            dir_ = self.stm
+            dir_ = FileHandler.stm
         elif term == "long":
-            dir_ = self.ltm
+            dir_ = FileHandler.ltm
         else:
             assert_never(term)
         return dir_
@@ -231,7 +219,8 @@ class FileHandler:
             if prefix is not None:
                 dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
-            setattr(unique, obj_tmp_dir_short_name, dir_path)
+            if unique is not None:
+                setattr(unique, obj_tmp_dir_short_name, dir_path)
             self.tmps.append(dir_path)
             if subdir is not None:
                 dir_path = os.path.join(dir_path, subdir)
