@@ -16,7 +16,6 @@ from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
-from karabo.karabo_resource import KaraboResource
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
@@ -72,7 +71,7 @@ class ISourceDetectionResult(ABC):
         ...
 
 
-class SourceDetectionResult(ISourceDetectionResult, KaraboResource):
+class SourceDetectionResult(ISourceDetectionResult):
     def __init__(
         self,
         detected_sources: NDArray[np.float_],

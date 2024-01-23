@@ -9,12 +9,11 @@ import numpy as np
 import oskar
 from numpy.typing import NDArray
 
-from karabo.karabo_resource import KaraboResource
 from karabo.util._types import DirPathType, FilePathType
 from karabo.util.file_handler import FileHandler
 
 
-class Visibility(KaraboResource):
+class Visibility:
     def __init__(
         self,
         vis_path: Optional[FilePathType] = None,

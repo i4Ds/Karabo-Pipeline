@@ -19,7 +19,6 @@ from ska_sdp_datamodels.configuration.config_model import Configuration
 
 import karabo.error
 from karabo.error import KaraboError
-from karabo.karabo_resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
@@ -96,7 +95,7 @@ OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum
 }
 
 
-class Telescope(KaraboResource):
+class Telescope:
     """Telescope
 
     WGS84 longitude and latitude and altitude in metres centre of the telescope.png

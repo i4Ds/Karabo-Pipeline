@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 from typing import List
 
 import requests
@@ -49,7 +50,10 @@ class DownloadObject:
                     file.write(chunk)
         except BaseException:  # cleanup if interrupted
             if os.path.exists(local_file_path):
-                os.remove(local_file_path)
+                if os.path.isdir(local_file_path):
+                    shutil.rmtree(local_file_path)
+                else:
+                    os.remove(local_file_path)
             raise
         return response.status_code
 

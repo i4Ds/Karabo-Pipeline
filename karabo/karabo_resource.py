@@ -3,26 +3,9 @@ from __future__ import annotations
 import os
 import sys
 from types import TracebackType
-from typing import Any, Literal, Optional, TextIO
+from typing import Literal, Optional, TextIO
 
 import numpy as np
-
-
-class KaraboResource:
-    def write_to_file(self, path: str) -> None:
-        """
-        Save the specified resource to disk (in format specified by resource itself)
-        """
-        raise NotImplementedError()
-
-    @staticmethod
-    def read_from_file(path: str) -> Any:
-        """
-        Read the specified resource from disk into Karabo.
-        (format specified by resource itself)
-        """
-        raise NotImplementedError()
-
 
 ErrKind = Literal["ignore", "warn", "raise", "call", "print", "log"]
 
