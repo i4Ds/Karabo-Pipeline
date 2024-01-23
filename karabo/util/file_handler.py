@@ -138,22 +138,25 @@ class FileHandler:
              ├── <sbudir>
              └── <file>
 
-    LTM stand for long-term-memory (FileHandler.ltm()) and STM for short-term-memory
-    (FileHandler.stm()). The data-products usually get into in the STM directory.
+    LTM stand for long-term-memory (FileHandler.ltm) and STM for short-term-memory
+    (FileHandler.stm). The data-products usually get into in the STM directory.
 
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
     root: str = _get_tmp_dir()
 
-    @staticmethod
-    def ltm() -> str:
+    @classmethod
+    @property
+    def ltm(cls) -> str:
         """Gives LTM (long-term-memory) path."""
-        return os.path.join(FileHandler.root, _get_cache_dir(term="long"))
+        return os.path.join(cls.root, _get_cache_dir(term="long"))
 
-    def stm() -> str:
+    @classmethod
+    @property
+    def stm(cls) -> str:
         """Gives the STM (short-term-memory) path."""
-        return os.path.join(FileHandler.root, _get_cache_dir(term="short"))
+        return os.path.join(cls.root, _get_cache_dir(term="short"))
 
     def __init__(
         self,
@@ -165,9 +168,9 @@ class FileHandler:
     @staticmethod
     def _get_term_dir(term: _LongShortTermType) -> str:
         if term == "short":
-            dir_ = FileHandler.stm()
+            dir_ = FileHandler.stm
         elif term == "long":
-            dir_ = FileHandler.ltm()
+            dir_ = FileHandler.ltm
         else:
             assert_never(term)
         return dir_
@@ -254,7 +257,10 @@ class FileHandler:
             if unique is not None:
                 setattr(unique, obj_tmp_dir_short_name, dir_path)
             self.tmps.append(dir_path)
-            exist_ok = False
+            if seed is None:
+                exist_ok = False
+            else:
+                exist_ok = True
         elif term == "long":
             dir_path = FileHandler._get_term_dir(term=term)
             if prefix is None:
