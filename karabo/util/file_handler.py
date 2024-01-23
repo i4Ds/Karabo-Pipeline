@@ -15,6 +15,7 @@ from karabo.util._types import DirPathType, FilePathType
 from karabo.util.plotting_util import Font
 
 _LongShortTermType = Literal["long", "short"]
+_SeedType = Optional[Union[str, int, float, bytes]]
 
 
 def _get_tmp_dir() -> str:
@@ -62,7 +63,7 @@ def _get_tmp_dir() -> str:
     return tmpdir
 
 
-def _get_rnd_str(k: int, seed: Optional[Union[str, int, float, bytes]] = None) -> str:
+def _get_rnd_str(k: int, seed: _SeedType = None) -> str:
     """Creates a random ascii+digits string with length=`k`.
 
     Most tmp-file tools are using a sting-length of 10.
@@ -179,6 +180,7 @@ class FileHandler:
         purpose: Union[str, None] = None,
         unique: object = None,
         mkdir: bool = True,
+        seed: _SeedType = None,
     ) -> str:
         ...
 
@@ -190,6 +192,7 @@ class FileHandler:
         purpose: Union[str, None] = None,
         unique: object = None,
         mkdir: bool = True,
+        seed: _SeedType = None,
     ) -> str:
         ...
 
@@ -200,6 +203,7 @@ class FileHandler:
         purpose: Union[str, None] = None,
         unique: object = None,
         mkdir: bool = True,
+        seed: _SeedType = None,
     ) -> str:
         """Gets a tmp-dir path.
 
@@ -212,6 +216,11 @@ class FileHandler:
             unique: If an object which has attributes is provided, then you get
                 the same tmp-dir for the unique instance.
             mkdir: Make-dir directly?
+            seed: Seed rnd chars+digits of a STM sub-dir for relocation
+                purpose of different processes? Shouldn't be used for LTM sub-dirs,
+                unless you know what you're doing. LTM sub-dirs are already seeded with
+                `prefix`. However, if they are seeded for some reason, the seed is then
+                something like `prefix` + `seed`, which leads to different LTM sub-dirs.
 
         Returns:
             tmp-dir path
@@ -238,7 +247,7 @@ class FileHandler:
             exist_ok = True
         elif term == "short":
             dir_path = FileHandler._get_term_dir(term=term)
-            dir_name = _get_rnd_str(k=10, seed=None)
+            dir_name = _get_rnd_str(k=10, seed=seed)
             if prefix is not None:
                 dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
@@ -252,7 +261,9 @@ class FileHandler:
                 raise RuntimeError(
                     "For long-term-memory, `prefix` must be set to have unique dirs."
                 )
-            dir_name = _get_rnd_str(k=10, seed=prefix)
+            if seed is not None:
+                seed = prefix + str(seed)
+            dir_name = _get_rnd_str(k=10, seed=seed)
             dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
             exist_ok = True
