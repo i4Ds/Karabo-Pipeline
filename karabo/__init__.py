@@ -29,9 +29,9 @@ if "WSL" in platform.release() and (
 # Setup dask for slurm
 if "SLURM_JOB_ID" in os.environ:
     # ugly workaraound to not import stuff not available at build-time, but on import.
-    from karabo.util.dask import prepare_slurm_nodes_for_dask
+    from karabo.util.dask import DaskSlurmHandler
 
-    prepare_slurm_nodes_for_dask()
+    DaskSlurmHandler.prepare_slurm_nodes_for_dask()
 
 # set rascil data directory environment variable
 # see https://ska-telescope.gitlab.io/external/rascil/RASCIL_install.html

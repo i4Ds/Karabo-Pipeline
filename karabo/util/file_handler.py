@@ -149,13 +149,13 @@ class FileHandler:
     @classmethod
     @property
     def ltm(cls) -> str:
-        """Gives LTM (long-term-memory) path."""
+        """LTM (long-term-memory) path."""
         return os.path.join(cls.root, _get_cache_dir(term="long"))
 
     @classmethod
     @property
     def stm(cls) -> str:
-        """Gives the STM (short-term-memory) path."""
+        """STM (short-term-memory) path."""
         return os.path.join(cls.root, _get_cache_dir(term="short"))
 
     def __init__(
