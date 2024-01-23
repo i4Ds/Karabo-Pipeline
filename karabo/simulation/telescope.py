@@ -380,11 +380,13 @@ class Telescope:
         :return: OSKAR Telescope object
         """
         tmp_dir = FileHandler().get_tmp_dir(
-            prefix="oskar-telescope-",
-            purpose="oskar-telescope disk-cache",
+            prefix="telescope-",
+            purpose="telescope disk-cache",
             unique=self,
-            subdir="oskar-telescope",  # in case other files should get cached by self
+            mkdir=False,
         )
+        tmp_dir = os.path.join(tmp_dir, "oskar-telescope")
+        os.makedirs(tmp_dir, exist_ok=True)
         if not FileHandler.is_dir_empty(dirname=tmp_dir):
             FileHandler.empty_dir(dir_path=tmp_dir)
         self.write_to_file(tmp_dir)

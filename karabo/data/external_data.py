@@ -42,7 +42,8 @@ class DownloadObject:
             response = requests.get(url, stream=True)
             response.raise_for_status()
 
-            os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+            download_dir = os.path.dirname(local_file_path)
+            os.makedirs(download_dir, exist_ok=True)
             with open(local_file_path, "wb") as file:
                 for chunk in response.iter_content(
                     chunk_size=8192

@@ -25,6 +25,14 @@ def _get_tmp_dir() -> str:
     Honors TMPDIR and TMP environment variable(s).
     The only thing not allowed is a collision between the mentioned env-vars.
 
+    In a container-setup, this dir is preferably a mounted dir. For long-term-memory
+    so that each object doesn't have to be downloaded for each run. For
+    short-term-memory so that the created artifacts are locatable on the launch system.
+
+    Singularity & Sarus container usually use a mounted /tmp. However, this is not the
+    default case for Docker containers. This may be a reason to put the download-objects
+    into /tmp of the Docker-image.
+
     Returns:
         path of tmpdir
     """
@@ -54,7 +62,18 @@ def _get_tmp_dir() -> str:
     return tmpdir
 
 
-def _get_rnd_str(k: int, seed: str | int | float | bytes | None = None) -> str:
+def _get_rnd_str(k: int, seed: Optional[Union[str, int, float, bytes]] = None) -> str:
+    """Creates a random ascii+digits string with length=`k`.
+
+    Most tmp-file tools are using a sting-length of 10.
+
+    Args:
+        k: Length of random string.
+        seed: Seed.
+
+    Returns:
+        Random generated string.
+    """
     random.seed(seed)
     return "".join(random.choices(string.ascii_letters + string.digits, k=k))
 
@@ -63,6 +82,8 @@ def _get_cache_dir(term: _LongShortTermType) -> str:
     """Creates cache-dir-name.
 
     dir-name: karabo-<LTM|STM>-($USER-)<10-rnd-asci-letters-and-digits>
+
+    The random-part of the cache-dir is seeded for relocation purpose.
 
     Returns:
         cache-dir-name
@@ -157,7 +178,6 @@ class FileHandler:
         term: Literal["short"] = "short",
         purpose: Union[str, None] = None,
         unique: object = None,
-        subdir: Union[DirPathType, None] = None,
         mkdir: bool = True,
     ) -> str:
         ...
@@ -169,7 +189,6 @@ class FileHandler:
         term: Literal["long"],
         purpose: Union[str, None] = None,
         unique: object = None,
-        subdir: Union[DirPathType, None] = None,
         mkdir: bool = True,
     ) -> str:
         ...
@@ -180,7 +199,6 @@ class FileHandler:
         term: _LongShortTermType = "short",
         purpose: Union[str, None] = None,
         unique: object = None,
-        subdir: Union[DirPathType, None] = None,
         mkdir: bool = True,
     ) -> str:
         """Gets a tmp-dir path.
@@ -193,14 +211,13 @@ class FileHandler:
             purpose: Creates a verbose print-msg with it's purpose if set.
             unique: If an object which has attributes is provided, then you get
                 the same tmp-dir for the unique instance.
-            subdir: If set, it directly creates & returns <tmp_dir>/subdir
             mkdir: Make-dir directly?
 
         Returns:
             tmp-dir path
         """
         obj_tmp_dir_short_name = "_karabo_tmp_dir_short"
-        tmp_dir: Union[str, None] = None  # without subdir
+        tmp_dir: Union[str, None] = None
         if unique is not None:
             if term != "short":
                 raise RuntimeError(
@@ -218,8 +235,6 @@ class FileHandler:
 
         if tmp_dir is not None:
             dir_path = tmp_dir
-            if subdir is not None:
-                dir_path = os.path.join(dir_path, subdir)
             exist_ok = True
         elif term == "short":
             dir_path = FileHandler._get_term_dir(term=term)
@@ -230,8 +245,6 @@ class FileHandler:
             if unique is not None:
                 setattr(unique, obj_tmp_dir_short_name, dir_path)
             self.tmps.append(dir_path)
-            if subdir is not None:
-                dir_path = os.path.join(dir_path, subdir)
             exist_ok = False
         elif term == "long":
             dir_path = FileHandler._get_term_dir(term=term)
@@ -242,8 +255,6 @@ class FileHandler:
             dir_name = _get_rnd_str(k=10, seed=prefix)
             dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
-            if subdir is not None:
-                dir_path = os.path.join(dir_path, subdir)
             exist_ok = True
         else:
             assert_never(term)

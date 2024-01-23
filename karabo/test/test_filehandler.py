@@ -27,7 +27,6 @@ def test_file_handler():
         fh_instance = FileHandler()
         _ = fh_instance.get_tmp_dir(
             prefix="dummy-",
-            subdir="dummy-dir",
         )
         assert len(os.listdir(FileHandler.stm())) == 2
         _ = fh_instance.get_tmp_dir(
@@ -37,12 +36,10 @@ def test_file_handler():
         with pytest.raises(RuntimeError):
             _ = FileHandler().get_tmp_dir(
                 term="long",
-                subdir="dummy-dir",
             )
         _ = FileHandler().get_tmp_dir(
             term="long",
             prefix="dummy-ltm-name",
-            subdir="dummy-dir",
         )
         assert len(os.listdir(tmpdir)) == 2
         assert len(os.listdir(FileHandler.ltm())) == 1
