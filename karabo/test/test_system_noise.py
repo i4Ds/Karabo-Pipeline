@@ -1,8 +1,9 @@
 import os
-import unittest
+import tempfile
 from datetime import datetime, timedelta
 
 import numpy as np
+from numpy.typing import NDArray
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -11,29 +12,17 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 
 
-class TestSystemNoise(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        # make dir for result files
-        if not os.path.exists("result/system_noise"):
-            os.makedirs("result/system_noise")
+def test_basic(sky_data: NDArray[np.float64]):
+    sky = SkyModel()
+    sky.add_point_sources(sky_data)
+    telescope = Telescope.constructor("SKA1MID")
 
-    def disabled_test_basic(self):
-        sky = SkyModel()
-        sky_data = np.array(
-            [
-                [20.0, -30.0, 100, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0],
-                [20.0, -30.5, 100, 2, 2, 0, 1.0e9, -0.7, 0.0, 0, 50, 45],
-                [20.5, -30.5, 100, 0, 0, 2, 1.0e9, -0.7, 0.0, 0, 10, -10],
-            ]
-        )
-        sky.add_point_sources(sky_data)
-        # sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 1, 1, 1)
-        # sky.explore_sky([240, -70])
-        telescope = Telescope.get_SKA1_MID_Telescope()
-        # telescope.centre_longitude = 3
-
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ms_path = os.path.join(tmpdir, "noise_vis.ms")
+        vis_path = os.path.join(tmpdir, "noise_vis.vis")
         simulation = InterferometerSimulation(
+            ms_file_path=ms_path,
+            vis_path=vis_path,
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
             noise_enable=True,
@@ -58,11 +47,10 @@ class TestSystemNoise(unittest.TestCase):
         )
 
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.write_to_file("./result/system_noise/noise_vis.ms")
 
         imager = Imager(
             visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("result/system_noise/noise_dirty.fits", overwrite=True)
+        dirty.write_to_file(os.path.join(tmpdir, "noise_dirty.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")

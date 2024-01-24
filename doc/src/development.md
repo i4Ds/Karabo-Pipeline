@@ -2,7 +2,26 @@
 
 ## Setup local dev environment
 
-First clone the code via git.
+Make sure you have a working installation of Conda, with, e.g.:
+
+```shell
+wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.2-0-Linux-x86_64.sh
+bash Miniconda3-py39_23.5.2-0-Linux-x86_64.sh -b
+source ~/miniconda3/bin/activate
+```
+
+(Optional but recommended for performance) Set the solver to libmamba:
+
+```shell
+conda config --set solver libmamba
+```
+
+Next, clone the code via git, and cd into it:
+```shell
+git clone git@github.com:i4Ds/Karabo-Pipeline.git
+cd Karabo-Pipeline
+```
+
 Then create a local development environment with the provided `environment.yaml` file.
 
 ```shell
@@ -16,11 +35,20 @@ conda activate <your-env-name>
 pip install -r requirements.txt
 ```
 
-With this only the dependencies but not the current version of karabo will be installed into a conda environment.
-Then you can simply run your code inside that environment. To tell Python to treat the reposity as a package, the following links can be helpful:
+NOTE: With these commands, only the dependencies but not the current version of karabo will be installed into a conda environment. To tell Python to treat the reposity as a package, run the following (note that using `conda develop` is not recommended, see [this issue](https://github.com/conda/conda-build/issues/1992)):
 
-[Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
-[how to use conda develop?](https://github.com/conda/conda-build/issues/1992)
+```shell
+pip install -e .
+```
+
+(Optional) For your developer experience, the following link might be useful: [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
+
+You are done! If everything worked as expected, you can start an interactive Python session and test the import:
+
+```shell
+python
+>>> import karabo
+```
 
 ## Formatting
 
@@ -74,24 +102,28 @@ def fun(arg1: int, arg2: int) -> int:
 
 It is recommended to run *black* before manually checking with *flake8* because *black* might fix a lot of *flake8* related issues. It is possible that the settings of *isort* and *black* are not compatible with *flake8* and therefore should get changed.
 
-## Upload Objects to CSCS
+## Add Data Sets by Uploading to CSCS
 
-Make objects available through CSCS object-storage REST-API. The GET-request URI follows the following format: `{CSCS-object-store-prefix}/{container}/{object}` where the prefix comes from [CSCS API access](https://castor.cscs.ch/dashboard/project/api_access/).
+Make new datasets available through CSCS object-storage REST-API. The GET-request URI follows the following format: `{CSCS-object-store-prefix}/{container}/{object}` where the prefix comes from [CSCS API access](https://castor.cscs.ch/dashboard/project/api_access/).
 
-### Through Web Interface
+### Upload through Web Interface
 
 1. Go to [Castor](https://castor.cscs.ch/) and authenticate yourself.
 2. Navigate to `project/object-storage/container` and choose the container you want to upload (e.g. `karabo_public`). 
 3. Click the upload option and upload the file of choice.
 
-### Through CLI
+### Upload Through CLI
+#### Setup
+Read https://user.cscs.ch/tools/openstack/ and implement everything inside `OpenStack CLI Access via Virtual Environment:`
 
-1. Read https://github.com/eth-cscs/openstack/tree/master/cli
-2. `source openstack/cli/castor.env`
-3. `swift post karabo_public --read-acl ".r:*,.rlistings"`
-4. `swift upload karabo_public example_file.fits`
+#### Upload Single File
+Upload a single file with `swift upload karabo_public <file>`
 
-## Update documentation
+#### Upload Multiple files
+1. Create a new folder inside the container with `swift post karabo_public <folder_name>`
+2. Upload all files inside the folder with `swift upload karabo_public <folder_name>`
+
+## Update Documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
 The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation
@@ -133,30 +165,16 @@ make html
 
 ## Update Tests
 
-We use the basic ``unittest`` python package ([unittest docs](https://docs.python.org/3/library/unittest.html)).
-The unit tests are run automatically on every push.
-To add a new test simply go to the karabo/test folder.
-Add a new file for a new set of tests in this shape.
-
-```python
-class TestSimulation(unittest.TestCase):
-
-    def someTest(self):
-        # run some code that tests some functionality
-        result = someFunction()
-        # use the assertion functions on self
-        self.assertEquals(result, 4)
-```
+We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)). To add a new test simply go to the `karabo/test` folder.
 
 Add tests for when you write some sort of new code that you feel like might break.
-
 
 TIP:
 If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.
 
 ## Create a Release
 When everything is merged which should be merged, a new Release can be deployed on `conda-forge` as following:
-- [Karabo-Pipline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
+- [Karabo-Pipeline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
 - Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
 - Update version in `karabo/version.py`

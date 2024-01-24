@@ -1,7 +1,9 @@
-import unittest
+import os
+import tempfile
 from datetime import datetime, timedelta
 
 import numpy as np
+from numpy.typing import NDArray
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -10,23 +12,20 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope, create_baseline_cut_telelescope
 
 
-class MyTestCase(unittest.TestCase):
-    def test_baselines_based_cutoff(self):
-        lcut = 5000
-        hcut = 10000  # Lower cut off and higher cut-off in meters
-        parant_tel = Telescope.get_MEERKAT_Telescope()
-        telescope_path = create_baseline_cut_telelescope(lcut, hcut, parant_tel)
-        telescope = Telescope.read_OSKAR_tm_file(telescope_path)
-        sky = SkyModel()
-        sky_data = np.array(
-            [
-                [20.0, -30.0, 100, 0, 0, 0, 1.0e9, -0.7, 0.0, 0, 0, 0],
-                [20.0, -30.5, 100, 2, 2, 0, 1.0e9, -0.7, 0.0, 0, 50, 45],
-                [20.5, -30.5, 100, 0, 0, 2, 1.0e9, -0.7, 0.0, 0, 10, -10],
-            ]
-        )
-        sky.add_point_sources(sky_data)
+def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
+    lcut = 5000
+    hcut = 10000  # Lower cut off and higher cut-off in meters
+    parant_tel = Telescope.constructor("MeerKAT")
+    telescope_path = create_baseline_cut_telelescope(lcut, hcut, parant_tel)
+    telescope = Telescope.read_OSKAR_tm_file(telescope_path)
+    sky = SkyModel()
+    sky.add_point_sources(sky_data)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ms_path = os.path.join(tmpdir, "out.ms")
+        vis_path = os.path.join(tmpdir, "out.vis")
         simulation = InterferometerSimulation(
+            ms_file_path=ms_path,
+            vis_path=vis_path,
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
             noise_enable=False,
@@ -51,11 +50,10 @@ class MyTestCase(unittest.TestCase):
         )
 
         visibility = simulation.run_simulation(telescope, sky, observation)
-        # visibility = simulation.run_simulation(parant_tel, sky, observation)
 
         imager = Imager(
             visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
         dirty = imager.get_dirty_image()
-        dirty.write_to_file("result/baseline_cut.fits", overwrite=True)
+        dirty.write_to_file(os.path.join(tmpdir, "baseline_cut.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")

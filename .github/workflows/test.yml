@@ -4,14 +4,19 @@ on:
   schedule: # Every night at 5am
     - cron: '0 5 * * *'
   pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
+  push:
+    branches:
+      - main  # is activated once a PR gets merged
 
 jobs:
   Test_Karabo:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -19,11 +24,12 @@ jobs:
       - name: Install Deps
         shell: bash -el {0}
         run: |
-          mamba create -n test_karabo
+          conda create -y -n test_karabo python=3.9
           conda activate test_karabo
           mamba env update --file environment.yaml
           pip install -r requirements.txt
-          pip install unittest-xml-reporting
+          pip install ipykernel
+          python -m ipykernel install --user --name python3
       - name: Test Dev-Tools
         shell: bash -l {0}
         run: |
@@ -35,20 +41,18 @@ jobs:
       - name: Test Code
         shell: bash -l {0}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            export RUN_SLOW_TESTS=false
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "Starting scheduled full test!"
-            export RUN_SLOW_TESTS=true
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            export RUN_SLOW_TESTS=false
-          fi
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true
+          export RUN_GPU_TESTS=false
+          export RUN_NOTEBOOK_TESTS=true
           pip install . --no-deps
-          python -m xmlrunner -o ./test-reports/junit
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        if: always()
-        with:
-          files: test-reports/**/*.xml
+          pytest --cov=./ --cov-report=xml
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          files: ./coverage1.xml,./coverage2.xml,!./cache
+          fail_ci_if_error: false
+          name: codecov-karabo

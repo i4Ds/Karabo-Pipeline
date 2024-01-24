@@ -1,13 +1,14 @@
-import copy
 import os
 import shutil
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple, Union, cast
+from pathlib import Path
+from typing import List, Optional, Tuple, TypeVar, Union, cast
 
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
+import xarray as xr
 from astropy.constants import c
 from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
@@ -20,7 +21,11 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import IntFloat
+from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
+
+# from dask.delayed import Delayed
+from karabo.util.dask import parallelize_with_dask
+from karabo.util.plotting_util import get_slices
 
 
 def polar_corrdinates_grid(
@@ -116,10 +121,10 @@ def rascil_imager(
         visibility,
         imaging_npixel=img_size,
         imaging_cellsize=cut / img_size,
-        imaging_dopsf=True,
+        imaging_dopsf=False,
     )
     dirty = imager.get_dirty_image()
-    dirty.write_to_file(outfile + ".fits", overwrite=True)
+    dirty.write_to_file(f"{outfile}.fits", overwrite=True)
     dirty_image = cast(NDArray[np.float_], dirty.data[0][0])
 
     return dirty_image
@@ -146,7 +151,7 @@ def oskar_imager(
     # Here plenty of options are available that could be found in the documentation.
     # uv_filter_max can be used to change the baseline length threshold
     imager.set(
-        input_file=outfile + ".vis",
+        input_file=f"{outfile}.vis",
         output_root=outfile,
         fov_deg=cut,
         image_size=img_size,
@@ -164,31 +169,31 @@ def oskar_imager(
 def plot_scatter_recon(
     sky: SkyModel,
     recon_image: NDArray[np.float_],
-    outfile: str,
+    outfile: FilePathType,
     header: fits.header.Header,
     vmin: IntFloat = 0,
-    cut: Optional[IntFloat] = None,
+    vmax: Optional[IntFloat] = None,
+    f_min: Optional[IntFloat] = None,
 ) -> None:
     """
     Plotting the sky as a scatter plot and its reconstruction and saving it as a pdf.
 
     :param sky: Oskar or Karabo sky.
     :param recon_image: Reconstructed sky from Oskar or Karabo.
-    :param outfile: The path of the plot.
+    :param outfile: The path where we save the plot.
     :param header: The header of the recon_image.
     :param vmin: Minimum value of the colorbar.
-    :param cut: Smaller FOV
+    :param vmax: Maximum value of the colorbar.
+    :param f_min: Minimal flux of the sources to be plotted in the scatter plot
     """
 
     wcs = WCS(header)
-    slices = []
-    for i in range(wcs.pixel_n_dim):
-        if i == 0:
-            slices.append("x")
-        elif i == 1:
-            slices.append("y")
-        else:
-            slices.append(0)  # type: ignore [arg-type]
+    slices = get_slices(wcs)
+
+    # Do only plot sources with a flux above f_min if f_min is not None
+    if f_min is not None:
+        f_max = np.max(sky[:, 2])
+        sky = sky.filter_by_flux(min_flux_jy=f_min, max_flux_jy=f_max)
 
     # Plot the scatter plot and the sky reconstruction next to each other
     fig = plt.figure(figsize=(12, 6))
@@ -197,101 +202,125 @@ def plot_scatter_recon(
     scatter = ax1.scatter(sky[:, 0], sky[:, 1], c=sky[:, 2], vmin=0, s=10, cmap="jet")
     ax1.set_aspect("equal")
     plt.colorbar(scatter, ax=ax1, label="Flux [Jy]")
-    if cut is not None:
-        ra_deg = header["CRVAL1"]
-        dec_deg = header["CRVAL2"]
-        ax1.set_xlim((ra_deg - cut / 2, ra_deg + cut / 2))
-        ax1.set_ylim((dec_deg - cut / 2, dec_deg + cut / 2))
+    ra_deg = header["CRVAL1"]
+    dec_deg = header["CRVAL2"]
+    img_size_ra = header["NAXIS1"]
+    img_size_dec = header["NAXIS2"]
+    cut_ra = -header["CDELT1"] * float(img_size_ra)
+    cut_dec = header["CDELT2"] * float(img_size_dec)
+    ax1.set_xlim((ra_deg - cut_ra / 2, ra_deg + cut_ra / 2))
+    ax1.set_ylim((dec_deg - cut_dec / 2, dec_deg + cut_dec / 2))
     ax1.set_xlabel("RA [deg]")
     ax1.set_ylabel("DEC [deg]")
     ax1.invert_xaxis()
 
     ax2 = fig.add_subplot(122, projection=wcs, slices=slices)
-    recon_img = ax2.imshow(recon_image, cmap="YlGnBu", origin="lower", vmin=vmin)
+    recon_img = ax2.imshow(
+        recon_image, cmap="YlGnBu", origin="lower", vmin=vmin, vmax=vmax
+    )
     plt.colorbar(recon_img, ax=ax2, label="Flux Density [Jy]")
 
     plt.tight_layout()
-    plt.savefig(outfile + ".pdf")
+    plt.savefig(outfile)
 
 
-def sky_slice(
-    sky: SkyModel, z_obs: NDArray[np.float_], z_min: float, z_max: float
-) -> SkyModel:
+def sky_slice(sky: SkyModel, z_min: IntFloat, z_max: IntFloat) -> SkyModel:
     """
     Extracting a slice from the sky which includes only sources between redshift z_min
     and z_max.
 
-    :param sky: Sky model.
-    :param z_obs: Redshift information of the sky sources. # TODO change as soon as
-    branch 400 is merged
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
     :param z_min: Smallest redshift of this sky bin.
     :param z_max: Largest redshift of this sky bin.
 
     :return: Sky model only including the sources with redshifts between z_min and
              z_max.
     """
-    sky_bin = copy.deepcopy(sky)
-    sky_bin_idx = np.where((z_obs > z_min) & (z_obs < z_max))
-    if sky_bin.sources is None:
-        raise TypeError("`sky.sources` is None which is not allowed.")
-
-    sky_bin.sources = sky_bin.sources[sky_bin_idx]
-
-    return sky_bin
+    return sky.filter_by_column(13, z_min, z_max)
 
 
-def redshift_slices(
-    redshift_obs: NDArray[np.float_], channel_num: int = 10
-) -> NDArray[np.float_]:
+T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
+
+
+def convert_z_to_frequency(z: T) -> T:
+    """Turn given redshift into corresponding frequency (Hz) for 21cm emission.
+
+    :param z: Redshift values to be converted into frequencies.
+
+    :return: Frequencies corresponding to input redshifts.
     """
-    Creation of the redshift bins used for the line emission simulation based on the
-    observed redshift range from the sky.
 
-    :param redshift_obs: Observed redshifts of the sources.
-    :param channel_num: Number of redshift bins/channels.
+    return cast(T, c.value / (0.21 * (1 + z)))
 
-    :return: The channels of the observed redshift range.
+
+def convert_frequency_to_z(freq: T) -> T:
+    """Turn given frequency (Hz) into corresponding redshift for 21cm emission.
+
+    :param freq: Frequency values to be converted into redshifts.
+
+    :return: Redshifts corresponding to input frequencies.
     """
-    print("Smallest redshift:", np.amin(redshift_obs))
-    print("Largest redshift:", np.amax(redshift_obs))
 
-    redshift_channel = np.linspace(
-        np.amin(redshift_obs), np.amax(redshift_obs), channel_num + 1
-    )
-
-    return redshift_channel
+    return cast(T, (c.value / (0.21 * freq)) - 1)
 
 
 def freq_channels(
-    z_obs: NDArray[np.float_], channel_num: int = 10
-) -> Tuple[NDArray[np.float_], NDArray[np.float_], float, float]:
+    z_obs: Union[NDArray[np.float_], xr.DataArray],
+    channel_num: int = 10,
+    equally_spaced_freq: bool = True,
+) -> Tuple[NDArray[np.float_], NDArray[np.float_], NDArray[np.float_], np.float_]:
     """
-    Calculates the frequency channels from the redshifs.
+    Calculates the frequency channels from the redshifts.
     :param z_obs: Observed redshifts from the HI sources.
-    :param channel_num: Number uf channels.
+    :param channel_num: Number of channels.
+    :param equally_spaced_freq: If True (default), create channels
+        equally spaced in frequency.
+        If False, create channels equally spaced in redshift.
 
-    :return: Redshift channel, frequency channel in Hz, bin width of frequency channel
-             in Hz, middle frequency in Hz
+    :return: Redshift channels array,
+        frequency channels array (in Hz),
+        array of bin widths of frequency channel (in Hz), for convenience,
+        and middle frequency (in Hz)
     """
+    z_start = np.min(z_obs)
+    z_end = np.max(z_obs)
 
-    redshift_channel = redshift_slices(z_obs, channel_num)
+    freq_start, freq_end = convert_z_to_frequency(np.array([z_start, z_end]))
 
-    freq_channel = c.value / (0.21 * (1 + redshift_channel))
-    freq_start = freq_channel[0]
-    freq_end = freq_channel[-1]
     freq_mid = freq_start + (freq_end - freq_start) / 2
-    freq_bin = freq_channel[0] - freq_channel[1]
-    print("The frequency channel starts at:", freq_start, "Hz")
-    print("The bin size of the freq channel is:", freq_bin, "Hz")
-    print("The freq channel: ", freq_channel)
 
-    return redshift_channel, freq_channel, freq_bin, freq_mid
+    if equally_spaced_freq is True:
+        freq_channels_array = np.linspace(
+            freq_start,
+            freq_end,
+            channel_num + 1,
+        )
+
+        redshift_channels_array = convert_frequency_to_z(freq_channels_array)
+    else:
+        redshift_channels_array = np.linspace(
+            np.amin(z_obs),
+            np.amax(z_obs),
+            channel_num + 1,
+        )
+
+        freq_channels_array = convert_z_to_frequency(redshift_channels_array)
+
+    freq_bins = np.abs(np.diff(freq_channels_array))
+
+    print("The frequency channel starts at:", freq_start, "Hz")
+    print("The bin sizes of the freq channel are:", freq_bins, "Hz")
+
+    return redshift_channels_array, freq_channels_array, freq_bins, freq_mid
 
 
 def karabo_reconstruction(
-    outfile: str,
+    outfile: FilePathType,
     mosaic_pntg_file: Optional[str] = None,
     sky: Optional[SkyModel] = None,
+    telescope: Optional[Telescope] = None,
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
@@ -307,6 +336,7 @@ def karabo_reconstruction(
     pdf_plot: bool = False,
     circle: bool = False,
     rascil: bool = True,
+    verbose: bool = False,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Performs a sky reconstruction for our test sky.
@@ -316,6 +346,8 @@ def karabo_reconstruction(
                              correct format for creating a
                              mosaic with Montage is created and saved at this path.
     :param sky: Sky model. If None, a test sky (out of equally spaced sources) is used.
+    :param telescope: Telescope used. If None, the MEERKAT telescope will be used as a
+                      default.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
     :param start_time: Observation start time.
@@ -332,22 +364,28 @@ def karabo_reconstruction(
                               here.
     :param cut: Size of the reconstructed image.
     :param img_size: The pixel size of the reconstructed image.
-    :param channel_num:
+    :param channel_num: The number of frequency channels to be used for the
+                        simulation of the continuous emission and therefore for the
+                        reconstruction.
     :param pdf_plot: Shall we plot the scatter plot and the reconstruction as a pdf?
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
                    used.
+    :param verbose: If True you get more print statements.
     :return: Reconstructed sky of one pointing of size cut.
     """
-    print("Create Sky...")
+    if verbose:
+        print("Create Sky...")
     if sky is None:
         sky = SkyModel.sky_test()
 
-    telescope = Telescope.get_MEERKAT_Telescope()
+    if telescope is None:
+        telescope = Telescope.constructor("MeerKAT")
 
-    print("Sky Simulation...")
+    if verbose:
+        print("Sky Simulation...")
     simulation = InterferometerSimulation(
-        vis_path=outfile + ".vis",
+        vis_path=f"{outfile}.vis",
         channel_bandwidth_hz=1.0e7,
         time_average_sec=8,
         ignore_w_components=True,
@@ -359,7 +397,8 @@ def karabo_reconstruction(
         gauss_ref_freq_hz=gaussian_ref_freq,
         use_dask=False,
     )
-    print("Setup observation parameters...")
+    if verbose:
+        print("Setup observation parameters...")
     observation = Observation(
         phase_centre_ra_deg=ra_deg,
         phase_centre_dec_deg=dec_deg,
@@ -370,68 +409,78 @@ def karabo_reconstruction(
         frequency_increment_hz=freq_bin,
         number_of_channels=channel_num,
     )
-    print("Calculate visibilites...")
+    if verbose:
+        print("Calculate visibilites...")
     visibility = simulation.run_simulation(telescope, sky, observation)
 
     if rascil:
-        print("Sky reconstruction with Rascil...")
-        dirty_image = rascil_imager(outfile, visibility, cut, img_size)
+        if verbose:
+            print("Sky reconstruction with Rascil...")
+        dirty_image = rascil_imager(str(outfile), visibility, cut, img_size)
     else:
-        print("Sky reconstruction with the Oskar Imager")
-        dirty_image = oskar_imager(outfile, ra_deg, dec_deg, cut, img_size)
+        if verbose:
+            print("Sky reconstruction with the Oskar Imager")
+        dirty_image = oskar_imager(str(outfile), ra_deg, dec_deg, cut, img_size)
 
     if circle:
-        print("Cutout a circle from image...")
+        if verbose:
+            print("Cutout a circle from image...")
         dirty_image = circle_image(dirty_image)
 
     header = header_for_mosaic(img_size, ra_deg, dec_deg, cut)
     if pdf_plot:
-        print(
-            "Creation of a pdf with scatter plot and reconstructed image to ",
-            str(outfile),
-        )
-        plot_scatter_recon(sky, dirty_image, outfile, header, cut=cut)
+        if verbose:
+            print(
+                "Creation of a pdf with scatter plot and reconstructed image to ",
+                str(outfile),
+            )
+        plot_scatter_recon(sky, dirty_image, f"{outfile}.pdf", header)
 
     if mosaic_pntg_file is not None:
-        print(
-            "Write the reconstructed image to a fits file which can be used for "
-            "coaddition.",
-            mosaic_pntg_file,
-        )
-        fits.writeto(mosaic_pntg_file + ".fits", dirty_image, header, overwrite=True)
+        if verbose:
+            print(
+                "Write the reconstructed image to a fits file which can be used for "
+                "coaddition.",
+                mosaic_pntg_file,
+            )
+        fits.writeto(f"{mosaic_pntg_file}.fits", dirty_image, header, overwrite=True)
 
     return dirty_image, header
 
 
-def line_emission_pointing(
-    path_outfile: str,
+def run_one_channel_simulation(
+    path: FilePathType,
     sky: SkyModel,
-    z_obs: NDArray[np.float_],  # TODO: After branch 400-read_in_sky-exists the sky
-    # includes this information -> rewrite
-    ra_deg: IntFloat = 20,
-    dec_deg: IntFloat = -30,
-    num_bins: int = 10,
-    beam_type: StationTypeType = "Gaussian beam",
-    gaussian_fwhm: IntFloat = 1.0,
-    gaussian_ref_freq: IntFloat = 1.4639e9,
-    start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
-    obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
-    cut: IntFloat = 3.0,
-    img_size: int = 4096,
-    circle: bool = True,
-    rascil: bool = True,
-) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, float]:
+    telescope: Telescope,
+    freq_bin_start: float,
+    freq_bin_width: float,
+    ra_deg: IntFloat,
+    dec_deg: IntFloat,
+    beam_type: StationTypeType,
+    gaussian_fwhm: IntFloat,
+    gaussian_ref_freq: IntFloat,
+    start_time: Union[datetime, str],
+    obs_length: timedelta,
+    cut: IntFloat,
+    img_size: int,
+    circle: bool,
+    rascil: bool,
+    verbose: bool = False,
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
-    Simulating line emission for one pointing.
+    Run simulation for one pointing and one channel
 
-    :param path_outfile: Pathname of the output file and folder.
-    :param sky: Sky model which is used for simulating line emission. If None, a test
-                sky (out of equally spaced sources) is used.
-    :param z_obs: Redshift information of the sky sources.
+    :param path: Pathname of the output file and folder.
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
+    :param telescope: Telescope used. If None, the MEERKAT telescope will be used as a
+                      default.
+    :param freq_bin_start: Starting frequency in this bin
+        (i.e., largest frequency in the bin).
+    :param freq_bin_width: Size of the sky frequency bin which is simulated.
     :param ra_deg: Phase center right ascension.
     :param dec_deg: Phase center declination.
-    :param num_bins: Number of redshift/frequency slices used to simulate line emission.
-                     The more the better the line emission is simulated.
     :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
                       "Aperture Array".
     :param gaussian_fwhm: If the primary beam is gaussian, this is its FWHM. In power
@@ -446,71 +495,193 @@ def line_emission_pointing(
     :param circle: If set to True, the pointing has a round shape of size cut.
     :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
                    used.
+    :param verbose: If True you get more print statements.
+    :return: Reconstruction of one bin slice of the sky and its header.
+    """
+
+    if verbose:
+        print("Starting simulation...")
+
+    freq_bin_middle = freq_bin_start - freq_bin_width / 2
+    dirty_image, header = karabo_reconstruction(
+        path,
+        sky=sky,
+        telescope=telescope,
+        ra_deg=ra_deg,
+        dec_deg=dec_deg,
+        start_freq=freq_bin_middle,
+        freq_bin=freq_bin_width,
+        beam_type=beam_type,
+        gaussian_fwhm=gaussian_fwhm,
+        gaussian_ref_freq=gaussian_ref_freq,
+        start_time=start_time,
+        obs_length=obs_length,
+        cut=cut,
+        img_size=img_size,
+        channel_num=1,
+        circle=circle,
+        rascil=rascil,
+        verbose=verbose,
+    )
+
+    return dirty_image, header
+
+
+def create_line_emission_h5_file(
+    filename: FilePathType,
+    dirty_images: List[NDArray[np.float_]],
+    redshift_channel: NDArray[np.float_],
+    header: fits.header.Header,
+) -> None:
+    """
+    Create a h5 file containing line emission outputs as datasets,
+    and relevant metadata as attributes.
+
+    :param filename: Filename and path of the output h5 file.
+    :param dirty_images: List of dirty images created by the
+        line emission simulation.
+    :param redshift_channel: Array of redshift bin endpoints
+        used as channels for line emission.
+    :param header: FITS-compatible header, with metadata to be stored
+        as H5 attributes.
+    """
+    # Compute redshift channel widths and centers
+    z_bins = np.diff(redshift_channel)
+    z_channel_mid = redshift_channel[:-1] + z_bins / 2
+
+    f = h5py.File(filename, "w")
+    # Store relevant metadata as attributes
+    for k, v in header.items():
+        f.attrs[k] = v
+
+    # Store datasets
+    dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
+    dataset_dirty.attrs["Units"] = "Jy"
+    f.create_dataset("Observed Redshift Channel Center", data=z_channel_mid)
+    f.create_dataset("Observed Redshift Bin Size", data=z_bins)
+
+
+def line_emission_pointing(
+    outpath: DirPathType,
+    sky: SkyModel,
+    telescope: Optional[Telescope] = None,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
+    num_bins: int = 10,
+    equally_spaced_freq: bool = True,
+    beam_type: StationTypeType = "Gaussian beam",
+    gaussian_fwhm: IntFloat = 1.0,
+    gaussian_ref_freq: IntFloat = 1.4639e9,
+    start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
+    obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+    cut: IntFloat = 3.0,
+    img_size: int = 4096,
+    circle: bool = True,
+    rascil: bool = True,
+    verbose: bool = False,
+) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, np.float_]:
+    """
+    Simulating line emission for one pointing.
+
+    :param outpath: Path where output files will be saved.
+    :param sky: Sky model which is used for simulating line emission. This sky model
+                needs to include a 13th axis (extra_column) with the observed redshift
+                of each source.
+    :param telescope: Telescope used. If None, the MEERKAT telescope will be used as a
+                      default.
+    :param ra_deg: Phase center right ascension.
+    :param dec_deg: Phase center declination.
+    :param num_bins: Number of redshift/frequency slices used to simulate line emission.
+                     The more the better the line emission is simulated.
+                     This value also restricts the parallelization. The number of bins
+                     restricts the number of nodes which are effectively used.
+    :param equally_spaced_freq: If True (default), create channels
+        equally spaced in frequency.
+        If False, create channels equally spaced in redshift.
+    :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
+                      "Aperture Array".
+    :param gaussian_fwhm: If the primary beam is gaussian, this is its FWHM. In power
+                          pattern. Units = degrees.
+    :param gaussian_ref_freq: If you choose "Gaussian beam" as station type you need
+                              specify the reference frequency of the reference
+                              frequency of the full-width half maximum here.
+    :param start_time: Observation start time.
+    :param obs_length: Observation length (time).
+    :param cut: Size of the reconstructed image.
+    :param img_size: The pixel size of the reconstructed image.
+    :param circle: If set to True, the pointing has a round shape of size cut.
+    :param rascil: If True we use the Imager Rascil otherwise the Imager from Oskar is
+                   used.
+    :param verbose: If True you get more print statements.
     :return: Total line emission reconstruction, 3D line emission reconstruction,
              Header of reconstruction and mean frequency.
 
 
     E.g. for how to do the simulation of line emission for one pointing and then
-    applying gaussian primary beam correction to it.
-
-    outpath = (
-        "/home/user/Documents/SKAHIIM_Pipeline/result/Reconstructions/"
-        "Line_emission_pointing_2"
-    )
-    catalog_path = (
-        "/home/user/Documents/SKAHIIM_Pipeline/Flux_calculation/"
-        "Catalog/point_sources_OSKAR1_FluxBattye_diluted5000.h5"
-    )
-    ra = 20
-    dec = -30
-    sky_pointing, z_obs_pointing = SkyModel.sky_from_h5_with_redshift(
-        catalog_path, ra, dec
-    )
-    dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-        outpath, sky_pointing, z_obs_pointing
-    )
-    plot_scatter_recon(
-        sky_pointing, dirty_im, outpath, header_dirty, vmax=0.15, cut=3.0
-    )
-    gauss_fwhm = gaussian_fwhm_meerkat(freq_mid_dirty)
-    beam_corrected, _ = simple_gaussian_beam_correction(outpath, dirty_im, gauss_fwhm)
-    plot_scatter_recon(
-        sky_pointing,
-        beam_corrected,
-        outpath + "_GaussianBeam_Corrected",
-        header_dirty,
-        vmax=0.15,
-        cut=3.0,
-    )
+    applying gaussian primary beam correction to it at karabo/test/test_line_emission.py
+    and karabo/examples/HIIM_Img_Recovery.ipynb
     """
     # Create folders to save outputs/ delete old one if it already exists
-    if os.path.exists(path_outfile):
-        shutil.rmtree(path_outfile)
+    outpath = Path(outpath)
 
-    os.makedirs(path_outfile)
+    if os.path.exists(outpath):
+        shutil.rmtree(outpath)
 
-    redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(z_obs, num_bins)
+    os.makedirs(outpath)
 
-    dirty_images = []
-    header = None
-
-    for bin_idx in range(num_bins):
-        print("Channel " + str(bin_idx) + " is being processed...")
-
-        print("Extracting the corresponding frequency slice from the sky model...")
-        sky_bin = sky_slice(
-            sky, z_obs, redshift_channel[bin_idx], redshift_channel[bin_idx + 1]
+    if sky.sources is None:
+        raise TypeError(
+            "`sources` None is not allowed! Please set them in"
+            " the `SkyModel` before calling this function."
         )
 
-        print("Starting simulation...")
-        start_freq = freq_channel[bin_idx] + freq_bin / 2
-        dirty_image, header = karabo_reconstruction(
-            path_outfile + os.path.sep + "slice_" + str(bin_idx),
+    redshift_channel, freq_channel, freq_bin, freq_mid = freq_channels(
+        z_obs=sky.sources[:, 13],
+        channel_num=num_bins,
+        equally_spaced_freq=equally_spaced_freq,
+    )
+
+    # Calculate the number of jobs
+    n_jobs = num_bins
+    print(f"Submitting {n_jobs} jobs to the cluster.")
+
+    # Load the sky into memory
+    sky.compute()
+
+    # Helper function to parallise with dask
+    def process_channel(  # type: ignore[no-untyped-def]
+        bin_idx,
+        outpath,
+        sky,
+        telescope,
+        redshift_channel,
+        freq_channel,
+        ra_deg,
+        dec_deg,
+        beam_type,
+        gaussian_fwhm,
+        gaussian_ref_freq,
+        start_time,
+        obs_length,
+        cut,
+        img_size,
+        circle,
+        rascil,
+        verbose,
+    ):
+        # Do the sky slicing here, so that less data is sent to each worker
+        z_min = redshift_channel[bin_idx]
+        z_max = redshift_channel[bin_idx + 1]
+        sky_bin = sky_slice(sky, z_min, z_max)
+
+        return run_one_channel_simulation(
+            path=outpath / f"slice_{bin_idx}",
             sky=sky_bin,
+            telescope=telescope,
+            freq_bin_start=freq_channel[bin_idx],
+            freq_bin_width=freq_bin[bin_idx],
             ra_deg=ra_deg,
             dec_deg=dec_deg,
-            start_freq=start_freq,
-            freq_bin=freq_bin,
             beam_type=beam_type,
             gaussian_fwhm=gaussian_fwhm,
             gaussian_ref_freq=gaussian_ref_freq,
@@ -518,33 +689,60 @@ def line_emission_pointing(
             obs_length=obs_length,
             cut=cut,
             img_size=img_size,
-            channel_num=1,
             circle=circle,
             rascil=rascil,
+            verbose=verbose,
         )
 
-        dirty_images.append(dirty_image)
+    result = parallelize_with_dask(
+        process_channel,
+        range(num_bins),
+        outpath=outpath,
+        sky=sky,
+        telescope=telescope,
+        redshift_channel=redshift_channel,
+        freq_channel=freq_channel,
+        ra_deg=ra_deg,
+        dec_deg=dec_deg,
+        beam_type=beam_type,
+        gaussian_fwhm=gaussian_fwhm,
+        gaussian_ref_freq=gaussian_ref_freq,
+        start_time=start_time,
+        obs_length=obs_length,
+        cut=cut,
+        img_size=img_size,
+        circle=circle,
+        rascil=rascil,
+        verbose=verbose,
+    )
 
-    dirty_image = cast(NDArray[np.float_], sum(dirty_images))
+    dirty_images = [x[0] for x in result]
+    headers = [x[1] for x in result]
+    header = headers[0]
+
+    if header is None:
+        raise ValueError("No Header found.")
+    dirty_image = cast(NDArray[np.float_], np.einsum("ijk->jk", dirty_images))
 
     print("Save summed dirty images as fits file")
-    dirty_img = fits.PrimaryHDU(dirty_image)
-    dirty_img.writeto(path_outfile + ".fits", overwrite=True)
+    dirty_img = fits.PrimaryHDU(dirty_image, header=header)
+    dirty_img.writeto(
+        outpath / ("line_emission_total_dirty_image.fits"),
+        overwrite=True,
+    )
 
     print("Save 3-dim reconstructed dirty images as h5")
-    z_bin = redshift_channel[1] - redshift_channel[0]
-    z_channel_mid = redshift_channel + z_bin / 2
-
-    f = h5py.File(path_outfile + ".h5", "w")
-    dataset_dirty = f.create_dataset("Dirty Images", data=dirty_images)
-    dataset_dirty.attrs["Units"] = "Jy"
-    f.create_dataset("Observed Redshift Channel Center", data=z_channel_mid)
-    f.create_dataset("Observed Redshift Bin Size", data=z_bin)
+    create_line_emission_h5_file(
+        filename=outpath / ("line_emission_dirty_images.h5"),
+        dirty_images=dirty_images,
+        redshift_channel=redshift_channel,
+        header=header,
+    )
 
     return dirty_image, dirty_images, header, freq_mid
 
 
-def gaussian_fwhm_meerkat(freq: IntFloat) -> np.float64:
+def gaussian_fwhm_meerkat(freq: NPFloatLikeStrict) -> np.float64:
     """
     Computes the FWHM of MeerKAT for a certain observation frequency.
 
@@ -563,8 +761,8 @@ def gaussian_beam(
     dec_deg: IntFloat,
     img_size: int = 2048,
     cut: IntFloat = 1.2,
-    fwhm: IntFloat = 1.0,
-    outfile: str = "beam",
+    fwhm: NPFloatLikeStrict = 1.0,
+    outfile: FilePathType = "beam",
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
     """
     Creates a Gaussian beam at RA, DEC.
@@ -594,20 +792,35 @@ def gaussian_beam(
 
     # make the beam image circular and save it as a fits file
     beam_image = circle_image(beam_image)
-    fits.writeto(outfile + ".fits", beam_image, header, overwrite=True)
+    fits.writeto(outfile, beam_image, header, overwrite=True)
 
     return beam_image, header
 
 
 def simple_gaussian_beam_correction(
-    path_outfile: str,
+    outpath: DirPathType,
     dirty_image: NDArray[np.float_],
-    gaussian_fwhm: IntFloat,
+    gaussian_fwhm: NPFloatLikeStrict,
     ra_deg: IntFloat = 20,
     dec_deg: IntFloat = -30,
     cut: IntFloat = 3.0,
     img_size: int = 4096,
 ) -> Tuple[NDArray[np.float_], fits.header.Header]:
+    """
+    Apply Gaussian Beam correction to the Dirty Image.
+
+    :param outpath: Path where beam data and output image will be saved.
+    :param dirty_image: Dirty Image, e.g. output from line_emission_pointing.
+    :param gaussian_fwhm: FWHM of the Gaussian in degrees.
+    :param ra_deg: Right ascension coordinate of the phase center, in degrees.
+        This is also used as the RA for the center of the Gaussian beam.
+    :param dec_deg: Declination coordinate of the phase center, in degrees.
+        This is also used as the Dec for the center of the Gaussian beam.
+    :param cut: Image size in degrees.
+    :param img_size: Pixel image size.
+    :return: Corrected image and header data.
+    """
+    outpath = Path(outpath)
     print("Calculate gaussian beam for primary beam correction...")
     beam, header = gaussian_beam(
         img_size=img_size,
@@ -615,14 +828,14 @@ def simple_gaussian_beam_correction(
         dec_deg=dec_deg,
         cut=cut,
         fwhm=gaussian_fwhm,
-        outfile=path_outfile + os.path.sep + "gaussian_beam",
+        outfile=outpath / "gaussian_beam.fits",
     )
 
     print("Apply primary beam correction...")
     dirty_image_corrected = dirty_image / beam
 
     fits.writeto(
-        path_outfile + "_GaussianBeam_Corrected.fits",
+        outpath / "line_emission_total_image_beamcorrected.fits",
         dirty_image_corrected,
         header,
         overwrite=True,

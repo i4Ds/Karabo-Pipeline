@@ -1,6 +1,6 @@
 import glob
 import os
-import unittest
+import tempfile
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -16,37 +16,33 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 
 
-class TestSystemNoise(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        # make dir for result files
-        if not os.path.exists("result/system_noise"):
-            os.makedirs("result/system_noise")
+# Test cases
+def test_mightee_download():
+    _ = SkyModel.get_MIGHTEE_Sky()
+    survey = MIGHTEESurveyDownloadObject()
+    path = survey.get()
+    _ = SkyModel.get_fits_catalog(path)
 
-    def test_mightee_download(self):
-        _ = SkyModel.get_MIGHTEE_Sky()
-        survey = MIGHTEESurveyDownloadObject()
-        path = survey.get()
-        _ = SkyModel.get_fits_catalog(path)
 
-    def test_mock_mightee(self):
-        mightee1 = SkyModel.get_MIGHTEE_Sky()
-        # mightee0=fits.open('https://object.cscs.ch:443/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62/karabo_public/MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits');mightee_continuum=mightee0[1].data
-        mightee_continuum = mightee1.to_np_array()
-        sky_data = np.zeros((len(mightee_continuum), 12))
-        sky_data[:, 0] = mightee_continuum[:, 0]
-        sky_data[:, 1] = mightee_continuum[:, 1]
-        sky_data[:, 2] = mightee_continuum[:, 2]
-        sky_data[:, 6] = mightee_continuum[:, 6]
-        sky_data[:, 9] = mightee_continuum[:, 9]
-        sky_data[:, 10] = mightee_continuum[:, 10]
-        sky_data[:, 11] = mightee_continuum[:, 11]
-        sky = SkyModel(sky_data)
-        ra_list = [150.0, 150.5, 160.0]
-        dec_list = [2.0, 2.5, 3.0]
-        f_obs = 1.0e9
-        chan = 1.0e7
-        chan_bandwidth = 1.0e6
+def test_mock_mightee():
+    sky = SkyModel()
+    mightee1 = SkyModel.get_MIGHTEE_Sky()
+    mightee_continuum = mightee1.to_np_array()
+    sky_data = np.zeros((len(mightee_continuum), 12))
+    sky_data[:, 0] = mightee_continuum[:, 0]
+    sky_data[:, 1] = mightee_continuum[:, 1]
+    sky_data[:, 2] = mightee_continuum[:, 2]
+    sky_data[:, 6] = mightee_continuum[:, 6]
+    sky_data[:, 9] = mightee_continuum[:, 9]
+    sky_data[:, 10] = mightee_continuum[:, 10]
+    sky_data[:, 11] = mightee_continuum[:, 11]
+    sky.add_point_sources(sky_data)
+    ra_list = [150.0, 150.5, 160.0]
+    dec_list = [2.0, 2.5, 3.0]
+    f_obs = 1.0e9
+    chan = 1.0e7
+    chan_bandwidth = 1.0e6
+    with tempfile.TemporaryDirectory() as tmpdir:
         for phase_ra in ra_list:
             for phase_dec in dec_list:
                 sky_filter = sky.filter_by_radius(
@@ -55,7 +51,7 @@ class TestSystemNoise(unittest.TestCase):
                     inner_radius_deg=0,
                     outer_radius_deg=2.0,
                 )
-                telescope = Telescope.get_MEERKAT_Telescope()
+                telescope = Telescope.constructor("MeerKAT")
                 # telescope.centre_longitude = 3
                 simulation = InterferometerSimulation(
                     channel_bandwidth_hz=chan_bandwidth,
@@ -87,7 +83,7 @@ class TestSystemNoise(unittest.TestCase):
                 imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)
                 dirty = imager.get_dirty_image()
                 dirty.write_to_file(
-                    "result/mock_mightee/noise_dirty"
+                    os.path.join(tmpdir, "noise_dirty")
                     + str(phase_ra)
                     + "ra_"
                     + str(phase_dec)
@@ -95,7 +91,7 @@ class TestSystemNoise(unittest.TestCase):
                     overwrite=True,
                 )
 
-        imglist = sorted(glob.glob("result/mock_mightee/noise_dirty1*.fits"))
+        imglist = sorted(glob.glob(os.path.join(tmpdir, "noise_dirty1*.fits")))
         data = [0] * len(imglist)
         hdu = [0] * len(imglist)
         i = 0
@@ -106,14 +102,14 @@ class TestSystemNoise(unittest.TestCase):
             hdu[i] = ff[i][0].header
             i = i + 1
         mc_hdu = hdu[0]
-        mc_array, footprint = reproject_interp(ff[1], mc_hdu)
+        mc_array, _ = reproject_interp(ff[1], mc_hdu)
         # mc_array, footprint = reproject_and_coadd(
         #     (data[0], hdu[0]),
         #     mc_hdu, reproject_function=reproject_interp,
         # )
         mosaic_hdu = fits.PrimaryHDU(data=mc_array, header=mc_hdu)
-        mosaic_hdu.writeto("result/mock_mightee/mosaic.fits", overwrite=True)
-        f, ax = plt.subplots(2, 1)
+        mosaic_hdu.writeto(os.path.join(tmpdir, "mosaic.fits"), overwrite=True)
+        _, ax = plt.subplots(2, 1)
         ax0 = ax[0]
         ax1 = ax[1]
         ax0.imshow(data[0][0][0])

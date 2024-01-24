@@ -42,6 +42,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
+karabo/examples/results/
 
 # Translations
 *.mo
@@ -77,6 +78,7 @@ visibilities_task_stream.html
 # Dask
 dask-worker-space
 **/dask_info.json
+**/karabo-dask-dashboard.txt
 
 # Karabo folder
 **/karabo_folder/**
@@ -89,6 +91,8 @@ config.yaml
 karabo/test/result/*
 karabo/test/data/*
 karabo/data/**
+# Exception!
+!karabo/test/data/sdp
 example_telescope.png
 *.vis
 
@@ -106,7 +110,9 @@ karabo/examples/karabo/test/data/results/*
 .mypy_cache/*
 # Slurm logs
 **.out
+# pytest
+.pymon
 
 # Other (playground, experiment, ..)
 .experiment/*
-
+data_download/*

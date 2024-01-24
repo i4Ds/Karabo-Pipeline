@@ -1,45 +1,83 @@
 import os
-import unittest
 
+import nbformat
+import nest_asyncio
+import pytest
+from nbconvert.preprocessors import ExecutePreprocessor
+
+from karabo.test.conftest import IS_GITHUB_RUNNER
 from karabo.util.plotting_util import Font
 
-RUN_SLOW_TESTS = os.environ.get("RUN_SLOW_TESTS", "false").lower() == "true"
-IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
+nest_asyncio.apply()
+
+RUN_NOTEBOOK_TESTS = os.environ.get("RUN_NOTEBOOK_TESTS", "false").lower() == "true"
+
+# get notebook-dir not matter cwd
+notebook_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples")
 
 
-class TestJupyterNotebooks(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        import os
+def _run_notebook(notebook: str) -> None:
+    notebook = os.path.join(notebook_dir, notebook)
+    print(Font.BOLD + Font.BLUE + "Testing notebook " + notebook + Font.END)
 
-        path_to_notebooks = os.path.join("karabo", "examples")
-        os.chdir(path_to_notebooks)
+    with open(notebook) as f:
+        nb = nbformat.read(f, as_version=4)
+        ep = ExecutePreprocessor(timeout=-1)
+        cwd = os.getcwd()
+        os.chdir(notebook_dir)
+        try:
+            assert ep.preprocess(nb) is not None, f"Got empty notebook for {notebook}"
+        except AssertionError as e:
+            pytest.fail(reason=f"Assertion error, details: {e}")
+        except Exception as e:
+            pytest.fail(reason=f"Failed executing {notebook}, Exception: {e}")
+        finally:
+            os.chdir(cwd)
 
-    def _test_notebook(self, notebook):
-        import nbformat
-        from nbconvert.preprocessors import ExecutePreprocessor
 
-        print(Font.BOLD + Font.BLUE + "Testing notebook " + notebook + Font.END)
+@pytest.mark.skipif(
+    IS_GITHUB_RUNNER or not RUN_NOTEBOOK_TESTS,
+    reason="Error: Process completed with exit code 143",
+)
+def test_source_detection_notebook() -> None:
+    _run_notebook(notebook="source_detection.ipynb")
 
-        with open(notebook) as f:
-            nb = nbformat.read(f, as_version=4)
-            ep = ExecutePreprocessor(timeout=-1)
-            try:
-                assert (
-                    ep.preprocess(nb) is not None
-                ), f"Got empty notebook for {notebook}"
-            except Exception:
-                assert False, f"Failed executing {notebook}"
 
-    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
-    def test_source_detection_notebook(self):
-        self._test_notebook(notebook="source_detection.ipynb")
+@pytest.mark.skipif(
+    not RUN_NOTEBOOK_TESTS,
+    reason="'Error: The operation was canceled' when running this test on the package",
+)
+def test_source_detection_big_files_notebook() -> None:
+    _run_notebook(notebook="source_detection_big_files.ipynb")
 
-    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
-    def test_source_detection_assesment_notebook(self):
-        self._test_notebook(notebook="source_detection_assessment.ipynb")
 
-    @unittest.skipIf(IS_GITHUB_RUNNER, "IS_GITHUB_RUNNER")
-    @unittest.skipIf(not RUN_SLOW_TESTS, "SLOW_TESTS")
-    def test_HIIM_Img_Recovery_notebook(self):
-        self._test_notebook(notebook="HIIM_Img_Recovery.ipynb")
+@pytest.mark.skipif(
+    not RUN_NOTEBOOK_TESTS,
+    reason="'Error: The operation was canceled' when running this test on the package",
+)
+def test_source_detection_assesment_notebook() -> None:
+    _run_notebook(notebook="source_detection_assessment.ipynb")
+
+
+@pytest.mark.skipif(
+    not RUN_NOTEBOOK_TESTS,
+    reason="'Error: The operation was canceled' when running this test on the package",
+)
+def test_HIIM_Img_Recovery_notebook() -> None:
+    _run_notebook(notebook="HIIM_Img_Recovery.ipynb")
+
+
+@pytest.mark.skipif(
+    not RUN_NOTEBOOK_TESTS,
+    reason="'Error: The operation was canceled' when running this test on the package",
+)
+def test_Mosaicking_continuous_notebook() -> None:
+    _run_notebook(notebook="Mosaicking_continuous.ipynb")
+
+
+@pytest.mark.skipif(
+    not RUN_NOTEBOOK_TESTS,
+    reason="'Error: The operation was canceled' when running this test on the package",
+)
+def test_ImageMosaicker_notebook() -> None:
+    _run_notebook(notebook="ImageMosaicker.ipynb")

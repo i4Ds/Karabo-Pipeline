@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import enum
 import logging
 import os
 import re
+import shutil
 from math import comb
-from typing import List, Optional
+from typing import Dict, List, Literal, Optional, Type, Union, cast, get_args
 
 import numpy as np
-import oskar.telescope as os_telescope
 from numpy.typing import NDArray
+from oskar.telescope import Telescope as OskarTelescope
+from rascil.processing_components.simulation.simulation_helpers import (
+    plot_configuration,
+)
+from ska_sdp_datamodels.configuration.config_create import create_named_configuration
+from ska_sdp_datamodels.configuration.config_model import Configuration
 
 import karabo.error
 from karabo.error import KaraboError
@@ -26,10 +33,67 @@ from karabo.simulation.telescope_versions import (
     SMAVersions,
     VLAVersions,
 )
-from karabo.util._types import NPFloatLike
+from karabo.simulator_backend import SimulatorBackend
+from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
-from karabo.util.file_handle import FileHandle
+from karabo.util.file_handler import FileHandler
 from karabo.util.math_util import long_lat_to_cartesian
+
+OSKARTelescopesWithVersionType = Literal[
+    "ACA",
+    "ALMA",
+    "ATCA",
+    "CARMA",
+    "NGVLA",
+    "PDBI",
+    "SMA",
+    "VLA",
+]
+OSKARTelescopesWithoutVersionType = Literal[
+    "EXAMPLE",
+    "MeerKAT",
+    "ASKAP",
+    "LOFAR",
+    "MKATPlus",
+    "PDBI",
+    "SKA1LOW",
+    "SKA1MID",
+    "VLBA",
+    "WSRT",
+]
+
+OSKAR_TELESCOPE_TO_FILENAMES: Dict[
+    Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
+    str,
+] = {
+    "EXAMPLE": "telescope.tm",
+    "MeerKAT": "meerkat.tm",
+    "ACA": "aca.{0}.tm",
+    "ALMA": "alma.{0}.tm",
+    "ASKAP": "askap.tm",
+    "ATCA": "atca.{0}.tm",
+    "CARMA": "carma.{0}.tm",
+    "LOFAR": "lofar.tm",
+    "MKATPlus": "mkatplus.tm",
+    "NGVLA": "ngvla-{0}.tm",
+    "PDBI": "pdbi-{0}.tm",
+    "SKA1LOW": "ska1low.tm",
+    "SKA1MID": "ska1mid.tm",
+    "SMA": "sma.{0}.tm",
+    "VLA": "vla.{0}.tm",
+    "VLBA": "vlba.tm",
+    "WSRT": "WSRT.tm",
+}
+OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum]] = {
+    "ACA": ACAVersions,
+    "ALMA": ALMAVersions,
+    "ATCA": ATCAVersions,
+    "CARMA": CARMAVersions,
+    "NGVLA": NGVLAVersions,
+    "PDBI": PDBIVersions,
+    "SMA": SMAVersions,
+    "VLA": VLAVersions,
+}
 
 
 class Telescope(KaraboResource):
@@ -70,13 +134,116 @@ class Telescope(KaraboResource):
         altitude : float, optional
             Altitude (in meters) at the center of the telescope, default is 0.
         """
-        self.temp_dir: Optional[FileHandle] = None
-        self.path: Optional[str] = None
+        self._fh = FileHandler(prefix="telescope", verbose=False)
+        self.path: Optional[DirPathType] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
         self.centre_altitude = altitude
 
         self.stations: List[Station] = []
+
+        self.backend: SimulatorBackend = SimulatorBackend.OSKAR
+
+        self.RASCIL_configuration: Optional[Configuration] = None
+
+    @classmethod
+    def constructor(
+        cls,
+        name: Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
+        version: Optional[enum.Enum] = None,
+        backend: SimulatorBackend = SimulatorBackend.OSKAR,
+    ) -> Telescope:
+        """Main constructor to obtain a pre-configured telescope instance.
+        :param name: Name of the desired telescope configuration.
+            This name, together with the backend, is used as the key
+            to look up the correct telescope specification file.
+        :param version: Version details required for some
+            telescope configurations. Defaults to None.
+        :param backend: Underlying package to be used for the telescope configuration,
+            since each package stores the arrays in a different format.
+            Defaults to OSKAR.
+        :raises: ValueError if the combination of input parameters is invalid.
+            Specifically, if the requested telescope requires a version,
+            but an invalid version (or no version) is provided,
+            or if the requested telescope name is not
+            supported by the requested backend.
+        :returns: Telescope instance.
+        """
+        if backend is SimulatorBackend.OSKAR:
+            # Verify if requested telescope has an existing configuration
+            datapath = OSKAR_TELESCOPE_TO_FILENAMES.get(name, None)
+            if datapath is None:
+                raise ValueError(
+                    f"""{name} not supported for backend {SimulatorBackend.OSKAR.value}.
+                    The valid options for name are:
+                    {list(OSKAR_TELESCOPE_TO_FILENAMES.keys())}."""
+                )
+
+            # Explicitly cast name depending on whether it requires a telescope version
+            # This should no longer be necessary when mypy starts supporting
+            # type narrowing with get_args.
+            # https://github.com/python/mypy/issues/12535
+            if name in get_args(OSKARTelescopesWithVersionType):
+                name = cast(OSKARTelescopesWithVersionType, name)
+                accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS[name]
+                if (version is None) or (version not in accepted_versions):
+                    raise ValueError(
+                        f"""{version} is not valid for telescope {name}.
+                        List of valid versions: {accepted_versions}."""
+                    )
+                datapath = datapath.format(version.value)
+            else:
+                if version is not None:
+                    raise ValueError(
+                        f"""version is not a required field for telescope {name},
+                    but {version} was provided.
+                    Please do not provide a value for the version field."""
+                    )
+
+            path = os.path.join(get_module_absolute_path(), "data", datapath)
+            return cls.read_OSKAR_tm_file(path)
+        elif backend is SimulatorBackend.RASCIL:
+            if version is not None:
+                logging.warning(
+                    f"""The version parameter is not supported
+    by the backend {backend}.
+    The version value {version} provided will be ignored."""
+                )
+            try:
+                configuration = create_named_configuration(name)
+            except ValueError:
+                raise ValueError(
+                    f"""Requested telescope {name} is not supported by this backend.
+                    For more details, see
+    https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels/-/blob/d6dcce6288a7bf6d9ce63ab16e799977723e7ae5/src/ska_sdp_datamodels/configuration/config_create.py"""  # noqa
+                )
+
+            config_earth_location = configuration.location
+            telescope = Telescope(
+                longitude=config_earth_location.lon.to("deg").value,
+                latitude=config_earth_location.lat.to("deg").value,
+                altitude=config_earth_location.height.to("m").value,
+            )
+            telescope.backend = SimulatorBackend.RASCIL
+            telescope.RASCIL_configuration = configuration
+
+            return telescope
+        else:
+            raise ValueError(
+                f"{backend} not supported, see valid options within SimulatorBackend."
+            )
+
+    def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
+        if self.backend is SimulatorBackend.OSKAR:
+            return self.path
+        if self.backend is SimulatorBackend.RASCIL:
+            return self.RASCIL_configuration
+
+        raise ValueError(
+            f"""Unexpected: current backend is set to {self.backend},
+        but expected one of {SimulatorBackend}.
+        Verify the construction of this Telescope instance."""
+        )
 
     def add_station(
         self,
@@ -151,6 +318,22 @@ class Telescope(KaraboResource):
 
     def plot_telescope(self, file: Optional[str] = None) -> None:
         """
+        Plot the telescope according to which backend is being used,
+        and save the resulting image into a file, if any is provided.
+        """
+        if self.backend is SimulatorBackend.OSKAR:
+            self.plot_telescope_OSKAR(file)
+        elif self.backend is SimulatorBackend.RASCIL:
+            plot_configuration(self.get_backend_specific_information())
+        else:
+            logging.warning(
+                f"""Backend {self.backend} is not valid.
+            Proceeding without any further actions."""
+            )
+            return
+
+    def plot_telescope_OSKAR(self, file: Optional[str] = None) -> None:
+        """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
         import matplotlib.pyplot as plt
@@ -191,33 +374,35 @@ class Telescope(KaraboResource):
             plt.show(block=False)
             plt.pause(1)
 
-    def get_OSKAR_telescope(self) -> os_telescope:
+    def get_OSKAR_telescope(self) -> OskarTelescope:
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
         :return: OSKAR Telescope object
         """
-        self.temp_dir = FileHandle(create_additional_folder_in_dir=True)
-        self.write_to_file(self.temp_dir.dir)
-        tel = os_telescope.Telescope()
-        tel.load(self.temp_dir.dir)
-        self.path = self.temp_dir.dir
+
+        self.write_to_file(self._fh.subdir)
+        tel = OskarTelescope()
+        tel.load(self._fh.subdir)
+        self.path = self._fh.subdir
         return tel
 
-    def write_to_file(self, dir: str) -> None:
+    def write_to_file(self, dir: DirPathType) -> None:
         """
         Create .tm telescope configuration at the specified path
         :param dir: directory in which the configuration will be saved in.
         """
-        self.__write_position_txt(f"{dir}/position.txt")
+        self.__write_position_txt(os.path.join(dir, "position.txt"))
         self.__write_layout_txt(
-            f"{dir}/layout.txt", [station.position for station in self.stations]
+            os.path.join(dir, "layout.txt"),
+            [station.position for station in self.stations],
         )
-        i = 0
-        for station in self.stations:
-            station_path = f"{dir}/station{'{:03d}'.format(i)}"
+        for i, station in enumerate(self.stations):
+            station_path = f"{dir}{os.path.sep}station{'{:03d}'.format(i)}"
             os.mkdir(station_path)
-            self.__write_layout_txt(f"{station_path}/layout.txt", station.antennas)
-            i += 1
+            self.__write_layout_txt(
+                os.path.join(station_path, "layout.txt"),
+                station.antennas,
+            )
 
     def __write_position_txt(self, position_file_path: str) -> None:
         position_file = open(position_file_path, "a")
@@ -242,110 +427,90 @@ class Telescope(KaraboResource):
 
     @classmethod
     def read_from_file(cls, path: str) -> Optional[Telescope]:
-        if path.endswith(".tm"):
-            logging.info("Supplied file is a .tm file. Read as OSKAR Telescope file.")
-            return cls.read_OSKAR_tm_file(path)
-        else:
-            return None
+        raise DeprecationWarning("Use Telescope.read_OSKAR_tm_file(path) instead.")
 
     @classmethod
     def get_MEERKAT_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/meerkat.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("MeerKAT") instead.')
 
     @classmethod
     def get_ACA_Telescope(cls, version: ACAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/aca.{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ACA", version) instead.')
 
     @classmethod
     def get_ALMA_Telescope(cls, version: ALMAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/alma.{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ALMA", version) instead.')
 
     @classmethod
     def get_ASKAP_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/askap.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ASKAP") instead.')
 
     @classmethod
     def get_ATCA_Telescope(cls, version: ATCAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/atca.{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("ATCA", version) instead.')
 
     @classmethod
     def get_CARMA_Telescope(cls, version: CARMAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/carma.{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("CARMA", version) instead.')
 
     @classmethod
     def get_LOFAR_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/lofar.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("LOFAR") instead.')
 
     @classmethod
     def get_MKATPLUS_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/mkatplus.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("MKATPlus") instead.')
 
     @classmethod
     def get_NG_VLA_Telescope(cls, version: NGVLAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/ngvla-{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("NGVLA", version) instead.')
 
     @classmethod
     def get_PDBI_Telescope(cls, version: PDBIVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/pdbi-{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("PDBI", version) instead.')
 
     @classmethod
     def get_SKA1_LOW_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/ska1low.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("SKA1LOW") instead.')
 
     @classmethod
     def get_SKA1_MID_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/ska1mid.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("SKA1MID") instead.')
 
     @classmethod
     def get_SMA_Telescope(cls, version: SMAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/sma.{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("SMA", version) instead.')
 
     @classmethod
     def get_VLA_Telescope(cls, version: VLAVersions) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/vla.{version.value}.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("VLA", version) instead.')
 
     @classmethod
     def get_VLBA_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/vlba.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("VLBA") instead.')
 
     @classmethod
     def get_WSRT_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/WSRT.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("WSRT") instead.')
 
     @classmethod
     def get_OSKAR_Example_Telescope(cls) -> Telescope:
-        path = f"{get_module_absolute_path()}/data/telescope.tm"
-        return cls.read_OSKAR_tm_file(path)
+        raise DeprecationWarning('Use Telescope.constructor("EXAMPLE") instead.')
 
     @classmethod
-    def read_OSKAR_tm_file(cls, path: str) -> Telescope:
+    def read_OSKAR_tm_file(cls, path: DirPathType) -> Telescope:
+        path_ = str(path)
         abs_station_dir_paths = []
         center_position_file = None
         station_layout_file = None
-        for file_or_dir in os.listdir(path):
+        for file_or_dir in os.listdir(path_):
             if file_or_dir.startswith("position"):
-                center_position_file = os.path.abspath(os.path.join(path, file_or_dir))
+                center_position_file = os.path.abspath(os.path.join(path_, file_or_dir))
             if file_or_dir.startswith("layout"):
-                station_layout_file = os.path.abspath(os.path.join(path, file_or_dir))
+                station_layout_file = os.path.abspath(os.path.join(path_, file_or_dir))
             if file_or_dir.startswith("station"):
                 abs_station_dir_paths.append(
-                    os.path.abspath(os.path.join(path, file_or_dir))
+                    os.path.abspath(os.path.join(path_, file_or_dir))
                 )
 
         if center_position_file is None:
@@ -422,6 +587,7 @@ class Telescope(KaraboResource):
                 )
 
         telescope.path = path
+        telescope.backend = SimulatorBackend.OSKAR
         return telescope
 
     @classmethod
@@ -457,7 +623,7 @@ def create_baseline_cut_telelescope(
 ) -> str:
     if tel.path is None:
         raise KaraboError("`tel.path` None is not allowed.")
-    stations = np.loadtxt(tel.path + "/layout.txt")
+    stations = np.loadtxt(os.path.join(tel.path, "layout.txt"))
     station_x = stations[:, 0]
     station_y = stations[:, 1]
     nb = comb(stations.shape[0], 2)
@@ -475,24 +641,27 @@ def create_baseline_cut_telelescope(
     cut_baseline_x = baseline_x[cut_idx]
     cut_baseline_y = baseline_y[cut_idx]
     cut_station_list = np.unique(np.hstack((cut_baseline_x, cut_baseline_y)))
-    output_path = tel.path.split("data/")[0] + "data/" + "tel_baseline_cut.tm"
-    os.system("rm -rf " + output_path)
-    os.system("mkdir " + output_path)
+    output_path_prefix = str(tel.path).split(f"data{os.path.sep}")[0]
+    output_path = os.path.join(output_path_prefix, "data", "tel_baseline_cut.tm")
+    if os.path.exists(output_path):
+        shutil.rmtree(output_path)
+    os.mkdir(output_path)
     count = 0
     for ns in cut_station_list:
-        os.system("cp -r " + tel.path + "/station0" + str(int(ns)) + " " + output_path)
+        source_path = os.path.join(str(tel.path), f"station0{str(int(ns))}")
+        os.system(f"cp -r {source_path} {output_path}")
         os.system(
             "mv "
             + output_path
-            + "/station0"
+            + f"{os.path.sep}station0"
             + str(int(ns))
             + " "
             + output_path
-            + "/station0"
+            + f"{os.path.sep}station0"
             + "%02d" % (int(count))
         )
         count = count + 1
     cut_stations = stations[cut_station_list.astype(int)]
-    os.system("cp -r " + tel.path + "/position.txt " + output_path)
-    np.savetxt(output_path + "/layout.txt", cut_stations)
+    os.system(f"cp -r {tel.path}{os.path.sep}position.txt {output_path}")
+    np.savetxt(os.path.join(output_path, "layout.txt"), cut_stations)
     return output_path

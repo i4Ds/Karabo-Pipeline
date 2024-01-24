@@ -15,8 +15,9 @@ from typing import (
     Type,
     Union,
     cast,
-    overload,
 )
+from typing import get_args as typing_get_args
+from typing import overload
 from warnings import warn
 
 import dask.array as da
@@ -36,8 +37,8 @@ from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
 from karabo.data.external_data import (
-    BATTYESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
+    HISourcesSmallCatalogDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
@@ -111,6 +112,8 @@ class SkyPrefixMapping:
     major: Optional[str] = None
     minor: Optional[str] = None
     pa: Optional[str] = None
+    true_redshift: Optional[str] = None
+    observed_redshift: Optional[str] = None
     id: Optional[str] = None
 
 
@@ -135,7 +138,7 @@ class SkyModel:
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
                     through `xarray.sources.coords` with an arbitrary string key
-                    as index or `np.ndarray` as idx 12.
+                    as index or `np.ndarray` as idx SOURCES_COLS.
                     A single point source is described using the following col-order:
 
                     - [0] right ascension (deg)
@@ -150,7 +153,9 @@ class SkyModel:
                     - [9] major axis FWHM (arcsec): defaults to 0
                     - [10] minor axis FWHM (arcsec): defaults to 0
                     - [11] position angle (deg): defaults to 0
-                    - [12] object-id: just for `np.ndarray`
+                    - [12] true redshift: defaults to 0
+                    - [13] observed redshift: defaults to 0
+                    - [14] object-id: just for `np.ndarray`
                         it is removed in the `xr.DataArray`
                         and exists then in `xr.DataArray.coords` as index.
     :ivar wcs: World Coordinate System (WCS) object representing the coordinate
@@ -162,7 +167,7 @@ class SkyModel:
         that can be used to store or retrieve data related to the SkyModel.
     """
 
-    SOURCES_COLS = 12
+    SOURCES_COLS = 14
     _STOKES_IDX: Dict[StokesType, int] = {
         "Stokes I": 2,
         "Stokes Q": 3,
@@ -213,7 +218,7 @@ class SkyModel:
 
     def __set_sky_xarr_dims(self, sources: SkySourcesType) -> None:
         if isinstance(sources, np.ndarray):
-            pass  # nothing toDo here
+            pass  # nothing to do here
         elif isinstance(sources, xr.DataArray):  # checks xarray dims through setter
             self._sources_dim_sources, self._sources_dim_data = cast(
                 Tuple[str, str], sources.dims
@@ -232,15 +237,19 @@ class SkyModel:
             self.h5_file_connection.close()
             self.h5_file_connection = None
 
-    def __del__(self) -> None:
-        """
-        Destructor method that closes the connection to the HDF5 file.
+    @staticmethod
+    def copy_sky(sky: SkyModel) -> SkyModel:
+        if sky.h5_file_connection is not None:
+            h5_connection = sky.h5_file_connection
+            sky.h5_file_connection = None
+        else:
+            h5_connection = None
 
-        This method is automatically called when the instance of the class
-        is no longer referenced. It ensures that the connection to the
-        HDF5 file is closed before the instance is destroyed.
-        """
-        self.close()
+        copied_sky = copy.deepcopy(sky)
+        if h5_connection is not None:
+            copied_sky.h5_file_connection = h5_connection
+
+        return copied_sky
 
     def compute(self) -> None:
         """
@@ -312,13 +321,15 @@ class SkyModel:
             else:
                 da = sources
         elif isinstance(sources, np.ndarray):
-            if sources.shape[1] == SkyModel.SOURCES_COLS + 1:  # is last col source_id?
-                source_ids = sources[:, 12]
-                sources = np.delete(sources, np.s_[12], axis=1)  # type: ignore [assignment] # noqa: E501
-                try:
-                    sources = sources.astype(self.precision)
-                except ValueError:
-                    pass  # convertion failed
+            # For numpy ndarrays, we delete the ID column of the sources
+            if sources.shape[1] in (
+                1 + SkyModel.SOURCES_COLS,
+                13,
+            ):  # sources have IDs. 13 is for backwards compatibility
+                index_of_ids_column = sources.shape[1] - 1
+                source_ids = sources[:, index_of_ids_column]
+                sources = np.delete(sources, np.s_[index_of_ids_column], axis=1)  # type: ignore [assignment] # noqa: E501
+                sources = sources.astype(self.precision)
                 da = xr.DataArray(
                     sources,
                     dims=[self._sources_dim_sources, self._sources_dim_data],
@@ -342,14 +353,15 @@ class SkyModel:
     def add_point_sources(self, sources: SkySourcesType) -> None:
         """Add new point sources to the sky model.
 
-        :param sources: `np.ndarray` with shape (number of sources, 13), where you can
-        place the "source_id" at index 12.
-        OR an `xarray.DataArray` with shape (number of sources, 12) where you can place
-        the "source_id" at `xarray.DataArray.coord` or use `SkyModel.source_ids` later.
+        :param sources: `np.ndarray` with shape (number of sources, 1 + SOURCES_COLS),
+        where you can place the "source_id" at index SOURCES_COLS.
+        OR an `xarray.DataArray` with shape (number of sources, SOURCES_COLS),
+        where you can place the "source_id" at `xarray.DataArray.coord`
+        or use `SkyModel.source_ids` later.
 
         The column indices correspond to:
 
-            - [0] right ascension (deg)-
+            - [0] right ascension (deg)
             - [1] declination (deg)
             - [2] stokes I Flux (Jy)
             - [3] stokes Q Flux (Jy): defaults to 0
@@ -361,8 +373,9 @@ class SkyModel:
             - [9] major axis FWHM (arcsec): defaults to 0
             - [10] minor axis FWHM (arcsec): defaults to 0
             - [11] position angle (deg): defaults to 0
-            - source id (object): is in `SkyModel.source_ids` if provided
-
+            - [12] true redshift: defaults to 0
+            - [13] observed redshift: defaults to 0
+            - [14] source id (object): is in `SkyModel.source_ids` if provided
         """
         try:
             sds, sdd = self._sources_dim_sources, self._sources_dim_data
@@ -403,6 +416,8 @@ class SkyModel:
         - major axis FWHM (arcsec): if no information available, set to 0
         - minor axis FWHM (arcsec): if no information available, set to 0
         - position angle (deg): if no information available, set to 0
+        - true redshift: defaults to 0
+        - observed redshift: defaults to 0
         - source id (object): is in `SkyModel.source_ids` if provided
 
         :param path: file to read in
@@ -416,10 +431,10 @@ class SkyModel:
                 f"STOKES I), but only {dataframe.shape[1]} columns."
             )
 
-        if dataframe.shape[1] >= 13:
+        if dataframe.shape[1] > SkyModel.SOURCES_COLS:
             print(
-                f"CSV has {dataframe.shape[1] - 13} too many rows. "
-                + "The extra rows will be cut off."
+                f"""CSV has {dataframe.shape[1] - SkyModel.SOURCES_COLS + 1}
+            too many rows. The extra rows will be cut off."""
             )
 
         sky = SkyModel(dataframe)
@@ -435,7 +450,7 @@ class SkyModel:
         """
         if self.sources is None:
             raise KaraboSkyModelError(
-                "`sources` is None, add sources before calling `to_array`."
+                "`sources` is None, add sources before calling `to_np_array`."
             )
         if with_obj_ids:
             if self.source_ids is None:
@@ -504,7 +519,7 @@ class SkyModel:
         we also return the indices of the filtered sky copy
         :return sky: Filtered copy of the sky
         """
-        copied_sky = copy.deepcopy(self)
+        copied_sky = SkyModel.copy_sky(self)
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
@@ -531,6 +546,28 @@ class SkyModel:
         else:
             return copied_sky
 
+    @overload
+    def filter_by_radius_euclidean_flat_approximation(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[False] = False,
+    ) -> SkyModel:
+        ...
+
+    @overload
+    def filter_by_radius_euclidean_flat_approximation(
+        self,
+        inner_radius_deg: IntFloat,
+        outer_radius_deg: IntFloat,
+        ra0_deg: IntFloat,
+        dec0_deg: IntFloat,
+        indices: Literal[True],
+    ) -> Tuple[SkyModel, NDArray[np.int_]]:
+        ...
+
     def filter_by_radius_euclidean_flat_approximation(
         self,
         inner_radius_deg: IntFloat,
@@ -538,21 +575,56 @@ class SkyModel:
         ra0_deg: IntFloat,
         dec0_deg: IntFloat,
         indices: bool = False,
-    ) -> Union[SkyModel, Tuple[SkyModel, np.int64]]:
-        # TODO description what is different to non-apporx, when should I use this fun?
-        """_summary_
-
-        Args:
-            inner_radius_deg: _description_
-            outer_radius_deg: _description_
-            ra0_deg: _description_
-            dec0_deg: _description_
-            indices: _description_
-
-        Returns:
-            _description_
+    ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int_]]]:
         """
-        copied_sky = copy.deepcopy(self)
+        Filters sources within an annular region using a flat Euclidean distance
+        approximation suitable for large datasets managed by Xarray.
+
+        This function is designed for scenarios where the dataset size precludes
+        in-memory spherical geometry calculations. By leveraging a flat Euclidean
+        approximation, it permits the use of Xarray's out-of-core computation
+        capabilities, thus bypassing the limitations imposed by the incompatibility
+        of `astropy.visualization.wcsaxes.SphericalCircle` with Xarray's data
+        structures. Although this method trades off geometric accuracy against
+        computational efficiency, it remains a practical choice for large angular
+        fields where the curvature of the celestial sphere can be reasonably
+        neglected.
+
+        Parameters
+        ----------
+        inner_radius_deg : IntFloat
+            The inner radius of the annular search region, in degrees.
+        outer_radius_deg : IntFloat
+            The outer radius of the annular search region, in degrees.
+        ra0_deg : IntFloat
+            The right ascension of the search region's center, in degrees.
+        dec0_deg : IntFloat
+            The declination of the search region's center, in degrees.
+        indices : bool, optional
+            If True, returns the indices of the filtered sources in addition to the
+            SkyModel object. Defaults to False.
+
+        Returns
+        -------
+        SkyModel or tuple of (SkyModel, NDArray[np.int_])
+            The filtered SkyModel object, and optionally the indices of the filtered
+            sources if `indices` is set to True.
+
+        Raises
+        ------
+        KaraboSkyModelError
+            If the `sources` attribute is not populated in the SkyModel instance prior
+            to invoking this function.
+
+        Notes
+        -----
+        Use this function for large sky models where a full spherical geometry
+        calculation is not feasible due to memory constraints. It is particularly
+        beneficial when working with Xarray and Dask, facilitating scalable data
+        analysis on datasets that are too large to fit into memory.
+        """
+        copied_sky = SkyModel.copy_sky(self)
+
         if copied_sky.sources is None:
             raise KaraboSkyModelError(
                 "`sources` is None, add sources before calling `filter_by_radius`."
@@ -573,70 +645,55 @@ class SkyModel:
         copied_sky.sources = self.rechunk_array_based_on_self(copied_sky.sources)
 
         if indices:
-            filtered_indices = cast(np.int64, np.where(filter_mask)[0])
+            filtered_indices = np.where(filter_mask)[0]
             return copied_sky, filtered_indices
         else:
             return copied_sky
+
+    def filter_by_column(
+        self,
+        col_idx: int,
+        min_val: IntFloat,
+        max_val: IntFloat,
+    ) -> SkyModel:
+        """
+        Filters the sky based on a specific column index
+
+        :param col_idx: Column index to filter by
+        :param min_val: Minimum value for the column
+        :param max_val: Maximum value for the column
+        :return sky: Filtered copy of the sky
+        """
+        copied_sky = SkyModel.copy_sky(self)
+        if copied_sky.sources is None:
+            raise KaraboSkyModelError(
+                "`sources` is None, add sources before filtering."
+            )
+
+        # Create mask
+        filter_mask = (copied_sky.sources[:, col_idx] >= min_val) & (
+            copied_sky.sources[:, col_idx] <= max_val
+        )
+        filter_mask = self.rechunk_array_based_on_self(filter_mask)
+
+        # Apply the filter mask and drop the unmatched rows
+        copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
+
+        return copied_sky
 
     def filter_by_flux(
         self,
         min_flux_jy: IntFloat,
         max_flux_jy: IntFloat,
     ) -> SkyModel:
-        """
-        Filters the sky using the Stokes-I-flux
-        Values outside the range are removed
-
-        :param min_flux_jy: Minimum flux in Jy
-        :param max_flux_jy: Maximum flux in Jy
-        :return sky: Filtered copy of the sky
-        """
-        copied_sky = copy.deepcopy(self)
-        if copied_sky.sources is None:
-            raise KaraboSkyModelError(
-                "`sources` None is not allowed. "
-                + "Add sources before calling `filter_by_flux`."
-            )
-
-        # Create mask
-        filter_mask = (copied_sky[:, 2] >= min_flux_jy) & (
-            copied_sky[:, 2] <= max_flux_jy
-        )
-        filter_mask = self.rechunk_array_based_on_self(filter_mask)
-
-        # Apply the filter mask and drop the unmatched rows
-        copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
-
-        return copied_sky
+        return self.filter_by_column(2, min_flux_jy, max_flux_jy)
 
     def filter_by_frequency(
         self,
         min_freq: IntFloat,
         max_freq: IntFloat,
     ) -> SkyModel:
-        """
-        Filters the sky using the reference frequency in Hz
-
-        :param min_freq: Minimum frequency in Hz
-        :param max_freq: Maximum frequency in Hz
-        :return sky: Filtered copy of the sky
-        """
-        copied_sky = copy.deepcopy(self)
-        if copied_sky.sources is None:
-            raise KaraboSkyModelError(
-                "`sources` is None, add sources before calling `filter_by_frequency`."
-            )
-
-        # Create mask
-        filter_mask = (copied_sky.sources[:, 6] >= min_freq) & (
-            copied_sky.sources[:, 6] <= max_freq
-        )
-        filter_mask = self.rechunk_array_based_on_self(filter_mask)
-
-        # Apply the filter mask and drop the unmatched rows
-        copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
-
-        return copied_sky
+        return self.filter_by_column(6, min_freq, max_freq)
 
     def get_wcs(self) -> WCS:
         """
@@ -888,7 +945,7 @@ class SkyModel:
         """Sources setter.
 
         Does also allow numpy-arrays.
-        But mypy doesn't allow getter and setter to have different dtypes.
+        But mypy doesn't allow getter and setter to have different dtypes (issue 3004).
         Just set "# type: ignore [assignment]" in case you don't have exctly an `xarray`
 
         Args:
@@ -1034,6 +1091,8 @@ class SkyModel:
                 "minor axis FWHM (arcsec)",
                 "position angle (deg)",
                 "source id (object)",
+                "true redshift",
+                "observed redshift",
             ],
         )
 
@@ -1076,8 +1135,12 @@ class SkyModel:
     @staticmethod
     def get_sky_model_from_h5_to_xarray(
         path: str,
-        prefix_mapping: SkyPrefixMapping,
-        extra_columns: Optional[List[str]] = None,
+        prefix_mapping: SkyPrefixMapping = SkyPrefixMapping(
+            ra="Right Ascension",
+            dec="Declination",
+            stokes_i="Flux",
+            observed_redshift="Observed Redshift",
+        ),
         load_as: Literal["numpy_array", "dask_array"] = "dask_array",
         chunksize: Union[int, Literal["auto"]] = "auto",
     ) -> SkyModel:
@@ -1093,9 +1156,6 @@ class SkyModel:
             Mapping column names to their corresponding dataset paths
             in the HDF5 file.
             If the column is not present in the HDF5 file, set its value to None.
-        extra_columns : Optional[List[str]], default=None
-            A list of additional column names to include in the output DataArray.
-            If not provided, only the default columns will be included.
         load_as : Literal["numpy_array", "dask_array"], default="dask_array"
             What type of array to load the data inside the xarray Data Array as.
         chunksize : Union[int, str], default=auto
@@ -1120,13 +1180,6 @@ class SkyModel:
             else:
                 dask_array = da.from_array(f[field_value], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
-
-        if extra_columns is not None:
-            for col in extra_columns:
-                dask_array = da.from_array(f[col], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
-                data_arrays.append(
-                    xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT])
-                )
 
         if load_as == "numpy_array":
             data_arrays = [x.compute() for x in data_arrays]
@@ -1162,28 +1215,7 @@ class SkyModel:
             921259
         """
         if frequencies is None:
-            frequencies = [
-                76,
-                84,
-                92,
-                99,
-                107,
-                115,
-                122,
-                130,
-                143,
-                151,
-                158,
-                166,
-                174,
-                181,
-                189,
-                197,
-                204,
-                212,
-                220,
-                227,
-            ]
+            frequencies = list(typing_get_args(GLEAM_freq))
         # Get path to Gleamsurvey
         survey = GLEAMSurveyDownloadObject()
         path = survey.get()
@@ -1359,17 +1391,26 @@ class SkyModel:
         return SkyModel(result_dataset)
 
     @staticmethod
-    def get_BATTYE_sky() -> SkyModel:
+    def get_BATTYE_sky(which: Literal["full", "diluted"] = "diluted") -> SkyModel:
+        raise DeprecationWarning(
+            """This catalog has an error in the source flux values.
+            This method will be removed in a future version.
+            Please use get_sample_simulated_catalog() instead."""
+        )
+
+    @staticmethod
+    def get_sample_simulated_catalog() -> SkyModel:
         """
-        Downloads BATTYE survey data and generates a sky
-        model using the downloaded data.
+        Downloads a sample simulated HI source catalog and generates a sky
+        model using the downloaded data. The catalog size is around 8MB.
 
         Source:
-        The BATTYE survey data was provided by Jennifer Studer
-        (https://github.com/jejestern)
+        The simulated catalog data was provided by Luis Machado
+        (https://github.com/lmachadopolettivalle) in collaboration
+        with the ETHZ Cosmology Research Group.
 
         Returns:
-            SkyModel: A sky model generated from the BATTYE survey data.
+            SkyModel: The corresponding sky model.
             The sky model contains the following information:
 
             - 'Right Ascension' (ra): The right ascension coordinates
@@ -1384,24 +1425,12 @@ class SkyModel:
              'ref_freq', 'spectral_index', 'rm', 'major', 'minor', 'pa', and 'id'
             are not included in the sky model.
 
-
         """
-        survey = BATTYESurveyDownloadObject()
+        survey = HISourcesSmallCatalogDownloadObject()
         path = survey.get()
-        column_mapping = SkyPrefixMapping(
-            ra="Right Ascension",
-            dec="Declination",
-            stokes_i="Flux",
-        )
-        extra_columns = ["Observed Redshift"]
-
-        sky = SkyModel.get_sky_model_from_h5_to_xarray(
-            path=path, prefix_mapping=column_mapping, extra_columns=extra_columns
-        )
+        sky = SkyModel.get_sky_model_from_h5_to_xarray(path=path)
         if sky.sources is None:
-            raise KaraboSkyModelError("`sky.sources` is None but shouldn't be.")
-
-        sky.sources[:, 1] *= -1
+            raise KaraboSkyModelError("`sky.sources` is None, which is unexpected.")
 
         return sky
 
@@ -1474,7 +1503,7 @@ class SkyModel:
              The test sky model.
         """
         sky = SkyModel()
-        sky_data = np.zeros((81, 12))
+        sky_data = np.zeros((81, SkyModel.SOURCES_COLS))
         a = np.arange(-32, -27.5, 0.5)
         b = np.arange(18, 22.5, 0.5)
         dec_arr, ra_arr = np.meshgrid(a, b)
@@ -1487,58 +1516,12 @@ class SkyModel:
         return sky
 
     @staticmethod
-    def sky_from_h5_with_redshift(
+    def sky_from_h5_with_redshift_filtered(
         path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
-    ) -> Tuple[SkyModel, NDArray[np.float_]]:
-        """
-        A sky model is created from a h5 file containing a catalog with right ascension,
-        declination, flux and observed redshift of HI distribution. The sky model only
-        takes into account sources around a certain radius of the phase center.
-
-        :param path: Path of the h5 file.
-        :param ra_deg: Phase center, right ascension.
-        :param dec_deg: Phase center, declination.
-        :param outer_rad: The radius size of the sky model to be considered.
-        :return: The sky model and the corresponding redshifts.
-        TODO: Change after branch 400 is merged.
-        """
-
-        # Read in the catalog (only works for catalogs which are not very large)
-        catalog = h5py.File(path, "r")
-        print("The catalog keys are:", list(catalog.keys()))
-        print("The unit of the flux given here is:", catalog["Flux"].attrs["Units"])
-        print(
-            "Number of elements in the complete catalog:",
-            len(catalog["Declination"][()]),
+    ) -> SkyModel:
+        raise DeprecationWarning(
+            """This method will be removed in a future release.
+        To obtain the same functionality, use
+        sky = SkyModel.get_sky_model_from_h5_to_xarray()
+        and sky.filter_by_radius_euclidean_flat_approximation()."""
         )
-
-        ra = np.array(catalog["Right Ascension"])
-        # We multiply by -1 to change the catalog to the Southern sky
-        dec = np.array(catalog["Declination"]) * -1
-        flux = np.array(catalog["Flux"])
-        z_obs = np.array(catalog["Observed Redshift"])
-        catalog.close()
-
-        # We construct the sky model from the catalog information with Karabo
-        sky_data = np.zeros((len(ra), 12))
-        sky_data[:, 0] = ra
-        sky_data[:, 1] = dec
-        sky_data[:, 2] = flux
-        sky = SkyModel()
-        sky.add_point_sources(sky_data)
-
-        # We only take into account a certain FOV, we filter the sky for this FOV
-        sky_filter, filter_in = sky.filter_by_radius(
-            ra0_deg=ra_deg,
-            dec0_deg=dec_deg,
-            inner_radius_deg=0.0,
-            outer_radius_deg=outer_rad,
-            indices=True,
-        )
-        z_obs_filter = z_obs[filter_in]
-        print(
-            "Number of elements in diluted catalog in the interesting FOV:",
-            len(sky_filter[:, 0]),
-        )
-
-        return sky_filter, z_obs_filter

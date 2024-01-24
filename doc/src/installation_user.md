@@ -1,7 +1,7 @@
 # Installation (User)
 
 ## System Requirements
-- Linux or Windows with WSL. For macOS we recommend you use [Docker](container.html).
+- Linux or Windows with WSL. For macOS we recommend you use [Docker](container.md), starting with version 0.18.1 of the image.
 - 8GB RAM
 - 10GB disk space
 - GPU-acceleration requires proprietary nVidia drivers/CUDA >= 11.7
@@ -10,8 +10,8 @@
 The following steps will install Karabo and its prerequisites (miniconda):
 
 ```
-wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh
-bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -b
+wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.2-0-Linux-x86_64.sh
+bash Miniconda3-py39_23.5.2-0-Linux-x86_64.sh -b
 source ~/miniconda3/bin/activate
 conda init bash
 conda install -y -n base conda-libmamba-solver
@@ -19,7 +19,7 @@ conda config --set solver libmamba
 conda update -y -n base -c defaults conda
 conda create -y -n karabo-env python=3.9
 conda activate karabo-env
-conda install -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
+conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
 conda clean --all -y
 ```
 
@@ -28,7 +28,7 @@ Karabo releases older than `v0.15.0` are deprecated and therefore we don't guara
 ## Update to the current Karabo version
 A Karabo installation can be updated the following way:
 ```
-conda update -y -c i4ds -c conda-forge -c nvidia/label/cuda-11.7.0 karabo-pipeline
+conda update -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
 conda clean --all -y
 ```
 

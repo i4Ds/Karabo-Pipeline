@@ -1,0 +1,35 @@
+name: Test User Package
+
+on:
+  workflow_run:
+    workflows: ["Conda Build"]
+    types:
+      - completed
+
+jobs:
+  conda-build:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+      - name: Set variables, Install Package & Dependencies
+        shell: bash -l {0}
+        run: |
+          export IS_GITHUB_RUNNER=true
+          export RUN_NOTEBOOK_TESTS=false
+          conda install -y -n base conda-libmamba-solver
+          conda config --set solver libmamba
+          conda create -y -n karabo-env python=3.9
+          conda activate karabo-env
+          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline=${{ env.KARABO_VERSION }}
+          pip install ipykernel
+          python -m ipykernel install --user --name python3
+      - name: Test Package
+        shell: bash -l {0}
+        run: |
+          conda activate karabo-env
+          pytest --pyargs karabo.test
+  
