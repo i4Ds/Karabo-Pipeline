@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Type, Union
+from typing import Dict
 from unittest.mock import patch
 
 import dask
@@ -8,11 +8,9 @@ from dask import compute  # type: ignore[attr-defined]
 
 from karabo.util.dask import DaskHandler, DaskSlurmHandler, fetch_dask_handler
 
-_DaskHandlerType = Union[Type[DaskHandler], Type[DaskSlurmHandler]]
-
 
 @pytest.fixture(scope="module")
-def setup_dask(dask_handler: _DaskHandlerType) -> None:
+def setup_dask() -> None:
     dask_handler = fetch_dask_handler()
     dask_handler.setup()
 
