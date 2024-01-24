@@ -8,7 +8,7 @@ import shutil
 import sys
 import time
 from collections.abc import Iterable
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 from warnings import warn
 
 import psutil
@@ -21,6 +21,17 @@ from karabo.util._types import IntFloat
 from karabo.util.data_util import extract_chars_from_string, extract_digit_from_string
 from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
+
+
+def fetch_dask_handler() -> Union[Type[DaskHandler], Type[DaskSlurmHandler]]:
+    """Utility function to automatically choose a Handler.
+
+    Returns:
+        The chosen Handler.
+    """
+    if DaskSlurmHandler.is_on_slurm_cluster():
+        return DaskSlurmHandler
+    return DaskHandler
 
 
 class DaskHandler:
@@ -220,8 +231,8 @@ class DaskHandler:
         messages will be printed.
         - This function utilizes the distributed scheduler of Dask.
         """
-        if not DaskHandler._setup_called:
-            DaskHandler.setup()
+        if not cls._setup_called:
+            cls.setup()
 
         delayed_results = []
 
@@ -272,7 +283,7 @@ class DaskSlurmHandler(DaskHandler):
                 )
             )
         if cls.get_number_of_nodes() > 1:
-            cls.dask_client = DaskSlurmHandler.setup_dask_for_slurm(
+            cls.dask_client = cls.setup_dask_for_slurm(
                 cls.n_workers_scheduler_node,
                 cls.memory_limit,
             )
@@ -535,6 +546,6 @@ class DaskSlurmHandler(DaskHandler):
     def get_job_id(cls) -> str:
         return os.environ["SLURM_JOB_ID"]
 
-    @staticmethod
-    def is_on_slurm_cluster() -> bool:
+    @classmethod
+    def is_on_slurm_cluster(cls) -> bool:
         return "SLURM_JOB_ID" in os.environ

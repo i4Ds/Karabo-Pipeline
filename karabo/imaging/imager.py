@@ -27,7 +27,7 @@ from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
-from karabo.util.dask import DaskHandler
+from karabo.util.dask import fetch_dask_handler
 from karabo.util.file_handler import FileHandler, check_ending
 
 ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
@@ -350,23 +350,31 @@ class Imager:
                 residual_fits_path = os.path.join(tmp_dir, "residual.fits")
 
         if client and not use_dask:
-            raise EnvironmentError("Client passed but use_dask is False")
+            raise RuntimeError("Client passed but use_dask is False")
         if use_dask:
-            client = DaskHandler.get_dask_client()
-        if client:
+            if not client:
+                dask_handler = fetch_dask_handler()
+                client = dask_handler.get_dask_client()
             print(client.cluster)
+            rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
         # Set CUDA parameters
         if use_cuda:
+            if img_context != "wg":
+                print(
+                    f"Changing imaging_rascil.img_context` from '{img_context}' "
+                    + f"to 'wg' because {use_cuda=}"
+                )
             img_context = "wg"
-        rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
         if self.ingest_vis_nchan is None:
-            raise ValueError("`ingest_vis_nchan` is None but must be of type 'int'.")
+            raise ValueError(
+                "`self.ingest_vis_nchan` is None but must set, but is None"
+            )
 
         blockviss = create_visibility_from_ms_rsexecute(
             msname=str(self.visibility.ms_file_path),
             nchan_per_vis=self.ingest_chan_per_vis,
-            nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,  # pyright: ignore
+            nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,
             dds=self.ingest_dd,
             average_channels=True,
         )
@@ -386,8 +394,6 @@ class Imager:
             )
             for bvis in blockviss
         ]
-        if img_context == "wg":
-            raise NotImplementedError("WAGG support for rascil does currently not work")
 
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
             vis_list=blockviss,
