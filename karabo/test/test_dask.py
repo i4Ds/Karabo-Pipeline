@@ -197,6 +197,9 @@ def simple_function(x: int, multiplier: int = 1) -> int:
 
 def test_parallelize_with_dask(setup_dask) -> None:
     iterable = [1, 2, 3, 4, 5]
-    results = DaskHandler.parallelize_with_dask(simple_function, iterable, multiplier=2)
+    dask_handler = fetch_dask_handler()
+    results = dask_handler.parallelize_with_dask(
+        simple_function, iterable, multiplier=2
+    )
     expected_results = tuple([x * 2 for x in iterable])
     assert results == expected_results

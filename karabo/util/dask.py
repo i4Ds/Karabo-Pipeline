@@ -8,7 +8,7 @@ import shutil
 import sys
 import time
 from collections.abc import Iterable
-from typing import Any, Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union, cast
 from warnings import warn
 
 import psutil
@@ -64,25 +64,6 @@ class DaskHandler:
     TIMEOUT: int
         The timeout in seconds for the Dask scheduler to wait for all the
         workers to connect.
-
-
-    Methods
-    -------
-    setup() -> None:
-        Sets up the Dask client. If the client does not exist, and the
-        current node is a SLURM node and there are more than 1 node, a
-        Dask client will be created but not returned. Then, when a function
-        can make use of dask, it will make use of dask automatically. This
-        function need to be only called once at the beginning of the script.
-        It stops the processing of the script if the script is not running on the
-        main node.
-    get_dask_client() -> Client:
-        Returns a Dask client object. If the client does not exist, and
-        the current node is a SLURM node and there are more than 1 node,
-        a Dask client will be created.
-
-
-
     """
 
     dask_client: Optional[Client] = None
@@ -271,22 +252,25 @@ class DaskSlurmHandler(DaskHandler):
 
     @classmethod
     def get_dask_client(cls) -> Client:
-        if cls.dask_client is not None:
-            return cls.dask_client
+        dask_client = cls.dask_client
+        if dask_client is not None:
+            return dask_client
         if not cls._setup_called and cls.is_first_node():
-            cls_name = cls.__name__
-            warn(
-                KaraboWarning(
-                    f"{cls_name}.setup() has to be called at the beginning "
-                    + "of the script. This could lead to unexpected behaviour "
-                    + "on a SLURM cluster if not (see documentation)."
-                )
-            )
+            cls.setup()
         if cls.get_number_of_nodes() > 1:
-            cls.dask_client = cls.setup_dask_for_slurm(
-                cls.n_workers_scheduler_node,
-                cls.memory_limit,
+            dask_client = cast(  # hacky workaround
+                Client,
+                cls.setup_dask_for_slurm(
+                    cls.n_workers_scheduler_node,
+                    cls.memory_limit,
+                ),
             )
+            if dask_client is not None:
+                cls.dask_client = dask_client
+            return dask_client
+        else:
+            cls.dask_client = super(DaskSlurmHandler, cls).get_dask_client()
+        return cls.dask_client
 
     @classmethod
     def prepare_slurm_nodes_for_dask(cls) -> None:
@@ -338,7 +322,7 @@ class DaskSlurmHandler(DaskHandler):
                 memory_limit=memory_limit,
             )
             await worker.finished()
-            return worker  # type: ignore
+            return worker
 
         async def start_nanny(scheduler_address: str) -> Nanny:
             nanny = await Nanny(
@@ -347,7 +331,7 @@ class DaskSlurmHandler(DaskHandler):
                 memory_limit=memory_limit,
             )
             await nanny.finished()
-            return nanny  # type: ignore
+            return nanny
 
         scheduler_address = str(dask_info["scheduler_address"])
         n_workers = int(str(dask_info["n_workers_per_node"]))
@@ -385,7 +369,7 @@ class DaskSlurmHandler(DaskHandler):
         cls,
         n_workers_scheduler_node: int,
         memory_limit: Optional[IntFloat],
-    ) -> Client:
+    ) -> Optional[Client]:
         if cls.is_first_node():
             _, dask_info_address, dask_run_status = cls._get_dask_paths_for_slurm()
             # Create file to show that the run is still ongoing
