@@ -168,6 +168,14 @@ class ExampleHDF5Map(SingleFileDownloadObject):
         )
 
 
+class DiffuseEmissionHaslam408DownloadObject(SingleFileDownloadObject):
+    def __init__(self) -> None:
+        super().__init__(
+            remote_file_path="lambda_mollweide_haslam408_dsds.fits",
+            remote_base_url="https://lambda.gsfc.nasa.gov/data/foregrounds/haslam/images",  # noqa: E501
+        )
+
+
 class ContainerContents(DownloadObject):
     def __init__(
         self,
