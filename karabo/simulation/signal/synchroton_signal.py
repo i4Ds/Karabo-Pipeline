@@ -10,7 +10,7 @@ from astropy.io import fits
 from astropy.table import QTable
 from astropy.wcs import WCS
 
-from karabo.data.external_data import DownloadObject
+from karabo.data.external_data import DiffuseEmissionHaslam408DownloadObject
 from karabo.simulation.signal import helpers
 from karabo.simulation.signal.base_signal import BaseSignal
 from karabo.simulation.signal.typing import Image2D
@@ -43,10 +43,6 @@ class SignalSynchroton(BaseSignal[Image2D]):
     ... )
     """
 
-    DEFAULT_FITS = (
-        "https://lambda.gsfc.nasa.gov/data/foregrounds/haslam/images/"
-        "lambda_mollweide_haslam408_dsds.fits"
-    )
     MAX_GRID_X = 190
     MAX_GRID_Y = 190
 
@@ -83,12 +79,7 @@ class SignalSynchroton(BaseSignal[Image2D]):
             The table ID of the masking data. By default 2.
         """
         if diffuse_emission_path is None:
-            diffuse_emission_path = Path(
-                DownloadObject(
-                    "lambda_mollweide_haslam408_dsds.fits",
-                    SignalSynchroton.DEFAULT_FITS,
-                ).get()
-            )
+            diffuse_emission_path = Path(DiffuseEmissionHaslam408DownloadObject().get())
 
         self.diffuse_emission_path = diffuse_emission_path
         self.data_table_id = data_table_id
@@ -216,4 +207,4 @@ class SignalSynchroton(BaseSignal[Image2D]):
         npt.NDArray[np.float_]
             Converted array in the same shape as the input array.
         """
-        return freq * (target_freq / source_freq) ** alpha
+        return np.power(freq * (target_freq / source_freq), alpha)

@@ -82,18 +82,18 @@ class SuperimposeTestCase(unittest.TestCase):
         empty list.
         """
         with self.assertRaises(KaraboError):
-            Superimpose.combine([])
+            Superimpose.combine()
 
     def test_one_elem(self) -> None:
         """
         Test if the same image comes out if only on is given to the superimpose.
         """
         self.assertEqual(
-            Superimpose.combine([SuperimposeTestCase.im_2d_2]),
+            Superimpose.combine(SuperimposeTestCase.im_2d_2),
             SuperimposeTestCase.im_2d_2,
         )
         self.assertEqual(
-            Superimpose.combine([SuperimposeTestCase.im_3d_2]),
+            Superimpose.combine(SuperimposeTestCase.im_3d_2),
             SuperimposeTestCase.im_3d_2,
         )
 
@@ -103,7 +103,8 @@ class SuperimposeTestCase(unittest.TestCase):
         """
         result = (
             Superimpose.combine(
-                [SuperimposeTestCase.im_2d_1, SuperimposeTestCase.im_2d_2]
+                SuperimposeTestCase.im_2d_1,
+                SuperimposeTestCase.im_2d_2,
             ).data
             == SuperimposeTestCase.im_2d_2.data
         )
@@ -111,7 +112,8 @@ class SuperimposeTestCase(unittest.TestCase):
 
         result = (
             Superimpose.combine(
-                [SuperimposeTestCase.im_3d_1, SuperimposeTestCase.im_3d_2]
+                SuperimposeTestCase.im_3d_1,
+                SuperimposeTestCase.im_3d_2,
             ).data
             == SuperimposeTestCase.im_3d_2.data
         )
@@ -123,7 +125,8 @@ class SuperimposeTestCase(unittest.TestCase):
         """
         result = (
             Superimpose.combine(
-                [SuperimposeTestCase.im_2d_1, SuperimposeTestCase.im_3d_2]
+                SuperimposeTestCase.im_2d_1,
+                SuperimposeTestCase.im_3d_2,
             ).data
             == SuperimposeTestCase.im_3d_2.data
         )
@@ -131,7 +134,8 @@ class SuperimposeTestCase(unittest.TestCase):
 
         result = (
             Superimpose.combine(
-                [SuperimposeTestCase.im_3d_1, SuperimposeTestCase.im_2d_2]
+                SuperimposeTestCase.im_3d_1,
+                SuperimposeTestCase.im_2d_2,
             ).data
             == SuperimposeTestCase.im_3d_2.data
         )
@@ -142,23 +146,19 @@ class SuperimposeTestCase(unittest.TestCase):
         Test if the multiple images, of the same dimension, are combined correctly.
         """
         result = Superimpose.combine(
-            [
-                SuperimposeTestCase.im_2d_1,
-                SuperimposeTestCase.im_2d_2,
-                SuperimposeTestCase.im_2d_1,
-                SuperimposeTestCase.im_2d_3,
-            ]
+            SuperimposeTestCase.im_2d_1,
+            SuperimposeTestCase.im_2d_2,
+            SuperimposeTestCase.im_2d_1,
+            SuperimposeTestCase.im_2d_3,
         ).data == np.array([[2, 2, 2], [3, 3, 3], [4, 4, 4]])
         self.assertTrue(result.all())
 
         result = Superimpose.combine(
-            [
-                SuperimposeTestCase.im_3d_1,
-                SuperimposeTestCase.im_3d_2,
-                SuperimposeTestCase.im_3d_3,
-                SuperimposeTestCase.im_3d_1,
-                SuperimposeTestCase.im_3d_3,
-            ]
+            SuperimposeTestCase.im_3d_1,
+            SuperimposeTestCase.im_3d_2,
+            SuperimposeTestCase.im_3d_3,
+            SuperimposeTestCase.im_3d_1,
+            SuperimposeTestCase.im_3d_3,
         ).data == np.array(
             [
                 [[3, 5, 7], [3, 5, 7], [3, 5, 7]],
@@ -173,12 +173,10 @@ class SuperimposeTestCase(unittest.TestCase):
         Test if the multiple images, of different dimension, are combined correctly.
         """
         result = Superimpose.combine(
-            [
-                SuperimposeTestCase.im_3d_3,
-                SuperimposeTestCase.im_2d_2,
-                SuperimposeTestCase.im_2d_3,
-                SuperimposeTestCase.im_3d_1,
-            ]
+            SuperimposeTestCase.im_3d_3,
+            SuperimposeTestCase.im_2d_2,
+            SuperimposeTestCase.im_2d_3,
+            SuperimposeTestCase.im_3d_1,
         ).data == np.array(
             [
                 [[3, 4, 5], [4, 5, 6], [5, 6, 7]],
