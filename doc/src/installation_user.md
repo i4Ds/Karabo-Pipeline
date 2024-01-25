@@ -15,10 +15,11 @@ bash Miniconda3-py39_23.5.2-0-Linux-x86_64.sh -b
 source ~/miniconda3/bin/activate
 conda init bash
 conda install -y -n base conda-libmamba-solver
-conda config --set solver libmamba
 conda update -y -n base -c defaults conda
 conda create -y -n karabo-env python=3.9
 conda activate karabo-env
+conda config --env --set solver libmamba
+conda config --env --set channel_priority true
 conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
 conda clean --all -y
 ```
