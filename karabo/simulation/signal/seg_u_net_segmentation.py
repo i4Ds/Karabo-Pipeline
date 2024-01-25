@@ -1,16 +1,20 @@
 """Segmentation with SegU-net."""
 
-import pkg_resources
+from typing import Literal
+
+import pkg_resources  # type: ignore[import]
 import tools21cm as t2c
+from typing_extensions import assert_never
 
 try:
     from tensorflow.python.keras.models import load_model
 except ImportError:  # noqa: E722
-    from tensorflow.keras.models import load_model  # type: ignore
-
+    from tensorflow.keras.models import load_model
 
 from karabo.simulation.signal.base_segmentation import BaseSegmentation
 from karabo.simulation.signal.typing import Image3D, SegmentationOutput
+
+_TtaType = Literal[0, 1, 2]
 
 
 # pylint: disable=too-few-public-methods
@@ -21,7 +25,7 @@ class FixedSegUNet(t2c.segmentation.segunet21cm):  # type: ignore[misc]
     Can be removed once Tools21cm is fixed.
     """
 
-    def __init__(self, tta=1, verbose=False) -> None:
+    def __init__(self, tta: _TtaType = 1, verbose: bool = False) -> None:
         """SegU-Net: segmentation of 21cm images with U-shape network.
 
            - tta (int): default 0 (super-fast, no pixel-error map) implement the error
@@ -56,7 +60,7 @@ class FixedSegUNet(t2c.segmentation.segunet21cm):  # type: ignore[misc]
          BEST_EPOCH = 56 RESUME_EPOCH = 66
         """
         # pylint: disable=invalid-name
-        self.TTA = tta
+        self.TTA: _TtaType = tta
         self.VERBOSE = verbose
 
         if self.TTA == 2:
@@ -68,6 +72,8 @@ class FixedSegUNet(t2c.segmentation.segunet21cm):  # type: ignore[misc]
         elif self.TTA == 0:
             # super-fast
             self.MANIP = {"opt0": [lambda a: a, 0, 0]}
+        else:
+            assert_never(self.TTA)
 
         self.NR_MANIP = len(self.MANIP)
 
@@ -102,7 +108,7 @@ class SegUNetSegmentation(BaseSegmentation):
     >>> SegmentationPlotting.seg_u_net_plotting(segmented=segmented)
     """
 
-    def __init__(self, max_baseline: float = 70.0, tta: int = 2) -> None:
+    def __init__(self, max_baseline: float = 70.0, tta: _TtaType = 2) -> None:
         """
         SegU.net based segmentation.
 
@@ -114,7 +120,7 @@ class SegUNetSegmentation(BaseSegmentation):
             0=super-fast, 1=fast, 2=super-slow, by default 2
         """
         self.max_baseline = max_baseline
-        self.tta = tta
+        self.tta: _TtaType = tta
 
     def segment(self, image: Image3D) -> SegmentationOutput:
         """
