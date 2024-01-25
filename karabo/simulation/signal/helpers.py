@@ -1,7 +1,7 @@
 """Helpers for generating different types of signals."""
 
 import multiprocessing
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -317,5 +317,8 @@ def interpolate_image(
     grid = np.meshgrid(row_indices, column_indices, indexing="ij")
     coordinates = np.stack(grid, axis=-1)
 
-    interpolated_array = map_coordinates(image, coordinates.T, order=1, mode=mode)
+    interpolated_array = cast(
+        npt.NDArray[np.float_],
+        map_coordinates(image, coordinates.T, order=1, mode=mode),
+    )
     return interpolated_array.reshape(new_size).T

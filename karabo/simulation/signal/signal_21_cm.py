@@ -1,13 +1,13 @@
 """21cm Signal simulation."""
 import re
 from pathlib import Path
-from typing import Callable, Final, Optional
+from typing import Callable, Final, Optional, cast
 
 import numpy as np
 import requests
 import tools21cm as t2c
 
-from karabo.data.external_data import DownloadObject
+from karabo.data.external_data import SingleFileDownloadObject
 from karabo.error import KaraboError
 from karabo.simulation.signal.base_signal import BaseSignal
 from karabo.simulation.signal.typing import Image3D, XFracDensFilePair
@@ -33,11 +33,9 @@ class Signal21cm(BaseSignal[Image3D]):
     >>> SignalPlotting.brightness_temperature(z, z_layer=100)
     """
 
-    XFRAC_URL = "https://ttt.astro.su.se/~gmell/244Mpc/244Mpc_f2_0_250/{xfrac_name}"
-    DENS_URL = (
-        "https://ttt.astro.su.se/~gmell/244Mpc/densities/nc250/coarser_densities/"
-        + "{dens_name}"
-    )
+    astro_gmell_base_url = "https://ttt.astro.su.se/~gmell/244Mpc"
+    xfrac_url = "244Mpc_f2_0_250"
+    dens_url = "densities/nc250/coarser_densities"
 
     def __init__(self, files: list[XFracDensFilePair]) -> None:
         """
@@ -118,7 +116,7 @@ class Signal21cm(BaseSignal[Image3D]):
         float
             Lightcone radius.
         """
-        return 30 * np.exp(-(redshift - 7.0) / 3)
+        return cast(float, 30 * np.exp(-(redshift - 7.0) / 3))
 
     # pylint: disable=too-many-locals
     @classmethod
@@ -216,16 +214,18 @@ class Signal21cm(BaseSignal[Image3D]):
         XFracDensFilePair
             A tuple of xfrac and dens files.
         """
+
         xfrac_name = f"xfrac3d_{z:.3f}.bin"
         dens_name = f"{z:.3f}n_all.dat"
 
-        xfrac_path = DownloadObject(
-            xfrac_name,
-            Signal21cm.XFRAC_URL.format(xfrac_name=xfrac_name),
+        xfrac_path = SingleFileDownloadObject(
+            remote_file_path=f"{Signal21cm.xfrac_url}/{xfrac_name}",
+            remote_base_url=Signal21cm.astro_gmell_base_url,
         ).get()
-        dens_path = DownloadObject(
-            dens_name,
-            Signal21cm.DENS_URL.format(dens_name=dens_name),
+
+        dens_path = SingleFileDownloadObject(
+            remote_file_path=f"{Signal21cm.dens_url}/{dens_name}",
+            remote_base_url=Signal21cm.astro_gmell_base_url,
         ).get()
 
         return XFracDensFilePair(
@@ -242,7 +242,10 @@ class Signal21cm(BaseSignal[Image3D]):
         list[float]
             List of all available redshifts for xfrac files.
         """
-        resp = requests.get(Signal21cm.XFRAC_URL.format(xfrac_name=""), timeout=30)
+        resp = requests.get(
+            f"{Signal21cm.astro_gmell_base_url}/{Signal21cm.xfrac_url}",
+            timeout=30,
+        )
         all_redshifts_xfrac = re.findall(
             r'<a href="xfrac3d_([0-9]+\.[0-9]+)\.bin">', resp.text
         )
@@ -259,7 +262,10 @@ class Signal21cm(BaseSignal[Image3D]):
         list[float]
             List of all available redshifts for dens files.
         """
-        resp = requests.get(Signal21cm.DENS_URL.format(dens_name=""), timeout=30)
+        resp = requests.get(
+            f"{Signal21cm.astro_gmell_base_url}/{Signal21cm.dens_url}",
+            timeout=30,
+        )
         all_redshifts_dens = re.findall(
             r'<a href="([0-9]+\.[0-9]+)n_all.dat">', resp.text
         )

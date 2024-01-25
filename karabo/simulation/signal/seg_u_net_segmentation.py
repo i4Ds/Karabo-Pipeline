@@ -4,23 +4,24 @@ import pkg_resources
 import tools21cm as t2c
 
 try:
-    from tensorflow.keras.models import load_model
-except ImportError:  # noqa: E722
     from tensorflow.python.keras.models import load_model
+except ImportError:  # noqa: E722
+    from tensorflow.keras.models import load_model  # type: ignore
+
 
 from karabo.simulation.signal.base_segmentation import BaseSegmentation
 from karabo.simulation.signal.typing import Image3D, SegmentationOutput
 
 
 # pylint: disable=too-few-public-methods
-class FixedSegUNet(t2c.segmentation.segunet21cm):
+class FixedSegUNet(t2c.segmentation.segunet21cm):  # type: ignore[misc]
     """
     Fixes the bug such that the Segmentation can run.
 
     Can be removed once Tools21cm is fixed.
     """
 
-    def __init__(self, tta=1, verbose=False):
+    def __init__(self, tta=1, verbose=False) -> None:
         """SegU-Net: segmentation of 21cm images with U-shape network.
 
            - tta (int): default 0 (super-fast, no pixel-error map) implement the error
