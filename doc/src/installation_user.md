@@ -16,13 +16,14 @@ bash Miniconda3-latest-Linux-x86_64.sh
 source .bashrc
 conda install -n base conda-libmamba-solver
 conda config --set solver libmamba
+conda config --env --set channel_priority true
 ```
 
 **Install Package**
 ```shell
-conda create -y -n karabo
+conda create -n karabo
 conda activate karabo
-conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
+conda install -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
 ```
 
 Karabo versions older than `v0.15.0` are deprecated and therefore installation will most likely fail. In addition, we do not support Karabo older than latest-minor version in case dependency resolving or online resources are outdated. Therefore, we strongly recommend using the latest version of Karabo. If an older version of Karabo is required, we strongly recommend using a [container](container.md), as the environment is fixed in a container. However, outdated online resources may still occur.
@@ -30,7 +31,7 @@ Karabo versions older than `v0.15.0` are deprecated and therefore installation w
 ## Update to latest Karabo version
 A Karabo installation can be updated the following way:
 ```
-conda update -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
+conda update -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
 ```
 
 ## Additional Notes and Troubleshooting
