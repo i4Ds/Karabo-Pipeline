@@ -138,8 +138,8 @@ class FileHandler:
              ├── <sbudir>
              └── <file>
 
-    LTM stand for long-term-memory (FileHandler.ltm) and STM for short-term-memory
-    (FileHandler.stm). The data-products usually get into in the STM directory.
+    LTM stand for long-term-memory (FileHandler.ltm()) and STM for short-term-memory
+    (FileHandler.stm()). The data-products usually get into in the STM directory.
 
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
@@ -147,13 +147,11 @@ class FileHandler:
     root: str = _get_tmp_dir()
 
     @classmethod
-    @property
     def ltm(cls) -> str:
         """LTM (long-term-memory) path."""
         return os.path.join(cls.root, _get_cache_dir(term="long"))
 
     @classmethod
-    @property
     def stm(cls) -> str:
         """STM (short-term-memory) path."""
         return os.path.join(cls.root, _get_cache_dir(term="short"))
@@ -168,9 +166,9 @@ class FileHandler:
     @staticmethod
     def _get_term_dir(term: _LongShortTermType) -> str:
         if term == "short":
-            dir_ = FileHandler.stm
+            dir_ = FileHandler.stm()
         elif term == "long":
-            dir_ = FileHandler.ltm
+            dir_ = FileHandler.ltm()
         else:
             assert_never(term)
         return dir_

@@ -330,7 +330,7 @@ class Imager:
         if deconvolved_fits_path is not None:
             check_ending(path=deconvolved_fits_path, ending=".fits")
         if restored_fits_path is not None:
-            check_ending(path=deconvolved_fits_path, ending=".fits")
+            check_ending(path=restored_fits_path, ending=".fits")
         if residual_fits_path is not None:
             check_ending(path=residual_fits_path, ending=".fits")
         if (

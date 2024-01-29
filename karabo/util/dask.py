@@ -237,14 +237,12 @@ class DaskSlurmHandler(DaskHandler):
     """Dask & Slurm related functionality resides here."""
 
     @classmethod
-    @property
     def dask_info_address(cls) -> str:
         """dask_info.json path"""
         _, info_address, _ = cls._get_dask_paths_for_slurm()
         return info_address
 
     @classmethod
-    @property
     def dask_run_status(cls) -> str:
         """dask_run_status.txt path"""
         _, _, run_status = cls._get_dask_paths_for_slurm()
@@ -322,7 +320,7 @@ class DaskSlurmHandler(DaskHandler):
                 memory_limit=memory_limit,
             )
             await worker.finished()
-            return worker
+            return worker  # type: ignore[no-any-return]
 
         async def start_nanny(scheduler_address: str) -> Nanny:
             nanny = await Nanny(
@@ -331,7 +329,7 @@ class DaskSlurmHandler(DaskHandler):
                 memory_limit=memory_limit,
             )
             await nanny.finished()
-            return nanny
+            return nanny  # type: ignore[no-any-return]
 
         scheduler_address = str(dask_info["scheduler_address"])
         n_workers = int(str(dask_info["n_workers_per_node"]))

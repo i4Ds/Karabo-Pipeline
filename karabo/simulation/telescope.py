@@ -698,7 +698,7 @@ class Telescope:
         hcut: NPFloatLike,
         tel: Telescope,
         tm_path: Optional[DirPathType] = None,
-    ) -> Tuple[str, Dict[str, str]]:
+    ) -> Tuple[DirPathType, Dict[str, str]]:
         """Cut telescope `tel` for baseline-lengths.
 
         Args:
@@ -724,7 +724,7 @@ class Telescope:
         station_y = df_tel["y"].to_numpy()
         baselines: List[Tuple[int, int]] = sorted(
             [  # each unique combination-idx a station with another station
-                tuple(station_idx)
+                tuple(station_idx)  # type: ignore[misc]
                 for station_idx in set(
                     map(
                         frozenset, product(np.arange(n_stations), np.arange(n_stations))
