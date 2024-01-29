@@ -758,14 +758,14 @@ class Telescope:
         os.makedirs(tm_path, exist_ok=False)
 
         conversions: Dict[str, str] = dict()
-        for i in enumerate(df_tel.shape[0]):
+        for i in range(df_tel.shape[0]):
             source_path = df_tel.iloc[i]["station-path"]
             number_str = cls._get_number_str(num=i, n_digits=3)
             target_station = f"station{number_str}"
             target_path = os.path.join(tm_path, target_station)
             source_station = os.path.split(source_path)[-1]
             conversions[source_station] = target_station
-            shutil.copyfile(src=source_path, dst=target_path)
+            shutil.copytree(src=source_path, dst=target_path)
 
         shutil.copyfile(
             src=os.path.join(tel.path, "position.txt"),
