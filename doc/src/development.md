@@ -28,7 +28,7 @@ Then create a local development environment with the provided `environment.yaml`
 conda env create -n <your-env-name> -f environment.yaml
 ```
 
-Then install karabo as a package and the development dependencies.
+Then install Karabo as a package and the according dev-dependencies.
 
 ```shell
 conda activate <your-env-name>
