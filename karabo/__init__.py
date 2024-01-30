@@ -28,7 +28,7 @@ if "WSL" in platform.release() and (
 
 # Setup dask for slurm
 if "SLURM_JOB_ID" in os.environ:
-    # ugly workaraound to not import stuff not available at build-time, but on import.
+    # ugly workaraound to not import stuff not available at build-time
     from karabo.util.dask import prepare_slurm_nodes_for_dask
 
     prepare_slurm_nodes_for_dask()

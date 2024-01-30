@@ -19,7 +19,7 @@ def _get_tmp_dir() -> str:
     Defined env-var-dir > scratch-dir > tmp-dir
 
     Honors TMPDIR and TMP environment variable(s).
-    The only thing not allowed is a collision between the mentioned env-vars.
+    Setting 'TMPDIR' & 'TMP' differently is ambiguous, thus it's not allowed.
 
     Returns:
         path of tmpdir
@@ -41,7 +41,7 @@ def _get_tmp_dir() -> str:
             if TMP != env_check:
                 raise RuntimeError(
                     f"Environment variables collision: TMP={TMP} != "
-                    + f"{environment_varname}={env_check}"
+                    + f"{environment_varname}={env_check} which is ambiguous."
                 )
         else:
             tmpdir = os.path.abspath(TMP)
