@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import uuid
 from typing import (
     Any,
     Callable,
@@ -476,7 +475,7 @@ class Image:
         self,
         resolution: float = 5.0e-4,
         signal_channel: Optional[int] = None,
-        save_png: bool = False,
+        path: Optional[FilePathType] = None,
     ) -> None:
         """
         Plot the power spectrum of this image.
@@ -501,11 +500,8 @@ class Image:
         plt.gca().set_ylim(1e-6 * max_profile, 2.0 * max_profile)
         plt.tight_layout()
 
-        if save_png:
-            power_spectrum_name = (
-                self._fname if self._fname is not None else uuid.uuid4()
-            )
-            plt.savefig(f"./power_spectrum_{power_spectrum_name}")
+        if path is not None:
+            plt.savefig(path)
         plt.show(block=False)
         plt.pause(1)
 
