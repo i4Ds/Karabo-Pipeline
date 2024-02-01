@@ -187,7 +187,7 @@ class SourceDetectionEvaluation:
                 idx_assigment_pred[distance == np.inf] = -1
                 # Check if a ground truth point is assigned to more
                 # than one predicted point
-                pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(  # noqa
+                pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(  # noqa: E501
                     idx_assigment_pred
                 )
 
@@ -329,14 +329,15 @@ class SourceDetectionEvaluation:
         filename: Optional[str] = None,
     ) -> None:
         conf_matrix = self.get_confusion_matrix()
+        ax: Axes
         _, ax = plt.subplots()
-        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
+        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)  # type: ignore[attr-defined] # noqa: E501
         for i in range(conf_matrix.shape[0]):
             for j in range(conf_matrix.shape[1]):
                 ax.text(
                     x=j,
                     y=i,
-                    s=int(conf_matrix[i, j]),
+                    s=str(conf_matrix[i, j]),
                     va="center",
                     ha="center",
                     size="x-large",

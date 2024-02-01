@@ -20,7 +20,7 @@ jobs:
         run: |
           conda env create -n karabo_dev_env -f environment.yaml
           conda activate karabo_dev_env
-          pip install -r requirements.txt
+          pip install ".[dev]"
       - name: Build Docs
         shell: bash -l {0}
         run: |

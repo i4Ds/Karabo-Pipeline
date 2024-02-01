@@ -4,7 +4,7 @@ on:
   schedule: # Every night at 5am
     - cron: '0 5 * * *'
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
   push:
     branches:
@@ -27,8 +27,7 @@ jobs:
           conda create -y -n test_karabo python=3.9
           conda activate test_karabo
           mamba env update --file environment.yaml
-          pip install -r requirements.txt
-          pip install ipykernel
+          pip install -e ".[dev]"
           python -m ipykernel install --user --name python3
       - name: Test Dev-Tools
         shell: bash -l {0}
@@ -42,17 +41,13 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate test_karabo
-          export IS_GITHUB_RUNNER=true
-          export RUN_GPU_TESTS=false
-          export RUN_NOTEBOOK_TESTS=true
-          pip install . --no-deps
+          export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
+          mpirun -n 2 pytest --only-mpi
           pytest --cov=./ --cov-report=xml
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./coverage/reports/
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: OS,PYTHON
-          files: ./coverage1.xml,./coverage2.xml,!./cache
           fail_ci_if_error: false
           name: codecov-karabo

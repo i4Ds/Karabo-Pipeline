@@ -3,3 +3,6 @@ coverage:
     project:
       default:
         target: 0%  # sets required coverage for a success
+    patch:
+      default:
+        target: 0%  # sets required coverage for a success

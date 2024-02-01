@@ -84,7 +84,7 @@ _SourceIdType = Union[
     List[str],
     List[int],
     List[float],
-    NDArray[np.object0],
+    NDArray[np.object_],
     NDArray[np.int_],
     NDArray[np.float_],
     DataArrayCoordinates[xr.DataArray],
@@ -473,7 +473,8 @@ class SkyModel:
             raise KaraboSkyModelError("Rechunking of `sources` None is not allowed.")
         if self.sources.chunks is not None:
             chunk_size = max(self.sources.chunks[0][0], 1)
-            array = array.chunk({self._sources_dim_sources: chunk_size})
+            chunks: Dict[str, Any] = {self._sources_dim_sources: chunk_size}
+            array = array.chunk(chunks=chunks)
         else:
             pass
         return array
@@ -636,9 +637,11 @@ class SkyModel:
         distances_sq = np.add(np.square(x), np.square(y))
 
         # Filter sources based on inner and outer radius
-        filter_mask = (distances_sq >= np.square(inner_radius_deg)) & (
-            distances_sq <= np.square(outer_radius_deg)
-        )
+        filter_mask = cast(  # distances_sq actually an xr.DataArray because x & y are
+            xr.DataArray,
+            (distances_sq >= np.square(inner_radius_deg))
+            & (distances_sq <= np.square(outer_radius_deg)),
+        ).compute()
 
         copied_sky.sources = copied_sky.sources[filter_mask]
 
@@ -674,7 +677,7 @@ class SkyModel:
         filter_mask = (copied_sky.sources[:, col_idx] >= min_val) & (
             copied_sky.sources[:, col_idx] <= max_val
         )
-        filter_mask = self.rechunk_array_based_on_self(filter_mask)
+        filter_mask = self.rechunk_array_based_on_self(filter_mask).compute()
 
         # Apply the filter mask and drop the unmatched rows
         copied_sky.sources = copied_sky.sources.where(filter_mask, drop=True)
@@ -1185,9 +1188,11 @@ class SkyModel:
             data_arrays = [x.compute() for x in data_arrays]
         sky = xr.concat(data_arrays, dim=XARRAY_DIM_1_DEFAULT)
         sky = sky.T
-        sky = sky.chunk(
-            {XARRAY_DIM_0_DEFAULT: chunksize, XARRAY_DIM_1_DEFAULT: sky.shape[1]}  # type: ignore [dict-item] # noqa: E501
-        )
+        chunks: Dict[str, Any] = {
+            XARRAY_DIM_0_DEFAULT: chunksize,
+            XARRAY_DIM_1_DEFAULT: sky.shape[1],
+        }
+        sky = sky.chunk(chunks=chunks)
         return SkyModel(sky, h5_file_connection=f)
 
     @staticmethod
@@ -1379,13 +1384,12 @@ class SkyModel:
                 data_array.coords[XARRAY_DIM_0_DEFAULT] = source_ids
             data_arrays.append(data_array)
 
+        chunks: Dict[str, Any] = {XARRAY_DIM_0_DEFAULT: chunksize}
         for freq_dataset in data_arrays:
-            freq_dataset.chunk({XARRAY_DIM_0_DEFAULT: chunksize})  # type: ignore [dict-item] # noqa: E501
+            freq_dataset.chunk(chunks=chunks)
 
         result_dataset = (
-            xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT)
-            .chunk({XARRAY_DIM_0_DEFAULT: chunksize})  # type: ignore [dict-item]
-            .T
+            xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT).chunk(chunks=chunks).T
         )
 
         return SkyModel(result_dataset)

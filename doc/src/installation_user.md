@@ -4,38 +4,41 @@
 - Linux or Windows with WSL. For macOS we recommend you use [Docker](container.md), starting with version 0.18.1 of the image.
 - 8GB RAM
 - 10GB disk space
-- GPU-acceleration requires proprietary nVidia drivers/CUDA >= 11.7
+- GPU-acceleration requires proprietary nVidia drivers/CUDA >= 11
 
 ## Install Karabo
 The following steps will install Karabo and its prerequisites (miniconda):
 
-```
-wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.2-0-Linux-x86_64.sh
-bash Miniconda3-py39_23.5.2-0-Linux-x86_64.sh -b
+```shell
+# install conda & solver
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
 source ~/miniconda3/bin/activate
 conda init bash
-conda install -y -n base conda-libmamba-solver
-conda update -y -n base -c defaults conda
-conda create -y -n karabo-env python=3.9
-conda activate karabo-env
+conda install -n base conda-libmamba-solver
+# setup virtual environment
+conda create -n karabo python=3.9
+conda activate karabo
 conda config --env --set solver libmamba
 conda config --env --set channel_priority true
-conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
-conda clean --all -y
+# install karabo
+conda install -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
 ```
 
-Karabo releases older than `v0.15.0` are deprecated and therefore we don't guarantee a successful installation.
+Karabo versions older than `v0.15.0` are deprecated and therefore installation will most likely fail. In addition, we do not support Karabo older than latest-minor version in case dependency resolving or online resources are outdated. Therefore, we strongly recommend using the latest version of Karabo. If an older version of Karabo is required, we strongly recommend using a [container](container.md), as the environment is fixed in a container. However, outdated online resources may still occur.
 
-## Update to the current Karabo version
+## Update to latest Karabo version
 A Karabo installation can be updated the following way:
+
+Note: Even though we care about not introducing API-breaking changes through different minor releases of Karabo, we don't guarantee it.
+
 ```
-conda update -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
-conda clean --all -y
+conda update -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
 ```
 
 ## Additional Notes and Troubleshooting
-- If the base environment was updated, *libmamba* might fail to install. In that case, reset conda to version 22 using `conda install --rev 0 --name base` or you can try installing Karabo without *libmamba*. Using *libmamba* is not strictly required, but strongly recommended, because it should make the installation much faster and more reliable.
-- You can install miniconda into a different path, use ```bash Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -b -p YourDesiredPath``` instead
+- Dont' install anything into the base environment except libraries which are supposed to live in there. If you accientally install packages there which are not supposed to be there, you might break some functionalities of your conda-installation.
+- If you're using a system conda, it might be that you don't have access to a libmamba-solver, because the solver lives in the base environment, which belongs to root. In this case, you can ask your admin to install the solver, try an installation without the libmamba solver OR we recommend to just install conda into your home (which is the recommended solution).
 - If you are using WSL and running a jupyter-notebook fails, you might have to set the path to the cuda libraries as follows:
 
 ```shell

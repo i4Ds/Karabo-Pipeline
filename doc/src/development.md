@@ -28,31 +28,23 @@ Then create a local development environment with the provided `environment.yaml`
 conda env create -n <your-env-name> -f environment.yaml
 ```
 
-Then install the development dependencies using `requirements.txt`.
+Then install Karabo as a package and the according dev-dependencies.
 
 ```shell
 conda activate <your-env-name>
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
-NOTE: With these commands, only the dependencies but not the current version of karabo will be installed into a conda environment. To tell Python to treat the reposity as a package, run the following (note that using `conda develop` is not recommended, see [this issue](https://github.com/conda/conda-build/issues/1992)):
+Afterwards, activating you dev-tools in your IDE and SHELL is recommended. For the setup of your IDE of choice you have to do it yourself. For the SHELL setup, we recommend to do the following in the repo-root:
 
 ```shell
-pip install -e .
-```
-
-(Optional) For your developer experience, the following link might be useful: [Setup Python Interpreter in PyCharm](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html).
-
-You are done! If everything worked as expected, you can start an interactive Python session and test the import:
-
-```shell
-python
->>> import karabo
+pre-commit install
+podmena add local
 ```
 
 ## Formatting
 
-To increase the readability of the code and to better detect potential errors already during development, a number of tools are used. These tools must first be installed in the virtual environment using `pip install -r requirements.txt`. If possible use the versions defined in `requirements.txt`, so that all developers work with the same versions. The configurations of the tools are handled in `setup.cfg`. If changes to the configurations are desired, the team members should agree to this (e.g. via a meeting).
+To increase the readability of the code and to better detect potential errors already during development, a number of tools are used. The configurations of the tools are handled in `setup.cfg` or `pyproject.toml`. If changes to the configurations are desired, the team members should agree to this (e.g. via a meeting).
 
 It is possible that certain tools complain about something that is not easy or even impossible to fix. ONLY then, there are options to ignore certain lines of code or even whole files for the checker. E.g. `# noqa` ignores inline flake8 complaints. But be careful not to accidentally ignore the whole file (e.g. with `# flake8: noqa`). Please refer to the documentation of the respective tool to learn how to ignore the errors.
 
@@ -156,10 +148,9 @@ So an md file can reference like ``[some file](path/to/some/file)``.
 When adding new submodules or modules. You need to update the modules.rst file accordingly and add new files similiar to the karabo.simulation.rst. To enable the automatic generation of the documentation via the python docstrings.
 There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that can automate this.
 
-If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, use the following commands to generate the documentation:
+If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, assuming you've installed the dev-dependencies from pyproject.toml, use the following commands to generate the documentation:
 
 ```shell
-pip install -r requirements.txt
 make html
 ```
 
@@ -167,20 +158,17 @@ make html
 
 We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)). To add a new test simply go to the `karabo/test` folder.
 
-Add tests for when you write some sort of new code that you feel like might break.
-
-TIP:
-If you validate your code manually, consider just writing a method in a test class instead of opening a jupyter notebook and writing a new cell or a terminal window where you would execute the code you want to test.
+Add tests for when you write some sort of new code that you feel like might break. Be aware that tests utilize the functionality of the testing-framework and therefore might not behave exaclty the same as you whould execute the code just as a function. The most important file to consider is `conftest.py`, which could impact the other tests.
 
 ## Create a Release
-When everything is merged which should be merged, a new Release can be deployed on `conda-forge` as following:
+When everything is merged which should be merged, a new Release can be deployed as following:
 - [Karabo-Pipeline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
-- Define a Version by clicking `Choose a tag`. Currently we increment the second number by 1.
-- Update version in `karabo/version.py`
+- Define a Version by clicking `Choose a tag`. We follow PEP440 {major}.{minor}.{path} with a leading `v` at the beginning (see previous versions). Usually we increment the minor version by 1.
 - Check that the `Target` is set to `main`.
 - Describe the release (get inspired by the previous releases).
 - Click `Publish release`. 
 - Check on [Karabo-Pipeline | Github Actions](https://github.com/i4Ds/Karabo-Pipeline/actions) that the release is succesful. 
 - Check that the new version is on [Anaconda.org | Packages](https://anaconda.org/i4ds/karabo-pipeline)
+- Check on [Karabo-Pipeline | Docker Images](https://github.com/i4ds/Karabo-Pipeline/pkgs/container/karabo-pipeline) that the released image is live.
 

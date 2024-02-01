@@ -12,6 +12,8 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import psutil
 from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.distributed import Client, LocalCluster, Nanny, Worker
+from dask_mpi import initialize
+from mpi4py import MPI
 
 from karabo.error import KaraboDaskError
 from karabo.util._types import IntFloat
@@ -102,13 +104,12 @@ class DaskHandler:
 
     @staticmethod
     def get_dask_client() -> Client:
-        # Get IS_DOCKER_CONTAINER variable
-        if os.environ.get("IS_DOCKER_CONTAINER", "false").lower() == "true":
-            from dask.distributed import Client
-            from dask_mpi import initialize
-            from mpi4py import MPI
-
-            initialize(nthreads=DaskHandler.n_threads_per_worker, comm=MPI.COMM_WORLD)
+        if MPI.COMM_WORLD.Get_size() > 1:
+            n_threads_per_worker = DaskHandler.n_threads_per_worker
+            if n_threads_per_worker is None:
+                initialize(comm=MPI.COMM_WORLD)
+            else:
+                initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
             DaskHandler.dask_client = Client(processes=DaskHandler.use_proccesses)
         elif DaskHandler.dask_client is None:
             if (

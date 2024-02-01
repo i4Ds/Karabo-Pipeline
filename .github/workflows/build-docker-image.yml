@@ -1,0 +1,121 @@
+name: Build Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      verstag:
+        type: string
+        required: true
+      latest:
+        type: boolean
+        required: false
+        default: false
+
+  workflow_dispatch:
+    inputs:
+      gitrev:
+        type: string
+        required: false
+        default: ""
+        description: "gitrev: commit-hash (full) | branch | tag if not current commit."
+      verstag:
+        type: string
+        required: true
+        description: "version: PEP440 version-tag of Karabo. DON't trigger build if you don't know what PEP440 is!"
+      latest:
+        type: boolean
+        required: false
+        default: false
+        description: "tag image as 'latest'?"
+      test:
+        type: boolean
+        required: false
+        default: false
+        description: "create env from environment.yaml instead of conda-wheel?"
+
+env:
+  REGISTRY: ghcr.io
+  IMG_NAME: karabo-pipeline
+
+jobs:
+  build-test-and-push-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup metadata img-name & img-tag
+        shell: bash -l {0}
+        run: |
+          if [[ ${{ github.event_name }} == "workflow_call" ]]; then
+            echo "gitrev=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "build=user" >> "$GITHUB_ENV"
+          elif [[ ${{ github.event_name }} == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.gitrev }}" != "" ]]; then
+              echo "gitrev=${{ inputs.gitrev }}" >> "$GITHUB_ENV"
+            else
+              echo "gitrev=$GITHUB_SHA" >> "$GITHUB_ENV"
+            fi
+            if [[ "${{ inputs.test }}" == 'true' ]]; then
+              echo "build=test" >> "$GITHUB_ENV"
+            else
+              echo "build=user" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "Invalid github-event!"
+            exit 1
+          fi
+          echo "latest=${{ inputs.latest }}" >> "$GITHUB_ENV"
+          echo "version=${{ inputs.verstag }}" >> "$GITHUB_ENV"
+          REPO_OWNER=${{ github.repository_owner }}
+          echo "IMG_ADDR=${{ env.REGISTRY }}/${REPO_OWNER@L}/${{ env.IMG_NAME }}" >> "$GITHUB_ENV"
+          DEV_STR="dev"
+          if [[ "${{ inputs.verstag }}" == *"$DEV_STR"* ]] && [[ "${{ inputs.latest }}" == 'true' ]]; then
+            echo "Invalid configuration of workflow-inputs!"
+            exit 1
+          fi
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: |
+            type=raw, enable=${{ env.latest }}, value=latest
+            type=raw, value=${{ env.version }}
+
+      - name: Docker build
+        shell: bash -l {0}
+        run: |
+          docker build \
+            --build-arg GIT_REV=${{ env.gitrev }} \
+            --build-arg BUILD=${{ env.build }} \
+            --build-arg KARABO_VERSION=${{ env.version }} \
+            -f Dockerfile \
+            -t ${{ env.IMG_ADDR }}:${{ env.version }} \
+            .
+          if [[ ${{ env.latest }} == 'true' ]]; then
+            docker tag ${{ env.IMG_ADDR }}:${{ env.version }} ${{ env.IMG_ADDR }}:latest
+          fi
+
+      - name: Test image
+        run: |  # karabo-sitepackage-location used for mpirun instead of --pyargs because --only-mpi is a custom-flag of karabo which lives in the site-packages
+          docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash -c \
+            'export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=false; pytest --pyargs karabo.test; SITE_PKGS=$(pip show karabo-pipeline | grep Location | sed "s/.*\(\/opt\/conda.*\).*/\1/"); mpirun -n 2 pytest --only-mpi $SITE_PKGS/karabo/test'
+      - name: Docker push
+        shell: bash -l {0}
+        run: |
+          docker push --all-tags ${{ env.IMG_ADDR }}

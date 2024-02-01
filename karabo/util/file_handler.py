@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import glob
 import os
+import random
 import shutil
+import string
 import uuid
 from types import TracebackType
 from typing import Optional, Union
@@ -11,32 +13,85 @@ from karabo.util._types import DirPathType, FilePathType
 from karabo.util.plotting_util import Font
 
 
-def _get_default_root_dir() -> str:
-    karabo_folder = "karabo_folder"
-    scratch = os.environ.get("SCRATCH")
-    if scratch is not None:
-        root_parent = scratch
-    else:
-        root_parent = os.getcwd()
-    root_dir = os.path.join(root_parent, karabo_folder)
-    return os.path.abspath(root_dir)
+def _get_disk_cache_root() -> str:
+    """Gets the root-directory of the disk-cache.
+
+    Defined env-var-dir > scratch-dir > tmp-dir
+
+    Honors TMPDIR and TMP environment variable(s).
+
+    Raises:
+        RuntimeError: If 'TMPDIR' & 'TMP' are set differently which is ambiguous.
+
+    Returns:
+        path of tmpdir
+    """
+    # first guess is just /tmp (low prio)
+    tmpdir = f"{os.path.sep}tmp"
+    # second guess is if scratch is available (mid prio)
+    if (scratch := os.environ.get("SCRATCH")) is not None and os.path.exists(scratch):
+        tmpdir = scratch
+    # third guess is to honor the env-variables mentioned (high prio)
+    env_check: Optional[str] = None  # variable to check previous environment variables
+    environment_varname = ""
+    if (TMPDIR := os.environ.get("TMPDIR")) is not None:
+        tmpdir = os.path.abspath(TMPDIR)
+        env_check = TMPDIR
+        environment_varname = "TMPDIR"
+    if (TMP := os.environ.get("TMP")) is not None:
+        if env_check is not None:
+            if TMP != env_check:
+                raise RuntimeError(
+                    f"Environment variables collision: TMP={TMP} != "
+                    + f"{environment_varname}={env_check} which is ambiguous."
+                )
+        else:
+            tmpdir = os.path.abspath(TMP)
+            env_check = TMP
+            environment_varname = "TMP"
+    return tmpdir
+
+
+def _get_cache_dir() -> str:
+    """Creates a deterministic & user-specific cache-dir-name.
+
+    dir-name: karabo-($USER-)<10-rnd-asci-letters-and-digits>
+
+    Returns:
+        path of cache-dir
+    """
+    tmpdir = _get_disk_cache_root()
+    delimiter = "-"
+    prefix = "karabo"
+    user = os.environ.get("USER")
+    if user is not None:
+        prefix = delimiter.join((prefix, user))
+    random.seed(prefix)
+    suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    cache_dir_name = delimiter.join((prefix, suffix))
+    cache_dir = os.path.join(tmpdir, cache_dir_name)
+    return cache_dir
 
 
 class FileHandler:
     """Utility file-handler for unspecified directories.
 
-    Provides directory-management functionality in case no dir-path was specified.
-    `FileHandler.root` is a static root-directory where each subdir is located.
+    Provides chache-management functionality.
+    `FileHandler.root` is a static root-directory where each cache-dir is located.
+    In case you want to extract something specific from the cache, the path is usually
+    printed blue & bold in stdout.
+
     Set `FileHandler.root` to change the directory where files and dirs will be saved.
-    Subdirs are usually {prefix}_{fh_dir_identifier}_{uuid4[:8]} in case `prefix`
-     is defined, otherwise just {fh_dir_identifier}_{uuid4[:8]}.
+    Otherwise, we provide $TMP, $TMPDIR & $TEMP with a following /karabo-cache as root.
+    Subdirs are usually {prefix}_{fh_dir_identifier}_{uuid4} in case `prefix`
+    is defined, otherwise just {fh_dir_identifier}_{uuid4}.
     This class provides an additional security layer for the removal of subdirs
-     in case a root is specified where other files and directories live.
-    FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using with.
+    in case a root is specified where other files and directories live.
+    FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
-    root: str = _get_default_root_dir()
-    fh_dir_identifier = "fhdir"  # additional security to protect against dir-removal
+    root: str = _get_cache_dir()
+    fh_dir_identifier = "fhdir"  # additional protection against dir-removal
 
     def __init__(
         self,

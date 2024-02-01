@@ -1,12 +1,13 @@
 """Pytest global fixtures needs to be here!"""
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy.typing import NDArray
+from pytest import Config, Item, Parser
 
 from karabo.test import data_path
 from karabo.util.file_handler import FileHandler
@@ -14,7 +15,62 @@ from karabo.util.file_handler import FileHandler
 NNImageDiffCallable = Callable[[str, str], float]
 
 IS_GITHUB_RUNNER = os.environ.get("IS_GITHUB_RUNNER", "false").lower() == "true"
+RUN_GPU_TESTS = os.environ.get("RUN_GPU_TESTS", "false").lower() == "true"
 file_handler_test_dir = os.path.join(os.path.dirname(__file__), "karabo_test")
+
+
+def pytest_addoption(parser: Parser) -> None:
+    """Pytest custom argparse hook.
+
+    Add custom argparse options here.
+
+    Pytest argparse-options have to be declared in the root conftest.py.
+    For some reason, the root conftest.py has to live near the project-root, even if
+    only a single conftest.py exists. However, this prevents using `pytest .` with
+    custom argparse-coptions from the root. Instead, either specify the test-dir
+    or leave it out entirely.
+
+    Args:
+        parser: pytest.Parser
+    """
+    parser.addoption(
+        "--only-mpi",
+        action="store_true",
+        default=False,
+        help="run only mpi tests",
+    )
+
+
+def pytest_configure(config: Config) -> None:
+    """Pytest add ini-values.
+
+    Args:
+        config: pytest.Config
+    """
+    config.addinivalue_line("markers", "mpi: mark mpi-tests as mpi")
+
+
+def pytest_collection_modifyitems(config: Config, items: Iterable[Item]) -> None:
+    """Pytest modify-items hook.
+
+    Change pytest-behavior dependent on parsed input.
+
+    See https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
+
+    Args:
+        config: pytest.Config
+        items: iterable of pytest.Item
+    """  # noqa: E501
+    if not config.getoption("--only-mpi"):
+        skipper = pytest.mark.skip(reason="Only run when --only-mpi is given")
+        for item in items:
+            if "mpi" in item.keywords:
+                item.add_marker(skipper)
+    else:
+        skipper = pytest.mark.skip(reason="Don't run when --only-mpi is given")
+        for item in items:
+            if "mpi" not in item.keywords:
+                item.add_marker(skipper)
 
 
 @dataclass
@@ -65,7 +121,7 @@ def tobject() -> TFiles:
 
 
 @pytest.fixture(scope="function", autouse=True)
-def clean_disk():
+def clean_disk() -> Generator[None, None, None]:
     """Automatically clears FileHandler.root after each test.
 
     Needed in some cases where the underlying functions do use FileHanlder
@@ -131,11 +187,11 @@ def sky_data(sky_data_with_ids: NDArray[np.object_]) -> NDArray[np.float64]:
 def normalized_norm_diff() -> NNImageDiffCallable:
     """Compare two images."""
 
-    def _normalized_norm_diff(img_path_1, img_path_2):
+    def _normalized_norm_diff(img_path_1: str, img_path_2: str) -> float:
         img1 = plt.imread(img_path_1)
         img2 = plt.imread(img_path_2)
         assert img1.shape == img2.shape
         # Calculate the error between the two images
-        return np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1])
+        return float(np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1]))
 
     return _normalized_norm_diff

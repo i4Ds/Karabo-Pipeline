@@ -1,15 +1,16 @@
 ![Alt text](doc/src/_static/logo.png?raw=true "Karabo")
 ===========
-[![Test Software](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml)
-[![Build Docs](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-docs.yml)
-[![Build Conda](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/conda-build.yml)
-[![Build Docker User Image](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-user-image.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/build-user-image.yml)
+| | |
+| --- | --- |
+| Testing | [![CI - Test](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml) [![codecov](https://codecov.io/gh/i4Ds/Karabo-Pipeline/graph/badge.svg?token=WU4IC2MOXV)](https://codecov.io/gh/i4Ds/Karabo-Pipeline) |
+| Package | [![Conda Latest Release](https://anaconda.org/i4ds/karabo-pipeline/badges/version.svg)](https://anaconda.org/i4ds/karabo-pipeline) [![Conda Downloads](https://anaconda.org/i4ds/karabo-pipeline/badges/downloads.svg)](https://anaconda.org/i4ds/karabo-pipeline) |
+| Meta | [![License - BSD 3-Clause](https://anaconda.org/i4ds/karabo-pipeline/badges/license.svg)](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) |
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
 [Example](karabo/examples/source_detection.ipynb) |
 [Contributors](CONTRIBUTORS.md)
 
-Karabo is a radio astronomy software distribution for validation and benchmarking of radio telescopes and algorithms. It can be used to simulate the behaviour of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/). Our goal is to make installation and ramp-up easier for researchers and developers.
+Karabo is a radio astronomy software distribution for validation and benchmarking of radio telescopes and algorithms. It can be used to simulate the behaviour of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) or other supported telescopes. Our goal is to make installation and ramp-up easier for researchers and developers.
 
 Karabo includes and relies on OSKAR, RASCIL, PyBDSF, [MIGHTEE](https://arxiv.org/abs/2211.05741), [GLEAM](https://www.mwatelescope.org/science/galactic-science/gleam/), Aratmospy, Bluebild, Eidos, Dask, Tools21cm, katbeam plus configuration of 20 well-known telescopes. Karabo can simulate instrument behavior and atmospheric effects, run imaging algorithms, and evaluate results.
 
@@ -20,12 +21,12 @@ You can use Karabo to build your own data processing pipelines by combinding exi
 Installation
 ------------
 
-The software can be installed on Linux, Windows or Windows WSL.
+The software can be installed & used on Linux or Windows WSL.
 
 Please see our [documentation](https://i4ds.github.io/Karabo-Pipeline/installation_user.html) 
 for the full installation instructions.
 
-We also offer a [Docker](https://i4ds.github.io/Karabo-Pipeline/container.html) version.
+We also offer [Docker](https://i4ds.github.io/Karabo-Pipeline/container.html) images.
 
 Contribute to Karabo
 ---------------------

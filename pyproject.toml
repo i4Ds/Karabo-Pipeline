@@ -1,7 +1,61 @@
+[project]
+name = "Karabo-Pipeline"
+description = "A data-driven pipeline for Radio Astronomy from i4ds for the SKA Telescope."
+authors = [
+    { name = "Simon Felix", email = "simon.felix@fhnw.ch" },
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
 [build-system]
 requires = [
-    "setuptools>=42",
-    "wheel"
+    "setuptools>=56.0",
+    "wheel",
+    "versioneer[toml]",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = { attr = "karabo.__version__" }
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "karabo/_version.py"
+versionfile_build = "karabo/_version.py"
+tag_prefix = "v"
+
 [tool.pytest.ini_options]
+testpaths = "karabo/test"
+
+[project.optional-dependencies]
+    dev = [
+        'black[jupyter]==23.10.0',
+        'flake8==6.1.0',
+        'ipykernel',
+        'isort==5.12.0',
+        'pre-commit==3.5.0',
+        'pydocstyle==6.3.0',
+        'pytest==7.4.2',
+        'pytest-cov==4.1.0',
+        'mypy==1.6.1',
+        'mypy-extensions==1.0.0',
+        'myst-parser',
+        'nest_asyncio',  # for notebook test runs
+        'podmena',  # commit emojis
+        'sphinx',
+        'sphinx_rtd_theme',
+        'types-requests',  # types for mypy
+        'versioneer',
+    ]
