@@ -16,7 +16,6 @@ bash Miniconda3-latest-Linux-x86_64.sh
 source ~/miniconda3/bin/activate
 conda init bash
 conda install -n base conda-libmamba-solver
-conda config --set solver libmamba
 # setup virtual environment
 conda create -n karabo python=3.9
 conda activate karabo
