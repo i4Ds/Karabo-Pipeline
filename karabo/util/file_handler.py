@@ -13,13 +13,15 @@ from karabo.util._types import DirPathType, FilePathType
 from karabo.util.plotting_util import Font
 
 
-def _get_tmp_dir() -> str:
-    """Gets the according tmpdir.
+def _get_disk_cache_root() -> str:
+    """Gets the root-directory of the disk-cache.
 
     Defined env-var-dir > scratch-dir > tmp-dir
 
     Honors TMPDIR and TMP environment variable(s).
-    Setting 'TMPDIR' & 'TMP' differently is ambiguous, thus it's not allowed.
+
+    Raises:
+        RuntimeError: If 'TMPDIR' & 'TMP' are set differently which is ambiguous.
 
     Returns:
         path of tmpdir
@@ -51,19 +53,20 @@ def _get_tmp_dir() -> str:
 
 
 def _get_cache_dir() -> str:
-    """Gets a default cache-dir.
+    """Creates a deterministic & user-specific cache-dir-name.
 
     dir-name: karabo-($USER-)<10-rnd-asci-letters-and-digits>
 
     Returns:
         path of cache-dir
     """
-    tmpdir = _get_tmp_dir()
+    tmpdir = _get_disk_cache_root()
     delimiter = "-"
     prefix = "karabo"
     user = os.environ.get("USER")
     if user is not None:
         prefix = delimiter.join((prefix, user))
+    random.seed(prefix)
     suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
     cache_dir_name = delimiter.join((prefix, suffix))
     cache_dir = os.path.join(tmpdir, cache_dir_name)

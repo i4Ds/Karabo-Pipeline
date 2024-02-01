@@ -26,9 +26,14 @@ if "WSL" in platform.release() and (
     # https://stackoverflow.com/questions/6543847/setting-ld-library-path-from-inside-python
     os.execv(sys.executable, ["python"] + sys.argv)
 
-# Setup dask for slurm
 if "SLURM_JOB_ID" in os.environ:
-    # ugly workaraound to not import stuff not available at build-time
+    # if-statement is an ugly workaraound to not import pkgs not available at
+    # build/install-time. This is something which is happening if you install the
+    # dependencies of Karabo through pip. Then, `versioneer`` determines the current
+    # version of Karabo automatically, which is done through this root-init-file.
+    # But because this is happening at build/install-time, the dependencies of Karabo
+    # are not yet available in the venv, and therefore the installation of the
+    # dependencies will fail.
     from karabo.util.dask import prepare_slurm_nodes_for_dask
 
     prepare_slurm_nodes_for_dask()
