@@ -12,14 +12,17 @@ def test_is_cuda_available():
 CUDA_AVAILABLE = is_cuda_available()
 
 
-@pytest.mark.skipif(CUDA_AVAILABLE, reason="Doesn't make sense if cuda is available")
+@pytest.mark.skipif(
+    CUDA_AVAILABLE,
+    reason="get-gpu-memory thorows a RuntimeError only if cuda is not available",
+)
 def test_gpu_memory_error():
     with pytest.raises(RuntimeError):
         get_gpu_memory()
 
 
 @pytest.mark.skipif(
-    not CUDA_AVAILABLE, reason="Test doesn't make sense if cuda is not available"
+    not CUDA_AVAILABLE, reason="get-gpu-memory works only if cuda is available"
 )
 def test_get_gpu_memory():
     memory = get_gpu_memory()

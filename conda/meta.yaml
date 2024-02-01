@@ -28,12 +28,12 @@ requirements:
     - bdsf                    =1.10.2=*_0
     - bluebild                =0.1.0=*_0
     - cuda-cudart
-    - dask                    >=2022.12.1
+    - dask                    =2022.12.1
     - dask-mpi
     - distributed
     - eidos                   =1.1.0=*_0
     - healpy
-    - h5py
+    - h5py                    =*=mpi_mpich*
     - ipython
     - katbeam                 =0.1.0=*_0
     - libcufft

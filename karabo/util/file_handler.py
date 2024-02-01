@@ -18,21 +18,23 @@ _LongShortTermType = Literal["long", "short"]
 _SeedType = Optional[Union[str, int, float, bytes]]
 
 
-def _get_tmp_dir() -> str:
-    """Gets the according tmpdir.
+def _get_disk_cache_root() -> str:
+    """Gets the root-directory of the disk-cache.
 
     Defined env-var-dir > scratch-dir > tmp-dir
 
     Honors TMPDIR and TMP environment variable(s).
-    Setting 'TMPDIR' & 'TMP' differently is ambiguous, thus it's not allowed.
+
+    Raises:
+        RuntimeError: If 'TMPDIR' & 'TMP' are set differently which is ambiguous.
 
     In a container-setup, this dir is preferably a mounted dir. For long-term-memory
     so that each object doesn't have to be downloaded for each run. For
     short-term-memory so that the created artifacts are locatable on the launch system.
 
     Singularity & Sarus container usually use a mounted /tmp. However, this is not the
-    default case for Docker containers. This may be a reason to put the download-objects
-    into /tmp of the Docker-image.
+    default case for Docker containers. This may be a reason to not put the
+    download-objects into /tmp of the Docker-image.
 
     Returns:
         path of tmpdir
@@ -80,11 +82,14 @@ def _get_rnd_str(k: int, seed: _SeedType = None) -> str:
 
 
 def _get_cache_dir(term: _LongShortTermType) -> str:
-    """Creates cache-dir-name.
+    """Creates a user-deterministic cache-dir-name.
 
     dir-name: karabo-<LTM|STM>-($USER-)<10-rnd-asci-letters-and-digits>
 
     The random-part of the cache-dir is seeded for relocation purpose.
+        Otherwise, the same tmp-dirs couldn't be used in another run.
+    The seed is necessary to prevent tmpdir collisions of different
+        users on a cluster.
 
     Returns:
         cache-dir-name
@@ -144,7 +149,7 @@ class FileHandler:
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
-    root: str = _get_tmp_dir()
+    root: str = _get_disk_cache_root()
 
     @classmethod
     def ltm(cls) -> str:
