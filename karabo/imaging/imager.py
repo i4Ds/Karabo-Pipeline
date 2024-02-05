@@ -27,7 +27,7 @@ from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
-from karabo.util.dask import fetch_dask_handler
+from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler, check_ending
 
 ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
@@ -353,8 +353,7 @@ class Imager:
             raise RuntimeError("Client passed but use_dask is False")
         if use_dask:
             if not client:
-                dask_handler = fetch_dask_handler()
-                client = dask_handler.get_dask_client()
+                client = DaskHandler.get_dask_client()
             print(client.cluster)
             rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
         # Set CUDA parameters

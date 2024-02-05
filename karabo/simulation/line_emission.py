@@ -24,7 +24,7 @@ from karabo.simulation.visibility import Visibility
 from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
 
 # from dask.delayed import Delayed
-from karabo.util.dask import fetch_dask_handler
+from karabo.util.dask import DaskHandler
 from karabo.util.plotting_util import get_slices
 
 
@@ -694,8 +694,7 @@ def line_emission_pointing(
             verbose=verbose,
         )
 
-    dask_handler = fetch_dask_handler()
-    result = dask_handler.parallelize_with_dask(
+    result = DaskHandler.parallelize_with_dask(
         process_channel,
         range(num_bins),
         outpath=outpath,

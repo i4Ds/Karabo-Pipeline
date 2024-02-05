@@ -31,7 +31,7 @@ from karabo.util._types import (
     OskarSettingsTreeType,
     PrecisionType,
 )
-from karabo.util.dask import fetch_dask_handler
+from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
 
@@ -251,15 +251,13 @@ class InterferometerSimulation:
                     "Providing `client` and `use_dask`=False is not allowed."
                 )
             elif not client and use_dask is True:
-                dask_handler = fetch_dask_handler()
-                client = dask_handler.get_dask_client()
+                client = DaskHandler.get_dask_client()
             else:
                 pass
         elif use_dask is None and client is None:
-            dask_handler = fetch_dask_handler()
-            use_dask = dask_handler.should_dask_be_used()
+            use_dask = DaskHandler.should_dask_be_used()
             if use_dask:
-                client = dask_handler.get_dask_client()
+                client = DaskHandler.get_dask_client()
         self.use_dask = use_dask
         self.client = client
 
@@ -381,8 +379,7 @@ class InterferometerSimulation:
 
         # Check if there is a dask client
         if self.client is None:
-            dask_handler = fetch_dask_handler()
-            self.client = dask_handler.get_dask_client()
+            self.client = DaskHandler.get_dask_client()
 
         if array_sky is None:
             raise KaraboInterferometerSimulationError(

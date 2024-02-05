@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
-from karabo.util.dask import fetch_dask_handler
+from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
@@ -477,8 +477,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
                 for image in images
             ]
         # Check if there is a dask client
-        dask_handler = fetch_dask_handler()
-        if dask_handler.dask_client is not None:
+        if DaskHandler.dask_client is not None:
             func = delayed(PyBDSFSourceDetectionResult.detect_sources_in_image)
         else:
             func = PyBDSFSourceDetectionResult.detect_sources_in_image
@@ -491,7 +490,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
                 **kwargs,
             )
             results.append(result)
-        if dask_handler.dask_client is not None:
+        if DaskHandler.dask_client is not None:
             results = compute(*results, scheduler="distributed")
         # Keep only results that are not None
         results = [result for result in results if result is not None]
