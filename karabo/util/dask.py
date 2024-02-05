@@ -1,3 +1,4 @@
+"""Module for dask-related functionality."""
 from __future__ import annotations
 
 import asyncio
@@ -8,7 +9,7 @@ import shutil
 import sys
 import time
 from collections.abc import Iterable
-from typing import Any, Callable, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Callable, List, Literal, Optional, Tuple, Type, Union, cast
 from warnings import warn
 
 import psutil
@@ -16,77 +17,64 @@ from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.distributed import Client, LocalCluster, Nanny, Worker
 from dask_mpi import initialize
 from mpi4py import MPI
+from typing_extensions import assert_never
 
-from karabo.util._types import IntFloat
 from karabo.util.data_util import extract_chars_from_string, extract_digit_from_string
 from karabo.util.file_handler import FileHandler
 from karabo.warning import KaraboWarning
 
 
-def fetch_dask_handler() -> Union[Type[DaskHandler], Type[DaskSlurmHandler]]:
-    """Utility function to automatically choose a Handler.
-
-    Returns:
-        The chosen Handler.
-    """
-    if DaskSlurmHandler.is_on_slurm_cluster():
-        return DaskSlurmHandler
-    return DaskHandler
-
-
-class DaskHandler:
-    """
-    A class for managing a Dask client. This class is a singleton, meaning that
-    only one instance of this class can exist at any given time. This also
-    allows you to create your own client and pass it to this class.
+class DaskHandlerBasic:
+    """Base-class for dask-handler functionality.
 
     Attributes
     ----------
-    dask_client: Optional[Client]
+    dask_client:
         The Dask client object. If None, a new client will be created.
-    n_workers_scheduler_node : int
-        The number of workers to start on the scheduler node.
-    memory_limit : Optional[float]
+    memory_limit:
         The memory_limit per worker in GB. If None, the memory limit will
         be set to the maximum available memory on the node (see documentation)
         in dask for `memory_limit`.
-    n_threads_per_worker : int
+    n_threads_per_worker:
         The number of threads to use per worker. Standard is None, which
         means that the number of threads will be equal to the number of
         cores.
-    use_dask: Optional[bool]
-        Whether to use Dask or not. If None, Dask will be used if the
-        current node is a SLURM node and there are more than 1 node.
-    use_workers_or_nannies: Optional[str]
-        Whether to use workers or nannies. If None, nannies will be used.
-        This could lead to more processing (see documentation for dask usage
-        in Karabo).
-    TIMEOUT: int
-        The timeout in seconds for the Dask scheduler to wait for all the
-        workers to connect.
+    use_dask:
+        Whether to use Dask or not. If None, then Karabo will decide whether
+        to use dask or not for certain tasks.
+    use_processes:
+        Use processes instead of threads?
+        Threads:
+            - Fast to initiate.
+            - No need to transfer data to them.
+            - Limited by the GIL, which allows one thread to read the code at once.
+        Processes:
+            - Take time to set up.
+            - Slow to transfer data to.
+            - Each have their own GIL and so don't need to take turns reading the code.
     """
 
     dask_client: Optional[Client] = None
-    n_workers_scheduler_node: int = 1
-    memory_limit: Optional[int] = None
+    memory_limit: Optional[float] = None
     n_threads_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
-    use_workers_or_nannies: Optional[str] = "nannies"
     use_proccesses: bool = False  # Some packages, such as pybdsf, do not work
-    # with processes because they spawn subprocesses.
-    TIMEOUT: int = 60
 
-    # Some internal variables
-    _nodes_prepared: bool = False
     _setup_called: bool = False
 
     @classmethod
     def setup(cls) -> None:
+        """Calls `get_dask_client`."""
         _ = cls.get_dask_client()
         cls._setup_called = True
 
     @classmethod
     def get_dask_client(cls) -> Client:
+        """Get (create if not exists) a dask-client.
+
+        Returns:
+            Dask-client.
+        """
         if cls.dask_client is not None:
             return cls.dask_client
         if MPI.COMM_WORLD.Get_size() > 1:  # TODO: testing of whole if-block
@@ -98,16 +86,24 @@ class DaskHandler:
             cls.dask_client = Client(processes=cls.use_proccesses)  # TODO: testing
             if MPI.COMM_WORLD.rank == 0:
                 print(f"Dashboard link: {cls.dask_client.dashboard_link}", flush=True)
-                atexit.register(cls.dask_cleanup, cls.dask_client)
+                atexit.register(cls._dask_cleanup)
         else:
-            cls.dask_client = cls.get_local_dask_client(cls.memory_limit)
+            cls.dask_client = cls._get_local_dask_client()
             # Register cleanup function
             print(f"Dashboard link: {cls.dask_client.dashboard_link}", flush=True)
-            atexit.register(cls.dask_cleanup, cls.dask_client)
+            atexit.register(cls._dask_cleanup)
         return cls.dask_client
 
     @classmethod
     def should_dask_be_used(cls, override: Optional[bool] = None) -> bool:
+        """Util function to decide whether dask should be used or not.
+
+        Args:
+            override: Override? Has highest priority.
+
+        Returns:
+            Decision whether dask should be used or not.
+        """
         if override is not None:
             return override
         elif cls.use_dask is not None:
@@ -118,18 +114,61 @@ class DaskHandler:
             return False
 
     @classmethod
-    def calc_num_of_workers(
+    def parallelize_with_dask(
         cls,
-        memory_limit: Optional[IntFloat],
-    ) -> int:
-        """Estimates the number of workers considering settings and availability.
+        iterate_function: Callable[..., Any],
+        iterable: Iterable[Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Union[Any, Tuple[Any, ...], List[Any]]:
+        """
+        Run a function over an iterable in parallel using dask, and gather the results.
+
+        args & kwargs will get passed to `Delayed`.
 
         Args:
-            memory_limit: Memory constraint.
+            iterate_function: The function to be applied to each element of `iterable`.
+                The function takes the current element of the iterable as its first
+                argument, followed by any positional arguments, and then any keyword
+                arguments.
+
+            iterable
+                The iterable over which the function will be applied. Each element of
+                `iterable` will be passed to `iterate_function`.
+
+        Returns: A tuple containing the results of the `iterate_function` for each
+            element in the iterable. The results are gathered using dask's `compute`
+            function.
+        """
+        if not cls._setup_called:
+            cls.setup()
+
+        delayed_results = []
+
+        for element in iterable:
+            if "verbose" in kwargs and kwargs["verbose"]:
+                print(f"Processing element {element}...\nExtracting data...")
+
+            delayed_result = delayed(iterate_function)(element, *args, **kwargs)
+            delayed_results.append(delayed_result)
+
+        return compute(*delayed_results, scheduler="distributed")
+
+    @classmethod
+    def _dask_cleanup(cls) -> None:
+        """Shutdown & close `cls.dask_client`."""
+        if cls.dask_client is not None:
+            cls.dask_client.shutdown()
+            cls.dask_client.close()
+
+    @classmethod
+    def _calc_num_of_workers(cls) -> int:
+        """Estimates the number of workers considering settings and availability.
 
         Returns:
             Etimated number of workers.
         """
+        memory_limit = cls.memory_limit
         if memory_limit is None:
             return 1
         # Calculate number of workers
@@ -158,12 +197,13 @@ class DaskHandler:
         return n_workers
 
     @classmethod
-    def get_local_dask_client(
-        cls,
-        memory_limit: Optional[IntFloat],
-    ) -> Client:
-        # Calculate number of workers per node
-        n_workers = cls.calc_num_of_workers(memory_limit)
+    def _get_local_dask_client(cls) -> Client:
+        """Creates a local dask-client.
+
+        Returns:
+            Created dask-client.
+        """
+        n_workers = cls._calc_num_of_workers()
         client = Client(
             n_workers=n_workers,
             threads_per_worker=cls.n_threads_per_worker,
@@ -171,116 +211,112 @@ class DaskHandler:
         )
         return client
 
-    @classmethod
-    def parallelize_with_dask(
-        cls,
-        iterate_function: Callable[..., Any],
-        iterable: Iterable[Any],
-        *args: Any,
-        **kwargs: Any,
-    ) -> Union[Any, Tuple[Any, ...], List[Any]]:
-        """
-        Run a function over an iterable in parallel using Dask, and gather the results.
 
-        Parameters
-        ----------
-        iterate_function : callable
-            The function to be applied to each element of the iterable. The function
-            should take the current element of the iterable as its first argument,
-            followed by any positional arguments, and then any keyword arguments.
+class DaskHandlerSlurm(DaskHandlerBasic):
+    """Dask-handler for slurm-based jobs.
 
-        iterable : iterable
-            The iterable over which the function will be applied. Each element of this
-            iterable will be passed to the `iterate_function`.
+    Attributes
+    ----------
+    use_workers_or_nannies:
+        Whether to use workers or nannies (default).
+        This could lead to more processing (see documentation for dask usage
+        in Karabo).
+    n_workers_scheduler_node : int
+        The number of workers to start on the scheduler node.
+    timeout: int
+        Timeout in seconds for the dask-scheduler to wait for all the
+        workers to connect.
+    """
 
-        *args : tuple
-            Positional arguments that will be passed to the `iterate_function` after the
-            current element of the iterable.
+    use_workers_or_nannies: Literal["workers", "nannies"] = "nannies"
+    n_workers_scheduler_node: int = 1
+    # with processes because they spawn subprocesses.
+    timeout: int = 60
 
-        **kwargs : dict
-            Keyword arguments that will be passed to the `iterate_function`.
-
-        Returns
-        -------
-        tuple
-            A tuple containing the results of the `iterate_function` for each element in
-            the iterable. The results are gathered using Dask's compute function.
-
-        Notes
-        -----
-        - If 'verbose' is present in **kwargs and is set to True, additional progress
-        messages will be printed.
-        - This function utilizes the distributed scheduler of Dask.
-        """
-        if not cls._setup_called:
-            cls.setup()
-
-        delayed_results = []
-
-        for element in iterable:
-            if "verbose" in kwargs and kwargs["verbose"]:
-                print(f"Processing element {element}...\nExtracting data...")
-
-            delayed_result = delayed(iterate_function)(element, *args, **kwargs)
-            delayed_results.append(delayed_result)
-
-        return compute(*delayed_results, scheduler="distributed")
-
-    @classmethod
-    def dask_cleanup(cls, client: Client) -> None:
-        if client is not None:
-            client.shutdown()
-            client.close()
-
-
-class DaskSlurmHandler(DaskHandler):
-    """Dask & Slurm related functionality resides here."""
-
-    @classmethod
-    def dask_info_address(cls) -> str:
-        """dask_info.json path"""
-        _, info_address, _ = cls._get_dask_paths_for_slurm()
-        return info_address
-
-    @classmethod
-    def dask_run_status(cls) -> str:
-        """dask_run_status.txt path"""
-        _, _, run_status = cls._get_dask_paths_for_slurm()
-        return run_status
+    _nodes_prepared: bool = False
 
     @classmethod
     def get_dask_client(cls) -> Client:
+        """Get (create if not exists) a dask-client for a SLURM environment.
+
+        Returns:
+            Dask-client.
+        """
         dask_client = cls.dask_client
         if dask_client is not None:
             return dask_client
         if not cls._setup_called and cls.is_first_node():
             cls.setup()
         if cls.get_number_of_nodes() > 1:
-            dask_client = cast(  # hacky workaround
-                Client,
-                cls.setup_dask_for_slurm(
-                    cls.n_workers_scheduler_node,
-                    cls.memory_limit,
-                ),
+            dask_client = cast(  # dask_client is None if not first-node
+                Client,  # however, needed workaround to keep api-compatibility
+                cls._setup_dask_for_slurm(),
             )
             if dask_client is not None:
                 cls.dask_client = dask_client
             return dask_client
         else:
-            cls.dask_client = super(DaskSlurmHandler, cls).get_dask_client()
+            cls.dask_client = super(DaskHandlerSlurm, cls).get_dask_client()
         return cls.dask_client
 
     @classmethod
-    def prepare_slurm_nodes_for_dask(cls) -> None:
-        # Detect if we are on a slurm cluster
+    def should_dask_be_used(cls, override: Optional[bool] = None) -> bool:
+        """Util function to decide whether dask should be used or not.
+
+        This implementation differs a bit from the basic-class, where
+            on SLURM-systems, additional checks are taken into consideration.
+
+        Args:
+            override: Override? Has highest priority.
+
+        Returns:
+            Decision whether dask should be used or not.
+        """
+        if override is not None:
+            return override
+        elif cls.use_dask is not None:
+            return cls.use_dask
+        elif cls.dask_client is not None:
+            return True
+        elif cls.is_on_slurm_cluster() and cls.get_number_of_nodes() > 1:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def _dask_cleanup(cls) -> None:
+        """Shutdown & close `cls.dask_client`.
+
+        In addition, `dask_info_dir` will get removed if exists.
+        """
+        dask_info_dir, _, _ = cls._get_dask_paths_for_slurm()
+        if os.path.exists(dask_info_dir) and os.path.isdir(dask_info_dir):
+            shutil.rmtree(dask_info_dir)
+
+        super(DaskHandlerSlurm, cls)._dask_cleanup()
+
+    @classmethod
+    def _dask_info_address(cls) -> str:
+        """dask_info.json path."""
+        _, info_address, _ = cls._get_dask_paths_for_slurm()
+        return info_address
+
+    @classmethod
+    def _dask_run_status(cls) -> str:
+        """dask_run_status.txt path."""
+        _, _, run_status = cls._get_dask_paths_for_slurm()
+        return run_status
+
+    @classmethod
+    def _prepare_slurm_nodes_for_dask(cls) -> None:
+        """Prepares slurm-nodes for dask-usage."""
         if not cls.is_on_slurm_cluster() or cls.get_number_of_nodes() <= 1:
             cls.use_dask = False
-            return
         elif (
             cls.is_first_node() and cls.dask_client is None and not cls._nodes_prepared
         ):
             cls._nodes_prepared = True
-            slurm_job_nodelist = cls.get_job_nodelist()
+            slurm_job_nodelist = cls._get_job_nodelist()
             slurm_node_name = cls.get_node_name()
             print(
                 f"""
@@ -297,7 +333,8 @@ class DaskSlurmHandler(DaskHandler):
             pass
 
     @classmethod
-    def setup_nannies_workers_for_slurm(cls) -> None:
+    def _setup_nannies_workers_for_slurm(cls) -> None:
+        """Setup nannies & workers."""
         # Wait until dask info file is created
         _, dask_info_address, dask_run_status = cls._get_dask_paths_for_slurm()
         while not os.path.exists(dask_info_address):
@@ -340,9 +377,11 @@ class DaskSlurmHandler(DaskHandler):
             if cls.use_workers_or_nannies == "workers":
                 worker = asyncio.run(start_worker(scheduler_address))
                 workers_or_nannies.append(worker)
-            else:
+            elif cls.use_workers_or_nannies == "nannies":
                 nanny = asyncio.run(start_nanny(scheduler_address))
                 workers_or_nannies.append(nanny)
+            else:
+                assert_never(cls.use_workers_or_nannies)
 
         # Keep the process alive
         while os.path.exists(dask_run_status):
@@ -354,20 +393,25 @@ class DaskSlurmHandler(DaskHandler):
             if result == "OK":
                 pass
             else:
+                if isinstance(worker_or_nanny, Worker):
+                    instance = "worker"
+                else:
+                    instance = "nanny"
                 print(
-                    "There was an issue closing the worker or nanny at "
-                    + f"{worker_or_nanny.address}"
+                    f"There was an issue closing {instance} {worker_or_nanny.address}",
+                    file=sys.stderr,
                 )
 
         # Stop the script successfully
         sys.exit(0)
 
     @classmethod
-    def setup_dask_for_slurm(
-        cls,
-        n_workers_scheduler_node: int,
-        memory_limit: Optional[IntFloat],
-    ) -> Optional[Client]:
+    def _setup_dask_for_slurm(cls) -> Optional[Client]:
+        """Setup dask for slurm.
+
+        Returns:
+            A dask-client if it's the first node, otherwise None.
+        """
         if cls.is_first_node():
             _, dask_info_address, dask_run_status = cls._get_dask_paths_for_slurm()
             # Create file to show that the run is still ongoing
@@ -377,13 +421,13 @@ class DaskSlurmHandler(DaskHandler):
             # Create client and scheduler
             cluster = LocalCluster(
                 ip=cls.get_node_name(),
-                n_workers=n_workers_scheduler_node,
+                n_workers=cls.n_workers_scheduler_node,
                 threads_per_worker=cls.n_threads_per_worker,
             )
             dask_client = Client(cluster, proccesses=cls.use_proccesses)
 
             # Calculate number of workers per node
-            n_workers_per_node = cls.calc_num_of_workers(memory_limit)
+            n_workers_per_node = cls._calc_num_of_workers()
 
             # Create dictionary with the information
             dask_info = {
@@ -398,10 +442,10 @@ class DaskSlurmHandler(DaskHandler):
             # Wait until all workers are connected
             n_workers_requested = (
                 cls.get_number_of_nodes() - 1
-            ) * n_workers_per_node + n_workers_scheduler_node
+            ) * n_workers_per_node + cls.n_workers_scheduler_node
 
             dask_client.wait_for_workers(
-                n_workers=n_workers_requested, timeout=cls.TIMEOUT
+                n_workers=n_workers_requested, timeout=cls.timeout
             )
 
             print(
@@ -410,12 +454,12 @@ class DaskSlurmHandler(DaskHandler):
             return dask_client
 
         else:
-            cls.setup_nannies_workers_for_slurm()
+            cls._setup_nannies_workers_for_slurm()
             return None
 
     @classmethod
     def _get_dask_paths_for_slurm(cls) -> Tuple[str, str, str]:
-        """Gets dask-file paths for SLURM setup.
+        """Gets dask-file paths for slurm setup.
 
         This needs to be a function, to enable the `FileHandler` lazy path-loading,
         hence allowing path-changes at run-time.
@@ -423,7 +467,7 @@ class DaskSlurmHandler(DaskHandler):
         Returns:
             dask_info_dir, dask-info-address, dask-run-status
         """
-        slurm_job_id = cls.get_job_id()
+        slurm_job_id = cls._get_job_id()
         prefix = f"-dask-info-slurm-{slurm_job_id}-"
         dask_info_dir = FileHandler().get_tmp_dir(
             prefix=prefix,
@@ -436,14 +480,19 @@ class DaskSlurmHandler(DaskHandler):
         return dask_info_dir, dask_info_address, dask_run_status
 
     @classmethod
-    def extract_node_ids_from_node_list(cls) -> List[int]:
-        slurm_job_nodelist = cls.get_job_nodelist()
+    def _extract_node_ids_from_node_list(cls) -> List[int]:
+        """Extracts all node-ids of the current slurm-job as a list.
+
+        Returns:
+            Node-ids.
+        """
+        slurm_job_nodelist = cls._get_job_nodelist()
         if cls.get_number_of_nodes() == 1:
             # Node name will be something like "psanagpu115"
             return [extract_digit_from_string(slurm_job_nodelist)]
         node_list = slurm_job_nodelist.split("[")[1].split("]")[0]
         id_ranges = node_list.split(",")
-        node_ids = []
+        node_ids: List[int] = []
         for id_range in id_ranges:
             if "-" in id_range:
                 min_id, max_id = id_range.split("-")
@@ -454,80 +503,245 @@ class DaskSlurmHandler(DaskHandler):
         return node_ids
 
     @classmethod
-    def dask_cleanup(cls, client: Client) -> None:
-        dask_info_dir, _, _ = cls._get_dask_paths_for_slurm()
-        if os.path.exists(dask_info_dir) and os.path.isdir(dask_info_dir):
-            shutil.rmtree(dask_info_dir)
+    def _get_min_max_of_node_id(cls) -> Tuple[int, int]:
+        """Returns the min max from SLURM_JOB_NODELIST.
 
-        super(DaskSlurmHandler, cls).dask_cleanup(client=client)
-
-    @classmethod
-    def should_dask_be_used(cls, override: Optional[bool] = None) -> bool:
-        if override is not None:
-            return override
-        elif cls.use_dask is not None:
-            return cls.use_dask
-        elif cls.dask_client is not None:
-            return True
-        elif cls.is_on_slurm_cluster() and cls.get_number_of_nodes() > 1:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def get_min_max_of_node_id(cls) -> Tuple[int, int]:
+        Returns:
+            Min & Max node-ids.
         """
-        Returns the min max from SLURM_JOB_NODELIST.
-        Works if it's run only on two nodes (separated with a comma)
-        of if it runs on more than two nodes (separated with a dash).
-        """
-        node_list = cls.extract_node_ids_from_node_list()
+        node_list = cls._extract_node_ids_from_node_list()
         return min(node_list), max(node_list)
 
     @classmethod
-    def get_lowest_node_id(cls) -> int:
-        return cls.get_min_max_of_node_id()[0]
+    def _get_lowest_node_id(cls) -> int:
+        """Get the lowest slurm node-id.
+
+        Returns:
+            Lowest node-id.
+        """
+        return cls._get_min_max_of_node_id()[0]
 
     @classmethod
-    def get_base_string_node_list(cls) -> str:
-        slurm_job_nodelist = cls.get_job_nodelist()
+    def _get_base_string_node_list(cls) -> str:
+        """Gets the node-list base-string.
+
+        Returns:
+            Node-list base-string.
+        """
+        slurm_job_nodelist = cls._get_job_nodelist()
         if cls.get_number_of_nodes() == 1:
             return extract_chars_from_string(slurm_job_nodelist)
         else:
             return slurm_job_nodelist.split("[")[0]
 
     @classmethod
-    def get_lowest_node_name(cls) -> str:
-        return cls.get_base_string_node_list() + str(cls.get_lowest_node_id())
+    def _get_lowest_node_name(cls) -> str:
+        """Gets the lowest node-name.
+
+        Returns:
+            Lowest node-name.
+        """
+        return cls._get_base_string_node_list() + str(cls._get_lowest_node_id())
 
     @classmethod
     def get_number_of_nodes(cls) -> int:
+        """Gets the number of nodes of the slurm-job.
+
+        Returns:
+            Number of nodes.
+        """
         n_nodes = os.environ["SLURM_JOB_NUM_NODES"]
         return int(n_nodes)
 
     @classmethod
     def get_node_id(cls) -> int:
+        """Gets the current node-id.
+
+        Returns:
+            Node-id.
+        """
         # Attention, often the node id starts with a 0.
         slurmd_nodename = cls.get_node_name()
-        len_id = len(cls.get_base_string_node_list())
+        len_id = len(cls._get_base_string_node_list())
         return int(slurmd_nodename[-len_id:])
 
     @classmethod
     def get_node_name(cls) -> str:
+        """Gets the current node-name.
+
+        Returns:
+            Node-name.
+        """
         return os.environ["SLURMD_NODENAME"]
 
     @classmethod
     def is_first_node(cls) -> bool:
-        return cls.get_node_id() == cls.get_lowest_node_id()
+        """Util function to check if current-node is fist-node.
+
+        Returns:
+            Check-result.
+        """
+        return cls.get_node_id() == cls._get_lowest_node_id()
 
     @classmethod
-    def get_job_nodelist(cls) -> str:
+    def _get_job_nodelist(cls) -> str:
+        """Gets the nodelist of the current job as an `str`.
+
+        Returns:
+            Nodelist of current job.
+        """
         return os.environ["SLURM_JOB_NODELIST"]
 
     @classmethod
-    def get_job_id(cls) -> str:
+    def _get_job_id(cls) -> str:
+        """Gets the current job-id as an `str`.
+
+        Returns:
+            Job-id.
+        """
         return os.environ["SLURM_JOB_ID"]
 
     @classmethod
     def is_on_slurm_cluster(cls) -> bool:
+        """Util function to check if code is running in a slurm-job.
+
+        Returns:
+            Check-result.
+        """
         return "SLURM_JOB_ID" in os.environ
+
+
+def _select_dask_handler() -> Type[DaskHandlerBasic]:
+    """Selects a dask-handler class.
+
+    Returns:
+        Chosen dask-handler class.
+    """
+    if DaskHandlerSlurm.is_on_slurm_cluster():
+        return DaskHandlerSlurm
+    return DaskHandlerBasic
+
+
+class DaskHandler(DaskHandlerBasic):
+    """Public & dev API for dask associated functionality.
+
+    This is the public dask-api for Karabo, where you don't have to worry which
+    dask-handler of this module to use. You can do almost everything through this
+    class. The only exception is, if you want to adjust the default settings on
+    a slurm-system (customization through `DaskHandlerSlurm`).
+
+    Attributes
+    ----------
+    dask_client:
+        The Dask client object. If None, a new client will be created.
+    memory_limit:
+        The memory_limit per worker in GB. If None, the memory limit will
+        be set to the maximum available memory on the node (see documentation)
+        in dask for `memory_limit`.
+    n_threads_per_worker:
+        The number of threads to use per worker. Standard is None, which
+        means that the number of threads will be equal to the number of
+        cores.
+    use_dask:
+        Whether to use Dask or not. If None, then Karabo will decide whether
+        to use dask or not for certain tasks.
+    use_processes:
+        Use processes instead of threads?
+        Threads:
+            - Fast to initiate.
+            - No need to transfer data to them.
+            - Limited by the GIL, which allows one thread to read the code at once.
+        Processes:
+            - Take time to set up.
+            - Slow to transfer data to.
+            - Each have their own GIL and so don't need to take turns reading the code.
+    """
+
+    # Important: API-functions of `DaskHandler` should redirect ALL functions defined
+    # in `DaskHandlerBasic` through `_handler`. This ensures that in case `_handler`
+    # is a more specific implementation of `DaskHandlerBasic`, that the according
+    # overwritten functions will be used instead.
+    _handler = _select_dask_handler()
+
+    @classmethod
+    def setup(cls) -> None:
+        """Calls `get_dask_client`."""
+        return cls._handler.setup()
+
+    @classmethod
+    def get_dask_client(cls) -> Client:
+        """Get (create if not exists) a dask-client.
+
+        Returns:
+            Dask-client.
+        """
+        return cls._handler.get_dask_client()
+
+    @classmethod
+    def should_dask_be_used(cls, override: Optional[bool] = None) -> bool:
+        """Util function to decide whether dask should be used or not.
+
+        Args:
+            override: Override? Has highest priority.
+
+        Returns:
+            Decision whether dask should be used or not.
+        """
+        return cls._handler.should_dask_be_used(override)
+
+    @classmethod
+    def parallelize_with_dask(
+        cls,
+        iterate_function: Callable[..., Any],
+        iterable: Iterable[Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Union[Any, Tuple[Any, ...], List[Any]]:
+        """
+        Run a function over an iterable in parallel using dask, and gather the results.
+
+        args & kwargs will get passed to `Delayed`.
+
+        Args:
+            iterate_function: The function to be applied to each element of `iterable`.
+                The function takes the current element of the iterable as its first
+                argument, followed by any positional arguments, and then any keyword
+                arguments.
+
+            iterable
+                The iterable over which the function will be applied. Each element of
+                `iterable` will be passed to `iterate_function`.
+
+        Returns: A tuple containing the results of the `iterate_function` for each
+            element in the iterable. The results are gathered using dask's `compute`
+            function.
+        """
+        return cls._handler.parallelize_with_dask(
+            iterate_function,
+            iterable,
+            *args,
+            **kwargs,
+        )
+
+    @classmethod
+    def _dask_cleanup(cls) -> None:
+        """Shutdown & close `cls.dask_client`."""
+        return cls._handler._dask_cleanup()
+
+    @classmethod
+    def _calc_num_of_workers(cls) -> int:
+        """Estimates the number of workers considering settings and availability.
+
+        Returns:
+            Etimated number of workers.
+        """
+        return cls._handler._calc_num_of_workers()
+
+    @classmethod
+    def _get_local_dask_client(cls) -> Client:
+        """Creates a local dask-client.
+
+        Returns:
+            Created dask-client.
+        """
+        return cls._handler._get_local_dask_client()
