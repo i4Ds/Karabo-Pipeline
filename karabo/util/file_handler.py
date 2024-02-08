@@ -5,12 +5,17 @@ import os
 import random
 import shutil
 import string
-import uuid
+from copy import copy
 from types import TracebackType
-from typing import Optional, Union
+from typing import Literal, Optional, Union, overload
+
+from typing_extensions import assert_never
 
 from karabo.util._types import DirPathType, FilePathType
 from karabo.util.plotting_util import Font
+
+_LongShortTermType = Literal["long", "short"]
+_SeedType = Optional[Union[str, int, float, bytes]]
 
 
 def _get_disk_cache_root() -> str:
@@ -22,6 +27,14 @@ def _get_disk_cache_root() -> str:
 
     Raises:
         RuntimeError: If 'TMPDIR' & 'TMP' are set differently which is ambiguous.
+
+    In a container-setup, this dir is preferably a mounted dir. For long-term-memory
+    so that each object doesn't have to be downloaded for each run. For
+    short-term-memory so that the created artifacts are locatable on the launch system.
+
+    Singularity & Sarus container usually use a mounted /tmp. However, this is not the
+    default case for Docker containers. This may be a reason to not put the
+    download-objects into /tmp of the Docker-image.
 
     Returns:
         path of tmpdir
@@ -52,25 +65,52 @@ def _get_disk_cache_root() -> str:
     return tmpdir
 
 
-def _get_cache_dir() -> str:
-    """Creates a deterministic & user-specific cache-dir-name.
+def _get_rnd_str(k: int, seed: _SeedType = None) -> str:
+    """Creates a random ascii+digits string with length=`k`.
 
-    dir-name: karabo-($USER-)<10-rnd-asci-letters-and-digits>
+    Most tmp-file tools are using a string-length of 10.
+
+    Args:
+        k: Length of random string.
+        seed: Seed.
 
     Returns:
-        path of cache-dir
+        Random generated string.
     """
-    tmpdir = _get_disk_cache_root()
+    random.seed(seed)
+    return "".join(random.choices(string.ascii_letters + string.digits, k=k))
+
+
+def _get_cache_dir(term: _LongShortTermType) -> str:
+    """Creates a user-deterministic cache-dir-name.
+
+    dir-name: karabo-<LTM|STM>-($USER-)<10-rnd-asci-letters-and-digits>
+
+    The random-part of the cache-dir is seeded for relocation purpose.
+        Otherwise, the same tmp-dirs couldn't be used in another run.
+    The seed is necessary to prevent tmpdir collisions of different
+        users on a cluster.
+
+    Returns:
+        cache-dir-name
+    """
     delimiter = "-"
     prefix = "karabo"
+    if term == "long":
+        prefix = delimiter.join((prefix, "LTM"))
+    elif term == "short":
+        prefix = delimiter.join((prefix, "STM"))
+    else:
+        assert_never(term)
     user = os.environ.get("USER")
     if user is not None:
         prefix = delimiter.join((prefix, user))
-    random.seed(prefix)
-    suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+        seed = user + term
+    else:
+        seed = "42" + term
+    suffix = _get_rnd_str(k=10, seed=seed)
     cache_dir_name = delimiter.join((prefix, suffix))
-    cache_dir = os.path.join(tmpdir, cache_dir_name)
-    return cache_dir
+    return cache_dir_name
 
 
 class FileHandler:
@@ -81,147 +121,244 @@ class FileHandler:
     In case you want to extract something specific from the cache, the path is usually
     printed blue & bold in stdout.
 
+    The root STM and LTM should be unique per user (seeded rnd chars+digits), thus just
+    having two disk-cache directories per user.
+
     Set `FileHandler.root` to change the directory where files and dirs will be saved.
-    Otherwise, we provide $TMP, $TMPDIR & $TEMP with a following /karabo-cache as root.
-    Subdirs are usually {prefix}_{fh_dir_identifier}_{uuid4} in case `prefix`
-    is defined, otherwise just {fh_dir_identifier}_{uuid4}.
-    This class provides an additional security layer for the removal of subdirs
-    in case a root is specified where other files and directories live.
+    The dir-structure is as follows where "tmp" is `FileHandler.root`:
+
+    tmp
+    ├── karabo-LTM-<user>-<10 rnd chars+digits>
+    │   ├── <prefix><10 rnd chars+digits>
+    |   |    ├── <sbudir>
+    |   |    └── <file>
+    │   └── <prefix><10 rnd chars+digits>
+    |        ├── <sbudir>
+    |        └── <file>
+    └── karabo-STM-<user>-<10 rnd chars+digits>
+        ├── <prefix><10 rnd chars+digits>
+        |    ├── <sbudir>
+        |    └── <file>
+        └── <prefix><10 rnd chars+digits>
+             ├── <sbudir>
+             └── <file>
+
+    LTM stand for long-term-memory (FileHandler.ltm()) and STM for short-term-memory
+    (FileHandler.stm()). The data-products usually get into in the STM directory.
+
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
-    root: str = _get_cache_dir()
-    fh_dir_identifier = "fhdir"  # additional protection against dir-removal
+    root: str = _get_disk_cache_root()
+
+    @classmethod
+    def ltm(cls) -> str:
+        """LTM (long-term-memory) path."""
+        return os.path.join(cls.root, _get_cache_dir(term="long"))
+
+    @classmethod
+    def stm(cls) -> str:
+        """STM (short-term-memory) path."""
+        return os.path.join(cls.root, _get_cache_dir(term="short"))
 
     def __init__(
         self,
-        prefix: Optional[str] = None,
-        verbose: bool = True,
     ) -> None:
-        """Creates `FileHandler` instance with the according sub-directory.
+        """Creates `FileHandler` instance."""
+        # tmps is an instance bound dirs and/or files registry for STM
+        self.tmps: list[str] = list()
+
+    @classmethod
+    def _get_term_dir(cls, term: _LongShortTermType) -> str:
+        if term == "short":
+            dir_ = cls.stm()
+        elif term == "long":
+            dir_ = cls.ltm()
+        else:
+            assert_never(term)
+        return dir_
+
+    @overload
+    def get_tmp_dir(
+        self,
+        prefix: Union[str, None] = None,
+        term: Literal["short"] = "short",
+        purpose: Union[str, None] = None,
+        unique: object = None,
+        mkdir: bool = True,
+        seed: _SeedType = None,
+    ) -> str:
+        ...
+
+    @overload
+    def get_tmp_dir(
+        self,
+        prefix: str,
+        term: Literal["long"],
+        purpose: Union[str, None] = None,
+        unique: object = None,
+        mkdir: bool = True,
+        seed: _SeedType = None,
+    ) -> str:
+        ...
+
+    def get_tmp_dir(
+        self,
+        prefix: Union[str, None] = None,
+        term: _LongShortTermType = "short",
+        purpose: Union[str, None] = None,
+        unique: object = None,
+        mkdir: bool = True,
+        seed: _SeedType = None,
+    ) -> str:
+        """Gets a tmp-dir path.
+
+        This is the to-go function to get a tmp-dir in the according directory.
 
         Args:
-            prefix: Prefix for easier identification of sub-directory.
-            verbose: Subdir creation and removal verbose?
-        """
-        self.verbose = verbose
-        subdir_name = str(uuid.uuid4())
-        if (
-            FileHandler.fh_dir_identifier is not None
-            and len(FileHandler.fh_dir_identifier) > 0
-        ):
-            subdir_name = f"{FileHandler.fh_dir_identifier}_{subdir_name}"
-        if prefix is not None and len(prefix) > 0:
-            subdir_name = f"{prefix}_{subdir_name}"
-        self.subdir = os.path.join(FileHandler.root, subdir_name)
-        if self.verbose:
-            print(
-                f"Creating {Font.BLUE}{Font.BOLD}{self.subdir}{Font.END} "
-                "directory for data object storage."
-            )
-        os.makedirs(self.subdir, exist_ok=False)
-
-    def clean_up(self) -> None:
-        """Removes instance-bound `self.subdir`."""
-        if os.path.exists(self.subdir):
-            if self.verbose:
-                print(f"Removing {self.subdir}")
-            shutil.rmtree(self.subdir)
-            if len(os.listdir(FileHandler.root)) == 0:
-                shutil.rmtree(FileHandler.root)
-
-    @staticmethod
-    def remove_empty_dirs(consider_fh_dir_identifier: bool = True) -> None:
-        """Removes emtpy directories in `FileHandler.root`.
-
-        Just manual use recommended since it doesn't consider directories which
-         are currently in use and therefore it could interrupt running code.
-
-        Args:
-            consider_fh_dir_identifier: Consider `fh_dir_identifier` for dir matching?
-        """
-        paths = glob.glob(os.path.join(FileHandler.root, "*"), recursive=False)
-        for path in paths:
-            if os.path.isdir(path) and len(os.listdir(path=path)) == 0:
-                if consider_fh_dir_identifier:
-                    if FileHandler.fh_dir_identifier in os.path.split(path)[-1]:
-                        shutil.rmtree(path=path)
-                else:
-                    shutil.rmtree(path=path)
-
-    @staticmethod
-    def clean_up_fh_root(force: bool = False, verbose: bool = True) -> None:
-        """Removes the from `FileHandler` created directories.
-
-        Args:
-            force: Remove `FileHandler.root` entirely regardless of content?
-            verbose: Verbose removal?
-        """
-        if os.path.exists(FileHandler.root):
-            if force:  # force remove fh-root
-                if verbose:
-                    print(f"Force remove {FileHandler.root}")
-                shutil.rmtree(FileHandler.root)
-            elif (  # check if fh-dir-identifier is properly set for safe removal
-                FileHandler.fh_dir_identifier is None
-                or len(FileHandler.fh_dir_identifier) < 1
-            ):
-                print(
-                    "`clean_up_fh_root` can't remove anything because "
-                    f"{FileHandler.fh_dir_identifier=}. Set `fh_dir_identifier` "
-                    f"correctly or use `force` to remove {FileHandler.root} regardless."
-                )
-            else:
-                if verbose:
-                    print(
-                        f"Remove {FileHandler.root} in case all subdirs match "
-                        f"{FileHandler.fh_dir_identifier=}"
-                    )
-                paths = glob.glob(os.path.join(FileHandler.root, "*"))
-                for path in paths:
-                    if (
-                        os.path.isdir(path)
-                        and FileHandler.fh_dir_identifier in os.path.split(path)[-1]
-                    ):  # safe removal of subdir because it has the fh-dir-identifier
-                        shutil.rmtree(path=path)
-                if len(os.listdir(FileHandler.root)) > 0:
-                    if verbose:
-                        print(
-                            f"`clean_up_fh_root` is not able safely remove "
-                            f"{FileHandler.root} because there are directories which "
-                            f"don't match {FileHandler.fh_dir_identifier=} or files."
-                        )
-                else:  # remove fh-root if dir is empty
-                    shutil.rmtree(FileHandler.root)
-
-    @staticmethod
-    def get_file_handler(
-        obj: object,
-        prefix: Optional[str] = None,
-        verbose: bool = True,
-    ) -> FileHandler:
-        """Utility function to always get unique `FileHandler` bound to `obj`.
-
-        `FileHandler` args have just an effect while the first instance is created.
-
-        Args:
-            obj: Any object which should have an unique `FileHandler` assigned.
-            prefix: See `FileHandler.__init__`
-            verbose: See `FileHandler.__init__`
+            prefix: Dir-name prefix for STM (optional) and dir-name for LTM (required).
+            term: "short" for STM or "long" for LTM.
+            purpose: Creates a verbose print-msg with it's purpose if set.
+            unique: If an object which has attributes is provided, then you get
+                the same tmp-dir for the unique instance.
+            mkdir: Make-dir directly?
+            seed: Seed rnd chars+digits of a STM sub-dir for relocation
+                purpose of different processes? Shouldn't be used for LTM sub-dirs,
+                unless you know what you're doing. LTM sub-dirs are already seeded with
+                `prefix`. However, if they are seeded for some reason, the seed is then
+                something like `prefix` + `seed`, which leads to different LTM sub-dirs.
 
         Returns:
-            The `FileHandler` bound to `obj`.
+            tmp-dir path
         """
-        for attr_name in obj.__dict__:
-            attr = getattr(obj, attr_name)
-            if isinstance(attr, FileHandler):
-                return attr
-        fh = FileHandler(prefix=prefix, verbose=verbose)
-        setattr(obj, "file_handler", fh)
-        return fh
+        obj_tmp_dir_short_name = "_karabo_tmp_dir_short"
+        tmp_dir: Union[str, None] = None
+        if unique is not None:
+            if term != "short":
+                raise RuntimeError(
+                    "`unique` not None is just supported for short-term tmp-dirs."
+                )
+            try:
+                unique.__dict__  # just to test try-except AttributeError
+                if hasattr(unique, obj_tmp_dir_short_name):
+                    tmp_dir = getattr(unique, obj_tmp_dir_short_name)
+            except AttributeError:
+                raise AttributeError(
+                    "`unique` must be an object with attributes, "
+                    + f"but is of type {type(unique)} instead."
+                )
+
+        if tmp_dir is not None:
+            dir_path = tmp_dir
+            exist_ok = True
+        elif term == "short":
+            dir_path = FileHandler._get_term_dir(term=term)
+            dir_name = _get_rnd_str(k=10, seed=seed)
+            if prefix is not None:
+                dir_name = "".join((prefix, dir_name))
+            dir_path = os.path.join(dir_path, dir_name)
+            if unique is not None:
+                setattr(unique, obj_tmp_dir_short_name, dir_path)
+            self.tmps.append(dir_path)
+            if seed is None:
+                exist_ok = False
+            else:
+                exist_ok = True
+        elif term == "long":
+            dir_path = FileHandler._get_term_dir(term=term)
+            if prefix is None:
+                raise RuntimeError(
+                    "For long-term-memory, `prefix` must be set to have unique dirs."
+                )
+            if seed is not None:
+                seed = prefix + str(seed)
+            dir_name = _get_rnd_str(k=10, seed=seed)
+            dir_name = "".join((prefix, dir_name))
+            dir_path = os.path.join(dir_path, dir_name)
+            exist_ok = True
+        else:
+            assert_never(term)
+        if not exist_ok and os.path.exists(dir_path):
+            raise FileExistsError(f"{dir_path} already exists")
+        if mkdir and not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=exist_ok)
+            if purpose and len(purpose) > 0:
+                purpose = f" for {purpose}"
+                print(f"Creating {Font.BLUE}{Font.BOLD}{dir_path}{Font.END}{purpose}")
+        return dir_path
+
+    def clean_instance(self) -> None:
+        """Cleans instance-bound tmp-dirs of `self.tmps` from disk."""
+        tmps = copy(self.tmps)
+        for tmp in tmps:
+            if os.path.exists(tmp):
+                shutil.rmtree(tmp)
+            self.tmps.remove(tmp)
+
+    @classmethod
+    def clean(
+        cls,
+        term: _LongShortTermType = "short",
+    ) -> None:
+        """Removes the entire directory specified by `term`.
+
+        We stronlgy suggest to NOT use this function in a workflow. This function
+        removed the entire karabo-disk-cache. So if there's another karabo-process
+        running in parallel, you could mess with their disk-cache as well.
+
+        Args:
+            term: "long" or "short" term memory
+        """
+        dir_ = cls._get_term_dir(term=term)
+        if os.path.exists(dir_):
+            shutil.rmtree(dir_)
+
+    @classmethod
+    def is_dir_empty(cls, dirname: DirPathType) -> bool:
+        """Checks if `dirname` is empty assuming `dirname` exists.
+
+        Args:
+            dirname: Directory to check.
+
+        Raises:
+            NotADirectoryError: If `dirname` is not an existing directory.
+
+        Returns:
+            True if dir is empty, else False
+        """
+        if not os.path.isdir(dirname):
+            raise NotADirectoryError(f"{dirname} is not an existing directory.")
+        is_empty = len(os.listdir(path=dirname)) == 0
+        return is_empty
+
+    @classmethod
+    def remove_empty_dirs(cls, term: _LongShortTermType = "short") -> None:
+        """Removes emtpy directories in the chosen cache-dir.
+
+        Args:
+            term: "long" or "short" term memory
+        """
+        dir_ = _get_cache_dir(term=term)
+        paths = glob.glob(os.path.join(dir_, "*"), recursive=False)
+        for path in paths:
+            if os.path.isdir(path) and len(os.listdir(path=path)) == 0:
+                shutil.rmtree(path=path)
+
+    @classmethod
+    def empty_dir(cls, dir_path: DirPathType) -> None:
+        """Deletes all contents of `dir_path`, but not the directory itself.
+
+        This function assumes that all filed and directories are owned by
+        the function-user.
+
+        Args:
+            dir_path: Directory to empty.
+        """
+        shutil.rmtree(dir_path)
+        os.makedirs(dir_path, exist_ok=False)
 
     def __enter__(self) -> str:
-        return self.subdir
+        return self.get_tmp_dir(prefix=None, term="short")
 
     def __exit__(
         self,
@@ -229,13 +366,24 @@ class FileHandler:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
-        self.clean_up()
+        self.clean_instance()
 
 
-def check_ending(path: Union[str, FilePathType, DirPathType], ending: str) -> None:
+def assert_valid_ending(
+    path: Union[str, FilePathType, DirPathType], ending: str
+) -> None:
+    """Utility function to check if the ending of `path` is `ending`.
+
+    Args:
+        path: Path to check.
+        ending: Ending match.
+
+    Raises:
+        ValueError: When the ending of `path` doesn't match `ending`.
+    """
     path_ = str(path)
     if not path_.endswith(ending):
         fname = path_.split(os.path.sep)[-1]
-        raise ValueError(
+        raise AssertionError(
             f"Invalid file-ending, file {fname} must have {ending} extension!"
         )
