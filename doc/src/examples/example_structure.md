@@ -75,11 +75,9 @@ DaskHandler.parallelize_with_dask(my_function, my_iterable, *args, **kwargs) # T
 
 ## Use Karabo on a SLURM cluster
 
-Karabo manages all available nodes through Dask, making the computational power conveniently accessible for the user. The `DaskHandler` class streamlines the creation of a Dask client and offers a user-friendly interface for interaction. This class contains static variables to midify the behavior of a Dask client, if they've changed before creating a client. 
+Karabo manages all available nodes through Dask, making the computational power conveniently accessible for the user. The `DaskHandler` class streamlines the creation of a Dask client and offers a user-friendly interface for interaction. This class contains static variables to modify the behavior of a Dask client, if they've changed before creating a client. 
 
-While users are not required to interact with Dask directly - thanks to the background processes managed by Karabo - the Dask client should to be initialized at the beginning of your script with `DaskHandler.setup` (see example below). This has to do with the spawning of new processes when creating `Nanny` processes.
-
-If you just need the client itself, then no `setup()` is needed.
+While users are not required to interact with Dask directly - thanks to the background processes managed by Karabo - the Dask client should be initialized at the beginning of your script with `DaskHandler.setup` (see example below). This has to do with the spawning of new processes when creating `Nanny` processes.
 
 ```python
 from karabo.util.dask import DaskHandler
@@ -110,4 +108,4 @@ DaskHandler.use_dask = False
 Please also check out the `DaskHandler` under `karabo.util.dask` for more information.
 
 ### Dask Dashboard
-The Dask dashboard link should be printed in stdout. Just copy the link into your browser, and then you're able to observe the current dask-process. If you run Karabo on a VM without access to a browser and internet, you can use `port forwarding` to access the Dask Dashboard from your local machine. In `VSCODE`, this can be done directly when using the "PORTS" tab.
+The Dask dashboard link should be printed in stdout. Just copy the link into your browser, and then you're able to observe the current dask-process. If you run Karabo on a VM without access to a browser and internet, you can use ssh `port forwarding` to access the Dask Dashboard from your local machine (e.g. `ssh -N -L <local-port>:(<remote-node>:)<remote-port> <host>`). Don't forget to use the `<local-port>` in the browser-link if you used port-forwarding. In `VSCODE`, this can be done directly when using the "PORTS" tab; just paste the IP address and port number from stdout into the "Port" column and click on "Open in Browser" in the "Local Adress" column.

@@ -59,6 +59,7 @@ class DaskHandlerBasic:
     n_threads_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
     use_proccesses: bool = False  # Some packages, such as pybdsf, do not work
+    # with processes because they spawn subprocesses.
 
     _setup_called: bool = False
 
@@ -83,7 +84,7 @@ class DaskHandlerBasic:
                 initialize(comm=MPI.COMM_WORLD)
             else:
                 initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
-            cls.dask_client = Client(processes=cls.use_proccesses)  # TODO: testing
+            cls.dask_client = Client(processes=cls.use_proccesses)
             if MPI.COMM_WORLD.rank == 0:
                 print(f"Dashboard link: {cls.dask_client.dashboard_link}", flush=True)
                 atexit.register(cls._dask_cleanup)

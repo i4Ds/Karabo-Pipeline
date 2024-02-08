@@ -28,7 +28,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 from karabo.util.dask import DaskHandler
-from karabo.util.file_handler import FileHandler, check_ending
+from karabo.util.file_handler import FileHandler, assert_valid_ending
 
 ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
 CleanAlgorithmType = Literal["hogbom", "msclean", "mmclean"]
@@ -228,7 +228,7 @@ class Imager:
             )
             fits_path = os.path.join(tmp_dir, "dirty.fits")
         else:
-            check_ending(path=fits_path, ending=".fits")
+            assert_valid_ending(path=fits_path, ending=".fits")
 
         block_visibilities = create_visibility_from_ms(
             str(self.visibility.ms_file_path)
@@ -328,11 +328,11 @@ class Imager:
             deconvolved, restored, residual
         """
         if deconvolved_fits_path is not None:
-            check_ending(path=deconvolved_fits_path, ending=".fits")
+            assert_valid_ending(path=deconvolved_fits_path, ending=".fits")
         if restored_fits_path is not None:
-            check_ending(path=restored_fits_path, ending=".fits")
+            assert_valid_ending(path=restored_fits_path, ending=".fits")
         if residual_fits_path is not None:
-            check_ending(path=residual_fits_path, ending=".fits")
+            assert_valid_ending(path=residual_fits_path, ending=".fits")
         if (
             deconvolved_fits_path is None
             or restored_fits_path is None
@@ -366,9 +366,7 @@ class Imager:
             img_context = "wg"
 
         if self.ingest_vis_nchan is None:
-            raise ValueError(
-                "`self.ingest_vis_nchan` is None but must set, but is None"
-            )
+            raise ValueError("`self.ingest_vis_nchan` is None but must set.")
 
         blockviss = create_visibility_from_ms_rsexecute(
             msname=str(self.visibility.ms_file_path),

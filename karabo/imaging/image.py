@@ -28,7 +28,7 @@ from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
 from karabo.util._types import FilePathType
-from karabo.util.file_handler import FileHandler, check_ending
+from karabo.util.file_handler import FileHandler, assert_valid_ending
 from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,
@@ -117,7 +117,7 @@ class Image:
         overwrite: bool = False,
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
-        check_ending(path=path, ending=".fits")
+        assert_valid_ending(path=path, ending=".fits")
         dir_name = os.path.abspath(os.path.dirname(path))
         os.makedirs(dir_name, exist_ok=True)
         fits.writeto(

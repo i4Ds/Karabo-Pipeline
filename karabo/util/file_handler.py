@@ -68,7 +68,7 @@ def _get_disk_cache_root() -> str:
 def _get_rnd_str(k: int, seed: _SeedType = None) -> str:
     """Creates a random ascii+digits string with length=`k`.
 
-    Most tmp-file tools are using a sting-length of 10.
+    Most tmp-file tools are using a string-length of 10.
 
     Args:
         k: Length of random string.
@@ -168,12 +168,12 @@ class FileHandler:
         # tmps is an instance bound dirs and/or files registry for STM
         self.tmps: list[str] = list()
 
-    @staticmethod
-    def _get_term_dir(term: _LongShortTermType) -> str:
+    @classmethod
+    def _get_term_dir(cls, term: _LongShortTermType) -> str:
         if term == "short":
-            dir_ = FileHandler.stm()
+            dir_ = cls.stm()
         elif term == "long":
-            dir_ = FileHandler.ltm()
+            dir_ = cls.ltm()
         else:
             assert_never(term)
         return dir_
@@ -295,23 +295,26 @@ class FileHandler:
                 shutil.rmtree(tmp)
             self.tmps.remove(tmp)
 
-    @staticmethod
+    @classmethod
     def clean(
+        cls,
         term: _LongShortTermType = "short",
     ) -> None:
         """Removes the entire directory specified by `term`.
 
-        Be careful with cleaning, to not mess up dirs of other processes.
+        We stronlgy suggest to NOT use this function in a workflow. This function
+        removed the entire karabo-disk-cache. So if there's another karabo-process
+        running in parallel, you could mess with their disk-cache as well.
 
         Args:
             term: "long" or "short" term memory
         """
-        dir_ = FileHandler._get_term_dir(term=term)
+        dir_ = cls._get_term_dir(term=term)
         if os.path.exists(dir_):
             shutil.rmtree(dir_)
 
-    @staticmethod
-    def is_dir_empty(dirname: DirPathType) -> bool:
+    @classmethod
+    def is_dir_empty(cls, dirname: DirPathType) -> bool:
         """Checks if `dirname` is empty assuming `dirname` exists.
 
         Args:
@@ -328,8 +331,8 @@ class FileHandler:
         is_empty = len(os.listdir(path=dirname)) == 0
         return is_empty
 
-    @staticmethod
-    def remove_empty_dirs(term: _LongShortTermType = "short") -> None:
+    @classmethod
+    def remove_empty_dirs(cls, term: _LongShortTermType = "short") -> None:
         """Removes emtpy directories in the chosen cache-dir.
 
         Args:
@@ -341,8 +344,8 @@ class FileHandler:
             if os.path.isdir(path) and len(os.listdir(path=path)) == 0:
                 shutil.rmtree(path=path)
 
-    @staticmethod
-    def empty_dir(dir_path: DirPathType) -> None:
+    @classmethod
+    def empty_dir(cls, dir_path: DirPathType) -> None:
         """Deletes all contents of `dir_path`, but not the directory itself.
 
         This function assumes that all filed and directories are owned by
@@ -366,7 +369,9 @@ class FileHandler:
         self.clean_instance()
 
 
-def check_ending(path: Union[str, FilePathType, DirPathType], ending: str) -> None:
+def assert_valid_ending(
+    path: Union[str, FilePathType, DirPathType], ending: str
+) -> None:
     """Utility function to check if the ending of `path` is `ending`.
 
     Args:
@@ -379,6 +384,6 @@ def check_ending(path: Union[str, FilePathType, DirPathType], ending: str) -> No
     path_ = str(path)
     if not path_.endswith(ending):
         fname = path_.split(os.path.sep)[-1]
-        raise ValueError(
+        raise AssertionError(
             f"Invalid file-ending, file {fname} must have {ending} extension!"
         )

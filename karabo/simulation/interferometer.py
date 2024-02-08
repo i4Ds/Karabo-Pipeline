@@ -243,18 +243,18 @@ class InterferometerSimulation:
             )
         self.use_gpus = use_gpus
 
-        if use_dask is True or client:
-            if client and use_dask is None:
+        if (use_dask is True) or (client is not None):
+            if (client is not None) and (use_dask is None):
                 use_dask = True
             elif client and use_dask is False:
                 raise RuntimeError(
                     "Providing `client` and `use_dask`=False is not allowed."
                 )
-            elif not client and use_dask is True:
+            elif (client is None) and (use_dask is True):
                 client = DaskHandler.get_dask_client()
             else:
                 pass
-        elif use_dask is None and client is None:
+        elif (use_dask is None) and (client is None):
             use_dask = DaskHandler.should_dask_be_used()
             if use_dask:
                 client = DaskHandler.get_dask_client()
@@ -406,8 +406,8 @@ class InterferometerSimulation:
         # Scatter sky
         array_sky = self.client.scatter(array_sky)
         tmp_dir = FileHandler().get_tmp_dir(
-            prefix="simulation-praallezed-observation-",
-            purpose="disk-cache simulation-praallezed-observation",
+            prefix="simulation-parallelized-observation-",
+            purpose="disk-cache simulation-parallelized-observation",
         )
         ms_dir = os.path.join(tmp_dir, "measurements")
         os.makedirs(ms_dir, exist_ok=False)

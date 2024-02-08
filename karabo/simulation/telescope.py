@@ -672,26 +672,6 @@ class Telescope:
         return df_tel
 
     @classmethod
-    def _get_number_str(cls, num: int, n_digits: int) -> str:
-        """Transforms a number `num` to str with `n_digits` digits.
-
-        Args:
-            num: Number to transform.
-            n_digits: Number of digits to represent `num` as str.
-
-        Returns:
-            Transformed `num`.
-        """
-        num_str = str(num)
-        n_digit_values = len(num_str)
-        if n_digit_values < n_digits:
-            n_zeros = n_digits - n_digit_values
-            num_str = "0" * n_zeros + num_str
-        elif n_digit_values > n_digits:
-            raise ValueError(f"{num=} has more digits than {n_digits=}")
-        return num_str
-
-    @classmethod
     def create_baseline_cut_telelescope(
         cls,
         lcut: NPFloatLike,
@@ -760,7 +740,7 @@ class Telescope:
         conversions: Dict[str, str] = dict()
         for i in range(df_tel.shape[0]):
             source_path = df_tel.iloc[i]["station-path"]
-            number_str = cls._get_number_str(num=i, n_digits=3)
+            number_str = str(i).zfill(3)
             target_station = f"station{number_str}"
             target_path = os.path.join(tm_path, target_station)
             source_station = os.path.split(source_path)[-1]
