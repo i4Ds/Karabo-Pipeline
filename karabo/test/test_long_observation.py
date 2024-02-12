@@ -133,5 +133,3 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
         # imaging cellsize is over-written in the Imager based on max uv dist.
         imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=1.0e-5)
         imager.get_dirty_image()
-        # dirty.write_to_file("./test/result/beam/beam_vis.fits",overwrite=True)
-        # dirty.plot(colobar_label="Flux Density (Jy)", filename="combine_vis.png")

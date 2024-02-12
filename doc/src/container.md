@@ -28,8 +28,6 @@ This will start a server on the same port as forwarded. Then copy the url which 
 
 ## Singularity Containers
 
-**Note:** Currently, building a Singularity container from our docker-registry and run karabo within it doesn't work properly. This is work in progress. Therfore, the following doc regarding Singularity are not relevant.
-
 Singularity containers are often standard on HPC clusters, which do not require special permissions (unlike Docker).
 We do not provide ready-made [Singularity containers](https://sylabs.io/). However, they can be easily created from Docker images with the following command (may take a while). You may first have to load the module if it's not available `module load singularity`:
 
@@ -37,7 +35,7 @@ We do not provide ready-made [Singularity containers](https://sylabs.io/). Howev
 singularity pull docker://ghcr.io/i4ds/karabo-pipeline
 ```
 
-This creates a `.sif` file which acts as a singularity image and can be used to launch your application. How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html). Be aware that Singularity mounts the home-directory by default if start a container from your home-directory, which may not be desirable (e.g. `conda init` is done through .bashrc of the image). Be sure to disable this behavior by setting the `--no-home` flag when starting a container.
+This creates a `.sif` file which acts as a singularity image and can be used to launch your application. How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html). Be aware that Singularity mounts the home-directory by default if start a container from your home-directory, which may or may not be desirable (e.g. `conda init` of your home instead of the container could get executed if you execute a Singularity container interactively). Therefore, for interactive access of a Karabo Singularity container, we suggest to use the `--no-home` flag.
 
 ## Sarus Containers
 

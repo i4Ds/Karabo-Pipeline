@@ -9,18 +9,24 @@ from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope, create_baseline_cut_telelescope
+from karabo.simulation.telescope import Telescope
 
 
 def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
     lcut = 5000
     hcut = 10000  # Lower cut off and higher cut-off in meters
     parant_tel = Telescope.constructor("MeerKAT")
-    telescope_path = create_baseline_cut_telelescope(lcut, hcut, parant_tel)
-    telescope = Telescope.read_OSKAR_tm_file(telescope_path)
-    sky = SkyModel()
-    sky.add_point_sources(sky_data)
     with tempfile.TemporaryDirectory() as tmpdir:
+        tm_path = os.path.join(tmpdir, "tel-cut.tm")
+        telescope_path, _ = Telescope.create_baseline_cut_telelescope(
+            lcut,
+            hcut,
+            parant_tel,
+            tm_path=tm_path,
+        )
+        telescope = Telescope.read_OSKAR_tm_file(telescope_path)
+        sky = SkyModel()
+        sky.add_point_sources(sky_data)
         ms_path = os.path.join(tmpdir, "out.ms")
         vis_path = os.path.join(tmpdir, "out.vis")
         simulation = InterferometerSimulation(

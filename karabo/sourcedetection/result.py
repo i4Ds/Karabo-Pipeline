@@ -16,7 +16,6 @@ from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
-from karabo.karabo_resource import KaraboResource
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
@@ -72,7 +71,7 @@ class ISourceDetectionResult(ABC):
         ...
 
 
-class SourceDetectionResult(ISourceDetectionResult, KaraboResource):
+class SourceDetectionResult(ISourceDetectionResult):
     def __init__(
         self,
         detected_sources: NDArray[np.float_],
@@ -297,12 +296,12 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         functions on PyBDSF results
         :param bdsf_detection: PyBDSF result image
         """
-        self._fh_prefix = "pybdsf_sdr"
-        self._fh_verbose = True
-        fh = FileHandler.get_file_handler(
-            obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="pybdsf-sdr-",
+            purpose="pybdsf source-detection-result disk-cache",
+            unique=self,
         )
-        sources_file = os.path.join(fh.subdir, "sources.csv")
+        sources_file = os.path.join(tmp_dir, "sources.csv")
         bdsf_detection.write_catalog(
             outfile=sources_file, catalog_type="gaul", format="csv", clobber=True
         )
@@ -346,10 +345,14 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         return sources
 
     def __get_result_image(self, image_type: str, **kwargs: Any) -> Image:
-        fh = FileHandler.get_file_handler(
-            obj=self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="pybdsf-sdr-",
+            purpose="pybdsf source-detection-result disk-cache",
+            unique=self,
         )
-        outfile = os.path.join(fh.subdir, "result.fits")
+        outfile = os.path.join(tmp_dir, f"{image_type}-result.fits")
+        if os.path.exists(outfile):  # allow overwriting for new results
+            os.remove(path=outfile)
         self.bdsf_result.export_image(
             outfile=outfile,
             img_format="fits",

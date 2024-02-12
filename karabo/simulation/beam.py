@@ -233,7 +233,7 @@ class BeamPattern:
         B_ah: NDArray[np.complex_],
         path: Optional[str] = None,
     ) -> None:
-        f, ax = plt.subplots(2, 2)
+        _, ax = plt.subplots(2, 2)
         log10_notzero = 10 ** (-10)
         ax00 = ax[0, 0]
         ax01 = ax[0, 1]

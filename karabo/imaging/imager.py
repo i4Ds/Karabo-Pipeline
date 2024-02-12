@@ -23,13 +23,12 @@ from ska_sdp_func_python.imaging import (
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
 from karabo.data.external_data import MGCLSContainerDownloadObject
-from karabo.error import KaraboError
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 from karabo.util.dask import DaskHandler
-from karabo.util.file_handler import FileHandler
+from karabo.util.file_handler import FileHandler, assert_valid_ending
 
 ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
 CleanAlgorithmType = Literal["hogbom", "msclean", "mmclean"]
@@ -207,25 +206,29 @@ class Imager:
         self.imaging_uvmax = imaging_uvmax
         self.imaging_uvmin = imaging_uvmin
 
-        self._fh_prefix = "imager"
-        self._fh_verbose = True
-
-    def get_dirty_image(self, fits_path: Optional[FilePathType] = None) -> Image:
+    def get_dirty_image(
+        self,
+        fits_path: Optional[FilePathType] = None,
+    ) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
 
+        Note: If `fits_path` is provided and already exists, then this function will
+        overwrite `fits_path`.
+
         Args:
-            fits_path: Path to where the .fits file will get exported.
+            fits_path: Path to where the .fits file will get saved.
 
         Returns:
             Dirty Image
         """
         if fits_path is None:
-            fh = FileHandler.get_file_handler(
-                obj=self,
-                prefix=self._fh_prefix,
-                verbose=self._fh_verbose,
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="Imager-Dirty-",
+                purpose="disk-cache for dirty.fits",
             )
-            fits_path = os.path.join(fh.subdir, "dirty.fits")
+            fits_path = os.path.join(tmp_dir, "dirty.fits")
+        else:
+            assert_valid_ending(path=fits_path, ending=".fits")
 
         block_visibilities = create_visibility_from_ms(
             str(self.visibility.ms_file_path)
@@ -241,7 +244,9 @@ class Imager:
             override_cellsize=self.override_cellsize,
         )
         dirty, _ = invert_visibility(visibility, model, context="2d")
-        dirty.image_acc.export_to_fits(fits_file=f"{fits_path}")
+        if os.path.exists(fits_path):
+            os.remove(fits_path)
+        dirty.image_acc.export_to_fits(fits_file=fits_path)
 
         image = Image(path=fits_path)
         return image
@@ -277,6 +282,10 @@ class Imager:
         clean_restored_output: CleanRestoredOutputType = "list",
     ) -> Tuple[Image, Image, Image]:
         """Starts imaging process using RASCIL using CLEAN.
+
+        Note: For `deconvolved_fits_path`, `restored_fits_path` & `residual_fits_path`,
+        if one or more of them are provided and already exist on the disk, then
+        they will get overwritten if the imaging succeeds.
 
         Clean args see https://developer.skao.int/_/downloads/rascil/en/latest/pdf/
 
@@ -318,24 +327,51 @@ class Imager:
         Returns:
             deconvolved, restored, residual
         """
+        if deconvolved_fits_path is not None:
+            assert_valid_ending(path=deconvolved_fits_path, ending=".fits")
+        if restored_fits_path is not None:
+            assert_valid_ending(path=restored_fits_path, ending=".fits")
+        if residual_fits_path is not None:
+            assert_valid_ending(path=residual_fits_path, ending=".fits")
+        if (
+            deconvolved_fits_path is None
+            or restored_fits_path is None
+            or residual_fits_path is None
+        ):
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="Imaging-Rascil-",
+                purpose="disk-cache for non-specified .fits files.",
+            )
+            if deconvolved_fits_path is None:
+                deconvolved_fits_path = os.path.join(tmp_dir, "deconvolved.fits")
+            if restored_fits_path is None:
+                restored_fits_path = os.path.join(tmp_dir, "restored.fits")
+            if residual_fits_path is None:
+                residual_fits_path = os.path.join(tmp_dir, "residual.fits")
+
         if client and not use_dask:
-            raise EnvironmentError("Client passed but use_dask is False")
+            raise RuntimeError("Client passed but use_dask is False")
         if use_dask:
-            client = DaskHandler.get_dask_client()
-        if client:
+            if not client:
+                client = DaskHandler.get_dask_client()
             print(client.cluster)
+            rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
         # Set CUDA parameters
         if use_cuda:
+            if img_context != "wg":
+                print(
+                    f"Changing imaging_rascil.img_context` from '{img_context}' "
+                    + f"to 'wg' because {use_cuda=}"
+                )
             img_context = "wg"
-        rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
 
         if self.ingest_vis_nchan is None:
-            raise KaraboError("`ingest_vis_nchan` is None but must be of type 'int'.")
+            raise ValueError("`self.ingest_vis_nchan` is None but must set.")
 
         blockviss = create_visibility_from_ms_rsexecute(
             msname=str(self.visibility.ms_file_path),
             nchan_per_vis=self.ingest_chan_per_vis,
-            nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,  # pyright: ignore
+            nout=self.ingest_vis_nchan // self.ingest_chan_per_vis,
             dds=self.ingest_dd,
             average_channels=True,
         )
@@ -355,8 +391,6 @@ class Imager:
             )
             for bvis in blockviss
         ]
-        if img_context == "wg":
-            raise NotImplementedError("WAGG support for rascil does currently not work")
 
         result = continuum_imaging_skymodel_list_rsexecute_workflow(
             vis_list=blockviss,
@@ -394,46 +428,29 @@ class Imager:
 
         residual, restored, skymodel = result
 
-        if deconvolved_fits_path is None:
-            fh = FileHandler.get_file_handler(
-                obj=self,
-                prefix=self._fh_prefix,
-                verbose=self._fh_verbose,
-            )
-            deconvolved_fits_path = os.path.join(fh.subdir, "deconvolved.fits")
-
         deconvolved = [sm.image for sm in skymodel]
         deconvolved_image_rascil = image_gather_channels(deconvolved)
-        deconvolved_image_rascil.image_acc.export_to_fits(
-            fits_file=str(deconvolved_fits_path)
-        )
-        deconvolved_image = Image(path=deconvolved_fits_path)
-
-        if restored_fits_path is None:
-            fh = FileHandler.get_file_handler(
-                obj=self,
-                prefix=self._fh_prefix,
-                verbose=self._fh_verbose,
-            )
-            restored_fits_path = os.path.join(fh.subdir, "restored.fits")
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
-        restored.image_acc.export_to_fits(fits_file=str(restored_fits_path))
-        restored_image = Image(path=restored_fits_path)
-
-        if residual_fits_path is None:
-            fh = FileHandler.get_file_handler(
-                obj=self,
-                prefix=self._fh_prefix,
-                verbose=self._fh_verbose,
-            )
-            residual_fits_path = os.path.join(fh.subdir, "residual.fits")
 
         residual = remove_sumwt(residual)
         if isinstance(residual, list):
             residual = image_gather_channels(residual)
+
+        if os.path.exists(deconvolved_fits_path):
+            os.remove(deconvolved_fits_path)
+        deconvolved_image_rascil.image_acc.export_to_fits(
+            fits_file=str(deconvolved_fits_path)
+        )
+        if os.path.exists(restored_fits_path):
+            os.remove(restored_fits_path)
+        restored.image_acc.export_to_fits(fits_file=str(restored_fits_path))
+        if os.path.exists(residual_fits_path):
+            os.remove(residual_fits_path)
         residual.image_acc.export_to_fits(fits_file=str(residual_fits_path))
+        deconvolved_image = Image(path=deconvolved_fits_path)
+        restored_image = Image(path=restored_fits_path)
         residual_image = Image(path=residual_fits_path)
 
         return deconvolved_image, restored_image, residual_image

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import uuid
 from typing import (
     Any,
     Callable,
@@ -28,9 +27,8 @@ from reproject import reproject_interp
 from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
-from karabo.karabo_resource import KaraboResource
 from karabo.util._types import FilePathType
-from karabo.util.file_handler import FileHandler, check_ending
+from karabo.util.file_handler import FileHandler, assert_valid_ending
 from karabo.util.plotting_util import get_slices
 
 # store and restore the previously set matplotlib backend,
@@ -40,7 +38,7 @@ previous_backend = matplotlib.get_backend()
 matplotlib.use(previous_backend)
 
 
-class Image(KaraboResource):
+class Image:
     @overload
     def __init__(
         self,
@@ -71,9 +69,6 @@ class Image(KaraboResource):
         header: Optional[fits.header.Header] = None,
         **kwargs: Any,
     ) -> None:
-        self._fh_prefix = "image"
-        self._fh_verbose = False
-
         if path is not None and (data is None and header is None):
             self.path = path
             self.data, self.header = fits.getdata(
@@ -86,13 +81,13 @@ class Image(KaraboResource):
             self.data = data
             self.header = header
 
-            # Generate a random path for the data
-            fh = FileHandler.get_file_handler(
-                obj=self,
-                prefix=self._fh_prefix,
-                verbose=self._fh_verbose,
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="Image-",
+                purpose="restored fits-path",
+                unique=self,
             )
-            restored_fits_path = os.path.join(fh.subdir, "image.fits")
+
+            restored_fits_path = os.path.join(tmp_dir, "image.fits")
 
             # Write the FITS file
             self.write_to_file(restored_fits_path)
@@ -122,7 +117,7 @@ class Image(KaraboResource):
         overwrite: bool = False,
     ) -> None:
         """Write an `Image` to `path`  as .fits"""
-        check_ending(path=path, ending=".fits")
+        assert_valid_ending(path=path, ending=".fits")
         dir_name = os.path.abspath(os.path.dirname(path))
         os.makedirs(dir_name, exist_ok=True)
         fits.writeto(
@@ -480,7 +475,7 @@ class Image(KaraboResource):
         self,
         resolution: float = 5.0e-4,
         signal_channel: Optional[int] = None,
-        save_png: bool = False,
+        path: Optional[FilePathType] = None,
     ) -> None:
         """
         Plot the power spectrum of this image.
@@ -505,11 +500,8 @@ class Image(KaraboResource):
         plt.gca().set_ylim(1e-6 * max_profile, 2.0 * max_profile)
         plt.tight_layout()
 
-        if save_png:
-            power_spectrum_name = (
-                self._fname if self._fname is not None else uuid.uuid4()
-            )
-            plt.savefig(f"./power_spectrum_{power_spectrum_name}")
+        if path is not None:
+            plt.savefig(path)
         plt.show(block=False)
         plt.pause(1)
 

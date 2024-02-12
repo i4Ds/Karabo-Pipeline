@@ -34,7 +34,6 @@ from karabo.util._types import (
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
-from karabo.warning import KaraboWarning
 
 
 class CorrelationType(enum.Enum):
@@ -236,31 +235,30 @@ class InterferometerSimulation:
         self.beam_polY = beam_polY
         # set use_gpu
         if use_gpus is None:
+            use_gpus = is_cuda_available()
             print(
-                KaraboWarning(
-                    "Parameter 'use_gpus' is None! Using function "
-                    "'karabo.util.is_cuda_available()' to overwrite parameter "
-                    f"'use_gpu' to {is_cuda_available()}."
-                )
+                "Parameter 'use_gpus' is None! Using function "
+                + "'karabo.util.is_cuda_available()'. To overwrite, set "
+                + "'use_gpu' True or False."
             )
-            self.use_gpus = is_cuda_available()
-        else:
-            self.use_gpus = use_gpus
+        self.use_gpus = use_gpus
 
+        if (use_dask is True) or (client is not None):
+            if (client is not None) and (use_dask is None):
+                use_dask = True
+            elif client and use_dask is False:
+                raise RuntimeError(
+                    "Providing `client` and `use_dask`=False is not allowed."
+                )
+            elif (client is None) and (use_dask is True):
+                client = DaskHandler.get_dask_client()
+            else:
+                pass
+        elif (use_dask is None) and (client is None):
+            use_dask = DaskHandler.should_dask_be_used()
+            if use_dask:
+                client = DaskHandler.get_dask_client()
         self.use_dask = use_dask
-        if use_dask is None and not client:
-            print(
-                KaraboWarning(
-                    "Parameter 'use_dask' is None! Using function "
-                    "'karabo.util.dask.DaskHandler.should_dask_be_used()' "
-                    "to overwrite parameter 'use_dask' to "
-                    f"{DaskHandler.should_dask_be_used()}."
-                )
-            )
-            self.use_dask = DaskHandler.should_dask_be_used()
-
-        if self.use_dask and not client:
-            client = DaskHandler.get_dask_client()
         self.client = client
 
         self.split_observation_by_channels = split_observation_by_channels
@@ -287,18 +285,16 @@ class InterferometerSimulation:
         self.ionosphere_screen_pixel_size_m = ionosphere_screen_pixel_size_m
         self.ionosphere_isoplanatic_screen = ionosphere_isoplanatic_screen
 
-        # FileHandler args if needed
-        self._fh_prefix = "interferometer_sim"
-        self._fh_verbose = True
-
     @property
     def ms_file_path(self) -> str:
         ms_file_path = self._ms_file_path
         if ms_file_path is None:
-            fh = FileHandler.get_file_handler(
-                self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="interferometer-",
+                purpose="interferometer disk-cache.",
+                unique=self,
             )
-            ms_file_path = os.path.join(fh.subdir, "measurements.MS")
+            ms_file_path = os.path.join(tmp_dir, "measurements.MS")
             self._ms_file_path = ms_file_path
         return ms_file_path
 
@@ -310,10 +306,12 @@ class InterferometerSimulation:
     def vis_path(self) -> str:
         vis_path = self._vis_path
         if vis_path is None:
-            fh = FileHandler.get_file_handler(
-                self, prefix=self._fh_prefix, verbose=self._fh_verbose
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="interferometer-",
+                purpose="interferometer disk-cache.",
+                unique=self,
             )
-            vis_path = os.path.join(fh.subdir, "visibility.vis")
+            vis_path = os.path.join(tmp_dir, "visibility.vis")
             self._vis_path = vis_path
         return vis_path
 
@@ -407,13 +405,14 @@ class InterferometerSimulation:
 
         # Scatter sky
         array_sky = self.client.scatter(array_sky)
-        fh = FileHandler.get_file_handler(
-            self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="simulation-parallelized-observation-",
+            purpose="disk-cache simulation-parallelized-observation",
         )
-        ms_dir = os.path.join(fh.subdir, "measurements")
-        os.makedirs(ms_dir, exist_ok=True)
-        vis_dir = os.path.join(fh.subdir, "visibilities")
-        os.makedirs(vis_dir, exist_ok=True)
+        ms_dir = os.path.join(tmp_dir, "measurements")
+        os.makedirs(ms_dir, exist_ok=False)
+        vis_dir = os.path.join(tmp_dir, "visibilities")
+        os.makedirs(vis_dir, exist_ok=False)
         for observation_params in observations:
             start_freq = observation_params["observation"]["start_frequency_hz"]
             ms_file_path = os.path.join(ms_dir, f"start_freq_{start_freq}.MS")
@@ -547,13 +546,14 @@ class InterferometerSimulation:
                 "`telescope.path` must be set but is None."
             )
 
-        fh = FileHandler.get_file_handler(
-            self, prefix=self._fh_prefix, verbose=self._fh_verbose
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="simulation-long-",
+            purpose="disk-cache simulation-long",
         )
-        ms_dir = os.path.join(fh.subdir, "measurements")
-        os.makedirs(ms_dir, exist_ok=True)
-        vis_dir = os.path.join(fh.subdir, "visibilities")
-        os.makedirs(vis_dir, exist_ok=True)
+        ms_dir = os.path.join(tmp_dir, "measurements")
+        os.makedirs(ms_dir, exist_ok=False)
+        vis_dir = os.path.join(tmp_dir, "visibilities")
+        os.makedirs(vis_dir, exist_ok=False)
 
         # Loop over days
         for i, current_date in enumerate(

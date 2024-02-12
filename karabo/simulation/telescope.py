@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import enum
+import glob
 import logging
 import os
 import re
 import shutil
-from math import comb
-from typing import Dict, List, Literal, Optional, Type, Union, cast, get_args
+from itertools import product
+from typing import Dict, List, Literal, Optional, Tuple, Type, Union, cast, get_args
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
 from rascil.processing_components.simulation.simulation_helpers import (
@@ -19,7 +21,6 @@ from ska_sdp_datamodels.configuration.config_model import Configuration
 
 import karabo.error
 from karabo.error import KaraboError
-from karabo.karabo_resource import KaraboResource
 from karabo.simulation.coordinate_helper import east_north_to_long_lat
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
@@ -96,7 +97,7 @@ OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum
 }
 
 
-class Telescope(KaraboResource):
+class Telescope:
     """Telescope
 
     WGS84 longitude and latitude and altitude in metres centre of the telescope.png
@@ -114,10 +115,6 @@ class Telescope(KaraboResource):
         WGS84 latitude at the center of the telescope.
     centre_altitude : float
         Altitude (in meters) at the center of the telescope.
-    temp_dir : None
-        Temporary directory.
-    path : None
-        Hotfix for issue #59.
     """
 
     def __init__(
@@ -134,7 +131,6 @@ class Telescope(KaraboResource):
         altitude : float, optional
             Altitude (in meters) at the center of the telescope, default is 0.
         """
-        self._fh = FileHandler(prefix="telescope", verbose=False)
         self.path: Optional[DirPathType] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
@@ -377,13 +373,28 @@ class Telescope(KaraboResource):
     def get_OSKAR_telescope(self) -> OskarTelescope:
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
+
+        Note: Once this function is called, it returns the same `OskarTelescope`
+            for each function call bound to this object-instance. Thus, changing
+            Telescope-parameters on this instance after calling this function
+            won't have an effect on the returned `OskarTelescope` anymore.
+
         :return: OSKAR Telescope object
         """
-
-        self.write_to_file(self._fh.subdir)
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="telescope-",
+            purpose="telescope disk-cache",
+            unique=self,
+            mkdir=False,
+        )
+        tmp_dir = os.path.join(tmp_dir, "oskar-telescope")
+        os.makedirs(tmp_dir, exist_ok=True)
+        if not FileHandler.is_dir_empty(dirname=tmp_dir):
+            FileHandler.empty_dir(dir_path=tmp_dir)
+        self.write_to_file(tmp_dir)
         tel = OskarTelescope()
-        tel.load(self._fh.subdir)
-        self.path = self._fh.subdir
+        tel.load(tmp_dir)
+        self.path = tmp_dir
         return tel
 
     def write_to_file(self, dir: DirPathType) -> None:
@@ -615,53 +626,131 @@ class Telescope(KaraboResource):
         except ValueError:
             return 0.0
 
+    @classmethod
+    def _get_station_infos(cls, tel_path: DirPathType) -> pd.DataFrame:
+        """Creates a pd.DataFrame with telescope-station infos.
 
-def create_baseline_cut_telelescope(
-    lcut: NPFloatLike,
-    hcut: NPFloatLike,
-    tel: Telescope,
-) -> str:
-    if tel.path is None:
-        raise KaraboError("`tel.path` None is not allowed.")
-    stations = np.loadtxt(os.path.join(tel.path, "layout.txt"))
-    station_x = stations[:, 0]
-    station_y = stations[:, 1]
-    nb = comb(stations.shape[0], 2)
-    k = 0
-    baseline = np.zeros(nb)
-    baseline_x = np.zeros(nb)
-    baseline_y = np.zeros(nb)
-    for i in range(stations.shape[0]):
-        for j in range(i):
-            baseline[k] = np.linalg.norm(station_x[i] - station_y[j])
-            baseline_x[k] = i
-            baseline_y[k] = j
-            k = k + 1
-    cut_idx = np.where((baseline > lcut) & (baseline < hcut))
-    cut_baseline_x = baseline_x[cut_idx]
-    cut_baseline_y = baseline_y[cut_idx]
-    cut_station_list = np.unique(np.hstack((cut_baseline_x, cut_baseline_y)))
-    output_path_prefix = str(tel.path).split(f"data{os.path.sep}")[0]
-    output_path = os.path.join(output_path_prefix, "data", "tel_baseline_cut.tm")
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
-    os.mkdir(output_path)
-    count = 0
-    for ns in cut_station_list:
-        source_path = os.path.join(str(tel.path), f"station0{str(int(ns))}")
-        os.system(f"cp -r {source_path} {output_path}")
-        os.system(
-            "mv "
-            + output_path
-            + f"{os.path.sep}station0"
-            + str(int(ns))
-            + " "
-            + output_path
-            + f"{os.path.sep}station0"
-            + "%02d" % (int(count))
+        - "station-nr": Station-number inside the .tm file.
+        - "station-path": Path of the according station.
+        - "x": x-position
+        - "y": y-position
+
+        Args:
+            tel_path: .tm dir-path to get infos from.
+
+        Returns:
+            pd.DataFrame with the according infos.
+        """
+        station_paths = glob.glob(f"{tel_path}{os.path.sep}station[0-9]*")
+        if len(station_paths) <= 0:
+            raise FileNotFoundError(f"No stations found in {tel_path}")
+        station_numbers = list()
+        for station_path in station_paths:
+            station_number = os.path.split(station_path)[-1].split("station")[1]
+            station_numbers.append(int(station_number))
+        df_tel = (
+            pd.DataFrame(
+                {
+                    "station-nr": station_numbers,
+                    "station-path": station_paths,
+                }
+            )
+            .sort_values(by="station-nr")
+            .reset_index(drop=True)
         )
-        count = count + 1
-    cut_stations = stations[cut_station_list.astype(int)]
-    os.system(f"cp -r {tel.path}{os.path.sep}position.txt {output_path}")
-    np.savetxt(os.path.join(output_path, "layout.txt"), cut_stations)
-    return output_path
+        if not np.all(df_tel["station-nr"].to_numpy() == np.arange(0, df_tel.shape[0])):
+            raise KaraboError(
+                f"Stations found in {tel_path} are not ascending from station<0 - n>. "
+            )
+        stations = np.loadtxt(os.path.join(tel_path, "layout.txt"))
+        if (n_stations_layout := stations.shape[0]) != (n_stations := df_tel.shape[0]):
+            raise KaraboError(
+                f"Number of stations missmatch of {n_stations_layout=} & {n_stations=}"
+            )
+        df_tel["x"] = stations[:, 0]
+        df_tel["y"] = stations[:, 1]
+        return df_tel
+
+    @classmethod
+    def create_baseline_cut_telelescope(
+        cls,
+        lcut: NPFloatLike,
+        hcut: NPFloatLike,
+        tel: Telescope,
+        tm_path: Optional[DirPathType] = None,
+    ) -> Tuple[DirPathType, Dict[str, str]]:
+        """Cut telescope `tel` for baseline-lengths.
+
+        Args:
+            lcut: Lower cut
+            hcut: Higher cut
+            tel: Telescope to cut off
+            tm_path: .tm file-path to save the cut-telescope.
+                `tm_path` will get overwritten if it already exists.
+
+        Returns:
+            .tm file-path & station-name conversion (e.g. station055 -> station009)
+        """
+        if tel.path is None:
+            raise KaraboError(
+                "`tel.path` None indicates that there is not telescope.tm file "
+                + "available for `tel`, which is not allowed here."
+            )
+        if tm_path is not None and not str(tm_path).endswith(".tm"):
+            raise KaraboError(f"{tm_path=} must end with '.tm'.")
+        df_tel = Telescope._get_station_infos(tel_path=tel.path)
+        n_stations = df_tel.shape[0]
+        station_x = df_tel["x"].to_numpy()
+        station_y = df_tel["y"].to_numpy()
+        baselines: List[Tuple[int, int]] = sorted(
+            [  # each unique combination-idx a station with another station
+                tuple(station_idx)  # type: ignore[misc]
+                for station_idx in set(
+                    map(
+                        frozenset, product(np.arange(n_stations), np.arange(n_stations))
+                    )
+                )
+                if len(station_idx) > 1
+            ]
+        )
+        n_baselines = len(baselines)
+        baseline_dist = np.zeros(n_baselines)
+        for i, (x, y) in enumerate(baselines):
+            baseline_dist[i] = np.linalg.norm(station_x[x] - station_y[y])
+        cut_idx = np.where((baseline_dist > lcut) & (baseline_dist < hcut))
+        cut_station_list = np.unique(np.array(baselines)[cut_idx])
+        df_tel = df_tel[df_tel["station-nr"].isin(cut_station_list)].reset_index(
+            drop=True
+        )
+
+        if cut_station_list.shape[0] == 0:
+            raise KaraboError("All telescope-stations were cut off.")
+
+        if tm_path is None:
+            disk_cache = FileHandler().get_tmp_dir(
+                prefix="telescope-baseline-cut-",
+                mkdir=False,
+            )
+            tm_path = os.path.join(disk_cache, "telescope-baseline-cut.tm")
+        else:
+            if os.path.exists(tm_path):
+                shutil.rmtree(tm_path)
+        os.makedirs(tm_path, exist_ok=False)
+
+        conversions: Dict[str, str] = dict()
+        for i in range(df_tel.shape[0]):
+            source_path = df_tel.iloc[i]["station-path"]
+            number_str = str(i).zfill(3)
+            target_station = f"station{number_str}"
+            target_path = os.path.join(tm_path, target_station)
+            source_station = os.path.split(source_path)[-1]
+            conversions[source_station] = target_station
+            shutil.copytree(src=source_path, dst=target_path)
+
+        shutil.copyfile(
+            src=os.path.join(tel.path, "position.txt"),
+            dst=os.path.join(tm_path, "position.txt"),
+        )
+        cut_stations = df_tel[["x", "y"]].to_numpy()
+        np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations)
+        return tm_path, conversions
