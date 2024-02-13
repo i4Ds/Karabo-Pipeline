@@ -64,7 +64,7 @@ class DownloadObject:
         else:
             purpose = None
         local_cache_dir = FileHandler().get_tmp_dir(
-            prefix="objects-download",
+            prefix="objects-download-",
             term="long",
             purpose=purpose,
         )
