@@ -272,6 +272,8 @@ class FileHandler:
                 )
             if seed is not None:
                 seed = prefix + str(seed)
+            else:
+                seed = prefix
             dir_name = _get_rnd_str(k=10, seed=seed)
             dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
