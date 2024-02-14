@@ -223,6 +223,7 @@ class SourceDetectionResult(ISourceDetectionResult):
 
     @classmethod
     def guess_beam_parameters(
+        cls,
         imager: Imager,
         method: Literal["rascil_1_iter"] = "rascil_1_iter",
     ) -> BeamType:
