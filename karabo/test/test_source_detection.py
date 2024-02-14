@@ -176,7 +176,7 @@ def test_bdsf_image_blanked():
         image=image_blanked, beam=beam_guess
     )
     if ret is not None:
-        raise TypeError(
+        pytest.fail(
             "The return value is not None as expected due to PyBDSF RuntimeError!"
         )
 

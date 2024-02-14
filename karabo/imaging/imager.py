@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
@@ -355,7 +357,10 @@ class Imager:
             if not client:
                 client = DaskHandler.get_dask_client()
             print(client.cluster)
-            rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
+            rsexecute.set_client(client=client, use_dask=use_dask, use_dlg=False)
+        else:  # set use_dask through `set_client` to False,
+            # because it's the only way to disable dask for `rsexecute` singleton
+            rsexecute.set_client(client=None, use_dask=False, use_dlg=False)
         # Set CUDA parameters
         if use_cuda:
             if img_context != "wg":

@@ -13,9 +13,11 @@ from astropy.io import fits
 from bdsf.image import Image as bdsf_image
 from dask import compute, delayed  # type: ignore
 from numpy.typing import NDArray
+from typing_extensions import assert_never
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
+from karabo.util._types import FilePathType
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
@@ -110,7 +112,7 @@ class SourceDetectionResult(ISourceDetectionResult):
         cls: Type[_SourceDetectionResultType],
         image: Image,
         beam: Optional[BeamType] = None,
-        quiet: bool = False,
+        verbose: bool = False,
         **kwargs: Any,
     ) -> Optional[_SourceDetectionResultType]:
         """
@@ -125,10 +127,9 @@ class SourceDetectionResult(ISourceDetectionResult):
             images.
         beam : Optional[BeamType], optional
             The Full Width Half Maximum (FWHM) of the restoring beam, given as a tuple
-            (major axis, minor axis, position angle). If None, tries to extract from
-            image metadata.
-        quiet : bool, default False
-            If True, suppresses verbose output.
+            tuple(BMAJ(major axis), BMIN(minor axis), BPA(position angle)).
+            If None, tries to extract from image metadata.
+        verbose : verbose?
         n_splits : int, default 0
             The number of parts to split the image into for processing. A value
             greater than 1 requires Dask.
@@ -179,7 +180,7 @@ class SourceDetectionResult(ISourceDetectionResult):
             detection = bdsf.process_image(
                 input=image.path,
                 beam=beam,
-                quiet=quiet,
+                quiet=not verbose,
                 format="csv",
                 **kwargs,
             )
@@ -193,12 +194,13 @@ class SourceDetectionResult(ISourceDetectionResult):
             else:
                 raise e
 
-    def write_to_file(self, path: str) -> None:
+    def write_to_file(self, path: FilePathType) -> None:
         """
         Save Source Detection Result to ZIP Archive containing the .fits source image
         and source-finding catalog.
         :param path: path to save the zip archive as.
         """
+        path = str(path)
         if path.endswith(".zip"):
             path = path[0 : len(path) - 4]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -206,37 +208,9 @@ class SourceDetectionResult(ISourceDetectionResult):
             self.__save_sources_to_csv(os.path.join(tmpdir, "detected_sources.csv"))
             shutil.make_archive(path, "zip", tmpdir)
 
-    @staticmethod
-    def guess_beam_parameters(
-        imager: Imager,
-        method: str = "rascil_1_iter",
-    ) -> BeamType:
-        """
-        Guess the beam parameters from the image header.
-        :param imager: Imager to guess the beam parameters from
-        :param method: Method to use for guessing the beam parameters.
-        :return: (BMAJ, BMIN, BPA)
-        """
-        if method == "rascil_1_iter":
-            # TODO: Investigate why those parameters need to be set.
-            imager.ingest_chan_per_vis = 1
-            imager.ingest_vis_nchan = 16
-            # Run
-            _, restored, _ = imager.imaging_rascil(
-                clean_niter=1,
-                clean_nmajor=1,
-            )
-        else:
-            raise NotImplementedError("Only rascil_1_iter is implemented")
-
-        return (
-            restored.header["BMAJ"],
-            restored.header["BMIN"],
-            restored.header["BPA"],
-        )
-
-    @staticmethod
-    def read_from_file(path: str) -> SourceDetectionResult:
+    @classmethod
+    def read_from_file(cls, path: FilePathType) -> SourceDetectionResult:
+        path = str(path)
         with tempfile.TemporaryDirectory() as tmpdir:
             shutil.unpack_archive(path, tmpdir)
             source_image = Image.read_from_file(
@@ -247,12 +221,48 @@ class SourceDetectionResult(ISourceDetectionResult):
             )
         return SourceDetectionResult(source_catalouge, source_image)
 
-    def __save_sources_to_csv(self, filepath: str) -> None:
+    @classmethod
+    def guess_beam_parameters(
+        imager: Imager,
+        method: Literal["rascil_1_iter"] = "rascil_1_iter",
+    ) -> BeamType:
+        """
+        Guess the beam parameters from the image header.
+        :param imager: Imager to guess the beam parameters from
+        :param method: Method to use for guessing the beam parameters.
+        :return: (BMAJ, BMIN, BPA)
+        """
+        if method == "rascil_1_iter":
+            ingest_chan_per_vis = imager.ingest_chan_per_vis
+            ingest_vis_nchan = imager.ingest_vis_nchan
+            try:
+                imager.ingest_chan_per_vis = 1
+                imager.ingest_vis_nchan = 16
+                # Run
+                _, restored, _ = imager.imaging_rascil(
+                    clean_niter=1,
+                    clean_nmajor=1,
+                    use_dask=False,
+                )
+            finally:
+                imager.ingest_chan_per_vis = ingest_chan_per_vis
+                imager.ingest_vis_nchan = ingest_vis_nchan
+        else:
+            assert_never(method)
+
+        return (
+            restored.header["BMAJ"],
+            restored.header["BMIN"],
+            restored.header["BPA"],
+        )
+
+    def __save_sources_to_csv(self, filepath: FilePathType) -> None:
         """
         Save detected Sources to CSV
         :param filepath:
         :return:
         """
+        filepath = str(filepath)
         np.savetxt(filepath, self.detected_sources, delimiter=",")
 
     def has_source_image(self) -> bool:
@@ -303,7 +313,10 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         )
         sources_file = os.path.join(tmp_dir, "sources.csv")
         bdsf_detection.write_catalog(
-            outfile=sources_file, catalog_type="gaul", format="csv", clobber=True
+            outfile=sources_file,
+            catalog_type="gaul",
+            format="csv",
+            clobber=True,
         )
         # If no sources are written, the file is not created
         if os.path.exists(sources_file):
@@ -324,8 +337,9 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
         source_image = self.__get_result_image("ch0")
         super().__init__(detected_sources, source_image)
 
-    @staticmethod
+    @classmethod
     def __transform_bdsf_to_reduced_result_array(
+        cls,
         bdsf_detected_sources: NDArray[np.float_],
     ) -> NDArray[np.float_]:
         if (
@@ -454,11 +468,12 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         self.verbose = False
         self.bdsf_detection = bdsf_detection
 
-    @staticmethod
+    @classmethod
     def detect_sources_in_images(
+        cls,
         images: List[Image],
         beams: Optional[List[BeamType]] = None,
-        quiet: bool = True,
+        verbose: bool = False,
         **kwargs: Any,
     ) -> Optional[PyBDSFSourceDetectionResultList]:
         # Check if a list of beams is provided
@@ -486,7 +501,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
             result = func(
                 image=cutout,
                 beam=beam,
-                quiet=quiet,
+                quiet=not verbose,
                 **kwargs,
             )
             results.append(result)
