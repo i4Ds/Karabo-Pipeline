@@ -13,10 +13,8 @@ from astropy.io import fits
 from bdsf.image import Image as bdsf_image
 from dask import compute, delayed  # type: ignore
 from numpy.typing import NDArray
-from typing_extensions import assert_never
 
 from karabo.imaging.image import Image, ImageMosaicker
-from karabo.imaging.imager import Imager
 from karabo.util._types import FilePathType
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
@@ -221,42 +219,6 @@ class SourceDetectionResult(ISourceDetectionResult):
                 os.path.join(tmpdir, "detected_sources.csv"), delimiter=","
             )
         return SourceDetectionResult(source_catalouge, source_image)
-
-    @classmethod
-    def guess_beam_parameters(
-        cls,
-        imager: Imager,
-        method: Literal["rascil_1_iter"] = "rascil_1_iter",
-    ) -> BeamType:
-        """
-        Guess the beam parameters from the image header.
-        :param imager: Imager to guess the beam parameters from
-        :param method: Method to use for guessing the beam parameters.
-        :return: (BMAJ, BMIN, BPA)
-        """
-        if method == "rascil_1_iter":
-            ingest_chan_per_vis = imager.ingest_chan_per_vis
-            ingest_vis_nchan = imager.ingest_vis_nchan
-            try:
-                imager.ingest_chan_per_vis = 1
-                imager.ingest_vis_nchan = 16
-                # Run
-                _, restored, _ = imager.imaging_rascil(
-                    clean_niter=1,
-                    clean_nmajor=1,
-                    use_dask=False,
-                )
-            finally:
-                imager.ingest_chan_per_vis = ingest_chan_per_vis
-                imager.ingest_vis_nchan = ingest_vis_nchan
-        else:
-            assert_never(method)
-
-        return (
-            restored.header["BMAJ"],
-            restored.header["BMIN"],
-            restored.header["BPA"],
-        )
 
     def __save_sources_to_csv(self, filepath: FilePathType) -> None:
         """
