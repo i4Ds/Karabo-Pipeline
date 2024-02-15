@@ -176,11 +176,12 @@ class SourceDetectionResult(ISourceDetectionResult):
                     )
                 )
 
+        quiet = not verbose
         try:
             detection = bdsf.process_image(
                 input=image.path,
                 beam=beam,
-                quiet=not verbose,
+                quiet=quiet,
                 format="csv",
                 **kwargs,
             )
@@ -502,7 +503,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
             result = func(
                 image=cutout,
                 beam=beam,
-                quiet=not verbose,
+                verbose=verbose,
                 **kwargs,
             )
             results.append(result)
