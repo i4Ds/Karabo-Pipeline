@@ -2,7 +2,7 @@ channels:
   - i4ds
   - nvidia/label/cuda-11.7.0
   - conda-forge
-dependencies:  # package-version & build-number of Karabo-Feedstock deps should be fixed (see PR #526)
+dependencies:  # package-version of Karabo-Feedstock deps should be fixed to ensure api-compatibility
   - python                  =3.9
   - aratmospy               =1.0.0
   - astropy
@@ -36,7 +36,7 @@ dependencies:  # package-version & build-number of Karabo-Feedstock deps should 
   - ska-sdp-datamodels      =0.1.3
   - ska-sdp-func-python     =0.1.4
   - tools21cm               =2.0.2
-  - xarray                  <=2023.2  # see issue #542
+  - xarray                  >=2022.11
   # transversal dependencies which we need to reference to get mpi-wheels
   # casacore hast just no-mpi & open-mpi, but no mpich-wheel
   - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel-prio & not take our legacy fftw-wheel
