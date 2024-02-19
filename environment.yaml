@@ -2,7 +2,11 @@ channels:
   - i4ds
   - nvidia/label/cuda-11.7.0
   - conda-forge
-dependencies:  # package-version of Karabo-Feedstock deps should be fixed to ensure api-compatibility
+dependencies:
+# Set dependencies and it's contraints in the package they belong. Otherwise you just cause chaos for future builds.
+# Just Karabo's direct dependencies and Karabo constraints (from our code) should be handeled here.
+# Dependencies with unstable APIs (this usually includes Karabo-Feedstock) should be fixed.
+# Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
   - python                  =3.9
   - aratmospy               =1.0.0
   - astropy
