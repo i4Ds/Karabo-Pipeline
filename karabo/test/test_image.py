@@ -4,7 +4,10 @@ import tempfile
 import numpy as np
 
 from karabo.imaging.imager import Imager
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 
@@ -144,9 +147,51 @@ def test_cellsize_overwrite_false(tobject: TFiles):
     assert cdelt_overwrite_cellsize_false != cdelt_overwrite_cellsize_true
 
 
-def test_explore_sky():
-    sky = SkyModel.get_GLEAM_Sky([76])
-    sky.explore_sky([250, -80], s=0.1)
+def test_imaging():
+    phase_center = [250, -80]
+    gleam_sky = SkyModel.get_GLEAM_Sky([76])
+    sky = gleam_sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    sky.setup_default_wcs(phase_center=phase_center)
+    askap_tel = Telescope.constructor("ASKAP")
+    observation_settings = Observation(
+        start_frequency_hz=100e6,
+        phase_centre_ra_deg=phase_center[0],
+        phase_centre_dec_deg=phase_center[1],
+        number_of_channels=16,
+        number_of_time_steps=24,
+    )
+
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    visibility_askap = interferometer_sim.run_simulation(
+        askap_tel,
+        sky,
+        observation_settings,
+    )
+    imaging_npixel = 2048
+    imaging_cellsize = 3.878509448876288e-05
+    imager_askap = Imager(
+        visibility_askap,
+        imaging_npixel=imaging_npixel,
+        imaging_cellsize=imaging_cellsize,
+    )
+    imager_askap.ingest_chan_per_vis = 1
+    imager_askap.ingest_vis_nchan = 16
+
+    # could fail if `xarray` and `ska-sdp-func-python` not compatible, see issue #542
+    deconvolved, restored, residual = imager_askap.imaging_rascil(  # ~5min
+        clean_nmajor=1,
+        clean_algorithm="mmclean",
+        clean_scales=[10, 30, 60],
+        clean_fractional_threshold=0.3,
+        clean_threshold=0.12e-3,
+        clean_nmoment=5,
+        clean_psf_support=640,
+        clean_restored_output="integrated",
+        use_dask=True,
+    )
+    assert os.path.exists(deconvolved.path)
+    assert os.path.exists(restored.path)
+    assert os.path.exists(residual.path)
 
 
 # # TODO: move these on to CSCS Test Infrastructure once we have it.
