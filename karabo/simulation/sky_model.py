@@ -28,11 +28,15 @@ import oskar
 import pandas as pd
 import xarray as xr
 from astropy import units as u
+from astropy.constants import c
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.table import Table
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
 from numpy.typing import NDArray
+from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
+from ska_sdp_datamodels.sky_model.sky_model import SkyComponent
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
@@ -42,6 +46,7 @@ from karabo.data.external_data import (
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
+from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     IntFloat,
     IntFloatList,
@@ -1529,3 +1534,139 @@ class SkyModel:
         sky = SkyModel.get_sky_model_from_h5_to_xarray()
         and sky.filter_by_radius_euclidean_flat_approximation()."""
         )
+
+    def convert_to_backend(
+        self,
+        backend: SimulatorBackend = SimulatorBackend.OSKAR,
+        desired_frequencies_hz: Optional[List[float]] = None,
+    ) -> Union[SkyModel, List[SkyComponent]]:
+        """Convert an existing SkyModel instance into
+        a format acceptable by a desired backend.
+        backend: Determines how to return the SkyModel source catalog.
+            OSKAR: return the current SkyModel instance, since methods in Karabo
+            support OSKAR-formatted source np.array values.
+            RASCIL: convert the current source array into a
+            list of RASCIL SkyComponent instances.
+        desired_frequencies_hz: List of frequencies corresponding to endpoints
+        of desired frequency channels. This field is required
+        to convert sources into RASCIL SkyComponents.
+            The array contains endpoint frequencies for the desired channels.
+            E.g. [100e6, 110e6, 120e6] corresponds to 2 frequency channels,
+            which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
+        """
+
+        # TODO import from line_emission.py instead
+        def convert_z_to_frequency(z):
+            return c.value / (0.21 * (1 + z))
+
+        def convert_frequency_to_z(freq):
+            return (c.value / (0.21 * freq)) - 1
+
+        if not isinstance(backend, SimulatorBackend):
+            raise ValueError(
+                f"""Requested backend {backend} is not supported.
+                See SimulatorBackend for supported options."""
+            )
+
+        if backend is SimulatorBackend.OSKAR:
+            print(
+                "Desired backend is OSKAR. Will not modify existing SkyModel instance."
+            )
+            return self
+        if backend is SimulatorBackend.RASCIL:
+            print(
+                """Desired backend is RASCIL.
+                Will convert sources into a list of RASCIL SkyComponent instances."""
+            )
+            if desired_frequencies_hz is None:
+                raise ValueError(
+                    """The requested backend is RASCIL,
+                    but no frequency array has been provided.
+                    RASCIL SkyComponents store source fluxes at
+                    different frequency channels, and thus a list of frequencies
+                    is required for this conversion."""
+                )
+
+            desired_frequencies_hz = np.sorted(desired_frequencies_hz)
+
+            # 1. Remove sources that fall outside all desired frequency channels
+            # 2. Assign each source to the frequency channel closest
+            # to its corresponding redshift (using np.digitize)
+            # 3. For each source, create a SkyComponent,
+            # with flux array equal to 0 on all channels,
+            # except for its closest channel, where all its flux will belong
+            # This is equivalent to having the source's SED equal to a delta function
+            # at the frequency corresponding to its redshift,
+            # which is true for line emission catalogues.
+            min_redshift, max_redshift = convert_frequency_to_z(
+                np.array(
+                    [
+                        np.max(desired_frequencies_hz),
+                        np.min(desired_frequencies_hz),
+                    ]
+                )
+            )
+            redshift_mask = (self.sources[:, 13] <= max_redshift) & (
+                self.sources[:, 13] >= min_redshift
+            )
+            ras = self.sources[:, 0][redshift_mask]  # Degrees
+            decs = self.sources[:, 1][redshift_mask]  # Degrees
+            fluxes = self.sources[:, 2][redshift_mask]  # Jy * MHz
+            redshifts = self.sources[:, 13][redshift_mask]
+            print(
+                f"""Reduced size of source catalog, after removing sources
+                outside of desired frequency range: {redshifts.shape}"""
+            )
+
+            # For each source, find the channel to which it belongs
+            source_channel_indices = np.digitize(
+                convert_z_to_frequency(redshifts),
+                desired_frequencies_hz[
+                    :-1
+                ],  # Only provide starting points for frequency channels,
+                # i.e. omit the ending of the last channel
+                right=False,
+            )
+
+            # E.g. if channel starts are [1e8, 2e8],
+            # then a source at frequency 1.5e8 should fall into the 0th channel.
+            # However, digitize returns index 1 for such a source.
+            # Therefore, we subtract 1 from the return value of np.digitize
+            source_channel_indices -= 1
+
+            skycomponents = []
+            for ra, dec, flux, index in zip(
+                ras,
+                decs,
+                fluxes,
+                source_channel_indices,
+            ):
+                # 1 == npolarisations, fixed as 1 (stokesI) for now
+                # TODO handle full stokes source catalogs
+                flux_array = np.zeros((len(desired_frequencies_hz) - 1, 1))
+
+                # Access [0] since this is the stokesI flux,
+                # and [index] to place the source's flux onto
+                # the correct frequency channel (since this works for line emission)
+                flux_array[index][0] = flux
+
+                skycomponents.append(
+                    SkyComponent(
+                        direction=SkyCoord(
+                            ra=ra * u.deg,
+                            dec=dec * u.deg,
+                            frame="icrs",
+                            equinox="J2000",
+                        ),
+                        frequency=desired_frequencies_hz[
+                            :-1
+                        ],  # Equal to image's channels, to prevent
+                        # RASCIL from interpolating the fluxes
+                        name=f"pointsource{ra}{dec}",
+                        flux=flux_array,  # shape: nchannels, npolarisations
+                        shape="Point",
+                        polarisation_frame=PolarisationFrame("stokesI"),
+                        params=None,
+                    )
+                )
+            return skycomponents

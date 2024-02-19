@@ -15,7 +15,7 @@ class ObservationAbstract(ABC):
 
     Required parameters for running a simulation with these observational settings.
 
-    :ivar start_frequency_hz: The frequency at the midpoint of the first channel in Hz.
+    :ivar start_frequency_hz: The frequency at the start of the first channel in Hz.
     :ivar start_date_and_time: The start time and date for the observation.
     Default is datetime.utcnow().
     :ivar length: Length of observation. Default is 12 hours.

@@ -352,7 +352,7 @@ def karabo_reconstruction(
     :param dec_deg: Phase center declination.
     :param start_time: Observation start time.
     :param obs_length: Observation length (time).
-    :param start_freq: The frequency at the midpoint of the first channel in Hz.
+    :param start_freq: The frequency at the start of the first channel in Hz.
     :param freq_bin: The frequency width of the channel.
     :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
                       "Aperture Array".
@@ -410,7 +410,7 @@ def karabo_reconstruction(
         number_of_channels=channel_num,
     )
     if verbose:
-        print("Calculate visibilites...")
+        print("Calculate visibilities...")
     visibility = simulation.run_simulation(telescope, sky, observation)
 
     if rascil:
