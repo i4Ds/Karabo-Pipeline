@@ -15,6 +15,7 @@ from dask import compute, delayed  # type: ignore
 from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
+from karabo.imaging.imager import Imager
 from karabo.util._types import FilePathType
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
@@ -206,6 +207,46 @@ class SourceDetectionResult(ISourceDetectionResult):
             self.source_image.write_to_file(os.path.join(tmpdir, "source_image.fits"))
             self.__save_sources_to_csv(os.path.join(tmpdir, "detected_sources.csv"))
             shutil.make_archive(path, "zip", tmpdir)
+
+    @classmethod
+    def guess_beam_parameters(
+        cls,
+        imager: Imager,
+        method: str = "rascil_1_iter",
+    ) -> BeamType:
+        """
+        Guess the beam parameters from the image header.
+        :param imager: Imager to guess the beam parameters from
+        :param method: Method to use for guessing the beam parameters.
+        :return: (BMAJ, BMIN, BPA)
+        """
+        if method == "rascil_1_iter":
+            # TODO: Investigate why those parameters need to be set.
+            ingest_chan_per_vis = imager.ingest_chan_per_vis
+            ingest_vis_nchan = imager.ingest_vis_nchan
+            try:
+                imager.ingest_chan_per_vis = 1
+                imager.ingest_vis_nchan = 16
+                # create tmp-dir to not create persistent stm-disk-cache
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    _, restored, _ = imager.imaging_rascil(
+                        deconvolved_fits_path=os.path.join(tmpdir, "deconvolved.fits"),
+                        residual_fits_path=os.path.join(tmpdir, "residual.fits"),
+                        restored_fits_path=os.path.join(tmpdir, "restored.fits"),
+                        clean_niter=1,
+                        clean_nmajor=1,
+                    )
+            finally:  # restore old imager-values
+                imager.ingest_chan_per_vis = ingest_chan_per_vis
+                imager.ingest_vis_nchan = ingest_vis_nchan
+        else:
+            raise NotImplementedError("Only method=`rascil_1_iter` is implemented")
+
+        return (
+            restored.header["BMAJ"],
+            restored.header["BMIN"],
+            restored.header["BPA"],
+        )
 
     @classmethod
     def read_from_file(cls, path: FilePathType) -> SourceDetectionResult:
