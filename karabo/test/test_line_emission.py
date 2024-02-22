@@ -12,12 +12,14 @@ from karabo.data.external_data import (
     cscs_karabo_public_testing_base_url,
 )
 from karabo.simulation.line_emission import (
-    convert_frequency_to_z,
-    convert_z_to_frequency,
     gaussian_fwhm_meerkat,
     line_emission_pointing,
     plot_scatter_recon,
     simple_gaussian_beam_correction,
+)
+from karabo.simulation.line_emission_helpers import (
+    convert_frequency_to_z,
+    convert_z_to_frequency,
 )
 from karabo.simulation.sky_model import SkyModel
 from karabo.util.dask import DaskHandler

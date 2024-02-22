@@ -28,7 +28,6 @@ import oskar
 import pandas as pd
 import xarray as xr
 from astropy import units as u
-from astropy.constants import c
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.table import Table
@@ -46,6 +45,10 @@ from karabo.data.external_data import (
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
+from karabo.simulation.line_emission_helpers import (
+    convert_frequency_to_z,
+    convert_z_to_frequency,
+)
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     IntFloat,
@@ -1555,13 +1558,6 @@ class SkyModel:
             which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
         """
 
-        # TODO import from line_emission.py instead
-        def convert_z_to_frequency(z):
-            return c.value / (0.21 * (1 + z))
-
-        def convert_frequency_to_z(freq):
-            return (c.value / (0.21 * freq)) - 1
-
         if not isinstance(backend, SimulatorBackend):
             raise ValueError(
                 f"""Requested backend {backend} is not supported.
@@ -1642,7 +1638,7 @@ class SkyModel:
                 source_channel_indices,
             ):
                 # 1 == npolarisations, fixed as 1 (stokesI) for now
-                # TODO handle full stokes source catalogs
+                # TODO eventually handle full stokes source catalogs
                 flux_array = np.zeros((len(desired_frequencies_hz) - 1, 1))
 
                 # Access [0] since this is the stokesI flux,
