@@ -1583,7 +1583,7 @@ class SkyModel:
                     is required for this conversion."""
                 )
 
-            desired_frequencies_hz = np.sorted(desired_frequencies_hz)
+            desired_frequencies_hz = np.sort(desired_frequencies_hz)
 
             # 1. Remove sources that fall outside all desired frequency channels
             # 2. Assign each source to the frequency channel closest
@@ -1605,6 +1605,8 @@ class SkyModel:
             redshift_mask = (self.sources[:, 13] <= max_redshift) & (
                 self.sources[:, 13] >= min_redshift
             )
+            print(min_redshift, max_redshift)
+            print(self.sources)
             ras = self.sources[:, 0][redshift_mask]  # Degrees
             decs = self.sources[:, 1][redshift_mask]  # Degrees
             fluxes = self.sources[:, 2][redshift_mask]  # Jy * MHz
@@ -1649,8 +1651,9 @@ class SkyModel:
                 skycomponents.append(
                     SkyComponent(
                         direction=SkyCoord(
-                            ra=ra * u.deg,
-                            dec=dec * u.deg,
+                            ra=ra,
+                            dec=dec,
+                            unit="deg",
                             frame="icrs",
                             equinox="J2000",
                         ),
