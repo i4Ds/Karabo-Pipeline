@@ -207,12 +207,12 @@ class Telescope:
                 )
             try:
                 configuration = create_named_configuration(name)
-            except ValueError:
+            except ValueError as e:
                 raise ValueError(
                     f"""Requested telescope {name} is not supported by this backend.
                     For more details, see
     https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels/-/blob/d6dcce6288a7bf6d9ce63ab16e799977723e7ae5/src/ska_sdp_datamodels/configuration/config_create.py"""  # noqa
-                )
+                ) from e
 
             config_earth_location = configuration.location
             telescope = Telescope(

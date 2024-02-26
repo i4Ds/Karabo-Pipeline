@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Union
+from typing import Any, Dict, List, Literal, TypedDict, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -73,3 +73,9 @@ OskarSettingsTreeType: TypeAlias = Dict[str, Dict[str, Any]]
 DirPathType: TypeAlias = Union[Path, str]
 # Used for file paths
 FilePathType: TypeAlias = Union[Path, str]
+
+
+class BeamType(TypedDict):
+    bmaj: float  # major-axis in arcsec
+    bmin: float  # minor-axis in arcsec
+    bpa: float  # position-angle in deg

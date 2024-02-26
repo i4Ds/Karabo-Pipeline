@@ -2,41 +2,45 @@ channels:
   - i4ds
   - nvidia/label/cuda-11.7.0
   - conda-forge
-dependencies:  # package-version & build-number of Karabo-Feedstock deps should be fixed (see PR #526)
+dependencies:
+# Set dependencies and it's contraints in the package they belong. Otherwise you just cause chaos for future builds.
+# Just Karabo's direct dependencies and Karabo constraints (from our code) should be handeled here.
+# Dependencies with unstable APIs (this usually includes Karabo-Feedstock) should be fixed.
+# Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
   - python                  =3.9
-  - aratmospy               =1.0.0=*_0
+  - aratmospy               =1.0.0
   - astropy
-  - bdsf                    =1.10.2=*_0
-  - bluebild                =0.1.0=*_0
+  - bdsf                    =1.10.2
+  - bluebild                =0.1.0
   - cuda-cudart
   - dask                    =2022.12.1
   - dask-mpi
   - distributed
-  - eidos                   =1.1.0=*_0
+  - eidos                   =1.1.0
   - healpy
   - h5py                    =*=mpi_mpich*
   - ipython
-  - katbeam                 =0.1.0=*_0
+  - katbeam                 =0.1.0
   - libcufft
   - matplotlib
-  - montagepy               =6.0.0=*_0
+  - montagepy               =6.0.0
   - mpi4py
   - mpich
   - nbformat
   - nbconvert
   - numpy                   >=1.21, !=1.24.0
-  - oskarpy                 =2.8.3=*_0
+  - oskarpy                 =2.8.3
   - pandas
   - psutil
-  - rascil                  =1.0.0=*_0
+  - rascil                  =1.0.0
   - reproject               >=0.9,<=10.0
   - requests
   - scipy                   >=1.10.1
-  - ska-gridder-nifty-cuda  =0.3.0=*_0
-  - ska-sdp-datamodels      =0.1.3=*_0
-  - ska-sdp-func-python     =0.1.4=*_0
-  - tools21cm               =2.0.2=*_0
-  - xarray                  >=2022.10.0
+  - ska-gridder-nifty-cuda  =0.3.0
+  - ska-sdp-datamodels      =0.1.3
+  - ska-sdp-func-python     =0.1.4
+  - tools21cm               =2.0.2
+  - xarray                  >=2022.11
   # transversal dependencies which we need to reference to get mpi-wheels
   # casacore hast just no-mpi & open-mpi, but no mpich-wheel
   - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel-prio & not take our legacy fftw-wheel
