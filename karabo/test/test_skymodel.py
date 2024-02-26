@@ -150,6 +150,11 @@ def test_get_poisson_sky():
     _ = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
 
 
+def test_explore_sky():
+    sky = SkyModel.get_GLEAM_Sky([76])
+    sky.explore_sky([250, -80], s=0.1)
+
+
 def test_convert_sky_to_backends():
     # Create test sky with all sources at redshift 1,
     # which corresponds to 21cm frequency of ~713 MHz.

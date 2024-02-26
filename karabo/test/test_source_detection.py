@@ -171,12 +171,9 @@ def test_bdsf_image_blanked():
         imaging_cellsize=imaging_cellsize,
     )
     image_blanked = imager_askap.get_dirty_image()
-    beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
-    ret = PyBDSFSourceDetectionResult.detect_sources_in_image(
-        image=image_blanked, beam=beam_guess
-    )
+    ret = PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked)
     if ret is not None:
-        raise TypeError(
+        pytest.fail(
             "The return value is not None as expected due to PyBDSF RuntimeError!"
         )
 
@@ -284,7 +281,7 @@ def test_create_detection_from_ms_cuda():
     imager = Imager(
         visibility,
         ingest_vis_nchan=3,
-        ingest_chan_per_blockvis=1,
+        ingest_chan_per_vis=1,
         ingest_average_blockvis=True,
         imaging_npixel=2048,
         imaging_cellsize=0.0003,

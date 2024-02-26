@@ -242,11 +242,11 @@ class FileHandler:
                 unique.__dict__  # just to test try-except AttributeError
                 if hasattr(unique, obj_tmp_dir_short_name):
                     tmp_dir = getattr(unique, obj_tmp_dir_short_name)
-            except AttributeError:
+            except AttributeError as e:
                 raise AttributeError(
                     "`unique` must be an object with attributes, "
                     + f"but is of type {type(unique)} instead."
-                )
+                ) from e
 
         if tmp_dir is not None:
             dir_path = tmp_dir

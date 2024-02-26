@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import os
+import warnings
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
+from astropy.modeling import fitting, models
 from astropy.wcs import WCS
 from distributed import Client
 from numpy.typing import NDArray
@@ -12,6 +16,7 @@ from rascil.workflows import (
     create_visibility_from_ms_rsexecute,
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
+from scipy.optimize import minpack
 from ska_sdp_datamodels.image.image_model import Image as SkaSdpImage
 from ska_sdp_datamodels.science_data_model import PolarisationFrame
 from ska_sdp_func_python.image import image_gather_channels
@@ -26,9 +31,10 @@ from karabo.data.external_data import MGCLSContainerDownloadObject
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
-from karabo.util._types import FilePathType
+from karabo.util._types import BeamType, FilePathType
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler, assert_valid_ending
+from karabo.warning import KaraboWarning
 
 ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
 CleanAlgorithmType = Literal["hogbom", "msclean", "mmclean"]
@@ -355,7 +361,10 @@ class Imager:
             if not client:
                 client = DaskHandler.get_dask_client()
             print(client.cluster)
-            rsexecute.set_client(use_dask=use_dask, client=client, use_dlg=False)
+            rsexecute.set_client(client=client, use_dask=use_dask, use_dlg=False)
+        else:  # set use_dask through `set_client` to False,
+            # because it's the only way to disable dask for `rsexecute` singleton
+            rsexecute.set_client(client=None, use_dask=False, use_dlg=False)
         # Set CUDA parameters
         if use_cuda:
             if img_context != "wg":
@@ -516,3 +525,96 @@ class Imager:
         img_coords = np.array([px, py])
 
         return img_coords, idxs
+
+    @classmethod
+    def _convert_clean_beam_to_degrees(
+        cls,
+        im: Image,
+        beam_pixels: tuple[float, float, float],
+    ) -> BeamType:
+        """Convert clean beam in pixels to arcsec, arcesc, degree.
+
+        Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/blob/main/src/ska_sdp_func_python/image/operations.py  # noqa: E501
+
+        Args:
+            im: Image
+            beam_pixels: Beam size in pixels
+
+        Returns:
+            "bmaj" (arcsec), "bmin" (arcsec), "bpa" (degree)
+        """
+        cellsize = im.get_cellsize()
+        to_mm: np.float64 = np.sqrt(8.0 * np.log(2.0))
+        clean_beam: BeamType
+        if beam_pixels[1] > beam_pixels[0]:
+            clean_beam = {
+                "bmaj": np.rad2deg(beam_pixels[1] * cellsize * to_mm),
+                "bmin": np.rad2deg(beam_pixels[0] * cellsize * to_mm),
+                "bpa": np.rad2deg(beam_pixels[2]),
+            }
+        else:
+            clean_beam = {
+                "bmaj": np.rad2deg(beam_pixels[0] * cellsize * to_mm),
+                "bmin": np.rad2deg(beam_pixels[1] * cellsize * to_mm),
+                "bpa": np.rad2deg(beam_pixels[2]) + 90.0,
+            }
+        return clean_beam
+
+    @classmethod
+    def guess_beam_parameters(cls, img: Image) -> BeamType:
+        """Fit a two-dimensional Gaussian to img using astropy.modeling.
+
+        This function is usually applied on a PSF-image. Therefore, just
+        images who don't have beam-params in the header (e.g. dirty image) may need a
+        beam-guess.
+
+        Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/blob/main/src/ska_sdp_func_python/image/deconvolution.py  # noqa: E501
+
+        Args:
+            img: Image to guess the beam
+
+        Returns:
+            major-axis (arcsec), minor-axis (arcsec), position-angle (degree)
+        """
+        if img.has_beam_parameters():
+            warnings.warn(
+                f"Image {img.path} already has beam-info in the header.",
+                KaraboWarning,
+            )
+        npixel = img.data.shape[3]
+        sl = slice(npixel // 2 - 7, npixel // 2 + 8)
+        y, x = np.mgrid[sl, sl]
+        z = img.data[0, 0, sl, sl]
+
+        # isotropic at the moment!
+        try:
+            p_init = models.Gaussian2D(
+                amplitude=np.max(z), x_mean=np.mean(x), y_mean=np.mean(y)
+            )
+            fit_p = fitting.LevMarLSQFitter()
+            with warnings.catch_warnings():
+                # Ignore model linearity warning from the fitter
+                warnings.simplefilter("ignore")
+                fit = fit_p(p_init, x, y, z)
+            if fit.x_stddev <= 0.0 or fit.y_stddev <= 0.0:
+                warnings.warn(
+                    "guess_beam_parameters: error in fitting to psf, "
+                    + "using 1 pixel stddev"
+                )
+                beam_pixels = (1.0, 1.0, 0.0)
+            else:
+                beam_pixels = (
+                    fit.x_stddev.value,
+                    fit.y_stddev.value,
+                    fit.theta.value,
+                )
+        except minpack.error:
+            warnings.warn("guess_beam_parameters: minpack error, using 1 pixel stddev")
+            beam_pixels = (1.0, 1.0, 0.0)
+        except ValueError:
+            warnings.warn(
+                "guess_beam_parameters: warning in fit to psf, using 1 pixel stddev"
+            )
+            beam_pixels = (1.0, 1.0, 0.0)
+
+        return cls._convert_clean_beam_to_degrees(img, beam_pixels)

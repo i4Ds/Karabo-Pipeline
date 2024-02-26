@@ -19,6 +19,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
+from astropy.io.fits.header import Header
 from astropy.nddata import Cutout2D, NDData
 from astropy.wcs import WCS
 from numpy.typing import NDArray
@@ -27,7 +28,7 @@ from reproject import reproject_interp
 from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
-from karabo.util._types import FilePathType
+from karabo.util._types import BeamType, FilePathType
 from karabo.util.file_handler import FileHandler, assert_valid_ending
 from karabo.util.plotting_util import get_slices
 
@@ -56,7 +57,7 @@ class Image:
         *,
         path: Literal[None] = None,
         data: NDArray[np.float_],
-        header: fits.header.Header,
+        header: Header,
         **kwargs: Any,
     ) -> None:
         ...
@@ -66,9 +67,10 @@ class Image:
         *,
         path: Optional[FilePathType] = None,
         data: Optional[NDArray[np.float_]] = None,
-        header: Optional[fits.header.Header] = None,
+        header: Optional[Header] = None,
         **kwargs: Any,
     ) -> None:
+        self.header: Header
         if path is not None and (data is None and header is None):
             self.path = path
             self.data, self.header = fits.getdata(
@@ -208,10 +210,10 @@ class Image:
 
     @staticmethod
     def update_header_from_image_header(
-        new_header: fits.header.Header,
-        old_header: fits.header.Header,
+        new_header: Header,
+        old_header: Header,
         keys_to_copy: Optional[List[str]] = None,
-    ) -> fits.header.Header:
+    ) -> Header:
         if keys_to_copy is None:
             keys_to_copy = [
                 "CTYPE3",
@@ -416,6 +418,33 @@ class Image:
         return self.header_has_parameters(
             ["BMAJ", "BMIN", "BPA"],
         )
+
+    def get_beam_parameters(self) -> BeamType:
+        """Gets the beam-parameters fom the image-header.
+
+        "bmaj": FWHM of the major axis of the elliptical Gaussian beam in arcsec
+        "bmin": FWHM of the minor minor axis of the elliptical Gaussian beam in arcsec
+        "bpa": position angle of the major axis of the elliptical Gaussian beam in
+            degrees, counter-clock from the North direction
+
+        Returns:
+           "bmaj" (arcsec), "bmin" (arcsec), "bpa" (deg)
+        """
+        try:
+            bmaj = float(self.header["BMAJ"])
+            bmin = float(self.header["BMIN"])
+            bpa = float(self.header["BPA"])
+        except Exception as e:
+            raise RuntimeError(
+                f"No beam-parameters 'BMAJ', 'BMIN', 'BPA' found in {self.path}. "
+                + "Use `has_beam_parameters` for save use of this function."
+            ) from e
+        beam: BeamType = {
+            "bmaj": bmaj,
+            "bmin": bmin,
+            "bpa": bpa,
+        }
+        return beam
 
     def get_quality_metric(self) -> Dict[str, Any]:
         """
