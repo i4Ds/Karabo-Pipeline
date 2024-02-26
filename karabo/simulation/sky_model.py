@@ -1541,8 +1541,8 @@ class SkyModel:
     @overload
     def convert_to_backend(
         self,
-        backend: Literal[SimulatorBackend.OSKAR],
-        desired_frequencies_hz: Optional[List[float]] = None,
+        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
+        desired_frequencies_hz: Literal[None] = None,
         verbose: bool = False,
     ) -> SkyModel:
         ...
@@ -1585,7 +1585,7 @@ class SkyModel:
                     Will not modify existing SkyModel instance."""
                 )
             return self
-        if backend is SimulatorBackend.RASCIL:
+        elif backend is SimulatorBackend.RASCIL:
             if verbose is True:
                 print(
                     """Desired backend is RASCIL.
@@ -1686,7 +1686,4 @@ class SkyModel:
                 )
             return skycomponents
 
-        assert_never(
-            f"""Requested backend {backend} is not supported.
-            See SimulatorBackend for supported options."""
-        )
+        assert_never(backend)
