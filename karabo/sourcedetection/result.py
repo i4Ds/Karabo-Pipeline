@@ -4,7 +4,7 @@ import os
 import shutil
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, List, Literal, Optional, Tuple, Type, TypeVar
+from typing import Any, List, Literal, Optional, Type, TypeVar
 from warnings import warn
 
 import bdsf
@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
-from karabo.util._types import FilePathType
+from karabo.util._types import BeamType, FilePathType
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
 from karabo.util.file_handler import FileHandler
@@ -38,8 +38,6 @@ ImageType = Literal[
     "island_mask",
     "source",
 ]
-
-BeamType = Tuple[float, float, float]
 
 PYBDSF_TOTAL_FLUX_IDX = 12
 
@@ -124,9 +122,9 @@ class SourceDetectionResult(ISourceDetectionResult):
         image : Image or List[Image]
             Image object for source detection. Can be a single image or a list of
             images.
-        beam : Optional[BeamType], optional
-            The Full Width Half Maximum (FWHM) of the restoring beam, given as a tuple
-            tuple(BMAJ(major axis), BMIN(minor axis), BPA(position angle)).
+        beam : Optional[BeamType],
+            The Full Width Half Maximum (FWHM) of the restoring beam,
+            BMAJ(arcsec), BMIN(arcsec), BPA(degree).
             If None, tries to extract from image metadata.
         verbose : verbose?
         n_splits : int, default 0
@@ -165,21 +163,23 @@ class SourceDetectionResult(ISourceDetectionResult):
         particularly designed for radio astronomical images. For details on this
         function, refer to the PyBDSF documentation.
         """
-        if beam is None and not isinstance(image, list):
+        if beam is None:
             if image.has_beam_parameters():
-                beam = (image.header["BMAJ"], image.header["BMIN"], image.header["BPA"])
+                beam = image.get_beam_parameters()
             else:
                 warn(
-                    KaraboWarning(
-                        "No beam parameter found. Source detection might fail!"
-                    )
+                    "No beam parameter provided by `beam` or found in image header. "
+                    + "guessing parameters using `Imager.guess_beam_parameters`.",
+                    KaraboWarning,
                 )
+                beam = Imager.guess_beam_parameters(img=image)
 
+        beam_ = (beam["bmaj"], beam["bmin"], beam["bpa"])
         quiet = not verbose
         try:
             detection = bdsf.process_image(
                 input=image.path,
-                beam=beam,
+                beam=beam_,
                 quiet=quiet,
                 format="csv",
                 **kwargs,
@@ -192,7 +192,7 @@ class SourceDetectionResult(ISourceDetectionResult):
                 # already prints an according Error message
                 return None
             else:
-                raise e
+                raise
 
     def write_to_file(self, path: FilePathType) -> None:
         """
@@ -207,46 +207,6 @@ class SourceDetectionResult(ISourceDetectionResult):
             self.source_image.write_to_file(os.path.join(tmpdir, "source_image.fits"))
             self.__save_sources_to_csv(os.path.join(tmpdir, "detected_sources.csv"))
             shutil.make_archive(path, "zip", tmpdir)
-
-    @classmethod
-    def guess_beam_parameters(
-        cls,
-        imager: Imager,
-        method: str = "rascil_1_iter",
-    ) -> BeamType:
-        """
-        Guess the beam parameters from the image header.
-        :param imager: Imager to guess the beam parameters from
-        :param method: Method to use for guessing the beam parameters.
-        :return: (BMAJ, BMIN, BPA)
-        """
-        if method == "rascil_1_iter":
-            # TODO: Investigate why those parameters need to be set.
-            ingest_chan_per_vis = imager.ingest_chan_per_vis
-            ingest_vis_nchan = imager.ingest_vis_nchan
-            try:
-                imager.ingest_chan_per_vis = 1
-                imager.ingest_vis_nchan = 16
-                # create tmp-dir to not create persistent stm-disk-cache
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    _, restored, _ = imager.imaging_rascil(
-                        deconvolved_fits_path=os.path.join(tmpdir, "deconvolved.fits"),
-                        residual_fits_path=os.path.join(tmpdir, "residual.fits"),
-                        restored_fits_path=os.path.join(tmpdir, "restored.fits"),
-                        clean_niter=1,
-                        clean_nmajor=1,
-                    )
-            finally:  # restore old imager-values
-                imager.ingest_chan_per_vis = ingest_chan_per_vis
-                imager.ingest_vis_nchan = ingest_vis_nchan
-        else:
-            raise NotImplementedError("Only method=`rascil_1_iter` is implemented")
-
-        return (
-            restored.header["BMAJ"],
-            restored.header["BMIN"],
-            restored.header["BPA"],
-        )
 
     @classmethod
     def read_from_file(cls, path: FilePathType) -> SourceDetectionResult:
@@ -483,19 +443,28 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
     ) -> Optional[PyBDSFSourceDetectionResultList]:
         # Check if a list of beams is provided
         if beams is None:
-            warn(
-                KaraboWarning(
-                    "Beam was not passed, trying to extract from image metadata."
+            beams = list()
+            image_no_beam_idxs: List[int] = list()
+            for image_idx, image in enumerate(images):
+                if not image.has_beam_parameters():
+                    # assumes that `guess_beam_parameters` doesn't take forever
+                    image_no_beam_idxs.append(image_idx)
+                    beam = Imager.guess_beam_parameters(img=image)
+                else:
+                    beam = image.get_beam_parameters()
+                beams.append(beam)
+            if len(image_no_beam_idxs) > 0:
+                warn(
+                    "The following images (idxs) in `detect_sources_in_images` didn't "
+                    + "have beam-parameters, for which `Imager.guess_beam_parameters` "
+                    + f"was used instead: {str(image_no_beam_idxs)}"
                 )
-            )
-            beams = [
-                (
-                    image.header["BMAJ"],
-                    image.header["BMIN"],
-                    image.header["BPA"],
+        else:
+            if (n_images := len(images)) != (n_beams := len(beams)):
+                raise ValueError(
+                    f"Providing different numbers of images {n_images} and "
+                    + f"beams {n_beams} is ambiguous."
                 )
-                for image in images
-            ]
         # Check if there is a dask client
         if DaskHandler.dask_client is not None:
             func = delayed(PyBDSFSourceDetectionResult.detect_sources_in_image)
@@ -545,7 +514,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         if self.bdsf_detection is None:
             raise ValueError(
                 "No PyBDSF detection results found. Did you run "
-                "detect_sources_in_images()?"
+                + "`detect_sources_in_images`?"
             )
         _detected_sources = np.concatenate(
             [x.detected_sources for x in self.bdsf_detection],
@@ -602,7 +571,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         if self.bdsf_detection is None:
             raise ValueError(
                 "No PyBDSF detection results found. Did you run "
-                "detect_sources_in_images()?"
+                + "`detect_sources_in_images`?"
             )
         sources_images = [x.has_source_image() for x in self.bdsf_detection]
         return all(sources_images)
@@ -611,7 +580,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         if self.bdsf_detection is None:
             raise ValueError(
                 "No PyBDSF detection results found. Did you run "
-                "detect_sources_in_images()?"
+                + "`detect_sources_in_images`?"
             )
         images = [
             getattr(result, f"get_{image_type}_image")()
@@ -640,7 +609,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         if self.bdsf_detection is None:
             raise ValueError(
                 "No PyBDSF detection results found. Did you run "
-                "detect_sources_in_images()?"
+                + "`detect_sources_in_images`?"
             )
         to_drop = self.__get_idx_of_overlapping_sources()
         combined_positions = self.__get_corrected_positions(
@@ -693,7 +662,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         if self.bdsf_detection is None:
             raise ValueError(
                 "No PyBDSF detection results found. Did you run "
-                "detect_sources_in_images()?"
+                + "`detect_sources_in_images`?"
             )
 
         # Get headers
@@ -703,7 +672,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
             if source_image is None:
                 raise ValueError(
                     "Not all PyBDSF detection results have source images. "
-                    "Did you run detect_sources_in_images()?"
+                    + "Did you run `detect_sources_in_images`?"
                 )
             headers.append(source_image.header)
 
@@ -745,7 +714,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         if self.bdsf_detection is None:
             raise ValueError(
                 "No PyBDSF detection results found. Did you run "
-                "detect_sources_in_images()?"
+                + "`detect_sources_in_images`?"
             )
         # Get XY pixel position for each result
         xy_poss = [
@@ -754,7 +723,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         if not all([result.has_source_image() for result in self.bdsf_detection]):
             raise ValueError(
                 "Not all PyBDSF detection results have source images. "
-                "Did you run detect_sources_in_images()?"
+                + "Did you run `detect_sources_in_images`?"
             )
 
         # Combine all positions into one array

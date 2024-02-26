@@ -4,7 +4,6 @@ from typing import List, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from karabo.error import KaraboError
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -125,7 +124,7 @@ def main(n_random_sources: int) -> None:
     # Source detection
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
     if detection_result is None:
-        raise KaraboError("`detection_result` is None.")
+        raise ValueError("`detection_result` is None.")
 
     ground_truth, sky_idxs = Imager.project_sky_to_image(
         sky=sky,

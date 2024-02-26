@@ -171,10 +171,7 @@ def test_bdsf_image_blanked():
         imaging_cellsize=imaging_cellsize,
     )
     image_blanked = imager_askap.get_dirty_image()
-    beam_guess = (0.06414627663254034, 0.05891435806172773, 69.63573045562626)
-    ret = PyBDSFSourceDetectionResult.detect_sources_in_image(
-        image=image_blanked, beam=beam_guess
-    )
+    ret = PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked)
     if ret is not None:
         pytest.fail(
             "The return value is not None as expected due to PyBDSF RuntimeError!"
