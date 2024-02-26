@@ -1538,10 +1538,29 @@ class SkyModel:
         and sky.filter_by_radius_euclidean_flat_approximation()."""
         )
 
+    @overload
+    def convert_to_backend(
+        self,
+        backend: Literal[SimulatorBackend.OSKAR],
+        desired_frequencies_hz: Optional[List[float]] = None,
+        verbose: bool = False,
+    ) -> SkyModel:
+        ...
+
+    @overload
+    def convert_to_backend(
+        self,
+        backend: Literal[SimulatorBackend.RASCIL],
+        desired_frequencies_hz: List[float],
+        verbose: bool = False,
+    ) -> List[SkyComponent]:
+        ...
+
     def convert_to_backend(
         self,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
         desired_frequencies_hz: Optional[List[float]] = None,
+        verbose: bool = False,
     ) -> Union[SkyModel, List[SkyComponent]]:
         """Convert an existing SkyModel instance into
         a format acceptable by a desired backend.
@@ -1556,31 +1575,22 @@ class SkyModel:
             The array contains endpoint frequencies for the desired channels.
             E.g. [100e6, 110e6, 120e6] corresponds to 2 frequency channels,
             which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
+        verbose: Determines whether to display additional print statements.
         """
 
-        if not isinstance(backend, SimulatorBackend):
-            raise ValueError(
-                f"""Requested backend {backend} is not supported.
-                See SimulatorBackend for supported options."""
-            )
-
         if backend is SimulatorBackend.OSKAR:
-            print(
-                "Desired backend is OSKAR. Will not modify existing SkyModel instance."
-            )
+            if verbose is True:
+                print(
+                    """Desired backend is OSKAR.
+                    Will not modify existing SkyModel instance."""
+                )
             return self
         if backend is SimulatorBackend.RASCIL:
-            print(
-                """Desired backend is RASCIL.
-                Will convert sources into a list of RASCIL SkyComponent instances."""
-            )
-            if desired_frequencies_hz is None:
-                raise ValueError(
-                    """The requested backend is RASCIL,
-                    but no frequency array has been provided.
-                    RASCIL SkyComponents store source fluxes at
-                    different frequency channels, and thus a list of frequencies
-                    is required for this conversion."""
+            if verbose is True:
+                print(
+                    """Desired backend is RASCIL.
+                    Will convert sources into a list of
+                    RASCIL SkyComponent instances."""
                 )
 
             desired_frequencies_hz = np.sort(desired_frequencies_hz)
@@ -1594,7 +1604,7 @@ class SkyModel:
             # This is equivalent to having the source's SED equal to a delta function
             # at the frequency corresponding to its redshift,
             # which is true for line emission catalogues.
-            min_redshift, max_redshift = convert_frequency_to_z(
+            redshift_limits = convert_frequency_to_z(
                 np.array(
                     [
                         np.max(desired_frequencies_hz),
@@ -1602,19 +1612,25 @@ class SkyModel:
                     ]
                 )
             )
+            min_redshift, max_redshift = cast(
+                Tuple[np.float_, np.float_], redshift_limits
+            )
+
             redshift_mask = (self.sources[:, 13] <= max_redshift) & (
                 self.sources[:, 13] >= min_redshift
             )
-            print(min_redshift, max_redshift)
-            print(self.sources)
+            if verbose is True:
+                print(min_redshift, max_redshift)
+                print(self.sources)
             ras = self.sources[:, 0][redshift_mask]  # Degrees
             decs = self.sources[:, 1][redshift_mask]  # Degrees
             fluxes = self.sources[:, 2][redshift_mask]  # Jy * MHz
             redshifts = self.sources[:, 13][redshift_mask]
-            print(
-                f"""Reduced size of source catalog, after removing sources
-                outside of desired frequency range: {redshifts.shape}"""
-            )
+            if verbose is True:
+                print(
+                    f"""Reduced size of source catalog, after removing sources
+                    outside of desired frequency range: {redshifts.shape}"""
+                )
 
             # For each source, find the channel to which it belongs
             source_channel_indices = np.digitize(
@@ -1632,7 +1648,7 @@ class SkyModel:
             # Therefore, we subtract 1 from the return value of np.digitize
             source_channel_indices -= 1
 
-            skycomponents = []
+            skycomponents: List[SkyComponent] = []
             for ra, dec, flux, index in zip(
                 ras,
                 decs,
@@ -1669,3 +1685,8 @@ class SkyModel:
                     )
                 )
             return skycomponents
+
+        assert_never(
+            f"""Requested backend {backend} is not supported.
+            See SimulatorBackend for supported options."""
+        )

@@ -7,10 +7,10 @@ from numpy.typing import NDArray
 
 from karabo.util._types import IntFloat
 
-T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
+_T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
 
 
-def convert_z_to_frequency(z: T) -> T:
+def convert_z_to_frequency(z: _T) -> _T:
     """Turn given redshift into corresponding frequency (Hz) for 21cm emission.
 
     :param z: Redshift values to be converted into frequencies.
@@ -18,10 +18,10 @@ def convert_z_to_frequency(z: T) -> T:
     :return: Frequencies corresponding to input redshifts.
     """
 
-    return cast(T, c.value / (0.21 * (1 + z)))
+    return cast(_T, c.value / (0.21 * (1 + z)))
 
 
-def convert_frequency_to_z(freq: T) -> T:
+def convert_frequency_to_z(freq: _T) -> _T:
     """Turn given frequency (Hz) into corresponding redshift for 21cm emission.
 
     :param freq: Frequency values to be converted into redshifts.
@@ -29,4 +29,4 @@ def convert_frequency_to_z(freq: T) -> T:
     :return: Redshifts corresponding to input frequencies.
     """
 
-    return cast(T, (c.value / (0.21 * freq)) - 1)
+    return cast(_T, (c.value / (0.21 * freq)) - 1)
