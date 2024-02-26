@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 
 from karabo.util._types import IntFloat
 
-_T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
+_T = TypeVar("_T", NDArray[np.float_], xr.DataArray, IntFloat)
 
 
 def convert_z_to_frequency(z: _T) -> _T:

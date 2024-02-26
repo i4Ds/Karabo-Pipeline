@@ -1551,7 +1551,7 @@ class SkyModel:
     def convert_to_backend(
         self,
         backend: Literal[SimulatorBackend.RASCIL],
-        desired_frequencies_hz: List[float],
+        desired_frequencies_hz: NDArray[np.float_] = None,
         verbose: bool = False,
     ) -> List[SkyComponent]:
         ...
@@ -1559,7 +1559,7 @@ class SkyModel:
     def convert_to_backend(
         self,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
-        desired_frequencies_hz: Optional[List[float]] = None,
+        desired_frequencies_hz: Optional[NDArray[np.float_]] = None,
         verbose: bool = False,
     ) -> Union[SkyModel, List[SkyComponent]]:
         """Convert an existing SkyModel instance into

@@ -263,7 +263,9 @@ def freq_channels(
     z_start = np.min(z_obs)
     z_end = np.max(z_obs)
 
-    freq_start, freq_end = convert_z_to_frequency(np.array([z_start, z_end]))
+    freq_endpoints = convert_z_to_frequency(np.array([z_start, z_end]))
+
+    freq_start, freq_end = cast(Tuple[np.float_, np.float_], freq_endpoints)
 
     freq_mid = freq_start + (freq_end - freq_start) / 2
 
