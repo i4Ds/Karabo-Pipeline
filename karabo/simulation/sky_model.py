@@ -1551,7 +1551,7 @@ class SkyModel:
     def convert_to_backend(
         self,
         backend: Literal[SimulatorBackend.RASCIL],
-        desired_frequencies_hz: NDArray[np.float_] = None,
+        desired_frequencies_hz: NDArray[np.float_],
         verbose: bool = False,
     ) -> List[SkyComponent]:
         ...
@@ -1593,6 +1593,8 @@ class SkyModel:
                     RASCIL SkyComponent instances."""
                 )
 
+            desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
+
             desired_frequencies_hz = np.sort(desired_frequencies_hz)
 
             # 1. Remove sources that fall outside all desired frequency channels
@@ -1615,6 +1617,11 @@ class SkyModel:
             min_redshift, max_redshift = cast(
                 Tuple[np.float_, np.float_], redshift_limits
             )
+
+            if self.sources is None:
+                return []
+
+            assert self.sources is not None
 
             redshift_mask = (self.sources[:, 13] <= max_redshift) & (
                 self.sources[:, 13] >= min_redshift
