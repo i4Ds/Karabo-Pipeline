@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import xarray as xr
 from numpy.typing import NDArray
+from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
 from karabo.data.external_data import (
     BATTYESurveyDownloadObject,
@@ -16,6 +17,7 @@ from karabo.data.external_data import (
     MIGHTEESurveyDownloadObject,
 )
 from karabo.simulation.sky_model import Polarisation, SkyModel
+from karabo.simulator_backend import SimulatorBackend
 
 
 def test_filter_sky_model():
@@ -151,3 +153,57 @@ def test_get_poisson_sky():
 def test_explore_sky():
     sky = SkyModel.get_GLEAM_Sky([76])
     sky.explore_sky([250, -80], s=0.1)
+
+
+def test_convert_sky_to_backends():
+    # Create test sky with all sources at redshift 1,
+    # which corresponds to 21cm frequency of ~713 MHz.
+    # Then, request RASCIL list of SkyComponents for these sources,
+    # and verify the following:
+    # 1. RA and Dec positions are maintained
+    # 2. Frequency and fluxes are correctly assigned based on redshift
+    # 3. Other info (polarisation, shape) are correct
+    FLUX = 20
+
+    sky = SkyModel.sky_test()
+    sky.sources[:, 2] = FLUX  # Manually override fluxes
+    sky.sources[:, 13] = 1  # Manually set all redshifts to 1
+
+    # Sources have redshift 1, i.e. frequency ~ 713 MHz, and thus
+    # all sources should fall on bin index 1 in the array below
+    # (i.e. within the channel starting at 710 MHz)
+    desired_frequencies_hz = 1e6 * np.array([700, 710, 720, 730, 740, 750])
+    expected_channel_index = 1
+
+    # Verify that converting to OSKAR backend is a no-op
+    oskar_sky = sky.convert_to_backend(backend=SimulatorBackend.OSKAR)
+    assert np.allclose(oskar_sky.sources, sky.sources)
+
+    # Verify conversion to RASCIL backend
+    rascil_sky = sky.convert_to_backend(
+        backend=SimulatorBackend.RASCIL,
+        desired_frequencies_hz=desired_frequencies_hz,
+    )
+
+    assert len(rascil_sky) == sky.sources.shape[0]
+    for i, rascil_component in enumerate(rascil_sky):
+        # Verify that RA, Dec and other parameters are correct
+        assert np.isclose(rascil_component.direction.ra.value, sky.sources[i][0])
+        assert np.isclose(rascil_component.direction.dec.value, sky.sources[i][1])
+        assert rascil_component.shape == "Point"
+        assert rascil_component.polarisation_frame == PolarisationFrame("stokesI")
+
+        # Verify flux and frequencies of the source
+        # Assert source frequencies are the same as desired frequency channel starts,
+        # excluding the last entry of the desired frequencies
+        # (since it marks the end of the last frequency channel)
+        assert len(rascil_component.frequency) == len(desired_frequencies_hz) - 1
+        assert np.allclose(rascil_component.frequency, desired_frequencies_hz[:-1])
+
+        # Assert only one flux entry is non-zero
+        assert (
+            sum(~np.isclose(0, rascil_component.flux)) == 1
+        )  # Only one entry is non-zero
+
+        # Assert that non-zero flux entry is in the expected frequency channel
+        assert np.isclose(FLUX, rascil_component.flux[expected_channel_index])

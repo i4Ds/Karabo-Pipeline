@@ -2,14 +2,13 @@ import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple, TypeVar, Union, cast
+from typing import List, Optional, Tuple, Union, cast
 
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 import xarray as xr
-from astropy.constants import c
 from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -17,13 +16,15 @@ from numpy.typing import NDArray
 
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation, StationTypeType
+from karabo.simulation.line_emission_helpers import (
+    convert_frequency_to_z,
+    convert_z_to_frequency,
+)
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
-
-# from dask.delayed import Delayed
 from karabo.util.dask import DaskHandler
 from karabo.util.plotting_util import get_slices
 
@@ -241,31 +242,6 @@ def sky_slice(sky: SkyModel, z_min: IntFloat, z_max: IntFloat) -> SkyModel:
     return sky.filter_by_column(13, z_min, z_max)
 
 
-T = TypeVar("T", NDArray[np.float_], xr.DataArray, IntFloat)
-
-
-def convert_z_to_frequency(z: T) -> T:
-    """Turn given redshift into corresponding frequency (Hz) for 21cm emission.
-
-    :param z: Redshift values to be converted into frequencies.
-
-    :return: Frequencies corresponding to input redshifts.
-    """
-
-    return cast(T, c.value / (0.21 * (1 + z)))
-
-
-def convert_frequency_to_z(freq: T) -> T:
-    """Turn given frequency (Hz) into corresponding redshift for 21cm emission.
-
-    :param freq: Frequency values to be converted into redshifts.
-
-    :return: Redshifts corresponding to input frequencies.
-    """
-
-    return cast(T, (c.value / (0.21 * freq)) - 1)
-
-
 def freq_channels(
     z_obs: Union[NDArray[np.float_], xr.DataArray],
     channel_num: int = 10,
@@ -287,7 +263,9 @@ def freq_channels(
     z_start = np.min(z_obs)
     z_end = np.max(z_obs)
 
-    freq_start, freq_end = convert_z_to_frequency(np.array([z_start, z_end]))
+    freq_endpoints = convert_z_to_frequency(np.array([z_start, z_end]))
+
+    freq_start, freq_end = cast(Tuple[np.float_, np.float_], freq_endpoints)
 
     freq_mid = freq_start + (freq_end - freq_start) / 2
 
@@ -352,7 +330,7 @@ def karabo_reconstruction(
     :param dec_deg: Phase center declination.
     :param start_time: Observation start time.
     :param obs_length: Observation length (time).
-    :param start_freq: The frequency at the midpoint of the first channel in Hz.
+    :param start_freq: The frequency at the start of the first channel in Hz.
     :param freq_bin: The frequency width of the channel.
     :param beam_type: Primary beam assumed, e.g. "Isotropic beam", "Gaussian beam",
                       "Aperture Array".
@@ -410,7 +388,7 @@ def karabo_reconstruction(
         number_of_channels=channel_num,
     )
     if verbose:
-        print("Calculate visibilites...")
+        print("Calculate visibilities...")
     visibility = simulation.run_simulation(telescope, sky, observation)
 
     if rascil:
