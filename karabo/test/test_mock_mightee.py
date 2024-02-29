@@ -17,7 +17,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 
 
-@pytest.skip(reason="See issue 547")
+@pytest.mark.skip(reason="See issue 547")
 def test_mightee_download():
     _ = SkyModel.get_MIGHTEE_Sky()
     survey = MIGHTEESurveyDownloadObject()
@@ -25,7 +25,7 @@ def test_mightee_download():
     _ = SkyModel.get_fits_catalog(path)
 
 
-@pytest.skip(reason="See issue 547")
+@pytest.mark.skip(reason="See issue 547")
 def test_mock_mightee():
     sky = SkyModel()
     mightee1 = SkyModel.get_MIGHTEE_Sky()
