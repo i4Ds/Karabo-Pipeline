@@ -39,10 +39,9 @@ from ska_sdp_datamodels.sky_model.sky_model import SkyComponent
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
-from karabo.data.external_data import (
+from karabo.data.external_data import (  # MIGHTEESurveyDownloadObject,
     GLEAMSurveyDownloadObject,
     HISourcesSmallCatalogDownloadObject,
-    MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
 from karabo.simulation.line_emission_helpers import (
@@ -1468,27 +1467,32 @@ class SkyModel:
         from the "IM_MAJ", "IM_MIN", "IM_PA", and "NAME" columns of the catalog,
         respectively.
         """
-        survey = MIGHTEESurveyDownloadObject()
-        path = survey.get()
-        prefix_mapping = SkyPrefixMapping(
-            ra="RA",
-            dec="DEC",
-            stokes_i="NU_EFF",
-            major="IM_MAJ",
-            minor="IM_MIN",
-            pa="IM_PA",
-            id="NAME",
+        raise NotImplementedError(
+            "The current version of Karabo doesn't support the mightee-sky. "
+            + "The progress regarding this issue can be tracked at "
+            + "https://github.com/i4Ds/Karabo-Pipeline/issues/547"
         )
+        # survey = MIGHTEESurveyDownloadObject()
+        # path = survey.get()
+        # prefix_mapping = SkyPrefixMapping(
+        #     ra="RA",
+        #     dec="DEC",
+        #     stokes_i="NU_EFF",
+        #     major="IM_MAJ",
+        #     minor="IM_MIN",
+        #     pa="IM_PA",
+        #     id="NAME",
+        # )
 
-        return SkyModel.get_sky_model_from_fits(
-            path=path,
-            frequencies=[76],
-            prefix_mapping=prefix_mapping,
-            concat_freq_with_prefix=False,
-            filter_data_by_stokes_i=False,
-            frequency_to_mhz_multiplier=1e6,
-            memmap=False,
-        )
+        # return SkyModel.get_sky_model_from_fits(
+        #     path=path,
+        #     frequencies=[76],
+        #     prefix_mapping=prefix_mapping,
+        #     concat_freq_with_prefix=False,
+        #     filter_data_by_stokes_i=False,
+        #     frequency_to_mhz_multiplier=1e6,
+        #     memmap=False,
+        # )
 
     @staticmethod
     def get_random_poisson_disk_sky(
