@@ -60,7 +60,7 @@ jobs:
       - name: Setup metadata img-name & img-tag
         shell: bash -l {0}
         run: |
-          if [[ ${{ github.event_name }} == "workflow_call" ]]; then
+          if [[ ${{ github.event_name }} == "workflow_call" ]] || [[ ${{ github.event_name }} == "release" ]]; then
             echo "gitrev=$GITHUB_SHA" >> "$GITHUB_ENV"
             echo "build=user" >> "$GITHUB_ENV"
           elif [[ ${{ github.event_name }} == "workflow_dispatch" ]]; then
