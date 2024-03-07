@@ -19,8 +19,8 @@ RUN mkdir Karabo-Pipeline && \
     cd Karabo-Pipeline && \
     git init && \
     git remote add origin https://github.com/i4Ds/Karabo-Pipeline.git && \
-    git fetch origin ${GIT_REV} && \
-    git reset --hard ${GIT_REV} && \
+    git fetch && \
+    git checkout ${GIT_REV} && \
     if [ "$BUILD" = "user" ] ; then \
     conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
