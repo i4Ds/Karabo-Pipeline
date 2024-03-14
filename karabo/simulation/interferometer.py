@@ -238,8 +238,8 @@ class InterferometerSimulation:
             use_gpus = is_cuda_available()
             print(
                 "Parameter 'use_gpus' is None! Using function "
-                + "'karabo.util.is_cuda_available()'. To overwrite, set "
-                + "'use_gpu' True or False."
+                + "'karabo.util.gpu_util.is_cuda_available()'. To overwrite, set "
+                + "'use_gpus' True or False."
             )
         self.use_gpus = use_gpus
 
