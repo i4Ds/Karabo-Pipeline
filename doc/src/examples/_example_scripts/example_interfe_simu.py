@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 import numpy as np
 
@@ -30,7 +30,7 @@ simulation = InterferometerSimulation()
 # except the start frequency set to 1e6
 observation = Observation(
     start_frequency_hz=1e6,
-    start_date_and_time=datetime.now(timezone.utc),
+    start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
 )
 
 # run a single simulation with the provided configuration

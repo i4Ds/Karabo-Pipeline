@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from karabo.simulation.observation import Observation, ObservationLong
 
@@ -32,7 +32,7 @@ def test_create_observations_oskar_settings_tree():
     CHANNEL_BANDWIDTHS = [1, 2, 3, 4, 5]
     N_CHANNELS = [1, 2, 3, 4, 5]
 
-    obs = Observation(start_date_and_time=datetime.now(timezone.utc))
+    obs = Observation(start_date_and_time=datetime(2024, 3, 15, 10, 46, 0))
     settings_tree = obs.get_OSKAR_settings_tree()
     observations = Observation.create_observations_oskar_from_lists(
         settings_tree, central_frequencies_hz, CHANNEL_BANDWIDTHS, N_CHANNELS
@@ -50,7 +50,7 @@ def test_create_observations_oskar_settings_tree():
     CHANNEL_BANDWIDTHS = 5
     N_CHANNELS = 1
 
-    obs = Observation(start_date_and_time=datetime.now(timezone.utc))
+    obs = Observation(start_date_and_time=datetime(2024, 3, 15, 10, 46, 0))
     settings_tree = obs.get_OSKAR_settings_tree()
     observations = Observation.create_observations_oskar_from_lists(
         settings_tree, central_frequencies_hz, CHANNEL_BANDWIDTHS, N_CHANNELS
@@ -69,7 +69,7 @@ def test_create_observations_oskar_settings_tree():
     CHANNEL_BANDWIDTHS = [1, 2, 3, 4, 5]
     N_CHANNELS = [1, 2, 3, 4, 5]
 
-    obs = Observation(start_date_and_time=datetime.now(timezone.utc))
+    obs = Observation(start_date_and_time=datetime(2024, 3, 15, 10, 46, 0))
     settings_tree = obs.get_OSKAR_settings_tree()
     observations = Observation.create_observations_oskar_from_lists(
         settings_tree, CENTRAL_FREQ, CHANNEL_BANDWIDTHS, N_CHANNELS
@@ -88,7 +88,7 @@ def test_create_observations_oskar_settings_tree():
     CHANNEL_BANDWIDTHS = [1, 2]
     N_CHANNELS = [1, 2]
 
-    obs = Observation(start_date_and_time=datetime.now(timezone.utc))
+    obs = Observation(start_date_and_time=datetime(2024, 3, 15, 10, 46, 0))
     settings_tree = obs.get_OSKAR_settings_tree()
     observations = Observation.create_observations_oskar_from_lists(
         settings_tree, CENTRAL_FREQ, CHANNEL_BANDWIDTHS, N_CHANNELS

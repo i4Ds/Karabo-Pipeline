@@ -1,6 +1,6 @@
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime
 
 import numpy as np
 
@@ -156,7 +156,7 @@ def test_imaging():
     askap_tel = Telescope.constructor("ASKAP")
     observation_settings = Observation(
         start_frequency_hz=100e6,
-        start_date_and_time=datetime.now(timezone.utc),
+        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
         number_of_channels=16,
