@@ -9,36 +9,17 @@ from karabo.util._types import IntFloat, OskarSettingsTreeType
 
 
 class ObservationAbstract(ABC):
-    """
-    The Observation class acts as an object to hold all
-    important information about an Observation.
+    """Abstract base class for observations
 
-    Required parameters for running a simulation with these observational settings.
-
-    :ivar start_frequency_hz: The frequency at the start of the first channel in Hz.
-    :ivar start_date_and_time: The start time and date for the observation.
-    Default is datetime.utcnow().
-    :ivar length: Length of observation. Default is 12 hours.
-
-    Optional parameters for running a simulation with these observational settings.
-
-    :ivar number_of_channels: Number of channels / bands to use
-    :ivar frequency_increment_hz: Frequency increment between successive channels in Hz.
-    :ivar phase_centre_ra_deg: Right Ascension of the observation pointing
-    (phase centre) in degrees.
-    :ivar phase_centre_dec_deg: Declination of the observation pointing
-    (phase centre) in degrees.
-    :ivar number_of_time_steps: Number of time steps in the output data during the
-    observation length. This corresponds to the number of correlator dumps for
-    interferometer simulations, and the number of beam pattern snapshots for
-    beam pattern simulations.
+    Holds all important information about an observation.
     """
 
     def __init__(
         self,
+        *,
         mode: str = "Tracking",
         start_frequency_hz: IntFloat = 0,
-        start_date_and_time: Union[datetime, str] = datetime.utcnow(),
+        start_date_and_time: Union[datetime, str],
         length: timedelta = timedelta(hours=4),
         number_of_channels: int = 1,
         frequency_increment_hz: IntFloat = 0,
@@ -46,6 +27,44 @@ class ObservationAbstract(ABC):
         phase_centre_dec_deg: IntFloat = 0,
         number_of_time_steps: int = 1,
     ) -> None:
+        """
+
+        Args:
+            start_date_and_time (Union[datetime, str]): The start time and date for
+            the observation. Strings are converted to datetime objects
+            using datetime.fromisoformat.
+
+            mode (str, optional): TODO. Defaults to "Tracking".
+
+            start_frequency_hz (IntFloat, optional): The frequency at the start of the
+            first channel in Hz.
+            Defaults to 0.
+
+            length (timedelta, optional): Length of observation.
+            Defaults to timedelta(hours=4).
+
+            number_of_channels (int, optional): Number of channels / bands to use.
+            Defaults to 1.
+
+            frequency_increment_hz (IntFloat, optional): Frequency increment between
+            successive channels in Hz.
+            Defaults to 0.
+
+            phase_centre_ra_deg (IntFloat, optional): Right Ascension of
+            the observation pointing (phase centre) in degrees.
+            Defaults to 0.
+
+            phase_centre_dec_deg (IntFloat, optional): Declination of the observation
+            pointing (phase centre) in degrees.
+            Defaults to 0.
+
+            number_of_time_steps (int, optional): Number of time steps in the output
+            data during the observation length. This corresponds to the number of
+            correlator dumps for interferometer simulations, and the number of beam
+            pattern snapshots for beam pattern simulations.
+            Defaults to 1.
+        """
+
         self.start_frequency_hz = start_frequency_hz
 
         if isinstance(start_date_and_time, str):
@@ -227,9 +246,10 @@ class ObservationLong(ObservationAbstract):
 
     def __init__(
         self,
+        *,
         mode: str = "Tracking",
         start_frequency_hz: IntFloat = 0,
-        start_date_and_time: Union[datetime, str] = datetime.utcnow(),
+        start_date_and_time: Union[datetime, str],
         length: timedelta = timedelta(hours=4),
         number_of_channels: int = 1,
         frequency_increment_hz: IntFloat = 0,
@@ -283,9 +303,10 @@ class ObservationParallized(ObservationAbstract):
 
     def __init__(
         self,
+        *,
         mode: str = "Tracking",
         center_frequencies_hz: Union[IntFloat, List[IntFloat]] = 100e6,
-        start_date_and_time: Union[datetime, str] = datetime.utcnow(),
+        start_date_and_time: Union[datetime, str],
         length: timedelta = timedelta(hours=4),
         n_channels: Union[int, List[int]] = [0, 1, 2, 3, 4, 5],
         channel_bandwidths_hz: Union[IntFloat, List[IntFloat]] = [1],

@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import numpy as np
@@ -83,6 +84,7 @@ def main(n_random_sources: int) -> None:
 
     observation_settings = Observation(
         start_frequency_hz=100e6,
+        start_date_and_time=datetime.now(timezone.utc),
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
         number_of_channels=64,
