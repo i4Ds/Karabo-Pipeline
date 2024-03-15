@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -26,7 +28,10 @@ simulation = InterferometerSimulation()
 
 # create new observational settings with most settings set to default
 # except the start frequency set to 1e6
-observation = Observation(start_frequency_hz=1e6)
+observation = Observation(
+    start_frequency_hz=1e6,
+    start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
+)
 
 # run a single simulation with the provided configuration
 simulation.run_simulation(telescope, sky, observation)

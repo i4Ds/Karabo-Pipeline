@@ -67,6 +67,7 @@ def test_oskar_simulation_basic(sky_data: NDArray[np.float64]) -> None:
     )
     observation = Observation(
         start_frequency_hz=100e6,
+        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         phase_centre_ra_deg=240,
         phase_centre_dec_deg=-70,
         number_of_time_steps=24,
@@ -261,6 +262,7 @@ def test_parallelization_by_observation() -> None:
 
     obs_parallized = ObservationParallized(
         center_frequencies_hz=CENTER_FREQUENCIES_HZ,
+        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         channel_bandwidths_hz=CHANNEL_BANDWIDTHS_HZ,
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
