@@ -26,12 +26,17 @@ Then create a local development environment with the provided `environment.yaml`
 
 ```shell
 conda env create -n <your-env-name> -f environment.yaml
+conda activate <your-env-name>
+```
+
+In case you're using WSL2, do the following (see [issue 550](https://github.com/i4Ds/Karabo-Pipeline/issues/550)):
+```shell
+conda env config vars set LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/wsl/lib
 ```
 
 Then install Karabo as a package and the according dev-dependencies.
 
 ```shell
-conda activate <your-env-name>
 pip install -e ".[dev]"
 ```
 
