@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import enum
 import math
+import re
 from dataclasses import dataclass, fields
 from typing import (
     Any,
@@ -29,8 +30,14 @@ import pandas as pd
 import xarray as xr
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.io import fits
+
+# from astropy.io import fits
+from astropy.io.fits import ColDefs
+
+# from astropy.io.fits.fitsrec import FITS_rec
+# from astropy.io.fits.header import Header
 from astropy.table import Table
+from astropy.units.core import PrefixUnit, Unit, UnitBase
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
 from numpy.typing import NDArray
@@ -50,6 +57,7 @@ from karabo.simulation.line_emission_helpers import (
 )
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
+    FilePathType,
     IntFloat,
     IntFloatList,
     NPFloatInpBroadType,
@@ -107,6 +115,11 @@ class Polarisation(enum.Enum):
 
 @dataclass
 class SkyPrefixMapping:
+    """Defines the relation between col-names of a .fits file and `SkyModel.sources`.
+
+    col-names with a unit need to be specified.
+    """
+
     ra: str
     dec: str
     stokes_i: str
@@ -122,6 +135,130 @@ class SkyPrefixMapping:
     true_redshift: Optional[str] = None
     observed_redshift: Optional[str] = None
     id: Optional[str] = None
+
+
+@dataclass
+class SkySourcesUnits:
+    """Represents the units of `SkyModel.sources`
+
+    This class is useful for unit-conversion from different Prefixes
+        https://docs.astropy.org/en/stable/units/standard_units.html
+        and different units which can be converted to another (like deg to arcmin)
+
+    `UnitBase` covers `Unit`, `CompositeUnit` and `PrefixUnit`.
+
+    Just assign another `UnitBase` in the constructor in case the default doesn't fit.
+    It's usefule if e.g. `stokes_i` is u.Jy/u.beam in the .fits file instead.
+    """
+
+    # field-names must match the field-names of `SkyPrefixMapping`
+    ra: UnitBase = u.deg  # `Unit`
+    dec: UnitBase = u.deg  # `Unit`
+    stokes_i: UnitBase = u.Jy  # `Unit`
+    stokes_q: UnitBase = u.Jy  # `Unit`
+    stokes_u: UnitBase = u.Jy  # `Unit`
+    stokes_v: UnitBase = u.Jy  # `Unit`
+    ref_freq: UnitBase = u.Hz  # `Unit`
+    rm: UnitBase = u.rad / u.m**2  # `CompositeUnit`
+    major: UnitBase = u.arcsec  # `Unit`
+    minor: UnitBase = u.arcsec  # `Unit`
+    pa: UnitBase = u.deg  # `Unit`
+
+    def get_unit_scales(
+        self,
+        cols: ColDefs,
+        unit_mapping: Dict[str, UnitBase],
+        prefix_mapping: SkyPrefixMapping,
+    ) -> Dict[str, float]:
+        """Converts all units specified in `prefix_mapping` into a factor, which can be
+        used for multiplication of the according data-array, to convert it to the
+        `SkyModel.sources` standard-units.
+
+        If a unit in the .fits file doesn't match the default units of this dataclass,
+        just change it during instantiation to match the .fits file unit.
+
+        Args:
+            cols: Columns from `hdul[1].columns`
+            unit_mapping: `Mapping from col-unit (from .fits file) to `astropy.units`.
+                Be aware to use the very-same unit. E.g. if it's prefixed in the .fits,
+                also prefix in the `astropy.units` (e.g. "MHZ":u.MHz, NOT "MHZ":u.Hz).
+            prefix_mapping: Mapping from `SkyModel.sources` to col-name of .fits file.
+
+
+        Returns:
+            Scales to convert unit to standard-unit.
+        """
+        cols_to_field_name_of_interest: Dict[str, str] = dict()
+        for field in fields(prefix_mapping):
+            if (
+                col_name_of_interest := getattr(prefix_mapping, field.name)
+            ) is not None:
+                cols_to_field_name_of_interest[col_name_of_interest] = field.name
+        scales: Dict[str, float] = dict()
+        for col in cols:
+            if (col_name := col.name) in cols_to_field_name_of_interest.keys() and (
+                unit := col.unit
+            ) is not None:
+                astropy_unit_of_fits_col = unit_mapping[unit]
+                # here, it assumes that unit-field-names of `SkySourcesUnits` and
+                # `SkyPrefixMapping` are the same
+                sky_sources_unit: UnitBase = getattr(
+                    self, cols_to_field_name_of_interest[col_name]
+                )
+                scales[col_name] = astropy_unit_of_fits_col.to(sky_sources_unit)
+        return scales
+
+    @classmethod
+    def is_pos_formattable(cls, string: str) -> bool:
+        """Checks if `string` is positional formattable.
+
+        Args:
+            string: str to check.
+
+        Returns:
+            Result if it's formattable.
+        """
+        return "{0}" in string
+
+    @classmethod
+    def extract_names_and_freqs(
+        cls,
+        string: str,
+        cols: ColDefs,
+        unit: Union[Unit, PrefixUnit],
+    ) -> List[Tuple[str, float]]:
+        """Extracts all col-names and it's according frequency (in Hz).
+
+        `string` has to be formattable, meaning it must containt a {0} for beeing
+        the frequency placeholder. Otherwise it will fail.
+
+        Important: This function doesn't consider the unit of
+
+        Args:
+            string: Column-name with {0} frequency-placeholder.
+            cols: Columns to search through.
+            unit: Frequency-unit encoded in col-names (e.g. u.MHz)
+
+        Returns:
+            Extracted col-names with it's frequency as a list of tuples.
+        """
+        if not cls.is_pos_formattable(string=string):
+            raise ValueError(f"{string=}" + "must have a {0} to be formattable!")
+        number_format = r"(\d+)"  # just supports int-numbers atm
+        pattern = re.compile(f"^{string.format(number_format)}$")
+        names_and_freqs: List[Tuple[str, float]] = list()
+        for col in cols:
+            col_name = col.name
+            if not isinstance(col_name, str):
+                raise RuntimeError(
+                    f"`col_name` should be of type `str`, but is {type(col_name)=}"
+                )
+            match = pattern.match(string=col_name)
+            if match:
+                extracted_freq = float(match.group(1))
+                extracted_freq = float((extracted_freq * unit).to(u.Hz).value)  # type: ignore[attr-defined] # noqa: E501
+                names_and_freqs.append((col_name, extracted_freq))
+        return names_and_freqs
 
 
 XARRAY_DIM_0_DEFAULT, XARRAY_DIM_1_DEFAULT = cast(
@@ -1252,12 +1389,13 @@ class SkyModel:
 
     @staticmethod
     def get_sky_model_from_fits(
-        path: str,
-        frequencies: List[int],
+        path: FilePathType,
         prefix_mapping: SkyPrefixMapping,
-        concat_freq_with_prefix: bool = False,
-        filter_data_by_stokes_i: bool = False,
-        frequency_to_mhz_multiplier: float = 1e6,
+        unit_mapping: Dict[str, UnitBase],
+        min_freq: Optional[float] = None,  # in Hz
+        max_freq: Optional[float] = None,  # in Hz
+        min_stokes_i: Optional[float] = None,
+        max_stokes_i: Optional[float] = None,
         chunksize: Union[int, Literal["auto"]] = "auto",
         memmap: bool = False,
     ) -> SkyModel:
@@ -1269,8 +1407,6 @@ class SkyModel:
         ----------
         path : str
             Path to the input FITS file.
-        frequencies : list
-            List of frequencies of interest in MHz.
         prefix_mapping : SkyPrefixMapping
             Maps column names in the FITS file to column names
             used in the output Dataset.
@@ -1278,13 +1414,14 @@ class SkyModel:
             corresponding column names in the Dataset.
             Any column names not present in the dictionary will be excluded
             from the output Dataset.
-        concat_freq_with_prefix : bool, optional
-            If True, concatenates the frequency with the prefix for each column.
-            Defaults to False.
-        filter_data_by_stokes_i : bool, optional
-            If True, filters the data by Stokes I. Defaults to False.
-        frequency_to_mhz_multiplier : float, optional
-            Factor to convert the frequency units to MHz. Defaults to 1e6.
+        min_freq: float, optional
+            Min frequency in Hz for pre-filtering.
+        max_freq: float, optional
+            Max frequency in Hz for pre-filtering.
+        min_stokes_i: float, optional
+            Min stokes-i in Jy for pre-filtering.
+        max_stokes_i: float, optional
+            Max stokes-i in Jy for pre-filtering.
         chunksize : int or str, optional
             The size of the chunks to use when creating the Dask arrays. This can
             be an integer representing the number of rows per chunk, or a string
@@ -1303,103 +1440,81 @@ class SkyModel:
         Notes
         -----
         The FITS file should have a data table in its first HDU.
-        Valid columns are:
-        "ra", "dec", "stokes_i", "stokes_q", "stokes_u", "stokes_v", "ref_freq",
-        "spectral_index", "rm", "major", "minor", "pa", and "id".
-        Any additional columns will be ignored.
 
         The `prefix_mapping` values should map the required columns to their
         corresponding column names in the input FITS file. For example:
 
         If a column name in the FITS file is not present in `prefix_mapping`
         values, it will be excluded from the output Dataset.
-
-        Examples
-        --------
-        >>> sky_data = SkyModel.get_sky_model_from_fits(
-        ...     path="input.fits",
-        ...     frequencies=[100, 200, 300],
-        ...     prefix_mapping=SkyPrefixMapping(
-        ...         ra="RAJ2000",
-        ...         dec="DEJ2000",
-        ...         stokes_i="Fp",
-        ...         minor="a",
-        ...         pa="b",
-        ...         id="pa",
-        ...     ),
-        ...     concat_freq_with_prefix=True,
-        ...     filter_data_by_stokes_i=True,
-        ...     chunks='auto',
-        ...     memmap=False,
-        ... )
-
         """
-        with fits.open(path, memmap=memmap) as hdul:
-            header = hdul[1].header
-            data = hdul[1].data
+        ...
+        # with fits.open(path, memmap=memmap) as hdul:
+        #     header: Header = hdul[1].header
+        #     data: FITS_rec = hdul[1].data
+        #     cols: ColDefs = hdul[1].columns
 
-        column_names = [header[f"TTYPE{i+1}"] for i in range(header["TFIELDS"])]
-        data_dict = {name: data[name] for name in column_names}
+        # column_names = [header[f"TTYPE{i+1}"] for i in range(header["TFIELDS"])]
+        # data_dict = {name: data[name] for name in column_names}
 
-        dataset = xr.Dataset(data_dict)
-        data_arrays: List[xr.DataArray] = []
+        # dataset = xr.Dataset(data_dict)
+        # data_arrays: List[xr.DataArray] = []
 
-        for freq in frequencies:
-            freq_str = str(freq).zfill(3)
+        # for freq in frequencies:
+        #     freq_str = str(freq).zfill(3)
 
-            if filter_data_by_stokes_i and prefix_mapping.stokes_i is not None:
-                dataset_filtered = dataset.dropna(
-                    dim=f"{prefix_mapping.stokes_i}{freq_str}"
-                )
-            else:
-                dataset_filtered = dataset
+        #     if filter_data_by_stokes_i and prefix_mapping.stokes_i is not None:
+        #         dataset_filtered = dataset.dropna(
+        #             dim=f"{prefix_mapping.stokes_i}{freq_str}"
+        #         )
+        #     else:
+        #         dataset_filtered = dataset
 
-            data_list: List[xr.DataArray] = []
-            if prefix_mapping.id is not None:
-                source_ids = dataset_filtered[prefix_mapping.id].values
-            else:
-                source_ids = None
-            for field in fields(prefix_mapping):
-                col = field.name
-                pm_col: Optional[str] = getattr(prefix_mapping, field.name)
-                if col == "id":
-                    continue
-                if pm_col is not None:
-                    if concat_freq_with_prefix and col not in ["ra", "dec"]:
-                        col_name = pm_col + freq_str
-                    else:
-                        col_name = pm_col
+        #     data_list: List[xr.DataArray] = []
+        #     if prefix_mapping.id is not None:
+        #         source_ids = dataset_filtered[prefix_mapping.id].values
+        #     else:
+        #         source_ids = None
+        #     for field in fields(prefix_mapping):
+        #         col = field.name
+        #         pm_col: Optional[str] = getattr(prefix_mapping, field.name)
+        #         if col == "id":
+        #             continue
+        #         if pm_col is not None:
+        #             if concat_freq_with_prefix and col not in ["ra", "dec"]:
+        #                 col_name = pm_col + freq_str
+        #             else:
+        #                 col_name = pm_col
 
-                    freq_data = xr.DataArray(
-                        dataset_filtered[col_name].values,
-                    )
-                elif col == "ref_freq":
-                    freq_data = xr.DataArray(
-                        np.full(
-                            len(dataset_filtered[prefix_mapping.ra]),
-                            freq * frequency_to_mhz_multiplier,
-                        ),
-                    )
-                else:
-                    freq_data = xr.DataArray(
-                        np.zeros(len(dataset_filtered[prefix_mapping.ra])),
-                    )
-                data_list.append(freq_data)
+        #             freq_data = xr.DataArray(
+        #                 dataset_filtered[col_name].values,
+        #             )
+        #         elif col == "ref_freq":
+        #             freq_data = xr.DataArray(
+        #                 np.full(
+        #                     len(dataset_filtered[prefix_mapping.ra]),
+        #                     freq * frequency_to_mhz_multiplier,
+        #                 ),
+        #             )
+        #         else:
+        #             freq_data = xr.DataArray(
+        #                 np.zeros(len(dataset_filtered[prefix_mapping.ra])),
+        #             )
+        #         data_list.append(freq_data)
 
-            data_array = xr.concat(data_list, dim=XARRAY_DIM_1_DEFAULT)
-            if source_ids is not None:
-                data_array.coords[XARRAY_DIM_0_DEFAULT] = source_ids
-            data_arrays.append(data_array)
+        #     data_array = xr.concat(data_list, dim=XARRAY_DIM_1_DEFAULT)
+        #     if source_ids is not None:
+        #         data_array.coords[XARRAY_DIM_0_DEFAULT] = source_ids
+        #     data_arrays.append(data_array)
 
-        chunks: Dict[str, Any] = {XARRAY_DIM_0_DEFAULT: chunksize}
-        for freq_dataset in data_arrays:
-            freq_dataset.chunk(chunks=chunks)
+        # chunks: Dict[str, Any] = {XARRAY_DIM_0_DEFAULT: chunksize}
+        # for freq_dataset in data_arrays:
+        #     freq_dataset.chunk(chunks=chunks)
 
-        result_dataset = (
-            xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT).chunk(chunks=chunks).T
-        )
+        # result_dataset = (
+        #     xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT).chunk(chunks=chunks).T
+        # )
 
-        return SkyModel(result_dataset)
+        # return SkyModel(result_dataset)
 
     @staticmethod
     def get_BATTYE_sky(which: Literal["full", "diluted"] = "diluted") -> SkyModel:
