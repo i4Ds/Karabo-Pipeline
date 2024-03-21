@@ -45,9 +45,10 @@ from ska_sdp_datamodels.sky_model.sky_model import SkyComponent
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
-from karabo.data.external_data import (  # MIGHTEESurveyDownloadObject,
+from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     HISourcesSmallCatalogDownloadObject,
+    MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
 from karabo.simulation.line_emission_helpers import (
@@ -1667,7 +1668,11 @@ class SkyModel:
             )
 
     @classmethod
-    def get_GLEAM_Sky(cls: Type[_SkyModelType]) -> _SkyModelType:
+    def get_GLEAM_Sky(
+        cls: Type[_SkyModelType],
+        min_freq: Optional[float] = None,
+        max_freq: Optional[float] = None,
+    ) -> _SkyModelType:
         """
         get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities
         from the GLEAM survey.
@@ -1703,12 +1708,15 @@ class SkyModel:
             prefix_mapping=prefix_mapping,
             unit_mapping=unit_mapping,
             units_sources=units_sources,
+            min_freq=min_freq,
+            max_freq=max_freq,
             encoded_freq=encoded_freq,
         )
 
     @classmethod
     def get_BATTYE_sky(
-        cls: Type[_SkyModelType], which: Literal["full", "diluted"] = "diluted"
+        cls: Type[_SkyModelType],
+        which: Literal["full", "diluted"] = "diluted",
     ) -> _SkyModelType:
         raise DeprecationWarning(
             """This catalog has an error in the source flux values.
@@ -1753,7 +1761,11 @@ class SkyModel:
         return sky
 
     @classmethod
-    def get_MIGHTEE_Sky(cls: Type[_SkyModelType]) -> _SkyModelType:
+    def get_MIGHTEE_Sky(
+        cls: Type[_SkyModelType],
+        min_freq: Optional[float] = None,
+        max_freq: Optional[float] = None,
+    ) -> _SkyModelType:
         """
         Downloads the MIGHTEE catalog and creates a SkyModel object.
 
@@ -1774,32 +1786,37 @@ class SkyModel:
         from the "IM_MAJ", "IM_MIN", "IM_PA", and "NAME" columns of the catalog,
         respectively.
         """
-        raise NotImplementedError(
-            "The current version of Karabo doesn't support the mightee-sky. "
-            + "The progress regarding this issue can be tracked at "
-            + "https://github.com/i4Ds/Karabo-Pipeline/issues/547"
+        survey = MIGHTEESurveyDownloadObject()
+        path = survey.get()
+        unit_mapping: Dict[str, UnitBase] = {
+            "DEG": u.deg,
+            "JY": u.Jy,
+            "JY/BEAM": u.Jy / u.beam,
+            "HZ": u.Hz,
+        }
+        prefix_mapping = SkyPrefixMapping(
+            ra="RA",
+            dec="DEC",
+            stokes_i="S_PEAK",
+            ref_freq="NU_EFF",
+            major="IM_MAJ",
+            minor="IM_MIN",
+            pa="IM_PA",
+            id="NAME",
         )
-        # survey = MIGHTEESurveyDownloadObject()
-        # path = survey.get()
-        # prefix_mapping = SkyPrefixMapping(
-        #     ra="RA",
-        #     dec="DEC",
-        #     stokes_i="NU_EFF",
-        #     major="IM_MAJ",
-        #     minor="IM_MIN",
-        #     pa="IM_PA",
-        #     id="NAME",
-        # )
-
-        # return SkyModel.get_sky_model_from_fits(
-        #     path=path,
-        #     frequencies=[76],
-        #     prefix_mapping=prefix_mapping,
-        #     concat_freq_with_prefix=False,
-        #     filter_data_by_stokes_i=False,
-        #     frequency_to_mhz_multiplier=1e6,
-        #     memmap=False,
-        # )
+        units_sources = SkySourcesUnits(
+            stokes_i=u.Jy / u.beam,
+        )
+        return cls.get_sky_model_from_fits(
+            fits_file=path,
+            prefix_mapping=prefix_mapping,
+            unit_mapping=unit_mapping,
+            units_sources=units_sources,
+            min_freq=min_freq,
+            max_freq=max_freq,
+            encoded_freq=None,
+            memmap=False,
+        )
 
     @classmethod
     def get_random_poisson_disk_sky(
