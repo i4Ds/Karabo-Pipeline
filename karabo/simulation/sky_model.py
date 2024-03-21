@@ -1468,6 +1468,7 @@ class SkyModel:
         for i in range(num_formatted):
             freq: Optional[float] = None
             sources_i: Optional[xr.DataArray] = None
+            breaked = False
             for spm_field in fields(prefix_mapping):
                 if (
                     field_values := getattr(prefix_mapping, spm_field.name)
@@ -1488,6 +1489,7 @@ class SkyModel:
                         if (min_freq is not None and col_freq < min_freq) or (
                             max_freq is not None and col_freq > max_freq
                         ):  # freq-filtering in case of formatted `prefix_mapping`
+                            breaked = True
                             break
                         if freq is None:
                             freq = col_freq
@@ -1518,6 +1520,8 @@ class SkyModel:
                     else:
                         col_idx = cls.COL_IDX[field_name]  # type: ignore[index]
                         sources_i[:, col_idx] = col_data
+            if breaked:
+                continue
             if sources_i is None:  # num_formatted <= 0 should be impossible
                 raise RuntimeError(_DEV_ERROR_MSG)
             if freq is None:
