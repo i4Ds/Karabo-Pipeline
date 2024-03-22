@@ -106,7 +106,7 @@ _ChunksType = Union[
     Tuple[int, ...],
     Mapping[Hashable, int],
 ]
-_SkyModelType = TypeVar("_SkyModelType", bound="SkyModel")
+_TSkyModel = TypeVar("_TSkyModel", bound="SkyModel")
 
 
 class Polarisation(enum.Enum):
@@ -121,8 +121,11 @@ class SkyPrefixMapping:
     """Defines the relation between col-names of a .fits file and `SkyModel.sources`.
 
     Field-names of sources-data must be according to `SkySourcesColName`.
+    Each `_SkyPrefixMappingValueType` can be a set of col-names, a single col-name.
+    Just leave the values not provided in the .fits file None.
     """
 
+    # field-names must match `SkySourcesColName`
     ra: _SkyPrefixMappingValueType
     dec: _SkyPrefixMappingValueType
     stokes_i: _SkyPrefixMappingValueType
@@ -142,11 +145,11 @@ class SkyPrefixMapping:
 
 @dataclass
 class SkySourcesUnits:
-    """Represents the units of `SkyModel.sources`
+    """Represents the units of `SkyModel.sources`.
 
     This class is useful for unit-conversion from different Prefixes
-        https://docs.astropy.org/en/stable/units/standard_units.html
-        and different units which can be converted to another (like deg to arcmin)
+    https://docs.astropy.org/en/stable/units/standard_units.html
+    and different units which can be converted to another (like deg to arcmin).
 
     `UnitBase` covers
     - `Unit`: e.g. u.Jy, u.Hz
@@ -172,7 +175,7 @@ class SkySourcesUnits:
     pa: UnitBase = u.deg  # `Unit`
 
     @classmethod
-    def format_sky_prefix_mapping(
+    def format_sky_prefix_freq_mapping(
         cls,
         cols: ColDefs,
         prefix_mapping: SkyPrefixMapping,
@@ -180,11 +183,17 @@ class SkySourcesUnits:
     ) -> Tuple[SkyPrefixMapping, int, Dict[str, float]]:
         """Formats `SkyPrefixMapping` fields from str to list[str] if formattable.
 
-        This function doesn't do any formatting if `encoded_freq` is None.
+        The encoded frequencies and col-names of the formattable field-values get
+        extracted from `cols`, converted into Hz. The extracted col-names and
+        frequencies are then available in a col-name -> freq mapping.
+        In addition, `prefix_mapping` gets enhanced with a list of according col-names
+        of the .fits file.
+        This function doesn't do any formatting for each field, if `encoded_freq`
+        is None or is not positional formattable.
 
         Args:
             cols: Columns of .fits file
-            prefix_mapping: Mapping to format.
+            prefix_mapping: Should contain formattable field-values.
             encoded_freq: astropy.unit frequency encoded (e.g. u.MHz)
 
         Raises:
@@ -192,8 +201,8 @@ class SkySourcesUnits:
                 are not of equal for each frequency-channel.
 
         Returns:
-            Formatted `prefix_mapping`, number of formatted `prefix_mapping` fields,
-                and a dict containing col-name -> frequency (Hz).
+            Formatted `prefix_mapping`, number of formatted col-names per frequency,
+                and a mapping col-name -> frequency (Hz).
         """
         num_formattings = 0
         names_and_freqs: Dict[str, float] = dict()
@@ -230,22 +239,22 @@ class SkySourcesUnits:
         prefix_mapping: SkyPrefixMapping,
     ) -> Dict[str, float]:
         """Converts all units specified in `prefix_mapping` into a factor, which can be
-        used for multiplication of the according data-array, to convert it to the
-        `SkyModel.sources` standard-units.
+        used for multiplication of the according data-array, to convert the
+        `SkyModel.sources` into standard-units defined in the fields of this dataclass.
 
         If a unit in the .fits file doesn't match the default units of this dataclass,
         just change it during instantiation to match the .fits file unit.
 
         Args:
-            cols: Columns from `hdul[1].columns`
+            cols: Columns from `hdul[1].columns` .fits file.
             unit_mapping: `Mapping from col-unit (from .fits file) to `astropy.units`.
                 Be aware to use the very-same unit. E.g. if it's prefixed in the .fits,
-                also prefix in the `astropy.units` (e.g. "MHZ":u.MHz, NOT "MHZ":u.Hz).
-            prefix_mapping: Mapping from `SkyModel.sources` to col-name of .fits file.
+                also prefix in the `astropy.units` ("MHZ":u.MHz, NOT "MHZ":u.Hz).
+            prefix_mapping: Mapping from `SkyModel.sources` to col-name(s).
 
 
         Returns:
-            Scales to convert unit to standard-unit.
+            Mapping col-name -> scaling-factor to `SkyModel.sources` standard units.
         """
         cols_to_field_name_of_interest: Dict[str, str] = dict()
         for field in fields(prefix_mapping):
@@ -282,6 +291,8 @@ class SkySourcesUnits:
     def is_pos_formattable(cls, string: str) -> bool:
         """Checks if `string` is positional formattable.
 
+        It is positional-formattable if `string` contains a '{0}'.
+
         Args:
             string: str to check.
 
@@ -297,20 +308,21 @@ class SkySourcesUnits:
         cols: ColDefs,
         unit: Union[Unit, PrefixUnit],
     ) -> Dict[str, float]:
-        """Extracts all col-names and it's according frequency (in Hz).
+        """Extracts all col-names and it's encoded frequency (in Hz).
 
         `string` has to be formattable, meaning it must containt a {0} for beeing
         the frequency placeholder. Otherwise it will fail.
 
-        Important: This function doesn't consider the unit of
+        Important: This function doesn't consider the unit of `SkyModel.sources`
+        "ref_freq" unit. It converts it to Hz regardless.
 
         Args:
             string: Column-name with {0} frequency-placeholder.
-            cols: Columns to search through.
-            unit: Frequency-unit encoded in col-names (e.g. u.MHz)
+            cols: Columns of the .fits file to search through.
+            unit: Frequency-unit encoded in col-names (e.g. u.MHz).
 
         Returns:
-            Extracted col-names with it's frequency as a list of tuples.
+            Mapping col-name -> decoded-frequency in Hz.
         """
         if not cls.is_pos_formattable(string=string):
             raise ValueError(f"{string=}" + "must contain '{0}' to be formattable!")
@@ -470,7 +482,7 @@ class SkyModel:
             self.h5_file_connection = None
 
     @staticmethod
-    def copy_sky(sky: SkyModel) -> SkyModel:
+    def copy_sky(sky: _TSkyModel) -> _TSkyModel:
         if sky.h5_file_connection is not None:
             h5_connection = sky.h5_file_connection
             sky.h5_file_connection = None
@@ -631,7 +643,7 @@ class SkyModel:
         self.save_sky_model_as_csv(path)
 
     @classmethod
-    def read_from_file(cls: Type[_SkyModelType], path: str) -> _SkyModelType:
+    def read_from_file(cls: Type[_TSkyModel], path: str) -> _TSkyModel:
         """
         Read a CSV file in to create a SkyModel.
         The CSV should have the following columns
@@ -758,16 +770,16 @@ class SkyModel:
             )
         inner_circle = SphericalCircle(
             (ra0_deg * u.deg, dec0_deg * u.deg),
-            inner_radius_deg * u.deg,  # pyright: ignore
+            inner_radius_deg * u.deg,
         )
         outer_circle = SphericalCircle(
             (ra0_deg * u.deg, dec0_deg * u.deg),
-            outer_radius_deg * u.deg,  # pyright: ignore
+            outer_radius_deg * u.deg,
         )
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2])
         inner_sources = inner_circle.contains_points(copied_sky[:, 0:2])
         filtered_sources = np.logical_and(outer_sources, np.logical_not(inner_sources))
-        filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
+        filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa: E712
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
 
         # Rechunk the array to the original chunk size
@@ -1330,15 +1342,6 @@ class SkyModel:
             ],
         )
 
-    def save_sky_model_to_txt(
-        self,
-        path: str,
-        cols: List[int] = [0, 1, 2, 3, 4, 5, 6, 7],
-    ) -> None:
-        if self.sources is None:
-            raise AttributeError("Can't save sky-model because `sources` is None.")
-        np.savetxt(path, self.sources[:, cols])
-
     @staticmethod
     def __convert_ra_dec_to_cartesian(
         ra: IntFloat, dec: IntFloat
@@ -1368,17 +1371,12 @@ class SkyModel:
 
     @classmethod
     def get_sky_model_from_h5_to_xarray(
-        cls: Type[_SkyModelType],
+        cls: Type[_TSkyModel],
         path: str,
-        prefix_mapping: SkyPrefixMapping = SkyPrefixMapping(
-            ra="Right Ascension",
-            dec="Declination",
-            stokes_i="Flux",
-            observed_redshift="Observed Redshift",
-        ),
+        prefix_mapping: Optional[SkyPrefixMapping] = None,
         load_as: Literal["numpy_array", "dask_array"] = "dask_array",
         chunksize: Union[int, Literal["auto"]] = "auto",
-    ) -> _SkyModelType:
+    ) -> _TSkyModel:
         """
         Load a sky model dataset from an HDF5 file and
         converts it to an xarray DataArray.
@@ -1407,6 +1405,15 @@ class SkyModel:
         f = h5py.File(path, "r")
         data_arrays: List[xr.DataArray] = []
 
+        # not sure why we have a default here, but keep for compatibility I guess?
+        if prefix_mapping is None:
+            prefix_mapping = SkyPrefixMapping(
+                ra="Right Ascension",
+                dec="Declination",
+                stokes_i="Flux",
+                observed_redshift="Observed Redshift",
+            )
+
         for field in fields(prefix_mapping):
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
@@ -1429,7 +1436,8 @@ class SkyModel:
 
     @classmethod
     def _get_sky_model_from_freq_formatted_fits(
-        cls: Type[_SkyModelType],
+        cls: Type[_TSkyModel],
+        *,
         data: FITS_rec,
         cols: ColDefs,
         prefix_mapping: SkyPrefixMapping,
@@ -1440,7 +1448,25 @@ class SkyModel:
         chunks_fun: Callable[[xr.DataArray], xr.DataArray],
         zero_col_array_fun: Callable[[int], xr.DataArray],
         encoded_freq: UnitBase,
-    ) -> _SkyModelType:
+    ) -> _TSkyModel:
+        """Creates a sky-model from a .fits file, where the frequency is encoded
+        in the according col-names.
+
+        Args:
+            data: Data of .fits file.
+            cols: Columns of .fits file.
+            prefix_mapping: Formattable col-names of .fits file.
+            min_freq: Filter by min-freq in Hz? May increase file-reading significantly.
+            max_freq: Filter by max-freq in Hz? May increase file-reading significantly.
+            unit_mapping: Mapping from col-unit to `astropy.unit`.
+            units_sources: Units of `SkyModel.sources`.
+            chunks_fun: Callback to handle array-chunking.
+            zero_col_array_fun: Callback to create a (`length`,1) zero `DataArray`.
+            encoded_freq: Unit of col-name encoded frequency.
+
+        Returns:
+            sky-model with according sources from `data`.
+        """
         if prefix_mapping.ref_freq is not None:
             raise RuntimeError(
                 "Setting `prefix_mapping.ref_freq` and `encoded_freq` is "
@@ -1450,7 +1476,7 @@ class SkyModel:
             prefix_mapping,
             num_formatted,
             names_and_freqs,  # here, freqs are already in Hz
-        ) = SkySourcesUnits.format_sky_prefix_mapping(
+        ) = SkySourcesUnits.format_sky_prefix_freq_mapping(
             cols=cols,
             prefix_mapping=prefix_mapping,
             encoded_freq=encoded_freq,
@@ -1542,7 +1568,8 @@ class SkyModel:
 
     @classmethod
     def _get_sky_model_from_non_formatted_fits(
-        cls: Type[_SkyModelType],
+        cls: Type[_TSkyModel],
+        *,
         data: FITS_rec,
         cols: ColDefs,
         prefix_mapping: SkyPrefixMapping,
@@ -1552,7 +1579,24 @@ class SkyModel:
         units_sources: SkySourcesUnits,
         chunks_fun: Callable[[xr.DataArray], xr.DataArray],
         zero_col_array_fun: Callable[[int], xr.DataArray],
-    ) -> _SkyModelType:
+    ) -> _TSkyModel:
+        """Creates a sky-model from a .fits file, where `SkyModel.sources` come from
+        distinct data-arrays, not from a combination.
+
+        Args:
+            data: Data of .fits file.
+            cols: Columns of .fits file.
+            prefix_mapping: NON-formattable col-names of .fits file.
+            min_freq: Filter by min-freq in Hz? May increase file-reading significantly.
+            max_freq: Filter by max-freq in Hz? May increase file-reading significantly.
+            unit_mapping: Mapping from col-unit to `astropy.unit`.
+            units_sources: Units of `SkyModel.sources`.
+            chunks_fun: Callback to handle array-chunking.
+            zero_col_array_fun: Callback to create a (`length`,1) zero `DataArray`.
+
+        Returns:
+            sky-model with according sources from `data`.
+        """
         unit_scales = units_sources.get_unit_scales(
             cols=cols,
             unit_mapping=unit_mapping,
@@ -1619,7 +1663,8 @@ class SkyModel:
 
     @classmethod
     def get_sky_model_from_fits(
-        cls: Type[_SkyModelType],
+        cls: Type[_TSkyModel],
+        *,
         fits_file: FilePathType,
         prefix_mapping: SkyPrefixMapping,
         unit_mapping: Dict[str, UnitBase],
@@ -1629,7 +1674,30 @@ class SkyModel:
         encoded_freq: Optional[UnitBase] = None,
         chunks: Optional[_ChunksType] = "auto",
         memmap: bool = False,
-    ) -> _SkyModelType:
+    ) -> _TSkyModel:
+        """Creates a sky-model from `fits_file`. The following formats are supported:
+        - Each data-array of the .fits file maps to a single `SkyModel.sources` column.
+        - Frequency of some columns is encoded in col-names of the .fits file.
+
+        Args:
+            fits_file: The .fits file to create the sky-model from.
+            prefix_mapping: Formattable col-names of .fits file. If `encoded_freq` is
+                not None, the freq-encoded field-values must have '{0}' as placeholder.
+            unit_mapping: Mapping from col-unit to `astropy.unit`.
+            units_sources: Units of `SkyModel.sources`.
+            min_freq: Filter by min-freq in Hz? May increase file-reading significantly.
+            max_freq: Filter by max-freq in Hz? May increase file-reading significantly.
+            encoded_freq: Unit of col-name encoded frequency, if the .fits file has
+                it's ref-frequency encoded in the col-names.
+            chunks: Coerce the array's data into dask arrays with the given chunks.
+                Might be useful for reading larger-than-memory .fits files.
+            memmap: Whether to use memory mapping when opening the FITS file.
+                Allows for reading of larger-than-memory files.
+
+        Returns:
+            sky-model with according sources from `fits_file`.
+        """
+
         def chunks_fun(arr: xr.DataArray) -> xr.DataArray:
             if chunks is not None:
                 arr = arr.chunk(chunks=chunks)
@@ -1673,20 +1741,29 @@ class SkyModel:
 
     @classmethod
     def get_GLEAM_Sky(
-        cls: Type[_SkyModelType],
+        cls: Type[_TSkyModel],
         min_freq: Optional[float] = None,
         max_freq: Optional[float] = None,
-    ) -> _SkyModelType:
-        """
-        get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities
-        from the GLEAM survey.
+    ) -> _TSkyModel:
+        """Creates a SkyModel containing GLEAM sources from
+        https://vizier.cfa.harvard.edu/ service with more than 300,000 sources
+        on different frequency-bands.
+
+        The survey was created using MWA-telescope and covers the entire sky south
+        of dec +30.
+
+        GLEAM's frequency-range: 74-231 MHz
+
+        The required .fits file will get downloaded and cached on disk.
+
+        Args:
+            min_freq: Set min-frequency in Hz for pre-filtering.
+            max_freq: Set max-frequency in Hz for pre-filtering.
 
         Returns:
-            SkyModel: A SkyModel object containing sources with flux densities.
+            GLEAM sky as `SkyModel`.
         """
-        survey = GLEAMSurveyDownloadObject()
-        path = survey.get()
-
+        survey_file = GLEAMSurveyDownloadObject().get()
         encoded_freq = u.MHz
         unit_mapping = {
             "Jy": u.Jy,
@@ -1708,7 +1785,7 @@ class SkyModel:
         )
 
         return cls.get_sky_model_from_fits(
-            fits_file=path,
+            fits_file=survey_file,
             prefix_mapping=prefix_mapping,
             unit_mapping=unit_mapping,
             units_sources=units_sources,
@@ -1718,18 +1795,7 @@ class SkyModel:
         )
 
     @classmethod
-    def get_BATTYE_sky(
-        cls: Type[_SkyModelType],
-        which: Literal["full", "diluted"] = "diluted",
-    ) -> _SkyModelType:
-        raise DeprecationWarning(
-            """This catalog has an error in the source flux values.
-            This method will be removed in a future version.
-            Please use get_sample_simulated_catalog() instead."""
-        )
-
-    @classmethod
-    def get_sample_simulated_catalog(cls: Type[_SkyModelType]) -> _SkyModelType:
+    def get_sample_simulated_catalog(cls: Type[_TSkyModel]) -> _TSkyModel:
         """
         Downloads a sample simulated HI source catalog and generates a sky
         model using the downloaded data. The catalog size is around 8MB.
@@ -1766,32 +1832,28 @@ class SkyModel:
 
     @classmethod
     def get_MIGHTEE_Sky(
-        cls: Type[_SkyModelType],
+        cls: Type[_TSkyModel],
         min_freq: Optional[float] = None,
         max_freq: Optional[float] = None,
-    ) -> _SkyModelType:
+    ) -> _TSkyModel:
+        """Creates a SkyModel containing "MIGHTEE Continuum Early Science L1 catalogue"
+        sources from https://archive.sarao.ac.za service, consisting of 9896 sources.
+
+        MIGHTEE is an extragalactic radio-survey carried out using MeerKAT-telescope.
+        It covers roughly the area between RA[149.40,150.84] and DEC[1.49,2.93].
+
+        MIGHTEES's frequency-range: 1304-1375 MHz
+
+        The required .fits file will get downloaded and cached on disk.
+
+        Args:
+            min_freq: Set min-frequency in Hz for pre-filtering.
+            max_freq: Set max-frequency in Hz for pre-filtering.
+
+        Returns:
+            MIGHTEE sky as `SkyModel`.
         """
-        Downloads the MIGHTEE catalog and creates a SkyModel object.
-
-        Returns
-        -------
-        SkyModel
-            SkyModel object containing information about celestial sources
-            in the MIGHTEE survey.
-
-        Notes
-        -----
-        The MIGHTEE catalog is downloaded using the MIGHTEESurveyDownloadObject class.
-
-        The SkyModel object contains columns for "ra", "dec", "i", "q", "u", "v",
-        "ref_freq", "major", "minor", "pa", and "id".
-        The "ref_freq" column is set to 76 MHz, and the "q", "u", and "v" columns
-        are set to zero. The "major", "minor", "pa", and "id" columns are obtained
-        from the "IM_MAJ", "IM_MIN", "IM_PA", and "NAME" columns of the catalog,
-        respectively.
-        """
-        survey = MIGHTEESurveyDownloadObject()
-        path = survey.get()
+        survey_file = MIGHTEESurveyDownloadObject().get()
         unit_mapping: Dict[str, UnitBase] = {
             "DEG": u.deg,
             "JY": u.Jy,
@@ -1812,7 +1874,7 @@ class SkyModel:
             stokes_i=u.Jy / u.beam,
         )
         return cls.get_sky_model_from_fits(
-            fits_file=path,
+            fits_file=survey_file,
             prefix_mapping=prefix_mapping,
             unit_mapping=unit_mapping,
             units_sources=units_sources,
@@ -1824,20 +1886,20 @@ class SkyModel:
 
     @classmethod
     def get_random_poisson_disk_sky(
-        cls: Type[_SkyModelType],
+        cls: Type[_TSkyModel],
         min_size: Tuple[IntFloat, IntFloat],
         max_size: Tuple[IntFloat, IntFloat],
         flux_min: IntFloat,
         flux_max: IntFloat,
         r: int = 3,
-    ) -> _SkyModelType:
+    ) -> _TSkyModel:
         sky_array = xr.DataArray(
             get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
         )
         return cls(sky_array)
 
     @classmethod
-    def sky_test(cls: Type[_SkyModelType]) -> _SkyModelType:
+    def sky_test(cls: Type[_TSkyModel]) -> _TSkyModel:
         """
 
         Construction of a sky model which can be used for testing and visualising the
@@ -1859,21 +1921,6 @@ class SkyModel:
         sky.add_point_sources(sky_data)
 
         return sky
-
-    @classmethod
-    def sky_from_h5_with_redshift_filtered(
-        cls: Type[_SkyModelType],
-        path: str,
-        ra_deg: float,
-        dec_deg: float,
-        outer_rad: float = 5.0,
-    ) -> _SkyModelType:
-        raise DeprecationWarning(
-            """This method will be removed in a future release.
-        To obtain the same functionality, use
-        sky = SkyModel.get_sky_model_from_h5_to_xarray()
-        and sky.filter_by_radius_euclidean_flat_approximation()."""
-        )
 
     @overload
     def convert_to_backend(
