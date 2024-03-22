@@ -325,14 +325,15 @@ def test_format_prefix_freq_mapping(
         _,
     ) = SkySourcesUnits.format_sky_prefix_freq_mapping(
         cols=non_formattable["cols"],
-        prefix_mapping=formattable["prefix_mapping"],
+        prefix_mapping=non_formattable["prefix_mapping"],
         encoded_freq=None,
     )
-    assert prefix_mapping is non_formattable["cols"]
+    assert prefix_mapping is non_formattable["prefix_mapping"]
     assert num_formattings == 0
     with pytest.raises(RuntimeError):
         _ = SkySourcesUnits.format_sky_prefix_freq_mapping(
             cols=non_formattable["cols"],
+            prefix_mapping=non_formattable["prefix_mapping"],
             encoded_freq=u.MHz,
         )
     (
@@ -344,7 +345,7 @@ def test_format_prefix_freq_mapping(
         prefix_mapping=formattable["prefix_mapping"],
         encoded_freq=u.MHz,
     )
-    assert prefix_mapping is not formattable["cols"]
+    assert prefix_mapping != formattable["prefix_mapping"]
     assert num_formattings == formattable["n_encoded_freqs"]
     assert (
         len(names_and_freqs)
@@ -356,12 +357,12 @@ def test_get_unit_scales(
     formattable: _ColsMappingDict,
     non_formattable: _ColsMappingDict,
 ):
-    unit_scales_formattable = formattable["sky_sources_units"].get_unit_scales(
-        cols=formattable["cols"],
-        unit_mapping=formattable["unit_mapping"],
-        prefix_mapping=formattable["prefix_mapping"],
-    )
-    assert len(unit_scales_formattable) == formattable["n_unit_cols"]
+    with pytest.raises(RuntimeError):  # because formattable-strings are not col-names
+        _ = formattable["sky_sources_units"].get_unit_scales(
+            cols=formattable["cols"],
+            unit_mapping=formattable["unit_mapping"],
+            prefix_mapping=formattable["prefix_mapping"],
+        )
     unit_scales_non_formattable = non_formattable["sky_sources_units"].get_unit_scales(
         cols=non_formattable["cols"],
         unit_mapping=non_formattable["unit_mapping"],

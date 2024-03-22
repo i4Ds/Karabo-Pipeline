@@ -230,7 +230,7 @@ class SkySourcesUnits:
                     field.name,
                     [field_name for field_name in col_names_and_freqs],
                 )
-        if encoded_freq is None and num_formattings != 0:
+        if encoded_freq is not None and num_formattings == 0:
             raise RuntimeError(
                 "Providing `encoded_freq` with non-formattable column-names "
                 + "is not allowed!"
