@@ -368,7 +368,7 @@ class SkySourcesUnits:
         for col in cols:
             col_name = col.name
             if not isinstance(col_name, str):
-                raise RuntimeError(
+                raise TypeError(
                     f"`col_name` should be of type `str`, but is {type(col_name)=}"
                 )
             match = pattern.match(string=col_name)
