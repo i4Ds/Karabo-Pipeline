@@ -297,17 +297,29 @@ class SkySourcesUnits:
 
         non_used_unit_keys = set(unit_mapping.keys()) - set(used_units)
         if len(non_used_unit_keys) > 0:
-            raise RuntimeError(
-                "The following unit-strings defined in `unit_mapping` are not found "
-                + f"in `cols`, which is probably a typo: {non_used_unit_keys}"
-            )
+            # here, we double check all columns, not just the specified to be more
+            # robust with exception-throwing
+            not_found_unit_keys: List[str] = list()
+            for non_used_unit_key in non_used_unit_keys:
+                found = False
+                for col in cols:
+                    if col.unit == non_used_unit_key:
+                        found = True
+                        break
+                if not found:
+                    not_found_unit_keys.append(non_used_unit_key)
+            if len(not_found_unit_keys) > 0:
+                raise RuntimeError(
+                    "The following unit-strings defined in `unit_mapping` are not "
+                    + f"found in `cols`, which may be a typo: {not_found_unit_keys}"
+                )
         non_used_col_names = set(cols_to_field_name_of_interest.keys()) - set(
             used_col_names
         )
         if len(non_used_col_names) > 0:
             raise RuntimeError(
                 "The following col-names defined in `prefix_mapping` were not found "
-                + f"in `cols`, which is probably a typo: {non_used_col_names}"
+                + f"in `cols`, which may be a typo: {non_used_col_names}"
             )
         return scales
 
