@@ -452,11 +452,11 @@ class InterferometerSimulation:
         frequency_bandwidths = np.full(
             frequency_channel_starts.shape, observation.frequency_increment_hz
         )
-        frequency_channel_centers = frequency_channel_starts - frequency_bandwidths / 2
+        frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
 
         # Initialize empty visibilities based on observation details
         vis = create_visibility(
-            telescope,  # Configuration of the interferometer array used
+            telescope.RASCIL_configuration,  # Configuration of the interferometer array
             times=observation_hour_angles,  # Hour angles
             frequency=frequency_channel_centers,  # Center channel frequencies in Hz
             channel_bandwidth=frequency_bandwidths,
@@ -469,9 +469,9 @@ class InterferometerSimulation:
             weight=1.0,  # Keep as 1, per recommendation from RASCIL docs
             polarisation_frame=PolarisationFrame(
                 "stokesI"
-            ),  # Used for the output visibility
+            ),  # TODO handle full stokes as well
             integration_time=observation_integration_time_seconds,
-            zerow=True,
+            zerow=self.ignore_w_components,
         )
 
         # Obtain list of SkyComponent instances
