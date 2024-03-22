@@ -102,10 +102,6 @@ def test_mock_mightee():
             i = i + 1
         mc_hdu = hdu[0]
         mc_array, _ = reproject_interp(ff[1], mc_hdu)
-        # mc_array, footprint = reproject_and_coadd(
-        #     (data[0], hdu[0]),
-        #     mc_hdu, reproject_function=reproject_interp,
-        # )
         mosaic_hdu = fits.PrimaryHDU(data=mc_array, header=mc_hdu)
         mosaic_hdu.writeto(os.path.join(tmpdir, "mosaic.fits"), overwrite=True)
         _, ax = plt.subplots(2, 1)
@@ -114,29 +110,3 @@ def test_mock_mightee():
         ax0.imshow(data[0][0][0])
         ax1.imshow(mc_array[0][0])
         plt.show()
-
-        # cc=reproject_and_coadd(imglist[1:2],output_projection=hdu[0],reproject_function=reproject_interp)
-
-        """
-        time_vis_write=(time.time() - start_time)
-        imager = Imager(
-            visibility,
-            imaging_npixel=4096,
-            imaging_cellsize=50,
-        ) # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
-        dirty.write_to_file("result/mock_mightee/noise_dirty.fits")
-        time_end=(time.time() - start_time)
-        dirty.plot(title='Flux Density (Jy)',vmin=0,vmax=0.5)
-        plt.plot(
-            [1, 10, 30, 60, 80, 100],
-            [20.5, 22.4, 30.2, 40.3, 42.2, 44.4],
-            'o-', label='Vis Run',
-        )
-        plt.plot(
-            [1, 10, 30, 60, 80, 100],
-            [24.3, 46.5, 148.2, 247.2, 373.6, 537.7],
-            'o-', label='Vis + Image Run',
-        )
-        plt.xlabel('Number of Channels');plt.ylabel('Execution Time (sec)')
-        plt.legend();plt.show()"""
