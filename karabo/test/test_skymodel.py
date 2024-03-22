@@ -172,8 +172,11 @@ def test_convert_sky_to_backends():
     # Sources have redshift 1, i.e. frequency ~ 713 MHz, and thus
     # all sources should fall on bin index 1 in the array below
     # (i.e. within the channel starting at 710 MHz)
-    desired_frequencies_hz = 1e6 * np.array([700, 710, 720, 730, 740, 750])
+    desired_frequencies_hz = 1e6 * np.array([700, 710, 720, 730, 740])
     expected_channel_index = 1
+
+    frequency_bandwidth = desired_frequencies_hz[1] - desired_frequencies_hz[0]
+    frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
     # Verify that converting to OSKAR backend is a no-op
     oskar_sky = sky.convert_to_backend(backend=SimulatorBackend.OSKAR)
@@ -194,11 +197,9 @@ def test_convert_sky_to_backends():
         assert rascil_component.polarisation_frame == PolarisationFrame("stokesI")
 
         # Verify flux and frequencies of the source
-        # Assert source frequencies are the same as desired frequency channel starts,
-        # excluding the last entry of the desired frequencies
-        # (since it marks the end of the last frequency channel)
-        assert len(rascil_component.frequency) == len(desired_frequencies_hz) - 1
-        assert np.allclose(rascil_component.frequency, desired_frequencies_hz[:-1])
+        # Assert source frequencies are the same as centers of desired frequency channel
+        assert len(rascil_component.frequency) == len(desired_frequencies_hz)
+        assert np.allclose(rascil_component.frequency, frequency_channel_centers)
 
         # Assert only one flux entry is non-zero
         assert (

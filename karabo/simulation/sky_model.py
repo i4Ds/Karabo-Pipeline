@@ -1573,11 +1573,11 @@ class SkyModel:
             support OSKAR-formatted source np.array values.
             RASCIL: convert the current source array into a
             list of RASCIL SkyComponent instances.
-        desired_frequencies_hz: List of frequencies corresponding to endpoints
+        desired_frequencies_hz: List of frequencies corresponding to start
         of desired frequency channels. This field is required
         to convert sources into RASCIL SkyComponents.
-            The array contains endpoint frequencies for the desired channels.
-            E.g. [100e6, 110e6, 120e6] corresponds to 2 frequency channels,
+            The array contains starting frequencies for the desired channels.
+            E.g. [100e6, 110e6] corresponds to 2 frequency channels,
             which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
         verbose: Determines whether to display additional print statements.
         """
@@ -1599,7 +1599,14 @@ class SkyModel:
 
             desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
 
+            assert (
+                len(desired_frequencies_hz) > 1
+            ), """Must have at least 2 elements
+            in desired_frequencies_hz array"""
+
             desired_frequencies_hz = np.sort(desired_frequencies_hz)
+            frequency_bandwidth = desired_frequencies_hz[1] - desired_frequencies_hz[0]
+            frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
             # 1. Remove sources that fall outside all desired frequency channels
             # 2. Assign each source to the frequency channel closest
@@ -1646,10 +1653,7 @@ class SkyModel:
             # For each source, find the channel to which it belongs
             source_channel_indices = np.digitize(
                 convert_z_to_frequency(redshifts),
-                desired_frequencies_hz[
-                    :-1
-                ],  # Only provide starting points for frequency channels,
-                # i.e. omit the ending of the last channel
+                desired_frequencies_hz,
                 right=False,
             )
 
@@ -1668,7 +1672,7 @@ class SkyModel:
             ):
                 # 1 == npolarisations, fixed as 1 (stokesI) for now
                 # TODO eventually handle full stokes source catalogs
-                flux_array = np.zeros((len(desired_frequencies_hz) - 1, 1))
+                flux_array = np.zeros((len(desired_frequencies_hz), 1))
 
                 # Access [0] since this is the stokesI flux,
                 # and [index] to place the source's flux onto
@@ -1684,10 +1688,7 @@ class SkyModel:
                             frame="icrs",
                             equinox="J2000",
                         ),
-                        frequency=desired_frequencies_hz[
-                            :-1
-                        ],  # Equal to image's channels, to prevent
-                        # RASCIL from interpolating the fluxes
+                        frequency=frequency_channel_centers,
                         name=f"pointsource{ra}{dec}",
                         flux=flux_array,  # shape: nchannels, npolarisations
                         shape="Point",
