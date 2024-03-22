@@ -1714,7 +1714,7 @@ class SkyModel:
             cols: ColDefs = hdul[1].columns
 
         if encoded_freq is None:
-            return cls._get_sky_model_from_non_formatted_fits(
+            sky = cls._get_sky_model_from_non_formatted_fits(
                 data=data,
                 cols=cols,
                 prefix_mapping=prefix_mapping,
@@ -1726,7 +1726,7 @@ class SkyModel:
                 zero_col_array_fun=get_zero_col_array,
             )
         else:
-            return cls._get_sky_model_from_freq_formatted_fits(
+            sky = cls._get_sky_model_from_freq_formatted_fits(
                 data=data,
                 cols=cols,
                 prefix_mapping=prefix_mapping,
@@ -1738,6 +1738,13 @@ class SkyModel:
                 zero_col_array_fun=get_zero_col_array,
                 encoded_freq=encoded_freq,
             )
+        if sky.num_sources == 0:
+            raise KaraboSkyModelError(
+                "Selected Sky has not a single source. This is probably because "
+                + "provided `min_freq` and/or `max_freq` are out of the survey's "
+                + "frequencies and therefore results in filtering each source."
+            )
+        return sky
 
     @classmethod
     def get_GLEAM_Sky(
@@ -1752,7 +1759,7 @@ class SkyModel:
         The survey was created using MWA-telescope and covers the entire sky south
         of dec +30.
 
-        GLEAM's frequency-range: 74-231 MHz
+        GLEAM's frequency-range: 72-231 MHz
 
         The required .fits file will get downloaded and cached on disk.
 

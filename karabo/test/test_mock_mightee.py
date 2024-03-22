@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
 from astropy.io import fits
 from reproject import reproject_interp
 
@@ -17,7 +16,6 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 
 
-@pytest.mark.skip(reason="See issue 547")
 def test_mightee_download():
     _ = SkyModel.get_MIGHTEE_Sky()
     survey = MIGHTEESurveyDownloadObject()
@@ -25,7 +23,6 @@ def test_mightee_download():
     _ = SkyModel.get_fits_catalog(path)
 
 
-@pytest.mark.skip(reason="See issue 547")
 def test_mock_mightee():
     sky = SkyModel()
     mightee1 = SkyModel.get_MIGHTEE_Sky()

@@ -8,7 +8,7 @@ def test_download_gleam():
 
 
 def test_download_gleam_and_make_sky_model():
-    sky = SkyModel.get_GLEAM_Sky([76])
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     sample_prefix_mapping = SkyPrefixMapping([], [], [])
     number_of_sky_attributes = len(sample_prefix_mapping.__dict__)
 

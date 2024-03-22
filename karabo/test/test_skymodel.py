@@ -21,7 +21,7 @@ from karabo.simulator_backend import SimulatorBackend
 
 
 def test_filter_sky_model():
-    sky = SkyModel.get_GLEAM_Sky([76])
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     phase_center = [250, -80]  # ra,dec
     filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
     filtered_sky.explore_sky(
@@ -94,7 +94,7 @@ def test_filter_flux_sky_model(sky_data_with_ids: NDArray[np.object_]):
 
 
 def test_read_sky_model():
-    sky = SkyModel.get_GLEAM_Sky([76])
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     with tempfile.TemporaryDirectory() as tmpdir:
         sky_path = os.path.join(tmpdir, "gleam.csv")
         sky.save_sky_model_as_csv(path=sky_path)
@@ -151,7 +151,7 @@ def test_get_poisson_sky():
 
 
 def test_explore_sky():
-    sky = SkyModel.get_GLEAM_Sky([76])
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     sky.explore_sky([250, -80], s=0.1)
 
 
