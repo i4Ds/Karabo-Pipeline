@@ -230,6 +230,11 @@ class SkySourcesUnits:
                     field.name,
                     [field_name for field_name in col_names_and_freqs],
                 )
+        if encoded_freq is None and num_formattings != 0:
+            raise RuntimeError(
+                "Providing `encoded_freq` with non-formattable column-names "
+                + "is not allowed!"
+            )
         return prefix_mapping_copied, num_formattings, names_and_freqs
 
     def get_unit_scales(
@@ -256,6 +261,8 @@ class SkySourcesUnits:
         Returns:
             Mapping col-name -> scaling-factor to `SkyModel.sources` standard units.
         """
+        used_units: List[str] = list()
+        used_col_names: List[str] = list()
         cols_to_field_name_of_interest: Dict[str, str] = dict()
         for field in fields(prefix_mapping):
             if (
@@ -275,16 +282,33 @@ class SkySourcesUnits:
                     )
         scales: Dict[str, float] = dict()
         for col in cols:
-            if (col_name := col.name) in cols_to_field_name_of_interest.keys() and (
-                unit := col.unit
-            ) is not None:
-                astropy_unit_of_fits_col = unit_mapping[unit]
-                # here, it assumes that unit-field-names of `SkySourcesUnits` and
-                # `SkyPrefixMapping` are the same
-                sky_sources_unit: UnitBase = getattr(
-                    self, cols_to_field_name_of_interest[col_name]
-                )
-                scales[col_name] = astropy_unit_of_fits_col.to(sky_sources_unit)
+            if (col_name := col.name) in cols_to_field_name_of_interest.keys():
+                used_col_names.append(col_name)  # here because of cols without units
+                if (unit := col.unit) is not None:
+                    if unit not in used_units:
+                        used_units.append(unit)
+                    astropy_unit_of_fits_col = unit_mapping[unit]
+                    # here, it assumes that unit-field-names of `SkySourcesUnits` and
+                    # `SkyPrefixMapping` are the same
+                    sky_sources_unit: UnitBase = getattr(
+                        self, cols_to_field_name_of_interest[col_name]
+                    )
+                    scales[col_name] = astropy_unit_of_fits_col.to(sky_sources_unit)
+
+        non_used_unit_keys = set(unit_mapping.keys()) - set(used_units)
+        if len(non_used_unit_keys) > 0:
+            raise RuntimeError(
+                "The following unit-strings defined in `unit_mapping` are not found "
+                + f"in `cols`, which is probably a typo: {non_used_unit_keys}"
+            )
+        non_used_col_names = set(cols_to_field_name_of_interest.keys()) - set(
+            used_col_names
+        )
+        if len(non_used_col_names) > 0:
+            raise RuntimeError(
+                "The following col-names defined in `prefix_mapping` were not found "
+                + f"in `cols`, which is probably a typo: {non_used_col_names}"
+            )
         return scales
 
     @classmethod
