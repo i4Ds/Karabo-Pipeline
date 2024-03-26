@@ -15,7 +15,7 @@ from karabo.util.file_handler import FileHandler
 def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     DaskHandler.memory_limit = memory_limit
     print("Setting up sky model...")
-    sky = SkyModel.get_GLEAM_Sky([76])
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     phase_center = [250, -80]
 
     print("Filtering sky model...")
