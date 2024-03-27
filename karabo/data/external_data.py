@@ -46,6 +46,17 @@ class DownloadObject:
         verify: bool = True,
         verbose: bool = True,
     ) -> int:
+        """Downloads `url` to `local_file_path` through a GET-request.
+
+        Args:
+            url: Ressource to download.
+            local_file_path: Local file-path.
+            verify: Validate the server's certificate?
+            verbose: Verbose?
+
+        Returns:
+            Status-code (currently, always 200, otherwise RuntimeError).
+        """
         download_dir = os.path.dirname(local_file_path)
         dir_existed = False
         if os.path.exists(download_dir):
@@ -88,6 +99,17 @@ class DownloadObject:
         verify: bool = True,
         verbose: bool = True,
     ) -> str:
+        """Gets the requested file-path of this object and downloads the
+        ressource, cache it on disk if not already done.
+
+        Args:
+            remote_file_path: Remote file-path, relative to it's base url.
+            verify: Validate the server's certificate if download is needed?
+            verbose: Verbose download if it's needed?
+
+        Returns:
+            Local file-path of the remote-hosted object.
+        """
         if verbose:
             purpose = "download-objects caching"
         else:
@@ -120,7 +142,7 @@ class DownloadObject:
         """Checks whether the url is available or not.
 
         Returns:
-            Ture if available, else False
+            True if available, else False
         """
         with warnings.catch_warnings():
             warnings.filterwarnings(
