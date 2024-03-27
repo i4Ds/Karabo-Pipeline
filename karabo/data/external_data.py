@@ -44,6 +44,7 @@ class DownloadObject:
         url: str,
         local_file_path: FilePathType,
         verify: bool = True,
+        verbose: bool = True,
     ) -> int:
         download_dir = os.path.dirname(local_file_path)
         dir_existed = False
@@ -59,12 +60,16 @@ class DownloadObject:
             file_size = int(response.headers.get("Content-Length", 0))
             os.makedirs(download_dir, exist_ok=True)
 
-            desc = "(Unknown total file size)" if file_size == 0 else ""
+            desc = f"Downloading {url} to {local_file_path}"
             response.raw.read = functools.partial(
                 response.raw.read, decode_content=True
             )
             with tqdm.wrapattr(
-                response.raw, "read", total=file_size, desc=desc
+                response.raw,
+                "read",
+                total=file_size,
+                desc=desc,
+                disable=not verbose,
             ) as r_raw, open(local_file_path, "wb") as f:
                 shutil.copyfileobj(r_raw, f)
 
@@ -77,7 +82,12 @@ class DownloadObject:
             raise
         return response.status_code
 
-    def get_object(self, remote_file_path: str, verbose: bool = True) -> str:
+    def get_object(
+        self,
+        remote_file_path: str,
+        verify: bool = True,
+        verbose: bool = True,
+    ) -> str:
         if verbose:
             purpose = "download-objects caching"
         else:
@@ -97,9 +107,12 @@ class DownloadObject:
             remote_url = (
                 f"{self.remote_base_url}{DownloadObject.URL_SEP}{remote_file_path}"
             )
-            if verbose:
-                print(f"Download {remote_file_path} to {local_file_path} ...")
-            _ = DownloadObject.download(url=remote_url, local_file_path=local_file_path)
+            _ = DownloadObject.download(
+                url=remote_url,
+                local_file_path=local_file_path,
+                verify=verify,
+                verbose=verbose,
+            )
         return local_file_path
 
     @staticmethod
@@ -132,9 +145,14 @@ class SingleFileDownloadObject(DownloadObject):
         self.remote_file_path = remote_file_path
         super().__init__(remote_base_url=remote_base_url)
 
-    def get(self, verbose: bool = True) -> str:
+    def get(
+        self,
+        verify: bool = True,
+        verbose: bool = True,
+    ) -> str:
         return super().get_object(
             remote_file_path=self.remote_file_path,
+            verify=verify,
             verbose=verbose,
         )
 
