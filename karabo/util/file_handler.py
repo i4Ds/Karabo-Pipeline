@@ -18,12 +18,38 @@ _LongShortTermType = Literal["long", "short"]
 _SeedType = Optional[Union[str, int, float, bytes]]
 
 
-def _get_disk_cache_root() -> str:
+def _get_env_value(
+    varname: str,
+) -> Union[str, None]:
+    """Gets env-var value from OS. Treats empty-str as None.
+
+    Args:
+        varname: Varname to get value from.
+
+    Returns:
+        Value of `varname`.
+    """
+    env_value = os.environ.get(varname)
+    if env_value is not None and env_value == "":
+        env_value = None
+    return env_value
+
+
+def _get_disk_cache_root(
+    term: _LongShortTermType,
+    create_if_not_exists: bool = True,
+) -> str:
     """Gets the root-directory of the disk-cache.
 
-    Defined env-var-dir > scratch-dir > tmp-dir
+    Args:
+        term: Whether to get long- or short-term root.
+        create_if_not_exists: Create according dir if not exists?
 
-    Honors TMPDIR and TMP environment variable(s).
+    Honors 'TMPDIR' & 'TMP' and 'SCRATCH' env-var(s) for STM where
+    'TMPDIR' = 'TMP' > 'SCRATCH' > /tmp
+    Honors 'XDG_CACHE_HOME' env-var(s) for LTM where
+    'XDG_CACHE_HOME' > $HOME/.cache > /tmp
+    Note: Setting env-vars has only an effect if they're set before importing Karabo.
 
     Raises:
         RuntimeError: If 'TMPDIR' & 'TMP' are set differently which is ambiguous.
@@ -39,29 +65,44 @@ def _get_disk_cache_root() -> str:
     Returns:
         path of tmpdir
     """
-    # first guess is just /tmp (low prio)
+    # first guess is /tmp
     tmpdir = f"{os.path.sep}tmp"
-    # second guess is if scratch is available (mid prio)
-    if (scratch := os.environ.get("SCRATCH")) is not None and os.path.exists(scratch):
-        tmpdir = scratch
-    # third guess is to honor the env-variables mentioned (high prio)
-    env_check: Optional[str] = None  # variable to check previous environment variables
-    environment_varname = ""
-    if (TMPDIR := os.environ.get("TMPDIR")) is not None:
-        tmpdir = os.path.abspath(TMPDIR)
-        env_check = TMPDIR
-        environment_varname = "TMPDIR"
-    if (TMP := os.environ.get("TMP")) is not None:
-        if env_check is not None:
-            if TMP != env_check:
-                raise RuntimeError(
-                    f"Environment variables collision: TMP={TMP} != "
-                    + f"{environment_varname}={env_check} which is ambiguous."
-                )
-        else:
-            tmpdir = os.path.abspath(TMP)
-            env_check = TMP
-            environment_varname = "TMP"
+    if term == "short":
+        # second guess is if scratch is available (mid prio)
+        if (scratch := _get_env_value("SCRATCH")) is not None and os.path.exists(
+            scratch
+        ):
+            tmpdir = scratch
+        # third guess is to honor the env-variables mentioned (high prio)
+        env_check: Optional[
+            str
+        ] = None  # variable to check previous environment variables
+        environment_varname = ""
+        if (TMPDIR := _get_env_value("TMPDIR")) is not None:
+            tmpdir = os.path.abspath(TMPDIR)
+            env_check = TMPDIR
+            environment_varname = "TMPDIR"
+        if (TMP := _get_env_value("TMP")) is not None:
+            if env_check is not None:
+                if TMP != env_check:
+                    raise RuntimeError(
+                        f"Environment variables collision: TMP={TMP} != "
+                        + f"{environment_varname}={env_check} which is ambiguous."
+                    )
+            else:
+                tmpdir = os.path.abspath(TMP)
+                env_check = TMP
+                environment_varname = "TMP"
+    elif term == "long":
+        home = _get_env_value("HOME")
+        if home is not None:  # should always be set, but just to be sure
+            tmpdir = os.path.join(home, ".cache")
+        if (xdg_cache_dir := _get_env_value("XDG_CACHE_HOME")) is not None:
+            tmpdir = xdg_cache_dir
+    else:
+        assert_never(term)
+    if create_if_not_exists:
+        os.makedirs(tmpdir, exist_ok=True)
     return tmpdir
 
 
@@ -88,7 +129,7 @@ def _get_cache_dir(term: _LongShortTermType) -> str:
 
     The random-part of the cache-dir is seeded for relocation purpose.
         Otherwise, the same tmp-dirs couldn't be used in another run.
-    The seed is necessary to prevent tmpdir collisions of different
+    The seed prevents tmpdir collisions of different
         users on a cluster.
 
     Returns:
@@ -102,7 +143,7 @@ def _get_cache_dir(term: _LongShortTermType) -> str:
         prefix = delimiter.join((prefix, "STM"))
     else:
         assert_never(term)
-    user = os.environ.get("USER")
+    user = _get_env_value("USER")
     if user is not None:
         prefix = delimiter.join((prefix, user))
         seed = user + term
@@ -117,24 +158,32 @@ class FileHandler:
     """Utility file-handler for unspecified directories.
 
     Provides chache-management functionality.
-    `FileHandler.root` is a static root-directory where each cache-dir is located.
-    In case you want to extract something specific from the cache, the path is usually
-    printed blue & bold in stdout.
+    `FileHandler.root_stm` (short-term-memory-dir) and `FileHandler.root_ltm`
+    (long-term-memory-dir) are static root-directories where each according cache-dir
+    is located. In case someone wants to extract something specific from the cache,
+    the path is usually printed blue & bold in stdout.
 
-    The root STM and LTM should be unique per user (seeded rnd chars+digits), thus just
-    having two disk-cache directories per user.
+    Honors 'TMPDIR' & 'TMP' and 'SCRATCH' env-var(s) for STM-disk-cache where
+    'TMPDIR' = 'TMP' > 'SCRATCH' > /tmp
+    Honors 'XDG_CACHE_HOME' env-var(s) for LTM-disk-cache where
+    'XDG_CACHE_HOME' > $HOME/.cache > /tmp
+    Note: Setting env-vars has only an effect if they're set before importing Karabo.
+    Run-time adjustments must be done directly on `root_stm` and `root_ltm`!
 
-    Set `FileHandler.root` to change the directory where files and dirs will be saved.
-    The dir-structure is as follows where "tmp" is `FileHandler.root`:
+    The root STM and LTM must be unique per user (seeded rnd chars+digits) to
+    avoid conflicting dir-names on any computer with any root-directory.
 
-    tmp
-    ├── karabo-LTM-<user>-<10 rnd chars+digits>
-    │   ├── <prefix><10 rnd chars+digits>
-    |   |    ├── <sbudir>
-    |   |    └── <file>
-    │   └── <prefix><10 rnd chars+digits>
-    |        ├── <sbudir>
-    |        └── <file>
+
+    LTM-root
+    └── karabo-LTM-<user>-<10 rnd chars+digits>
+        ├── <prefix><10 rnd chars+digits>
+        |    ├── <sbudir>
+        |    └── <file>
+        └── <prefix><10 rnd chars+digits>
+             ├── <sbudir>
+             └── <file>
+
+    STM-root
     └── karabo-STM-<user>-<10 rnd chars+digits>
         ├── <prefix><10 rnd chars+digits>
         |    ├── <sbudir>
@@ -143,23 +192,21 @@ class FileHandler:
              ├── <sbudir>
              └── <file>
 
-    LTM stand for long-term-memory (FileHandler.ltm()) and STM for short-term-memory
-    (FileHandler.stm()). The data-products usually get into in the STM directory.
-
     FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
-    root: str = _get_disk_cache_root()
+    root_stm: str = _get_disk_cache_root(term="short")
+    root_ltm: str = _get_disk_cache_root(term="long")
 
     @classmethod
     def ltm(cls) -> str:
         """LTM (long-term-memory) path."""
-        return os.path.join(cls.root, _get_cache_dir(term="long"))
+        return os.path.join(cls.root_ltm, _get_cache_dir(term="long"))
 
     @classmethod
     def stm(cls) -> str:
         """STM (short-term-memory) path."""
-        return os.path.join(cls.root, _get_cache_dir(term="short"))
+        return os.path.join(cls.root_stm, _get_cache_dir(term="short"))
 
     def __init__(
         self,
