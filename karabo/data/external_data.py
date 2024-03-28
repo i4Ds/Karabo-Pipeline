@@ -1,9 +1,12 @@
+import functools
 import os
 import re
 import shutil
-from typing import List
+import warnings
+from typing import Final, List
 
 import requests
+from tqdm import tqdm
 
 from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler
@@ -28,7 +31,7 @@ class DownloadObject:
     we don't guarantee their availability for deprecated Karabo versions.
     """
 
-    split = "/"
+    URL_SEP: Final = "/"
 
     def __init__(
         self,
@@ -37,28 +40,76 @@ class DownloadObject:
         self.remote_base_url = remote_base_url
 
     @staticmethod
-    def download(url: str, local_file_path: FilePathType) -> int:
-        try:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
+    def download(
+        url: str,
+        local_file_path: FilePathType,
+        verify: bool = True,
+        verbose: bool = True,
+    ) -> int:
+        """Downloads `url` to `local_file_path` through a GET-request.
 
-            download_dir = os.path.dirname(local_file_path)
+        Args:
+            url: Ressource to download.
+            local_file_path: Local file-path.
+            verify: Validate the server's certificate?
+            verbose: Verbose?
+
+        Returns:
+            Status-code (currently, always 200, otherwise RuntimeError).
+        """
+        download_dir = os.path.dirname(local_file_path)
+        dir_existed = False
+        if os.path.exists(download_dir):
+            dir_existed = True
+        try:
+            response = requests.get(url, stream=True, verify=verify)
+            if response.status_code != 200:
+                response.raise_for_status()  # Will only raise for 4xx codes, so...
+                raise RuntimeError(
+                    f"Request to {url} returned status code {response.status_code}"
+                )
+            file_size = int(response.headers.get("Content-Length", 0))
             os.makedirs(download_dir, exist_ok=True)
-            with open(local_file_path, "wb") as file:
-                for chunk in response.iter_content(
-                    chunk_size=8192
-                ):  # Download in 8KB chunks
-                    file.write(chunk)
+
+            desc = f"Downloading {url} to {local_file_path}"
+            response.raw.read = functools.partial(
+                response.raw.read, decode_content=True
+            )
+            with tqdm.wrapattr(
+                response.raw,
+                "read",
+                total=file_size,
+                desc=desc,
+                disable=not verbose,
+            ) as r_raw, open(local_file_path, "wb") as f:
+                shutil.copyfileobj(r_raw, f)
+
         except BaseException:  # cleanup if interrupted
             if os.path.exists(local_file_path):
-                if os.path.isdir(local_file_path):
+                if os.path.isdir(local_file_path) and not dir_existed:
                     shutil.rmtree(local_file_path)
                 else:
                     os.remove(local_file_path)
             raise
         return response.status_code
 
-    def get_object(self, remote_file_path: str, verbose: bool = True) -> str:
+    def get_object(
+        self,
+        remote_file_path: str,
+        verify: bool = True,
+        verbose: bool = True,
+    ) -> str:
+        """Gets the requested file-path of this object and downloads the
+        ressource, cache it on disk if not already done.
+
+        Args:
+            remote_file_path: Remote file-path, relative to it's base url.
+            verify: Validate the server's certificate if download is needed?
+            verbose: Verbose download if it's needed?
+
+        Returns:
+            Local file-path of the remote-hosted object.
+        """
         if verbose:
             purpose = "download-objects caching"
         else:
@@ -71,16 +122,19 @@ class DownloadObject:
         local_file_path = os.path.join(
             local_cache_dir,
             os.path.join(
-                *remote_file_path.split(DownloadObject.split)
+                *remote_file_path.split(DownloadObject.URL_SEP)
             ),  # convert to local filesys.sep
         )
         if not os.path.exists(local_file_path):
             remote_url = (
-                f"{self.remote_base_url}{DownloadObject.split}{remote_file_path}"
+                f"{self.remote_base_url}{DownloadObject.URL_SEP}{remote_file_path}"
             )
-            if verbose:
-                print(f"Download {remote_file_path} to {local_file_path} ...")
-            _ = DownloadObject.download(url=remote_url, local_file_path=local_file_path)
+            _ = DownloadObject.download(
+                url=remote_url,
+                local_file_path=local_file_path,
+                verify=verify,
+                verbose=verbose,
+            )
         return local_file_path
 
     @staticmethod
@@ -88,12 +142,17 @@ class DownloadObject:
         """Checks whether the url is available or not.
 
         Returns:
-            Ture if available, else False
+            True if available, else False
         """
-        resp = requests.get(
-            url=url,
-            headers={"Range": "bytes=0-0"},
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=Warning
+            )  # filter `InsecureRequestWarning` from `urllib3`
+            resp = requests.get(
+                url=url,
+                headers={"Range": "bytes=0-0"},
+                verify=False,  # ok here, because no content is really fetched
+            )
         return resp.status_code == 206
 
 
@@ -108,15 +167,20 @@ class SingleFileDownloadObject(DownloadObject):
         self.remote_file_path = remote_file_path
         super().__init__(remote_base_url=remote_base_url)
 
-    def get(self, verbose: bool = True) -> str:
+    def get(
+        self,
+        verify: bool = True,
+        verbose: bool = True,
+    ) -> str:
         return super().get_object(
             remote_file_path=self.remote_file_path,
+            verify=verify,
             verbose=verbose,
         )
 
     def is_available(self) -> bool:
         remote_url = (
-            f"{self.remote_base_url}{DownloadObject.split}{self.remote_file_path}"
+            f"{self.remote_base_url}{DownloadObject.URL_SEP}{self.remote_file_path}"
         )
         return DownloadObject.is_url_available(url=remote_url)
 
@@ -248,5 +312,5 @@ class MGCLSContainerDownloadObject(ContainerContents):
     ) -> None:
         super().__init__(
             remote_url=cscs_karabo_public_base_url,
-            regexr_pattern=f"MGCLS{DownloadObject.split}{regexr_pattern}",
+            regexr_pattern=f"MGCLS{DownloadObject.URL_SEP}{regexr_pattern}",
         )
