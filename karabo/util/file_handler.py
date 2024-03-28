@@ -5,7 +5,6 @@ import os
 import random
 import shutil
 import string
-import warnings
 from copy import copy
 from types import TracebackType
 from typing import Literal, Optional, Union, overload
@@ -19,11 +18,15 @@ _LongShortTermType = Literal["long", "short"]
 _SeedType = Optional[Union[str, int, float, bytes]]
 
 
-def _get_disk_cache_root(term: _LongShortTermType) -> str:
+def _get_disk_cache_root(
+    term: _LongShortTermType,
+    create_if_not_exists: bool = True,
+) -> str:
     """Gets the root-directory of the disk-cache.
 
     Args:
         term: Whether to get long- or short-term root.
+        create_if_not_exists: Create according dir if not exists?
 
     Defined env-var-dir > scratch-dir > tmp-dir
 
@@ -56,11 +59,11 @@ def _get_disk_cache_root(term: _LongShortTermType) -> str:
             str
         ] = None  # variable to check previous environment variables
         environment_varname = ""
-        if (TMPDIR := os.environ.get("TMPDIR")) is not None:
+        if (TMPDIR := os.environ.get("TMPDIR")) is not None and TMPDIR != "":
             tmpdir = os.path.abspath(TMPDIR)
             env_check = TMPDIR
             environment_varname = "TMPDIR"
-        if (TMP := os.environ.get("TMP")) is not None:
+        if (TMP := os.environ.get("TMP")) is not None and TMP != "":
             if env_check is not None:
                 if TMP != env_check:
                     raise RuntimeError(
@@ -72,21 +75,17 @@ def _get_disk_cache_root(term: _LongShortTermType) -> str:
                 env_check = TMP
                 environment_varname = "TMP"
     elif term == "long":
-        ltm_cache_dir = os.path.join(os.environ["$HOME"], ".cache")
-        if os.path.exists(ltm_cache_dir):
-            tmpdir = ltm_cache_dir
+        home = os.environ.get("HOME")
+        if home is not None and home != "":  # should always be set, but just to be sure
+            tmpdir = os.path.join(home, ".cache")
         if (
             xdg_cache_dir := os.environ.get("XDG_CACHE_HOME")
         ) is not None and xdg_cache_dir != "":
-            if not os.path.exists(xdg_cache_dir):
-                warnings.warn(
-                    message=f"Specified $XDG_CACHE_HOME={xdg_cache_dir}, but directory "
-                    + f"doesn't exist. Defaults back to {tmpdir}"
-                )
-            else:
-                tmpdir = xdg_cache_dir
+            tmpdir = xdg_cache_dir
     else:
         assert_never(term)
+    if create_if_not_exists:
+        os.makedirs(tmpdir, exist_ok=True)
     return tmpdir
 
 
