@@ -18,6 +18,23 @@ _LongShortTermType = Literal["long", "short"]
 _SeedType = Optional[Union[str, int, float, bytes]]
 
 
+def _get_env_value(
+    varname: str,
+) -> Union[str, None]:
+    """Gets env-var value from OS. Treats empty-str as None.
+
+    Args:
+        varname: Varname to get value from.
+
+    Returns:
+        Value of `varname`.
+    """
+    env_value = os.environ.get(varname)
+    if env_value is not None and env_value == "":
+        env_value = None
+    return env_value
+
+
 def _get_disk_cache_root(
     term: _LongShortTermType,
     create_if_not_exists: bool = True,
@@ -28,9 +45,11 @@ def _get_disk_cache_root(
         term: Whether to get long- or short-term root.
         create_if_not_exists: Create according dir if not exists?
 
-    Defined env-var-dir > scratch-dir > tmp-dir
-
-    Honors 'TMPDIR' & 'TMP' for STM and 'XDG_CACHE_HOME' for LTM env var(s).
+    Honors 'TMPDIR' & 'TMP' and 'SCRATCH' env-var(s) for STM where
+    'TMPDIR' = 'TMP' > 'SCRATCH' > /tmp
+    Honors 'XDG_CACHE_HOME' env-var(s) for LTM where
+    'XDG_CACHE_HOME' > $HOME/.cache > /tmp
+    Note: Setting env-vars has only an effect if they're set before importing Karabo.
 
     Raises:
         RuntimeError: If 'TMPDIR' & 'TMP' are set differently which is ambiguous.
@@ -50,7 +69,7 @@ def _get_disk_cache_root(
     tmpdir = f"{os.path.sep}tmp"
     if term == "short":
         # second guess is if scratch is available (mid prio)
-        if (scratch := os.environ.get("SCRATCH")) is not None and os.path.exists(
+        if (scratch := _get_env_value("SCRATCH")) is not None and os.path.exists(
             scratch
         ):
             tmpdir = scratch
@@ -59,11 +78,11 @@ def _get_disk_cache_root(
             str
         ] = None  # variable to check previous environment variables
         environment_varname = ""
-        if (TMPDIR := os.environ.get("TMPDIR")) is not None and TMPDIR != "":
+        if (TMPDIR := _get_env_value("TMPDIR")) is not None:
             tmpdir = os.path.abspath(TMPDIR)
             env_check = TMPDIR
             environment_varname = "TMPDIR"
-        if (TMP := os.environ.get("TMP")) is not None and TMP != "":
+        if (TMP := _get_env_value("TMP")) is not None:
             if env_check is not None:
                 if TMP != env_check:
                     raise RuntimeError(
@@ -75,12 +94,10 @@ def _get_disk_cache_root(
                 env_check = TMP
                 environment_varname = "TMP"
     elif term == "long":
-        home = os.environ.get("HOME")
-        if home is not None and home != "":  # should always be set, but just to be sure
+        home = _get_env_value("HOME")
+        if home is not None:  # should always be set, but just to be sure
             tmpdir = os.path.join(home, ".cache")
-        if (
-            xdg_cache_dir := os.environ.get("XDG_CACHE_HOME")
-        ) is not None and xdg_cache_dir != "":
+        if (xdg_cache_dir := _get_env_value("XDG_CACHE_HOME")) is not None:
             tmpdir = xdg_cache_dir
     else:
         assert_never(term)
@@ -126,7 +143,7 @@ def _get_cache_dir(term: _LongShortTermType) -> str:
         prefix = delimiter.join((prefix, "STM"))
     else:
         assert_never(term)
-    user = os.environ.get("USER")
+    user = _get_env_value("USER")
     if user is not None:
         prefix = delimiter.join((prefix, user))
         seed = user + term
@@ -145,6 +162,13 @@ class FileHandler:
     (long-term-memory-dir) are static root-directories where each according cache-dir
     is located. In case someone wants to extract something specific from the cache,
     the path is usually printed blue & bold in stdout.
+
+    Honors 'TMPDIR' & 'TMP' and 'SCRATCH' env-var(s) for STM-disk-cache where
+    'TMPDIR' = 'TMP' > 'SCRATCH' > /tmp
+    Honors 'XDG_CACHE_HOME' env-var(s) for LTM-disk-cache where
+    'XDG_CACHE_HOME' > $HOME/.cache > /tmp
+    Note: Setting env-vars has only an effect if they're set before importing Karabo.
+    Run-time adjustments must be done directly on `root_stm` and `root_ltm`!
 
     The root STM and LTM must be unique per user (seeded rnd chars+digits) to
     avoid conflicting dir-names on any computer with any root-directory.

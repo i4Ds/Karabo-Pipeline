@@ -10,7 +10,7 @@ from karabo.util.file_handler import FileHandler
 def test_file_handler():
     """Test global FileHanlder functionality."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        os.environ["XDG_CACHE_HOME"] = tmpdir  # sets LTM
+        FileHandler.root_ltm = tmpdir
         FileHandler.root_stm = tmpdir
         assert FileHandler.is_dir_empty(dirname=tmpdir)
         assert len(os.listdir(tmpdir)) == 0
