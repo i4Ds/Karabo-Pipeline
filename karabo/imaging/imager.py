@@ -5,6 +5,8 @@ import warnings
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
+import oskar
+from astropy.coordinates import SkyCoord
 from astropy.modeling import fitting, models
 from astropy.wcs import WCS
 from distributed import Client
@@ -19,6 +21,7 @@ from rascil.workflows.rsexecute.execution_support import rsexecute
 from scipy.optimize import minpack
 from ska_sdp_datamodels.image.image_model import Image as SkaSdpImage
 from ska_sdp_datamodels.science_data_model import PolarisationFrame
+from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from ska_sdp_func_python.image import image_gather_channels
 from ska_sdp_func_python.imaging import (
     create_image_from_visibility,
@@ -26,11 +29,13 @@ from ska_sdp_func_python.imaging import (
     remove_sumwt,
 )
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
+from typing_extensions import assert_never
 
 from karabo.data.external_data import MGCLSContainerDownloadObject
 from karabo.imaging.image import Image
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
+from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import BeamType, FilePathType
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler, assert_valid_ending
@@ -107,14 +112,14 @@ def get_MGCLS_images(regex_pattern: str, verbose: bool = False) -> List[SkaSdpIm
 
 
 class Imager:
-    """Imager class provides imaging functionality using the visibilities
-    of an observation with the help of RASCIL.
+    """Imaging functionality using the visibilities
+    of an observation.
 
     In addition, it provides the calculation of the pixel coordinates of point sources.
 
     Parameters
     ---------------------------------------------
-    visibility : Visibility, required
+    visibility : Visibility | RASCILVisibility, required
         Visibility object containing the visibilities of an observation.
     logfile : str, default=None,
         Name of logfile (default is to construct one from msname)
@@ -124,7 +129,7 @@ class Imager:
         Data descriptors in MS to read (all must have the same number of channels)
     ingest_vis_nchan : int, default=3,
         Number of channels in a single data descriptor in the MS
-    ingest_chan_per_vis : int, defualt=1,
+    ingest_chan_per_vis : int, default=1,
         Number of channels per blockvis (before any average)
     ingest_average_blockvis : Union[bool, str], default=False,
         Average all channels in blockvis.
@@ -160,7 +165,7 @@ class Imager:
 
     def __init__(
         self,
-        visibility: Visibility,
+        visibility: Union[Visibility, RASCILVisibility],
         logfile: Optional[str] = None,
         performance_file: Optional[str] = None,
         ingest_dd: List[int] = [0],
@@ -186,6 +191,7 @@ class Imager:
         imaging_dft_kernel: Optional[
             str
         ] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
+        imaging_field_of_view_degrees: float = 1,
     ) -> None:
         self.visibility = visibility
         self.logfile = logfile
@@ -211,38 +217,13 @@ class Imager:
         self.imaging_dft_kernel = imaging_dft_kernel
         self.imaging_uvmax = imaging_uvmax
         self.imaging_uvmin = imaging_uvmin
+        self.imaging_field_of_view_degrees = imaging_field_of_view_degrees
 
-    def get_dirty_image(
+    def _rascil_imager(
         self,
-        fits_path: Optional[FilePathType] = None,
+        fits_path: FilePathType,
+        visibility: RASCILVisibility,
     ) -> Image:
-        """Get Dirty Image of visibilities passed to the Imager.
-
-        Note: If `fits_path` is provided and already exists, then this function will
-        overwrite `fits_path`.
-
-        Args:
-            fits_path: Path to where the .fits file will get saved.
-
-        Returns:
-            Dirty Image
-        """
-        if fits_path is None:
-            tmp_dir = FileHandler().get_tmp_dir(
-                prefix="Imager-Dirty-",
-                purpose="disk-cache for dirty.fits",
-            )
-            fits_path = os.path.join(tmp_dir, "dirty.fits")
-        else:
-            assert_valid_ending(path=fits_path, ending=".fits")
-
-        block_visibilities = create_visibility_from_ms(
-            str(self.visibility.ms_file_path)
-        )
-
-        if len(block_visibilities) != 1:
-            raise EnvironmentError("Visibilities are too large")
-        visibility = block_visibilities[0]
         model = create_image_from_visibility(
             visibility,
             npixel=self.imaging_npixel,
@@ -255,7 +236,91 @@ class Imager:
         dirty.image_acc.export_to_fits(fits_file=fits_path)
 
         image = Image(path=fits_path)
+
         return image
+
+    def _oskar_imager(
+        self,
+        fits_path: FilePathType,
+        visibility: Visibility,
+    ) -> Image:
+        imager = oskar.Imager()
+        imager.set(
+            input_file=visibility.vis_path,
+            output_root=fits_path,
+            fov_deg=self.imaging_field_of_view_degrees,
+            image_size=self.imaging_npixel,
+        )
+        if self.imaging_phasecentre is not None:
+            phase_centre = SkyCoord(self.imaging_phasecentre, frame="icrs")
+            ra = phase_centre.ra.degree
+            dec = phase_centre.dec.degree
+
+            imager.set_vis_phase_centre(ra, dec)
+
+        output = imager.run(return_images=1)
+        image = output["images"][0]
+
+        # TODO convert to Image object instead of numpy ndarray
+
+        return image
+
+    def get_dirty_image(
+        self,
+        fits_path: Optional[FilePathType] = None,
+        imaging_backend: SimulatorBackend = SimulatorBackend.RASCIL,
+    ) -> Image:
+        """Get Dirty Image of visibilities passed to the Imager.
+
+        Note: If `fits_path` is provided and already exists, then this function will
+        overwrite `fits_path`.
+
+        Args:
+            fits_path: Path to where the .fits file will get saved.
+            imaging_backend: Backend to use for computing dirty image from visibilities.
+                Defaults to RASCIL.
+
+        Returns:
+            Dirty Image
+        """
+        # Validate requested filepath
+        if fits_path is None:
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="Imager-Dirty-",
+                purpose="disk-cache for dirty.fits",
+            )
+            fits_path = os.path.join(tmp_dir, "dirty.fits")
+        else:
+            assert_valid_ending(path=fits_path, ending=".fits")
+
+        # Perform imaging based on selected backend
+        if imaging_backend is SimulatorBackend.OSKAR:
+            if isinstance(self.visibility, RASCILVisibility):
+                raise NotImplementedError(
+                    """OSKAR Imager applied to
+                    RASCIL Visibilities is currently not supported.
+                    For RASCIL Visibilities please use the RASCIL Imager."""
+                )
+
+            image = self._oskar_imager(fits_path, self.visibility)
+
+            return image
+        elif imaging_backend is SimulatorBackend.RASCIL:
+            vis = self.visibility
+            if isinstance(vis, Visibility):
+                # Convert OSKAR Visibility to RASCIL-compatible format
+                block_visibilities = create_visibility_from_ms(str(vis.ms_file_path))
+
+                if len(block_visibilities) != 1:
+                    raise EnvironmentError("Visibilities are too large")
+                vis = block_visibilities[0]
+
+            # Compute dirty image from visibilities
+            image = self._rascil_imager(fits_path, vis)
+
+            return image
+
+        assert_never(imaging_backend)
 
     def imaging_rascil(
         self,
@@ -333,6 +398,12 @@ class Imager:
         Returns:
             deconvolved, restored, residual
         """
+        if isinstance(self.visibility, RASCILVisibility):
+            raise NotImplementedError(
+                """Deconvolution routines currently do not support
+                RASCIL-based visibilities."""
+            )
+
         if deconvolved_fits_path is not None:
             assert_valid_ending(path=deconvolved_fits_path, ending=".fits")
         if restored_fits_path is not None:
