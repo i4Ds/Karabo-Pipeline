@@ -249,7 +249,7 @@ def test_simulation_noise_meerkat(
     reason="Current issue with Dask makes this test flaky. Test works locally."
 )
 def test_parallelization_by_observation() -> None:
-    sky = SkyModel.get_GLEAM_Sky([76])
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     phase_center = [250, -80]
     CENTER_FREQUENCIES_HZ = [100e6, 101e6]
     CHANNEL_BANDWIDTHS_HZ = [1.0, 2.0]

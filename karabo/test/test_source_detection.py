@@ -149,7 +149,7 @@ def test_bdsf_image_blanked():
     therefore you can just create an `Image` from that file
     """
     phase_center = [250, -80]
-    gleam_sky = SkyModel.get_GLEAM_Sky([76])
+    gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     sky = gleam_sky.filter_by_radius(0, 0.01, phase_center[0], phase_center[1])
     sky.setup_default_wcs(phase_center=phase_center)
     askap_tel = Telescope.constructor("ASKAP")

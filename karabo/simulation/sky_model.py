@@ -3,6 +3,9 @@ from __future__ import annotations
 import copy
 import enum
 import math
+import re
+from collections.abc import Hashable, Mapping
+from copy import deepcopy
 from dataclasses import dataclass, fields
 from typing import (
     Any,
@@ -13,11 +16,11 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
     cast,
+    overload,
 )
-from typing import get_args as typing_get_args
-from typing import overload
 from warnings import warn
 
 import dask.array as da
@@ -30,7 +33,10 @@ import xarray as xr
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
+from astropy.io.fits import ColDefs
+from astropy.io.fits.fitsrec import FITS_rec
 from astropy.table import Table
+from astropy.units.core import PrefixUnit, Unit, UnitBase
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
 from numpy.typing import NDArray
@@ -39,9 +45,10 @@ from ska_sdp_datamodels.sky_model.sky_model import SkyComponent
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
-from karabo.data.external_data import (  # MIGHTEESurveyDownloadObject,
+from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     HISourcesSmallCatalogDownloadObject,
+    MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
 from karabo.simulation.line_emission_helpers import (
@@ -50,6 +57,7 @@ from karabo.simulation.line_emission_helpers import (
 )
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
+    FilePathType,
     IntFloat,
     IntFloatList,
     NPFloatInpBroadType,
@@ -59,34 +67,29 @@ from karabo.util._types import (
 from karabo.util.hdf5_util import convert_healpix_2_radec, get_healpix_image
 from karabo.util.math_util import get_poisson_disk_sky
 from karabo.util.plotting_util import get_slices
-from karabo.warning import KaraboWarning
+from karabo.warning import _DEV_ERROR_MSG, KaraboWarning
 
-GLEAM_freq = Literal[
-    76,
-    84,
-    92,
-    99,
-    107,
-    115,
-    122,
-    130,
-    143,
-    151,
-    158,
-    166,
-    174,
-    181,
-    189,
-    197,
-    204,
-    212,
-    220,
-    227,
-]
 StokesType = Literal["Stokes I", "Stokes Q", "Stokes U", "Stokes V"]
+SkySourcesColName = Literal[  # preserve python-var-name compatibility
+    "ra",
+    "dec",
+    "stokes_i",
+    "stokes_q",
+    "stokes_u",
+    "stokes_v",
+    "ref_freq",
+    "spectral_index",
+    "rm",
+    "major",
+    "minor",
+    "pa",
+    "true_redshift",
+    "observed_redshift",
+    "id",
+]
 
-NPSkyType = Union[NDArray[np.float_], NDArray[np.object_]]
-SkySourcesType = Union[NPSkyType, xr.DataArray]
+_NPSkyType = Union[NDArray[np.float_], NDArray[np.object_]]
+_SkySourcesType = Union[_NPSkyType, xr.DataArray]
 _SourceIdType = Union[
     List[str],
     List[int],
@@ -96,6 +99,14 @@ _SourceIdType = Union[
     NDArray[np.float_],
     DataArrayCoordinates[xr.DataArray],
 ]
+_SkyPrefixMappingValueType = Union[str, List[str]]
+_ChunksType = Union[
+    int,
+    Literal["auto"],
+    Tuple[int, ...],
+    Mapping[Hashable, int],
+]
+_TSkyModel = TypeVar("_TSkyModel", bound="SkyModel")
 
 
 class Polarisation(enum.Enum):
@@ -107,21 +118,265 @@ class Polarisation(enum.Enum):
 
 @dataclass
 class SkyPrefixMapping:
-    ra: str
-    dec: str
-    stokes_i: str
-    stokes_q: Optional[str] = None
-    stokes_u: Optional[str] = None
-    stokes_v: Optional[str] = None
-    ref_freq: Optional[str] = None
-    spectral_index: Optional[str] = None
-    rm: Optional[str] = None
-    major: Optional[str] = None
-    minor: Optional[str] = None
-    pa: Optional[str] = None
-    true_redshift: Optional[str] = None
-    observed_redshift: Optional[str] = None
-    id: Optional[str] = None
+    """Defines the relation between col-names of a .fits file and `SkyModel.sources`.
+
+    Field-names of sources-data must be according to `SkySourcesColName`.
+    Each `_SkyPrefixMappingValueType` can be a set of col-names, a single col-name.
+    Just leave the values not provided in the .fits file None.
+    """
+
+    # field-names must match `SkySourcesColName`
+    ra: _SkyPrefixMappingValueType
+    dec: _SkyPrefixMappingValueType
+    stokes_i: _SkyPrefixMappingValueType
+    stokes_q: Optional[_SkyPrefixMappingValueType] = None
+    stokes_u: Optional[_SkyPrefixMappingValueType] = None
+    stokes_v: Optional[_SkyPrefixMappingValueType] = None
+    ref_freq: Optional[str] = None  # providing multiple freq-col-names is not supported
+    spectral_index: Optional[_SkyPrefixMappingValueType] = None
+    rm: Optional[_SkyPrefixMappingValueType] = None
+    major: Optional[_SkyPrefixMappingValueType] = None
+    minor: Optional[_SkyPrefixMappingValueType] = None
+    pa: Optional[_SkyPrefixMappingValueType] = None
+    true_redshift: Optional[_SkyPrefixMappingValueType] = None
+    observed_redshift: Optional[_SkyPrefixMappingValueType] = None
+    id: Optional[_SkyPrefixMappingValueType] = None
+
+
+@dataclass
+class SkySourcesUnits:
+    """Represents the units of `SkyModel.sources`.
+
+    This class is useful for unit-conversion from different Prefixes
+    https://docs.astropy.org/en/stable/units/standard_units.html
+    and different units which can be converted to another (like deg to arcmin).
+
+    `UnitBase` covers
+    - `Unit`: e.g. u.Jy, u.Hz
+    - `CompositeUnit`: e.g. u.Jy/u.beam, u.rad/u.m**2
+    - `PrefixUnit`: e.g. u.MHz, u.GHz
+
+    Just assign another unit to the constructor in case the default doesn't fit
+    for a specific field. It's useful if e.g. `stokes_i` is u.Jy/u.beam in the
+    .fits file instead.
+    """
+
+    # field-names of unit-values must match `SkySourcesColName`
+    ra: UnitBase = u.deg  # `Unit`
+    dec: UnitBase = u.deg  # `Unit`
+    stokes_i: UnitBase = u.Jy  # `Unit`
+    stokes_q: UnitBase = u.Jy  # `Unit`
+    stokes_u: UnitBase = u.Jy  # `Unit`
+    stokes_v: UnitBase = u.Jy  # `Unit`
+    ref_freq: UnitBase = u.Hz  # `Unit`
+    rm: UnitBase = u.rad / u.m**2  # `CompositeUnit`
+    major: UnitBase = u.arcsec  # `Unit`
+    minor: UnitBase = u.arcsec  # `Unit`
+    pa: UnitBase = u.deg  # `Unit`
+
+    @classmethod
+    def format_sky_prefix_freq_mapping(
+        cls,
+        cols: ColDefs,
+        prefix_mapping: SkyPrefixMapping,
+        encoded_freq: Optional[UnitBase],
+    ) -> Tuple[SkyPrefixMapping, int, Dict[str, float]]:
+        """Formats `SkyPrefixMapping` fields from str to list[str] if formattable.
+
+        The encoded frequencies and col-names of the formattable field-values get
+        extracted from `cols`, converted into Hz. The extracted col-names and
+        frequencies are then available in a col-name -> freq mapping.
+        In addition, `prefix_mapping` gets enhanced with a list of according col-names
+        of the .fits file.
+        This function doesn't do any formatting for each field, if `encoded_freq`
+        is None or is not positional formattable.
+
+        Args:
+            cols: Columns of .fits file
+            prefix_mapping: Should contain formattable field-values.
+            encoded_freq: astropy.unit frequency encoded (e.g. u.MHz)
+
+        Raises:
+            RuntimeError: In case the number of formatting columns of `cols`
+                are not of equal for each frequency-channel.
+
+        Returns:
+            Formatted `prefix_mapping`, number of formatted col-names per frequency,
+                and a mapping col-name -> frequency (Hz).
+        """
+        num_formattings = 0
+        names_and_freqs: Dict[str, float] = dict()
+        if encoded_freq is None:
+            return prefix_mapping, num_formattings, names_and_freqs
+        prefix_mapping_copied = deepcopy(prefix_mapping)  # to preserve mutable object
+        for field in fields(prefix_mapping_copied):
+            field_value = getattr(prefix_mapping_copied, field.name)
+            if isinstance(field_value, str) and cls.is_pos_formattable(field_value):
+                col_names_and_freqs = cls.extract_names_and_freqs(
+                    string=field_value, cols=cols, unit=encoded_freq
+                )
+                if num_formattings == 0:
+                    num_formattings = len(col_names_and_freqs)
+                else:
+                    if num_formattings != len(col_names_and_freqs):
+                        raise RuntimeError(
+                            "Number of formatted sky-prefixes don't match for each "
+                            + f"frequency-channel! {num_formattings=} != "
+                            + f"{len(col_names_and_freqs)=}"
+                        )
+                names_and_freqs.update(col_names_and_freqs)
+                setattr(
+                    prefix_mapping_copied,
+                    field.name,
+                    [field_name for field_name in col_names_and_freqs],
+                )
+        if encoded_freq is not None and num_formattings == 0:
+            raise RuntimeError(
+                "Providing `encoded_freq` with non-formattable column-names "
+                + "is not allowed!"
+            )
+        return prefix_mapping_copied, num_formattings, names_and_freqs
+
+    def get_unit_scales(
+        self,
+        cols: ColDefs,
+        unit_mapping: Dict[str, UnitBase],
+        prefix_mapping: SkyPrefixMapping,
+    ) -> Dict[str, float]:
+        """Converts all units specified in `prefix_mapping` into a factor, which can be
+        used for multiplication of the according data-array, to convert the
+        `SkyModel.sources` into standard-units defined in the fields of this dataclass.
+
+        If a unit in the .fits file doesn't match the default units of this dataclass,
+        just change it during instantiation to match the .fits file unit.
+
+        Args:
+            cols: Columns from `hdul[1].columns` .fits file.
+            unit_mapping: `Mapping from col-unit (from .fits file) to `astropy.units`.
+                Be aware to use the very-same unit. E.g. if it's prefixed in the .fits,
+                also prefix in the `astropy.units` ("MHZ":u.MHz, NOT "MHZ":u.Hz).
+            prefix_mapping: Mapping from `SkyModel.sources` to col-name(s).
+
+
+        Returns:
+            Mapping col-name -> scaling-factor to `SkyModel.sources` standard units.
+        """
+        used_units: List[str] = list()
+        used_col_names: List[str] = list()
+        cols_to_field_name_of_interest: Dict[str, str] = dict()
+        for field in fields(prefix_mapping):
+            if (
+                col_names_of_interest := getattr(prefix_mapping, field.name)
+            ) is not None:
+                if isinstance(col_names_of_interest, list):
+                    for col_name_of_interest in col_names_of_interest:
+                        cols_to_field_name_of_interest[
+                            col_name_of_interest
+                        ] = field.name
+                elif isinstance(col_names_of_interest, str):
+                    cols_to_field_name_of_interest[col_names_of_interest] = field.name
+                else:
+                    # should never happen, but `getattr` has no type-hints
+                    raise TypeError(
+                        f"{type(col_names_of_interest)=} must be list[str] | str."
+                    )
+        scales: Dict[str, float] = dict()
+        for col in cols:
+            if (col_name := col.name) in cols_to_field_name_of_interest.keys():
+                used_col_names.append(col_name)  # here because of cols without units
+                if (unit := col.unit) is not None:
+                    if unit not in used_units:
+                        used_units.append(unit)
+                    astropy_unit_of_fits_col = unit_mapping[unit]
+                    # here, it assumes that unit-field-names of `SkySourcesUnits` and
+                    # `SkyPrefixMapping` are the same
+                    sky_sources_unit: UnitBase = getattr(
+                        self, cols_to_field_name_of_interest[col_name]
+                    )
+                    scales[col_name] = astropy_unit_of_fits_col.to(sky_sources_unit)
+
+        non_used_unit_keys = set(unit_mapping.keys()) - set(used_units)
+        if len(non_used_unit_keys) > 0:
+            # here, we double check all columns, not just the specified to be more
+            # robust with exception-throwing
+            not_found_unit_keys: List[str] = list()
+            for non_used_unit_key in non_used_unit_keys:
+                found = False
+                for col in cols:
+                    if col.unit == non_used_unit_key:
+                        found = True
+                        break
+                if not found:
+                    not_found_unit_keys.append(non_used_unit_key)
+            if len(not_found_unit_keys) > 0:
+                raise RuntimeError(
+                    "The following unit-strings defined in `unit_mapping` are not "
+                    + f"found in `cols`, which may be a typo: {not_found_unit_keys}"
+                )
+        non_used_col_names = set(cols_to_field_name_of_interest.keys()) - set(
+            used_col_names
+        )
+        if len(non_used_col_names) > 0:
+            raise RuntimeError(
+                "The following col-names defined in `prefix_mapping` were not found "
+                + f"in `cols`, which may be a typo: {non_used_col_names}"
+            )
+        return scales
+
+    @classmethod
+    def is_pos_formattable(cls, string: str) -> bool:
+        """Checks if `string` is positional formattable.
+
+        It is positional-formattable if `string` contains a '{0}'.
+
+        Args:
+            string: str to check.
+
+        Returns:
+            Result if it's formattable.
+        """
+        return "{0}" in string
+
+    @classmethod
+    def extract_names_and_freqs(
+        cls,
+        string: str,
+        cols: ColDefs,
+        unit: Union[Unit, PrefixUnit],
+    ) -> Dict[str, float]:
+        """Extracts all col-names and it's encoded frequency (in Hz).
+
+        `string` has to be formattable, meaning it must containt a {0} for beeing
+        the frequency placeholder. Otherwise it will fail.
+
+        Important: This function doesn't consider the unit of `SkyModel.sources`
+        "ref_freq" unit. It converts it to Hz regardless.
+
+        Args:
+            string: Column-name with {0} frequency-placeholder.
+            cols: Columns of the .fits file to search through.
+            unit: Frequency-unit encoded in col-names (e.g. u.MHz).
+
+        Returns:
+            Mapping col-name -> decoded-frequency in Hz.
+        """
+        if not cls.is_pos_formattable(string=string):
+            raise ValueError(f"{string=}" + "must contain '{0}' to be formattable!")
+        number_format = r"(\d+)"  # just supports int-numbers atm
+        pattern = re.compile(f"^{string.format(number_format)}$")
+        names_and_freqs: Dict[str, float] = dict()
+        for col in cols:
+            col_name = col.name
+            if not isinstance(col_name, str):
+                raise TypeError(
+                    f"`col_name` should be of type `str`, but is {type(col_name)=}"
+                )
+            match = pattern.match(string=col_name)
+            if match:
+                extracted_freq = float(match.group(1))
+                extracted_freq = float((extracted_freq * unit).to(u.Hz).value)  # type: ignore[attr-defined] # noqa: E501
+                names_and_freqs[col_name] = extracted_freq
+        return names_and_freqs
 
 
 XARRAY_DIM_0_DEFAULT, XARRAY_DIM_1_DEFAULT = cast(
@@ -181,10 +436,28 @@ class SkyModel:
         "Stokes U": 4,
         "Stokes V": 5,
     }
+    COL_IDX: Dict[SkySourcesColName, int] = {  # according to docstring
+        "ra": 0,
+        "dec": 1,
+        "stokes_i": 2,
+        "stokes_q": 3,
+        "stokes_u": 4,
+        "stokes_v": 5,
+        "ref_freq": 6,
+        "spectral_index": 7,
+        "rm": 8,
+        "major": 9,
+        "minor": 10,
+        "pa": 11,
+        "true_redshift": 12,
+        "observed_redshift": 13,
+        "id": 14,
+    }
+    COL_NAME: Dict[int, SkySourcesColName] = dict(zip(COL_IDX.values(), COL_IDX.keys()))
 
     def __init__(
         self,
-        sources: Optional[SkySourcesType] = None,
+        sources: Optional[_SkySourcesType] = None,
         wcs: Optional[WCS] = None,
         precision: Type[np.float_] = np.float64,
         h5_file_connection: Optional[h5py.File] = None,
@@ -223,7 +496,7 @@ class SkyModel:
             empty_sources, dims=[self._sources_dim_sources, self._sources_dim_data]
         )
 
-    def __set_sky_xarr_dims(self, sources: SkySourcesType) -> None:
+    def __set_sky_xarr_dims(self, sources: _SkySourcesType) -> None:
         if isinstance(sources, np.ndarray):
             pass  # nothing to do here
         elif isinstance(sources, xr.DataArray):  # checks xarray dims through setter
@@ -245,7 +518,7 @@ class SkyModel:
             self.h5_file_connection = None
 
     @staticmethod
-    def copy_sky(sky: SkyModel) -> SkyModel:
+    def copy_sky(sky: _TSkyModel) -> _TSkyModel:
         if sky.h5_file_connection is not None:
             h5_connection = sky.h5_file_connection
             sky.h5_file_connection = None
@@ -277,7 +550,7 @@ class SkyModel:
         self.sources = computed_sources
         self.close()
 
-    def _check_sources(self, sources: SkySourcesType) -> None:
+    def _check_sources(self, sources: _SkySourcesType) -> None:
         self.__set_sky_xarr_dims(sources=sources)
         if isinstance(sources, np.ndarray):
             pass
@@ -295,7 +568,7 @@ class SkyModel:
             assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
         return None
 
-    def to_sky_xarray(self, sources: SkySourcesType) -> xr.DataArray:
+    def to_sky_xarray(self, sources: _SkySourcesType) -> xr.DataArray:
         """Converts a `np.ndarray` or `xr.DataArray` to `SkyModel.sources`
             compatible `xr.DataArray`.
 
@@ -357,7 +630,7 @@ class SkyModel:
 
         return da
 
-    def add_point_sources(self, sources: SkySourcesType) -> None:
+    def add_point_sources(self, sources: _SkySourcesType) -> None:
         """Add new point sources to the sky model.
 
         :param sources: `np.ndarray` with shape (number of sources, 1 + SOURCES_COLS),
@@ -398,15 +671,15 @@ class SkyModel:
                 )
             else:
                 self._sources = sky_sources
-        except BaseException as e:  # rollback of dim-names if sth goes wrong
+        except BaseException:  # rollback of dim-names if sth goes wrong
             self._sources_dim_sources, self._sources_dim_data = sds, sdd
-            raise e
+            raise
 
     def write_to_file(self, path: str) -> None:
         self.save_sky_model_as_csv(path)
 
-    @staticmethod
-    def read_from_file(path: str) -> SkyModel:
+    @classmethod
+    def read_from_file(cls: Type[_TSkyModel], path: str) -> _TSkyModel:
         """
         Read a CSV file in to create a SkyModel.
         The CSV should have the following columns
@@ -438,16 +711,15 @@ class SkyModel:
                 f"STOKES I), but only {dataframe.shape[1]} columns."
             )
 
-        if dataframe.shape[1] > SkyModel.SOURCES_COLS:
+        if dataframe.shape[1] > cls.SOURCES_COLS:
             print(
-                f"""CSV has {dataframe.shape[1] - SkyModel.SOURCES_COLS + 1}
+                f"""CSV has {dataframe.shape[1] - cls.SOURCES_COLS + 1}
             too many rows. The extra rows will be cut off."""
             )
 
-        sky = SkyModel(dataframe)
-        return sky
+        return cls(dataframe)
 
-    def to_np_array(self, with_obj_ids: bool = False) -> NPSkyType:
+    def to_np_array(self, with_obj_ids: bool = False) -> _NPSkyType:
         """
         Gets the sources as np.ndarray
 
@@ -534,16 +806,16 @@ class SkyModel:
             )
         inner_circle = SphericalCircle(
             (ra0_deg * u.deg, dec0_deg * u.deg),
-            inner_radius_deg * u.deg,  # pyright: ignore
+            inner_radius_deg * u.deg,
         )
         outer_circle = SphericalCircle(
             (ra0_deg * u.deg, dec0_deg * u.deg),
-            outer_radius_deg * u.deg,  # pyright: ignore
+            outer_radius_deg * u.deg,
         )
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2])
         inner_sources = inner_circle.contains_points(copied_sky[:, 0:2])
         filtered_sources = np.logical_and(outer_sources, np.logical_not(inner_sources))
-        filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa
+        filtered_sources_idxs = np.where(filtered_sources == True)[0]  # noqa: E712
         copied_sky.sources = copied_sky.sources[filtered_sources_idxs]
 
         # Rechunk the array to the original chunk size
@@ -897,7 +1169,7 @@ class SkyModel:
 
     @staticmethod
     def get_OSKAR_sky(
-        sky: Union[SkySourcesType, SkyModel],
+        sky: Union[_SkySourcesType, SkyModel],
         precision: PrecisionType = "double",
     ) -> oskar.Sky:
         """
@@ -951,7 +1223,7 @@ class SkyModel:
         return self._sources
 
     @sources.setter
-    def sources(self, value: Optional[SkySourcesType]) -> None:
+    def sources(self, value: Optional[_SkySourcesType]) -> None:
         """Sources setter.
 
         Does also allow numpy-arrays.
@@ -1062,7 +1334,7 @@ class SkyModel:
     def __setitem__(
         self,
         key: Any,
-        value: Union[SkySourcesType, NPFloatLike],
+        value: Union[_SkySourcesType, NPFloatLike],
     ) -> None:
         """
         Allows to set values in an np.ndarray like manner
@@ -1106,15 +1378,6 @@ class SkyModel:
             ],
         )
 
-    def save_sky_model_to_txt(
-        self,
-        path: str,
-        cols: List[int] = [0, 1, 2, 3, 4, 5, 6, 7],
-    ) -> None:
-        if self.sources is None:
-            raise AttributeError("Can't save sky-model because `sources` is None.")
-        np.savetxt(path, self.sources[:, cols])
-
     @staticmethod
     def __convert_ra_dec_to_cartesian(
         ra: IntFloat, dec: IntFloat
@@ -1142,18 +1405,14 @@ class SkyModel:
         )
         return cartesian_sky
 
-    @staticmethod
+    @classmethod
     def get_sky_model_from_h5_to_xarray(
+        cls: Type[_TSkyModel],
         path: str,
-        prefix_mapping: SkyPrefixMapping = SkyPrefixMapping(
-            ra="Right Ascension",
-            dec="Declination",
-            stokes_i="Flux",
-            observed_redshift="Observed Redshift",
-        ),
+        prefix_mapping: Optional[SkyPrefixMapping] = None,
         load_as: Literal["numpy_array", "dask_array"] = "dask_array",
         chunksize: Union[int, Literal["auto"]] = "auto",
-    ) -> SkyModel:
+    ) -> _TSkyModel:
         """
         Load a sky model dataset from an HDF5 file and
         converts it to an xarray DataArray.
@@ -1182,6 +1441,15 @@ class SkyModel:
         f = h5py.File(path, "r")
         data_arrays: List[xr.DataArray] = []
 
+        # not sure why we have a default here, but keep for compatibility I guess?
+        if prefix_mapping is None:
+            prefix_mapping = SkyPrefixMapping(
+                ra="Right Ascension",
+                dec="Declination",
+                stokes_i="Flux",
+                observed_redshift="Observed Redshift",
+            )
+
         for field in fields(prefix_mapping):
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
@@ -1200,217 +1468,377 @@ class SkyModel:
             XARRAY_DIM_1_DEFAULT: sky.shape[1],
         }
         sky = sky.chunk(chunks=chunks)
-        return SkyModel(sky, h5_file_connection=f)
+        return cls(sky, h5_file_connection=f)
 
-    @staticmethod
-    def get_GLEAM_Sky(frequencies: Optional[List[GLEAM_freq]] = None) -> SkyModel:
-        """
-        get_GLEAM_Sky - Returns a SkyModel object containing sources with flux densities
-        at the specified frequencies from the GLEAM survey.
+    @classmethod
+    def _get_sky_model_from_freq_formatted_fits(
+        cls: Type[_TSkyModel],
+        *,
+        data: FITS_rec,
+        cols: ColDefs,
+        prefix_mapping: SkyPrefixMapping,
+        min_freq: Optional[float],
+        max_freq: Optional[float],
+        unit_mapping: Dict[str, UnitBase],
+        units_sources: SkySourcesUnits,
+        chunks_fun: Callable[[xr.DataArray], xr.DataArray],
+        zero_col_array_fun: Callable[[int], xr.DataArray],
+        encoded_freq: UnitBase,
+    ) -> _TSkyModel:
+        """Creates a sky-model from a .fits file, where the frequency is encoded
+        in the according col-names.
 
-        Parameters:
-            frequencies (list): A list of frequencies in MHz for which the flux
-            densities are required. Available frequencies are:
-            [76, 84, 92, 99, 107, 115, 122, 130, 143, 151, 158, 166,
-            174, 181, 189, 197, 204, 212, 220, 227]. Default is to return
-            all frequencies.
+        Args:
+            data: Data of .fits file.
+            cols: Columns of .fits file.
+            prefix_mapping: Formattable col-names of .fits file.
+            min_freq: Filter by min-freq in Hz? May increase file-reading significantly.
+            max_freq: Filter by max-freq in Hz? May increase file-reading significantly.
+            unit_mapping: Mapping from col-unit to `astropy.unit`.
+            units_sources: Units of `SkyModel.sources`.
+            chunks_fun: Callback to handle array-chunking.
+            zero_col_array_fun: Callback to create a (`length`,1) zero `DataArray`.
+            encoded_freq: Unit of col-name encoded frequency.
 
         Returns:
-            SkyModel: A SkyModel object containing sources with flux densities
-            at the specified frequencies (Hz).
-
-        Example:
-            >>> gleam_sky = SkyModel.get_GLEAM_Sky([76, 107, 143])
-            >>> print(gleam_sky)
-            <SkyModel object at 0x7f8a1545fc10>
-            >>> print(gleam_sky.num_sources)
-            921259
+            sky-model with according sources from `data`.
         """
-        if frequencies is None:
-            frequencies = list(typing_get_args(GLEAM_freq))
-        # Get path to Gleamsurvey
-        survey = GLEAMSurveyDownloadObject()
-        path = survey.get()
+        if prefix_mapping.ref_freq is not None:
+            raise RuntimeError(
+                "Setting `prefix_mapping.ref_freq` and `encoded_freq` is "
+                + "ambiguous and therefore not allowed."
+            )
+        (
+            prefix_mapping,
+            num_formatted,
+            names_and_freqs,  # here, freqs are already in Hz
+        ) = SkySourcesUnits.format_sky_prefix_freq_mapping(
+            cols=cols,
+            prefix_mapping=prefix_mapping,
+            encoded_freq=encoded_freq,
+        )
+        if num_formatted <= 0:
+            raise RuntimeError(_DEV_ERROR_MSG)
+        unit_scales = units_sources.get_unit_scales(
+            cols=cols,
+            unit_mapping=unit_mapping,
+            prefix_mapping=prefix_mapping,
+        )
+        cache: Dict[str, xr.DataArray] = dict()
+        sources: Optional[xr.DataArray] = None
+        col_data: xr.DataArray
+        for i in range(num_formatted):
+            freq: Optional[float] = None
+            sources_i: Optional[xr.DataArray] = None
+            breaked = False
+            for spm_field in fields(prefix_mapping):
+                if (
+                    field_values := getattr(prefix_mapping, spm_field.name)
+                ) is not None:
+                    # check if it's a formatted field or not
+                    if not isinstance(field_values, list):
+                        if field_values not in cache.keys():
+                            col_data = xr.DataArray(data=data[field_values]).T
+                            if field_values in unit_scales.keys():
+                                col_data *= unit_scales[field_values]
+                            col_data = chunks_fun(col_data)
+                            cache[field_values] = col_data
+                        else:
+                            col_data = cache[field_values]
+                    else:  # here, we deal with a formatted SkyPrefixMapping field
+                        col_name: str = field_values[i]
+                        col_freq = names_and_freqs[col_name]
+                        if (min_freq is not None and col_freq < min_freq) or (
+                            max_freq is not None and col_freq > max_freq
+                        ):  # freq-filtering in case of formatted `prefix_mapping`
+                            breaked = True
+                            break
+                        if freq is None:
+                            freq = col_freq
+                        else:
+                            if col_freq != freq:
+                                raise RuntimeError(
+                                    "Order of formatted sky-prefixes is not right! "
+                                    + "This is probably an error of Karabo. Please "
+                                    + "check `SkyPrefixMapping` list-order: "
+                                    + f"{prefix_mapping}"
+                                )
+                        col_data = xr.DataArray(data=data[col_name]).T
+                        if col_name in unit_scales.keys():
+                            col_data *= unit_scales[col_name]
+                        col_data = chunks_fun(col_data)
+                    # create xarray for current format
+                    if sources_i is None:
+                        sources_i = xr.concat(
+                            (
+                                zero_col_array_fun(col_data.shape[0])
+                                for _ in range(cls.SOURCES_COLS - 1)
+                            ),
+                            dim=XARRAY_DIM_1_DEFAULT,
+                        )
+                        sources_i = chunks_fun(sources_i)
+                    if (field_name := spm_field.name) == "id":
+                        sources_i.coords[XARRAY_DIM_0_DEFAULT] = col_data
+                    else:
+                        col_idx = cls.COL_IDX[field_name]  # type: ignore[index]
+                        sources_i[:, col_idx] = col_data
+            if breaked:
+                continue
+            if sources_i is None:  # num_formatted <= 0 should be impossible
+                raise RuntimeError(_DEV_ERROR_MSG)
+            if freq is None:
+                raise RuntimeError(_DEV_ERROR_MSG)
+            freqs = xr.DataArray(data=np.repeat(freq, repeats=col_data.shape[0])).T
+            freqs = chunks_fun(freqs)
+            sources_i[:, cls.COL_IDX["ref_freq"]] = freqs
+            if sources is None:
+                sources = sources_i
+            else:
+                sources = xr.concat((sources, sources_i), dim=XARRAY_DIM_0_DEFAULT)
+                sources = chunks_fun(sources)
 
+        if sources is None:
+            raise ValueError(_DEV_ERROR_MSG)
+
+        return cls(sources=sources)
+
+    @classmethod
+    def _get_sky_model_from_non_formatted_fits(
+        cls: Type[_TSkyModel],
+        *,
+        data: FITS_rec,
+        cols: ColDefs,
+        prefix_mapping: SkyPrefixMapping,
+        min_freq: Optional[float],
+        max_freq: Optional[float],
+        unit_mapping: Dict[str, UnitBase],
+        units_sources: SkySourcesUnits,
+        chunks_fun: Callable[[xr.DataArray], xr.DataArray],
+        zero_col_array_fun: Callable[[int], xr.DataArray],
+    ) -> _TSkyModel:
+        """Creates a sky-model from a .fits file, where `SkyModel.sources` come from
+        distinct data-arrays, not from a combination.
+
+        Args:
+            data: Data of .fits file.
+            cols: Columns of .fits file.
+            prefix_mapping: NON-formattable col-names of .fits file.
+            min_freq: Filter by min-freq in Hz? May increase file-reading significantly.
+            max_freq: Filter by max-freq in Hz? May increase file-reading significantly.
+            unit_mapping: Mapping from col-unit to `astropy.unit`.
+            units_sources: Units of `SkyModel.sources`.
+            chunks_fun: Callback to handle array-chunking.
+            zero_col_array_fun: Callback to create a (`length`,1) zero `DataArray`.
+
+        Returns:
+            sky-model with according sources from `data`.
+        """
+        unit_scales = units_sources.get_unit_scales(
+            cols=cols,
+            unit_mapping=unit_mapping,
+            prefix_mapping=prefix_mapping,
+        )
+        if (
+            min_freq is not None or max_freq is not None
+        ) and prefix_mapping.ref_freq is None:
+            raise RuntimeError(
+                f"`prefix_mapping.ref_freq` has to exist if {min_freq=} and/or "
+                + f"{max_freq=} is set."
+            )
+        freqs: Optional[xr.DataArray] = None
+        freq_idxs: Optional[xr.DataArray] = None
+        sources: Optional[xr.DataArray] = None
+        if (ref_freq_col_name := prefix_mapping.ref_freq) is not None:
+            # do freq-filtering of non-formatted `prefix_mapping` here to
+            # determine number-of-sources at the start
+            freqs = (
+                xr.DataArray(data=data[ref_freq_col_name]).T
+                * unit_scales[ref_freq_col_name]
+            )
+            if min_freq is not None and max_freq is not None:
+                freq_idxs = cast(  # cast to match run-time type
+                    xr.DataArray, np.logical_and(freqs < max_freq, freqs > min_freq)
+                )
+            else:
+                if min_freq is not None:
+                    freq_idxs = freqs > min_freq
+                if max_freq is not None:
+                    freq_idxs = freqs < max_freq
+                if freq_idxs is not None and all(freq_idxs):
+                    freq_idxs = None  # no need for filtering if freq don't constrain
+            if freq_idxs is not None:
+                freqs = freqs[freq_idxs]
+        for spm_field in fields(prefix_mapping):
+            if (field_value := getattr(prefix_mapping, spm_field.name)) is not None:
+                if isinstance(field_value, list):  # no formatted field-values allowed
+                    raise RuntimeError(_DEV_ERROR_MSG)
+                col_data = xr.DataArray(data=data[field_value]).T
+                if freq_idxs is not None:
+                    col_data = col_data[freq_idxs]
+                if field_value in unit_scales.keys():
+                    col_data *= unit_scales[field_value]
+                col_data = chunks_fun(col_data)
+
+                if sources is None:
+                    sources = xr.concat(
+                        (
+                            zero_col_array_fun(col_data.shape[0])
+                            for _ in range(cls.SOURCES_COLS - 1)
+                        ),
+                        dim=XARRAY_DIM_1_DEFAULT,
+                    )
+                    sources = chunks_fun(sources)
+                if (field_name := spm_field.name) == "id":
+                    sources.coords[XARRAY_DIM_0_DEFAULT] = col_data
+                else:
+                    col_idx = cls.COL_IDX[field_name]  # type: ignore[index]
+                    sources[:, col_idx] = col_data
+        if sources is None:  # `prefix_mapping` having no fields doesn't make any sense
+            raise RuntimeError(_DEV_ERROR_MSG)
+        return cls(sources=sources)
+
+    @classmethod
+    def get_sky_model_from_fits(
+        cls: Type[_TSkyModel],
+        *,
+        fits_file: FilePathType,
+        prefix_mapping: SkyPrefixMapping,
+        unit_mapping: Dict[str, UnitBase],
+        units_sources: Optional[SkySourcesUnits] = None,
+        min_freq: Optional[float] = None,
+        max_freq: Optional[float] = None,
+        encoded_freq: Optional[UnitBase] = None,
+        chunks: Optional[_ChunksType] = "auto",
+        memmap: bool = False,
+    ) -> _TSkyModel:
+        """Creates a sky-model from `fits_file`. The following formats are supported:
+        - Each data-array of the .fits file maps to a single `SkyModel.sources` column.
+        - Frequency of some columns is encoded in col-names of the .fits file.
+
+        Args:
+            fits_file: The .fits file to create the sky-model from.
+            prefix_mapping: Formattable col-names of .fits file. If `encoded_freq` is
+                not None, the freq-encoded field-values must have '{0}' as placeholder.
+            unit_mapping: Mapping from col-unit to `astropy.unit`.
+            units_sources: Units of `SkyModel.sources`.
+            min_freq: Filter by min-freq in Hz? May increase file-reading significantly.
+            max_freq: Filter by max-freq in Hz? May increase file-reading significantly.
+            encoded_freq: Unit of col-name encoded frequency, if the .fits file has
+                it's ref-frequency encoded in the col-names.
+            chunks: Coerce the array's data into dask arrays with the given chunks.
+                Might be useful for reading larger-than-memory .fits files.
+            memmap: Whether to use memory mapping when opening the FITS file.
+                Allows for reading of larger-than-memory files.
+
+        Returns:
+            sky-model with according sources from `fits_file`.
+        """
+
+        def chunks_fun(arr: xr.DataArray) -> xr.DataArray:
+            if chunks is not None:
+                arr = arr.chunk(chunks=chunks)
+            return arr
+
+        def get_zero_col_array(length: int) -> xr.DataArray:
+            col_array = xr.DataArray(data=np.zeros(shape=(length, 1)))
+            return chunks_fun(col_array)
+
+        if units_sources is None:  # load default dataclass if not specified
+            units_sources = SkySourcesUnits()
+        with fits.open(fits_file, memmap=memmap) as hdul:
+            data: FITS_rec = hdul[1].data
+            cols: ColDefs = hdul[1].columns
+
+        if encoded_freq is None:
+            sky = cls._get_sky_model_from_non_formatted_fits(
+                data=data,
+                cols=cols,
+                prefix_mapping=prefix_mapping,
+                min_freq=min_freq,
+                max_freq=max_freq,
+                unit_mapping=unit_mapping,
+                units_sources=units_sources,
+                chunks_fun=chunks_fun,
+                zero_col_array_fun=get_zero_col_array,
+            )
+        else:
+            sky = cls._get_sky_model_from_freq_formatted_fits(
+                data=data,
+                cols=cols,
+                prefix_mapping=prefix_mapping,
+                min_freq=min_freq,
+                max_freq=max_freq,
+                unit_mapping=unit_mapping,
+                units_sources=units_sources,
+                chunks_fun=chunks_fun,
+                zero_col_array_fun=get_zero_col_array,
+                encoded_freq=encoded_freq,
+            )
+        if sky.num_sources == 0:
+            raise KaraboSkyModelError(
+                "Selected Sky has not a single source. This is probably because "
+                + "provided `min_freq` and/or `max_freq` are out of the survey's "
+                + "frequencies and therefore results in filtering each source."
+            )
+        return sky
+
+    @classmethod
+    def get_GLEAM_Sky(
+        cls: Type[_TSkyModel],
+        min_freq: Optional[float] = None,
+        max_freq: Optional[float] = None,
+    ) -> _TSkyModel:
+        """Creates a SkyModel containing GLEAM sources from
+        https://vizier.cfa.harvard.edu/ service with more than 300,000 sources
+        on different frequency-bands.
+
+        The survey was created using MWA-telescope and covers the entire sky south
+        of dec +30.
+
+        GLEAM's frequency-range: 72-231 MHz
+
+        The required .fits file will get downloaded and cached on disk.
+
+        Args:
+            min_freq: Set min-frequency in Hz for pre-filtering.
+            max_freq: Set max-frequency in Hz for pre-filtering.
+
+        Returns:
+            GLEAM sky as `SkyModel`.
+        """
+        survey_file = GLEAMSurveyDownloadObject().get()
+        encoded_freq = u.MHz
+        unit_mapping = {
+            "Jy": u.Jy,
+            "Jy/beam": u.Jy / u.beam,
+            "deg": u.deg,
+            "arcsec": u.arcsec,
+        }
         prefix_mapping = SkyPrefixMapping(
             ra="RAJ2000",
             dec="DEJ2000",
-            stokes_i="Fp",
-            minor="a",
-            pa="b",
+            stokes_i="Fp{0}",
+            major="a{0}",
+            minor="b{0}",
+            pa="pa{0}",
             id="GLEAM",
         )
+        units_sources = SkySourcesUnits(
+            stokes_i=u.Jy / u.beam,
+        )
 
-        return SkyModel.get_sky_model_from_fits(
-            path=path,
-            frequencies=frequencies,  # type: ignore[arg-type]
+        return cls.get_sky_model_from_fits(
+            fits_file=survey_file,
             prefix_mapping=prefix_mapping,
-            concat_freq_with_prefix=True,
-            filter_data_by_stokes_i=True,
-            frequency_to_mhz_multiplier=1e6,
+            unit_mapping=unit_mapping,
+            units_sources=units_sources,
+            min_freq=min_freq,
+            max_freq=max_freq,
+            encoded_freq=encoded_freq,
         )
 
-    @staticmethod
-    def get_sky_model_from_fits(
-        path: str,
-        frequencies: List[int],
-        prefix_mapping: SkyPrefixMapping,
-        concat_freq_with_prefix: bool = False,
-        filter_data_by_stokes_i: bool = False,
-        frequency_to_mhz_multiplier: float = 1e6,
-        chunksize: Union[int, Literal["auto"]] = "auto",
-        memmap: bool = False,
-    ) -> SkyModel:
-        """
-        Reads data from a FITS file and creates an xarray Dataset containing
-        information about celestial sources at given frequencies.
-
-        Parameters
-        ----------
-        path : str
-            Path to the input FITS file.
-        frequencies : list
-            List of frequencies of interest in MHz.
-        prefix_mapping : SkyPrefixMapping
-            Maps column names in the FITS file to column names
-            used in the output Dataset.
-            Keys should be the original column names, values should be the
-            corresponding column names in the Dataset.
-            Any column names not present in the dictionary will be excluded
-            from the output Dataset.
-        concat_freq_with_prefix : bool, optional
-            If True, concatenates the frequency with the prefix for each column.
-            Defaults to False.
-        filter_data_by_stokes_i : bool, optional
-            If True, filters the data by Stokes I. Defaults to False.
-        frequency_to_mhz_multiplier : float, optional
-            Factor to convert the frequency units to MHz. Defaults to 1e6.
-        chunksize : int or str, optional
-            The size of the chunks to use when creating the Dask arrays. This can
-            be an integer representing the number of rows per chunk, or a string
-            representing the size of each chunk in bytes (e.g. '64MB', '1GB', etc.)
-            or 'auto'.
-        memmap : bool, optional
-            Whether to use memory mapping when opening the FITS file. Defaults to False.
-            Allows for reading of larger-than-memory files.
-
-        Returns
-        -------
-        xr.DataArray
-            xarray DataArray object containing information about celestial sources
-            at given frequencies.
-
-        Notes
-        -----
-        The FITS file should have a data table in its first HDU.
-        Valid columns are:
-        "ra", "dec", "stokes_i", "stokes_q", "stokes_u", "stokes_v", "ref_freq",
-        "spectral_index", "rm", "major", "minor", "pa", and "id".
-        Any additional columns will be ignored.
-
-        The `prefix_mapping` values should map the required columns to their
-        corresponding column names in the input FITS file. For example:
-
-        If a column name in the FITS file is not present in `prefix_mapping`
-        values, it will be excluded from the output Dataset.
-
-        Examples
-        --------
-        >>> sky_data = SkyModel.get_sky_model_from_fits(
-        ...     path="input.fits",
-        ...     frequencies=[100, 200, 300],
-        ...     prefix_mapping=SkyPrefixMapping(
-        ...         ra="RAJ2000",
-        ...         dec="DEJ2000",
-        ...         stokes_i="Fp",
-        ...         minor="a",
-        ...         pa="b",
-        ...         id="pa",
-        ...     ),
-        ...     concat_freq_with_prefix=True,
-        ...     filter_data_by_stokes_i=True,
-        ...     chunks='auto',
-        ...     memmap=False,
-        ... )
-
-        """
-        with fits.open(path, memmap=memmap) as hdul:
-            header = hdul[1].header
-            data = hdul[1].data
-
-        column_names = [header[f"TTYPE{i+1}"] for i in range(header["TFIELDS"])]
-        data_dict = {name: data[name] for name in column_names}
-
-        dataset = xr.Dataset(data_dict)
-        data_arrays: List[xr.DataArray] = []
-
-        for freq in frequencies:
-            freq_str = str(freq).zfill(3)
-
-            if filter_data_by_stokes_i and prefix_mapping.stokes_i is not None:
-                dataset_filtered = dataset.dropna(
-                    dim=f"{prefix_mapping.stokes_i}{freq_str}"
-                )
-            else:
-                dataset_filtered = dataset
-
-            data_list: List[xr.DataArray] = []
-            if prefix_mapping.id is not None:
-                source_ids = dataset_filtered[prefix_mapping.id].values
-            else:
-                source_ids = None
-            for field in fields(prefix_mapping):
-                col = field.name
-                pm_col: Optional[str] = getattr(prefix_mapping, field.name)
-                if col == "id":
-                    continue
-                if pm_col is not None:
-                    if concat_freq_with_prefix and col not in ["ra", "dec"]:
-                        col_name = pm_col + freq_str
-                    else:
-                        col_name = pm_col
-
-                    freq_data = xr.DataArray(
-                        dataset_filtered[col_name].values,
-                    )
-                elif col == "ref_freq":
-                    freq_data = xr.DataArray(
-                        np.full(
-                            len(dataset_filtered[prefix_mapping.ra]),
-                            freq * frequency_to_mhz_multiplier,
-                        ),
-                    )
-                else:
-                    freq_data = xr.DataArray(
-                        np.zeros(len(dataset_filtered[prefix_mapping.ra])),
-                    )
-                data_list.append(freq_data)
-
-            data_array = xr.concat(data_list, dim=XARRAY_DIM_1_DEFAULT)
-            if source_ids is not None:
-                data_array.coords[XARRAY_DIM_0_DEFAULT] = source_ids
-            data_arrays.append(data_array)
-
-        chunks: Dict[str, Any] = {XARRAY_DIM_0_DEFAULT: chunksize}
-        for freq_dataset in data_arrays:
-            freq_dataset.chunk(chunks=chunks)
-
-        result_dataset = (
-            xr.concat(data_arrays, dim=XARRAY_DIM_0_DEFAULT).chunk(chunks=chunks).T
-        )
-
-        return SkyModel(result_dataset)
-
-    @staticmethod
-    def get_BATTYE_sky(which: Literal["full", "diluted"] = "diluted") -> SkyModel:
-        raise DeprecationWarning(
-            """This catalog has an error in the source flux values.
-            This method will be removed in a future version.
-            Please use get_sample_simulated_catalog() instead."""
-        )
-
-    @staticmethod
-    def get_sample_simulated_catalog() -> SkyModel:
+    @classmethod
+    def get_sample_simulated_catalog(cls: Type[_TSkyModel]) -> _TSkyModel:
         """
         Downloads a sample simulated HI source catalog and generates a sky
         model using the downloaded data. The catalog size is around 8MB.
@@ -1439,76 +1867,82 @@ class SkyModel:
         """
         survey = HISourcesSmallCatalogDownloadObject()
         path = survey.get()
-        sky = SkyModel.get_sky_model_from_h5_to_xarray(path=path)
+        sky = cls.get_sky_model_from_h5_to_xarray(path=path)
         if sky.sources is None:
             raise KaraboSkyModelError("`sky.sources` is None, which is unexpected.")
 
         return sky
 
-    @staticmethod
-    def get_MIGHTEE_Sky() -> SkyModel:
+    @classmethod
+    def get_MIGHTEE_Sky(
+        cls: Type[_TSkyModel],
+        min_freq: Optional[float] = None,
+        max_freq: Optional[float] = None,
+    ) -> _TSkyModel:
+        """Creates a SkyModel containing "MIGHTEE Continuum Early Science L1 catalogue"
+        sources from https://archive.sarao.ac.za service, consisting of 9896 sources.
+
+        MIGHTEE is an extragalactic radio-survey carried out using MeerKAT-telescope.
+        It covers roughly the area between RA[149.40,150.84] and DEC[1.49,2.93].
+
+        MIGHTEES's frequency-range: 1304-1375 MHz
+
+        The required .fits file will get downloaded and cached on disk.
+
+        Args:
+            min_freq: Set min-frequency in Hz for pre-filtering.
+            max_freq: Set max-frequency in Hz for pre-filtering.
+
+        Returns:
+            MIGHTEE sky as `SkyModel`.
         """
-        Downloads the MIGHTEE catalog and creates a SkyModel object.
-
-        Returns
-        -------
-        SkyModel
-            SkyModel object containing information about celestial sources
-            in the MIGHTEE survey.
-
-        Notes
-        -----
-        The MIGHTEE catalog is downloaded using the MIGHTEESurveyDownloadObject class.
-
-        The SkyModel object contains columns for "ra", "dec", "i", "q", "u", "v",
-        "ref_freq", "major", "minor", "pa", and "id".
-        The "ref_freq" column is set to 76 MHz, and the "q", "u", and "v" columns
-        are set to zero. The "major", "minor", "pa", and "id" columns are obtained
-        from the "IM_MAJ", "IM_MIN", "IM_PA", and "NAME" columns of the catalog,
-        respectively.
-        """
-        raise NotImplementedError(
-            "The current version of Karabo doesn't support the mightee-sky. "
-            + "The progress regarding this issue can be tracked at "
-            + "https://github.com/i4Ds/Karabo-Pipeline/issues/547"
+        survey_file = MIGHTEESurveyDownloadObject().get()
+        unit_mapping: Dict[str, UnitBase] = {
+            "DEG": u.deg,
+            "JY": u.Jy,
+            "JY/BEAM": u.Jy / u.beam,
+            "HZ": u.Hz,
+        }
+        prefix_mapping = SkyPrefixMapping(
+            ra="RA",
+            dec="DEC",
+            stokes_i="S_PEAK",
+            ref_freq="NU_EFF",
+            major="IM_MAJ",
+            minor="IM_MIN",
+            pa="IM_PA",
+            id="NAME",
         )
-        # survey = MIGHTEESurveyDownloadObject()
-        # path = survey.get()
-        # prefix_mapping = SkyPrefixMapping(
-        #     ra="RA",
-        #     dec="DEC",
-        #     stokes_i="NU_EFF",
-        #     major="IM_MAJ",
-        #     minor="IM_MIN",
-        #     pa="IM_PA",
-        #     id="NAME",
-        # )
+        units_sources = SkySourcesUnits(
+            stokes_i=u.Jy / u.beam,
+        )
+        return cls.get_sky_model_from_fits(
+            fits_file=survey_file,
+            prefix_mapping=prefix_mapping,
+            unit_mapping=unit_mapping,
+            units_sources=units_sources,
+            min_freq=min_freq,
+            max_freq=max_freq,
+            encoded_freq=None,
+            memmap=False,
+        )
 
-        # return SkyModel.get_sky_model_from_fits(
-        #     path=path,
-        #     frequencies=[76],
-        #     prefix_mapping=prefix_mapping,
-        #     concat_freq_with_prefix=False,
-        #     filter_data_by_stokes_i=False,
-        #     frequency_to_mhz_multiplier=1e6,
-        #     memmap=False,
-        # )
-
-    @staticmethod
+    @classmethod
     def get_random_poisson_disk_sky(
+        cls: Type[_TSkyModel],
         min_size: Tuple[IntFloat, IntFloat],
         max_size: Tuple[IntFloat, IntFloat],
         flux_min: IntFloat,
         flux_max: IntFloat,
         r: int = 3,
-    ) -> SkyModel:
+    ) -> _TSkyModel:
         sky_array = xr.DataArray(
             get_poisson_disk_sky(min_size, max_size, flux_min, flux_max, r)
         )
-        return SkyModel(sky_array)
+        return cls(sky_array)
 
-    @staticmethod
-    def sky_test() -> SkyModel:
+    @classmethod
+    def sky_test(cls: Type[_TSkyModel]) -> _TSkyModel:
         """
 
         Construction of a sky model which can be used for testing and visualising the
@@ -1518,8 +1952,8 @@ class SkyModel:
         Returns:
              The test sky model.
         """
-        sky = SkyModel()
-        sky_data = np.zeros((81, SkyModel.SOURCES_COLS))
+        sky = cls()
+        sky_data = np.zeros((81, cls.SOURCES_COLS))
         a = np.arange(-32, -27.5, 0.5)
         b = np.arange(18, 22.5, 0.5)
         dec_arr, ra_arr = np.meshgrid(a, b)
@@ -1530,17 +1964,6 @@ class SkyModel:
         sky.add_point_sources(sky_data)
 
         return sky
-
-    @staticmethod
-    def sky_from_h5_with_redshift_filtered(
-        path: str, ra_deg: float, dec_deg: float, outer_rad: float = 5.0
-    ) -> SkyModel:
-        raise DeprecationWarning(
-            """This method will be removed in a future release.
-        To obtain the same functionality, use
-        sky = SkyModel.get_sky_model_from_h5_to_xarray()
-        and sky.filter_by_radius_euclidean_flat_approximation()."""
-        )
 
     @overload
     def convert_to_backend(

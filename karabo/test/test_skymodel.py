@@ -1,9 +1,15 @@
 import os
 import tempfile
+from copy import copy
+from dataclasses import fields
+from typing import Dict, TypedDict, get_args
 
+import astropy.units as u
 import numpy as np
 import pytest
 import xarray as xr
+from astropy.io.fits import ColDefs, Column
+from astropy.units import UnitBase, UnitConversionError
 from numpy.typing import NDArray
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
@@ -16,24 +22,47 @@ from karabo.data.external_data import (
     MGCLSContainerDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
-from karabo.simulation.sky_model import Polarisation, SkyModel
+from karabo.simulation.sky_model import (
+    KaraboSkyModelError,
+    Polarisation,
+    SkyModel,
+    SkyPrefixMapping,
+    SkySourcesColName,
+    SkySourcesUnits,
+)
 from karabo.simulator_backend import SimulatorBackend
 
 
-def test_filter_sky_model():
-    sky = SkyModel.get_GLEAM_Sky([76])
+@pytest.fixture(scope="function")
+def gleam() -> SkyModel:
+    return SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
+
+
+def test_download_gleam_and_make_sky_model():
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
+    sample_prefix_mapping = SkyPrefixMapping([], [], [])
+    number_of_sky_attributes = len(sample_prefix_mapping.__dict__)
+
+    assert sky.num_sources > 0
+
+    # -1 since we do not return the source ID
+    assert sky.to_np_array().shape == (sky.num_sources, number_of_sky_attributes - 1)
+    assert sky.source_ids["dim_0"].shape[0] == sky.shape[0]  # checking source-ids
+
+
+def test_mightee():
+    _ = SkyModel.get_MIGHTEE_Sky()
+    with pytest.raises(KaraboSkyModelError):
+        _ = SkyModel.get_MIGHTEE_Sky(min_freq=3e11)
+    _ = SkyModel.get_MIGHTEE_Sky(max_freq=3e11)
+    _ = SkyModel.get_MIGHTEE_Sky(min_freq=1.3e9, max_freq=1.4e9)
+
+
+def test_filter_sky_model(gleam: SkyModel):
     phase_center = [250, -80]  # ra,dec
-    filtered_sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
-    filtered_sky.explore_sky(
-        phase_center=phase_center,
-        figsize=(8, 6),
-        s=80,
-        xlim=(254, 246),  # RA-lim
-        ylim=(-81, -79),  # DEC-lim
-        with_labels=True,
-    )
+    filtered_sky = gleam.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
     assert len(filtered_sky.sources) == 8
-    filtered_sky_euclidean_approx = sky.filter_by_radius_euclidean_flat_approximation(
+    filtered_sky_euclidean_approx = gleam.filter_by_radius_euclidean_flat_approximation(
         0, 0.55, phase_center[0], phase_center[1]
     )
     assert len(filtered_sky_euclidean_approx.sources) == len(filtered_sky.sources)
@@ -65,16 +94,6 @@ def test_filter_sky_model_h5():
         0, 1, phase_center[0], phase_center[1]
     )
     filtered_sky.setup_default_wcs(phase_center)
-    filtered_sky.explore_sky(
-        phase_center,
-        s=1,
-        cmap="jet",
-        cbar_label="Flux [Jy]",
-        cfun=None,
-        wcs_enabled=False,
-        xlabel="RA [deg]",
-        ylabel="DEC [deg]",
-    )
     assert len(filtered_sky.sources) == 33
     assert np.all(
         np.abs(filtered_sky.sources.compute()[:, 0:2] - phase_center) < [2, 2]
@@ -93,13 +112,12 @@ def test_filter_flux_sky_model(sky_data_with_ids: NDArray[np.object_]):
     assert np.all((filtered_sky[:, 2] >= flux_min) & (filtered_sky[:, 2] <= flux_max))
 
 
-def test_read_sky_model():
-    sky = SkyModel.get_GLEAM_Sky([76])
+def test_read_sky_model(gleam: SkyModel):
     with tempfile.TemporaryDirectory() as tmpdir:
         sky_path = os.path.join(tmpdir, "gleam.csv")
-        sky.save_sky_model_as_csv(path=sky_path)
+        gleam.save_sky_model_as_csv(path=sky_path)
         sky2 = SkyModel.read_from_file(path=sky_path)
-        assert sky.sources.shape == sky2.sources.shape
+        assert gleam.sources.shape == sky2.sources.shape
 
 
 def test_get_cartesian(sky_data_with_ids: NDArray[np.object_]):
@@ -150,9 +168,8 @@ def test_get_poisson_sky():
     _ = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
 
 
-def test_explore_sky():
-    sky = SkyModel.get_GLEAM_Sky([76])
-    sky.explore_sky([250, -80], s=0.1)
+def test_explore_sky(gleam: SkyModel):
+    gleam.explore_sky([250, -80], s=0.1)
 
 
 def test_convert_sky_to_backends():
@@ -208,3 +225,218 @@ def test_convert_sky_to_backends():
 
         # Assert that non-zero flux entry is in the expected frequency channel
         assert np.isclose(FLUX, rascil_component.flux[expected_channel_index])
+
+
+def test_SkySourcesColName_assumption():
+    sky_sources_col_names = get_args(SkySourcesColName)
+    for field in fields(SkyPrefixMapping):
+        assert field.name in sky_sources_col_names
+    for field in fields(SkySourcesUnits):
+        assert field.name in sky_sources_col_names
+
+
+class _ColsMappingDict(TypedDict):
+    cols: ColDefs
+    unit_mapping: Dict[str, UnitBase]
+    prefix_mapping: SkyPrefixMapping
+    sky_sources_units: SkySourcesUnits
+    n_encoded_freqs: int
+    n_formattable_cols: int
+    n_unit_cols: int
+
+
+@pytest.fixture(scope="function")
+def formattable() -> _ColsMappingDict:
+    """Matching `_ColsMappingDict` of formattable col-names."""
+    cols = ColDefs(
+        [
+            Column(name="NAME", format="14A", disp="A14"),
+            Column(name="RAJ2000", format="D", unit="deg", disp="F10.6"),
+            Column(name="DEJ2000", format="D", unit="deg", disp="F10.6"),
+            Column(name="Fp076", format="D", unit="Jy/beam", disp="F11.6"),
+            Column(name="a076", format="D", unit="arcsec", disp="D12.5"),
+            Column(name="b076", format="E", unit="arcsec", disp="F7.3"),
+            Column(name="pa076", format="D", unit="deg", disp="F10.6"),
+            Column(name="Fp084", format="D", unit="Jy/beam", disp="F11.6"),
+            Column(name="a084", format="D", unit="arcsec", disp="D12.5"),
+            Column(name="b084", format="E", unit="arcsec", disp="F7.3"),
+            Column(name="pa084", format="D", unit="deg", disp="F10.6"),
+        ]
+    )
+    unit_mapping = {
+        "Jy/beam": u.Jy / u.beam,
+        "deg": u.deg,
+        "arcsec": u.arcsec,
+    }
+    prefix_mapping = SkyPrefixMapping(
+        ra="RAJ2000",
+        dec="DEJ2000",
+        stokes_i="Fp{0}",
+        major="a{0}",
+        minor="b{0}",
+        pa="pa{0}",
+        id="NAME",
+    )
+    units_sources = SkySourcesUnits(
+        stokes_i=u.Jy / u.beam,
+    )
+    cols_mapping: _ColsMappingDict = {
+        "cols": cols,
+        "unit_mapping": unit_mapping,
+        "prefix_mapping": prefix_mapping,
+        "sky_sources_units": units_sources,
+        "n_encoded_freqs": 2,
+        "n_formattable_cols": 4,
+        "n_unit_cols": 10,
+    }
+    return cols_mapping
+
+
+@pytest.fixture(scope="function")
+def non_formattable() -> _ColsMappingDict:
+    """Matching `_ColsMappingType` of non-formattable col-names."""
+    cols = ColDefs(
+        [
+            Column(name="RA", format="E", unit="DEG"),
+            Column(name="DEC", format="E", unit="DEG"),
+            Column(name="S_PEAK", format="E", unit="JY/BEAM"),
+            Column(name="NU_EFF", format="E", unit="HZ"),
+            Column(name="IM_MAJ", format="E", unit="DEG"),
+            Column(name="IM_MIN", format="E", unit="DEG"),
+            Column(name="IM_PA", format="E", unit="DEG"),
+            Column(name="NAME", format="19A"),
+        ]
+    )
+    unit_mapping: Dict[str, UnitBase] = {
+        "DEG": u.deg,
+        "JY/BEAM": u.Jy / u.beam,
+        "HZ": u.Hz,
+    }
+    prefix_mapping = SkyPrefixMapping(
+        ra="RA",
+        dec="DEC",
+        stokes_i="S_PEAK",
+        ref_freq="NU_EFF",
+        major="IM_MAJ",
+        minor="IM_MIN",
+        pa="IM_PA",
+        id="NAME",
+    )
+    units_sources = SkySourcesUnits(
+        stokes_i=u.Jy / u.beam,
+    )
+    cols_mapping: _ColsMappingDict = {
+        "cols": cols,
+        "unit_mapping": unit_mapping,
+        "prefix_mapping": prefix_mapping,
+        "sky_sources_units": units_sources,
+        "n_encoded_freqs": 0,
+        "n_formattable_cols": 0,
+        "n_unit_cols": 7,
+    }
+    return cols_mapping
+
+
+def test_format_prefix_freq_mapping(
+    formattable: _ColsMappingDict,
+    non_formattable: _ColsMappingDict,
+):
+    (
+        prefix_mapping,
+        num_formattings,
+        _,
+    ) = SkySourcesUnits.format_sky_prefix_freq_mapping(
+        cols=non_formattable["cols"],
+        prefix_mapping=non_formattable["prefix_mapping"],
+        encoded_freq=None,
+    )
+    assert prefix_mapping is non_formattable["prefix_mapping"]
+    assert num_formattings == 0
+    with pytest.raises(RuntimeError):
+        _ = SkySourcesUnits.format_sky_prefix_freq_mapping(
+            cols=non_formattable["cols"],
+            prefix_mapping=non_formattable["prefix_mapping"],
+            encoded_freq=u.MHz,
+        )
+    (
+        prefix_mapping,
+        num_formattings,
+        names_and_freqs,
+    ) = SkySourcesUnits.format_sky_prefix_freq_mapping(
+        cols=formattable["cols"],
+        prefix_mapping=formattable["prefix_mapping"],
+        encoded_freq=u.MHz,
+    )
+    assert prefix_mapping != formattable["prefix_mapping"]
+    assert num_formattings == formattable["n_encoded_freqs"]
+    assert (
+        len(names_and_freqs)
+        == formattable["n_encoded_freqs"] * formattable["n_formattable_cols"]
+    )
+
+
+def test_get_unit_scales(
+    formattable: _ColsMappingDict,
+    non_formattable: _ColsMappingDict,
+):
+    with pytest.raises(RuntimeError):  # because formattable-strings are not col-names
+        _ = formattable["sky_sources_units"].get_unit_scales(
+            cols=formattable["cols"],
+            unit_mapping=formattable["unit_mapping"],
+            prefix_mapping=formattable["prefix_mapping"],
+        )
+    unit_scales_non_formattable = non_formattable["sky_sources_units"].get_unit_scales(
+        cols=non_formattable["cols"],
+        unit_mapping=non_formattable["unit_mapping"],
+        prefix_mapping=non_formattable["prefix_mapping"],
+    )
+    assert len(unit_scales_non_formattable) == non_formattable["n_unit_cols"]
+    unit_mapping_typo = copy(non_formattable["unit_mapping"])
+    unit_mapping_typo.update({"non-existing-unit-str": u.km})  # u.km doesn't rly matter
+    with pytest.raises(RuntimeError):
+        _ = non_formattable["sky_sources_units"].get_unit_scales(
+            cols=non_formattable["cols"],
+            unit_mapping=unit_mapping_typo,
+            prefix_mapping=non_formattable["prefix_mapping"],
+        )
+    prefix_mapping_typo = copy(non_formattable["prefix_mapping"])
+    prefix_mapping_typo.ra = "definitely-not-ra"
+    with pytest.raises(RuntimeError):
+        _ = non_formattable["sky_sources_units"].get_unit_scales(
+            cols=non_formattable["cols"],
+            unit_mapping=non_formattable["unit_mapping"],
+            prefix_mapping=prefix_mapping_typo,
+        )
+
+
+def test_extract_names_and_freqs(
+    formattable: _ColsMappingDict,
+):
+    naf_formattable = SkySourcesUnits.extract_names_and_freqs(
+        string=formattable["prefix_mapping"].stokes_i,
+        cols=formattable["cols"],
+        unit=u.MHz,
+    )
+    assert len(naf_formattable) == formattable["n_encoded_freqs"]
+    naf_formattable2 = SkySourcesUnits.extract_names_and_freqs(
+        string=formattable["prefix_mapping"].stokes_i,
+        cols=formattable["cols"],
+        unit=u.Hz,
+    )
+    assert all(
+        np.array(list(naf_formattable.values()))
+        / np.array(list(naf_formattable2.values()))
+        == (u.MHz.to(u.Hz))  # 1e6
+    )
+    with pytest.raises(UnitConversionError):
+        _ = SkySourcesUnits.extract_names_and_freqs(
+            string=formattable["prefix_mapping"].stokes_i,
+            cols=formattable["cols"],
+            unit=u.km,
+        )
+    with pytest.raises(ValueError):
+        _ = SkySourcesUnits.extract_names_and_freqs(
+            string=formattable["prefix_mapping"].ra,
+            cols=formattable["cols"],
+            unit=u.GHz,
+        )
