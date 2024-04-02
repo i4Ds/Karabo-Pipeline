@@ -243,7 +243,7 @@ class Imager:
         self,
         fits_path: FilePathType,
         visibility: Visibility,
-    ) -> Image:
+    ) -> NDArray[np.float_]:
         imager = oskar.Imager()
         imager.set(
             input_file=visibility.vis_path,
@@ -261,15 +261,13 @@ class Imager:
         output = imager.run(return_images=1)
         image = output["images"][0]
 
-        # TODO convert to Image object instead of numpy ndarray
-
         return image
 
     def get_dirty_image(
         self,
         fits_path: Optional[FilePathType] = None,
         imaging_backend: SimulatorBackend = SimulatorBackend.RASCIL,
-    ) -> Image:
+    ) -> Union[Image, NDArray[np.float_]]:
         """Get Dirty Image of visibilities passed to the Imager.
 
         Note: If `fits_path` is provided and already exists, then this function will
