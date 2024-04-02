@@ -1,8 +1,8 @@
 import pytest
 
+import karabo
 from karabo.test.conftest import RUN_GPU_TESTS
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
-from karabo.version import __version__
 
 
 def test_is_cuda_available():
@@ -36,4 +36,4 @@ def test_is_cuda_available_true():
 
 
 def test_version():
-    assert isinstance(__version__, str)
+    assert karabo.__version__ != "0+unknown"
