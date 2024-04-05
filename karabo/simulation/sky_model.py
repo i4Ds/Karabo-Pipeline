@@ -48,6 +48,7 @@ from xarray.core.coordinates import DataArrayCoordinates
 from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     HISourcesSmallCatalogDownloadObject,
+    MALSSurveyV3DownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
@@ -2080,6 +2081,66 @@ class SkyModel:
             max_freq=max_freq,
             encoded_freq=None,
             memmap=False,
+        )
+
+    @classmethod
+    def get_MALS_DR1V3_Sky(
+        cls: Type[_TSkyModel],
+        min_freq: Optional[float] = None,
+        max_freq: Optional[float] = None,
+    ) -> _TSkyModel:
+        """Creates a SkyModel containing "MALS V3" catalogue, of 715,760 sources,
+        where the catalogue and it's information are from 'https://mals.iucaa.in/'.
+
+        The MeerKAT Absorption Line Survey (MALS) consists of 1655 hrs of MeerKAT time
+        (anticipated raw data ~ 1.7 PB) to carry out the most sensitive search of HI
+        and OH absorption lines at 0<z<2, the redshift range over which most of the
+        cosmic evolution in the star formation rate density takes place. The MALS
+        survey is described in 'Gupta et al. (2016)'.
+
+        MALS sky-coverage consists of 392 sources trackings between all RA-angles
+        and DEC[-78.80,32.35].
+
+        MALS's frequency-range: 902-1644 MHz.
+
+        For puplications, please honor their work by citing them as follows:
+        - If you describe MALS or associated science, please cite 'Gupta et al. 2016'.
+        - If you use DR1 data products, please cite 'Deka et al. 2024'.
+
+        Args:
+            min_freq: Set min-frequency in Hz for pre-filtering.
+            max_freq: Set max-frequency in Hz for pre-filtering.
+
+        Returns:
+            MALS sky as `SkyModel`.
+        """
+        survey_file = MALSSurveyV3DownloadObject().get()
+        unit_mapping: dict[str, UnitBase] = {
+            "deg": u.deg,
+            "beam-1 mJy": u.mJy / u.beam,
+            "MHz": u.MHz,
+            "arcsec": u.arcsec,
+        }
+        prefix_mapping = SkyPrefixMapping(
+            ra="ra_max",
+            dec="dec_max",
+            stokes_i="peak_flux",
+            ref_freq="ref_freq",
+            major="maj",
+            minor="min",
+            pa="pa",
+            id="source_name",
+        )
+        unit_sources = SkySourcesUnits(
+            stokes_i=u.Jy / u.beam,
+        )
+        return cls.get_sky_model_from_fits(
+            fits_file=survey_file,
+            prefix_mapping=prefix_mapping,
+            unit_mapping=unit_mapping,
+            units_sources=unit_sources,
+            min_freq=min_freq,
+            max_freq=max_freq,
         )
 
     @classmethod
