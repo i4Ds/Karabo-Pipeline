@@ -382,15 +382,15 @@ class SkySourcesUnits:
     @classmethod
     def get_pos_ids_to_ra_dec(
         cls,
-        pos_ids: Sequence[str] | str,
-    ) -> dict[str, tuple[float, float]]:
+        pos_ids: Union[Sequence[str], str],
+    ) -> Dict[str, Tuple[float, float]]:
         """Converts position-id(s) from str to ra-dec in degrees.
 
         The supported format(s) of `pos_ids` is 'JHHMMSS(.s+)±DDMMSS(.s+)' (J2000),
         where each pos-id has to follow the same format. This means e.g. if the first
         pos-id has the format 'JHHMMSS.ss±DDMMSS.s', then having other pos-ids
         whth another format like 'JHHMMSS.s±DDMMSS' is not allowed nor checked
-        in this function.
+        in this function. This may result in unchecked behaviour (e.g. silent errors).
 
         A valid example of `pos_ids` (here just str instead of an iterable) is
         `pos_ids`="J130508.50-285042.0", which results in RA≈196.285, DEC≈-28.845
@@ -402,7 +402,7 @@ class SkySourcesUnits:
         Returns:
             Dict from pos-id to ra-dec-tuple.
         """
-        UnitMatchType = dict[str, list[int]]
+        UnitMatchType = Dict[str, List[int]]
         if isinstance(pos_ids, str):
             pos_ids = [pos_ids]
 
@@ -527,7 +527,7 @@ class SkySourcesUnits:
             dec = Angle(dec_angle_str).to(u.deg).value
             return ra, dec
 
-        ra_dec: dict[str, tuple[float, float]] = dict()
+        ra_dec: Dict[str, Tuple[float, float]] = dict()
         for pos_id in pos_ids:
             ra_dec[pos_id] = convert_pos_id_to_ra_dec(
                 pos_id=pos_id,
@@ -2099,7 +2099,7 @@ class SkyModel:
         survey is described in 'Gupta et al. (2016)'.
 
         MALS sky-coverage consists of 392 sources trackings between all RA-angles
-        and DEC[-78.80,32.35].
+        and DEC[-78.80,32.35] and different radius.
 
         MALS's frequency-range: 902-1644 MHz.
 
