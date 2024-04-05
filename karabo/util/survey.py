@@ -78,7 +78,7 @@ def create_MALS_survey_as_fits(
         )  # about 3.6GB, may take VERY long
 
     if verbose:
-        "Read csv from disk ..."
+        print(f"Read {local_csv_file} from disk ...")
     df = pd.read_csv(local_csv_file)  # takes about 40-45 s
     # source-uniqueness is only ensured for a combination of pointing-id and spw-id
     cols_of_interest = [
