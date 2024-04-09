@@ -188,7 +188,9 @@ class SingleFileDownloadObject(DownloadObject):
 class GLEAMSurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            remote_file_path="GLEAM_EGC.fits",
+            remote_file_path=DownloadObject.URL_SEP.join(
+                ("surveys", "gleam", "GLEAM_EGC_v0.fits")
+            ),
             remote_base_url=cscs_karabo_public_base_url,
         )
 
@@ -196,7 +198,9 @@ class GLEAMSurveyDownloadObject(SingleFileDownloadObject):
 class HISourcesSmallCatalogDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            remote_file_path="HI_sources_small_catalog.h5",
+            remote_file_path=DownloadObject.URL_SEP.join(
+                ("surveys", "hi-small", "HI_sources_small_catalog_v0.h5")
+            ),
             remote_base_url=cscs_karabo_public_base_url,
         )
 
@@ -219,7 +223,13 @@ class DilutedBATTYESurveyDownloadObject(SingleFileDownloadObject):
 class MIGHTEESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            remote_file_path="MIGHTEE_Continuum_Early_Science_COSMOS_Level1.fits",
+            remote_file_path=DownloadObject.URL_SEP.join(
+                (
+                    "surveys",
+                    "mightee",
+                    "MIGHTEE_Continuum_Early_Science_COSMOS_Level1_v0.fits",
+                )
+            ),
             remote_base_url=cscs_karabo_public_base_url,
         )
 
@@ -237,7 +247,9 @@ class MALSSurveyV3DownloadObject(SingleFileDownloadObject):
 class ExampleHDF5Map(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
-            remote_file_path="example_map.h5",
+            remote_file_path=DownloadObject.URL_SEP.join(
+                ("surveys", "example", "example_map_v0.h5")
+            ),
             remote_base_url=cscs_karabo_public_base_url,
         )
 
