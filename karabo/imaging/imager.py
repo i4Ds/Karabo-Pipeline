@@ -243,7 +243,7 @@ class Imager:
         self,
         fits_path: FilePathType,
         visibility: Visibility,
-    ) -> NDArray[np.float_]:
+    ) -> Image:
         imager = oskar.Imager()
         imager.set(
             input_file=visibility.vis_path,
@@ -258,8 +258,9 @@ class Imager:
 
             imager.set_vis_phase_centre(ra, dec)
 
-        output = imager.run(return_images=1)
-        image = output["images"][0]
+        imager.run(return_images=1)
+
+        image = Image(path=fits_path)
 
         return image
 
@@ -267,7 +268,7 @@ class Imager:
         self,
         fits_path: Optional[FilePathType] = None,
         imaging_backend: SimulatorBackend = SimulatorBackend.RASCIL,
-    ) -> Union[Image, NDArray[np.float_]]:
+    ) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
 
         Note: If `fits_path` is provided and already exists, then this function will
@@ -277,9 +278,14 @@ class Imager:
             fits_path: Path to where the .fits file will get saved.
             imaging_backend: Backend to use for computing dirty image from visibilities.
                 Defaults to RASCIL.
+                NOTE: even though OSKAR and RASCIL return Image instances,
+                    each backend handles frequency channels differently.
+                    OSKAR backend returns one 3D-Image (x, y, polarisation)
+                        which has intensities added across frequency channels.
+                    RASCIL backend returns one 4D-Image (x, y, polarisation, frequency).
 
         Returns:
-            Dirty Image
+            Dirty Image (see backend for dimensionality of data within returned Image)
         """
         # Validate requested filepath
         if fits_path is None:
@@ -288,8 +294,6 @@ class Imager:
                 purpose="disk-cache for dirty.fits",
             )
             fits_path = os.path.join(tmp_dir, "dirty.fits")
-        else:
-            assert_valid_ending(path=fits_path, ending=".fits")
 
         # Perform imaging based on selected backend
         if imaging_backend is SimulatorBackend.OSKAR:

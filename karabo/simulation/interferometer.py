@@ -577,7 +577,7 @@ class InterferometerSimulation:
         """
         Run a single interferometer simulation with a given sky,
         telescope and observation settings.
-        :param telescope: telescope model defining it's configuration
+        :param telescope: telescope model defining its configuration
         :param sky: sky model defining the sources
         :param observation: observation settings
         """
