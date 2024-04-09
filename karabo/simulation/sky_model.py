@@ -386,18 +386,15 @@ class SkySourcesUnits:
     ) -> Dict[str, Tuple[float, float]]:
         """Converts position-id(s) from str to ra-dec in degrees.
 
-        The supported format(s) of `pos_ids` is 'JHHMMSS(.s+)±DDMMSS(.s+)' (J2000),
-        where each pos-id has to follow the same format. This means e.g. if the first
-        pos-id has the format 'JHHMMSS.ss±DDMMSS.s', then having other pos-ids
-        whth another format like 'JHHMMSS.s±DDMMSS' is not allowed nor checked
-        in this function. This may result in unchecked behaviour (e.g. silent errors).
+        The supported format(s) of `pos_ids` is 'JHHMMSS(.s+)±DDMMSS(.s+)' (J2000).
+        The format is not tested in it's entirety to not have to do a sanity-check
+        for each pos-id.
 
         A valid example of `pos_ids` (here just str instead of an iterable) is
         `pos_ids`="J130508.50-285042.0", which results in RA≈196.285, DEC≈-28.845
 
         Args:
-            pos_ids: Position-id(s), which all must follow the same supported format
-            for positional-parsing and unit-encoding.
+            pos_ids: Position-id(s)
 
         Returns:
             Dict from pos-id to ra-dec-tuple.
