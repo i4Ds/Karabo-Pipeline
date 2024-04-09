@@ -402,59 +402,8 @@ class SkySourcesUnits:
         Returns:
             Dict from pos-id to ra-dec-tuple.
         """
-        UnitMatchType = Dict[str, List[int]]
         if isinstance(pos_ids, str):
             pos_ids = [pos_ids]
-
-        def get_unit_matches_idxs(formatted_pos: str) -> UnitMatchType:
-            """Gets indices of `formatted_pos` units.
-
-            Supports the following formats:
-                - ra-format='JHHMMSS(.s+)'
-                - dec-format='±DDMMSS(.s+)'
-
-            Args:
-                formatted_pos: Splitted position-id for positional
-
-            Returns:
-                Unit-char to positions as dict[str, list[int]].
-            """
-            unit_idxs: UnitMatchType = dict()
-            if (first_char := formatted_pos[0]) == "J":
-                format_ = "JHHMMSS"  # positional encoded units
-                units = ("h", "m", "s")  # used units in `format_`
-            elif first_char == "+" or first_char == "-":
-                format_ = "±DDMMSS"
-                units = ("d", "m", "s")  # order according to `format_` and `Angle`
-            else:
-                raise ValueError(
-                    f"First value of {formatted_pos} is expected to be 'J', '+' or '-'"
-                )
-            formatted_pos_splitted = formatted_pos.split(".")
-            if len(formatted_pos_splitted) > 2:
-                raise ValueError(
-                    f"{formatted_pos=} contains multiple dot-separators "
-                    + "which is not supported"
-                )
-            if len(formatted_pos_splitted[0]) != len(format_):
-                raise ValueError(
-                    f"{formatted_pos=} doesn't follow format: {format_ + '(.s+)'}"
-                )
-            format_list = np.array(list(format_.lower()))
-
-            for unit_char in units:
-                match_idxs = tuple(np.where(format_list == unit_char)[0])
-                if (
-                    unit_char == format_list[-1] and len(formatted_pos_splitted) == 2
-                ):  # handle (.s+)
-                    point_idx = int(
-                        np.where(np.array(list(formatted_pos)) == ".")[0][0]
-                    )
-                    extension_idxs = tuple(range(point_idx, len(formatted_pos)))
-                    match_idxs = match_idxs + extension_idxs
-                if len(match_idxs) > 0:
-                    unit_idxs[unit_char] = match_idxs  # type: ignore[assignment]
-            return unit_idxs
 
         def get_sign(pos_id: str) -> str:
             """Extracts the pos-id separator.
@@ -477,30 +426,38 @@ class SkySourcesUnits:
                 )
             return sign
 
-        # just check first id to not have to call `get_unit_matches_idxs` for each id
-        sample_pos_id = pos_ids[0]
-        sample_sign = get_sign(sample_pos_id)
-        sample_ra_str, sample_dec_str = sample_pos_id.split(sep=sample_sign, maxsplit=1)
-        sample_dec_str = f"{sample_sign}{sample_dec_str}"
-        ra_unit_matches = get_unit_matches_idxs(formatted_pos=sample_ra_str)
-        dec_unit_matches = get_unit_matches_idxs(formatted_pos=sample_dec_str)
-
-        def create_angle_str(formatted_pos: str, unit_matches: UnitMatchType) -> str:
+        def create_angle_str(formatted_pos: str) -> str:
             """Creates `astropy.coordinates.Angle` compatible string.
+
+            Assumes '+'|'-'|'J' at the start and consecutive 2x2x2(.n) `angle_values`.
 
             Args:
                 formatted_pos: RA or DEC string from a single pos-id.
-                unit_matches: Unit positional indices. order must follow
-                    (h, m, s) or (d, m, s).
 
             Returns:
                 Angle string.
             """
-            angle_str = ""
             if (first_char := formatted_pos[0]) == "+" or first_char == "-":
                 angle_str = first_char
-            for unit_char, unit_idxs in unit_matches.items():
-                angle_str += f"{formatted_pos[unit_idxs[0]:unit_idxs[-1]+1]}{unit_char}"
+                angle_values = ("d", "m", "s")
+            elif first_char == "J":
+                angle_str = ""
+                angle_values = ("h", "m", "s")
+            else:
+                raise ValueError(f"{formatted_pos=} must start with 'J', '+' or '-'!")
+            if (
+                len(formatted_pos.split(".")[0]) < 7
+            ):  # min: prefix + 2x2x2 `angle_values`
+                raise ValueError(
+                    f"{formatted_pos=} doesn't follow the format "
+                    + "(J|+|-)(DD|HH)MMSS(.s+)*"
+                )
+            unit_indices = [
+                (i * 2 + 1, i * 2 + 3) if value != "s" else (i * 2 + 1, None)
+                for i, value in enumerate(angle_values)
+            ]
+            for unit_char, unit_idxs in zip(angle_values, unit_indices):
+                angle_str += f"{formatted_pos[unit_idxs[0]:unit_idxs[1]]}{unit_char}"
             return angle_str
 
         def convert_pos_id_to_ra_dec(pos_id: str) -> tuple[float, float]:
@@ -517,12 +474,8 @@ class SkySourcesUnits:
             sign = get_sign(pos_id=pos_id)
             ra_pos, dec_pos = pos_id.split(sign, maxsplit=1)
             dec_pos = f"{sign}{dec_pos}"  # keeps sign in dec-str
-            ra_angle_str = create_angle_str(
-                formatted_pos=ra_pos, unit_matches=ra_unit_matches
-            )
-            dec_angle_str = create_angle_str(
-                formatted_pos=dec_pos, unit_matches=dec_unit_matches
-            )
+            ra_angle_str = create_angle_str(formatted_pos=ra_pos)
+            dec_angle_str = create_angle_str(formatted_pos=dec_pos)
             ra = Angle(ra_angle_str).to(u.deg).value
             dec = Angle(dec_angle_str).to(u.deg).value
             return ra, dec
