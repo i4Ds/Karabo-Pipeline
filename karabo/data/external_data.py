@@ -228,7 +228,7 @@ class MALSSurveyV3DownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
             remote_file_path=DownloadObject.URL_SEP.join(
-                ("survey", "mals", "catalogue_malsdr1v3_all_v0.fits.gz")
+                ("surveys", "mals", "catalogue_malsdr1v3_all_v0.fits.gz")
             ),
             remote_base_url=cscs_karabo_public_base_url,
         )
