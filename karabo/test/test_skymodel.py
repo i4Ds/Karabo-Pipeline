@@ -61,7 +61,10 @@ def test_mightee():
 
 
 def test_mals_v3():
-    _ = SkyModel.get_MALS_DR1V3_Sky(min_freq=976.4e6, max_freq=1036.5e6)
+    mals_sky = SkyModel.get_MALS_DR1V3_Sky(min_freq=976.4e6, max_freq=1036.5e6)
+    assert mals_sky.num_sources == 495325
+    with pytest.raises(KaraboSkyModelError):  # no sources because out of freq
+        _ = SkyModel.get_MALS_DR1V3_Sky(min_freq=800e6, max_freq=900e6)
 
 
 def test_filter_sky_model(gleam: SkyModel):

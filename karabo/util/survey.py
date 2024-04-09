@@ -27,7 +27,7 @@ def create_MALS_survey_as_fits(
     into a .fits.gz file. Downloading the .csv catalogue may take a while, because
     it is about 3.6GB large and downloading-speed depends on some uncontrollable
     factors. However, if you already have the .csv catalogue, just put it into
-    `directory` to takes it from the disk-cache. All file-products (.csv & .fits.gz)
+    `directory` to take it from the disk-cache. All file-products (.csv & .fits.gz)
     are saved in and loaded from `directory`.
 
     This is just a utility function and is not meant to be embedded in any
