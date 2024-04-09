@@ -260,7 +260,17 @@ class Imager:
 
         imager.run(return_images=1)
 
-        image = Image(path=fits_path)
+        # OSKAR adds _I.fits to the fits_path set by the user
+        image = Image(path=f"{fits_path}_I.fits")
+
+        # OSKAR Imager is expected to produce one image
+        # combining all frequency channels.
+        # Therefore, we expect the image data to have 3 axes:
+        # polarisations, x, y
+        assert (
+            len(image.data.shape) == 3
+        ), f"""OSKAR Image data has an unexpected dimensionality
+        {len(image.data.shape)} (expected = 3)"""
 
         return image
 
