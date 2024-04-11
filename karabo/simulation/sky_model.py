@@ -1150,6 +1150,7 @@ class SkyModel:
         wcs: Optional[WCS] = None,
         wcs_enabled: bool = True,
         filename: Optional[str] = None,
+        block: bool = False,
         **kwargs: Any,
     ) -> None:
         """
@@ -1175,6 +1176,7 @@ class SkyModel:
         :param wcs_enabled: Use wcs transformation?
         :param filename: Set to path/fname to save figure (set extension to fname to
                          overwrite .png default)
+        :param block: Whether or not plotting should block the rest of the program
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`,
                        `vmin` or `vmax`
         """
@@ -1267,7 +1269,7 @@ class SkyModel:
             plt.xlabel(xlabel)
         if ylabel is not None:
             plt.ylabel(ylabel)
-        plt.show(block=False)
+        plt.show(block=block)
         plt.pause(1)
 
         if isinstance(filename, str):

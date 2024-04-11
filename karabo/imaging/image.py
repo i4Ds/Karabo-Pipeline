@@ -309,6 +309,8 @@ class Image:
         return NDData(data=self.data, wcs=self.get_wcs())
 
     def to_2dNNData(self) -> NDData:
+        # TODO this assumes stokesI, i.e. 0th polarisation
+        # Need to modify when adding full-stokes support
         return NDData(data=self.data[0, 0, :, :], wcs=self.get_2d_wcs())
 
     def plot(
@@ -325,6 +327,7 @@ class Image:
         wcs_enabled: bool = True,
         invert_xaxis: bool = False,
         filename: Optional[str] = None,
+        block: bool = False,
         **kwargs: Any,
     ) -> None:
         """Plots the image
@@ -343,6 +346,7 @@ class Image:
         :param invert_xaxis: Do you want to invert the xaxis?
         :param filename: Set to path/fname to save figure
         (set extension to fname to overwrite .png default)
+        :param block: Whether plotting should block the remaining of the script
         :param kwargs: matplotlib kwargs for scatter & Collections,
         e.g. customize `s`, `vmin` or `vmax`
         """
@@ -392,7 +396,7 @@ class Image:
             ax.invert_xaxis()
         if filename is not None:
             fig.savefig(filename)
-        plt.show(block=False)
+        plt.show(block=block)
         plt.pause(1)
 
     def get_dimensions_of_image(self) -> List[int]:
@@ -505,6 +509,7 @@ class Image:
         resolution: float = 5.0e-4,
         signal_channel: Optional[int] = None,
         path: Optional[FilePathType] = None,
+        block: bool = False,
     ) -> None:
         """
         Plot the power spectrum of this image.
@@ -513,6 +518,7 @@ class Image:
         :param signal_channel: channel containing both signal and noise
         (arr of same shape as nchan of Image), optional
         :param save_png: True if result should be saved, default = False
+        :param block: Whether plotting should block the remaining of the script
         """
         profile, theta = self.get_power_spectrum(resolution, signal_channel)
         plt.clf()
@@ -531,7 +537,7 @@ class Image:
 
         if path is not None:
             plt.savefig(path)
-        plt.show(block=False)
+        plt.show(block=block)
         plt.pause(1)
 
     def get_cellsize(self) -> np.float64:

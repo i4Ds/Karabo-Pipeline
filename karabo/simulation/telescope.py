@@ -328,7 +328,9 @@ class Telescope:
             )
             return
 
-    def plot_telescope_OSKAR(self, file: Optional[str] = None) -> None:
+    def plot_telescope_OSKAR(
+        self, file: Optional[str] = None, block: bool = False
+    ) -> None:
         """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
@@ -367,7 +369,7 @@ class Telescope:
             plt.savefig(file)
             plt.close(fig)
         else:
-            plt.show(block=False)
+            plt.show(block=block)
             plt.pause(1)
 
     def get_OSKAR_telescope(self) -> OskarTelescope:

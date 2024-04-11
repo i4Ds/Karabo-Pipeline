@@ -262,7 +262,7 @@ class Imager:
         image.header["NAXIS"] = 4
         image.header["NAXIS4"] = 1
 
-        image.write_to_file(path=f"{fits_path}_I.fits")
+        image.write_to_file(path=f"{fits_path}_I.fits", overwrite=True)
 
         return image
 
@@ -294,6 +294,8 @@ class Imager:
 
             assert len(image.data.shape) == 4
             image.data = np.array([np.sum(image.data, axis=0)])
+
+            image.write_to_file(path=fits_path, overwrite=True)
 
         return image
 
