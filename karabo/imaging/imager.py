@@ -219,31 +219,20 @@ class Imager:
         self.imaging_uvmin = imaging_uvmin
         self.imaging_field_of_view_degrees = imaging_field_of_view_degrees
 
-    def _rascil_imager(
-        self,
-        fits_path: FilePathType,
-        visibility: RASCILVisibility,
-    ) -> Image:
-        model = create_image_from_visibility(
-            visibility,
-            npixel=self.imaging_npixel,
-            cellsize=self.imaging_cellsize,
-            override_cellsize=self.override_cellsize,
-        )
-        dirty, _ = invert_visibility(visibility, model, context="2d")
-        if os.path.exists(fits_path):
-            os.remove(fits_path)
-        dirty.image_acc.export_to_fits(fits_file=fits_path)
-
-        image = Image(path=fits_path)
-
-        return image
-
     def _oskar_imager(
         self,
         fits_path: FilePathType,
         visibility: Visibility,
+        combine_across_frequencies: bool = True,
     ) -> Image:
+        if combine_across_frequencies is False:
+            raise NotImplementedError(
+                """For the OSKAR backend, the dirty image will
+                always have intensities added across all frequency channels.
+                Therefore, combine_across_frequencies==False
+                is not currently supported.
+                """
+            )
         imager = oskar.Imager()
         imager.set(
             input_file=visibility.vis_path,
@@ -263,21 +252,56 @@ class Imager:
         # OSKAR adds _I.fits to the fits_path set by the user
         image = Image(path=f"{fits_path}_I.fits")
 
-        # OSKAR Imager is expected to produce one image
+        # OSKAR Imager always produces one image by
         # combining all frequency channels.
-        # Therefore, we expect the image data to have 3 axes:
-        # polarisations, x, y
-        assert (
-            len(image.data.shape) == 3
-        ), f"""OSKAR Image data has an unexpected dimensionality
-        {len(image.data.shape)} (expected = 3)"""
+        # To maintain the same data shape when compared to other imagers (e.g. RASCIL),
+        # We add an axis for frequency, and modify the header accordingly
+        assert len(image.data.shape) == 3
+
+        image.data = np.array([image.data])
+        image.header["NAXIS"] = 4
+        image.header["NAXIS4"] = 1
+
+        image.write_to_file(path=f"{fits_path}_I.fits")
+
+        return image
+
+    def _rascil_imager(
+        self,
+        fits_path: FilePathType,
+        visibility: RASCILVisibility,
+        combine_across_frequencies: bool = True,
+    ) -> Image:
+        model = create_image_from_visibility(
+            visibility,
+            npixel=self.imaging_npixel,
+            cellsize=self.imaging_cellsize,
+            override_cellsize=self.override_cellsize,
+        )
+        dirty, _ = invert_visibility(visibility, model, context="2d")
+        if os.path.exists(fits_path):
+            os.remove(fits_path)
+        dirty.image_acc.export_to_fits(fits_file=fits_path)
+
+        image = Image(path=fits_path)
+
+        # By default, RASCIL Imager produces a 4D Image object, with shape
+        # corresponding to (frequency channels, polarisations, pixels_x, pixels_y).
+        # If requested, we combine images across all frequency channels into one image,
+        # and modify the header information accordingly
+        if combine_across_frequencies is True:
+            image.header["NAXIS4"] = 1
+
+            assert len(image.data.shape) == 4
+            image.data = np.array([np.sum(image.data, axis=0)])
 
         return image
 
     def get_dirty_image(
         self,
         fits_path: Optional[FilePathType] = None,
-        imaging_backend: SimulatorBackend = SimulatorBackend.RASCIL,
+        combine_across_frequencies: bool = True,
+        imaging_backend: Optional[SimulatorBackend] = None,
     ) -> Image:
         """Get Dirty Image of visibilities passed to the Imager.
 
@@ -286,16 +310,22 @@ class Imager:
 
         Args:
             fits_path: Path to where the .fits file will get saved.
+            combine_across_frequencies: if True, will return an object with
+                one entry in the frequency axis. This is created by adding pixel values
+                across all frequency channels. If False, will return an object with
+                one or more entries in the frequency axis.
+                NOTE: for OSKAR, the default behavior corresponds to a True value.
+                A False value is currently not supported for OSKAR.
+                For RASCIL, the default behavior corresponds to a False value.
+                A True value will trigger an additional step to add images across
+                frequency channels.
             imaging_backend: Backend to use for computing dirty image from visibilities.
-                Defaults to RASCIL.
-                NOTE: even though OSKAR and RASCIL return Image instances,
-                    each backend handles frequency channels differently.
-                    OSKAR backend returns one 3D-Image (x, y, polarisation)
-                        which has intensities added across frequency channels.
-                    RASCIL backend returns one 4D-Image (x, y, polarisation, frequency).
+                Defaults to None, which leads to the Imager selecting the same backend
+                    used to compute the visibilities.
 
         Returns:
-            Dirty Image (see backend for dimensionality of data within returned Image)
+            Dirty Image, with 4D data of shape
+                (frequency, polarisation, pixel_x, pixel_y)
         """
         # Validate requested filepath
         if fits_path is None:
@@ -304,6 +334,16 @@ class Imager:
                 purpose="disk-cache for dirty.fits",
             )
             fits_path = os.path.join(tmp_dir, "dirty.fits")
+
+        # If imaging_backend is None, use same backend applied
+        # when computing visibilities
+        if imaging_backend is None:
+            if isinstance(self.visibility, Visibility):
+                imaging_backend = SimulatorBackend.OSKAR
+            elif isinstance(self.visibility, RASCILVisibility):
+                imaging_backend = SimulatorBackend.RASCIL
+
+            assert_never(self.visibility)
 
         # Perform imaging based on selected backend
         if imaging_backend is SimulatorBackend.OSKAR:
@@ -314,7 +354,11 @@ class Imager:
                     For RASCIL Visibilities please use the RASCIL Imager."""
                 )
 
-            image = self._oskar_imager(fits_path, self.visibility)
+            image = self._oskar_imager(
+                fits_path,
+                self.visibility,
+                combine_across_frequencies=combine_across_frequencies,
+            )
 
             return image
         elif imaging_backend is SimulatorBackend.RASCIL:
@@ -328,7 +372,9 @@ class Imager:
                 vis = block_visibilities[0]
 
             # Compute dirty image from visibilities
-            image = self._rascil_imager(fits_path, vis)
+            image = self._rascil_imager(
+                fits_path, vis, combine_across_frequencies=combine_across_frequencies
+            )
 
             return image
 

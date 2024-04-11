@@ -12,6 +12,7 @@ from karabo.data.external_data import (
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
+from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationParallized
@@ -84,7 +85,17 @@ def test_backend_simulations(
         number_of_channels=64,
     )
 
-    simulation.run_simulation(telescope, sky, observation, backend=backend)
+    visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
+
+    imager = Imager(
+        visibility,
+        imaging_npixel=1024,
+        imaging_cellsize=3 / 180 * np.pi / 1024,
+    )
+    dirty = imager.get_dirty_image()
+
+    assert isinstance(dirty, Image)
+    assert len(dirty.data.shape) == 4
 
 
 def test_simulation_meerkat(
