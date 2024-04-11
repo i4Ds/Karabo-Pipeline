@@ -97,6 +97,12 @@ class Image:
         else:
             raise RuntimeError("Provide either `path` or both `data` and `header`.")
 
+        assert (
+            len(self.data.shape) == 4
+        ), f"""Unexpected shape for image data:
+        {self.data.shape}; expected 4D array with shape corresponding to
+        (frequencies, polarisations, pixels_x, pixels_y)"""
+
         self._fname = os.path.split(self.path)[-1]
 
     @staticmethod
@@ -207,6 +213,30 @@ class Image:
         header = cut.wcs.to_header()
         header = self.update_header_from_image_header(header, self.header)
         return Image(data=cut.data[np.newaxis, np.newaxis, :, :], header=header)
+
+    def circle(self, radius_pixels: float = 1) -> Image:
+        """For each frequency channel and polarisation, cutout the pixel values,
+        only keeping data for a circle of the requested radius centered
+        at the center of the image.
+        This is an in-place transformation of the data.
+
+        :param radius_pixels: Radius of the cutout in image pixels.
+        :return: None (data of current Image instance is transformed in-place)
+        """
+
+        def circle_pixels(pixels: NDArray[np.float_]) -> NDArray[np.float_]:
+            radius = min(pixels.shape) // 2
+            y, x = np.ogrid[-radius:radius, -radius:radius]
+            mask = x**2 + y**2 > radius**2
+            pixels[mask] = np.nan
+
+            return pixels
+
+        # This assumes self.data is a 4D array, with shape corresponding to
+        # (frequency, polarisations, pixels_x, pixels_y)
+        for i, frequency_image in enumerate(self.data):
+            for j, pixels in enumerate(frequency_image):
+                self.data[i][j] = circle_pixels(pixels)
 
     @staticmethod
     def update_header_from_image_header(
