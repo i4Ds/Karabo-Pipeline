@@ -1,8 +1,9 @@
 import os
 import tempfile
+from collections.abc import Sequence
 from copy import copy
 from dataclasses import fields
-from typing import Dict, TypedDict, get_args
+from typing import Any, Dict, TypedDict, Union, get_args
 
 import astropy.units as u
 import numpy as np
@@ -19,6 +20,7 @@ from karabo.data.external_data import (
     ExampleHDF5Map,
     GLEAMSurveyDownloadObject,
     HISourcesSmallCatalogDownloadObject,
+    MALSSurveyV3DownloadObject,
     MGCLSContainerDownloadObject,
     MIGHTEESurveyDownloadObject,
 )
@@ -56,6 +58,13 @@ def test_mightee():
         _ = SkyModel.get_MIGHTEE_Sky(min_freq=3e11)
     _ = SkyModel.get_MIGHTEE_Sky(max_freq=3e11)
     _ = SkyModel.get_MIGHTEE_Sky(min_freq=1.3e9, max_freq=1.4e9)
+
+
+def test_mals_v3():
+    mals_sky = SkyModel.get_MALS_DR1V3_Sky(min_freq=976.4e6, max_freq=1036.5e6)
+    assert mals_sky.num_sources == 495325
+    with pytest.raises(KaraboSkyModelError):  # no sources because out of freq
+        _ = SkyModel.get_MALS_DR1V3_Sky(min_freq=800e6, max_freq=900e6)
 
 
 def test_filter_sky_model(gleam: SkyModel):
@@ -142,6 +151,8 @@ def test_cscs_resource_availability():
     assert map.is_available()
     mgcls = MGCLSContainerDownloadObject(".+")
     assert mgcls.is_available()
+    mals = MALSSurveyV3DownloadObject()
+    assert mals.is_available()
 
 
 def test_read_write_sky_model(sky_data: NDArray[np.float64]):
@@ -189,8 +200,11 @@ def test_convert_sky_to_backends():
     # Sources have redshift 1, i.e. frequency ~ 713 MHz, and thus
     # all sources should fall on bin index 1 in the array below
     # (i.e. within the channel starting at 710 MHz)
-    desired_frequencies_hz = 1e6 * np.array([700, 710, 720, 730, 740, 750])
+    desired_frequencies_hz = 1e6 * np.array([700, 710, 720, 730, 740])
     expected_channel_index = 1
+
+    frequency_bandwidth = desired_frequencies_hz[1] - desired_frequencies_hz[0]
+    frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
     # Verify that converting to OSKAR backend is a no-op
     oskar_sky = sky.convert_to_backend(backend=SimulatorBackend.OSKAR)
@@ -211,11 +225,9 @@ def test_convert_sky_to_backends():
         assert rascil_component.polarisation_frame == PolarisationFrame("stokesI")
 
         # Verify flux and frequencies of the source
-        # Assert source frequencies are the same as desired frequency channel starts,
-        # excluding the last entry of the desired frequencies
-        # (since it marks the end of the last frequency channel)
-        assert len(rascil_component.frequency) == len(desired_frequencies_hz) - 1
-        assert np.allclose(rascil_component.frequency, desired_frequencies_hz[:-1])
+        # Assert source frequencies are the same as centers of desired frequency channel
+        assert len(rascil_component.frequency) == len(desired_frequencies_hz)
+        assert np.allclose(rascil_component.frequency, frequency_channel_centers)
 
         # Assert only one flux entry is non-zero
         assert (
@@ -439,3 +451,34 @@ def test_extract_names_and_freqs(
             cols=formattable["cols"],
             unit=u.GHz,
         )
+
+
+@pytest.mark.parametrize(
+    "pos_ids, expected",
+    [
+        (
+            "J040729.20+175055.3",
+            {"J040729.20+175055.3": (61.87166666666665, 17.848694444444444)},
+        ),
+        (
+            ["J095423.67+004350.5", "J130508.50-285042.0"],
+            {
+                "J095423.67+004350.5": (148.598625, 0.7306944444444444),
+                "J130508.50-285042.0": (196.28541666666666, -28.845),
+            },
+        ),
+        (
+            "J005315-070233",
+            {"J005315-070233": (13.312499999999998, -7.0424999999999995)},
+        ),
+        ("J005315 - 070233", pytest.raises(ValueError)),  # because of whitespaces
+        ("005315-070233", pytest.raises(ValueError)),  # because of no J at the start
+        ("J040729.20+1750.3", pytest.raises(ValueError)),  # because of format-error
+    ],
+)
+def test_pos_ids_to_ra_dec(pos_ids: Union[Sequence[str], str], expected: Any):
+    if isinstance(expected, dict):
+        assert SkySourcesUnits.get_pos_ids_to_ra_dec(pos_ids=pos_ids) == expected
+    else:
+        with expected:
+            _ = SkySourcesUnits.get_pos_ids_to_ra_dec(pos_ids=pos_ids)

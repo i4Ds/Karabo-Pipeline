@@ -4,7 +4,7 @@ import copy
 import enum
 import math
 import re
-from collections.abc import Hashable, Mapping
+from collections.abc import Hashable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, fields
 from typing import (
@@ -31,7 +31,7 @@ import oskar
 import pandas as pd
 import xarray as xr
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import Angle, SkyCoord
 from astropy.io import fits
 from astropy.io.fits import ColDefs
 from astropy.io.fits.fitsrec import FITS_rec
@@ -48,6 +48,7 @@ from xarray.core.coordinates import DataArrayCoordinates
 from karabo.data.external_data import (
     GLEAMSurveyDownloadObject,
     HISourcesSmallCatalogDownloadObject,
+    MALSSurveyV3DownloadObject,
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
@@ -377,6 +378,111 @@ class SkySourcesUnits:
                 extracted_freq = float((extracted_freq * unit).to(u.Hz).value)  # type: ignore[attr-defined] # noqa: E501
                 names_and_freqs[col_name] = extracted_freq
         return names_and_freqs
+
+    @classmethod
+    def get_pos_ids_to_ra_dec(
+        cls,
+        pos_ids: Union[Sequence[str], str],
+    ) -> Dict[str, Tuple[float, float]]:
+        """Converts position-id(s) from str to ra-dec in degrees.
+
+        The supported format(s) of `pos_ids` is 'JHHMMSS(.s+)±DDMMSS(.s+)' (J2000).
+        The format is not tested in it's entirety to not have to do a sanity-check
+        for each pos-id.
+
+        A valid example of `pos_ids` (here just str instead of an iterable) is
+        `pos_ids`="J130508.50-285042.0", which results in RA≈196.285, DEC≈-28.845
+
+        Args:
+            pos_ids: Position-id(s)
+
+        Returns:
+            Dict from pos-id to ra-dec-tuple.
+        """
+        if isinstance(pos_ids, str):
+            pos_ids = [pos_ids]
+
+        def get_sign(pos_id: str) -> str:
+            """Extracts the pos-id separator.
+
+            Allowed separators are '+' and '-'.
+
+            Args:
+                pos_id: Position-id to extract sign-separator from.
+
+            Returns:
+                Sign separator.
+            """
+            if "+" in pos_id:
+                sign = "+"
+            elif "-" in pos_id:
+                sign = "-"
+            else:
+                raise ValueError(
+                    f"{pos_id} doesn't contain a valid sign-separator '+' or '-'"
+                )
+            return sign
+
+        def create_angle_str(formatted_pos: str) -> str:
+            """Creates `astropy.coordinates.Angle` compatible string.
+
+            Assumes '+'|'-'|'J' at the start and consecutive 2x2x2(.n) `angle_values`.
+
+            Args:
+                formatted_pos: RA or DEC string from a single pos-id.
+
+            Returns:
+                Angle string.
+            """
+            if (first_char := formatted_pos[0]) == "+" or first_char == "-":
+                angle_str = first_char
+                angle_values = ("d", "m", "s")
+            elif first_char == "J":
+                angle_str = ""
+                angle_values = ("h", "m", "s")
+            else:
+                raise ValueError(f"{formatted_pos=} must start with 'J', '+' or '-'!")
+            if (
+                len(formatted_pos.split(".")[0]) < 7
+            ):  # min: prefix + 2x2x2 `angle_values`
+                raise ValueError(
+                    f"{formatted_pos=} doesn't follow the format "
+                    + "(J|+|-)(DD|HH)MMSS(.s+)*"
+                )
+            unit_indices = [
+                (i * 2 + 1, i * 2 + 3) if value != "s" else (i * 2 + 1, None)
+                for i, value in enumerate(angle_values)
+            ]
+            for unit_char, unit_idxs in zip(angle_values, unit_indices):
+                angle_str += f"{formatted_pos[unit_idxs[0]:unit_idxs[1]]}{unit_char}"
+            return angle_str
+
+        def convert_pos_id_to_ra_dec(pos_id: str) -> tuple[float, float]:
+            """Converts a single pos-id to ra-dec tuple in degrees.
+
+            Assumes that unit-matches for each unit are all consecutive.
+
+            Args:
+                pos_id: Positional-id to convert.
+
+            Returns:
+                RA-DEC tuple in deg.
+            """
+            sign = get_sign(pos_id=pos_id)
+            ra_pos, dec_pos = pos_id.split(sign, maxsplit=1)
+            dec_pos = f"{sign}{dec_pos}"  # keeps sign in dec-str
+            ra_angle_str = create_angle_str(formatted_pos=ra_pos)
+            dec_angle_str = create_angle_str(formatted_pos=dec_pos)
+            ra = Angle(ra_angle_str).to(u.deg).value
+            dec = Angle(dec_angle_str).to(u.deg).value
+            return ra, dec
+
+        ra_dec: Dict[str, Tuple[float, float]] = dict()
+        for pos_id in pos_ids:
+            ra_dec[pos_id] = convert_pos_id_to_ra_dec(
+                pos_id=pos_id,
+            )
+        return ra_dec
 
 
 XARRAY_DIM_0_DEFAULT, XARRAY_DIM_1_DEFAULT = cast(
@@ -1044,6 +1150,7 @@ class SkyModel:
         wcs: Optional[WCS] = None,
         wcs_enabled: bool = True,
         filename: Optional[str] = None,
+        block: bool = False,
         **kwargs: Any,
     ) -> None:
         """
@@ -1069,6 +1176,7 @@ class SkyModel:
         :param wcs_enabled: Use wcs transformation?
         :param filename: Set to path/fname to save figure (set extension to fname to
                          overwrite .png default)
+        :param block: Whether or not plotting should block the rest of the program
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`,
                        `vmin` or `vmax`
         """
@@ -1161,7 +1269,7 @@ class SkyModel:
             plt.xlabel(xlabel)
         if ylabel is not None:
             plt.ylabel(ylabel)
-        plt.show(block=False)
+        plt.show(block=block)
         plt.pause(1)
 
         if isinstance(filename, str):
@@ -1928,6 +2036,66 @@ class SkyModel:
         )
 
     @classmethod
+    def get_MALS_DR1V3_Sky(
+        cls: Type[_TSkyModel],
+        min_freq: Optional[float] = None,
+        max_freq: Optional[float] = None,
+    ) -> _TSkyModel:
+        """Creates a SkyModel containing "MALS V3" catalogue, of 715,760 sources,
+        where the catalogue and it's information are from 'https://mals.iucaa.in/'.
+
+        The MeerKAT Absorption Line Survey (MALS) consists of 1655 hrs of MeerKAT time
+        (anticipated raw data ~ 1.7 PB) to carry out the most sensitive search of HI
+        and OH absorption lines at 0<z<2, the redshift range over which most of the
+        cosmic evolution in the star formation rate density takes place. The MALS
+        survey is described in 'Gupta et al. (2016)'.
+
+        MALS sky-coverage consists of 392 sources trackings between all RA-angles
+        and DEC[-78.80,32.35] and different radius.
+
+        MALS's frequency-range: 902-1644 MHz.
+
+        For puplications, please honor their work by citing them as follows:
+        - If you describe MALS or associated science, please cite 'Gupta et al. 2016'.
+        - If you use DR1 data products, please cite 'Deka et al. 2024'.
+
+        Args:
+            min_freq: Set min-frequency in Hz for pre-filtering.
+            max_freq: Set max-frequency in Hz for pre-filtering.
+
+        Returns:
+            MALS sky as `SkyModel`.
+        """
+        survey_file = MALSSurveyV3DownloadObject().get()
+        unit_mapping: dict[str, UnitBase] = {
+            "deg": u.deg,
+            "beam-1 mJy": u.mJy / u.beam,
+            "MHz": u.MHz,
+            "arcsec": u.arcsec,
+        }
+        prefix_mapping = SkyPrefixMapping(
+            ra="ra_max",
+            dec="dec_max",
+            stokes_i="peak_flux",
+            ref_freq="ref_freq",
+            major="maj",
+            minor="min",
+            pa="pa",
+            id="source_name",
+        )
+        unit_sources = SkySourcesUnits(
+            stokes_i=u.Jy / u.beam,
+        )
+        return cls.get_sky_model_from_fits(
+            fits_file=survey_file,
+            prefix_mapping=prefix_mapping,
+            unit_mapping=unit_mapping,
+            units_sources=unit_sources,
+            min_freq=min_freq,
+            max_freq=max_freq,
+        )
+
+    @classmethod
     def get_random_poisson_disk_sky(
         cls: Type[_TSkyModel],
         min_size: Tuple[IntFloat, IntFloat],
@@ -1996,11 +2164,11 @@ class SkyModel:
             support OSKAR-formatted source np.array values.
             RASCIL: convert the current source array into a
             list of RASCIL SkyComponent instances.
-        desired_frequencies_hz: List of frequencies corresponding to endpoints
+        desired_frequencies_hz: List of frequencies corresponding to start
         of desired frequency channels. This field is required
         to convert sources into RASCIL SkyComponents.
-            The array contains endpoint frequencies for the desired channels.
-            E.g. [100e6, 110e6, 120e6] corresponds to 2 frequency channels,
+            The array contains starting frequencies for the desired channels.
+            E.g. [100e6, 110e6] corresponds to 2 frequency channels,
             which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
         verbose: Determines whether to display additional print statements.
         """
@@ -2022,7 +2190,14 @@ class SkyModel:
 
             desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
 
+            assert (
+                len(desired_frequencies_hz) > 1
+            ), """Must have at least 2 elements
+            in desired_frequencies_hz array"""
+
             desired_frequencies_hz = np.sort(desired_frequencies_hz)
+            frequency_bandwidth = desired_frequencies_hz[1] - desired_frequencies_hz[0]
+            frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
             # 1. Remove sources that fall outside all desired frequency channels
             # 2. Assign each source to the frequency channel closest
@@ -2069,10 +2244,7 @@ class SkyModel:
             # For each source, find the channel to which it belongs
             source_channel_indices = np.digitize(
                 convert_z_to_frequency(redshifts),
-                desired_frequencies_hz[
-                    :-1
-                ],  # Only provide starting points for frequency channels,
-                # i.e. omit the ending of the last channel
+                desired_frequencies_hz,
                 right=False,
             )
 
@@ -2091,7 +2263,7 @@ class SkyModel:
             ):
                 # 1 == npolarisations, fixed as 1 (stokesI) for now
                 # TODO eventually handle full stokes source catalogs
-                flux_array = np.zeros((len(desired_frequencies_hz) - 1, 1))
+                flux_array = np.zeros((len(desired_frequencies_hz), 1))
 
                 # Access [0] since this is the stokesI flux,
                 # and [index] to place the source's flux onto
@@ -2107,10 +2279,7 @@ class SkyModel:
                             frame="icrs",
                             equinox="J2000",
                         ),
-                        frequency=desired_frequencies_hz[
-                            :-1
-                        ],  # Equal to image's channels, to prevent
-                        # RASCIL from interpolating the fluxes
+                        frequency=frequency_channel_centers,
                         name=f"pointsource{ra}{dec}",
                         flux=flux_array,  # shape: nchannels, npolarisations
                         shape="Point",
