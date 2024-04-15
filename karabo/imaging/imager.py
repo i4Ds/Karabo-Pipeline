@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import math
 import os
+import subprocess
 import warnings
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
@@ -299,6 +301,34 @@ class Imager:
 
         return image
 
+    def _wsclean_imager(
+        self,
+        ms_file_path: FilePathType,
+        combine_across_frequencies: bool = True,
+    ) -> Image:
+        # TODO combine_across_frequencies
+
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="WSClean-",
+            purpose="Disk cache for WSClean",
+        )
+        completed_process = subprocess.run(
+            # TODO dirty image without cleaning stage
+            f"cd {tmp_dir} && \
+              OPENBLAS_NUM_THREADS=1 \
+              wsclean \
+              -size {self.imaging_npixel} {self.imaging_npixel} \
+              -scale {math.degrees(self.imaging_cellsize)}deg \
+              {ms_file_path}",
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        print(f"WSClean output:\n[{completed_process.stdout}]")
+
+        return Image(path=os.path.join(tmp_dir, "wsclean-dirty.fits"))
+
     def get_dirty_image(
         self,
         fits_path: Optional[FilePathType] = None,
@@ -379,6 +409,11 @@ class Imager:
             )
 
             return image
+        elif imaging_backend is SimulatorBackend.WSCLEAN:
+            return self._wsclean_imager(
+                self.visibility.ms_file_path,
+                combine_across_frequencies=combine_across_frequencies,
+            )
 
         assert_never(imaging_backend)
 
