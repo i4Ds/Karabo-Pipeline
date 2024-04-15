@@ -232,13 +232,12 @@ class Image:
         header = self.update_header_from_image_header(header, self.header)
         return Image(data=cut.data[np.newaxis, np.newaxis, :, :], header=header)
 
-    def circle(self, radius_pixels: float = 1) -> Image:
+    def circle(self) -> Image:
         """For each frequency channel and polarisation, cutout the pixel values,
-        only keeping data for a circle of the requested radius centered
+        only keeping data for a circle of the computed radius, centered
         at the center of the image.
         This is an in-place transformation of the data.
 
-        :param radius_pixels: Radius of the cutout in image pixels.
         :return: None (data of current Image instance is transformed in-place)
         """
 

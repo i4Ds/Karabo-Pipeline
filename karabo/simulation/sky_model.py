@@ -763,6 +763,12 @@ class SkyModel:
             - [13] observed redshift: defaults to 0
             - [14] source id (object): is in `SkyModel.source_ids` if provided
         """
+        if (len(sources.shape) == 2) and (sources.shape[0] == 0):
+            print(
+                """Warning: there are no sources in the received sources array.
+            Will not modify the current SkyModel instance."""
+            )
+            return
         try:
             sds, sdd = self._sources_dim_sources, self._sources_dim_data
             self._check_sources(sources=sources)

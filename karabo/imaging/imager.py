@@ -341,8 +341,8 @@ class Imager:
                 imaging_backend = SimulatorBackend.OSKAR
             elif isinstance(self.visibility, RASCILVisibility):
                 imaging_backend = SimulatorBackend.RASCIL
-
-            assert_never(self.visibility)
+            else:
+                assert_never(self.visibility)
 
         # Perform imaging based on selected backend
         if imaging_backend is SimulatorBackend.OSKAR:
