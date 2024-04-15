@@ -97,11 +97,29 @@ class Image:
         else:
             raise RuntimeError("Provide either `path` or both `data` and `header`.")
 
-        assert (
-            len(self.data.shape) == 4
+        assert len(self.data.shape) in (
+            2,
+            3,
+            4,
         ), f"""Unexpected shape for image data:
-        {self.data.shape}; expected 4D array with shape corresponding to
+        {self.data.shape}; expected 2D, 3D or (ideally) 4D array. Ideal image shape:
         (frequencies, polarisations, pixels_x, pixels_y)"""
+
+        if len(self.data.shape) == 2:
+            print(
+                """WARNING: Received 2D data for image object.
+                Will assume the 2 axes correspond to (pixels_x, pixels_y).
+                Inserting 2 additional axes for frequencies and polarisations."""
+            )
+            self.data = np.array([[self.data]])
+        elif len(self.data.shape) == 3:
+            print(
+                """WARNING: Received 3D data for image object.
+                Will assume the 3 axes correspond to
+                (polarisations, pixels_x, pixels_y).
+                Inserting 1 additional axis for frequencies."""
+            )
+            self.data = np.array([self.data])
 
         self._fname = os.path.split(self.path)[-1]
 

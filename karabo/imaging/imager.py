@@ -191,7 +191,6 @@ class Imager:
         imaging_dft_kernel: Optional[
             str
         ] = None,  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
-        imaging_field_of_view_degrees: float = 1,
     ) -> None:
         self.visibility = visibility
         self.logfile = logfile
@@ -217,7 +216,6 @@ class Imager:
         self.imaging_dft_kernel = imaging_dft_kernel
         self.imaging_uvmax = imaging_uvmax
         self.imaging_uvmin = imaging_uvmin
-        self.imaging_field_of_view_degrees = imaging_field_of_view_degrees
 
     def _oskar_imager(
         self,
@@ -237,7 +235,7 @@ class Imager:
         imager.set(
             input_file=visibility.vis_path,
             output_root=fits_path,
-            fov_deg=self.imaging_field_of_view_degrees,
+            cellsize_arcsec=3600 * np.degrees(self.imaging_cellsize),
             image_size=self.imaging_npixel,
         )
         if self.imaging_phasecentre is not None:
@@ -256,9 +254,8 @@ class Imager:
         # combining all frequency channels.
         # To maintain the same data shape when compared to other imagers (e.g. RASCIL),
         # We add an axis for frequency, and modify the header accordingly
-        assert len(image.data.shape) == 3
+        assert len(image.data.shape) == 4
 
-        image.data = np.array([image.data])
         image.header["NAXIS"] = 4
         image.header["NAXIS4"] = 1
 
