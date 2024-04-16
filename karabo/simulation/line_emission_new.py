@@ -9,7 +9,7 @@ import matplotlib
 import numpy as np
 from astropy.coordinates import SkyCoord
 
-from karabo.imaging.image import ImageMosaicker
+from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
@@ -182,10 +182,18 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
 
+    simulator_backend = SimulatorBackend.OSKAR
+    if simulator_backend == SimulatorBackend.OSKAR:
+        telescope_name = "SKA1MID"
+    elif simulator_backend == SimulatorBackend.RASCIL:
+        telescope_name = "MID"
+
+    telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
+
     # Configuration parameters
     should_apply_primary_beam = False
 
-    output_base_directory = "/scratch/snx3000/lmachado/"
+    output_base_directory = Path("/scratch/snx3000/lmachado/")
 
     pointings = [
         CircleSkyRegion(
@@ -239,16 +247,8 @@ if __name__ == "__main__":
         ),
         start_frequency_hz=7e8,
         frequency_increment_hz=78e6,
-        number_of_channels=3,
+        number_of_channels=2,
     )
-
-    simulator_backend = SimulatorBackend.OSKAR
-    if simulator_backend == SimulatorBackend.OSKAR:
-        telescope_name = "SKA1MID"
-    elif simulator_backend == SimulatorBackend.RASCIL:
-        telescope_name = "MID"
-
-    telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
     # Instantiate interferometer
     # Leave time_average_sec as 10, since OSKAR examples use 10.
@@ -297,13 +297,26 @@ if __name__ == "__main__":
 
     mosaics = []
     for index_freq in range(observation.number_of_channels):
-        # TODO handle None images
         mosaic, _ = mosaicker.mosaic(dirty_images[index_freq])
         mosaics.append(mosaic)
 
         mosaic.plot(
-            filename=str(output_base_directory / f"mosaic_{index_freq}.png"), block=True
+            filename=str(output_base_directory / f"mosaic_{index_freq}.png"),
+            block=True,
+            vmin=0,
+            vmax=2e-7,
+            title=f"Mosaic for channel {index_freq}",
         )
 
     # Add all mosaics across frequency channels to create one final mosaic image
-    # TODO
+    summed_mosaic = Image(
+        data=sum(m.data for m in mosaics),
+        header=mosaics[0].header,
+    )
+    summed_mosaic.plot(
+        filename=str(output_base_directory / "summed_mosaic.png"),
+        block=True,
+        vmin=0,
+        vmax=2e-7,
+        title="Summed mosaic across channels",
+    )
