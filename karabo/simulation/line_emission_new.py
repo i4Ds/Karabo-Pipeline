@@ -182,7 +182,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
 
-    simulator_backend = SimulatorBackend.OSKAR
+    simulator_backend = SimulatorBackend.RASCIL
     if simulator_backend == SimulatorBackend.OSKAR:
         telescope_name = "SKA1MID"
     elif simulator_backend == SimulatorBackend.RASCIL:

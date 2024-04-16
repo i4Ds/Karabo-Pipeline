@@ -2226,6 +2226,11 @@ class SkyModel:
 
             frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
+            # Set endpoints, i.e. all channel starts + the final channel's end
+            frequency_channel_endpoints = np.append(
+                desired_frequencies_hz, desired_frequencies_hz[-1] + frequency_bandwidth
+            )
+
             # 1. Remove sources that fall outside all desired frequency channels
             # 2. Assign each source to the frequency channel closest
             # to its corresponding redshift (using np.digitize)
@@ -2238,8 +2243,8 @@ class SkyModel:
             redshift_limits = convert_frequency_to_z(
                 np.array(
                     [
-                        np.max(desired_frequencies_hz),
-                        np.min(desired_frequencies_hz),
+                        np.max(frequency_channel_endpoints),
+                        np.min(frequency_channel_endpoints),
                     ]
                 )
             )
@@ -2271,7 +2276,7 @@ class SkyModel:
             # For each source, find the channel to which it belongs
             source_channel_indices = np.digitize(
                 convert_z_to_frequency(redshifts),
-                desired_frequencies_hz,
+                frequency_channel_endpoints,
                 right=False,
             )
 
@@ -2290,7 +2295,7 @@ class SkyModel:
             ):
                 # 1 == npolarisations, fixed as 1 (stokesI) for now
                 # TODO eventually handle full stokes source catalogs
-                flux_array = np.zeros((len(desired_frequencies_hz), 1))
+                flux_array = np.zeros((len(frequency_channel_endpoints) - 1, 1))
 
                 # Access [0] since this is the stokesI flux,
                 # and [index] to place the source's flux onto
