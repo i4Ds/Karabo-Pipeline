@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import math
 import os
-import subprocess
 import warnings
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
@@ -298,38 +296,6 @@ class Imager:
 
         return image
 
-    def _wsclean_imager(
-        self,
-        ms_file_path: FilePathType,
-        combine_across_frequencies: bool = True,
-    ) -> Image:
-        # TODO combine_across_frequencies
-
-        tmp_dir = FileHandler().get_tmp_dir(
-            prefix="WSClean-dirty-",
-            purpose="Disk cache for WSClean dirty images",
-        )
-        # TODO support self.imaging_cellsize is None
-        command = (
-            f"cd {tmp_dir} && "
-            "OPENBLAS_NUM_THREADS=1 "
-            "wsclean "
-            f"-size {self.imaging_npixel} {self.imaging_npixel} "
-            f"-scale {math.degrees(self.imaging_cellsize)}deg "
-            f"{ms_file_path}"
-        )
-        print(f"WSClean command: [{command}]")
-        completed_process = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        print(f"WSClean output:\n[{completed_process.stdout}]")
-
-        return Image(path=os.path.join(tmp_dir, "wsclean-dirty.fits"))
-
     def get_dirty_image(
         self,
         fits_path: Optional[FilePathType] = None,
@@ -410,11 +376,6 @@ class Imager:
             )
 
             return image
-        elif imaging_backend is SimulatorBackend.WSCLEAN:
-            return self._wsclean_imager(
-                self.visibility.ms_file_path,
-                combine_across_frequencies=combine_across_frequencies,
-            )
 
         assert_never(imaging_backend)
 
@@ -630,38 +591,6 @@ class Imager:
         residual_image = Image(path=residual_fits_path)
 
         return deconvolved_image, restored_image, residual_image
-
-    def imaging_wsclean(self) -> Tuple[Image, Image, Image]:
-        tmp_dir = FileHandler().get_tmp_dir(
-            prefix="WSClean-cleaned-",
-            purpose="Disk cache for WSClean cleaned images",
-        )
-        # TODO support self.imaging_cellsize is None
-        command = (
-            f"cd {tmp_dir} && "
-            "OPENBLAS_NUM_THREADS=1 "
-            "wsclean "
-            f"-size {self.imaging_npixel} {self.imaging_npixel} "
-            f"-scale {math.degrees(self.imaging_cellsize)}deg "
-            "-niter 20 "
-            f"{self.visibility.ms_file_path}"
-        )
-        print(f"WSClean command: [{command}]")
-        completed_process = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        print(f"WSClean output:\n[{completed_process.stdout}]")
-
-        return (
-            # TODO What exactly is the RASCIL deconvolved_image?
-            Image(path=os.path.join(tmp_dir, "wsclean-image.fits")),
-            Image(path=os.path.join(tmp_dir, "wsclean-image.fits")),
-            Image(path=os.path.join(tmp_dir, "wsclean-residual.fits")),
-        )
 
     @staticmethod
     def project_sky_to_image(
