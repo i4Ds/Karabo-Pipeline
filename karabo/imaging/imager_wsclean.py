@@ -28,6 +28,8 @@ class WscleanImagerConfig(ImagerConfig):
 class WscleanImager(Imager):
     def create_dirty_image(self, config: ImagerConfig) -> Image:
         # TODO combine_across_frequencies
+        # If config is an ImagerConfig (base class) instance, convert to
+        # WscleanImagerConfig using default values for WSClean-specific configuration.
         if not isinstance(config, WscleanImagerConfig):
             config = WscleanImagerConfig.from_imager_config(config)
         tmp_dir = FileHandler().get_tmp_dir(
@@ -36,6 +38,12 @@ class WscleanImager(Imager):
         )
         command = (
             f"cd {tmp_dir} && "
+            # Avoids the following wsclean error:
+            # This software was linked to a multi-threaded version of OpenBLAS.
+            # OpenBLAS multi-threading interferes with other multi-threaded parts of
+            # the code, which has a severe impact on performance. Please disable
+            # OpenBLAS multi-threading by setting the environment variable
+            # OPENBLAS_NUM_THREADS to 1.
             "OPENBLAS_NUM_THREADS=1 "
             "wsclean "
             f"-size {config.imaging_npixel} {config.imaging_npixel} "
@@ -48,6 +56,7 @@ class WscleanImager(Imager):
             shell=True,
             capture_output=True,
             text=True,
+            # Raises exception on return code != 0
             check=True,
         )
         print(f"WSClean output:\n[{completed_process.stdout}]")
@@ -55,6 +64,8 @@ class WscleanImager(Imager):
         return Image(path=os.path.join(tmp_dir, "wsclean-dirty.fits"))
 
     def create_cleaned_image(self, config: ImagerConfig) -> Tuple[Image, Image, Image]:
+        # If config is an ImagerConfig (base class) instance, convert to
+        # WscleanImagerConfig using default values for WSClean-specific configuration.
         if not isinstance(config, WscleanImagerConfig):
             config = WscleanImagerConfig.from_imager_config(config)
         tmp_dir = FileHandler().get_tmp_dir(
@@ -63,6 +74,12 @@ class WscleanImager(Imager):
         )
         command = (
             f"cd {tmp_dir} && "
+            # Avoids the following wsclean error:
+            # This software was linked to a multi-threaded version of OpenBLAS.
+            # OpenBLAS multi-threading interferes with other multi-threaded parts of
+            # the code, which has a severe impact on performance. Please disable
+            # OpenBLAS multi-threading by setting the environment variable
+            # OPENBLAS_NUM_THREADS to 1.
             "OPENBLAS_NUM_THREADS=1 "
             "wsclean "
             f"-size {config.imaging_npixel} {config.imaging_npixel} "
@@ -76,6 +93,7 @@ class WscleanImager(Imager):
             shell=True,
             capture_output=True,
             text=True,
+            # Raises exception on return code != 0
             check=True,
         )
         print(f"WSClean output:\n[{completed_process.stdout}]")
