@@ -19,8 +19,8 @@ class ImagerConfig:
 class Imager(ABC):
     @abstractmethod
     def create_dirty_image(self, config: ImagerConfig) -> Image:
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def create_cleaned_image(self, config: ImagerConfig) -> Tuple[Image, Image, Image]:
-        raise NotImplementedError
+        pass
