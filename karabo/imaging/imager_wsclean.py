@@ -14,7 +14,9 @@ from karabo.util.file_handler import FileHandler
 
 @dataclass
 class WscleanImagerConfig(ImagerConfig):
-    niter: int = 20
+    niter: int = 50000
+    mgain: float = 0.8
+    auto_threshold: int = 3
 
     @classmethod
     # TODO test this
@@ -84,6 +86,8 @@ class WscleanImager(Imager):
             f"-size {config.imaging_npixel} {config.imaging_npixel} "
             f"-scale {math.degrees(config.imaging_cellsize)}deg "
             f"-niter {config.niter} "
+            f"-mgain {config.mgain} "
+            f"-auto-threshold {config.auto_threshold} "
             f"{config.ms_file_path}"
         )
         print(f"WSClean command: [{command}]")
