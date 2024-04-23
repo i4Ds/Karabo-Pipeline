@@ -195,8 +195,6 @@ if __name__ == "__main__":
     # Configuration parameters
     should_apply_primary_beam = False
 
-    Path("/scratch/snx3000/lmachado/")
-
     output_base_directory = Path(
         FileHandler().get_tmp_dir(
             prefix="line-emission-",
@@ -256,7 +254,7 @@ if __name__ == "__main__":
             observation_length.total_seconds() / integration_time.total_seconds()
         ),
         start_frequency_hz=7e8,
-        frequency_increment_hz=78e6,
+        frequency_increment_hz=8e7,
         number_of_channels=2,
     )
 
