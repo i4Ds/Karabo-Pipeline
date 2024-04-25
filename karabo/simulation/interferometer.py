@@ -478,6 +478,7 @@ class InterferometerSimulation:
         skycomponents = sky.convert_to_backend(
             backend=SimulatorBackend.RASCIL,
             desired_frequencies_hz=frequency_channel_starts,
+            channel_bandwidth_hz=observation.frequency_increment_hz,
         )
 
         # Compute visibilities from SkyComponent list using DFT

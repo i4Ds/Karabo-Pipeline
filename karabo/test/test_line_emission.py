@@ -1,280 +1,124 @@
-import tempfile
+from datetime import datetime, timedelta
 from pathlib import Path
 
-import h5py
+import astropy.units as u
 import numpy as np
 import pytest
-from astropy.io import fits
+from astropy.coordinates import SkyCoord
 
-from karabo.data.external_data import (
-    HISourcesSmallCatalogDownloadObject,
-    SingleFileDownloadObject,
-    cscs_karabo_public_testing_base_url,
-)
-from karabo.simulation.line_emission import (
-    gaussian_fwhm_meerkat,
-    line_emission_pointing,
-    plot_scatter_recon,
-    simple_gaussian_beam_correction,
-)
-from karabo.simulation.line_emission_helpers import (
-    convert_frequency_to_z,
-    convert_z_to_frequency,
-)
+from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
+from karabo.imaging.image import Image, ImageMosaicker
+from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
+from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
+from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
-from karabo.util.dask import DaskHandler
+from karabo.simulation.telescope import Telescope
+from karabo.simulator_backend import SimulatorBackend
+from karabo.util.file_handler import FileHandler
 
 
 @pytest.mark.parametrize(
-    "frequency,redshift",
-    [
-        (np.array([1427.58e6, 502.67e6]), np.array([0, 1.84])),
-        (301.18e6, 3.74),
-    ],
+    "simulator_backend,telescope_name",
+    [(SimulatorBackend.OSKAR, "SKA1MID"), (SimulatorBackend.RASCIL, "MID")],
 )
-def test_conversion_between_redshift_and_frequency(frequency, redshift):
-    assert np.allclose(
-        frequency,
-        convert_z_to_frequency(redshift),
-        rtol=1e-3,
-        atol=1e-3,
-    )
-    assert np.allclose(
-        redshift,
-        convert_frequency_to_z(frequency),
-        rtol=1e-3,
-        atol=1e-3,
+def test_line_emission_pipeline(simulator_backend, telescope_name):
+    print(f"Running test for {simulator_backend = }")
+    telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
+
+    output_base_directory = Path(
+        FileHandler().get_tmp_dir(
+            prefix="line-emission-",
+            purpose="Example line emission simulation",
+        )
     )
 
+    pointings = [
+        CircleSkyRegion(
+            radius=1 * u.deg, center=SkyCoord(ra=20, dec=-30, unit="deg", frame="icrs")
+        ),
+        CircleSkyRegion(
+            radius=1 * u.deg,
+            center=SkyCoord(ra=20, dec=-31.4, unit="deg", frame="icrs"),
+        ),
+        CircleSkyRegion(
+            radius=1 * u.deg,
+            center=SkyCoord(ra=21.4, dec=-30, unit="deg", frame="icrs"),
+        ),
+        CircleSkyRegion(
+            radius=1 * u.deg,
+            center=SkyCoord(ra=21.4, dec=-31.4, unit="deg", frame="icrs"),
+        ),
+    ]
 
-# DownloadObject instances used to download different golden files:
-# - FITS file before beam correction
-# - H5 file with channels stored separately, before beam correction
-# - FITS file after beam correction
-@pytest.fixture
-def uncorrected_fits_filename() -> str:
-    return "golden_test_line_emission_totalimage_v1.fits"
+    # Image details
+    npixels = 4096
+    image_width_degrees = 2
+    cellsize_radians = np.radians(image_width_degrees) / npixels
 
+    beam_type = "Isotropic beam"
+    gaussian_fwhm = 0
+    gaussian_ref_freq = 0
 
-@pytest.fixture
-def uncorrected_h5_filename() -> str:
-    return "golden_test_line_emission_images_v1.h5"
+    # The number of time steps is then determined as total_length / integration_time.
+    observation_length = timedelta(seconds=10000)  # 14400 = 4hours
+    integration_time = timedelta(seconds=10000)
 
-
-@pytest.fixture
-def corrected_fits_filename() -> str:
-    return "golden_test_line_emission_gaussianbeamcorrected_v1.fits"
-
-
-@pytest.fixture
-def uncorrected_fits_downloader(uncorrected_fits_filename) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=uncorrected_fits_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
+    # Load catalog of sources
+    catalog_path = HISourcesSmallCatalogDownloadObject().get()
+    sky = SkyModel.get_sky_model_from_h5_to_xarray(
+        path=catalog_path,
     )
 
-
-@pytest.fixture
-def uncorrected_h5_downloader(uncorrected_h5_filename) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=uncorrected_h5_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
+    # Define observation channels and duration
+    observation = Observation(
+        start_date_and_time=datetime(2000, 3, 20, 12, 6, 39),
+        length=observation_length,
+        number_of_time_steps=int(
+            observation_length.total_seconds() / integration_time.total_seconds()
+        ),
+        start_frequency_hz=7e8,
+        frequency_increment_hz=8e7,
+        number_of_channels=2,
     )
 
-
-@pytest.fixture
-def corrected_fits_downloader(corrected_fits_filename) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=corrected_fits_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
+    # Instantiate interferometer
+    # Leave time_average_sec as 10, since OSKAR examples use 10.
+    # Not sure of the meaning of this parameter.
+    interferometer = InterferometerSimulation(
+        time_average_sec=10,
+        ignore_w_components=True,
+        uv_filter_max=10000,
+        uv_filter_units=FilterUnits.Metres,
+        use_gpus=True,
+        station_type=beam_type,
+        gauss_beam_fwhm_deg=gaussian_fwhm,
+        gauss_ref_freq_hz=gaussian_ref_freq,
+        use_dask=False,
     )
 
+    visibilities, dirty_images = line_emission_pipeline(
+        output_base_directory=output_base_directory,
+        simulator_backend=simulator_backend,
+        imaging_backend=None,  # Cause pipeline to use same backend as simulator_backend
+        pointings=pointings,
+        sky_model=sky,
+        observation_details=observation,
+        telescope=telescope,
+        interferometer=interferometer,
+        image_npixels=npixels,
+        image_cellsize_radians=cellsize_radians,
+    )
 
-def test_line_emission_run(
-    uncorrected_fits_filename: str,
-    uncorrected_h5_filename: str,
-    corrected_fits_filename: str,
-    uncorrected_fits_downloader: SingleFileDownloadObject,
-    uncorrected_h5_downloader: SingleFileDownloadObject,
-    corrected_fits_downloader: SingleFileDownloadObject,
-):
-    """Executes the line emission pipeline and validates the output files.
+    # Create mosaics of pointings for each frequency channel
+    mosaicker = ImageMosaicker()
 
-    The line emission pipeline consists of the following steps:
-       Load sky model with input sources.
-       Prepare sky pointing, which keeps only sources within
-       a given field of view.
-       Simulate the line emission observation.
-       Prepare a Gaussian beam, and apply beam correction to pointing result.
+    mosaics = []
+    for index_freq in range(observation.number_of_channels):
+        mosaic, _ = mosaicker.mosaic(dirty_images[index_freq])
+        mosaics.append(mosaic)
 
-    Args:
-      uncorrected_fits_filename:
-        Name of FITS file containing added images before beam correction.
-      uncorrected_h5_filename:
-        Name of HDF5 file containing individual images from each channel,
-        before beam correction.
-      corrected_fits_filename:
-        Name of FITS file containing added images after beam correction.
-    """
-    DaskHandler.n_threads_per_worker = 1
-
-    # Download golden files for comparison
-    golden_uncorrected_fits_path = uncorrected_fits_downloader.get()
-    golden_uncorrected_h5_path = uncorrected_h5_downloader.get()
-    golden_corrected_fits_path = corrected_fits_downloader.get()
-
-    # Load sky model data
-    survey = HISourcesSmallCatalogDownloadObject()
-    catalog_path = survey.get()
-
-    # Directory containing output files for validation
-    with tempfile.TemporaryDirectory() as tmpdir:
-        outpath = Path(tmpdir)
-        uncorrected_fits_path = outpath / "line_emission_total_dirty_image.fits"
-        uncorrected_h5_path = outpath / "line_emission_dirty_images.h5"
-        corrected_fits_path = outpath / "line_emission_total_image_beamcorrected.fits"
-
-        # Set sky position for pointing
-        ra = 20
-        dec = -30
-        cut = 1.0  # degrees
-
-        sky_pointing = SkyModel.get_sky_model_from_h5_to_xarray(
-            path=catalog_path,
-        )
-        sky_pointing = sky_pointing.filter_by_radius_euclidean_flat_approximation(
-            inner_radius_deg=0,
-            outer_radius_deg=3,
-            ra0_deg=ra,
-            dec0_deg=dec,
-        )
-
-        # Simulation of line emission observation
-        dirty_im, _, header_dirty, freq_mid_dirty = line_emission_pointing(
-            outpath=outpath,
-            sky=sky_pointing,
-            cut=cut,
-            img_size=1024,
-            equally_spaced_freq=True,
-        )
-
-        # Validate uncorrected H5 file,
-        # which results from the line emission simulation
-        golden_uncorrected_h5_file = h5py.File(golden_uncorrected_h5_path, "r")
-        uncorrected_h5_file = h5py.File(uncorrected_h5_path, "r")
-
-        # Check each H5 dataset individually
-        assert (
-            golden_uncorrected_h5_file["Dirty Images"].shape
-            == uncorrected_h5_file["Dirty Images"].shape
-        )
-        assert (
-            golden_uncorrected_h5_file["Dirty Images"].attrs["Units"]
-            == uncorrected_h5_file["Dirty Images"].attrs["Units"]
-        )
-
-        assert set(golden_uncorrected_h5_file.attrs.keys()) == set(
-            uncorrected_h5_file.attrs.keys()
-        )
-
-        for k in golden_uncorrected_h5_file.attrs.keys():
-            assert golden_uncorrected_h5_file.attrs[k] == uncorrected_h5_file.attrs[k]
-
-        for golden_dirty_image, dirty_image in zip(
-            golden_uncorrected_h5_file["Dirty Images"],
-            uncorrected_h5_file["Dirty Images"],
-        ):
-            assert np.allclose(
-                golden_dirty_image,
-                dirty_image,
-                equal_nan=True,
-            )
-
-        assert np.array_equal(
-            golden_uncorrected_h5_file["Observed Redshift Bin Size"],
-            uncorrected_h5_file["Observed Redshift Bin Size"],
-        )
-
-        assert np.array_equal(
-            golden_uncorrected_h5_file["Observed Redshift Channel Center"],
-            uncorrected_h5_file["Observed Redshift Channel Center"],
-        )
-
-        # Verify uncorrected FITS file,
-        # which results from the line emission simulation
-        uncorrected_fits_data, uncorrected_fits_header = fits.getdata(
-            uncorrected_fits_path, header=True
-        )
-        golden_uncorrected_fits_data, golden_uncorrected_fits_header = fits.getdata(
-            golden_uncorrected_fits_path, header=True
-        )
-
-        # Check FITS data is close to goldenfile
-        assert np.allclose(
-            golden_uncorrected_fits_data,
-            uncorrected_fits_data,
-            equal_nan=True,
-        )
-
-        # Check that headers contain the same keys
-        assert set(golden_uncorrected_fits_header.keys()) == set(
-            uncorrected_fits_header.keys()
-        )
-
-        # Check that header fields have the same values
-        for k in golden_uncorrected_fits_header.keys():
-            assert golden_uncorrected_fits_header[k] == uncorrected_fits_header[k]
-
-        # Generate scatter plot, to validate that plotting can run
-        plot_scatter_recon(
-            sky_pointing,
-            dirty_im,
-            outpath / "test_line_emission.pdf",
-            header_dirty,
-        )
-
-        # Generate Gaussian primary beam for correction,
-        # and apply correction to dirty images
-        gauss_fwhm = gaussian_fwhm_meerkat(freq_mid_dirty)
-
-        beam_corrected, _ = simple_gaussian_beam_correction(
-            outpath,
-            dirty_im,
-            gauss_fwhm,
-            cut=cut,
-            img_size=1024,  # Small image size for testing purposes
-        )
-
-        # Validate output FITS file after beam correction
-        corrected_fits_data, corrected_fits_header = fits.getdata(
-            corrected_fits_path, header=True
-        )
-        golden_corrected_fits_data, golden_corrected_fits_header = fits.getdata(
-            golden_corrected_fits_path, header=True
-        )
-
-        # Check FITS data is close to goldenfile
-        assert np.allclose(
-            golden_corrected_fits_data,
-            corrected_fits_data,
-            equal_nan=True,
-        )
-
-        # Check that headers contain the same keys
-        assert set(golden_corrected_fits_header.keys()) == set(
-            corrected_fits_header.keys()
-        )
-
-        # Check that header fields have the same values
-        for k in golden_corrected_fits_header.keys():
-            assert golden_corrected_fits_header[k] == corrected_fits_header[k]
-
-        # Generate plot using the corrected FITS data
-        plot_scatter_recon(
-            sky_pointing,
-            beam_corrected,
-            outpath / "test_line_emission_beamcorrected.pdf",
-            header_dirty,
-        )
-
-        print("Finished")
+    # Add all mosaics across frequency channels to create one final mosaic image
+    Image(
+        data=sum(m.data for m in mosaics),
+        header=mosaics[0].header,
+    )
