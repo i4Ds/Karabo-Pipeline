@@ -140,39 +140,9 @@ def test_source_detection_plot(
         )
 
 
-def test_bdsf_image_blanked():
-    """
-    Tests if bdsf error message in
-    `PyBDSFSourceDetectionResult.detect_sources_in_image` has changed.
-    If it has changed, it will throw a `RuntimeError`
-    Test could maybe be changed if .fits file with blanked pixels is available and
-    therefore you can just create an `Image` from that file
-    """
-    phase_center = [250, -80]
-    gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
-    sky = gleam_sky.filter_by_radius(0, 0.01, phase_center[0], phase_center[1])
-    sky.setup_default_wcs(phase_center=phase_center)
-    askap_tel = Telescope.constructor("ASKAP")
-    observation_settings = Observation(
-        start_frequency_hz=100e6,
-        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=phase_center[0],
-        phase_centre_dec_deg=phase_center[1],
-        number_of_channels=2,
-        number_of_time_steps=24,
-    )
-    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
-    visibility_askap = interferometer_sim.run_simulation(
-        askap_tel, sky, observation_settings
-    )
-    imaging_npixel = 512
-    imaging_cellsize = 3.878509448876288e-05
-    imager_askap = Imager(
-        visibility_askap,
-        imaging_npixel=imaging_npixel,
-        imaging_cellsize=imaging_cellsize,
-    )
-    image_blanked = imager_askap.get_dirty_image()
+def test_bdsf_image_blanked(tobject: TFiles):
+    # Read example blank image (all pixel values equal 0)
+    image_blanked = Image.read_from_file(tobject.blank_image_file_for_source_detection)
     ret = PyBDSFSourceDetectionResult.detect_sources_in_image(image=image_blanked)
     if ret is not None:
         pytest.fail(

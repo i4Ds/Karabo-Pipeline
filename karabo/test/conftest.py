@@ -113,6 +113,10 @@ class TFiles:
         data_path, "sdp", "gt_plot_quiver_positions.png"
     )
 
+    blank_image_file_for_source_detection: str = os.path.join(
+        data_path, "blank_image.fits"
+    )
+
 
 @pytest.fixture(scope="session")
 def tobject() -> TFiles:
