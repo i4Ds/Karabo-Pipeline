@@ -7,7 +7,6 @@ import pytest
 from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
-from karabo.imaging.image import Image, ImageMosaicker
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
 from karabo.simulation.observation import Observation
@@ -109,16 +108,8 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
         image_cellsize_radians=cellsize_radians,
     )
 
-    # Create mosaics of pointings for each frequency channel
-    mosaicker = ImageMosaicker()
+    assert len(visibilities) == observation.number_of_channels
+    assert len(visibilities[0]) == len(pointings)
 
-    mosaics = []
-    for index_freq in range(observation.number_of_channels):
-        mosaic, _ = mosaicker.mosaic(dirty_images[index_freq])
-        mosaics.append(mosaic)
-
-    # Add all mosaics across frequency channels to create one final mosaic image
-    Image(
-        data=sum(m.data for m in mosaics),
-        header=mosaics[0].header,
-    )
+    assert len(dirty_images) == observation.number_of_channels
+    assert len(dirty_images[0]) == len(pointings)
