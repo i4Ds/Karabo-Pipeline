@@ -1,3 +1,4 @@
+import warnings
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -99,8 +100,8 @@ def line_emission_pipeline(
             # TODO should be able to create an empty visibility
             # instead of setting to None
             if filtered_sky.num_sources == 0:
-                print(
-                    f"""Warning: for frequency channel {index_freq},
+                warnings.warn(
+                    f"""For frequency channel {index_freq},
                     pointing {index_p}, there are 0 sources in the sky model.
                     Setting visibility to None, and skipping analysis."""
                 )
@@ -133,8 +134,8 @@ def line_emission_pipeline(
             print(f"Processing pointing {index_p}...")
             vis = visibilities[index_freq][index_p]
             if vis is None:
-                print(
-                    f"""Warning: for frequency channel {index_freq},
+                warnings.warn(
+                    f"""For frequency channel {index_freq},
                     pointing {index_p}, the visibility is None.
                     Setting dirty image to None, and skipping analysis."""
                 )

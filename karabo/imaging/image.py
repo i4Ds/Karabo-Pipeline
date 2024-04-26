@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import warnings
 from typing import (
     Any,
     Callable,
@@ -106,15 +107,15 @@ class Image:
         (frequencies, polarisations, pixels_x, pixels_y)"""
 
         if len(self.data.shape) == 2:
-            print(
-                """WARNING: Received 2D data for image object.
+            warnings.warn(
+                """Received 2D data for image object.
                 Will assume the 2 axes correspond to (pixels_x, pixels_y).
                 Inserting 2 additional axes for frequencies and polarisations."""
             )
             self.data = np.array([[self.data]])
         elif len(self.data.shape) == 3:
-            print(
-                """WARNING: Received 3D data for image object.
+            warnings.warn(
+                """Received 3D data for image object.
                 Will assume the 3 axes correspond to
                 (polarisations, pixels_x, pixels_y).
                 Inserting 1 additional axis for frequencies."""
