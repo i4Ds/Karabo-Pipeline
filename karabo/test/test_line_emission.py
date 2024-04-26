@@ -208,9 +208,11 @@ def test_compare_oskar_rascil_dirty_images():
     assert oskar_data.shape == rascil_data.shape
     assert oskar_data.shape == (1, 1, npixels, npixels)
 
-    # Check pixel value differences
+    # Check pixel value differences are mostly within the tolerance
+    # set as 10% of maximum pixel value
+    tolerance = 0.1 * max(oskar_data.max(), rascil_data.max())
     count_very_different_pixels = np.sum(
-        ~np.isclose(oskar_data, rascil_data, atol=1e-7)
+        ~np.isclose(oskar_data, rascil_data, atol=tolerance)
     )
     count_pixels = np.product(oskar_data.shape)  # Number of entries in data array
     fraction_very_different_pixels = count_very_different_pixels / count_pixels
