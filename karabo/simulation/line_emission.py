@@ -3,21 +3,32 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import astropy.units as u
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
+from astropy.wcs import WCS
+from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
-from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
+from karabo.simulation.interferometer import (
+    FilterUnits,
+    InterferometerSimulation,
+    StationTypeType,
+)
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
+from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
+from karabo.util.plotting_util import get_slices
 
 CircleSkyRegion = namedtuple("CircleSkyRegion", ["center", "radius"])
 
@@ -172,6 +183,212 @@ def line_emission_pipeline(
     ), f"{len(dirty_images[0])}, {len(pointings)}"
 
     return visibilities, dirty_images
+
+
+def polar_corrdinates_grid(
+    im_shape: Tuple[int, int], center: Tuple[float, float]
+) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+    raise DeprecationWarning("This function is no longer available.")
+
+
+def circle_image(image: NDArray[np.float_]) -> NDArray[np.float_]:
+    raise DeprecationWarning("Use the circle method within the Image class instead.")
+
+
+def header_for_mosaic(
+    img_size: int, ra_deg: IntFloat, dec_deg: IntFloat, cut: IntFloat
+) -> fits.header.Header:
+    raise DeprecationWarning("To generate image mosaics, use the ImageMosaicker class.")
+
+
+def rascil_imager(
+    outfile: str, visibility: Visibility, cut: IntFloat = 1.0, img_size: int = 4096
+) -> NDArray[np.float_]:
+    raise DeprecationWarning("Use the Imager class, with the RASCIL imaging backend.")
+
+
+def oskar_imager(
+    outfile: str,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
+    cut: IntFloat = 1.0,
+    img_size: int = 4096,
+) -> NDArray[np.float_]:
+    raise DeprecationWarning("Use the Imager class, with the OSKAR imaging backend.")
+
+
+def plot_scatter_recon(
+    sky: SkyModel,
+    recon_image: NDArray[np.float_],
+    outfile: FilePathType,
+    header: fits.header.Header,
+    vmin: IntFloat = 0,
+    vmax: Optional[IntFloat] = None,
+    f_min: Optional[IntFloat] = None,
+) -> None:
+    # TODO
+    """
+    Plotting the sky as a scatter plot and its reconstruction and saving it as a pdf.
+
+    :param sky: Oskar or Karabo sky.
+    :param recon_image: Reconstructed sky from Oskar or Karabo.
+    :param outfile: The path where we save the plot.
+    :param header: The header of the recon_image.
+    :param vmin: Minimum value of the colorbar.
+    :param vmax: Maximum value of the colorbar.
+    :param f_min: Minimal flux of the sources to be plotted in the scatter plot
+    """
+
+    wcs = WCS(header)
+    slices = get_slices(wcs)
+
+    # Do only plot sources with a flux above f_min if f_min is not None
+    if f_min is not None:
+        f_max = np.max(sky[:, 2])
+        sky = sky.filter_by_flux(min_flux_jy=f_min, max_flux_jy=f_max)
+
+    # Plot the scatter plot and the sky reconstruction next to each other
+    fig = plt.figure(figsize=(12, 6))
+
+    ax1 = fig.add_subplot(121)
+    scatter = ax1.scatter(sky[:, 0], sky[:, 1], c=sky[:, 2], vmin=0, s=10, cmap="jet")
+    ax1.set_aspect("equal")
+    plt.colorbar(scatter, ax=ax1, label="Flux [Jy]")
+    ra_deg = header["CRVAL1"]
+    dec_deg = header["CRVAL2"]
+    img_size_ra = header["NAXIS1"]
+    img_size_dec = header["NAXIS2"]
+    cut_ra = -header["CDELT1"] * float(img_size_ra)
+    cut_dec = header["CDELT2"] * float(img_size_dec)
+    ax1.set_xlim((ra_deg - cut_ra / 2, ra_deg + cut_ra / 2))
+    ax1.set_ylim((dec_deg - cut_dec / 2, dec_deg + cut_dec / 2))
+    ax1.set_xlabel("RA [deg]")
+    ax1.set_ylabel("DEC [deg]")
+    ax1.invert_xaxis()
+
+    ax2 = fig.add_subplot(122, projection=wcs, slices=slices)
+    recon_img = ax2.imshow(
+        recon_image, cmap="YlGnBu", origin="lower", vmin=vmin, vmax=vmax
+    )
+    plt.colorbar(recon_img, ax=ax2, label="Flux Density [Jy]")
+
+    plt.tight_layout()
+    plt.savefig(outfile)
+
+
+def sky_slice(sky: SkyModel, z_min: IntFloat, z_max: IntFloat) -> SkyModel:
+    raise DeprecationWarning("Use sky.filter_by_column(13, z_min, z_max) instead.")
+
+
+def karabo_reconstruction(
+    outfile: FilePathType,
+    mosaic_pntg_file: Optional[str] = None,
+    sky: Optional[SkyModel] = None,
+    telescope: Optional[Telescope] = None,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
+    start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
+    obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+    start_freq: IntFloat = 1.4639e9,
+    freq_bin: IntFloat = 1.0e7,
+    beam_type: StationTypeType = "Isotropic beam",
+    gaussian_fwhm: IntFloat = 1.0,
+    gaussian_ref_freq: IntFloat = 1.4639e9,
+    cut: IntFloat = 1.0,
+    img_size: int = 4096,
+    channel_num: int = 10,
+    pdf_plot: bool = False,
+    circle: bool = False,
+    rascil: bool = True,
+    verbose: bool = False,
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
+    raise DeprecationWarning("Use line_emission_pipeline() instead.")
+
+
+def run_one_channel_simulation(
+    path: FilePathType,
+    sky: SkyModel,
+    telescope: Telescope,
+    freq_bin_start: float,
+    freq_bin_width: float,
+    ra_deg: IntFloat,
+    dec_deg: IntFloat,
+    beam_type: StationTypeType,
+    gaussian_fwhm: IntFloat,
+    gaussian_ref_freq: IntFloat,
+    start_time: Union[datetime, str],
+    obs_length: timedelta,
+    cut: IntFloat,
+    img_size: int,
+    circle: bool,
+    rascil: bool,
+    verbose: bool = False,
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
+    raise DeprecationWarning("Use line_emission_pipeline() instead.")
+
+
+def create_line_emission_h5_file(
+    filename: FilePathType,
+    dirty_images: List[NDArray[np.float_]],
+    redshift_channel: NDArray[np.float_],
+    header: fits.header.Header,
+) -> None:
+    raise DeprecationWarning(
+        """
+        As a replacement, use the Image class to access FITS data for an image,
+        which contains per-channel and per-polarisation data,
+        as well as the corresponding header information.
+    """
+    )
+
+
+def line_emission_pointing(
+    outpath: DirPathType,
+    sky: SkyModel,
+    telescope: Optional[Telescope] = None,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
+    num_bins: int = 10,
+    equally_spaced_freq: bool = True,
+    beam_type: StationTypeType = "Gaussian beam",
+    gaussian_fwhm: IntFloat = 1.0,
+    gaussian_ref_freq: IntFloat = 1.4639e9,
+    start_time: Union[datetime, str] = datetime(2000, 3, 20, 12, 6, 39),
+    obs_length: timedelta = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0),
+    cut: IntFloat = 3.0,
+    img_size: int = 4096,
+    circle: bool = True,
+    rascil: bool = True,
+    verbose: bool = False,
+) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], fits.header.Header, np.float_]:
+    raise DeprecationWarning("Use line_emission_pipeline() instead.")
+
+
+def gaussian_fwhm_meerkat(freq: NPFloatLikeStrict) -> np.float64:
+    raise DeprecationWarning("This function has been removed.")
+
+
+def gaussian_beam(
+    ra_deg: IntFloat,
+    dec_deg: IntFloat,
+    img_size: int = 2048,
+    cut: IntFloat = 1.2,
+    fwhm: NPFloatLikeStrict = 1.0,
+    outfile: FilePathType = "beam",
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
+    raise DeprecationWarning("This function has been removed.")
+
+
+def simple_gaussian_beam_correction(
+    outpath: DirPathType,
+    dirty_image: NDArray[np.float_],
+    gaussian_fwhm: NPFloatLikeStrict,
+    ra_deg: IntFloat = 20,
+    dec_deg: IntFloat = -30,
+    cut: IntFloat = 3.0,
+    img_size: int = 4096,
+) -> Tuple[NDArray[np.float_], fits.header.Header]:
+    raise DeprecationWarning("This function has been removed.")
 
 
 if __name__ == "__main__":
