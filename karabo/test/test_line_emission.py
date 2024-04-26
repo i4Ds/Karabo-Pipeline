@@ -196,7 +196,7 @@ def test_compare_oskar_rascil_dirty_images():
 
         backend_to_dirty_images[simulator_backend] = dirty_images
 
-    # Check that the dirty images are close
+    # Check that the dirty images are close to each other
     oskar_images = backend_to_dirty_images[SimulatorBackend.OSKAR]
     rascil_images = backend_to_dirty_images[SimulatorBackend.RASCIL]
 
