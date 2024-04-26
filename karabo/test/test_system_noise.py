@@ -10,6 +10,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulator_backend import SimulatorBackend
 
 
 def test_basic(sky_data: NDArray[np.float64]):
@@ -51,6 +52,8 @@ def test_basic(sky_data: NDArray[np.float64]):
         imager = Imager(
             visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
+        dirty = imager.get_dirty_image(
+            imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+        )
         dirty.write_to_file(os.path.join(tmpdir, "noise_dirty.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
