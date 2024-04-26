@@ -7,11 +7,9 @@ from typing import List, Optional, Tuple, Union
 
 import astropy.units as u
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
-from astropy.wcs import WCS
 from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
@@ -28,7 +26,6 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import DirPathType, FilePathType, IntFloat, NPFloatLikeStrict
-from karabo.util.plotting_util import get_slices
 
 CircleSkyRegion = namedtuple("CircleSkyRegion", ["center", "radius"])
 
@@ -226,54 +223,7 @@ def plot_scatter_recon(
     vmax: Optional[IntFloat] = None,
     f_min: Optional[IntFloat] = None,
 ) -> None:
-    # TODO
-    """
-    Plotting the sky as a scatter plot and its reconstruction and saving it as a pdf.
-
-    :param sky: Oskar or Karabo sky.
-    :param recon_image: Reconstructed sky from Oskar or Karabo.
-    :param outfile: The path where we save the plot.
-    :param header: The header of the recon_image.
-    :param vmin: Minimum value of the colorbar.
-    :param vmax: Maximum value of the colorbar.
-    :param f_min: Minimal flux of the sources to be plotted in the scatter plot
-    """
-
-    wcs = WCS(header)
-    slices = get_slices(wcs)
-
-    # Do only plot sources with a flux above f_min if f_min is not None
-    if f_min is not None:
-        f_max = np.max(sky[:, 2])
-        sky = sky.filter_by_flux(min_flux_jy=f_min, max_flux_jy=f_max)
-
-    # Plot the scatter plot and the sky reconstruction next to each other
-    fig = plt.figure(figsize=(12, 6))
-
-    ax1 = fig.add_subplot(121)
-    scatter = ax1.scatter(sky[:, 0], sky[:, 1], c=sky[:, 2], vmin=0, s=10, cmap="jet")
-    ax1.set_aspect("equal")
-    plt.colorbar(scatter, ax=ax1, label="Flux [Jy]")
-    ra_deg = header["CRVAL1"]
-    dec_deg = header["CRVAL2"]
-    img_size_ra = header["NAXIS1"]
-    img_size_dec = header["NAXIS2"]
-    cut_ra = -header["CDELT1"] * float(img_size_ra)
-    cut_dec = header["CDELT2"] * float(img_size_dec)
-    ax1.set_xlim((ra_deg - cut_ra / 2, ra_deg + cut_ra / 2))
-    ax1.set_ylim((dec_deg - cut_dec / 2, dec_deg + cut_dec / 2))
-    ax1.set_xlabel("RA [deg]")
-    ax1.set_ylabel("DEC [deg]")
-    ax1.invert_xaxis()
-
-    ax2 = fig.add_subplot(122, projection=wcs, slices=slices)
-    recon_img = ax2.imshow(
-        recon_image, cmap="YlGnBu", origin="lower", vmin=vmin, vmax=vmax
-    )
-    plt.colorbar(recon_img, ax=ax2, label="Flux Density [Jy]")
-
-    plt.tight_layout()
-    plt.savefig(outfile)
+    raise DeprecationWarning("Use Image.plot_side_by_side_with_skymodel() instead.")
 
 
 def sky_slice(sky: SkyModel, z_min: IntFloat, z_max: IntFloat) -> SkyModel:
@@ -517,6 +467,23 @@ if __name__ == "__main__":
                 title=f"Dirty image for pointing {index_p} and channel {index_freq}",
             )
 
+    # Overlay SkyModel onto dirty image
+    dirty_images[0][0].plot_side_by_side_with_skymodel(
+        sky=sky,
+        block=True,
+        vmin_sky=0,
+        vmax_sky=2e-6,
+        vmin_image=0,
+        vmax_image=2e-7,
+    )
+
+    dirty_images[0][0].overplot_with_skymodel(
+        sky=sky,
+        block=True,
+        vmin_image=0,
+        vmax_image=2e-7,
+    )
+
     # Create mosaics of pointings for each frequency channel
     print("Creating mosaic of images for each frequency channel")
     mosaicker = ImageMosaicker()
@@ -545,4 +512,13 @@ if __name__ == "__main__":
         vmin=0,
         vmax=2e-7,
         title="Summed mosaic across channels",
+    )
+
+    # Overlay SkyModel onto dirty image
+    summed_mosaic.overplot_with_skymodel(
+        sky=sky,
+        filename=str(output_base_directory / "summed_mosaic_sources_overlay.png"),
+        block=True,
+        vmin_image=0,
+        vmax_image=2e-7,
     )
