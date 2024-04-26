@@ -412,7 +412,7 @@ class InterferometerSimulation:
         self.ionosphere_fits_path = file_path
 
     def __run_simulation_rascil(
-        self, telescope: Telescope, sky: SkyModel, observation: Observation
+        self, telescope: Telescope, sky: SkyModel, observation: ObservationAbstract
     ) -> RASCILVisibility:
         """
         Compute visibilities from SkyModel using the RASCIL backend.

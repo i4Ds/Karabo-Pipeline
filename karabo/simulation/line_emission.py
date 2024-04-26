@@ -3,7 +3,7 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Final, List, Optional, Tuple, Union
 
 import astropy.units as u
 import matplotlib
@@ -11,6 +11,7 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from numpy.typing import NDArray
+from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager import Imager
@@ -41,7 +42,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     image_npixels: int,
     image_cellsize_radians: float,
-):
+) -> Tuple(List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]):
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
     only emits within one frequency channel.
@@ -71,7 +72,7 @@ def line_emission_pipeline(
     print("Computing visibilities...")
 
     # Loop through pointings
-    visibilities = []
+    visibilities: List[List[Union[Visibility, RASCILVisibility]]] = []
     for index_freq, frequency_start in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")
         visibilities.append([])
@@ -134,7 +135,7 @@ def line_emission_pipeline(
 
     print("Creating dirty images from visibilities...")
 
-    dirty_images = []
+    dirty_images: List[List[Image]] = []
     for index_freq, _ in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")
         dirty_images.append([])
@@ -399,12 +400,12 @@ if __name__ == "__main__":
 
     # Create interferometer simulation
     if should_apply_primary_beam:
-        beam_type = "Gaussian beam"
+        beam_type: Final = "Gaussian beam"
         # Options: "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
         gaussian_fwhm = 50  # Degrees
         gaussian_ref_freq = 8e8  # Hz
     else:
-        beam_type = "Isotropic beam"
+        beam_type: Final = "Isotropic beam"
         gaussian_fwhm = 0
         gaussian_ref_freq = 0
 
@@ -503,7 +504,7 @@ if __name__ == "__main__":
 
     # Add all mosaics across frequency channels to create one final mosaic image
     summed_mosaic = Image(
-        data=sum(m.data for m in mosaics),
+        data=np.sum(m.data for m in mosaics),
         header=mosaics[0].header,
     )
     summed_mosaic.plot(

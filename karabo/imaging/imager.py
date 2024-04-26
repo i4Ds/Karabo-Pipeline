@@ -181,7 +181,7 @@ class Imager:
         imaging_w_stacking: Union[bool, str] = True,
         imaging_flat_sky: Union[bool, str] = False,
         imaging_npixel: Optional[int] = None,
-        imaging_cellsize: Optional[float] = None,
+        imaging_cellsize: float = 1,
         override_cellsize: bool = False,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,

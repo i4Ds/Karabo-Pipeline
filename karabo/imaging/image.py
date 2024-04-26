@@ -235,7 +235,7 @@ class Image:
         header = self.update_header_from_image_header(header, self.header)
         return Image(data=cut.data[np.newaxis, np.newaxis, :, :], header=header)
 
-    def circle(self) -> Image:
+    def circle(self) -> None:
         """For each frequency channel and polarisation, cutout the pixel values,
         only keeping data for a circle of the computed radius, centered
         at the center of the image.
@@ -458,7 +458,7 @@ class Image:
         stokes_index: int = 0,
         vmin_image: float = 0,
         vmax_image: float = np.inf,
-    ):
+    ) -> None:
         """Create a plot with the current image data,
         as well as an overlay of sources from a given SkyModel instance.
 
@@ -522,7 +522,7 @@ class Image:
         vmax_sky: float = np.inf,
         vmin_image: float = 0,
         vmax_image: float = np.inf,
-    ):
+    ) -> None:
         """Create a plot with two panels:
         1. the current image data, and
         2. a scatter plot of sources from a given SkyModel instance.
