@@ -1,9 +1,8 @@
-import warnings
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Final, List, Optional, Tuple, Union
+from typing import Final, List, Literal, Optional, Tuple, Union
 
 import astropy.units as u
 import matplotlib
@@ -42,7 +41,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     image_npixels: int,
     image_cellsize_radians: float,
-) -> Tuple(List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]):
+) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
     only emits within one frequency channel.
@@ -104,18 +103,11 @@ def line_emission_pipeline(
                 max_val=z_max,
             )
 
-            # If the filtered sky has no remaining sources,
-            # set the visibility as None and skip this evaluation
-            # TODO should be able to create an empty visibility
-            # instead of setting to None
-            if filtered_sky.num_sources == 0:
-                warnings.warn(
-                    f"""For frequency channel {index_freq},
-                    pointing {index_p}, there are 0 sources in the sky model.
+            assert (
+                filtered_sky.num_sources > 0
+            ), f"""For frequency channel {index_freq}
+                    and pointing {index_p}, there are 0 sources in the sky model.
                     Setting visibility to None, and skipping analysis."""
-                )
-                visibilities[-1].append(None)
-                continue
 
             interferometer.vis_path = (
                 f"{output_base_directory}/visibilities_f{index_freq}_p{index_p}"
@@ -139,17 +131,9 @@ def line_emission_pipeline(
     for index_freq, _ in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")
         dirty_images.append([])
-        for index_p, p in enumerate(pointings):
+        for index_p, _ in enumerate(pointings):
             print(f"Processing pointing {index_p}...")
             vis = visibilities[index_freq][index_p]
-            if vis is None:
-                warnings.warn(
-                    f"""For frequency channel {index_freq},
-                    pointing {index_p}, the visibility is None.
-                    Setting dirty image to None, and skipping analysis."""
-                )
-                dirty_images[-1].append(None)
-                continue
 
             imager = Imager(
                 vis,
@@ -353,11 +337,11 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
 
-    simulator_backend = SimulatorBackend.RASCIL
-    if simulator_backend == SimulatorBackend.OSKAR:
-        telescope_name = "SKA1MID"
-    elif simulator_backend == SimulatorBackend.RASCIL:
-        telescope_name = "MID"
+    simulator_backend: Final = SimulatorBackend.RASCIL
+
+    telescope_name: Final = (
+        "SKA1MID" if simulator_backend == SimulatorBackend.OSKAR else "MID"
+    )
 
     telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
@@ -399,13 +383,14 @@ if __name__ == "__main__":
     integration_time = timedelta(seconds=10000)
 
     # Create interferometer simulation
+    beam_type: Literal["Gaussian beam", "Isotropic beam"]
     if should_apply_primary_beam:
-        beam_type: Final = "Gaussian beam"
+        beam_type = "Gaussian beam"
         # Options: "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
         gaussian_fwhm = 50  # Degrees
         gaussian_ref_freq = 8e8  # Hz
     else:
-        beam_type: Final = "Isotropic beam"
+        beam_type = "Isotropic beam"
         gaussian_fwhm = 0
         gaussian_ref_freq = 0
 
@@ -456,10 +441,8 @@ if __name__ == "__main__":
     )
 
     for index_freq in range(observation.number_of_channels):
-        for index_p, _ in enumerate(pointings):
+        for index_p, p in enumerate(pointings):
             dirty = dirty_images[index_freq][index_p]
-            if dirty is None:
-                continue
 
             dirty.plot(
                 block=True,
@@ -490,21 +473,21 @@ if __name__ == "__main__":
     mosaicker = ImageMosaicker()
 
     mosaics = []
-    for index_freq in range(observation.number_of_channels):
-        mosaic, _ = mosaicker.mosaic(dirty_images[index_freq])
+    for i in range(observation.number_of_channels):
+        mosaic, footprint = mosaicker.mosaic(dirty_images[i])
         mosaics.append(mosaic)
 
         mosaic.plot(
-            filename=str(output_base_directory / f"mosaic_{index_freq}.png"),
+            filename=str(output_base_directory / f"mosaic_{i}.png"),
             block=True,
             vmin=0,
             vmax=2e-7,
-            title=f"Mosaic for channel {index_freq}",
+            title=f"Mosaic for channel {i}",
         )
 
     # Add all mosaics across frequency channels to create one final mosaic image
     summed_mosaic = Image(
-        data=np.sum(m.data for m in mosaics),
+        data=np.sum([m.data for m in mosaics]),
         header=mosaics[0].header,
     )
     summed_mosaic.plot(

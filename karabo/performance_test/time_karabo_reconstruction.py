@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Final, Literal
 
 import astropy.units as u
 import numpy as np
@@ -16,11 +17,11 @@ from karabo.simulator_backend import SimulatorBackend
 from karabo.util.file_handler import FileHandler
 
 if __name__ == "__main__":
-    simulator_backend = SimulatorBackend.RASCIL
-    if simulator_backend == SimulatorBackend.OSKAR:
-        telescope_name = "SKA1MID"
-    elif simulator_backend == SimulatorBackend.RASCIL:
-        telescope_name = "MID"
+    simulator_backend: Final = SimulatorBackend.RASCIL
+
+    telescope_name: Final = (
+        "SKA1MID" if simulator_backend == SimulatorBackend.OSKAR else "MID"
+    )
 
     telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     integration_time = timedelta(seconds=10000)
 
     # Create interferometer simulation
+    beam_type: Literal["Gaussian beam", "Isotropic beam"]
     if should_apply_primary_beam:
         beam_type = "Gaussian beam"
         # Options: "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"

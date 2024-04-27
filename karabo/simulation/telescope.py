@@ -7,7 +7,18 @@ import os
 import re
 import shutil
 from itertools import product
-from typing import Dict, List, Literal, Optional, Tuple, Type, Union, cast, get_args
+from typing import (
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    get_args,
+    overload,
+)
 
 import numpy as np
 import pandas as pd
@@ -142,10 +153,42 @@ class Telescope:
 
         self.RASCIL_configuration: Optional[Configuration] = None
 
+    @overload
     @classmethod
     def constructor(
         cls,
-        name: Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
+        name: OSKARTelescopesWithVersionType,
+        version: enum.Enum = ...,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
+    ) -> Telescope:
+        ...
+
+    @overload
+    @classmethod
+    def constructor(
+        cls,
+        name: OSKARTelescopesWithoutVersionType,
+        version: Literal[None] = ...,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
+    ) -> Telescope:
+        ...
+
+    @overload
+    @classmethod
+    def constructor(
+        cls,
+        name: str,
+        version: Literal[None] = ...,
+        backend: Literal[SimulatorBackend.RASCIL] = ...,
+    ) -> Telescope:
+        ...
+
+    @classmethod
+    def constructor(
+        cls,
+        name: Union[
+            str, OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType
+        ],
         version: Optional[enum.Enum] = None,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
