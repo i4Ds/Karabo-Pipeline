@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Final, Literal
+from typing import Literal
 
 import astropy.units as u
 import numpy as np
@@ -17,11 +17,12 @@ from karabo.simulator_backend import SimulatorBackend
 from karabo.util.file_handler import FileHandler
 
 if __name__ == "__main__":
-    simulator_backend: Final = SimulatorBackend.RASCIL
+    simulator_backend = SimulatorBackend.RASCIL
 
-    telescope_name: Final = (
-        "SKA1MID" if simulator_backend == SimulatorBackend.OSKAR else "MID"
-    )
+    if simulator_backend == SimulatorBackend.OSKAR:
+        telescope_name = "SKA1MID"
+    elif simulator_backend == SimulatorBackend.RASCIL:
+        telescope_name = "MID"
 
     telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
