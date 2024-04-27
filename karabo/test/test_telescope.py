@@ -43,19 +43,19 @@ def test_invalid_OSKAR_telescope():
 
 def test_OSKAR_telescope_with_missing_version():
     # ALMA requires a version
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("ALMA", version=None)
 
 
 def test_OSKAR_telescope_with_invalid_version():
     # Use NGVLA version for ALMA telescope
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("ALMA", version=NGVLAVersions.CORE_rev_B)
 
 
 def test_OSKAR_telescope_with_version_but_version_not_required():
     # MeerKAT does not require a version
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("MeerKAT", version="Not None version")
 
 
