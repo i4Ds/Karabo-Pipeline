@@ -2,7 +2,7 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Final, List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 import astropy.units as u
 import matplotlib
@@ -337,11 +337,12 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
 
-    simulator_backend: Final = SimulatorBackend.RASCIL
+    simulator_backend = SimulatorBackend.RASCIL
 
-    telescope_name: Final = (
-        "SKA1MID" if simulator_backend == SimulatorBackend.OSKAR else "MID"
-    )
+    if simulator_backend == SimulatorBackend.OSKAR:
+        telescope_name = "SKA1MID"
+    elif simulator_backend == SimulatorBackend.RASCIL:
+        telescope_name = "MID"
 
     telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
