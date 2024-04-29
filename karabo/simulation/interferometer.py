@@ -332,7 +332,7 @@ class InterferometerSimulation:
         telescope: Telescope,
         sky: SkyModel,
         observation: Observation,
-        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
     ) -> Visibility:
         ...
 
@@ -341,18 +341,8 @@ class InterferometerSimulation:
         self,
         telescope: Telescope,
         sky: SkyModel,
-        observation: Observation,
-        backend: Literal[SimulatorBackend.RASCIL] = SimulatorBackend.RASCIL,
-    ) -> RASCILVisibility:
-        ...
-
-    @overload
-    def run_simulation(
-        self,
-        telescope: Telescope,
-        sky: SkyModel,
         observation: ObservationLong,
-        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
     ) -> Visibility:
         ...
 
@@ -362,8 +352,28 @@ class InterferometerSimulation:
         telescope: Telescope,
         sky: SkyModel,
         observation: ObservationParallized,
-        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
     ) -> List[Visibility]:
+        ...
+
+    @overload
+    def run_simulation(
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: Observation,
+        backend: Literal[SimulatorBackend.RASCIL],
+    ) -> RASCILVisibility:
+        ...
+
+    @overload
+    def run_simulation(
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: ObservationAbstract,
+        backend: SimulatorBackend,
+    ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
         ...
 
     def run_simulation(
@@ -412,7 +422,7 @@ class InterferometerSimulation:
         self.ionosphere_fits_path = file_path
 
     def __run_simulation_rascil(
-        self, telescope: Telescope, sky: SkyModel, observation: Observation
+        self, telescope: Telescope, sky: SkyModel, observation: ObservationAbstract
     ) -> RASCILVisibility:
         """
         Compute visibilities from SkyModel using the RASCIL backend.

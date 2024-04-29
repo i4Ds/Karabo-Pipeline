@@ -11,10 +11,29 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
+from karabo.simulator_backend import SimulatorBackend
 from karabo.test.conftest import TFiles
 
 
-# Test case
+def test_image_circle(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
+
+    dirty = imager.get_dirty_image()
+
+    data = dirty.data[0][0]  # Returns a 2D array, with values for each (x, y) pixel
+
+    assert not np.any(np.isnan(data))
+
+    # Apply in-place circle transformation, keeping only data within a circle
+    dirty.circle()
+    data = dirty.data[0][0]
+    len_x, len_y = data.shape
+
+    assert np.isnan(data[0][0])
+    assert not np.isnan(data[len_x // 2][len_y // 2])
+
+
 def test_dirty_image(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
@@ -58,7 +77,9 @@ def test_dirty_image_cutout(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
-    dirty = imager.get_dirty_image()
+    dirty = imager.get_dirty_image(
+        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    )
 
     cutout1 = dirty.cutout((1000, 1000), (500, 500))
 
@@ -109,7 +130,9 @@ def test_cellsize_overwrite(tobject: TFiles):
         override_cellsize=True,
     )
 
-    dirty = imager.get_dirty_image()
+    dirty = imager.get_dirty_image(
+        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    )
     header = dirty.header
     cdelt_overwrite_cellsize_false = header["CDELT1"]
 
@@ -119,7 +142,9 @@ def test_cellsize_overwrite(tobject: TFiles):
         imaging_cellsize=1,
         override_cellsize=True,
     )
-    dirty = imager.get_dirty_image()
+    dirty = imager.get_dirty_image(
+        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    )
     header = dirty.header
     cdelt_overwrite_cellsize_true = header["CDELT1"]
 
@@ -134,7 +159,9 @@ def test_cellsize_overwrite_false(tobject: TFiles):
         imaging_cellsize=10,
         override_cellsize=False,
     )
-    dirty = imager.get_dirty_image()
+    dirty = imager.get_dirty_image(
+        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    )
     cdelt_overwrite_cellsize_false = dirty.header["CDELT1"]
 
     imager = Imager(
@@ -143,7 +170,9 @@ def test_cellsize_overwrite_false(tobject: TFiles):
         imaging_cellsize=1,
         override_cellsize=False,
     )
-    dirty = imager.get_dirty_image()
+    dirty = imager.get_dirty_image(
+        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    )
     cdelt_overwrite_cellsize_true = dirty.header["CDELT1"]
 
     assert cdelt_overwrite_cellsize_false != cdelt_overwrite_cellsize_true

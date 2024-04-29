@@ -764,8 +764,8 @@ class SkyModel:
             - [14] source id (object): is in `SkyModel.source_ids` if provided
         """
         if (len(sources.shape) == 2) and (sources.shape[0] == 0):
-            print(
-                """Warning: there are no sources in the received sources array.
+            warn(
+                """There are no sources in the received sources array.
             Will not modify the current SkyModel instance."""
             )
             return

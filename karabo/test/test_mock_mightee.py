@@ -14,6 +14,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulator_backend import SimulatorBackend
 
 
 def test_mightee_download():
@@ -50,8 +51,11 @@ def test_mock_mightee():
                     inner_radius_deg=0,
                     outer_radius_deg=2.0,
                 )
+                # Skip analysis if there are no sources in this iteration
+                if sky_filter.sources is None:
+                    continue
+
                 telescope = Telescope.constructor("MeerKAT")
-                # telescope.centre_longitude = 3
                 simulation = InterferometerSimulation(
                     channel_bandwidth_hz=chan_bandwidth,
                     time_average_sec=1,
@@ -80,7 +84,10 @@ def test_mock_mightee():
                 )
                 # imaging cellsize is over-written in the Imager based on max uv dist.
                 imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)
-                dirty = imager.get_dirty_image()
+                dirty = imager.get_dirty_image(
+                    imaging_backend=SimulatorBackend.RASCIL,
+                    combine_across_frequencies=False,
+                )
                 dirty.write_to_file(
                     os.path.join(tmpdir, "noise_dirty")
                     + str(phase_ra)

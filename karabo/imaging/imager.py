@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import List, Optional, Union
 
 import numpy as np
@@ -86,7 +87,7 @@ class Imager:
         imaging_w_stacking: Union[bool, str] = True,
         imaging_flat_sky: Union[bool, str] = False,
         imaging_npixel: Optional[int] = None,
-        imaging_cellsize: Optional[float] = None,
+        imaging_cellsize: float = 1,
         override_cellsize: bool = False,
         imaging_weighting: str = "uniform",
         imaging_robustness: float = 0.0,
@@ -138,8 +139,15 @@ class Imager:
                 """
             )
         imager = oskar.Imager()
+
+        # Use VIS file path by default. If it does not exist, switch to MS file path.
+        # visibility should have at least one valid path by construction
+        input_file = visibility.vis_path
+        if not Path(input_file).exists():
+            input_file = visibility.ms_file_path
+
         imager.set(
-            input_file=visibility.vis_path,
+            input_file=input_file,
             output_root=fits_path,
             cellsize_arcsec=3600 * np.degrees(self.imaging_cellsize),
             image_size=self.imaging_npixel,

@@ -5,6 +5,7 @@ from itertools import cycle
 from typing import List, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 from karabo.error import KaraboError
 from karabo.util._types import IntFloat, OskarSettingsTreeType
@@ -227,7 +228,7 @@ class ObservationAbstract(ABC):
     def get_phase_centre(self) -> List[float]:
         return [self.phase_centre_ra_deg, self.phase_centre_dec_deg]
 
-    def compute_hour_angles_of_observation(self):
+    def compute_hour_angles_of_observation(self) -> NDArray[np.float_]:
         """
         Given a total observation length and an integration time interval,
         determine the corresponding hour angles of observation.
