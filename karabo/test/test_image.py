@@ -5,6 +5,7 @@ from datetime import datetime
 import numpy as np
 
 from karabo.imaging.imager import Imager
+from karabo.imaging.imager_rascil import RascilImageCleaner, RascilImageCleanerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -171,26 +172,29 @@ def test_imaging():
     )
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
-    imager_askap = Imager(
-        visibility_askap,
-        imaging_npixel=imaging_npixel,
-        imaging_cellsize=imaging_cellsize,
-    )
-    imager_askap.ingest_chan_per_vis = 1
-    imager_askap.ingest_vis_nchan = 16
 
     # could fail if `xarray` and `ska-sdp-func-python` not compatible, see issue #542
-    deconvolved, restored, residual = imager_askap.imaging_rascil(  # ~5min
-        clean_nmajor=1,
-        clean_algorithm="mmclean",
-        clean_scales=[10, 30, 60],
-        clean_fractional_threshold=0.3,
-        clean_threshold=0.12e-3,
-        clean_nmoment=5,
-        clean_psf_support=640,
-        clean_restored_output="integrated",
-        use_dask=True,
+    (
+        deconvolved,
+        restored,
+        residual,
+    ) = RascilImageCleaner().create_cleaned_image_variants(
+        RascilImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+            ms_file_path=visibility_askap.ms_file_path,
+            ingest_vis_nchan=16,
+            clean_nmajor=1,
+            clean_algorithm="mmclean",
+            clean_scales=[10, 30, 60],
+            clean_threshold=0.12e-3,
+            clean_nmoment=5,
+            clean_psf_support=640,
+            clean_restored_output="integrated",
+            use_dask=True,
+        )
     )
+
     assert os.path.exists(deconvolved.path)
     assert os.path.exists(restored.path)
     assert os.path.exists(residual.path)

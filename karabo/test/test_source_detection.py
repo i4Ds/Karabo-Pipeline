@@ -11,6 +11,8 @@ from karabo.data.external_data import (
 )
 from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
+from karabo.imaging.imager_rascil import RascilImageCleaner, RascilImageCleanerConfig
+from karabo.imaging.util import project_sky_to_image
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -53,7 +55,7 @@ def test_source_detection_plot(
     imaging_npixel = img.header["NAXIS1"]
     imaging_cellsize = img.get_cellsize()
 
-    ground_truth, sky_idxs = Imager.project_sky_to_image(
+    ground_truth, sky_idxs = project_sky_to_image(
         sky=sky,
         phase_center=phase_center,
         imaging_cellsize=imaging_cellsize,
@@ -281,19 +283,21 @@ def test_create_detection_from_ms_cuda():
 
     visibility = simulation.run_simulation(telescope, sky, observation)
 
-    imager = Imager(
-        visibility,
-        ingest_vis_nchan=3,
-        ingest_chan_per_vis=1,
-        ingest_average_blockvis=True,
-        imaging_npixel=2048,
-        imaging_cellsize=0.0003,
-        imaging_weighting="natural",
-        imaging_robustness=-0.5,
-    )
-
-    convolved, restored, residual = imager.imaging_rascil(
-        client=None, use_dask=False, use_cuda=True
+    (
+        convolved,
+        restored,
+        residual,
+    ) = RascilImageCleaner().create_cleaned_image_variants(
+        RascilImageCleanerConfig(
+            imaging_npixel=2048,
+            imaging_cellsize=0.0003,
+            ms_file_path=visibility.ms_file_path,
+            ingest_vis_nchan=3,
+            ingest_average_blockvis=True,
+            imaging_weighting="natural",
+            imaging_robustness=-0.5,
+            use_cuda=True,
+        )
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:
