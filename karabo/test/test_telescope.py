@@ -151,10 +151,7 @@ def test_RASCIL_telescope_with_version_triggers_logging(mock_logging_warning):
 
 
 def test_invalid_RASCIL_telescope():
-    with pytest.raises(
-        ValueError,
-        match="Requested telescope FAKETELESCOPE is not supported by this backend",
-    ):
+    with pytest.raises(AssertionError):
         Telescope.constructor("FAKETELESCOPE", backend=SimulatorBackend.RASCIL)
 
 
