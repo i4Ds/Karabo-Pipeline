@@ -176,8 +176,8 @@ class Telescope:
     def constructor(
         cls,
         name: OSKARTelescopesWithVersionType,
-        version: enum.Enum = ...,
-        backend: Literal[SimulatorBackend.OSKAR] = ...,
+        version: enum.Enum,
+        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
     ) -> Telescope:
         ...
 
@@ -186,8 +186,8 @@ class Telescope:
     def constructor(
         cls,
         name: OSKARTelescopesWithoutVersionType,
-        version: Literal[None] = ...,
-        backend: Literal[SimulatorBackend.OSKAR] = ...,
+        version: Literal[None] = None,
+        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
     ) -> Telescope:
         ...
 
@@ -196,8 +196,22 @@ class Telescope:
     def constructor(
         cls,
         name: RASCILTelescopes,
-        version: Literal[None] = ...,
-        backend: Literal[SimulatorBackend.RASCIL] = ...,
+        version: Literal[None] = None,
+        backend: Literal[SimulatorBackend.RASCIL] = SimulatorBackend.RASCIL,
+    ) -> Telescope:
+        ...
+
+    @overload
+    @classmethod
+    def constructor(
+        cls,
+        name: Union[
+            RASCILTelescopes,
+            OSKARTelescopesWithVersionType,
+            OSKARTelescopesWithoutVersionType,
+        ],
+        version: Optional[enum.Enum] = None,
+        backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
         ...
 
