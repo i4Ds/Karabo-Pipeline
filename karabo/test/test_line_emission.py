@@ -98,7 +98,6 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
         simulator_backend=simulator_backend,
-        imaging_backend=None,  # Cause pipeline to use same backend as simulator_backend
         pointings=pointings,
         sky_model=sky,
         observation_details=observation,
@@ -184,7 +183,6 @@ def test_compare_oskar_rascil_dirty_images():
         _, dirty_images = line_emission_pipeline(
             output_base_directory=output_base_directory,
             simulator_backend=simulator_backend,
-            imaging_backend=None,  # None: use same backend as simulator_backend
             pointings=[pointing],
             sky_model=sky,
             observation_details=observation,

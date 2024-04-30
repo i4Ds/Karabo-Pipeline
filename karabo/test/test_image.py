@@ -4,22 +4,33 @@ from datetime import datetime
 
 import numpy as np
 
-from karabo.imaging.imager import Imager
-from karabo.imaging.imager_rascil import RascilImageCleaner, RascilImageCleanerConfig
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_rascil import (
+    RascilDirtyImager,
+    RascilDirtyImagerConfig,
+    RascilImageCleaner,
+    RascilImageCleanerConfig,
+)
+from karabo.imaging.util import auto_choose_dirty_imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
-from karabo.simulator_backend import SimulatorBackend
 from karabo.test.conftest import TFiles
 
 
 def test_image_circle(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
-    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
-    dirty = imager.get_dirty_image()
+    dirty_imager = auto_choose_dirty_imager(vis)
+    dirty = dirty_imager.create_dirty_image(
+        DirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            imaging_cellsize=3.878509448876288e-05,
+        )
+    )
 
     data = dirty.data[0][0]  # Returns a 2D array, with values for each (x, y) pixel
 
@@ -36,9 +47,16 @@ def test_image_circle(tobject: TFiles):
 
 def test_dirty_image(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
-    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
-    dirty = imager.get_dirty_image()
+    dirty_imager = auto_choose_dirty_imager(vis)
+    dirty = dirty_imager.create_dirty_image(
+        DirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            imaging_cellsize=3.878509448876288e-05,
+        )
+    )
+
     with tempfile.TemporaryDirectory() as tmpdir:
         dirty.write_to_file(os.path.join(tmpdir, "dirty.fits"), overwrite=True)
     dirty.plot(title="Dirty Image")
@@ -47,11 +65,17 @@ def test_dirty_image(tobject: TFiles):
 def test_dirty_image_resample(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     SHAPE = 2048
-    imager = Imager(vis, imaging_npixel=SHAPE, imaging_cellsize=3.878509448876288e-05)
 
-    dirty = imager.get_dirty_image()
+    dirty_imager = auto_choose_dirty_imager(vis)
+    dirty = dirty_imager.create_dirty_image(
+        DirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=SHAPE,
+            imaging_cellsize=3.878509448876288e-05,
+        )
+    )
+
     shape_before = dirty.data.shape
-
     NEW_SHAPE = 512
     dirty.resample((NEW_SHAPE, NEW_SHAPE))
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -75,10 +99,15 @@ def test_dirty_image_resample(tobject: TFiles):
 
 def test_dirty_image_cutout(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
-    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
-    dirty = imager.get_dirty_image(
-        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    dirty_imager = RascilDirtyImager()
+    dirty = dirty_imager.create_dirty_image(
+        DirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            imaging_cellsize=3.878509448876288e-05,
+            combine_across_frequencies=False,
+        )
     )
 
     cutout1 = dirty.cutout((1000, 1000), (500, 500))
@@ -98,9 +127,15 @@ def test_dirty_image_cutout(tobject: TFiles):
 
 def test_dirty_image_N_cutout(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
-    imager = Imager(vis, imaging_npixel=2048, imaging_cellsize=3.878509448876288e-05)
 
-    dirty = imager.get_dirty_image()
+    dirty_imager = auto_choose_dirty_imager(vis)
+    dirty = dirty_imager.create_dirty_image(
+        DirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            imaging_cellsize=3.878509448876288e-05,
+        )
+    )
 
     cutouts = dirty.split_image(N=4)
 
@@ -123,28 +158,32 @@ def test_dirty_image_N_cutout(tobject: TFiles):
 
 def test_cellsize_overwrite(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
-    imager = Imager(
-        vis,
-        imaging_npixel=2048,
-        imaging_cellsize=10,
-        override_cellsize=True,
+
+    dirty_imager = RascilDirtyImager()
+    dirty = dirty_imager.create_dirty_image(
+        RascilDirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            # TODO Does a value of 10 radians make sense?
+            imaging_cellsize=10,
+            combine_across_frequencies=False,
+            override_cellsize=True,
+        )
     )
 
-    dirty = imager.get_dirty_image(
-        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
-    )
     header = dirty.header
     cdelt_overwrite_cellsize_false = header["CDELT1"]
 
-    imager = Imager(
-        vis,
-        imaging_npixel=2048,
-        imaging_cellsize=1,
-        override_cellsize=True,
+    dirty = dirty_imager.create_dirty_image(
+        RascilDirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            imaging_cellsize=1,
+            combine_across_frequencies=False,
+            override_cellsize=True,
+        )
     )
-    dirty = imager.get_dirty_image(
-        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
-    )
+
     header = dirty.header
     cdelt_overwrite_cellsize_true = header["CDELT1"]
 
@@ -153,25 +192,27 @@ def test_cellsize_overwrite(tobject: TFiles):
 
 def test_cellsize_overwrite_false(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
-    imager = Imager(
-        vis,
-        imaging_npixel=2048,
-        imaging_cellsize=10,
-        override_cellsize=False,
-    )
-    dirty = imager.get_dirty_image(
-        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    dirty_imager = RascilDirtyImager()
+    dirty = dirty_imager.create_dirty_image(
+        RascilDirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            # TODO Does a value of 10 radians make sense?
+            imaging_cellsize=10,
+            combine_across_frequencies=False,
+            override_cellsize=False,
+        )
     )
     cdelt_overwrite_cellsize_false = dirty.header["CDELT1"]
 
-    imager = Imager(
-        vis,
-        imaging_npixel=2048,
-        imaging_cellsize=1,
-        override_cellsize=False,
-    )
-    dirty = imager.get_dirty_image(
-        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    dirty = dirty_imager.create_dirty_image(
+        RascilDirtyImagerConfig(
+            visibility=vis,
+            imaging_npixel=2048,
+            imaging_cellsize=1,
+            combine_across_frequencies=False,
+            override_cellsize=False,
+        )
     )
     cdelt_overwrite_cellsize_true = dirty.header["CDELT1"]
 

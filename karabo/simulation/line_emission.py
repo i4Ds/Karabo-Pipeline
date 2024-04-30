@@ -1,3 +1,4 @@
+import os
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -13,7 +14,8 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.imaging.image import Image, ImageMosaicker
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager
 from karabo.simulation.interferometer import (
     FilterUnits,
     InterferometerSimulation,
@@ -33,7 +35,6 @@ CircleSkyRegion = namedtuple("CircleSkyRegion", ["center", "radius"])
 def line_emission_pipeline(
     output_base_directory: Union[Path, str],
     simulator_backend: SimulatorBackend,
-    imaging_backend: Optional[SimulatorBackend],
     pointings: List[CircleSkyRegion],
     sky_model: SkyModel,
     observation_details: Observation,
@@ -135,19 +136,20 @@ def line_emission_pipeline(
             print(f"Processing pointing {index_p}...")
             vis = visibilities[index_freq][index_p]
 
-            imager = Imager(
-                vis,
-                imaging_npixel=image_npixels,
-                imaging_cellsize=image_cellsize_radians,
-            )
-
-            dirty = imager.get_dirty_image(
-                fits_path=str(
-                    output_base_directory
-                    / f"dirty_{'OSKAR' if simulator_backend is SimulatorBackend.OSKAR else 'RASCIL'}_{index_p}.fits"  # noqa: E501
-                ),
-                imaging_backend=imaging_backend,
-                combine_across_frequencies=True,
+            if simulator_backend is SimulatorBackend.OSKAR:
+                backend = "OSKAR"
+            else:
+                backend = "RASCIL"
+            dirty_imager = auto_choose_dirty_imager(vis)
+            dirty = dirty_imager.create_dirty_image(
+                DirtyImagerConfig(
+                    visibility=vis,
+                    imaging_npixel=image_npixels,
+                    imaging_cellsize=image_cellsize_radians,
+                    output_fits_path=os.path.join(
+                        output_base_directory, f"dirty_{backend}_{index_p}.fits"
+                    ),
+                )
             )
 
             dirty_images[-1].append(dirty)
@@ -431,7 +433,6 @@ if __name__ == "__main__":
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
         simulator_backend=simulator_backend,
-        imaging_backend=None,  # Cause pipeline to use same backend as simulator_backend
         pointings=pointings,
         sky_model=sky,
         observation_details=observation,

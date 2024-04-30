@@ -99,7 +99,6 @@ if __name__ == "__main__":
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
         simulator_backend=simulator_backend,
-        imaging_backend=None,  # Cause pipeline to use same backend as simulator_backend
         pointings=pointings,
         sky_model=sky,
         observation_details=observation,

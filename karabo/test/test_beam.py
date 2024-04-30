@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import oskar
 
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_rascil import RascilDirtyImager
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -116,17 +117,30 @@ def test_compare_karabo_oskar():
         print(visibility.ms_file_path)
 
         # RASCIL IMAGING
-        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
-        imager = Imager(
-            visibility,
+        # TODO Which imager should actually be used here?
+        # Comment says RASCIL, but if I'm not mistaken
+        # OSKAR will be chosen because of the visibility type.
+        # Params hint to RASCIL.
+        # imaging_dopsf is changed here, but isn't actually respected
+        # in the imager.
+        # imaging_uvmax and imaging_uvmin are also not respected when
+        # creating a dirty image, only when cleaning.
+        # uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
+        # imager = Imager(
+        #     visibility,
+        #     imaging_npixel=4096,
+        #     imaging_cellsize=2.13e-5,
+        #     imaging_dopsf=True,
+        #     imaging_uvmax=uvmax,
+        #     imaging_uvmin=1,
+        # )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        dirty_imager = RascilDirtyImager()
+        dirty_imager_config = DirtyImagerConfig(
+            visibility=visibility,
             imaging_npixel=4096,
             imaging_cellsize=2.13e-5,
-            imaging_dopsf=True,
-            imaging_weighting="uniform",
-            imaging_uvmax=uvmax,
-            imaging_uvmin=1,
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
+        )
+        dirty = dirty_imager.create_dirty_image(dirty_imager_config)
         image_karabo = dirty.data[0][0]
 
         # OSKAR -------------------------------------
@@ -181,17 +195,22 @@ def test_compare_karabo_oskar():
         sim.run()
 
         # RASCIL IMAGING
-        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
-        imager = Imager(
-            visibility,
-            imaging_npixel=4096,
-            imaging_cellsize=2.13e-5,
-            imaging_dopsf=True,
-            imaging_weighting="uniform",
-            imaging_uvmax=uvmax,
-            imaging_uvmin=1,
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
+        # uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
+        # imager = Imager(
+        #     # TODO Are we actually using the results of the 2nd (OSKAR)
+        #     # sim here or are we using the results of the 1st (Karabo)
+        #     # sim again? The visibility variable is not set by the 2nd sim.
+        #     # If this code still uses the results of the 2nd sim,
+        #     # it's not exactly obvious and should probably be rewritten.
+        #     visibility,
+        #     imaging_npixel=4096,
+        #     imaging_cellsize=2.13e-5,
+        #     imaging_dopsf=True,
+        #     imaging_weighting="uniform",
+        #     imaging_uvmax=uvmax,
+        #     imaging_uvmin=1,
+        # )  # imaging cellsize is over-written in the Imager based on max uv dist.
+        dirty = dirty_imager.create_dirty_image(dirty_imager_config)
         image_oskar = dirty.data[0][0]
 
         # Plotting the difference between karabo and oskar using oskar imager
@@ -250,15 +269,11 @@ def test_gaussian_beam():
         visibility = simulation.run_simulation(telescope, sky, observation)
 
         # RASCIL IMAGING
-        uvmax = 3000 / (3.0e8 / freq)  # in wavelength units
-        imager = Imager(
-            visibility,
+        dirty_imager = RascilDirtyImager()
+        dirty_imager_config = DirtyImagerConfig(
+            visibility=visibility,
             imaging_npixel=4096,
             imaging_cellsize=2.13e-5,
-            imaging_dopsf=True,
-            imaging_weighting="uniform",
-            imaging_uvmax=uvmax,
-            imaging_uvmin=1,
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
+        )
+        dirty = dirty_imager.create_dirty_image(dirty_imager_config)
         dirty.plot(title="Flux Density (Jy)")

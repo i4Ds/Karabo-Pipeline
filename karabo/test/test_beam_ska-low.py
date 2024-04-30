@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -53,8 +54,16 @@ def test_beam():
         )
         visibility = simulation.run_simulation(telescope, sky, observation)  # noqa
 
-        imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)
-        dirty = imager.get_dirty_image()
+        dirty_imager = auto_choose_dirty_imager(visibility)
+        dirty = dirty_imager.create_dirty_image(
+            DirtyImagerConfig(
+                visibility=visibility,
+                imaging_npixel=4096,
+                # TODO 50 radians doesn't seem to make much sense
+                imaging_cellsize=50,
+            )
+        )
+
         dirty.write_to_file(
             os.path.join(tmpdir, "ska_low_array_vis.fits"), overwrite=True
         )

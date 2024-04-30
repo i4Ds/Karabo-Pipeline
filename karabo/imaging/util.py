@@ -8,12 +8,32 @@ from numpy.typing import NDArray
 from rascil import processing_components as rpc
 from scipy.optimize import minpack
 from ska_sdp_datamodels.image.image_model import Image as SkaSdpImage
+from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
+from typing_extensions import assert_never
 
 from karabo.data.external_data import MGCLSContainerDownloadObject
 from karabo.imaging.image import Image
+from karabo.imaging.imager_base import DirtyImager
+from karabo.imaging.imager_oskar import OskarDirtyImager
+from karabo.imaging.imager_rascil import RascilDirtyImager
 from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.visibility import Visibility
 from karabo.util._types import BeamType
 from karabo.warning import KaraboWarning
+
+
+def auto_choose_dirty_imager(
+    visibility: Union[Visibility, RASCILVisibility]
+) -> DirtyImager:
+    dirty_imager: DirtyImager
+    if isinstance(visibility, Visibility):
+        dirty_imager = OskarDirtyImager()
+    elif isinstance(visibility, RASCILVisibility):
+        dirty_imager = RascilDirtyImager()
+    else:
+        assert_never(visibility)
+
+    return dirty_imager
 
 
 def get_MGCLS_images(regex_pattern: str, verbose: bool = False) -> List[SkaSdpImage]:
