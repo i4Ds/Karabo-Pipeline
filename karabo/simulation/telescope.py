@@ -73,6 +73,24 @@ OSKARTelescopesWithoutVersionType = Literal[
     "VLBA",
     "WSRT",
 ]
+# RASCIL Telescopes based on:
+# https://developer.skatelescope.org/projects/ska-sdp-datamodels/en/latest/_modules/ska_sdp_datamodels/configuration/config_create.html#create_named_configuration # noqa: E501
+RASCILTelescopes = Literal[
+    "LOWBD2",
+    "LOWBD2-CORE",
+    "LOW",
+    "LOWR3",
+    "LOWR4",
+    "LOW-AA0.5",
+    "MID",
+    "MIDR5",
+    "MID-AA0.5",
+    "MEERKAT+",
+    "ASKAP",
+    "LOFAR",
+    "VLAA",
+    "VLAA_north",
+]
 
 OSKAR_TELESCOPE_TO_FILENAMES: Dict[
     Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
@@ -177,29 +195,19 @@ class Telescope:
     @classmethod
     def constructor(
         cls,
-        name: str,
+        name: RASCILTelescopes,
         version: Literal[None] = ...,
         backend: Literal[SimulatorBackend.RASCIL] = ...,
     ) -> Telescope:
         ...
 
-    @overload
     @classmethod
     def constructor(
         cls,
         name: Union[
-            str, OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType
-        ],
-        version: Optional[enum.Enum] = None,
-        backend: SimulatorBackend = SimulatorBackend.OSKAR,
-    ) -> Telescope:
-        ...
-
-    @classmethod
-    def constructor(
-        cls,
-        name: Union[
-            str, OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType
+            RASCILTelescopes,
+            OSKARTelescopesWithVersionType,
+            OSKARTelescopesWithoutVersionType,
         ],
         version: Optional[enum.Enum] = None,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
@@ -263,6 +271,7 @@ class Telescope:
     by the backend {backend}.
     The version value {version} provided will be ignored."""
                 )
+            assert name in get_args(RASCILTelescopes)
             try:
                 configuration = create_named_configuration(name)
             except ValueError as e:

@@ -154,7 +154,7 @@ def line_emission_pipeline(
 
             # dirty.data.shape meaning:
             # (frequency channels, polarisations, pixels_x, pixels_y)
-            assert len(dirty.data.shape) == 4
+            assert dirty.data.ndim == 4
             # I.e. only one frequency channel,
             # since we are performing a line emission analysis
             assert dirty.data.shape[0] == 1
