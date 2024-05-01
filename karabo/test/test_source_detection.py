@@ -262,9 +262,6 @@ def test_create_detection_from_ms_cuda():
             imaging_cellsize=0.0003,
             ms_file_path=visibility.ms_file_path,
             ingest_vis_nchan=3,
-            ingest_average_blockvis=True,
-            imaging_weighting="natural",
-            imaging_robustness=-0.5,
             use_cuda=True,
         )
     )

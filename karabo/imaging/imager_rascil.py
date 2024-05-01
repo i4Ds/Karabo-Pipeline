@@ -128,24 +128,13 @@ def _create_ingest_dd_default_value() -> List[int]:
 
 @dataclass
 class RascilImageCleanerConfig(ImageCleanerConfig):
-    logfile: Optional[str] = None
-    performance_file: Optional[str] = None
     ingest_dd: List[int] = field(default_factory=_create_ingest_dd_default_value)
     ingest_vis_nchan: Optional[int] = None
     ingest_chan_per_vis: int = 1
-    ingest_average_blockvis: Union[bool, str] = False
-    imaging_phasecentre: Optional[str] = None
-    imaging_pol: str = "stokesI"
     imaging_nchan: int = 1
-    imaging_context: str = "ng"
-    imaging_ng_threads: int = 4
     imaging_w_stacking: Union[bool, str] = True
     imaging_flat_sky: Union[bool, str] = False
     override_cellsize: bool = False
-    imaging_weighting: str = "uniform"
-    imaging_robustness: float = 0.0
-    imaging_gaussian_taper: Optional[float] = None
-    imaging_dopsf: Union[bool, str] = False
     imaging_uvmax: Optional[float] = None
     imaging_uvmin: float = 0
     imaging_dft_kernel: Optional[
@@ -202,90 +191,6 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
 
 
 class RascilImageCleaner(ImageCleaner):
-    def _compute(self, config: RascilImageCleanerConfig) -> Any:
-        if config.client and not config.use_dask:
-            raise RuntimeError("Client passed but use_dask is False")
-        if config.use_dask:
-            if not config.client:
-                client = DaskHandler.get_dask_client()
-            print(client.cluster)
-            rsexecute.set_client(client=client, use_dask=config.use_dask, use_dlg=False)
-        else:  # set use_dask through `set_client` to False,
-            # because it's the only way to disable dask for `rsexecute` singleton
-            rsexecute.set_client(client=None, use_dask=False, use_dlg=False)
-        # Set CUDA parameters
-        img_context = config.img_context
-        if config.use_cuda:
-            if img_context != "wg":
-                print(
-                    f"Changing img_context` from '{img_context}' "
-                    + f"to 'wg' because {config.use_cuda=}"
-                )
-            img_context = "wg"
-
-        if config.ingest_vis_nchan is None:
-            raise ValueError("`self.ingest_vis_nchan` is None but must set.")
-
-        blockviss = create_visibility_from_ms_rsexecute(
-            msname=str(config.ms_file_path),
-            nchan_per_vis=config.ingest_chan_per_vis,
-            nout=config.ingest_vis_nchan // config.ingest_chan_per_vis,
-            dds=config.ingest_dd,
-            average_channels=True,
-        )
-
-        blockviss = [
-            rsexecute.execute(convert_visibility_to_stokesI)(bv) for bv in blockviss
-        ]
-
-        models = [
-            rsexecute.execute(create_image_from_visibility)(
-                bvis,
-                npixel=config.imaging_npixel,
-                nchan=config.imaging_nchan,
-                cellsize=config.imaging_cellsize,
-                override_cellsize=config.override_cellsize,
-                polarisation_frame=PolarisationFrame("stokesI"),
-            )
-            for bvis in blockviss
-        ]
-
-        result = continuum_imaging_skymodel_list_rsexecute_workflow(
-            vis_list=blockviss,
-            model_imagelist=models,
-            context=img_context,
-            threads=config.n_threads,
-            wstacking=config.imaging_w_stacking == "True",
-            niter=config.clean_niter,
-            nmajor=config.clean_nmajor,
-            algorithm=config.clean_algorithm,
-            gain=config.clean_gain,
-            scales=config.clean_scales,
-            fractional_threshold=config.clean_fractional_threshold,
-            threshold=config.clean_threshold,
-            nmoment=config.clean_nmoment,
-            psf_support=config.clean_psf_support,
-            restored_output=config.clean_restored_output,
-            deconvolve_facets=config.clean_facets,
-            deconvolve_overlap=config.clean_overlap,
-            deconvolve_taper=config.clean_taper,
-            restore_facets=config.clean_restore_facets,
-            restore_overlap=config.clean_restore_overlap,
-            restore_taper=config.clean_restore_taper,
-            dft_compute_kernel=config.imaging_dft_kernel,
-            component_threshold=config.clean_component_threshold,
-            component_method=config.clean_component_method,
-            flat_sky=config.imaging_flat_sky,
-            clean_beam=config.clean_beam,
-            clean_algorithm=config.clean_algorithm,
-            imaging_uvmax=config.imaging_uvmax,
-            imaging_uvmin=config.imaging_uvmin,
-        )
-
-        result = rsexecute.compute(result, sync=True)
-
-        return result
-
     def create_cleaned_image(self, config: ImageCleanerConfig) -> Image:
         # If config is an ImageCleanerConfig (base class) instance, convert to
         # RascilImageCleanerConfig using default values
@@ -380,3 +285,87 @@ class RascilImageCleaner(ImageCleaner):
         residual_image = Image(path=residual_fits_path)
 
         return deconvolved_image, restored_image, residual_image
+
+    def _compute(self, config: RascilImageCleanerConfig) -> Any:
+        if config.client and not config.use_dask:
+            raise RuntimeError("Client passed but use_dask is False")
+        if config.use_dask:
+            if not config.client:
+                client = DaskHandler.get_dask_client()
+            print(client.cluster)
+            rsexecute.set_client(client=client, use_dask=config.use_dask, use_dlg=False)
+        else:  # set use_dask through `set_client` to False,
+            # because it's the only way to disable dask for `rsexecute` singleton
+            rsexecute.set_client(client=None, use_dask=False, use_dlg=False)
+        # Set CUDA parameters
+        img_context = config.img_context
+        if config.use_cuda:
+            if img_context != "wg":
+                print(
+                    f"Changing img_context` from '{img_context}' "
+                    + f"to 'wg' because {config.use_cuda=}"
+                )
+            img_context = "wg"
+
+        if config.ingest_vis_nchan is None:
+            raise ValueError("`self.ingest_vis_nchan` is None but must set.")
+
+        blockviss = create_visibility_from_ms_rsexecute(
+            msname=str(config.ms_file_path),
+            nchan_per_vis=config.ingest_chan_per_vis,
+            nout=config.ingest_vis_nchan // config.ingest_chan_per_vis,
+            dds=config.ingest_dd,
+            average_channels=True,
+        )
+
+        blockviss = [
+            rsexecute.execute(convert_visibility_to_stokesI)(bv) for bv in blockviss
+        ]
+
+        models = [
+            rsexecute.execute(create_image_from_visibility)(
+                bvis,
+                npixel=config.imaging_npixel,
+                nchan=config.imaging_nchan,
+                cellsize=config.imaging_cellsize,
+                override_cellsize=config.override_cellsize,
+                polarisation_frame=PolarisationFrame("stokesI"),
+            )
+            for bvis in blockviss
+        ]
+
+        result = continuum_imaging_skymodel_list_rsexecute_workflow(
+            vis_list=blockviss,
+            model_imagelist=models,
+            context=img_context,
+            threads=config.n_threads,
+            wstacking=config.imaging_w_stacking == "True",
+            niter=config.clean_niter,
+            nmajor=config.clean_nmajor,
+            algorithm=config.clean_algorithm,
+            gain=config.clean_gain,
+            scales=config.clean_scales,
+            fractional_threshold=config.clean_fractional_threshold,
+            threshold=config.clean_threshold,
+            nmoment=config.clean_nmoment,
+            psf_support=config.clean_psf_support,
+            restored_output=config.clean_restored_output,
+            deconvolve_facets=config.clean_facets,
+            deconvolve_overlap=config.clean_overlap,
+            deconvolve_taper=config.clean_taper,
+            restore_facets=config.clean_restore_facets,
+            restore_overlap=config.clean_restore_overlap,
+            restore_taper=config.clean_restore_taper,
+            dft_compute_kernel=config.imaging_dft_kernel,
+            component_threshold=config.clean_component_threshold,
+            component_method=config.clean_component_method,
+            flat_sky=config.imaging_flat_sky,
+            clean_beam=config.clean_beam,
+            clean_algorithm=config.clean_algorithm,
+            imaging_uvmax=config.imaging_uvmax,
+            imaging_uvmin=config.imaging_uvmin,
+        )
+
+        result = rsexecute.compute(result, sync=True)
+
+        return result
