@@ -4,7 +4,7 @@ import math
 import os
 import subprocess
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List, Optional, Union
 
 from karabo.error import KaraboError
 from karabo.imaging.image import Image
@@ -67,9 +67,9 @@ class WscleanDirtyImager(DirtyImager):
 
 @dataclass
 class WscleanImageCleanerConfig(ImageCleanerConfig):
-    niter: int = 50000
-    mgain: float = 0.8
-    auto_threshold: int = 3
+    niter: Optional[int] = 50000
+    mgain: Optional[float] = 0.8
+    auto_threshold: Optional[int] = 3
 
     # TODO test this
     def __post_init__(self) -> None:
@@ -119,12 +119,16 @@ class WscleanImageCleaner(ImageCleaner):
         # image, only a name prefix for a file in the working directory.
         command = _get_command_prefix(tmp_dir) + (
             f"{WSCLEAN_BINARY} "
-            f"-size {config.imaging_npixel} {config.imaging_npixel} "
-            f"-scale {math.degrees(config.imaging_cellsize)}deg "
-            f"-niter {config.niter} "
-            f"-mgain {config.mgain} "
-            f"-auto-threshold {config.auto_threshold} "
-            f"{config.ms_file_path}"
+            + f"-size {config.imaging_npixel} {config.imaging_npixel} "
+            + f"-scale {math.degrees(config.imaging_cellsize)}deg "
+            + (f"-niter {config.niter} " if config.niter is not None else "")
+            + (f"-mgain {config.mgain} " if config.mgain is not None else "")
+            + (
+                f"-auto-threshold {config.auto_threshold} "
+                if config.auto_threshold is not None
+                else ""
+            )
+            + str(config.ms_file_path)
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(
