@@ -29,6 +29,7 @@ from rascil.processing_components.simulation.simulation_helpers import (
 )
 from ska_sdp_datamodels.configuration.config_create import create_named_configuration
 from ska_sdp_datamodels.configuration.config_model import Configuration
+from typing_extensions import assert_never
 
 import karabo.error
 from karabo.error import KaraboError
@@ -201,20 +202,6 @@ class Telescope:
     ) -> Telescope:
         ...
 
-    @overload
-    @classmethod
-    def constructor(
-        cls,
-        name: Union[
-            RASCILTelescopes,
-            OSKARTelescopesWithVersionType,
-            OSKARTelescopesWithoutVersionType,
-        ],
-        version: Optional[enum.Enum] = None,
-        backend: SimulatorBackend = SimulatorBackend.OSKAR,
-    ) -> Telescope:
-        ...
-
     @classmethod
     def constructor(
         cls,
@@ -253,9 +240,8 @@ class Telescope:
                 accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS[name]
                 assert (
                     version is not None
-                ), f"""version is a required field
-                    for telescope {name}, but was not provided.
-                    Please provide a value for the version field."""
+                ), f"version is a required field for telescope {name}, \
+but was not provided. Please provide a value for the version field."
                 assert (
                     version in accepted_versions
                 ), f"""{version = } is not one of the accepted versions.
@@ -270,7 +256,7 @@ class Telescope:
                     for telescope {name}, but {version} was provided.
                     Please do not provide a value for the version field."""
             else:
-                raise ValueError(
+                raise TypeError(
                     f"""
                     {name = } is not an accepted telescope name for this backend.
                 """
@@ -306,9 +292,7 @@ class Telescope:
 
             return telescope
         else:
-            raise ValueError(
-                f"{backend} not supported, see valid options within SimulatorBackend."
-            )
+            assert_never(backend)
 
     def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
