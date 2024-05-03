@@ -37,7 +37,7 @@ def test_convert_to_oskar():
 
 
 def test_invalid_OSKAR_telescope():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Telescope.constructor("FAKETELESCOPE")
 
 
@@ -156,7 +156,7 @@ def test_invalid_RASCIL_telescope():
 
 
 def test_invalid_backend():
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("FAKETELESCOPE", backend="FAKEBACKEND")
 
 
