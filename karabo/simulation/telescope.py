@@ -7,7 +7,18 @@ import os
 import re
 import shutil
 from itertools import product
-from typing import Dict, List, Literal, Optional, Tuple, Type, Union, cast, get_args
+from typing import (
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    get_args,
+    overload,
+)
 
 import numpy as np
 import pandas as pd
@@ -18,6 +29,7 @@ from rascil.processing_components.simulation.simulation_helpers import (
 )
 from ska_sdp_datamodels.configuration.config_create import create_named_configuration
 from ska_sdp_datamodels.configuration.config_model import Configuration
+from typing_extensions import assert_never
 
 import karabo.error
 from karabo.error import KaraboError
@@ -61,6 +73,24 @@ OSKARTelescopesWithoutVersionType = Literal[
     "SKA1MID",
     "VLBA",
     "WSRT",
+]
+# RASCIL Telescopes based on:
+# https://developer.skatelescope.org/projects/ska-sdp-datamodels/en/latest/_modules/ska_sdp_datamodels/configuration/config_create.html#create_named_configuration # noqa: E501
+RASCILTelescopes = Literal[
+    "LOWBD2",
+    "LOWBD2-CORE",
+    "LOW",
+    "LOWR3",
+    "LOWR4",
+    "LOW-AA0.5",
+    "MID",
+    "MIDR5",
+    "MID-AA0.5",
+    "MEERKAT+",
+    "ASKAP",
+    "LOFAR",
+    "VLAA",
+    "VLAA_north",
 ]
 
 OSKAR_TELESCOPE_TO_FILENAMES: Dict[
@@ -142,10 +172,44 @@ class Telescope:
 
         self.RASCIL_configuration: Optional[Configuration] = None
 
+    @overload
     @classmethod
     def constructor(
         cls,
-        name: Union[OSKARTelescopesWithVersionType, OSKARTelescopesWithoutVersionType],
+        name: OSKARTelescopesWithVersionType,
+        version: enum.Enum,
+        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
+    ) -> Telescope:
+        ...
+
+    @overload
+    @classmethod
+    def constructor(
+        cls,
+        name: OSKARTelescopesWithoutVersionType,
+        version: Literal[None] = None,
+        backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
+    ) -> Telescope:
+        ...
+
+    @overload
+    @classmethod
+    def constructor(
+        cls,
+        name: RASCILTelescopes,
+        version: Literal[None] = None,
+        backend: Literal[SimulatorBackend.RASCIL] = SimulatorBackend.RASCIL,
+    ) -> Telescope:
+        ...
+
+    @classmethod
+    def constructor(
+        cls,
+        name: Union[
+            RASCILTelescopes,
+            OSKARTelescopesWithVersionType,
+            OSKARTelescopesWithoutVersionType,
+        ],
         version: Optional[enum.Enum] = None,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
@@ -166,35 +230,37 @@ class Telescope:
         :returns: Telescope instance.
         """
         if backend is SimulatorBackend.OSKAR:
-            # Verify if requested telescope has an existing configuration
-            datapath = OSKAR_TELESCOPE_TO_FILENAMES.get(name, None)
-            if datapath is None:
-                raise ValueError(
-                    f"""{name} not supported for backend {SimulatorBackend.OSKAR.value}.
-                    The valid options for name are:
-                    {list(OSKAR_TELESCOPE_TO_FILENAMES.keys())}."""
-                )
-
             # Explicitly cast name depending on whether it requires a telescope version
             # This should no longer be necessary when mypy starts supporting
             # type narrowing with get_args.
             # https://github.com/python/mypy/issues/12535
             if name in get_args(OSKARTelescopesWithVersionType):
                 name = cast(OSKARTelescopesWithVersionType, name)
+                datapath = OSKAR_TELESCOPE_TO_FILENAMES[name]
                 accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS[name]
-                if (version is None) or (version not in accepted_versions):
-                    raise ValueError(
-                        f"""{version} is not valid for telescope {name}.
-                        List of valid versions: {accepted_versions}."""
-                    )
+                assert (
+                    version is not None
+                ), f"version is a required field for telescope {name}, \
+but was not provided. Please provide a value for the version field."
+                assert (
+                    version in accepted_versions
+                ), f"""{version = } is not one of the accepted versions.
+                List of accepted versions: {accepted_versions}"""
                 datapath = datapath.format(version.value)
-            else:
-                if version is not None:
-                    raise ValueError(
-                        f"""version is not a required field for telescope {name},
-                    but {version} was provided.
+            elif name in get_args(OSKARTelescopesWithoutVersionType):
+                name = cast(OSKARTelescopesWithoutVersionType, name)
+                datapath = OSKAR_TELESCOPE_TO_FILENAMES[name]
+                assert (
+                    version is None
+                ), f"""version is not a required field
+                    for telescope {name}, but {version} was provided.
                     Please do not provide a value for the version field."""
-                    )
+            else:
+                raise TypeError(
+                    f"""
+                    {name = } is not an accepted telescope name for this backend.
+                """
+                )
 
             path = os.path.join(get_module_absolute_path(), "data", datapath)
             return cls.read_OSKAR_tm_file(path)
@@ -205,6 +271,7 @@ class Telescope:
     by the backend {backend}.
     The version value {version} provided will be ignored."""
                 )
+            assert name in get_args(RASCILTelescopes)
             try:
                 configuration = create_named_configuration(name)
             except ValueError as e:
@@ -225,9 +292,7 @@ class Telescope:
 
             return telescope
         else:
-            raise ValueError(
-                f"{backend} not supported, see valid options within SimulatorBackend."
-            )
+            assert_never(backend)
 
     def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
@@ -328,7 +393,9 @@ class Telescope:
             )
             return
 
-    def plot_telescope_OSKAR(self, file: Optional[str] = None) -> None:
+    def plot_telescope_OSKAR(
+        self, file: Optional[str] = None, block: bool = False
+    ) -> None:
         """
         Plot the telescope and all its stations and antennas with longitude altitude
         """
@@ -367,7 +434,7 @@ class Telescope:
             plt.savefig(file)
             plt.close(fig)
         else:
-            plt.show(block=False)
+            plt.show(block=block)
             plt.pause(1)
 
     def get_OSKAR_telescope(self) -> OskarTelescope:

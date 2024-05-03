@@ -763,6 +763,12 @@ class SkyModel:
             - [13] observed redshift: defaults to 0
             - [14] source id (object): is in `SkyModel.source_ids` if provided
         """
+        if (len(sources.shape) == 2) and (sources.shape[0] == 0):
+            warn(
+                """There are no sources in the received sources array.
+            Will not modify the current SkyModel instance."""
+            )
+            return
         try:
             sds, sdd = self._sources_dim_sources, self._sources_dim_data
             self._check_sources(sources=sources)
@@ -1150,6 +1156,7 @@ class SkyModel:
         wcs: Optional[WCS] = None,
         wcs_enabled: bool = True,
         filename: Optional[str] = None,
+        block: bool = False,
         **kwargs: Any,
     ) -> None:
         """
@@ -1175,6 +1182,7 @@ class SkyModel:
         :param wcs_enabled: Use wcs transformation?
         :param filename: Set to path/fname to save figure (set extension to fname to
                          overwrite .png default)
+        :param block: Whether or not plotting should block the rest of the program
         :param kwargs: matplotlib kwargs for scatter & Collections, e.g. customize `s`,
                        `vmin` or `vmax`
         """
@@ -1267,7 +1275,7 @@ class SkyModel:
             plt.xlabel(xlabel)
         if ylabel is not None:
             plt.ylabel(ylabel)
-        plt.show(block=False)
+        plt.show(block=block)
         plt.pause(1)
 
         if isinstance(filename, str):
@@ -2136,6 +2144,7 @@ class SkyModel:
         self,
         backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
         desired_frequencies_hz: Literal[None] = None,
+        channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
     ) -> SkyModel:
         ...
@@ -2145,6 +2154,7 @@ class SkyModel:
         self,
         backend: Literal[SimulatorBackend.RASCIL],
         desired_frequencies_hz: NDArray[np.float_],
+        channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
     ) -> List[SkyComponent]:
         ...
@@ -2153,6 +2163,7 @@ class SkyModel:
         self,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
         desired_frequencies_hz: Optional[NDArray[np.float_]] = None,
+        channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
     ) -> Union[SkyModel, List[SkyComponent]]:
         """Convert an existing SkyModel instance into
@@ -2162,12 +2173,15 @@ class SkyModel:
             support OSKAR-formatted source np.array values.
             RASCIL: convert the current source array into a
             list of RASCIL SkyComponent instances.
-        desired_frequencies_hz: List of frequencies corresponding to endpoints
+        desired_frequencies_hz: List of frequencies corresponding to start
         of desired frequency channels. This field is required
         to convert sources into RASCIL SkyComponents.
-            The array contains endpoint frequencies for the desired channels.
-            E.g. [100e6, 110e6, 120e6] corresponds to 2 frequency channels,
+            The array contains starting frequencies for the desired channels.
+            E.g. [100e6, 110e6] corresponds to 2 frequency channels,
             which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
+        channel_bandwidth_hz: Used if desired_frequencies_hz has only one element.
+            Otherwise, bandwidth is determined as the delta between
+            the first two entries in desired_frequencies_hz.
         verbose: Determines whether to display additional print statements.
         """
 
@@ -2188,7 +2202,34 @@ class SkyModel:
 
             desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
 
+            assert (
+                len(desired_frequencies_hz) > 0
+            ), """Must have at least 1 element
+            in desired_frequencies_hz array"""
+
             desired_frequencies_hz = np.sort(desired_frequencies_hz)
+
+            if len(desired_frequencies_hz) == 1:
+                if channel_bandwidth_hz is None:
+                    raise ValueError(
+                        """desired_frequencies_hz has one entry
+                        and channel_bandwidth_hz is None.
+                        There is not enough information to find channel bandwidths.
+                        Please specify channel_bandwidth_hz,
+                        or add entries to desired_frequencies_hz."""
+                    )
+                frequency_bandwidth = channel_bandwidth_hz
+            else:
+                frequency_bandwidth = (
+                    desired_frequencies_hz[1] - desired_frequencies_hz[0]
+                )
+
+            frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
+
+            # Set endpoints, i.e. all channel starts + the final channel's end
+            frequency_channel_endpoints = np.append(
+                desired_frequencies_hz, desired_frequencies_hz[-1] + frequency_bandwidth
+            )
 
             # 1. Remove sources that fall outside all desired frequency channels
             # 2. Assign each source to the frequency channel closest
@@ -2202,8 +2243,8 @@ class SkyModel:
             redshift_limits = convert_frequency_to_z(
                 np.array(
                     [
-                        np.max(desired_frequencies_hz),
-                        np.min(desired_frequencies_hz),
+                        np.max(frequency_channel_endpoints),
+                        np.min(frequency_channel_endpoints),
                     ]
                 )
             )
@@ -2235,10 +2276,7 @@ class SkyModel:
             # For each source, find the channel to which it belongs
             source_channel_indices = np.digitize(
                 convert_z_to_frequency(redshifts),
-                desired_frequencies_hz[
-                    :-1
-                ],  # Only provide starting points for frequency channels,
-                # i.e. omit the ending of the last channel
+                frequency_channel_endpoints,
                 right=False,
             )
 
@@ -2257,7 +2295,7 @@ class SkyModel:
             ):
                 # 1 == npolarisations, fixed as 1 (stokesI) for now
                 # TODO eventually handle full stokes source catalogs
-                flux_array = np.zeros((len(desired_frequencies_hz) - 1, 1))
+                flux_array = np.zeros((len(frequency_channel_endpoints) - 1, 1))
 
                 # Access [0] since this is the stokesI flux,
                 # and [index] to place the source's flux onto
@@ -2273,10 +2311,7 @@ class SkyModel:
                             frame="icrs",
                             equinox="J2000",
                         ),
-                        frequency=desired_frequencies_hz[
-                            :-1
-                        ],  # Equal to image's channels, to prevent
-                        # RASCIL from interpolating the fluxes
+                        frequency=frequency_channel_centers,
                         name=f"pointsource{ra}{dec}",
                         flux=flux_array,  # shape: nchannels, npolarisations
                         shape="Point",

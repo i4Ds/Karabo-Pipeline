@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
+import warnings
+from copy import deepcopy
 from typing import (
     Any,
     Callable,
@@ -28,6 +30,7 @@ from reproject import reproject_interp
 from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
 
+from karabo.simulation.sky_model import SkyModel
 from karabo.util._types import BeamType, FilePathType
 from karabo.util.file_handler import FileHandler, assert_valid_ending
 from karabo.util.plotting_util import get_slices
@@ -96,6 +99,29 @@ class Image:
             self.path = restored_fits_path
         else:
             raise RuntimeError("Provide either `path` or both `data` and `header`.")
+
+        if self.data.ndim not in (2, 3, 4):
+            raise ValueError(
+                f"""Unexpected shape for image data:
+            {self.data.shape}; expected 2D, 3D or (ideally) 4D array. Ideal image shape:
+            (frequencies, polarisations, pixels_x, pixels_y)"""
+            )
+
+        if self.data.ndim == 2:
+            warnings.warn(
+                """Received 2D data for image object.
+                Will assume the 2 axes correspond to (pixels_x, pixels_y).
+                Inserting 2 additional axes for frequencies and polarisations."""
+            )
+            self.data = np.array([[self.data]])
+        elif self.data.ndim == 3:
+            warnings.warn(
+                """Received 3D data for image object.
+                Will assume the 3 axes correspond to
+                (polarisations, pixels_x, pixels_y).
+                Inserting 1 additional axis for frequencies."""
+            )
+            self.data = np.array([self.data])
 
         self._fname = os.path.split(self.path)[-1]
 
@@ -208,6 +234,29 @@ class Image:
         header = self.update_header_from_image_header(header, self.header)
         return Image(data=cut.data[np.newaxis, np.newaxis, :, :], header=header)
 
+    def circle(self) -> None:
+        """For each frequency channel and polarisation, cutout the pixel values,
+        only keeping data for a circle of the computed radius, centered
+        at the center of the image.
+        This is an in-place transformation of the data.
+
+        :return: None (data of current Image instance is transformed in-place)
+        """
+
+        def circle_pixels(pixels: NDArray[np.float_]) -> NDArray[np.float_]:
+            radius = min(pixels.shape) // 2
+            y, x = np.ogrid[-radius:radius, -radius:radius]
+            mask = x**2 + y**2 > radius**2
+            pixels[mask] = np.nan
+
+            return pixels
+
+        # This assumes self.data is a 4D array, with shape corresponding to
+        # (frequency, polarisations, pixels_x, pixels_y)
+        for i, frequency_image in enumerate(self.data):
+            for j, pixels in enumerate(frequency_image):
+                self.data[i][j] = circle_pixels(pixels)
+
     @staticmethod
     def update_header_from_image_header(
         new_header: Header,
@@ -309,6 +358,8 @@ class Image:
         return NDData(data=self.data, wcs=self.get_wcs())
 
     def to_2dNNData(self) -> NDData:
+        # TODO this assumes stokesI, i.e. 0th polarisation
+        # Need to modify when adding full-stokes support
         return NDData(data=self.data[0, 0, :, :], wcs=self.get_2d_wcs())
 
     def plot(
@@ -325,6 +376,7 @@ class Image:
         wcs_enabled: bool = True,
         invert_xaxis: bool = False,
         filename: Optional[str] = None,
+        block: bool = False,
         **kwargs: Any,
     ) -> None:
         """Plots the image
@@ -343,6 +395,7 @@ class Image:
         :param invert_xaxis: Do you want to invert the xaxis?
         :param filename: Set to path/fname to save figure
         (set extension to fname to overwrite .png default)
+        :param block: Whether plotting should block the remaining of the script
         :param kwargs: matplotlib kwargs for scatter & Collections,
         e.g. customize `s`, `vmin` or `vmax`
         """
@@ -392,8 +445,144 @@ class Image:
             ax.invert_xaxis()
         if filename is not None:
             fig.savefig(filename)
-        plt.show(block=False)
+        plt.show(block=block)
         plt.pause(1)
+
+    def overplot_with_skymodel(
+        self,
+        sky: SkyModel,
+        filename: Optional[FilePathType] = None,
+        block: bool = False,
+        channel_index: int = 0,
+        stokes_index: int = 0,
+        vmin_image: Optional[float] = None,
+        vmax_image: Optional[float] = None,
+    ) -> None:
+        """Create a plot with the current image data,
+        as well as an overlay of sources from a given SkyModel instance.
+
+        :param sky: a SkyModel instance, with sources to be plotted.
+        :param filename: path to the file where the final plot will be saved.
+            If None, the plot is not saved.
+        :param block: whether plotting should block the remaining of the script.
+        :param channel_index: Which frequency channel to show in the plot.
+            Defaults to 0.
+        :param stokes_index: Which polarisation to show in the plot.
+            Defaults to 0 (stokesI).
+        :param vmin_image, vmax_image: Limits for colorbar of Image plot.
+        """
+        # wcs.wcs_world2pix expects a FITS header with only 2 coordinates (x, y).
+        # For this plot, we temporarily remove the 3rd and 4th axes from the image
+        # Per suggestion from:
+        # https://github.com/aplpy/aplpy/issues/423#issuecomment-848170880
+        two_dimensional_header = deepcopy(self.header)
+        two_dimensional_header["NAXIS"] = 2
+        two_dimensional_header["WCSAXES"] = 2
+        temporary_data = self.data[channel_index][stokes_index]
+
+        for kw in ("CTYPE", "CRVAL", "CRPIX", "CDELT", "CUNIT", "NAXIS"):
+            for n in (3, 4):
+                k = f"{kw}{n}"
+                if k in two_dimensional_header.keys():
+                    two_dimensional_header.remove(k)
+
+        wcs = WCS(two_dimensional_header)
+        slices = get_slices(wcs)
+
+        px, py = wcs.wcs_world2pix(sky[:, 0], sky[:, 1], 0)
+
+        # Create the figure and axes
+        plt.figure(figsize=(20, 10))
+        ax = plt.subplot(111, projection=wcs, slices=slices)
+        img = ax.imshow(
+            temporary_data,
+            cmap="YlGnBu",
+            origin="lower",
+            vmin=vmin_image,
+            vmax=vmax_image,
+        )
+        ax.scatter(px, py, facecolors="none", edgecolors="r", s=20)
+        plt.colorbar(img, ax=ax, label="Flux Density [Jy]")
+        ax.set_xlim((0, temporary_data.shape[1]))
+        ax.set_ylim((0, temporary_data.shape[0]))
+        plt.tight_layout()
+        if filename is not None:
+            plt.savefig(filename)
+        plt.show(block=block)
+
+    def plot_side_by_side_with_skymodel(
+        self,
+        sky: SkyModel,
+        filename: Optional[FilePathType] = None,
+        block: bool = False,
+        channel_index: int = 0,
+        stokes_index: int = 0,
+        vmin_sky: float = 0,
+        vmax_sky: float = np.inf,
+        vmin_image: float = 0,
+        vmax_image: float = np.inf,
+    ) -> None:
+        """Create a plot with two panels:
+        1. the current image data, and
+        2. a scatter plot of sources from a given SkyModel instance.
+
+        :param sky: a SkyModel instance, with sources to be plotted.
+        :param filename: path to the file where the final plot will be saved.
+            If None, the plot is not saved.
+        :param block: whether plotting should block the remaining of the script.
+        :param channel_index: Which frequency channel to show in the plot.
+            Defaults to 0.
+        :param stokes_index: Which polarisation to show in the plot.
+            Defaults to 0 (stokesI).
+        :param vmin_sky, vmax_sky: Limits for colorbar of SkyModel scatter plot.
+        :param vmin_image, vmax_image: Limits for colorbar of Image plot.
+        """
+        wcs = WCS(self.header)
+        slices = get_slices(wcs)
+
+        fig = plt.figure(figsize=(12, 6))
+
+        # Left panel: scatter plot of SkyModel sources
+        ax1 = fig.add_subplot(121)
+        scatter = ax1.scatter(
+            sky[:, 0],
+            sky[:, 1],
+            c=sky[:, 2],
+            s=10,
+            cmap="jet",
+            vmin=vmin_sky,
+            vmax=vmax_sky,
+        )
+        ax1.set_aspect("equal")
+        plt.colorbar(scatter, ax=ax1, label="Flux [Jy]")
+        ra_deg = self.header["CRVAL1"]
+        dec_deg = self.header["CRVAL2"]
+        img_size_ra = self.header["NAXIS1"]
+        img_size_dec = self.header["NAXIS2"]
+        cut_ra = -self.header["CDELT1"] * float(img_size_ra)
+        cut_dec = self.header["CDELT2"] * float(img_size_dec)
+        ax1.set_xlim((ra_deg - cut_ra / 2, ra_deg + cut_ra / 2))
+        ax1.set_ylim((dec_deg - cut_dec / 2, dec_deg + cut_dec / 2))
+        ax1.set_xlabel("RA [deg]")
+        ax1.set_ylabel("DEC [deg]")
+        ax1.invert_xaxis()
+
+        # Right panel: plot of current image data
+        # For the desired channel and polarisation
+        ax2 = fig.add_subplot(122, projection=wcs, slices=slices)
+        image = ax2.imshow(
+            self.data[channel_index][stokes_index],
+            cmap="YlGnBu",
+            origin="lower",
+            vmin=vmin_image,
+            vmax=vmax_image,
+        )
+        plt.colorbar(image, ax=ax2, label="Flux Density [Jy]")
+
+        plt.tight_layout()
+        if filename is not None:
+            plt.savefig(filename)
+        plt.show(block=block)
 
     def get_dimensions_of_image(self) -> List[int]:
         """
@@ -505,6 +694,7 @@ class Image:
         resolution: float = 5.0e-4,
         signal_channel: Optional[int] = None,
         path: Optional[FilePathType] = None,
+        block: bool = False,
     ) -> None:
         """
         Plot the power spectrum of this image.
@@ -513,6 +703,7 @@ class Image:
         :param signal_channel: channel containing both signal and noise
         (arr of same shape as nchan of Image), optional
         :param save_png: True if result should be saved, default = False
+        :param block: Whether plotting should block the remaining of the script
         """
         profile, theta = self.get_power_spectrum(resolution, signal_channel)
         plt.clf()
@@ -531,7 +722,7 @@ class Image:
 
         if path is not None:
             plt.savefig(path)
-        plt.show(block=False)
+        plt.show(block=block)
         plt.pause(1)
 
     def get_cellsize(self) -> np.float64:

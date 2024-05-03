@@ -37,25 +37,25 @@ def test_convert_to_oskar():
 
 
 def test_invalid_OSKAR_telescope():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Telescope.constructor("FAKETELESCOPE")
 
 
 def test_OSKAR_telescope_with_missing_version():
     # ALMA requires a version
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("ALMA", version=None)
 
 
 def test_OSKAR_telescope_with_invalid_version():
     # Use NGVLA version for ALMA telescope
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("ALMA", version=NGVLAVersions.CORE_rev_B)
 
 
 def test_OSKAR_telescope_with_version_but_version_not_required():
     # MeerKAT does not require a version
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("MeerKAT", version="Not None version")
 
 
@@ -151,15 +151,12 @@ def test_RASCIL_telescope_with_version_triggers_logging(mock_logging_warning):
 
 
 def test_invalid_RASCIL_telescope():
-    with pytest.raises(
-        ValueError,
-        match="Requested telescope FAKETELESCOPE is not supported by this backend",
-    ):
+    with pytest.raises(AssertionError):
         Telescope.constructor("FAKETELESCOPE", backend=SimulatorBackend.RASCIL)
 
 
 def test_invalid_backend():
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         Telescope.constructor("FAKETELESCOPE", backend="FAKEBACKEND")
 
 

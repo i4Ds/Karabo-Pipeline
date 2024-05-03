@@ -9,10 +9,16 @@ import numpy as np
 import oskar
 import pandas as pd
 import xarray as xr
+from astropy.coordinates import SkyCoord
 from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
+from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
+from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
+from ska_sdp_datamodels.visibility import create_visibility, export_visibility_to_hdf5
+from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
+from typing_extensions import assert_never
 
 from karabo.error import KaraboInterferometerSimulationError
 from karabo.simulation.beam import BeamPattern
@@ -25,6 +31,7 @@ from karabo.simulation.observation import (
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
+from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     DirPathType,
     IntFloat,
@@ -71,7 +78,7 @@ class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
     :ivar ms_file_path: Optional. File path of the MS (mass spectrometry) file.
-    :ivar vis_path: Optional. File path for visualization output.
+    :ivar vis_path: Optional. File path for visibilities output.
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
                                 smearing. (Note that this can be different to the
                                 frequency increment if channels do not cover a
@@ -324,38 +331,85 @@ class InterferometerSimulation:
         self,
         telescope: Telescope,
         sky: SkyModel,
-        observation: Union[Observation, ObservationLong],
+        observation: Observation,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
     ) -> Visibility:
         ...
 
     @overload
     def run_simulation(
-        self, telescope: Telescope, sky: SkyModel, observation: ObservationParallized
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: ObservationLong,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
+    ) -> Visibility:
+        ...
+
+    @overload
+    def run_simulation(
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: ObservationParallized,
+        backend: Literal[SimulatorBackend.OSKAR] = ...,
     ) -> List[Visibility]:
         ...
 
+    @overload
     def run_simulation(
-        self, telescope: Telescope, sky: SkyModel, observation: ObservationAbstract
-    ) -> Union[Visibility, List[Visibility]]:
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: Observation,
+        backend: Literal[SimulatorBackend.RASCIL],
+    ) -> RASCILVisibility:
+        ...
+
+    @overload
+    def run_simulation(
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: ObservationAbstract,
+        backend: SimulatorBackend,
+    ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
+        ...
+
+    def run_simulation(
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: ObservationAbstract,
+        backend: SimulatorBackend = SimulatorBackend.OSKAR,
+    ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
         """
         Run a single interferometer simulation with the given sky, telescope.png and
         observation settings.
         :param telescope: telescope.png model defining the telescope.png configuration
         :param sky: sky model defining the sky sources
         :param observation: observation settings
+        :param backend: Backend used to perform calculations (e.g. OSKAR, RASCIL)
         """
-        if isinstance(observation, ObservationLong):
-            return self.__run_simulation_long(
+        if backend is SimulatorBackend.OSKAR:
+            if isinstance(observation, ObservationLong):
+                return self.__run_simulation_long(
+                    telescope=telescope, sky=sky, observation=observation
+                )
+            elif isinstance(observation, ObservationParallized):
+                return self.__run_simulation_parallized_observation(
+                    telescope=telescope, sky=sky, observation=observation
+                )
+            else:
+                return self.__setup_run_simulation_oskar(
+                    telescope=telescope, sky=sky, observation=observation
+                )
+        elif backend is SimulatorBackend.RASCIL:
+            return self.__run_simulation_rascil(
                 telescope=telescope, sky=sky, observation=observation
             )
-        elif isinstance(observation, ObservationParallized):
-            return self.__run_simulation_parallized_observation(
-                telescope=telescope, sky=sky, observation=observation
-            )
-        else:
-            return self.__setup_run_simulation_oskar(
-                telescope=telescope, sky=sky, observation=observation
-            )
+
+        assert_never(backend)
 
     def set_ionosphere(self, file_path: str) -> None:
         """
@@ -366,6 +420,85 @@ class InterferometerSimulation:
         :param file_path: file path to fits file.
         """
         self.ionosphere_fits_path = file_path
+
+    def __run_simulation_rascil(
+        self, telescope: Telescope, sky: SkyModel, observation: ObservationAbstract
+    ) -> RASCILVisibility:
+        """
+        Compute visibilities from SkyModel using the RASCIL backend.
+
+        :param telescope: Telescope configuration.
+            Should be created using the RASCIL backend
+        :param sky: SkyModel to be used in the simulation.
+            Will be converted into a RASCIL-compatible list of SkyComponent objects.
+        :param observation: Observation details
+        """
+        # Steps followed in this simulation:
+        # Compute hour angles based on Observation details
+        # Create an empty visibility according to the observation details
+        # Convert SkyModel into RASCIL-compatible list of SkyComponent objects
+        # Apply DFT to compute visibilities from SkyComponent list
+        # Return visibilities
+
+        # Hour angles and integration time from observation
+        observation_hour_angles = observation.compute_hour_angles_of_observation()
+        observation_integration_time_seconds = (
+            observation.length.total_seconds() / observation.number_of_time_steps
+        )
+        # Note regarding integration time:
+        # If the hour angles array has more than one element,
+        # then the integration time parameter is not used,
+        # since it can be determined as the delta between successive observation times
+
+        # Compute frequency channels
+        frequency_channel_starts = np.linspace(
+            observation.start_frequency_hz,
+            observation.start_frequency_hz
+            + observation.frequency_increment_hz * observation.number_of_channels,
+            num=observation.number_of_channels,
+            endpoint=False,
+        )
+
+        frequency_bandwidths = np.full(
+            frequency_channel_starts.shape, observation.frequency_increment_hz
+        )
+        frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
+
+        # Initialize empty visibilities based on observation details
+        vis = create_visibility(
+            telescope.RASCIL_configuration,  # Configuration of the interferometer array
+            times=observation_hour_angles,  # Hour angles
+            frequency=frequency_channel_centers,  # Center channel frequencies in Hz
+            channel_bandwidth=frequency_bandwidths,
+            phasecentre=SkyCoord(
+                observation.phase_centre_ra_deg,
+                observation.phase_centre_dec_deg,
+                unit="deg",
+                frame="icrs",
+            ),
+            weight=1.0,  # Keep as 1, per recommendation from RASCIL docs
+            polarisation_frame=PolarisationFrame(
+                "stokesI"
+            ),  # TODO handle full stokes as well
+            integration_time=observation_integration_time_seconds,
+            zerow=self.ignore_w_components,
+        )
+
+        # Obtain list of SkyComponent instances
+        skycomponents = sky.convert_to_backend(
+            backend=SimulatorBackend.RASCIL,
+            desired_frequencies_hz=frequency_channel_starts,
+            channel_bandwidth_hz=observation.frequency_increment_hz,
+        )
+
+        # Compute visibilities from SkyComponent list using DFT
+        vis = dft_skycomponent_visibility(
+            vis, skycomponents, dft_compute_kernel="cpu_looped"
+        )
+        # Save visibilities to disk
+        export_visibility_to_hdf5(vis, self.vis_path)
+
+        return vis
 
     def __run_simulation_parallized_observation(
         self,
@@ -455,7 +588,7 @@ class InterferometerSimulation:
         """
         Run a single interferometer simulation with a given sky,
         telescope and observation settings.
-        :param telescope: telescope model defining it's configuration
+        :param telescope: telescope model defining its configuration
         :param sky: sky model defining the sources
         :param observation: observation settings
         """

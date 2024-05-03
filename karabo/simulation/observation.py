@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 from itertools import cycle
 from typing import List, Union
 
+import numpy as np
+from numpy.typing import NDArray
+
 from karabo.error import KaraboError
 from karabo.util._types import IntFloat, OskarSettingsTreeType
 
@@ -224,6 +227,31 @@ class ObservationAbstract(ABC):
 
     def get_phase_centre(self) -> List[float]:
         return [self.phase_centre_ra_deg, self.phase_centre_dec_deg]
+
+    def compute_hour_angles_of_observation(self) -> NDArray[np.float_]:
+        """
+        Given a total observation length and an integration time interval,
+        determine the corresponding hour angles of observation.
+        This utility function is used during simulations using the RASCIL backend.
+        Approach based on https://gitlab.com/ska-sdp-china/rascil/-/blob/9002d853b64465238177b37e941c7445fed50d35/examples/performance/mid_write_ms.py#L32-40 # noqa: E501
+        """
+        total_observation_length = self.length
+        integration_time = timedelta(
+            seconds=self.length.total_seconds() / self.number_of_time_steps
+        )
+
+        if self.number_of_time_steps == 1:
+            # If both times are the same, we create one observation
+            # at hour angle = 0 that lasts integration_time seconds
+            hour_angles = np.array([0])
+        else:
+            hour_angles = np.arange(
+                int(-0.5 * total_observation_length.total_seconds()),
+                int(0.5 * total_observation_length.total_seconds()),
+                int(integration_time.total_seconds()),
+            ) * (2 * np.pi / timedelta(days=1).total_seconds())
+
+        return hour_angles
 
 
 class Observation(ObservationAbstract):

@@ -12,11 +12,13 @@ from karabo.data.external_data import (
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
+from karabo.imaging.image import Image
 from karabo.imaging.imager import Imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationParallized
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulator_backend import SimulatorBackend
 
 
 # DownloadObject instances used to download different golden files:
@@ -52,13 +54,21 @@ def continuous_noise_fits_downloader(
     )
 
 
-def test_oskar_simulation_basic(sky_data: NDArray[np.float64]) -> None:
-    # Tests oskar simulation. Should use GPU if available and if not, CPU.
+@pytest.mark.parametrize(
+    "backend,telescope_name",
+    [
+        (SimulatorBackend.OSKAR, "SKA1MID"),
+        (SimulatorBackend.RASCIL, "MID"),
+    ],
+)
+def test_backend_simulations(
+    sky_data: NDArray[np.float64], backend: SimulatorBackend, telescope_name: str
+) -> None:
     sky = SkyModel()
     sky.add_point_sources(sky_data)
     sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 1, 1, 1)
     sky.explore_sky([240, -70], s=10)
-    telescope = Telescope.constructor("EXAMPLE")
+    telescope = Telescope.constructor(telescope_name, backend=backend)
     telescope.centre_longitude = 3
 
     simulation = InterferometerSimulation(
@@ -75,7 +85,17 @@ def test_oskar_simulation_basic(sky_data: NDArray[np.float64]) -> None:
         number_of_channels=64,
     )
 
-    simulation.run_simulation(telescope, sky, observation)
+    visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
+
+    imager = Imager(
+        visibility,
+        imaging_npixel=1024,
+        imaging_cellsize=3 / 180 * np.pi / 1024,
+    )
+    dirty = imager.get_dirty_image()
+
+    assert isinstance(dirty, Image)
+    assert len(dirty.data.shape) == 4
 
 
 def test_simulation_meerkat(
@@ -131,7 +151,9 @@ def test_simulation_meerkat(
         imaging_npixel=1024,
         imaging_cellsize=3 / 180 * np.pi / 1024,
     )
-    dirty = imager.get_dirty_image()
+    dirty = imager.get_dirty_image(
+        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    )
     # Temporary directory containging output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
@@ -216,7 +238,9 @@ def test_simulation_noise_meerkat(
         imaging_npixel=1024,
         imaging_cellsize=3 / 180 * np.pi / 1024,
     )
-    dirty = imager.get_dirty_image()
+    dirty = imager.get_dirty_image(
+        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+    )
     # Temporary directory containging output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
@@ -276,7 +300,9 @@ def test_parallelization_by_observation() -> None:
         imager = Imager(
             vis, imaging_npixel=512, imaging_cellsize=3.878509448876288e-05
         )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image()
+        dirty = imager.get_dirty_image(
+            imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             dirty.write_to_file(os.path.join(tmpdir, f"dirty_{i}.fits"), overwrite=True)
         assert dirty.header["CRVAL4"] == CENTER_FREQUENCIES_HZ[i]
