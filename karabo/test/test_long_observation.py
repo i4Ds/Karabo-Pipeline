@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import ObservationLong
@@ -131,11 +131,11 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
         #     './karabo/test/data/beam_vis_3.vis',
         # ]
 
-        dirty_imager = auto_choose_dirty_imager(visibility)
-        dirty_imager.create_dirty_image(
+        dirty_imager = auto_choose_dirty_imager_from_vis(
+            visibility,
             DirtyImagerConfig(
-                visibility=visibility,
                 imaging_npixel=4096,
                 imaging_cellsize=1.0e-5,
-            )
+            ),
         )
+        dirty_imager.create_dirty_image(visibility)

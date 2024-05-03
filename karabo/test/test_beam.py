@@ -134,13 +134,12 @@ def test_compare_karabo_oskar():
         #     imaging_uvmax=uvmax,
         #     imaging_uvmin=1,
         # )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty_imager = RascilDirtyImager()
         dirty_imager_config = DirtyImagerConfig(
-            visibility=visibility,
             imaging_npixel=4096,
             imaging_cellsize=2.13e-5,
         )
-        dirty = dirty_imager.create_dirty_image(dirty_imager_config)
+        dirty_imager = RascilDirtyImager(dirty_imager_config)
+        dirty = dirty_imager.create_dirty_image(visibility)
         image_karabo = dirty.data[0][0]
 
         # OSKAR -------------------------------------
@@ -210,7 +209,7 @@ def test_compare_karabo_oskar():
         #     imaging_uvmax=uvmax,
         #     imaging_uvmin=1,
         # )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = dirty_imager.create_dirty_image(dirty_imager_config)
+        dirty = dirty_imager.create_dirty_image(visibility)
         image_oskar = dirty.data[0][0]
 
         # Plotting the difference between karabo and oskar using oskar imager
@@ -269,11 +268,10 @@ def test_gaussian_beam():
         visibility = simulation.run_simulation(telescope, sky, observation)
 
         # RASCIL IMAGING
-        dirty_imager = RascilDirtyImager()
         dirty_imager_config = DirtyImagerConfig(
-            visibility=visibility,
             imaging_npixel=4096,
             imaging_cellsize=2.13e-5,
         )
-        dirty = dirty_imager.create_dirty_image(dirty_imager_config)
+        dirty_imager = RascilDirtyImager(dirty_imager_config)
+        dirty = dirty_imager.create_dirty_image(visibility)
         dirty.plot(title="Flux Density (Jy)")

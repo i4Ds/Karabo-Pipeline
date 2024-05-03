@@ -9,7 +9,7 @@ from astropy.wcs import WCS
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -115,14 +115,14 @@ def test_ionosphere(sky_data: NDArray[np.float64]):
         visibility = simulation.run_simulation(telescope, sky, observation)
         visibility.write_to_file(os.path.join(tmpdir, "test_ion.ms"))
 
-        dirty_imager = auto_choose_dirty_imager(visibility)
-        dirty = dirty_imager.create_dirty_image(
+        dirty_imager = auto_choose_dirty_imager_from_vis(
+            visibility,
             DirtyImagerConfig(
-                visibility=visibility,
                 imaging_npixel=2048,
                 imaging_cellsize=5.0e-5,
-            )
+            ),
         )
+        dirty = dirty_imager.create_dirty_image(visibility)
 
         dirty.write_to_file(os.path.join(tmpdir, "test_ion.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")

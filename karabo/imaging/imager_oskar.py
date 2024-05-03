@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union, cast
 
 import numpy as np
 import oskar
@@ -12,6 +12,7 @@ from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
+from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler
 
@@ -21,44 +22,46 @@ class OskarDirtyImagerConfig(DirtyImagerConfig):
     imaging_phasecentre: Optional[str] = None
 
     @classmethod
-    # TODO test this
     def from_dirty_imager_config(
         cls, dirty_imager_config: DirtyImagerConfig
     ) -> OskarDirtyImagerConfig:
         return cls(
-            visibility=dirty_imager_config.visibility,
             imaging_npixel=dirty_imager_config.imaging_npixel,
             imaging_cellsize=dirty_imager_config.imaging_cellsize,
-            output_fits_path=dirty_imager_config.output_fits_path,
             combine_across_frequencies=dirty_imager_config.combine_across_frequencies,
         )
 
 
 class OskarDirtyImager(DirtyImager):
-    def create_dirty_image(self, config: DirtyImagerConfig) -> Image:
+    def __init__(self, config: DirtyImagerConfig) -> None:
         # If config is a DirtyImagerConfig (base class) instance, convert to
         # OskarDirtyImagerConfig using default values
         # for OSKAR-specific configuration.
         if not isinstance(config, OskarDirtyImagerConfig):
             config = OskarDirtyImagerConfig.from_dirty_imager_config(config)
+        super().__init__(config)
 
-        # Validate requested filepath
-        output_fits_path: FilePathType
-        if config.output_fits_path is None:
-            tmp_dir = FileHandler().get_tmp_dir(
-                prefix="Imager-Dirty-",
-                purpose="disk-cache for dirty.fits",
-            )
-            output_fits_path = os.path.join(tmp_dir, "dirty.fits")
-        else:
-            output_fits_path = config.output_fits_path
-
-        if isinstance(config.visibility, RASCILVisibility):
+    def create_dirty_image(
+        self,
+        visibility: Union[Visibility, RASCILVisibility],
+        output_fits_path: Optional[FilePathType] = None,
+    ) -> Image:
+        if isinstance(visibility, RASCILVisibility):
             raise NotImplementedError(
                 """OSKAR Imager applied to
                 RASCIL Visibilities is currently not supported.
                 For RASCIL Visibilities please use the RASCIL Imager."""
             )
+
+        config: OskarDirtyImagerConfig = cast(OskarDirtyImagerConfig, self.config)
+
+        # Validate requested filepath
+        if output_fits_path is None:
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="Imager-Dirty-",
+                purpose="disk-cache for dirty.fits",
+            )
+            output_fits_path = os.path.join(tmp_dir, "dirty.fits")
 
         if config.combine_across_frequencies is False:
             raise NotImplementedError(
@@ -72,9 +75,9 @@ class OskarDirtyImager(DirtyImager):
 
         # Use VIS file path by default. If it does not exist, switch to MS file path.
         # visibility should have at least one valid path by construction
-        input_file = config.visibility.vis_path
+        input_file = visibility.vis_path
         if not Path(input_file).exists():
-            input_file = config.visibility.ms_file_path
+            input_file = visibility.ms_file_path
 
         imager.set(
             input_file=input_file,

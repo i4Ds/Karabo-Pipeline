@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 from distributed import Client
@@ -13,6 +13,7 @@ from rascil.workflows import (
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
 from ska_sdp_datamodels.science_data_model import PolarisationFrame
+from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from ska_sdp_func_python.image import image_gather_channels
 from ska_sdp_func_python.imaging import (
     create_image_from_visibility,
@@ -45,50 +46,52 @@ class RascilDirtyImagerConfig(DirtyImagerConfig):
         cls, dirty_imager_config: DirtyImagerConfig
     ) -> RascilDirtyImagerConfig:
         return cls(
-            visibility=dirty_imager_config.visibility,
             imaging_npixel=dirty_imager_config.imaging_npixel,
             imaging_cellsize=dirty_imager_config.imaging_cellsize,
-            output_fits_path=dirty_imager_config.output_fits_path,
             combine_across_frequencies=dirty_imager_config.combine_across_frequencies,
         )
 
 
 class RascilDirtyImager(DirtyImager):
-    def create_dirty_image(self, config: DirtyImagerConfig) -> Image:
+    def __init__(self, config: DirtyImagerConfig) -> None:
         # If config is a DirtyImagerConfig (base class) instance, convert to
         # RascilDirtyImagerConfig using default values
         # for RASCIL-specific configuration.
         if not isinstance(config, RascilDirtyImagerConfig):
             config = RascilDirtyImagerConfig.from_dirty_imager_config(config)
+        super().__init__(config)
+
+    def create_dirty_image(
+        self,
+        visibility: Union[Visibility, RASCILVisibility],
+        output_fits_path: Optional[FilePathType] = None,
+    ) -> Image:
+        config: RascilDirtyImagerConfig = cast(RascilDirtyImagerConfig, self.config)
 
         # Validate requested filepath
-        output_fits_path: FilePathType
-        if config.output_fits_path is None:
+        if output_fits_path is None:
             tmp_dir = FileHandler().get_tmp_dir(
                 prefix="Imager-Dirty-",
                 purpose="disk-cache for dirty.fits",
             )
             output_fits_path = os.path.join(tmp_dir, "dirty.fits")
-        else:
-            output_fits_path = config.output_fits_path
 
-        vis = config.visibility
-        if isinstance(vis, Visibility):
+        if isinstance(visibility, Visibility):
             # Convert OSKAR Visibility to RASCIL-compatible format
-            block_visibilities = create_visibility_from_ms(str(vis.ms_file_path))
+            block_visibilities = create_visibility_from_ms(str(visibility.ms_file_path))
 
             if len(block_visibilities) != 1:
                 raise EnvironmentError("Visibilities are too large")
-            vis = block_visibilities[0]
+            visibility = block_visibilities[0]
 
         # Compute dirty image from visibilities
         model = create_image_from_visibility(
-            vis,
+            visibility,
             npixel=config.imaging_npixel,
             cellsize=config.imaging_cellsize,
             override_cellsize=config.override_cellsize,
         )
-        dirty, _ = invert_visibility(vis, model, context="2d")
+        dirty, _ = invert_visibility(visibility, model, context="2d")
         if os.path.exists(output_fits_path):
             os.remove(output_fits_path)
         dirty.image_acc.export_to_fits(fits_file=output_fits_path)
@@ -140,9 +143,6 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
     imaging_dft_kernel: Optional[
         str
     ] = None  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
-    deconvolved_fits_path: Optional[FilePathType] = None
-    restored_fits_path: Optional[FilePathType] = None
-    residual_fits_path: Optional[FilePathType] = None
     client: Optional[Client] = None
     use_dask: bool = False
     n_threads: int = 1
@@ -168,74 +168,76 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
     clean_restore_taper: CleanTaperType = "tukey"
     clean_restored_output: CleanRestoredOutputType = "list"
 
-    # TODO test this
-    def __post_init__(self) -> None:
-        if not (self.ms_file_path is not None and self.dirty_fits_path is None):
-            raise KaraboError(
-                "This class starts from the measurement set, "
-                "not the dirty image, when cleaning. "
-                "Please pass ms_file_path and do not pass dirty_fits_path."
-            )
-
     @classmethod
-    # TODO test this
     def from_image_cleaner_config(
         cls, image_cleaner_config: ImageCleanerConfig
     ) -> RascilImageCleanerConfig:
         return cls(
             imaging_npixel=image_cleaner_config.imaging_npixel,
             imaging_cellsize=image_cleaner_config.imaging_cellsize,
-            ms_file_path=image_cleaner_config.ms_file_path,
-            dirty_fits_path=image_cleaner_config.dirty_fits_path,
         )
 
 
 class RascilImageCleaner(ImageCleaner):
-    def create_cleaned_image(self, config: ImageCleanerConfig) -> Image:
+    def __init__(self, config: ImageCleanerConfig) -> None:
         # If config is an ImageCleanerConfig (base class) instance, convert to
         # RascilImageCleanerConfig using default values
         # for RASCIL-specific configuration.
         if not isinstance(config, RascilImageCleanerConfig):
             config = RascilImageCleanerConfig.from_image_cleaner_config(config)
+        super().__init__(config)
 
-        _, restored, _ = self._compute(config)
+    def create_cleaned_image(
+        self,
+        ms_file_path: Optional[FilePathType] = None,
+        dirty_fits_path: Optional[FilePathType] = None,
+        output_fits_path: Optional[FilePathType] = None,
+    ) -> Image:
+        if not (ms_file_path is not None and dirty_fits_path is None):
+            raise KaraboError(
+                "This class starts from the measurement set, "
+                "not the dirty image, when cleaning. "
+                "Please pass ms_file_path and do not pass dirty_fits_path."
+            )
+
+        config: RascilImageCleanerConfig = cast(RascilImageCleanerConfig, self.config)
+
+        _, restored, _ = self._compute(ms_file_path, config)
 
         # TODO how to handle output fits paths?
         # necessary that they're customizable?
-        restored_fits_path = config.restored_fits_path
-        if restored_fits_path is not None:
-            assert_valid_ending(path=restored_fits_path, ending=".fits")
+        if output_fits_path is not None:
+            assert_valid_ending(path=output_fits_path, ending=".fits")
         else:
             tmp_dir = FileHandler().get_tmp_dir(
                 prefix="Imaging-Rascil-",
                 purpose="disk-cache for non-specified .fits files.",
             )
-            if restored_fits_path is None:
-                restored_fits_path = os.path.join(tmp_dir, "restored.fits")
+            output_fits_path = os.path.join(tmp_dir, "restored.fits")
 
         if isinstance(restored, list):
             restored = image_gather_channels(restored)
-        if os.path.exists(restored_fits_path):
-            os.remove(restored_fits_path)
-        restored.image_acc.export_to_fits(fits_file=str(restored_fits_path))
-        restored_image = Image(path=restored_fits_path)
+        if os.path.exists(output_fits_path):
+            os.remove(output_fits_path)
+        restored.image_acc.export_to_fits(fits_file=str(output_fits_path))
+        restored_image = Image(path=output_fits_path)
 
         return restored_image
 
     def create_cleaned_image_variants(
-        self, config: ImageCleanerConfig
+        self,
+        ms_file_path: FilePathType,
+        deconvolved_fits_path: Optional[FilePathType] = None,
+        restored_fits_path: Optional[FilePathType] = None,
+        residual_fits_path: Optional[FilePathType] = None,
     ) -> Tuple[Image, Image, Image]:
-        # If config is an ImageCleanerConfig (base class) instance, convert to
-        # RascilImageCleanerConfig using default values
-        # for RASCIL-specific configuration.
-        if not isinstance(config, RascilImageCleanerConfig):
-            config = RascilImageCleanerConfig.from_image_cleaner_config(config)
+        config: RascilImageCleanerConfig = cast(RascilImageCleanerConfig, self.config)
 
-        residual, restored, skymodel = self._compute(config)
+        residual, restored, skymodel = self._compute(ms_file_path, config)
 
-        deconvolved_fits_path = config.deconvolved_fits_path
-        restored_fits_path = config.restored_fits_path
-        residual_fits_path = config.residual_fits_path
+        deconvolved_fits_path = deconvolved_fits_path
+        restored_fits_path = restored_fits_path
+        residual_fits_path = residual_fits_path
         if deconvolved_fits_path is not None:
             assert_valid_ending(path=deconvolved_fits_path, ending=".fits")
         if restored_fits_path is not None:
@@ -286,7 +288,11 @@ class RascilImageCleaner(ImageCleaner):
 
         return deconvolved_image, restored_image, residual_image
 
-    def _compute(self, config: RascilImageCleanerConfig) -> Any:
+    def _compute(
+        self,
+        ms_file_path: FilePathType,
+        config: RascilImageCleanerConfig,
+    ) -> Any:
         if config.client and not config.use_dask:
             raise RuntimeError("Client passed but use_dask is False")
         if config.use_dask:
@@ -311,7 +317,7 @@ class RascilImageCleaner(ImageCleaner):
             raise ValueError("`self.ingest_vis_nchan` is None but must set.")
 
         blockviss = create_visibility_from_ms_rsexecute(
-            msname=str(config.ms_file_path),
+            msname=str(ms_file_path),
             nchan_per_vis=config.ingest_chan_per_vis,
             nout=config.ingest_vis_nchan // config.ingest_chan_per_vis,
             dds=config.ingest_dd,

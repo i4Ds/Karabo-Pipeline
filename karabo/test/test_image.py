@@ -11,7 +11,7 @@ from karabo.imaging.imager_rascil import (
     RascilImageCleaner,
     RascilImageCleanerConfig,
 )
-from karabo.imaging.util import auto_choose_dirty_imager
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -23,14 +23,14 @@ from karabo.test.conftest import TFiles
 def test_image_circle(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager(vis)
-    dirty = dirty_imager.create_dirty_image(
+    dirty_imager = auto_choose_dirty_imager_from_vis(
+        vis,
         DirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
-        )
+        ),
     )
+    dirty = dirty_imager.create_dirty_image(vis)
 
     data = dirty.data[0][0]  # Returns a 2D array, with values for each (x, y) pixel
 
@@ -48,14 +48,14 @@ def test_image_circle(tobject: TFiles):
 def test_dirty_image(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager(vis)
-    dirty = dirty_imager.create_dirty_image(
+    dirty_imager = auto_choose_dirty_imager_from_vis(
+        vis,
         DirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
-        )
+        ),
     )
+    dirty = dirty_imager.create_dirty_image(vis)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dirty.write_to_file(os.path.join(tmpdir, "dirty.fits"), overwrite=True)
@@ -66,14 +66,14 @@ def test_dirty_image_resample(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
     SHAPE = 2048
 
-    dirty_imager = auto_choose_dirty_imager(vis)
-    dirty = dirty_imager.create_dirty_image(
+    dirty_imager = auto_choose_dirty_imager_from_vis(
+        vis,
         DirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=SHAPE,
             imaging_cellsize=3.878509448876288e-05,
-        )
+        ),
     )
+    dirty = dirty_imager.create_dirty_image(vis)
 
     shape_before = dirty.data.shape
     NEW_SHAPE = 512
@@ -100,15 +100,14 @@ def test_dirty_image_resample(tobject: TFiles):
 def test_dirty_image_cutout(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
 
-    dirty_imager = RascilDirtyImager()
-    dirty = dirty_imager.create_dirty_image(
+    dirty_imager = RascilDirtyImager(
         DirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
             combine_across_frequencies=False,
         )
     )
+    dirty = dirty_imager.create_dirty_image(vis)
 
     cutout1 = dirty.cutout((1000, 1000), (500, 500))
 
@@ -128,14 +127,14 @@ def test_dirty_image_cutout(tobject: TFiles):
 def test_dirty_image_N_cutout(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager(vis)
-    dirty = dirty_imager.create_dirty_image(
+    dirty_imager = auto_choose_dirty_imager_from_vis(
+        vis,
         DirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
-        )
+        ),
     )
+    dirty = dirty_imager.create_dirty_image(vis)
 
     cutouts = dirty.split_image(N=4)
 
@@ -159,30 +158,27 @@ def test_dirty_image_N_cutout(tobject: TFiles):
 def test_cellsize_overwrite(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
 
-    dirty_imager = RascilDirtyImager()
-    dirty = dirty_imager.create_dirty_image(
+    dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             # TODO Does a value of 10 radians make sense?
             imaging_cellsize=10,
             combine_across_frequencies=False,
             override_cellsize=True,
         )
-    )
+    ).create_dirty_image(vis)
 
     header = dirty.header
     cdelt_overwrite_cellsize_false = header["CDELT1"]
 
-    dirty = dirty_imager.create_dirty_image(
+    dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             imaging_cellsize=1,
             combine_across_frequencies=False,
             override_cellsize=True,
         )
-    )
+    ).create_dirty_image(vis)
 
     header = dirty.header
     cdelt_overwrite_cellsize_true = header["CDELT1"]
@@ -192,28 +188,25 @@ def test_cellsize_overwrite(tobject: TFiles):
 
 def test_cellsize_overwrite_false(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
-    dirty_imager = RascilDirtyImager()
-    dirty = dirty_imager.create_dirty_image(
+    dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             # TODO Does a value of 10 radians make sense?
             imaging_cellsize=10,
             combine_across_frequencies=False,
             override_cellsize=False,
         )
-    )
+    ).create_dirty_image(vis)
     cdelt_overwrite_cellsize_false = dirty.header["CDELT1"]
 
-    dirty = dirty_imager.create_dirty_image(
+    dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
-            visibility=vis,
             imaging_npixel=2048,
             imaging_cellsize=1,
             combine_across_frequencies=False,
             override_cellsize=False,
         )
-    )
+    ).create_dirty_image(vis)
     cdelt_overwrite_cellsize_true = dirty.header["CDELT1"]
 
     assert cdelt_overwrite_cellsize_false != cdelt_overwrite_cellsize_true
@@ -248,11 +241,10 @@ def test_imaging():
         deconvolved,
         restored,
         residual,
-    ) = RascilImageCleaner().create_cleaned_image_variants(
+    ) = RascilImageCleaner(
         RascilImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
-            ms_file_path=visibility_askap.ms_file_path,
             ingest_vis_nchan=16,
             clean_nmajor=1,
             clean_algorithm="mmclean",
@@ -263,6 +255,8 @@ def test_imaging():
             clean_restored_output="integrated",
             use_dask=True,
         )
+    ).create_cleaned_image_variants(
+        ms_file_path=visibility_askap.ms_file_path,
     )
 
     assert os.path.exists(deconvolved.path)

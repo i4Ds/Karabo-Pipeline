@@ -13,25 +13,44 @@ from typing_extensions import assert_never
 
 from karabo.data.external_data import MGCLSContainerDownloadObject
 from karabo.imaging.image import Image
-from karabo.imaging.imager_base import DirtyImager
+from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
 from karabo.imaging.imager_oskar import OskarDirtyImager
 from karabo.imaging.imager_rascil import RascilDirtyImager
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.visibility import Visibility
+from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import BeamType
 from karabo.warning import KaraboWarning
 
 
-def auto_choose_dirty_imager(
-    visibility: Union[Visibility, RASCILVisibility]
+# Temporary function until we have a general visibility object
+# and functions to convert general objects to implementation-specific
+# objects on demand.
+def auto_choose_dirty_imager_from_vis(
+    visibility: Union[Visibility, RASCILVisibility],
+    dirty_imager_config: DirtyImagerConfig,
 ) -> DirtyImager:
     dirty_imager: DirtyImager
     if isinstance(visibility, Visibility):
-        dirty_imager = OskarDirtyImager()
+        dirty_imager = OskarDirtyImager(dirty_imager_config)
     elif isinstance(visibility, RASCILVisibility):
-        dirty_imager = RascilDirtyImager()
+        dirty_imager = RascilDirtyImager(dirty_imager_config)
     else:
         assert_never(visibility)
+
+    return dirty_imager
+
+
+def auto_choose_dirty_imager_from_sim(
+    simulator_backend: SimulatorBackend,
+    dirty_imager_config: DirtyImagerConfig,
+) -> DirtyImager:
+    dirty_imager: DirtyImager
+    if simulator_backend == SimulatorBackend.OSKAR:
+        # Would also work with RascilDirtyImager
+        dirty_imager = OskarDirtyImager(dirty_imager_config)
+    elif simulator_backend == SimulatorBackend.RASCIL:
+        dirty_imager = RascilDirtyImager(dirty_imager_config)
 
     return dirty_imager
 

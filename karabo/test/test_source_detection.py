@@ -256,14 +256,15 @@ def test_create_detection_from_ms_cuda():
         convolved,
         restored,
         residual,
-    ) = RascilImageCleaner().create_cleaned_image_variants(
+    ) = RascilImageCleaner(
         RascilImageCleanerConfig(
             imaging_npixel=2048,
             imaging_cellsize=0.0003,
-            ms_file_path=visibility.ms_file_path,
             ingest_vis_nchan=3,
             use_cuda=True,
         )
+    ).create_cleaned_image_variants(
+        ms_file_path=visibility.ms_file_path,
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:

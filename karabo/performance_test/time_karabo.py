@@ -107,11 +107,10 @@ def main(n_random_sources: int) -> None:
         deconvolved,
         restored,
         residual,
-    ) = RascilImageCleaner().create_cleaned_image_variants(
+    ) = RascilImageCleaner(
         RascilImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
-            ms_file_path=visibility_askap.ms_file_path,
             ingest_vis_nchan=16,
             clean_nmajor=0,
             clean_algorithm="mmclean",
@@ -122,6 +121,8 @@ def main(n_random_sources: int) -> None:
             clean_restored_output="integrated",
             use_dask=False,
         )
+    ).create_cleaned_image_variants(
+        ms_file_path=visibility_askap.ms_file_path,
     )
 
     # Source detection

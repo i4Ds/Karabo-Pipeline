@@ -49,14 +49,13 @@ def test_basic(sky_data: NDArray[np.float64]):
 
         visibility = simulation.run_simulation(telescope, sky, observation)
 
-        dirty_imager = RascilDirtyImager()
-        dirty = dirty_imager.create_dirty_image(
+        dirty_imager = RascilDirtyImager(
             DirtyImagerConfig(
-                visibility=visibility,
                 imaging_npixel=4096,
                 imaging_cellsize=50,
                 combine_across_frequencies=False,
             )
         )
+        dirty = dirty_imager.create_dirty_image(visibility)
         dirty.write_to_file(os.path.join(tmpdir, "noise_dirty.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")

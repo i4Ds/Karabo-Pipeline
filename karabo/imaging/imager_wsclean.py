@@ -4,16 +4,15 @@ import math
 import os
 import subprocess
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
+
+from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.error import KaraboError
 from karabo.imaging.image import Image
-from karabo.imaging.imager_base import (
-    DirtyImager,
-    DirtyImagerConfig,
-    ImageCleaner,
-    ImageCleanerConfig,
-)
+from karabo.imaging.imager_base import DirtyImager, ImageCleaner, ImageCleanerConfig
+from karabo.simulation.visibility import Visibility
+from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler
 
 WSCLEAN_BINARY = "wsclean"
@@ -39,7 +38,19 @@ class WscleanDirtyImager(DirtyImager):
 
     OUTPUT_FITS_DIRTY = "wsclean-dirty.fits"
 
-    def create_dirty_image(self, config: DirtyImagerConfig) -> Image:
+    def create_dirty_image(
+        self,
+        visibility: Union[Visibility, RASCILVisibility],
+        output_fits_path: Optional[FilePathType] = None,
+    ) -> Image:
+        if isinstance(visibility, RASCILVisibility):
+            raise NotImplementedError(
+                "WSClean Imager applied to "
+                "RASCIL Visibilities is currently not supported. "
+                "For RASCIL Visibilities please use the RASCIL Imager."
+            )
+
+        config = self.config
         # TODO combine_across_frequencies
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_DIRTY,
@@ -49,7 +60,7 @@ class WscleanDirtyImager(DirtyImager):
             f"{WSCLEAN_BINARY} "
             f"-size {config.imaging_npixel} {config.imaging_npixel} "
             f"-scale {math.degrees(config.imaging_cellsize)}deg "
-            f"{config.visibility.ms_file_path}"
+            f"{visibility.ms_file_path}"
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(
@@ -71,15 +82,6 @@ class WscleanImageCleanerConfig(ImageCleanerConfig):
     mgain: Optional[float] = 0.8
     auto_threshold: Optional[int] = 3
 
-    # TODO test this
-    def __post_init__(self) -> None:
-        if not (self.ms_file_path is not None and self.dirty_fits_path is None):
-            raise KaraboError(
-                "This class starts from the measurement set, "
-                "not the dirty image, when cleaning. "
-                "Please pass ms_file_path and do not pass dirty_fits_path."
-            )
-
     @classmethod
     # TODO test this
     def from_image_cleaner_config(
@@ -88,25 +90,39 @@ class WscleanImageCleanerConfig(ImageCleanerConfig):
         return cls(
             imaging_npixel=image_cleaner_config.imaging_npixel,
             imaging_cellsize=image_cleaner_config.imaging_cellsize,
-            ms_file_path=image_cleaner_config.ms_file_path,
-            dirty_fits_path=image_cleaner_config.dirty_fits_path,
         )
 
 
 class WscleanImageCleaner(ImageCleaner):
     TMP_PREFIX_CLEANED = "WSClean-cleaned-"
     TMP_PURPOSE_CLEANED = "Disk cache for WSClean cleaned images"
-    TMP_PREFIX_CUSTOM = "WSClean-custom-"
-    TMP_PURPOSE_CUSTOM = "Disk cache for WSClean custom command images"
 
     OUTPUT_FITS_CLEANED = "wsclean-image.fits"
 
-    def create_cleaned_image(self, config: ImageCleanerConfig) -> Image:
+    def __init__(self, config: ImageCleanerConfig) -> None:
         # If config is an ImageCleanerConfig (base class) instance, convert to
         # WscleanImageCleanerConfig using default values
         # for WSClean-specific configuration.
         if not isinstance(config, WscleanImageCleanerConfig):
             config = WscleanImageCleanerConfig.from_image_cleaner_config(config)
+        super().__init__(config)
+
+    # TODO respect custom output_fits_path
+    def create_cleaned_image(
+        self,
+        ms_file_path: Optional[FilePathType] = None,
+        dirty_fits_path: Optional[FilePathType] = None,
+        output_fits_path: Optional[FilePathType] = None,
+    ) -> Image:
+        if not (ms_file_path is not None and dirty_fits_path is None):
+            raise KaraboError(
+                "This class starts from the measurement set, "
+                "not the dirty image, when cleaning. "
+                "Please pass ms_file_path and do not pass dirty_fits_path."
+            )
+
+        config: WscleanImageCleanerConfig = cast(WscleanImageCleanerConfig, self.config)
+
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_CLEANED,
             purpose=self.TMP_PURPOSE_CLEANED,
@@ -128,7 +144,7 @@ class WscleanImageCleaner(ImageCleaner):
                 if config.auto_threshold is not None
                 else ""
             )
-            + str(config.ms_file_path)
+            + str(ms_file_path)
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(
@@ -143,37 +159,41 @@ class WscleanImageCleaner(ImageCleaner):
 
         return Image(path=os.path.join(tmp_dir, self.OUTPUT_FITS_CLEANED))
 
-    def create_image_custom_command(
-        self,
-        command: str,
-        output_filenames: Union[str, List[str]] = "wsclean-image.fits",
-    ) -> Union[Image, List[Image]]:
-        tmp_dir = FileHandler().get_tmp_dir(
-            prefix=self.TMP_PREFIX_CUSTOM,
-            purpose=self.TMP_PURPOSE_CUSTOM,
-        )
-        expected_command_prefix = f"{WSCLEAN_BINARY} "
-        if not command.startswith(expected_command_prefix):
-            raise KaraboError(
-                "Unexpected command. Expecting command to start with "
-                f'"{expected_command_prefix}".'
-            )
-        command = _get_command_prefix(tmp_dir) + command
-        print(f"WSClean command: [{command}]")
-        completed_process = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            # Raises exception on return code != 0
-            check=True,
-        )
-        print(f"WSClean output:\n[{completed_process.stdout}]")
 
-        if isinstance(output_filenames, str):
-            return Image(path=os.path.join(tmp_dir, output_filenames))
-        else:
-            return [
-                Image(path=os.path.join(tmp_dir, output_filename))
-                for output_filename in output_filenames
-            ]
+TMP_PREFIX_CUSTOM = "WSClean-custom-"
+TMP_PURPOSE_CUSTOM = "Disk cache for WSClean custom command images"
+
+
+def create_image_custom_command(
+    command: str,
+    output_filenames: Union[str, List[str]] = "wsclean-image.fits",
+) -> Union[Image, List[Image]]:
+    tmp_dir = FileHandler().get_tmp_dir(
+        prefix=TMP_PREFIX_CUSTOM,
+        purpose=TMP_PURPOSE_CUSTOM,
+    )
+    expected_command_prefix = f"{WSCLEAN_BINARY} "
+    if not command.startswith(expected_command_prefix):
+        raise KaraboError(
+            "Unexpected command. Expecting command to start with "
+            f'"{expected_command_prefix}".'
+        )
+    command = _get_command_prefix(tmp_dir) + command
+    print(f"WSClean command: [{command}]")
+    completed_process = subprocess.run(
+        command,
+        shell=True,
+        capture_output=True,
+        text=True,
+        # Raises exception on return code != 0
+        check=True,
+    )
+    print(f"WSClean output:\n[{completed_process.stdout}]")
+
+    if isinstance(output_filenames, str):
+        return Image(path=os.path.join(tmp_dir, output_filenames))
+    else:
+        return [
+            Image(path=os.path.join(tmp_dir, output_filename))
+            for output_filename in output_filenames
+        ]

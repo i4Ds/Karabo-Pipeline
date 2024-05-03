@@ -83,16 +83,15 @@ def test_mock_mightee():
                     telescope, sky_filter, observation
                 )
 
-                dirty_imager = RascilDirtyImager()
-                dirty = dirty_imager.create_dirty_image(
+                dirty_imager = RascilDirtyImager(
                     DirtyImagerConfig(
-                        visibility=visibility,
                         imaging_npixel=4096,
                         # TODO 50 radians = value that makes sense?
                         imaging_cellsize=50,
                         combine_across_frequencies=False,
                     )
                 )
+                dirty = dirty_imager.create_dirty_image(visibility)
 
                 dirty.write_to_file(
                     os.path.join(tmpdir, "noise_dirty")

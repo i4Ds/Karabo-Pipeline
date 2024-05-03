@@ -7,7 +7,7 @@ import pytest
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -143,15 +143,15 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
             foreground_ms_file,
         )
         if make_foreground_image:
-            dirty_imager = auto_choose_dirty_imager(visibility)
-            dirty = dirty_imager.create_dirty_image(
+            dirty_imager = auto_choose_dirty_imager_from_vis(
+                visibility,
                 DirtyImagerConfig(
-                    visibility=visibility,
                     imaging_npixel=2048,
                     # TODO sensible value for radians?
                     imaging_cellsize=50,
-                )
+                ),
             )
+            dirty = dirty_imager.create_dirty_image(visibility)
             dirty.write_to_file(os.path.join(tmpdir, "foreground.fits"), overwrite=True)
             dirty.plot(title="Flux Density (Jy)")
         # ------- Simulate Spectral Line Sky -----#
@@ -176,15 +176,15 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
             chan_width,
         )
         if make_spectral_image:
-            dirty_imager = auto_choose_dirty_imager(visibility)
-            dirty = dirty_imager.create_dirty_image(
+            dirty_imager = auto_choose_dirty_imager_from_vis(
+                visibility,
                 DirtyImagerConfig(
-                    visibility=visibility,
                     imaging_npixel=2048,
                     # TODO sensible value for radians?
                     imaging_cellsize=50,
-                )
+                ),
             )
+            dirty = dirty_imager.create_dirty_image(visibility)
             dirty.write_to_file(
                 os.path.join(tmpdir, "foreground.fits"),
                 overwrite=True,
