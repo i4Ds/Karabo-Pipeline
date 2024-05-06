@@ -22,11 +22,9 @@ if __name__ == "__main__":
     simulator_backend = SimulatorBackend.RASCIL
 
     if simulator_backend == SimulatorBackend.OSKAR:
-        telescope_name = "SKA1MID"
+        telescope = Telescope.constructor("SKA1MID", backend=simulator_backend)
     elif simulator_backend == SimulatorBackend.RASCIL:
-        telescope_name = "MID"
-
-    telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
+        telescope = Telescope.constructor("MID", backend=simulator_backend)
 
     # Configuration parameters
     should_apply_primary_beam = False

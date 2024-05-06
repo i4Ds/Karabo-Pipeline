@@ -15,7 +15,6 @@ from karabo.util._types import FilePathType
 class DirtyImagerConfig:
     # TODO was nullable before
     imaging_npixel: int
-    # TODO was nullable before
     imaging_cellsize: float
     combine_across_frequencies: bool = True
 

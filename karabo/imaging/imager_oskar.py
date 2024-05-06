@@ -101,7 +101,7 @@ class OskarDirtyImager(DirtyImager):
         # combining all frequency channels.
         # To maintain the same data shape when compared to other imagers (e.g. RASCIL),
         # We add an axis for frequency, and modify the header accordingly
-        assert len(image.data.shape) == 4
+        assert image.data.ndim == 4
 
         image.header["NAXIS"] = 4
         image.header["NAXIS4"] = 1

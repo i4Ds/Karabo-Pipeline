@@ -100,22 +100,21 @@ class Image:
         else:
             raise RuntimeError("Provide either `path` or both `data` and `header`.")
 
-        assert len(self.data.shape) in (
-            2,
-            3,
-            4,
-        ), f"""Unexpected shape for image data:
-        {self.data.shape}; expected 2D, 3D or (ideally) 4D array. Ideal image shape:
-        (frequencies, polarisations, pixels_x, pixels_y)"""
+        if self.data.ndim not in (2, 3, 4):
+            raise ValueError(
+                f"""Unexpected shape for image data:
+            {self.data.shape}; expected 2D, 3D or (ideally) 4D array. Ideal image shape:
+            (frequencies, polarisations, pixels_x, pixels_y)"""
+            )
 
-        if len(self.data.shape) == 2:
+        if self.data.ndim == 2:
             warnings.warn(
                 """Received 2D data for image object.
                 Will assume the 2 axes correspond to (pixels_x, pixels_y).
                 Inserting 2 additional axes for frequencies and polarisations."""
             )
             self.data = np.array([[self.data]])
-        elif len(self.data.shape) == 3:
+        elif self.data.ndim == 3:
             warnings.warn(
                 """Received 3D data for image object.
                 Will assume the 3 axes correspond to
@@ -456,8 +455,8 @@ class Image:
         block: bool = False,
         channel_index: int = 0,
         stokes_index: int = 0,
-        vmin_image: float = 0,
-        vmax_image: float = np.inf,
+        vmin_image: Optional[float] = None,
+        vmax_image: Optional[float] = None,
     ) -> None:
         """Create a plot with the current image data,
         as well as an overlay of sources from a given SkyModel instance.
