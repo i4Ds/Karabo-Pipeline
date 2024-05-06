@@ -83,7 +83,6 @@ class WscleanImageCleanerConfig(ImageCleanerConfig):
     auto_threshold: Optional[int] = 3
 
     @classmethod
-    # TODO test this
     def from_image_cleaner_config(
         cls, image_cleaner_config: ImageCleanerConfig
     ) -> WscleanImageCleanerConfig:

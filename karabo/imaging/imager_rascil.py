@@ -41,7 +41,6 @@ class RascilDirtyImagerConfig(DirtyImagerConfig):
     override_cellsize: bool = False
 
     @classmethod
-    # TODO test this
     def from_dirty_imager_config(
         cls, dirty_imager_config: DirtyImagerConfig
     ) -> RascilDirtyImagerConfig:
@@ -204,8 +203,6 @@ class RascilImageCleaner(ImageCleaner):
 
         _, restored, _ = self._compute(ms_file_path, config)
 
-        # TODO how to handle output fits paths?
-        # necessary that they're customizable?
         if output_fits_path is not None:
             assert_valid_ending(path=output_fits_path, ending=".fits")
         else:

@@ -41,7 +41,6 @@ class DirtyImager(ABC):
 class ImageCleanerConfig:
     # TODO was nullable before
     imaging_npixel: int
-    # TODO was nullable before
     imaging_cellsize: float
 
 
