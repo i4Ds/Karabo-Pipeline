@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Union, cast
 
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
+from typing_extensions import override
 
 from karabo.error import KaraboError
 from karabo.imaging.image import Image
@@ -38,6 +39,7 @@ class WscleanDirtyImager(DirtyImager):
 
     OUTPUT_FITS_DIRTY = "wsclean-dirty.fits"
 
+    @override
     def create_dirty_image(
         self,
         visibility: Union[Visibility, RASCILVisibility],
@@ -107,6 +109,7 @@ class WscleanImageCleaner(ImageCleaner):
         super().__init__(config)
 
     # TODO respect custom output_fits_path
+    @override
     def create_cleaned_image(
         self,
         ms_file_path: Optional[FilePathType] = None,

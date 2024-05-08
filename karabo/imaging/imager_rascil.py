@@ -21,6 +21,7 @@ from ska_sdp_func_python.imaging import (
     remove_sumwt,
 )
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
+from typing_extensions import override
 
 from karabo.error import KaraboError
 from karabo.imaging.image import Image
@@ -38,12 +39,35 @@ from karabo.util.file_handler import FileHandler, assert_valid_ending
 
 @dataclass
 class RascilDirtyImagerConfig(DirtyImagerConfig):
+    """Config / parameters of a RascilDirtyImager.
+
+    Adds parameters specific to RascilDirtyImager.
+
+    Attributes:
+        imaging_npixel (int): see DirtyImagerConfig
+        imaging_cellsize (float): see DirtyImagerConfig
+        combine_across_frequencies (bool): see DirtyImagerConfig
+        override_cellsize (bool): Override the cellsize if it is
+            above the critical cellsize. Defaults to False.
+    """
+
     override_cellsize: bool = False
 
     @classmethod
     def from_dirty_imager_config(
         cls, dirty_imager_config: DirtyImagerConfig
     ) -> RascilDirtyImagerConfig:
+        """Create a RascilDirtyImagerConfig from a DirtyImagerConfig.
+
+        Adopts basic parameters from a DirtyImagerConfig.
+        Uses default values for RascilDirtyImagerConfig-specific parameters.
+
+        Args:
+            dirty_imager_config (DirtyImagerConfig): basic dirty imager config
+
+        Returns:
+            RascilDirtyImagerConfig: RascilDirtyImager-specific config
+        """
         return cls(
             imaging_npixel=dirty_imager_config.imaging_npixel,
             imaging_cellsize=dirty_imager_config.imaging_cellsize,
@@ -52,14 +76,29 @@ class RascilDirtyImagerConfig(DirtyImagerConfig):
 
 
 class RascilDirtyImager(DirtyImager):
+    """Dirty imager based on the RASCIL library.
+
+    Attributes:
+        config (RascilDirtyImagerConfig): Config containing parameters for
+            RASCIL dirty imaging.
+    """
+
     def __init__(self, config: DirtyImagerConfig) -> None:
-        # If config is a DirtyImagerConfig (base class) instance, convert to
-        # RascilDirtyImagerConfig using default values
-        # for RASCIL-specific configuration.
+        """Initializes the instance with a config.
+
+        If config is a DirtyImagerConfig (base class) instance, converts it to
+        a RascilDirtyImagerConfig using the
+        RascilDirtyImagerConfig.from_dirty_imager_config method.
+
+        Args:
+            config (DirtyImagerConfig): see config attribute
+        """
+
         if not isinstance(config, RascilDirtyImagerConfig):
             config = RascilDirtyImagerConfig.from_dirty_imager_config(config)
         super().__init__(config)
 
+    @override
     def create_dirty_image(
         self,
         visibility: Union[Visibility, RASCILVisibility],
@@ -130,6 +169,72 @@ def _create_ingest_dd_default_value() -> List[int]:
 
 @dataclass
 class RascilImageCleanerConfig(ImageCleanerConfig):
+    """Config / parameters of a RascilImageCleaner.
+
+    Adds parameters specific to RascilImageCleaner.
+
+    Attributes:
+        imaging_npixel (int): see ImageCleanerConfig
+        imaging_cellsize (float): see ImageCleanerConfig
+        ingest_dd (List[int]): Data descriptors in MS to read (all must have the same
+            number of channels). Defaults to [0].
+        ingest_vis_nchan (Optional[int]): Number of channels in a single data
+            descriptor in the MS. Defaults to None.
+        ingest_chan_per_vis (int): Number of channels per blockvis (before any average).
+            Defaults to 1.
+        imaging_nchan (int): Number of channels per image. Defaults to 1.
+        imaging_w_stacking (Union[bool, str]): Use the improved w stacking method
+            in Nifty Gridder?. Defaults to True.
+        imaging_flat_sky (Union[bool, str]): If using a primary beam, normalise to
+        flat sky? Defaults to False.
+        override_cellsize (bool): Override the cellsize if it is above
+            the critical cellsize? Defaults to False.
+        imaging_uvmax (Optional[float]): TODO. Defaults to None.
+        imaging_uvmin (float): TODO. Defaults to 0.
+        imaging_dft_kernel (Optional[str]): TODO.
+            DFT kernel: cpu_looped | cpu_numba | gpu_raw. Defaults to None.
+        client (Optional[Client]): Dask client. Defaults to None.
+        use_dask (bool): Use dask? Defaults to False.
+        n_threads (int): n_threads per worker. Defaults to 1.
+        use_cuda (bool): Use CUDA for Nifty Gridder? Defaults to False.
+        img_context (ImageContextType): Which nifty gridder to use. Defaults to "ng".
+        clean_algorithm (CleanAlgorithmType): Deconvolution algorithm
+            (hogbom or msclean or mmclean). Defaults to "hogbom".
+        clean_beam (Optional[Dict[CleanBeamInDegType, float]]): major axis, minor axis,
+            position angle (deg). Defaults to None.
+        clean_scales (List[int]): Scales for multiscale clean (pixels) e.g. [0, 6, 10].
+            Defaults to [0].
+        clean_nmoment (int): Number of frequency moments in mmclean
+            (1=constant, 2=linear). Defaults to 4.
+        clean_nmajor (int): Number of major cycles in cip or ical. Defaults to 5.
+        clean_niter (int): Number of minor cycles in CLEAN. Defaults to 1000.
+        clean_psf_support (int): Half-width of psf used in cleaning (pixels).
+            Defaults to 256.
+        clean_gain (float): Clean loop gain. Defaults to 0.1.
+        clean_threshold (float): Clean stopping threshold (Jy/beam). Defaults to 1e-4.
+        clean_component_threshold (Optional[float]): Sources with absolute flux
+            > this level (Jy) are fit or extracted using skycomponents.
+            Defaults to None.
+        clean_component_method (CleanComponentMethodType): Method to convert sources
+            in image to skycomponents: "fit" in frequency or "extract" actual values.
+            Defaults to "fit".
+        clean_fractional_threshold (float): Fractional stopping threshold for major
+            cycle. Defaults to 0.3.
+        clean_facets (int) Number of overlapping facets in faceted clean along each
+            axis. Defaults to 1.
+        clean_overlap (int): Overlap of facets in clean (pixels). Defaults to 32.
+        clean_taper (CleanTaperType): Type of interpolation between facets in
+            deconvolution: none or linear or tukey. Defaults to "tukey".
+        clean_restore_facets (int): Number of overlapping facets in restore step
+            along each axis. Defaults to 1.
+        clean_restore_overlap (int): Overlap of facets in restore step (pixels).
+            Defaults to 32.
+        clean_restore_taper (CleanTaperType): Type of interpolation between facets in
+            restore step (none, linear or tukey). Defaults to "tukey".
+        clean_restored_output (CleanRestoredOutputType): Type of restored image output:
+            taylor, list, or integrated. Defaults to "list".
+    """
+
     ingest_dd: List[int] = field(default_factory=_create_ingest_dd_default_value)
     ingest_vis_nchan: Optional[int] = None
     ingest_chan_per_vis: int = 1
@@ -171,6 +276,18 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
     def from_image_cleaner_config(
         cls, image_cleaner_config: ImageCleanerConfig
     ) -> RascilImageCleanerConfig:
+        """Create a RascilImageCleanerConfig from an ImageCleanerConfig.
+
+        Adopts basic parameters from an ImageCleanerConfig.
+        Uses default values for RascilImageCleanerConfig-specific parameters.
+
+        Args:
+            image_cleaner_config (ImageCleanerConfig): basic image cleaner config
+
+        Returns:
+            RascilImageCleanerConfig: RascilImageCleanerConfig-specific config
+        """
+
         return cls(
             imaging_npixel=image_cleaner_config.imaging_npixel,
             imaging_cellsize=image_cleaner_config.imaging_cellsize,
@@ -179,19 +296,44 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
 
 class RascilImageCleaner(ImageCleaner):
     def __init__(self, config: ImageCleanerConfig) -> None:
-        # If config is an ImageCleanerConfig (base class) instance, convert to
-        # RascilImageCleanerConfig using default values
-        # for RASCIL-specific configuration.
+        """Initializes the instance with a config.
+
+        If config is an ImageCleanerConfig (base class) instance, converts it to
+        a RascilImageCleanerConfig using the
+        RascilImageCleanerConfig.from_image_cleaner_config method.
+
+        Args:
+            config (ImageCleanerConfig): see config attribute
+        """
+
         if not isinstance(config, RascilImageCleanerConfig):
             config = RascilImageCleanerConfig.from_image_cleaner_config(config)
         super().__init__(config)
 
+    @override
     def create_cleaned_image(
         self,
         ms_file_path: Optional[FilePathType] = None,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
+        """Creates a clean image from visibilities.
+
+        Args:
+            ms_file_path (Optional[FilePathType]): Path to measurement set from which
+                a clean image should be created. MANDATORY for this implementation.
+                Defaults to None.
+            dirty_fits_path (Optional[FilePathType]): IRRELEVANT for this
+                implementation. Defaults to None.
+            output_fits_path (Optional[FilePathType]): Path to write the clean image to.
+                Example: /tmp/restored.fits.
+                If None, will be set to a temporary directory and a default file name.
+                Defaults to None.
+
+        Returns:
+            Image: Clean image
+        """
+
         if not (ms_file_path is not None and dirty_fits_path is None):
             raise KaraboError(
                 "This class starts from the measurement set, "
@@ -228,6 +370,29 @@ class RascilImageCleaner(ImageCleaner):
         restored_fits_path: Optional[FilePathType] = None,
         residual_fits_path: Optional[FilePathType] = None,
     ) -> Tuple[Image, Image, Image]:
+        # TODO Improve description deconvolved vs restored
+        """Creates a clean image from visibilities.
+
+        Args:
+            ms_file_path (FilePathType): Path to measurement set from which
+                a clean image should be created
+            deconvolved_fits_path (Optional[FilePathType], optional): Path to write the
+                deconvolved image to. Example: /tmp/deconvolved.fits.
+                If None, will be set to a temporary directory and a default file name.
+                Defaults to None.
+            restored_fits_path (Optional[FilePathType], optional): Path to write the
+                restored image to. Example: /tmp/restored.fits.
+                If None, will be set to a temporary directory and a default file name.
+                Defaults to None.
+            residual_fits_path (Optional[FilePathType], optional): Path to write the
+                residual image to. Example: /tmp/residual.fits.
+                If None, will be set to a temporary directory and a default file name.
+                Defaults to None.
+
+        Returns:
+            Tuple[Image, Image, Image]: Tuple of deconvolved, restored, residual images
+        """
+
         config: RascilImageCleanerConfig = cast(RascilImageCleanerConfig, self.config)
 
         residual, restored, skymodel = self._compute(ms_file_path, config)

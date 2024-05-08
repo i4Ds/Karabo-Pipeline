@@ -9,6 +9,7 @@ import numpy as np
 import oskar
 from astropy.coordinates import SkyCoord
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
+from typing_extensions import override
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
@@ -41,6 +42,7 @@ class OskarDirtyImager(DirtyImager):
             config = OskarDirtyImagerConfig.from_dirty_imager_config(config)
         super().__init__(config)
 
+    @override
     def create_dirty_image(
         self,
         visibility: Union[Visibility, RASCILVisibility],
