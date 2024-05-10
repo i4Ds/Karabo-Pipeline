@@ -57,7 +57,7 @@ class RascilDirtyImagerConfig(DirtyImagerConfig):
     def from_dirty_imager_config(
         cls, dirty_imager_config: DirtyImagerConfig
     ) -> RascilDirtyImagerConfig:
-        """Create a RascilDirtyImagerConfig from a DirtyImagerConfig.
+        """Creates a RascilDirtyImagerConfig from a DirtyImagerConfig.
 
         Adopts basic parameters from a DirtyImagerConfig.
         Uses default values for RascilDirtyImagerConfig-specific parameters.
@@ -276,7 +276,7 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
     def from_image_cleaner_config(
         cls, image_cleaner_config: ImageCleanerConfig
     ) -> RascilImageCleanerConfig:
-        """Create a RascilImageCleanerConfig from an ImageCleanerConfig.
+        """Creates a RascilImageCleanerConfig from an ImageCleanerConfig.
 
         Adopts basic parameters from an ImageCleanerConfig.
         Uses default values for RascilImageCleanerConfig-specific parameters.
@@ -285,7 +285,7 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
             image_cleaner_config (ImageCleanerConfig): basic image cleaner config
 
         Returns:
-            RascilImageCleanerConfig: RascilImageCleanerConfig-specific config
+            RascilImageCleanerConfig: RascilImageCleaner-specific config
         """
 
         return cls(
@@ -295,6 +295,13 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
 
 
 class RascilImageCleaner(ImageCleaner):
+    """Image cleaner based on the RASCIL library.
+
+    Attributes:
+        config (RascilImageCleanerConfig): Config containing parameters for
+            RASCIL image cleaning.
+    """
+
     def __init__(self, config: ImageCleanerConfig) -> None:
         """Initializes the instance with a config.
 

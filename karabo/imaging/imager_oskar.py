@@ -20,12 +20,35 @@ from karabo.util.file_handler import FileHandler
 
 @dataclass
 class OskarDirtyImagerConfig(DirtyImagerConfig):
+    """Config / parameters of an OskarDirtyImager.
+
+    Adds parameters specific to OskarDirtyImager.
+
+    Attributes:
+        imaging_npixel (int): see DirtyImagerConfig
+        imaging_cellsize (float): see DirtyImagerConfig
+        combine_across_frequencies (bool): see DirtyImagerConfig
+        imaging_phasecentre (Optional[str]): Phase centre (in SkyCoord string format).
+            Defaults to None.
+    """
+
     imaging_phasecentre: Optional[str] = None
 
     @classmethod
     def from_dirty_imager_config(
         cls, dirty_imager_config: DirtyImagerConfig
     ) -> OskarDirtyImagerConfig:
+        """Creates an OskarDirtyImagerConfig from a DirtyImagerConfig.
+
+        Adopts basic parameters from a DirtyImagerConfig.
+        Uses default values for OskarDirtyImagerConfig-specific parameters.
+
+        Args:
+            dirty_imager_config (DirtyImagerConfig): basic dirty imager config
+
+        Returns:
+            OskarDirtyImagerConfig: OskarDirtyImager-specific config
+        """
         return cls(
             imaging_npixel=dirty_imager_config.imaging_npixel,
             imaging_cellsize=dirty_imager_config.imaging_cellsize,
@@ -34,10 +57,23 @@ class OskarDirtyImagerConfig(DirtyImagerConfig):
 
 
 class OskarDirtyImager(DirtyImager):
+    """Dirty imager based on the OSKAR library.
+
+    Attributes:
+        config (OskarDirtyImagerConfig): Config containing parameters for
+            OSKAR dirty imaging.
+    """
+
     def __init__(self, config: DirtyImagerConfig) -> None:
-        # If config is a DirtyImagerConfig (base class) instance, convert to
-        # OskarDirtyImagerConfig using default values
-        # for OSKAR-specific configuration.
+        """Initializes the instance with a config.
+
+        If config is a DirtyImagerConfig (base class) instance, converts it to
+        an OskarDirtyImagerConfig using the
+        OskarDirtyImagerConfig.from_dirty_imager_config method.
+
+        Args:
+            config (DirtyImagerConfig): see config attribute
+        """
         if not isinstance(config, OskarDirtyImagerConfig):
             config = OskarDirtyImagerConfig.from_dirty_imager_config(config)
         super().__init__(config)
