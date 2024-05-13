@@ -143,7 +143,7 @@ class RascilDirtyImager(DirtyImager):
         if config.combine_across_frequencies is True:
             image.header["NAXIS4"] = 1
 
-            assert len(image.data.shape) == 4
+            assert image.data.ndim == 4
             image.data = np.array([np.sum(image.data, axis=0)])
 
             image.write_to_file(path=output_fits_path, overwrite=True)
