@@ -1,0 +1,177 @@
+import math
+import os
+from datetime import datetime
+
+from karabo.imaging.imager_base import DirtyImagerConfig, ImageCleanerConfig
+from karabo.imaging.imager_wsclean import (
+    WscleanDirtyImager,
+    WscleanImageCleaner,
+    WscleanImageCleanerConfig,
+    create_image_custom_command,
+)
+from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.observation import Observation
+from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import Telescope
+from karabo.simulation.visibility import Visibility
+from karabo.test.conftest import TFiles
+
+
+def test_dirty_image(tobject: TFiles):
+    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+
+    dirty_imager = WscleanDirtyImager(
+        DirtyImagerConfig(
+            imaging_npixel=2048,
+            imaging_cellsize=3.878509448876288e-05,
+        ),
+    )
+    dirty_image = dirty_imager.create_dirty_image(vis)
+
+    assert os.path.exists(dirty_image.path)
+
+
+def test_constructor_from_image_cleaner_config():
+    imaging_npixel = 1024
+    imaging_cellsize = 0.1
+
+    image_cleaner = WscleanImageCleaner(
+        ImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+        )
+    )
+    assert isinstance(image_cleaner.config, WscleanImageCleanerConfig)
+    assert image_cleaner.config.imaging_npixel == imaging_npixel
+    assert image_cleaner.config.imaging_cellsize == imaging_cellsize
+
+    image_cleaner = WscleanImageCleaner(
+        WscleanImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+        )
+    )
+    assert isinstance(image_cleaner.config, WscleanImageCleanerConfig)
+    assert image_cleaner.config.imaging_npixel == imaging_npixel
+    assert image_cleaner.config.imaging_cellsize == imaging_cellsize
+
+
+def test_create_cleaned_image():
+    phase_center = [250, -80]
+    gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
+    sky = gleam_sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    sky.setup_default_wcs(phase_center=phase_center)
+    askap_tel = Telescope.constructor("ASKAP")
+    observation_settings = Observation(
+        start_frequency_hz=100e6,
+        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
+        phase_centre_ra_deg=phase_center[0],
+        phase_centre_dec_deg=phase_center[1],
+        number_of_channels=16,
+        number_of_time_steps=24,
+    )
+
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    visibility_askap = interferometer_sim.run_simulation(
+        askap_tel,
+        sky,
+        observation_settings,
+    )
+    imaging_npixel = 2048
+    imaging_cellsize = 3.878509448876288e-05
+
+    restored = WscleanImageCleaner(
+        ImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+        )
+    ).create_cleaned_image(
+        ms_file_path=visibility_askap.ms_file_path,
+    )
+
+    assert os.path.exists(restored.path)
+
+
+def test_create_image_custom_command():
+    phase_center = [250, -80]
+    gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
+    sky = gleam_sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    sky.setup_default_wcs(phase_center=phase_center)
+    askap_tel = Telescope.constructor("ASKAP")
+    observation_settings = Observation(
+        start_frequency_hz=100e6,
+        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
+        phase_centre_ra_deg=phase_center[0],
+        phase_centre_dec_deg=phase_center[1],
+        number_of_channels=16,
+        number_of_time_steps=24,
+    )
+
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    visibility_askap = interferometer_sim.run_simulation(
+        askap_tel,
+        sky,
+        observation_settings,
+    )
+    imaging_npixel = 2048
+    imaging_cellsize = 3.878509448876288e-05
+
+    # restored = WscleanImageCleaner(
+    #     ImageCleanerConfig(
+    #         imaging_npixel=imaging_npixel,
+    #         imaging_cellsize=imaging_cellsize,
+    #     )
+    # ).create_cleaned_image(
+    #     ms_file_path=visibility_askap.ms_file_path,
+    # )
+
+    restored = create_image_custom_command(
+        "wsclean "
+        f"-size {imaging_npixel} {imaging_npixel} "
+        f"-scale {math.degrees(imaging_cellsize)}deg "
+        "-niter 50000 "
+        "-mgain 0.8 "
+        "-auto-threshold 3 "
+        f"{visibility_askap.ms_file_path}"
+    )
+
+    assert os.path.exists(restored.path)
+
+
+def test_create_image_custom_command_multiple_outputs():
+    phase_center = [250, -80]
+    gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
+    sky = gleam_sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    sky.setup_default_wcs(phase_center=phase_center)
+    askap_tel = Telescope.constructor("ASKAP")
+    observation_settings = Observation(
+        start_frequency_hz=100e6,
+        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
+        phase_centre_ra_deg=phase_center[0],
+        phase_centre_dec_deg=phase_center[1],
+        number_of_channels=16,
+        number_of_time_steps=24,
+    )
+
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
+    visibility_askap = interferometer_sim.run_simulation(
+        askap_tel,
+        sky,
+        observation_settings,
+    )
+    imaging_npixel = 2048
+    imaging_cellsize = 3.878509448876288e-05
+
+    restored, residual = create_image_custom_command(
+        "wsclean "
+        f"-size {imaging_npixel} {imaging_npixel} "
+        f"-scale {math.degrees(imaging_cellsize)}deg "
+        "-niter 50000 "
+        "-mgain 0.8 "
+        "-auto-threshold 3 "
+        f"{visibility_askap.ms_file_path}",
+        ["wsclean-image.fits", "wsclean-residual.fits"],
+    )
+
+    assert os.path.exists(restored.path)
+    assert os.path.exists(residual.path)
