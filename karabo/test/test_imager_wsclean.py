@@ -142,6 +142,36 @@ def test_create_cleaned_image_custom_path():
     assert os.path.exists(restored.path)
 
 
+def test_create_cleaned_image_reuse_dirty():
+    visibility = _run_sim()
+
+    imaging_npixel = 2048
+    imaging_cellsize = 3.878509448876288e-05
+
+    dirty_imager = WscleanDirtyImager(
+        DirtyImagerConfig(
+            imaging_npixel=2048,
+            imaging_cellsize=3.878509448876288e-05,
+        ),
+    )
+    dirty_image = dirty_imager.create_dirty_image(visibility)
+
+    assert os.path.exists(dirty_image.path)
+
+    restored = WscleanImageCleaner(
+        ImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+        )
+    ).create_cleaned_image(
+        ms_file_path=visibility.ms_file_path,
+        dirty_fits_path=dirty_image.path,
+    )
+
+    assert os.path.exists(dirty_image.path)
+    assert os.path.exists(restored.path)
+
+
 def test_create_image_custom_command():
     visibility = _run_sim()
 

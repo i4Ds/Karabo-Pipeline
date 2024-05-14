@@ -4,13 +4,13 @@ import math
 import os
 import shutil
 import subprocess
+import uuid
 from dataclasses import dataclass
 from typing import List, Optional, Union, cast
 
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from typing_extensions import override
 
-from karabo.error import KaraboError
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImager, ImageCleaner, ImageCleanerConfig
 from karabo.simulation.visibility import Visibility
@@ -173,8 +173,7 @@ class WscleanImageCleaner(ImageCleaner):
             config = WscleanImageCleanerConfig.from_image_cleaner_config(config)
         super().__init__(config)
 
-    # TODO Support dirty_fits_path with the -reuse-dirty <prefix> flag (copy file to
-    # temp dir first)
+    # TODO support -reuse-psf
     @override
     def create_cleaned_image(
         self,
@@ -188,8 +187,8 @@ class WscleanImageCleaner(ImageCleaner):
             ms_file_path (Optional[FilePathType]): Path to measurement set from which
                 a clean image should be created. MANDATORY for this implementation.
                 Defaults to None.
-            dirty_fits_path (Optional[FilePathType]): IRRELEVANT for this
-                implementation. Defaults to None.
+            dirty_fits_path (Optional[FilePathType]): Path to dirty image FITS file to
+                reuse. Will be created if None. Defaults to None.
             output_fits_path (Optional[FilePathType]): Path to write the clean image to.
                 Example: /tmp/restored.fits.
                 If None, will be set to a temporary directory and a default file name.
@@ -199,21 +198,25 @@ class WscleanImageCleaner(ImageCleaner):
             Image: Clean image
         """
 
-        if not (ms_file_path is not None and dirty_fits_path is None):
-            raise KaraboError(
-                "This class starts from the measurement set, "
-                "not the dirty image, when cleaning. "
-                "Please pass ms_file_path and do not pass dirty_fits_path."
+        if ms_file_path is None:
+            raise ValueError(
+                "Please provide ms_file_path, it's mandatory for this implementation."
             )
-
-        config: WscleanImageCleanerConfig = cast(WscleanImageCleanerConfig, self.config)
 
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_CLEANED,
             purpose=self.TMP_PURPOSE_CLEANED,
         )
+        prefix = str(uuid.uuid4())
+        if dirty_fits_path is not None:
+            shutil.copyfile(
+                dirty_fits_path,
+                os.path.join(tmp_dir, f"{prefix}-dirty.fits"),
+            )
+        config: WscleanImageCleanerConfig = cast(WscleanImageCleanerConfig, self.config)
         command = _get_command_prefix(tmp_dir) + (
             f"{WSCLEAN_BINARY} "
+            + (f"-reuse-dirty {prefix} " if dirty_fits_path is not None else "")
             + f"-size {config.imaging_npixel} {config.imaging_npixel} "
             + f"-scale {math.degrees(config.imaging_cellsize)}deg "
             + (f"-niter {config.niter} " if config.niter is not None else "")
@@ -285,7 +288,7 @@ def create_image_custom_command(
     )
     expected_command_prefix = f"{WSCLEAN_BINARY} "
     if not command.startswith(expected_command_prefix):
-        raise KaraboError(
+        raise ValueError(
             "Unexpected command. Expecting command to start with "
             f'"{expected_command_prefix}".'
         )
