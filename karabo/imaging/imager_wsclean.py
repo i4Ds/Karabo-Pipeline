@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import os
+import shutil
 import subprocess
 from dataclasses import dataclass
 from typing import List, Optional, Union, cast
@@ -51,7 +52,6 @@ class WscleanDirtyImager(DirtyImager):
 
     OUTPUT_FITS_DIRTY = "wsclean-dirty.fits"
 
-    # TODO respect custom output_fits_path
     @override
     def create_dirty_image(
         self,
@@ -88,7 +88,13 @@ class WscleanDirtyImager(DirtyImager):
         )
         print(f"WSClean output:\n[{completed_process.stdout}]")
 
-        return Image(path=os.path.join(tmp_dir, self.OUTPUT_FITS_DIRTY))
+        default_output_fits_path = os.path.join(tmp_dir, self.OUTPUT_FITS_DIRTY)
+        if output_fits_path is None:
+            output_fits_path = default_output_fits_path
+        else:
+            shutil.copyfile(default_output_fits_path, output_fits_path)
+
+        return Image(path=output_fits_path)
 
 
 @dataclass
@@ -167,7 +173,6 @@ class WscleanImageCleaner(ImageCleaner):
             config = WscleanImageCleanerConfig.from_image_cleaner_config(config)
         super().__init__(config)
 
-    # TODO respect custom output_fits_path
     # TODO Support dirty_fits_path with the -reuse-dirty <prefix> flag (copy file to
     # temp dir first)
     @override
@@ -231,7 +236,13 @@ class WscleanImageCleaner(ImageCleaner):
         )
         print(f"WSClean output:\n[{completed_process.stdout}]")
 
-        return Image(path=os.path.join(tmp_dir, self.OUTPUT_FITS_CLEANED))
+        default_output_fits_path = os.path.join(tmp_dir, self.OUTPUT_FITS_CLEANED)
+        if output_fits_path is None:
+            output_fits_path = default_output_fits_path
+        else:
+            shutil.copyfile(default_output_fits_path, output_fits_path)
+
+        return Image(path=output_fits_path)
 
 
 TMP_PREFIX_CUSTOM = "WSClean-custom-"
