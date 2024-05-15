@@ -60,13 +60,21 @@ class WscleanDirtyImager(DirtyImager):
     ) -> Image:
         if isinstance(visibility, RASCILVisibility):
             raise NotImplementedError(
-                "WSClean Imager applied to "
-                "RASCIL Visibilities is currently not supported. "
-                "For RASCIL Visibilities please use the RASCIL Imager."
+                "WSClean imaging applied to "
+                "RASCIL visibilities is currently not supported. "
+                "For RASCIL visibilities please use the RASCIL imager."
             )
 
         config = self.config
+
         # TODO combine_across_frequencies
+        # -channels-out <count>?
+        if config.combine_across_frequencies is False:
+            raise NotImplementedError(
+                "combine_across_frequencies=False is currently not supported "
+                "for the WSClean imager."
+            )
+
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_DIRTY,
             purpose=self.TMP_PURPOSE_DIRTY,
@@ -173,7 +181,6 @@ class WscleanImageCleaner(ImageCleaner):
             config = WscleanImageCleanerConfig.from_image_cleaner_config(config)
         super().__init__(config)
 
-    # TODO support -reuse-psf
     @override
     def create_cleaned_image(
         self,

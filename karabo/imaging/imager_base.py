@@ -27,7 +27,6 @@ class DirtyImagerConfig:
             across all frequency channels into one image. Defaults to True.
     """
 
-    # TODO was nullable before
     imaging_npixel: int
     imaging_cellsize: float
     combine_across_frequencies: bool = True
@@ -96,7 +95,6 @@ class ImageCleanerConfig:
         imaging_cellsize (float): Scale of a pixel in radians
     """
 
-    # TODO was nullable before
     imaging_npixel: int
     imaging_cellsize: float
 
