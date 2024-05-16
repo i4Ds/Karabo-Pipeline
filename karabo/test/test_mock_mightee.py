@@ -86,8 +86,8 @@ def test_mock_mightee():
                 dirty_imager = RascilDirtyImager(
                     DirtyImagerConfig(
                         imaging_npixel=4096,
-                        # TODO 50 radians = value that makes sense?
-                        imaging_cellsize=50,
+                        # (1 * pi/180) / 4096
+                        imaging_cellsize=4.26e-6,
                         combine_across_frequencies=False,
                     )
                 )

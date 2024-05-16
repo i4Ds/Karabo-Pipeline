@@ -147,7 +147,9 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
                 visibility,
                 DirtyImagerConfig(
                     imaging_npixel=2048,
-                    # TODO sensible value for radians?
+                    # TODO Change cellsize to a more reasonable number
+                    # when test is re-enabled.
+                    # Suggestion: 1e-6
                     imaging_cellsize=50,
                 ),
             )
@@ -180,7 +182,9 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
                 visibility,
                 DirtyImagerConfig(
                     imaging_npixel=2048,
-                    # TODO sensible value for radians?
+                    # TODO Change cellsize to a more reasonable number
+                    # when test is re-enabled.
+                    # Suggestion: 1e-6
                     imaging_cellsize=50,
                 ),
             )

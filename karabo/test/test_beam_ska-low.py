@@ -58,7 +58,13 @@ def test_beam():
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=4096,
-                # TODO 50 radians doesn't seem to make much sense
+                # TODO Change cellsize to a more reasonable number
+                # when test is re-enabled.
+                # Suggestion:
+                # With the 4096 number of pixels, this would correspond to a cellsize
+                # of about (4.5*pi/180) / 4096 ~ 1.9e-5 radians/pixel,
+                # if we want the image to just barely fit all sources,
+                # or a slightly bigger cellsize to have some room at the edges.
                 imaging_cellsize=50,
             ),
         )
