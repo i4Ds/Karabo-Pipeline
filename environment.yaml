@@ -12,7 +12,7 @@ dependencies:
   - astropy
   - bdsf                    =1.10.2
   - bluebild                =0.1.0
-  - cuda-cudart
+  - nvidia/label/cuda-11.7.0::cuda-cudart
   - dask                    =2022.12.1
   - dask-mpi
   - distributed
