@@ -123,7 +123,6 @@ def test_create_cleaned_image():
             clean_nmoment=5,
             clean_psf_support=640,
             clean_restored_output="integrated",
-            use_dask=True,
         )
     ).create_cleaned_image(
         ms_file_path=visibility_askap.ms_file_path,
