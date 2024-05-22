@@ -191,9 +191,6 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
 def test_full_source_detection(
     test_restored_filtered_example_gleam_downloader: SingleFileDownloadObject,
 ):
-    # Disable Dask to avoid test failure on GitHub
-    DaskHandler.use_dask = False
-
     restored = Image.read_from_file(
         test_restored_filtered_example_gleam_downloader.get()
     )
@@ -217,6 +214,8 @@ def test_full_source_detection(
 
     # Now compare it with splitting the image
     restored_cuts = restored.split_image(N=2, overlap=100)
+    # Disable Dask to avoid test failure on GitHub
+    DaskHandler.dask_client = None
     detection_results = PyBDSFSourceDetectionResultList.detect_sources_in_images(
         restored_cuts, thresh_isl=15, thresh_pix=20
     )
