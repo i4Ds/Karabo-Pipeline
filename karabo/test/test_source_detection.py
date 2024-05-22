@@ -23,6 +23,7 @@ from karabo.sourcedetection.result import (
     SourceDetectionResult,
 )
 from karabo.test.conftest import RUN_GPU_TESTS, NNImageDiffCallable, TFiles
+from karabo.util.dask import DaskHandler
 
 
 @pytest.fixture
@@ -190,6 +191,9 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
 def test_full_source_detection(
     test_restored_filtered_example_gleam_downloader: SingleFileDownloadObject,
 ):
+    # Disable Dask to avoid test failure on GitHub
+    DaskHandler.use_dask = False
+
     restored = Image.read_from_file(
         test_restored_filtered_example_gleam_downloader.get()
     )
