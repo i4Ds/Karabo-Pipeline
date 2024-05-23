@@ -117,6 +117,9 @@ class WscleanDirtyImager(DirtyImager):
         return Image(path=output_fits_path)
 
 
+# TODO Set kw_only=True after update to Python 3.10
+# Right now, if one inherited superclass has a default-argument, you have to set
+# defaults for all your attributes as well.
 @dataclass
 class WscleanImageCleanerConfig(ImageCleanerConfig):
     """Config / parameters of a WscleanImageCleaner.

@@ -13,6 +13,9 @@ from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 
 
+# TODO Set kw_only=True after update to Python 3.10
+# Right now, if one inherited superclass has a default-argument, you have to set
+# defaults for all your attributes as well.
 @dataclass
 class DirtyImagerConfig:
     """Base class for the config / parameters of a dirty imager.
@@ -66,6 +69,9 @@ class DirtyImager(ABC):
         ...
 
 
+# TODO Set kw_only=True after update to Python 3.10
+# Right now, if one inherited superclass has a default-argument, you have to set
+# defaults for all your attributes as well.
 @dataclass
 class ImageCleanerConfig:
     """Base class for the config / parameters of an image cleaner.

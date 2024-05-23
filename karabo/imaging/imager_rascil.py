@@ -36,6 +36,9 @@ from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler, assert_valid_ending
 
 
+# TODO Set kw_only=True after update to Python 3.10
+# Right now, if one inherited superclass has a default-argument, you have to set
+# defaults for all your attributes as well.
 @dataclass
 class RascilDirtyImagerConfig(DirtyImagerConfig):
     """Config / parameters of a RascilDirtyImager.
@@ -137,6 +140,9 @@ def _create_ingest_dd_default_value() -> List[int]:
     return [0]
 
 
+# TODO Set kw_only=True after update to Python 3.10
+# Right now, if one inherited superclass has a default-argument, you have to set
+# defaults for all your attributes as well.
 @dataclass
 class RascilImageCleanerConfig(ImageCleanerConfig):
     """Config / parameters of a RascilImageCleaner.
