@@ -127,19 +127,18 @@ class ImageCleaner(ABC):
     @abstractmethod
     def create_cleaned_image(
         self,
-        ms_file_path: Optional[FilePathType] = None,
+        ms_file_path: FilePathType,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         """Creates a clean image from a dirty image or from visibilities.
 
         Args:
-            ms_file_path (Optional[FilePathType]): Path to measurement set from which
-                a clean image should be created. Provide either ms_file_path or
-                dirty_fits_path, not both, not none. Defaults to None.
-            dirty_fits_path (Optional[FilePathType]): Path to dirty image FITS file from
-                which to create a clean image. Provide either ms_file_path or
-                dirty_fits_path, not both, not none. Defaults to None.
+            ms_file_path (FilePathType): Path to measurement set from which
+                a clean image should be created.
+            dirty_fits_path (Optional[FilePathType]): Path to dirty image FITS file that
+                should be reused to create a clean image. If None, dirty image will be
+                created first from the measurement set. Defaults to None.
             output_fits_path (Optional[FilePathType]): Path to write the clean image to.
                 Example: /tmp/restored.fits.
                 If None, will be set to a temporary directory and a default file name.

@@ -23,7 +23,6 @@ from ska_sdp_func_python.imaging import (
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 from typing_extensions import override
 
-from karabo.error import KaraboError
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import (
     DirtyImager,
@@ -320,32 +319,14 @@ class RascilImageCleaner(ImageCleaner):
     @override
     def create_cleaned_image(
         self,
-        ms_file_path: Optional[FilePathType] = None,
+        ms_file_path: FilePathType,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
-        """Creates a clean image from visibilities.
-
-        Args:
-            ms_file_path (Optional[FilePathType]): Path to measurement set from which
-                a clean image should be created. MANDATORY for this implementation.
-                Defaults to None.
-            dirty_fits_path (Optional[FilePathType]): IRRELEVANT for this
-                implementation. Defaults to None.
-            output_fits_path (Optional[FilePathType]): Path to write the clean image to.
-                Example: /tmp/restored.fits.
-                If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
-
-        Returns:
-            Image: Clean image
-        """
-
-        if not (ms_file_path is not None and dirty_fits_path is None):
-            raise KaraboError(
-                "This class starts from the measurement set, "
-                "not the dirty image, when cleaning. "
-                "Please pass ms_file_path and do not pass dirty_fits_path."
+        if dirty_fits_path is not None:
+            raise NotImplementedError(
+                "Creating a cleaned image from an existing dirty image is not "
+                "currently supported by this ImageCleaner."
             )
 
         config: RascilImageCleanerConfig = cast(RascilImageCleanerConfig, self.config)

@@ -184,32 +184,10 @@ class WscleanImageCleaner(ImageCleaner):
     @override
     def create_cleaned_image(
         self,
-        ms_file_path: Optional[FilePathType] = None,
+        ms_file_path: FilePathType,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
-        """Creates a clean image from visibilities.
-
-        Args:
-            ms_file_path (Optional[FilePathType]): Path to measurement set from which
-                a clean image should be created. MANDATORY for this implementation.
-                Defaults to None.
-            dirty_fits_path (Optional[FilePathType]): Path to dirty image FITS file to
-                reuse. Will be created if None. Defaults to None.
-            output_fits_path (Optional[FilePathType]): Path to write the clean image to.
-                Example: /tmp/restored.fits.
-                If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
-
-        Returns:
-            Image: Clean image
-        """
-
-        if ms_file_path is None:
-            raise ValueError(
-                "Please provide ms_file_path, it's mandatory for this implementation."
-            )
-
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_CLEANED,
             purpose=self.TMP_PURPOSE_CLEANED,
