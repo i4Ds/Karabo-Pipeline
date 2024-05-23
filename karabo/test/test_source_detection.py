@@ -214,7 +214,7 @@ def test_full_source_detection(
 
     # Now compare it with splitting the image
     restored_cuts = restored.split_image(N=2, overlap=100)
-    # Disable Dask to avoid test failure on GitHub
+    # TODO DASK_TEST_ISSUE Disable Dask to avoid test failure on GitHub
     DaskHandler.dask_client = None
     detection_results = PyBDSFSourceDetectionResultList.detect_sources_in_images(
         restored_cuts, thresh_isl=15, thresh_pix=20
