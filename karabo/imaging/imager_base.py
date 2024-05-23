@@ -36,24 +36,7 @@ class DirtyImager(ABC):
     """Abstract base class for a dirty imager.
 
     A dirty imager creates dirty images from visibilities.
-
-    Attributes:
-        config (DirtyImagerConfig): Config containing parameters for
-            dirty imaging. May be a DirtyImagerConfig object
-            or an object of a class derived from DirtyImagerConfig
-            if the dirty imager implementation needs additional
-            parameters.
     """
-
-    def __init__(self, config: DirtyImagerConfig) -> None:
-        """Initializes the instance with a config.
-
-        Args:
-            config (DirtyImagerConfig): see config attribute
-        """
-
-        super().__init__()
-        self.config = config
 
     @abstractmethod
     def create_dirty_image(
@@ -105,24 +88,7 @@ class ImageCleaner(ABC):
     An image cleaner creates clean images from dirty images
     or directly from visibilities, in that case including the
     dirty imaging process.
-
-    Attributes:
-        config (ImageCleanerConfig): Config containing parameters for
-            image cleaning. May be an ImageCleanerConfig object
-            or an object of a class derived from ImageCleanerConfig
-            if the image cleaner implementation needs additional
-            parameters.
     """
-
-    def __init__(self, config: ImageCleanerConfig) -> None:
-        """Initializes the instance with a config.
-
-        Args:
-            config (ImageCleanerConfig): see config attribute
-        """
-
-        super().__init__()
-        self.config = config
 
     @abstractmethod
     def create_cleaned_image(

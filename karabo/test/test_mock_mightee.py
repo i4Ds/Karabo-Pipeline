@@ -9,8 +9,7 @@ from astropy.io import fits
 from reproject import reproject_interp
 
 from karabo.data.external_data import MIGHTEESurveyDownloadObject
-from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -84,7 +83,7 @@ def test_mock_mightee():
                 )
 
                 dirty_imager = RascilDirtyImager(
-                    DirtyImagerConfig(
+                    RascilDirtyImagerConfig(
                         imaging_npixel=4096,
                         # (1 * pi/180) / 4096
                         imaging_cellsize=4.26e-6,

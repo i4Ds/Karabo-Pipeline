@@ -2,8 +2,7 @@ import os
 import tempfile
 from datetime import datetime, timedelta
 
-from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -102,10 +101,11 @@ def test_gaussian_beam():
         visibility = simulation.run_simulation(telescope, sky, observation)
 
         # RASCIL IMAGING
-        dirty_imager_config = DirtyImagerConfig(
-            imaging_npixel=4096,
-            imaging_cellsize=2.13e-5,
+        dirty_imager = RascilDirtyImager(
+            RascilDirtyImagerConfig(
+                imaging_npixel=4096,
+                imaging_cellsize=2.13e-5,
+            )
         )
-        dirty_imager = RascilDirtyImager(dirty_imager_config)
         dirty = dirty_imager.create_dirty_image(visibility)
         dirty.plot(title="Flux Density (Jy)")

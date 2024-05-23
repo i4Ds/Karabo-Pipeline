@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
 
-from karabo.imaging.imager_base import DirtyImagerConfig, ImageCleanerConfig
 from karabo.imaging.imager_rascil import (
     RascilDirtyImager,
     RascilDirtyImagerConfig,
@@ -16,42 +15,11 @@ from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 
 
-def test_constructor_from_dirty_imager_config():
-    imaging_npixel = 1024
-    imaging_cellsize = 0.1
-    combine_across_frequencies = False
-
-    dirty_imager = RascilDirtyImager(
-        DirtyImagerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-            combine_across_frequencies=combine_across_frequencies,
-        )
-    )
-    assert isinstance(dirty_imager.config, RascilDirtyImagerConfig)
-    assert dirty_imager.config.imaging_npixel == imaging_npixel
-    assert dirty_imager.config.imaging_cellsize == imaging_cellsize
-    assert dirty_imager.config.combine_across_frequencies == combine_across_frequencies
-
-    dirty_imager = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-            combine_across_frequencies=combine_across_frequencies,
-            override_cellsize=False,
-        )
-    )
-    assert isinstance(dirty_imager.config, RascilDirtyImagerConfig)
-    assert dirty_imager.config.imaging_npixel == imaging_npixel
-    assert dirty_imager.config.imaging_cellsize == imaging_cellsize
-    assert dirty_imager.config.combine_across_frequencies == combine_across_frequencies
-
-
 def test_dirty_image(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
 
     dirty_imager = RascilDirtyImager(
-        DirtyImagerConfig(
+        RascilDirtyImagerConfig(
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
         ),
@@ -59,31 +27,6 @@ def test_dirty_image(tobject: TFiles):
     dirty_image = dirty_imager.create_dirty_image(vis)
 
     assert dirty_image.data.ndim == 4
-
-
-def test_constructor_from_image_cleaner_config():
-    imaging_npixel = 1024
-    imaging_cellsize = 0.1
-
-    image_cleaner = RascilImageCleaner(
-        ImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-        )
-    )
-    assert isinstance(image_cleaner.config, RascilImageCleanerConfig)
-    assert image_cleaner.config.imaging_npixel == imaging_npixel
-    assert image_cleaner.config.imaging_cellsize == imaging_cellsize
-
-    image_cleaner = RascilImageCleaner(
-        RascilImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-        )
-    )
-    assert isinstance(image_cleaner.config, RascilImageCleanerConfig)
-    assert image_cleaner.config.imaging_npixel == imaging_npixel
-    assert image_cleaner.config.imaging_cellsize == imaging_cellsize
 
 
 def test_create_cleaned_image():

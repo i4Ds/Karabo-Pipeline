@@ -14,7 +14,7 @@ from karabo.data.external_data import (
 )
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationParallized
@@ -151,7 +151,7 @@ def test_simulation_meerkat(
 
     # We use the Imager to check the simulation
     dirty_imager = RascilDirtyImager(
-        DirtyImagerConfig(
+        RascilDirtyImagerConfig(
             imaging_npixel=1024,
             imaging_cellsize=3 / 180 * np.pi / 1024,
             combine_across_frequencies=False,
@@ -238,7 +238,7 @@ def test_simulation_noise_meerkat(
 
     # We use the Imager to check the simulation
     dirty_imager = RascilDirtyImager(
-        DirtyImagerConfig(
+        RascilDirtyImagerConfig(
             imaging_npixel=1024,
             imaging_cellsize=3 / 180 * np.pi / 1024,
             combine_across_frequencies=False,
@@ -302,7 +302,7 @@ def test_parallelization_by_observation() -> None:
 
     for i, vis in enumerate(visibilities):
         dirty_imager = RascilDirtyImager(
-            DirtyImagerConfig(
+            RascilDirtyImagerConfig(
                 imaging_npixel=512,
                 imaging_cellsize=3.878509448876288e-05,
                 combine_across_frequencies=False,

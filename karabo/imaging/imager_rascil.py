@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 from distributed import Client
@@ -52,27 +52,6 @@ class RascilDirtyImagerConfig(DirtyImagerConfig):
 
     override_cellsize: bool = False
 
-    @classmethod
-    def from_dirty_imager_config(
-        cls, dirty_imager_config: DirtyImagerConfig
-    ) -> RascilDirtyImagerConfig:
-        """Creates a RascilDirtyImagerConfig from a DirtyImagerConfig.
-
-        Adopts basic parameters from a DirtyImagerConfig.
-        Uses default values for RascilDirtyImagerConfig-specific parameters.
-
-        Args:
-            dirty_imager_config (DirtyImagerConfig): basic dirty imager config
-
-        Returns:
-            RascilDirtyImagerConfig: RascilDirtyImager-specific config
-        """
-        return cls(
-            imaging_npixel=dirty_imager_config.imaging_npixel,
-            imaging_cellsize=dirty_imager_config.imaging_cellsize,
-            combine_across_frequencies=dirty_imager_config.combine_across_frequencies,
-        )
-
 
 class RascilDirtyImager(DirtyImager):
     """Dirty imager based on the RASCIL library.
@@ -82,20 +61,14 @@ class RascilDirtyImager(DirtyImager):
             RASCIL dirty imaging.
     """
 
-    def __init__(self, config: DirtyImagerConfig) -> None:
+    def __init__(self, config: RascilDirtyImagerConfig) -> None:
         """Initializes the instance with a config.
 
-        If config is a DirtyImagerConfig (base class) instance, converts it to
-        a RascilDirtyImagerConfig using the
-        RascilDirtyImagerConfig.from_dirty_imager_config method.
-
         Args:
-            config (DirtyImagerConfig): see config attribute
+            config (RascilDirtyImagerConfig): see config attribute
         """
-
-        if not isinstance(config, RascilDirtyImagerConfig):
-            config = RascilDirtyImagerConfig.from_dirty_imager_config(config)
-        super().__init__(config)
+        super().__init__()
+        self.config = config
 
     @override
     def create_dirty_image(
@@ -103,8 +76,6 @@ class RascilDirtyImager(DirtyImager):
         visibility: Union[Visibility, RASCILVisibility],
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
-        config: RascilDirtyImagerConfig = cast(RascilDirtyImagerConfig, self.config)
-
         # Validate requested filepath
         if output_fits_path is None:
             tmp_dir = FileHandler().get_tmp_dir(
@@ -124,9 +95,9 @@ class RascilDirtyImager(DirtyImager):
         # Compute dirty image from visibilities
         model = create_image_from_visibility(
             visibility,
-            npixel=config.imaging_npixel,
-            cellsize=config.imaging_cellsize,
-            override_cellsize=config.override_cellsize,
+            npixel=self.config.imaging_npixel,
+            cellsize=self.config.imaging_cellsize,
+            override_cellsize=self.config.override_cellsize,
         )
         dirty, _ = invert_visibility(visibility, model, context="2d")
         if os.path.exists(output_fits_path):
@@ -139,7 +110,7 @@ class RascilDirtyImager(DirtyImager):
         # corresponding to (frequency channels, polarisations, pixels_x, pixels_y).
         # If requested, we combine images across all frequency channels into one image,
         # and modify the header information accordingly
-        if config.combine_across_frequencies is True:
+        if self.config.combine_across_frequencies is True:
             image.header["NAXIS4"] = 1
 
             assert image.data.ndim == 4
@@ -271,27 +242,6 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
     clean_restore_taper: CleanTaperType = "tukey"
     clean_restored_output: CleanRestoredOutputType = "list"
 
-    @classmethod
-    def from_image_cleaner_config(
-        cls, image_cleaner_config: ImageCleanerConfig
-    ) -> RascilImageCleanerConfig:
-        """Creates a RascilImageCleanerConfig from an ImageCleanerConfig.
-
-        Adopts basic parameters from an ImageCleanerConfig.
-        Uses default values for RascilImageCleanerConfig-specific parameters.
-
-        Args:
-            image_cleaner_config (ImageCleanerConfig): basic image cleaner config
-
-        Returns:
-            RascilImageCleanerConfig: RascilImageCleaner-specific config
-        """
-
-        return cls(
-            imaging_npixel=image_cleaner_config.imaging_npixel,
-            imaging_cellsize=image_cleaner_config.imaging_cellsize,
-        )
-
 
 class RascilImageCleaner(ImageCleaner):
     """Image cleaner based on the RASCIL library.
@@ -301,20 +251,14 @@ class RascilImageCleaner(ImageCleaner):
             RASCIL image cleaning.
     """
 
-    def __init__(self, config: ImageCleanerConfig) -> None:
+    def __init__(self, config: RascilImageCleanerConfig) -> None:
         """Initializes the instance with a config.
 
-        If config is an ImageCleanerConfig (base class) instance, converts it to
-        a RascilImageCleanerConfig using the
-        RascilImageCleanerConfig.from_image_cleaner_config method.
-
         Args:
-            config (ImageCleanerConfig): see config attribute
+            config (RascilImageCleanerConfig): see config attribute
         """
-
-        if not isinstance(config, RascilImageCleanerConfig):
-            config = RascilImageCleanerConfig.from_image_cleaner_config(config)
-        super().__init__(config)
+        super().__init__()
+        self.config = config
 
     @override
     def create_cleaned_image(
@@ -329,9 +273,7 @@ class RascilImageCleaner(ImageCleaner):
                 "currently supported by this ImageCleaner."
             )
 
-        config: RascilImageCleanerConfig = cast(RascilImageCleanerConfig, self.config)
-
-        _, restored, _ = self._compute(ms_file_path, config)
+        _, restored, _ = self._compute(ms_file_path)
 
         if output_fits_path is not None:
             assert_valid_ending(path=output_fits_path, ending=".fits")
@@ -381,9 +323,7 @@ class RascilImageCleaner(ImageCleaner):
             Tuple[Image, Image, Image]: Tuple of deconvolved, restored, residual images
         """
 
-        config: RascilImageCleanerConfig = cast(RascilImageCleanerConfig, self.config)
-
-        residual, restored, skymodel = self._compute(ms_file_path, config)
+        residual, restored, skymodel = self._compute(ms_file_path)
 
         deconvolved_fits_path = deconvolved_fits_path
         restored_fits_path = restored_fits_path
@@ -441,8 +381,9 @@ class RascilImageCleaner(ImageCleaner):
     def _compute(
         self,
         ms_file_path: FilePathType,
-        config: RascilImageCleanerConfig,
     ) -> Any:
+        config = self.config
+
         if config.client and not config.use_dask:
             raise RuntimeError("Client passed but use_dask is False")
         if config.use_dask:

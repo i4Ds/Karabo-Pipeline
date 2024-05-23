@@ -101,7 +101,7 @@ def test_dirty_image_cutout(tobject: TFiles):
     vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
 
     dirty_imager = RascilDirtyImager(
-        DirtyImagerConfig(
+        RascilDirtyImagerConfig(
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
             combine_across_frequencies=False,

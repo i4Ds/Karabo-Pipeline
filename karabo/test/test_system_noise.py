@@ -5,8 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from numpy.typing import NDArray
 
-from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -50,7 +49,7 @@ def test_basic(sky_data: NDArray[np.float64]):
         visibility = simulation.run_simulation(telescope, sky, observation)
 
         dirty_imager = RascilDirtyImager(
-            DirtyImagerConfig(
+            RascilDirtyImagerConfig(
                 imaging_npixel=4096,
                 imaging_cellsize=50,
                 combine_across_frequencies=False,

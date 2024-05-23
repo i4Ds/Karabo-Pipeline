@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Optional, Union
 
 import numpy as np
 import oskar
@@ -34,27 +34,6 @@ class OskarDirtyImagerConfig(DirtyImagerConfig):
 
     imaging_phasecentre: Optional[str] = None
 
-    @classmethod
-    def from_dirty_imager_config(
-        cls, dirty_imager_config: DirtyImagerConfig
-    ) -> OskarDirtyImagerConfig:
-        """Creates an OskarDirtyImagerConfig from a DirtyImagerConfig.
-
-        Adopts basic parameters from a DirtyImagerConfig.
-        Uses default values for OskarDirtyImagerConfig-specific parameters.
-
-        Args:
-            dirty_imager_config (DirtyImagerConfig): basic dirty imager config
-
-        Returns:
-            OskarDirtyImagerConfig: OskarDirtyImager-specific config
-        """
-        return cls(
-            imaging_npixel=dirty_imager_config.imaging_npixel,
-            imaging_cellsize=dirty_imager_config.imaging_cellsize,
-            combine_across_frequencies=dirty_imager_config.combine_across_frequencies,
-        )
-
 
 class OskarDirtyImager(DirtyImager):
     """Dirty imager based on the OSKAR library.
@@ -64,19 +43,14 @@ class OskarDirtyImager(DirtyImager):
             OSKAR dirty imaging.
     """
 
-    def __init__(self, config: DirtyImagerConfig) -> None:
+    def __init__(self, config: OskarDirtyImagerConfig) -> None:
         """Initializes the instance with a config.
 
-        If config is a DirtyImagerConfig (base class) instance, converts it to
-        an OskarDirtyImagerConfig using the
-        OskarDirtyImagerConfig.from_dirty_imager_config method.
-
         Args:
-            config (DirtyImagerConfig): see config attribute
+            config (OskarDirtyImagerConfig): see config attribute
         """
-        if not isinstance(config, OskarDirtyImagerConfig):
-            config = OskarDirtyImagerConfig.from_dirty_imager_config(config)
-        super().__init__(config)
+        super().__init__()
+        self.config = config
 
     @override
     def create_dirty_image(
@@ -91,8 +65,6 @@ class OskarDirtyImager(DirtyImager):
                 For RASCIL Visibilities please use the RASCIL Imager."""
             )
 
-        config: OskarDirtyImagerConfig = cast(OskarDirtyImagerConfig, self.config)
-
         # Validate requested filepath
         if output_fits_path is None:
             tmp_dir = FileHandler().get_tmp_dir(
@@ -101,7 +73,7 @@ class OskarDirtyImager(DirtyImager):
             )
             output_fits_path = os.path.join(tmp_dir, "dirty.fits")
 
-        if config.combine_across_frequencies is False:
+        if self.config.combine_across_frequencies is False:
             raise NotImplementedError(
                 """For the OSKAR backend, the dirty image will
                 always have intensities added across all frequency channels.
@@ -120,11 +92,11 @@ class OskarDirtyImager(DirtyImager):
         imager.set(
             input_file=input_file,
             output_root=output_fits_path,
-            cellsize_arcsec=3600 * np.degrees(config.imaging_cellsize),
-            image_size=config.imaging_npixel,
+            cellsize_arcsec=3600 * np.degrees(self.config.imaging_cellsize),
+            image_size=self.config.imaging_npixel,
         )
-        if config.imaging_phasecentre is not None:
-            phase_centre = SkyCoord(config.imaging_phasecentre, frame="icrs")
+        if self.config.imaging_phasecentre is not None:
+            phase_centre = SkyCoord(self.config.imaging_phasecentre, frame="icrs")
             ra = phase_centre.ra.degree
             dec = phase_centre.dec.degree
 

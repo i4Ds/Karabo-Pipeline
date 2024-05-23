@@ -6,13 +6,18 @@ import shutil
 import subprocess
 import uuid
 from dataclasses import dataclass
-from typing import List, Optional, Union, cast
+from typing import List, Optional, Union
 
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from typing_extensions import override
 
 from karabo.imaging.image import Image
-from karabo.imaging.imager_base import DirtyImager, ImageCleaner, ImageCleanerConfig
+from karabo.imaging.imager_base import (
+    DirtyImager,
+    DirtyImagerConfig,
+    ImageCleaner,
+    ImageCleanerConfig,
+)
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler
@@ -52,6 +57,15 @@ class WscleanDirtyImager(DirtyImager):
 
     OUTPUT_FITS_DIRTY = "wsclean-dirty.fits"
 
+    def __init__(self, config: DirtyImagerConfig) -> None:
+        """Initializes the instance with a config.
+
+        Args:
+            config (DirtyImagerConfig): see config attribute
+        """
+        super().__init__()
+        self.config = config
+
     @override
     def create_dirty_image(
         self,
@@ -65,11 +79,9 @@ class WscleanDirtyImager(DirtyImager):
                 "For RASCIL visibilities please use the RASCIL imager."
             )
 
-        config = self.config
-
         # TODO combine_across_frequencies
         # -channels-out <count>?
-        if config.combine_across_frequencies is False:
+        if self.config.combine_across_frequencies is False:
             raise NotImplementedError(
                 "combine_across_frequencies=False is currently not supported "
                 "for the WSClean imager."
@@ -81,8 +93,8 @@ class WscleanDirtyImager(DirtyImager):
         )
         command = _get_command_prefix(tmp_dir) + (
             f"{WSCLEAN_BINARY} "
-            f"-size {config.imaging_npixel} {config.imaging_npixel} "
-            f"-scale {math.degrees(config.imaging_cellsize)}deg "
+            f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
+            f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
             f"{visibility.ms_file_path}"
         )
         print(f"WSClean command: [{command}]")
@@ -125,26 +137,6 @@ class WscleanImageCleanerConfig(ImageCleanerConfig):
     mgain: Optional[float] = 0.8
     auto_threshold: Optional[int] = 3
 
-    @classmethod
-    def from_image_cleaner_config(
-        cls, image_cleaner_config: ImageCleanerConfig
-    ) -> WscleanImageCleanerConfig:
-        """Creates a WscleanImageCleanerConfig from an ImageCleanerConfig.
-
-        Adopts basic parameters from an ImageCleanerConfig.
-        Uses default values for WscleanImageCleanerConfig-specific parameters.
-
-        Args:
-            image_cleaner_config (ImageCleanerConfig): basic image cleaner config
-
-        Returns:
-            WscleanImageCleanerConfig: WscleanImageCleaner-specific config
-        """
-        return cls(
-            imaging_npixel=image_cleaner_config.imaging_npixel,
-            imaging_cellsize=image_cleaner_config.imaging_cellsize,
-        )
-
 
 class WscleanImageCleaner(ImageCleaner):
     """Image cleaner based on the WSClean library.
@@ -167,19 +159,14 @@ class WscleanImageCleaner(ImageCleaner):
 
     OUTPUT_FITS_CLEANED = "wsclean-image.fits"
 
-    def __init__(self, config: ImageCleanerConfig) -> None:
+    def __init__(self, config: WscleanImageCleanerConfig) -> None:
         """Initializes the instance with a config.
 
-        If config is an ImageCleanerConfig (base class) instance, converts it to
-        a WscleanImageCleanerConfig using the
-        WscleanImageCleanerConfig.from_image_cleaner_config method.
-
         Args:
-            config (ImageCleanerConfig): see config attribute
+            config (WscleanImageCleanerConfig): see config attribute
         """
-        if not isinstance(config, WscleanImageCleanerConfig):
-            config = WscleanImageCleanerConfig.from_image_cleaner_config(config)
-        super().__init__(config)
+        super().__init__()
+        self.config = config
 
     @override
     def create_cleaned_image(
@@ -198,17 +185,16 @@ class WscleanImageCleaner(ImageCleaner):
                 dirty_fits_path,
                 os.path.join(tmp_dir, f"{prefix}-dirty.fits"),
             )
-        config: WscleanImageCleanerConfig = cast(WscleanImageCleanerConfig, self.config)
         command = _get_command_prefix(tmp_dir) + (
             f"{WSCLEAN_BINARY} "
             + (f"-reuse-dirty {prefix} " if dirty_fits_path is not None else "")
-            + f"-size {config.imaging_npixel} {config.imaging_npixel} "
-            + f"-scale {math.degrees(config.imaging_cellsize)}deg "
-            + (f"-niter {config.niter} " if config.niter is not None else "")
-            + (f"-mgain {config.mgain} " if config.mgain is not None else "")
+            + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
+            + f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
+            + (f"-niter {self.config.niter} " if self.config.niter is not None else "")
+            + (f"-mgain {self.config.mgain} " if self.config.mgain is not None else "")
             + (
-                f"-auto-threshold {config.auto_threshold} "
-                if config.auto_threshold is not None
+                f"-auto-threshold {self.config.auto_threshold} "
+                if self.config.auto_threshold is not None
                 else ""
             )
             + str(ms_file_path)

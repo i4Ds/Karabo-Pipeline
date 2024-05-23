@@ -2,7 +2,7 @@ import math
 import os
 from datetime import datetime
 
-from karabo.imaging.imager_base import DirtyImagerConfig, ImageCleanerConfig
+from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_wsclean import (
     WscleanDirtyImager,
     WscleanImageCleaner,
@@ -51,31 +51,6 @@ def test_dirty_image_custom_path(tobject: TFiles):
     assert os.path.exists(dirty_image.path)
 
 
-def test_constructor_from_image_cleaner_config():
-    imaging_npixel = 1024
-    imaging_cellsize = 0.1
-
-    image_cleaner = WscleanImageCleaner(
-        ImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-        )
-    )
-    assert isinstance(image_cleaner.config, WscleanImageCleanerConfig)
-    assert image_cleaner.config.imaging_npixel == imaging_npixel
-    assert image_cleaner.config.imaging_cellsize == imaging_cellsize
-
-    image_cleaner = WscleanImageCleaner(
-        WscleanImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-        )
-    )
-    assert isinstance(image_cleaner.config, WscleanImageCleanerConfig)
-    assert image_cleaner.config.imaging_npixel == imaging_npixel
-    assert image_cleaner.config.imaging_cellsize == imaging_cellsize
-
-
 def _run_sim() -> Visibility:
     phase_center = [250, -80]
     gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
@@ -107,7 +82,7 @@ def test_create_cleaned_image():
     imaging_cellsize = 3.878509448876288e-05
 
     restored = WscleanImageCleaner(
-        ImageCleanerConfig(
+        WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
         )
@@ -129,7 +104,7 @@ def test_create_cleaned_image_custom_path():
         "test_create_cleaned_image_custom_path.fits",
     )
     restored = WscleanImageCleaner(
-        ImageCleanerConfig(
+        WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
         )
@@ -159,7 +134,7 @@ def test_create_cleaned_image_reuse_dirty():
     assert os.path.exists(dirty_image.path)
 
     restored = WscleanImageCleaner(
-        ImageCleanerConfig(
+        WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
         )
