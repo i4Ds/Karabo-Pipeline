@@ -130,6 +130,7 @@ CleanBeamInDegType = Literal["bmaj", "bmin", "bpa"]
 CleanComponentMethodType = Literal["fit", "extract"]
 CleanTaperType = Literal["none", "linear", "tukey"]
 CleanRestoredOutputType = Literal["taylor", "list", "integrated"]
+DftKernelType = Literal["cpu_looped", "gpu_raw"]
 
 
 def _create_clean_scales_default_value() -> List[int]:
@@ -167,8 +168,8 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
             the critical cellsize? Defaults to False.
         imaging_uvmax (Optional[float]): TODO. Defaults to None.
         imaging_uvmin (float): TODO. Defaults to 0.
-        imaging_dft_kernel (Optional[str]): TODO.
-            DFT kernel: cpu_looped | cpu_numba | gpu_raw. Defaults to None.
+        imaging_dft_kernel (Optional[DftKernelType]): DFT kernel: cpu_looped | gpu_raw.
+            Defaults to None.
         client (Optional[Client]): Dask client. Defaults to None.
         use_dask (bool): Use dask? Defaults to False.
         n_threads (int): n_threads per worker. Defaults to 1.
@@ -220,9 +221,7 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
     override_cellsize: bool = False
     imaging_uvmax: Optional[float] = None
     imaging_uvmin: float = 0
-    imaging_dft_kernel: Optional[
-        str
-    ] = None  # DFT kernel: cpu_looped | cpu_numba | gpu_raw
+    imaging_dft_kernel: Optional[DftKernelType] = None
     client: Optional[Client] = None
     use_dask: bool = False
     n_threads: int = 1

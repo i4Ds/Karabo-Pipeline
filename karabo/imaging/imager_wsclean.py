@@ -4,7 +4,6 @@ import math
 import os
 import shutil
 import subprocess
-import uuid
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
@@ -22,7 +21,7 @@ from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler
 
-WSCLEAN_BINARY = "wsclean"
+_WSCLEAN_BINARY = "wsclean"
 
 
 def _get_command_prefix(tmp_dir: str) -> str:
@@ -92,7 +91,7 @@ class WscleanDirtyImager(DirtyImager):
             purpose=self.TMP_PURPOSE_DIRTY,
         )
         command = _get_command_prefix(tmp_dir) + (
-            f"{WSCLEAN_BINARY} "
+            f"{_WSCLEAN_BINARY} "
             f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
             f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
             f"{visibility.ms_file_path}"
@@ -182,14 +181,14 @@ class WscleanImageCleaner(ImageCleaner):
             prefix=self.TMP_PREFIX_CLEANED,
             purpose=self.TMP_PURPOSE_CLEANED,
         )
-        prefix = str(uuid.uuid4())
+        prefix = "pre_existing"
         if dirty_fits_path is not None:
             shutil.copyfile(
                 dirty_fits_path,
                 os.path.join(tmp_dir, f"{prefix}-dirty.fits"),
             )
         command = _get_command_prefix(tmp_dir) + (
-            f"{WSCLEAN_BINARY} "
+            f"{_WSCLEAN_BINARY} "
             + (f"-reuse-dirty {prefix} " if dirty_fits_path is not None else "")
             + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
             + f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
@@ -260,7 +259,7 @@ def create_image_custom_command(
         prefix=TMP_PREFIX_CUSTOM,
         purpose=TMP_PURPOSE_CUSTOM,
     )
-    expected_command_prefix = f"{WSCLEAN_BINARY} "
+    expected_command_prefix = f"{_WSCLEAN_BINARY} "
     if not command.startswith(expected_command_prefix):
         raise ValueError(
             "Unexpected command. Expecting command to start with "

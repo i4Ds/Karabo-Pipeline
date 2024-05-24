@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import warnings
 from typing import List, Tuple, Union
 
@@ -97,6 +99,8 @@ def auto_choose_dirty_imager_from_sim(
                 combine_across_frequencies=config.combine_across_frequencies,
             )
         )
+    else:
+        assert_never(simulator_backend)
 
     return dirty_imager
 
@@ -152,7 +156,7 @@ def get_MGCLS_images(regex_pattern: str, verbose: bool = False) -> List[SkaSdpIm
     mgcls_cdo = MGCLSContainerDownloadObject(regexr_pattern=regex_pattern)
     local_file_paths = mgcls_cdo.get_all(verbose=verbose)
     if len(local_file_paths) == 0:
-        raise ValueError(
+        raise FileNotFoundError(
             f"No files in {mgcls_cdo._remote_container_url} for {regex_pattern=}"
         )
     mgcls_images: List[SkaSdpImage] = list()

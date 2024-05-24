@@ -99,22 +99,25 @@ def test_create_cleaned_image_custom_path():
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
-    output_fits_path = os.path.join(
-        FileHandler().get_tmp_dir(prefix="test_imager_wsclean-"),
-        "test_create_cleaned_image_custom_path.fits",
-    )
-    restored = WscleanImageCleaner(
-        WscleanImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
+    with FileHandler() as tmp_dir:
+        output_fits_path = os.path.join(
+            tmp_dir,
+            "test_create_cleaned_image_custom_path.fits",
         )
-    ).create_cleaned_image(
-        ms_file_path=visibility.ms_file_path,
-        output_fits_path=output_fits_path,
-    )
+        restored = WscleanImageCleaner(
+            WscleanImageCleanerConfig(
+                imaging_npixel=imaging_npixel,
+                imaging_cellsize=imaging_cellsize,
+            )
+        ).create_cleaned_image(
+            ms_file_path=visibility.ms_file_path,
+            output_fits_path=output_fits_path,
+        )
 
-    assert restored.path == output_fits_path
-    assert os.path.exists(restored.path)
+        assert restored.path == output_fits_path
+        assert os.path.exists(restored.path)
+
+    assert not os.path.exists(tmp_dir)
 
 
 def test_create_cleaned_image_reuse_dirty():
