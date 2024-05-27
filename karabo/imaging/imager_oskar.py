@@ -108,7 +108,9 @@ class OskarDirtyImager(DirtyImager):
         imager.run(return_images=1)
 
         # OSKAR adds _I.fits to the fits_path set by the user
-        image = Image(path=f"{output_fits_path}_I.fits")
+        os.rename(f"{output_fits_path}_I.fits", output_fits_path)
+
+        image = Image(path=output_fits_path)
 
         # OSKAR Imager always produces one image by
         # combining all frequency channels.
@@ -119,6 +121,6 @@ class OskarDirtyImager(DirtyImager):
         image.header["NAXIS"] = 4
         image.header["NAXIS4"] = 1
 
-        image.write_to_file(path=f"{output_fits_path}_I.fits", overwrite=True)
+        image.write_to_file(path=output_fits_path, overwrite=True)
 
         return image

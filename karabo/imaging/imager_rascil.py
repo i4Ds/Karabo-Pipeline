@@ -92,7 +92,9 @@ class RascilDirtyImager(DirtyImager):
             block_visibilities = create_visibility_from_ms(str(visibility.ms_file_path))
 
             if len(block_visibilities) != 1:
-                raise ValueError("Visibilities are too large")
+                raise NotImplementedError(
+                    "This imager currently doesn't support more than one visibility."
+                )
             visibility = block_visibilities[0]
 
         # Compute dirty image from visibilities
