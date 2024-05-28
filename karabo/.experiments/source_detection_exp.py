@@ -3,7 +3,8 @@ import os
 import numpy as np
 from dask.distributed import Client
 
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -31,14 +32,15 @@ def do_flux(simulation, flux, telescope, observation):
     print(f"start with flux {flux}")
     sky = SkyModel(np.array([[20, -30, flux]]))
     visibility = simulation.run_simulation(telescope, sky, observation)
-    imager = Imager(
-        visibility,
-        imaging_npixel=4096,
-        imaging_cellsize=3.878509448876288e-05 * 2,
-        ingest_vis_nchan=16,
-    )
 
-    dirty = imager.get_dirty_image()
+    dirty_imager = auto_choose_dirty_imager(visibility)
+    dirty = dirty_imager.create_dirty_image(
+        DirtyImagerConfig(
+            visibility=visibility,
+            imaging_npixel=4096,
+            imaging_cellsize=3.878509448876288e-05 * 2,
+        )
+    )
 
     a = -0.00098910103194387 * 5
     detection = SourceDetectionResult.detect_sources_in_image(dirty, beam=(a, a, 0))

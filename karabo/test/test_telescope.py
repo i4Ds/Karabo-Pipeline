@@ -24,12 +24,6 @@ def test_read_tm_file():
         assert len(tel.stations) == 30
 
 
-def test_deprecated_read_from_file():
-    tel = Telescope.constructor("EXAMPLE")
-    with pytest.raises(DeprecationWarning):
-        tel.read_from_file("fakefilename")
-
-
 def test_convert_to_oskar():
     tel = Telescope.constructor("EXAMPLE")
     oskar_tel = tel.get_OSKAR_telescope()

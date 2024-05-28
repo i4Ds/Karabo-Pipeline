@@ -5,12 +5,11 @@ from datetime import datetime, timedelta
 import numpy as np
 from numpy.typing import NDArray
 
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulator_backend import SimulatorBackend
 
 
 def test_basic(sky_data: NDArray[np.float64]):
@@ -49,11 +48,13 @@ def test_basic(sky_data: NDArray[np.float64]):
 
         visibility = simulation.run_simulation(telescope, sky, observation)
 
-        imager = Imager(
-            visibility, imaging_npixel=4096 * 1, imaging_cellsize=50
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image(
-            imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+        dirty_imager = RascilDirtyImager(
+            RascilDirtyImagerConfig(
+                imaging_npixel=4096,
+                imaging_cellsize=50,
+                combine_across_frequencies=False,
+            )
         )
+        dirty = dirty_imager.create_dirty_image(visibility)
         dirty.write_to_file(os.path.join(tmpdir, "noise_dirty.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")

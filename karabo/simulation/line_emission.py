@@ -1,8 +1,9 @@
+import os
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Tuple, Union
 
 import astropy.units as u
 import matplotlib
@@ -11,7 +12,8 @@ from astropy.coordinates import SkyCoord
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.imaging.image import Image, ImageMosaicker
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager_from_sim
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
@@ -25,15 +27,13 @@ CircleSkyRegion = namedtuple("CircleSkyRegion", ["center", "radius"])
 
 def line_emission_pipeline(
     output_base_directory: Union[Path, str],
-    simulator_backend: SimulatorBackend,
-    imaging_backend: Optional[SimulatorBackend],
     pointings: List[CircleSkyRegion],
     sky_model: SkyModel,
     observation_details: Observation,
     telescope: Telescope,
     interferometer: InterferometerSimulation,
-    image_npixels: int,
-    image_cellsize_radians: float,
+    simulator_backend: SimulatorBackend,
+    dirty_imager: DirtyImager,
 ) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
@@ -128,19 +128,15 @@ def line_emission_pipeline(
             print(f"Processing pointing {index_p}...")
             vis = visibilities[index_freq][index_p]
 
-            imager = Imager(
-                vis,
-                imaging_npixel=image_npixels,
-                imaging_cellsize=image_cellsize_radians,
-            )
-
-            dirty = imager.get_dirty_image(
-                fits_path=str(
-                    output_base_directory
-                    / f"dirty_{'OSKAR' if simulator_backend is SimulatorBackend.OSKAR else 'RASCIL'}_{index_p}.fits"  # noqa: E501
+            if simulator_backend is SimulatorBackend.OSKAR:
+                backend = "OSKAR"
+            else:
+                backend = "RASCIL"
+            dirty = dirty_imager.create_dirty_image(
+                visibility=vis,
+                output_fits_path=os.path.join(
+                    output_base_directory, f"dirty_{backend}_{index_p}.fits"
                 ),
-                imaging_backend=imaging_backend,
-                combine_across_frequencies=True,
             )
 
             dirty_images[-1].append(dirty)
@@ -206,11 +202,6 @@ if __name__ == "__main__":
         ),
     ]
 
-    # Image details
-    npixels = 4096
-    image_width_degrees = 2
-    cellsize_radians = np.radians(image_width_degrees) / npixels
-
     # The number of time steps is then determined as total_length / integration_time.
     observation_length = timedelta(seconds=10000)  # 14400 = 4hours
     integration_time = timedelta(seconds=10000)
@@ -260,17 +251,27 @@ if __name__ == "__main__":
         use_dask=False,
     )
 
+    # Imaging details
+    npixels = 4096
+    image_width_degrees = 2
+    cellsize_radians = np.radians(image_width_degrees) / npixels
+    dirty_imager_config = DirtyImagerConfig(
+        imaging_npixel=npixels,
+        imaging_cellsize=cellsize_radians,
+    )
+    dirty_imager = auto_choose_dirty_imager_from_sim(
+        simulator_backend, dirty_imager_config
+    )
+
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
-        simulator_backend=simulator_backend,
-        imaging_backend=None,  # Cause pipeline to use same backend as simulator_backend
         pointings=pointings,
         sky_model=sky,
         observation_details=observation,
         telescope=telescope,
         interferometer=interferometer,
-        image_npixels=npixels,
-        image_cellsize_radians=cellsize_radians,
+        simulator_backend=simulator_backend,
+        dirty_imager=dirty_imager,
     )
 
     for index_freq in range(observation.number_of_channels):

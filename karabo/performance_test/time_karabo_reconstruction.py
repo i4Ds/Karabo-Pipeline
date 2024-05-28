@@ -8,6 +8,8 @@ from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
 from karabo.imaging.image import ImageMosaicker
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager_from_sim
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
 from karabo.simulation.observation import Observation
@@ -39,11 +41,6 @@ if __name__ == "__main__":
             radius=1 * u.deg, center=SkyCoord(ra=20, dec=-30, unit="deg", frame="icrs")
         ),
     ]
-
-    # Image details
-    npixels = 2048
-    image_width_degrees = 2
-    cellsize_radians = np.radians(image_width_degrees) / npixels
 
     # The number of time steps is then determined as total_length / integration_time.
     observation_length = timedelta(seconds=10000)  # 14400 = 4hours
@@ -94,17 +91,27 @@ if __name__ == "__main__":
         use_dask=False,
     )
 
+    # Imaging details
+    npixels = 2048
+    image_width_degrees = 2
+    cellsize_radians = np.radians(image_width_degrees) / npixels
+    dirty_imager_config = DirtyImagerConfig(
+        imaging_npixel=npixels,
+        imaging_cellsize=cellsize_radians,
+    )
+    dirty_imager = auto_choose_dirty_imager_from_sim(
+        simulator_backend, dirty_imager_config
+    )
+
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
-        simulator_backend=simulator_backend,
-        imaging_backend=None,  # Cause pipeline to use same backend as simulator_backend
         pointings=pointings,
         sky_model=sky,
         observation_details=observation,
         telescope=telescope,
         interferometer=interferometer,
-        image_npixels=npixels,
-        image_cellsize_radians=cellsize_radians,
+        simulator_backend=simulator_backend,
+        dirty_imager=dirty_imager,
     )
 
     # Create mosaics of pointings for each frequency channel

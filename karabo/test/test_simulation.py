@@ -13,7 +13,9 @@ from karabo.data.external_data import (
     cscs_karabo_public_testing_base_url,
 )
 from karabo.imaging.image import Image
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationParallized
 from karabo.simulation.sky_model import SkyModel
@@ -87,12 +89,14 @@ def test_backend_simulations(
 
     visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
 
-    imager = Imager(
+    dirty_imager = auto_choose_dirty_imager_from_vis(
         visibility,
-        imaging_npixel=1024,
-        imaging_cellsize=3 / 180 * np.pi / 1024,
+        DirtyImagerConfig(
+            imaging_npixel=1024,
+            imaging_cellsize=3 / 180 * np.pi / 1024,
+        ),
     )
-    dirty = imager.get_dirty_image()
+    dirty = dirty_imager.create_dirty_image(visibility)
 
     assert isinstance(dirty, Image)
     assert len(dirty.data.shape) == 4
@@ -146,14 +150,14 @@ def test_simulation_meerkat(
     visibility = simulation.run_simulation(telescope, sky, observation)
 
     # We use the Imager to check the simulation
-    imager = Imager(
-        visibility,
-        imaging_npixel=1024,
-        imaging_cellsize=3 / 180 * np.pi / 1024,
+    dirty_imager = RascilDirtyImager(
+        RascilDirtyImagerConfig(
+            imaging_npixel=1024,
+            imaging_cellsize=3 / 180 * np.pi / 1024,
+            combine_across_frequencies=False,
+        )
     )
-    dirty = imager.get_dirty_image(
-        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
-    )
+    dirty = dirty_imager.create_dirty_image(visibility)
     # Temporary directory containging output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
@@ -233,14 +237,14 @@ def test_simulation_noise_meerkat(
     visibility = simulation.run_simulation(telescope, sky, observation)
 
     # We use the Imager to check the simulation
-    imager = Imager(
-        visibility,
-        imaging_npixel=1024,
-        imaging_cellsize=3 / 180 * np.pi / 1024,
+    dirty_imager = RascilDirtyImager(
+        RascilDirtyImagerConfig(
+            imaging_npixel=1024,
+            imaging_cellsize=3 / 180 * np.pi / 1024,
+            combine_across_frequencies=False,
+        )
     )
-    dirty = imager.get_dirty_image(
-        imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
-    )
+    dirty = dirty_imager.create_dirty_image(visibility)
     # Temporary directory containging output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
@@ -297,12 +301,14 @@ def test_parallelization_by_observation() -> None:
     visibilities = simulation.run_simulation(telescope, sky, obs_parallized)
 
     for i, vis in enumerate(visibilities):
-        imager = Imager(
-            vis, imaging_npixel=512, imaging_cellsize=3.878509448876288e-05
-        )  # imaging cellsize is over-written in the Imager based on max uv dist.
-        dirty = imager.get_dirty_image(
-            imaging_backend=SimulatorBackend.RASCIL, combine_across_frequencies=False
+        dirty_imager = RascilDirtyImager(
+            RascilDirtyImagerConfig(
+                imaging_npixel=512,
+                imaging_cellsize=3.878509448876288e-05,
+                combine_across_frequencies=False,
+            )
         )
+        dirty = dirty_imager.create_dirty_image(vis)
         with tempfile.TemporaryDirectory() as tmpdir:
             dirty.write_to_file(os.path.join(tmpdir, f"dirty_{i}.fits"), overwrite=True)
         assert dirty.header["CRVAL4"] == CENTER_FREQUENCIES_HZ[i]

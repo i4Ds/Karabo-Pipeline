@@ -7,6 +7,8 @@ import pytest
 from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager_from_sim
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
 from karabo.simulation.observation import Observation
@@ -49,15 +51,6 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
         ),
     ]
 
-    # Image details
-    npixels = 4096
-    image_width_degrees = 2
-    cellsize_radians = np.radians(image_width_degrees) / npixels
-
-    beam_type = "Isotropic beam"
-    gaussian_fwhm = 0
-    gaussian_ref_freq = 0
-
     # The number of time steps is then determined as total_length / integration_time.
     observation_length = timedelta(seconds=10000)  # 14400 = 4hours
     integration_time = timedelta(seconds=10000)
@@ -89,23 +82,33 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
         uv_filter_max=10000,
         uv_filter_units=FilterUnits.Metres,
         use_gpus=True,
-        station_type=beam_type,
-        gauss_beam_fwhm_deg=gaussian_fwhm,
-        gauss_ref_freq_hz=gaussian_ref_freq,
+        station_type="Isotropic beam",
+        gauss_beam_fwhm_deg=0,
+        gauss_ref_freq_hz=0,
         use_dask=False,
+    )
+
+    # Imaging details
+    npixels = 4096
+    image_width_degrees = 2
+    cellsize_radians = np.radians(image_width_degrees) / npixels
+    dirty_imager_config = DirtyImagerConfig(
+        imaging_npixel=npixels,
+        imaging_cellsize=cellsize_radians,
+    )
+    dirty_imager = auto_choose_dirty_imager_from_sim(
+        simulator_backend, dirty_imager_config
     )
 
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
-        simulator_backend=simulator_backend,
-        imaging_backend=None,  # Cause pipeline to use same backend as simulator_backend
         pointings=pointings,
         sky_model=sky,
         observation_details=observation,
         telescope=telescope,
         interferometer=interferometer,
-        image_npixels=npixels,
-        image_cellsize_radians=cellsize_radians,
+        simulator_backend=simulator_backend,
+        dirty_imager=dirty_imager,
     )
 
     assert len(visibilities) == observation.number_of_channels
@@ -120,15 +123,6 @@ def test_compare_oskar_rascil_dirty_images():
         radius=1 * u.deg,
         center=SkyCoord(ra=20, dec=-31.4, unit="deg", frame="icrs"),
     )
-
-    # Image details
-    npixels = 4096
-    image_width_degrees = 2
-    cellsize_radians = np.radians(image_width_degrees) / npixels
-
-    beam_type = "Isotropic beam"
-    gaussian_fwhm = 0
-    gaussian_ref_freq = 0
 
     # The number of time steps is then determined as total_length / integration_time.
     observation_length = timedelta(seconds=10000)  # 14400 = 4hours
@@ -161,10 +155,19 @@ def test_compare_oskar_rascil_dirty_images():
         uv_filter_max=10000,
         uv_filter_units=FilterUnits.Metres,
         use_gpus=True,
-        station_type=beam_type,
-        gauss_beam_fwhm_deg=gaussian_fwhm,
-        gauss_ref_freq_hz=gaussian_ref_freq,
+        station_type="Isotropic beam",
+        gauss_beam_fwhm_deg=0,
+        gauss_ref_freq_hz=0,
         use_dask=False,
+    )
+
+    # Imaging details
+    npixels = 4096
+    image_width_degrees = 2
+    cellsize_radians = np.radians(image_width_degrees) / npixels
+    dirty_imager_config = DirtyImagerConfig(
+        imaging_npixel=npixels,
+        imaging_cellsize=cellsize_radians,
     )
 
     backend_to_dirty_images = {}
@@ -181,17 +184,18 @@ def test_compare_oskar_rascil_dirty_images():
             )
         )
 
+        dirty_imager = auto_choose_dirty_imager_from_sim(
+            simulator_backend, dirty_imager_config
+        )
         _, dirty_images = line_emission_pipeline(
             output_base_directory=output_base_directory,
-            simulator_backend=simulator_backend,
-            imaging_backend=None,  # None: use same backend as simulator_backend
             pointings=[pointing],
             sky_model=sky,
             observation_details=observation,
             telescope=telescope,
             interferometer=interferometer,
-            image_npixels=npixels,
-            image_cellsize_radians=cellsize_radians,
+            simulator_backend=simulator_backend,
+            dirty_imager=dirty_imager,
         )
 
         backend_to_dirty_images[simulator_backend] = dirty_images

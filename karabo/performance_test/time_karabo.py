@@ -5,7 +5,8 @@ from typing import List, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_rascil import RascilImageCleaner, RascilImageCleanerConfig
+from karabo.imaging.util import project_sky_to_image
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -100,27 +101,28 @@ def main(n_random_sources: int) -> None:
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
-    imager_askap = Imager(
-        visibility_askap,
-        ingest_chan_per_vis=1,
-        ingest_vis_nchan=16,
-        imaging_npixel=imaging_npixel,
-        imaging_cellsize=imaging_cellsize,
-    )
-
     # Try differnet algorithm
     # More sources
-    deconvolved, restored, residual = imager_askap.imaging_rascil(
-        clean_nmajor=0,
-        clean_algorithm="mmclean",
-        clean_scales=[0, 6, 10, 30, 60],
-        clean_fractional_threshold=0.3,
-        clean_threshold=0.12e-3,
-        clean_nmoment=5,
-        clean_psf_support=640,
-        clean_restored_output="integrated",
-        use_cuda=False,
-        use_dask=False,
+    (
+        deconvolved,
+        restored,
+        residual,
+    ) = RascilImageCleaner(
+        RascilImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+            ingest_vis_nchan=16,
+            clean_nmajor=0,
+            clean_algorithm="mmclean",
+            clean_scales=[0, 6, 10, 30, 60],
+            clean_threshold=0.12e-3,
+            clean_nmoment=5,
+            clean_psf_support=640,
+            clean_restored_output="integrated",
+            use_dask=False,
+        )
+    ).create_cleaned_image_variants(
+        ms_file_path=visibility_askap.ms_file_path,
     )
 
     # Source detection
@@ -128,7 +130,7 @@ def main(n_random_sources: int) -> None:
     if detection_result is None:
         raise ValueError("`detection_result` is None.")
 
-    ground_truth, sky_idxs = Imager.project_sky_to_image(
+    ground_truth, sky_idxs = project_sky_to_image(
         sky=sky,
         phase_center=phase_center,
         imaging_cellsize=imaging_cellsize,

@@ -52,4 +52,3 @@ Development
 
    development.md
    installation_no_conda
-  

@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "Karabo-Pipeline"
-copyright = "2022, i4ds"
+copyright = "2024, i4ds"
 author = "i4ds, ETH"
 
 # The full version, including alpha/beta/rc tags

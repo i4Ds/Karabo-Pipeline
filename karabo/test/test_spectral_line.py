@@ -6,7 +6,8 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -142,10 +143,17 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
             foreground_ms_file,
         )
         if make_foreground_image:
-            imager = Imager(
-                visibility, imaging_npixel=2048 * 1, imaging_cellsize=50
-            )  # imaging cellsize is over-written in the Imager based on max uv dist.
-            dirty = imager.get_dirty_image()
+            dirty_imager = auto_choose_dirty_imager_from_vis(
+                visibility,
+                DirtyImagerConfig(
+                    imaging_npixel=2048,
+                    # TODO Change cellsize to a more reasonable number
+                    # when test is re-enabled.
+                    # Suggestion: 1e-6
+                    imaging_cellsize=50,
+                ),
+            )
+            dirty = dirty_imager.create_dirty_image(visibility)
             dirty.write_to_file(os.path.join(tmpdir, "foreground.fits"), overwrite=True)
             dirty.plot(title="Flux Density (Jy)")
         # ------- Simulate Spectral Line Sky -----#
@@ -170,10 +178,17 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
             chan_width,
         )
         if make_spectral_image:
-            imager = Imager(
-                visibility, imaging_npixel=2048 * 1, imaging_cellsize=50
-            )  # imaging cellsize is over-written in the Imager based on max uv dist.
-            dirty = imager.get_dirty_image()
+            dirty_imager = auto_choose_dirty_imager_from_vis(
+                visibility,
+                DirtyImagerConfig(
+                    imaging_npixel=2048,
+                    # TODO Change cellsize to a more reasonable number
+                    # when test is re-enabled.
+                    # Suggestion: 1e-6
+                    imaging_cellsize=50,
+                ),
+            )
+            dirty = dirty_imager.create_dirty_image(visibility)
             dirty.write_to_file(
                 os.path.join(tmpdir, "foreground.fits"),
                 overwrite=True,
