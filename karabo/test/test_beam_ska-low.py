@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from karabo.imaging.imager import Imager
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -53,8 +54,22 @@ def test_beam():
         )
         visibility = simulation.run_simulation(telescope, sky, observation)  # noqa
 
-        imager = Imager(visibility, imaging_npixel=4096, imaging_cellsize=50)
-        dirty = imager.get_dirty_image()
+        dirty_imager = auto_choose_dirty_imager_from_vis(
+            visibility,
+            DirtyImagerConfig(
+                imaging_npixel=4096,
+                # TODO Change cellsize to a more reasonable number
+                # when test is re-enabled.
+                # Suggestion:
+                # With the 4096 number of pixels, this would correspond to a cellsize
+                # of about (4.5*pi/180) / 4096 ~ 1.9e-5 radians/pixel,
+                # if we want the image to just barely fit all sources,
+                # or a slightly bigger cellsize to have some room at the edges.
+                imaging_cellsize=50,
+            ),
+        )
+        dirty = dirty_imager.create_dirty_image(visibility)
+
         dirty.write_to_file(
             os.path.join(tmpdir, "ska_low_array_vis.fits"), overwrite=True
         )

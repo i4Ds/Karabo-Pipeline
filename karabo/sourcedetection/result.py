@@ -15,7 +15,7 @@ from dask import compute, delayed  # type: ignore
 from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
-from karabo.imaging.imager import Imager
+from karabo.imaging.util import guess_beam_parameters
 from karabo.util._types import BeamType, FilePathType
 from karabo.util.dask import DaskHandler
 from karabo.util.data_util import read_CSV_to_ndarray
@@ -172,7 +172,7 @@ class SourceDetectionResult(ISourceDetectionResult):
                     + "guessing parameters using `Imager.guess_beam_parameters`.",
                     KaraboWarning,
                 )
-                beam = Imager.guess_beam_parameters(img=image)
+                beam = guess_beam_parameters(img=image)
 
         beam_ = (beam["bmaj"], beam["bmin"], beam["bpa"])
         quiet = not verbose
@@ -449,7 +449,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
                 if not image.has_beam_parameters():
                     # assumes that `guess_beam_parameters` doesn't take forever
                     image_no_beam_idxs.append(image_idx)
-                    beam = Imager.guess_beam_parameters(img=image)
+                    beam = guess_beam_parameters(img=image)
                 else:
                     beam = image.get_beam_parameters()
                 beams.append(beam)
