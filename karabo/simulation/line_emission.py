@@ -3,12 +3,13 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Literal, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 import astropy.units as u
 import matplotlib
 import numpy as np
 from astropy.coordinates import SkyCoord
+from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.imaging.image import Image, ImageMosaicker
@@ -34,6 +35,8 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager: DirtyImager,
+    primary_beam: Optional[RASCILImage] = None,
+    perform_primary_beam_correction: bool = True,
 ) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
@@ -111,6 +114,7 @@ def line_emission_pipeline(
                 sky=filtered_sky,
                 observation=observation,
                 backend=simulator_backend,
+                primary_beam=primary_beam,
             )
 
             visibilities[-1].append(vis)
@@ -148,6 +152,11 @@ def line_emission_pipeline(
             # since we are performing a line emission analysis
             assert dirty.data.shape[0] == 1
 
+            # TODO perform beam correction here, if requested
+            # TODO NOTE! correct each pointing before creating the mosaic
+            if perform_primary_beam_correction is True:
+                pass  # TODO modify me
+
     assert len(dirty_images) == observation_details.number_of_channels
     assert len(dirty_images[0]) == len(
         pointings
@@ -175,7 +184,10 @@ if __name__ == "__main__":
         telescope = Telescope.constructor("MID", backend=simulator_backend)
 
     # Configuration parameters
-    should_apply_primary_beam = False
+    # Whether to include primary beam into vis and dirty images
+    should_apply_primary_beam = True
+    # Whether to correct for the primary beam in the dirty images before returning them
+    perform_primary_beam_correction = True
 
     output_base_directory = Path(
         FileHandler().get_tmp_dir(
@@ -208,11 +220,18 @@ if __name__ == "__main__":
 
     # Create interferometer simulation
     beam_type: Literal["Gaussian beam", "Isotropic beam"]
+    primary_beam: Optional[RASCILImage] = None
     if should_apply_primary_beam:
         beam_type = "Gaussian beam"
         # Options: "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
         gaussian_fwhm = 50  # Degrees
         gaussian_ref_freq = 8e8  # Hz
+
+        if simulator_backend == SimulatorBackend.RASCIL:
+            # RASCIL supports custom primary beams
+            # Here we create a sample beam (Gaussian)
+            # TODO
+            primary_beam = None  # TODO modify
     else:
         beam_type = "Isotropic beam"
         gaussian_fwhm = 0
@@ -272,6 +291,8 @@ if __name__ == "__main__":
         interferometer=interferometer,
         simulator_backend=simulator_backend,
         dirty_imager=dirty_imager,
+        primary_beam=primary_beam,
+        perform_primary_beam_correction=perform_primary_beam_correction,
     )
 
     for index_freq in range(observation.number_of_channels):
