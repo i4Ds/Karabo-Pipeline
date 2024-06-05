@@ -262,7 +262,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
 
-    simulator_backend = SimulatorBackend.RASCIL
+    simulator_backend = SimulatorBackend.OSKAR
 
     if simulator_backend == SimulatorBackend.OSKAR:
         telescope = Telescope.constructor("SKA1MID", backend=simulator_backend)
@@ -417,7 +417,6 @@ if __name__ == "__main__":
         vmax_image=2e-7,
     )
 
-    # TODO below does not work with OSKAR
     dirty_images[0][0].overplot_with_skymodel(
         sky=sky,
         block=True,
