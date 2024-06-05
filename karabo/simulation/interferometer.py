@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 from typing import get_args as typing_get_args
 from typing import overload
+from warnings import warn
 
 import numpy as np
 import oskar
@@ -398,17 +399,22 @@ class InterferometerSimulation:
         :param sky: sky model defining the sky sources
         :param observation: observation settings
         :param backend: Backend used to perform calculations (e.g. OSKAR, RASCIL)
+        :param primary_beam: Primary beam to be included into visibilities.
+            Currently only relevant for RASCIL.
+            For OSKAR, use the InterferometerSimulation constructor parameters instead.
         """
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
-                raise ValueError(
+                warn(
                     """
                     Providing a custom primary beam is not supported by OSKAR.
-                To configure a primary beam effect with OSKAR,
-                set the InterferometerSimulation primary beam parameters
-                (FWHM and reference frequency) instead.
-                """
+                    The provided primary beam will be ignored.
+                    To configure a primary beam effect with OSKAR,
+                    set the InterferometerSimulation primary beam parameters
+                    (FWHM and reference frequency) instead.
+                    """
                 )
+
             if isinstance(observation, ObservationLong):
                 return self.__run_simulation_long(
                     telescope=telescope, sky=sky, observation=observation
@@ -456,6 +462,7 @@ class InterferometerSimulation:
         :param sky: SkyModel to be used in the simulation.
             Will be converted into a RASCIL-compatible list of SkyComponent objects.
         :param observation: Observation details
+        :param primary_beam: Primary beam to be included into visibilities.
         """
         # Steps followed in this simulation:
         # Compute hour angles based on Observation details
