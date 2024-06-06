@@ -262,7 +262,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
 
-    simulator_backend = SimulatorBackend.OSKAR
+    simulator_backend = SimulatorBackend.RASCIL
 
     if simulator_backend == SimulatorBackend.OSKAR:
         telescope = Telescope.constructor("SKA1MID", backend=simulator_backend)
@@ -284,25 +284,25 @@ if __name__ == "__main__":
 
     pointings = [
         CircleSkyRegion(
-            radius=1 * u.deg, center=SkyCoord(ra=20, dec=-30, unit="deg", frame="icrs")
+            radius=2 * u.deg, center=SkyCoord(ra=20, dec=-30, unit="deg", frame="icrs")
         ),
         CircleSkyRegion(
-            radius=1 * u.deg,
+            radius=2 * u.deg,
             center=SkyCoord(ra=20, dec=-31.4, unit="deg", frame="icrs"),
         ),
         CircleSkyRegion(
-            radius=1 * u.deg,
+            radius=2 * u.deg,
             center=SkyCoord(ra=21.4, dec=-30, unit="deg", frame="icrs"),
         ),
         CircleSkyRegion(
-            radius=1 * u.deg,
+            radius=2 * u.deg,
             center=SkyCoord(ra=21.4, dec=-31.4, unit="deg", frame="icrs"),
         ),
     ]
 
     # The number of time steps is then determined as total_length / integration_time.
     observation_length = timedelta(seconds=10000)  # 14400 = 4hours
-    integration_time = timedelta(seconds=10000)
+    integration_time = timedelta(seconds=1000)
 
     # Load catalog of sources
     catalog_path = HISourcesSmallCatalogDownloadObject().get()
@@ -348,8 +348,12 @@ if __name__ == "__main__":
     )
 
     if should_apply_primary_beam:
+        # Options accepted by OSKAR:
+        # "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
+        # This parameter is not used by RASCIL
         beam_type = "Gaussian beam"
-        # Options: "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
+        gaussian_fwhm = REFERENCE_FWHM_DEGREES
+        gaussian_ref_freq = REFERENCE_FREQUENCY_HZ
 
         primary_beams = []
         # RASCIL supports custom primary beams
@@ -382,8 +386,8 @@ if __name__ == "__main__":
         uv_filter_units=FilterUnits.Metres,
         use_gpus=True,
         station_type=beam_type,
-        gauss_beam_fwhm_deg=REFERENCE_FWHM_DEGREES,
-        gauss_ref_freq_hz=REFERENCE_FREQUENCY_HZ,
+        gauss_beam_fwhm_deg=gaussian_fwhm,
+        gauss_ref_freq_hz=gaussian_ref_freq,
         use_dask=False,
     )
 
@@ -423,8 +427,6 @@ if __name__ == "__main__":
         vmin_image=0,
         vmax_image=2e-7,
     )
-
-    exit()  # TODO
 
     # Create mosaics of pointings for each frequency channel
     print("Creating mosaic of images for each frequency channel")
