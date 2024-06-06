@@ -205,21 +205,6 @@ class HISourcesSmallCatalogDownloadObject(SingleFileDownloadObject):
         )
 
 
-class BATTYESurveyDownloadObject(SingleFileDownloadObject):
-    def __init__(self) -> None:
-        raise NotImplementedError(
-            f"Currently not available at {cscs_karabo_public_base_url}"
-        )
-
-
-class DilutedBATTYESurveyDownloadObject(SingleFileDownloadObject):
-    def __init__(self) -> None:
-        raise NotImplementedError(
-            """This catalog has incorrect flux data.
-            Use HISourcesSmallCatalogDownloadObject instead."""
-        )
-
-
 class MIGHTEESurveyDownloadObject(SingleFileDownloadObject):
     def __init__(self) -> None:
         super().__init__(
