@@ -41,6 +41,8 @@ class DirtyImager(ABC):
     A dirty imager creates dirty images from visibilities.
     """
 
+    config: DirtyImagerConfig
+
     @abstractmethod
     def create_dirty_image(
         self,

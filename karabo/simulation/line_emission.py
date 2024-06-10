@@ -3,7 +3,7 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union, overload
 
 import astropy.units as u
 import matplotlib
@@ -34,7 +34,7 @@ def generate_gaussian_beam_data(
     fwhm_pixels: float,
     x_size: int,
     y_size: int,
-) -> NDArray[NDArray[float]]:
+) -> NDArray[NDArray[np.float64]]:
     """Given a FWHM in pixel units, and a size in x and y coordinates,
     return a 2D array of shape (x_size, y_size) containing normalized Gaussian values
     (such that the central value of the 2D array is 1.0).
@@ -62,6 +62,38 @@ def gaussian_beam_fwhm_for_frequency(
     reference_frequency_Hz: float = REFERENCE_FREQUENCY_HZ,
 ):
     return reference_fwhm_degrees * reference_frequency_Hz / desired_frequency
+
+
+@overload
+def line_emission_pipeline(
+    output_base_directory: Union[Path, str],
+    pointings: List[CircleSkyRegion],
+    sky_model: SkyModel,
+    observation_details: Observation,
+    telescope: Telescope,
+    interferometer: InterferometerSimulation,
+    simulator_backend: SimulatorBackend,
+    dirty_imager: DirtyImager,
+    primary_beams: List[NDArray[NDArray[float]]],
+    should_perform_primary_beam_correction: Literal[True] = ...,
+) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+    ...
+
+
+@overload
+def line_emission_pipeline(
+    output_base_directory: Union[Path, str],
+    pointings: List[CircleSkyRegion],
+    sky_model: SkyModel,
+    observation_details: Observation,
+    telescope: Telescope,
+    interferometer: InterferometerSimulation,
+    simulator_backend: SimulatorBackend,
+    dirty_imager: DirtyImager,
+    primary_beams: Optional[List[NDArray[NDArray[float]]]] = None,
+    should_perform_primary_beam_correction: Literal[False] = ...,
+) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+    ...
 
 
 def line_emission_pipeline(
@@ -361,8 +393,8 @@ if __name__ == "__main__":
         # as a 2D np.array of shape (npixels, npixels)
         for frequency in frequency_channel_starts:
             fwhm_degrees = gaussian_beam_fwhm_for_frequency(frequency)
-            fwhm_pixels = (
-                fwhm_degrees / np.degrees(dirty_imager.config.imaging_cellsize),
+            fwhm_pixels = fwhm_degrees / np.degrees(
+                dirty_imager.config.imaging_cellsize
             )
 
             primary_beam = generate_gaussian_beam_data(
