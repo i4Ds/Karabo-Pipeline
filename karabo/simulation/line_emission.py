@@ -3,7 +3,7 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union, overload
+from typing import List, Literal, Optional, Tuple, Union, cast, overload
 
 import astropy.units as u
 import matplotlib
@@ -34,7 +34,7 @@ def generate_gaussian_beam_data(
     fwhm_pixels: float,
     x_size: int,
     y_size: int,
-) -> NDArray[NDArray[np.float64]]:
+) -> NDArray[np.float_]:
     """Given a FWHM in pixel units, and a size in x and y coordinates,
     return a 2D array of shape (x_size, y_size) containing normalized Gaussian values
     (such that the central value of the 2D array is 1.0).
@@ -45,7 +45,7 @@ def generate_gaussian_beam_data(
         x_size=x_size,
         y_size=y_size,
     )
-    beam = gauss_kernel.array
+    beam = cast(NDArray[np.float_], gauss_kernel.array)
     beam = beam / np.max(beam)
 
     return beam
@@ -60,7 +60,7 @@ def gaussian_beam_fwhm_for_frequency(
     desired_frequency: float,
     reference_fwhm_degrees: float = REFERENCE_FWHM_DEGREES,
     reference_frequency_Hz: float = REFERENCE_FREQUENCY_HZ,
-):
+) -> float:
     return reference_fwhm_degrees * reference_frequency_Hz / desired_frequency
 
 
@@ -74,7 +74,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager: DirtyImager,
-    primary_beams: List[NDArray[NDArray[float]]],
+    primary_beams: List[NDArray[np.float_]],
     should_perform_primary_beam_correction: Literal[True] = ...,
 ) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
     ...
@@ -90,8 +90,24 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager: DirtyImager,
-    primary_beams: Optional[List[NDArray[NDArray[float]]]] = None,
+    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: Literal[False] = ...,
+) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+    ...
+
+
+@overload
+def line_emission_pipeline(
+    output_base_directory: Union[Path, str],
+    pointings: List[CircleSkyRegion],
+    sky_model: SkyModel,
+    observation_details: Observation,
+    telescope: Telescope,
+    interferometer: InterferometerSimulation,
+    simulator_backend: SimulatorBackend,
+    dirty_imager: DirtyImager,
+    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
+    should_perform_primary_beam_correction: bool = ...,
 ) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
     ...
 
@@ -105,7 +121,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager: DirtyImager,
-    primary_beams: Optional[List[NDArray[NDArray[float]]]] = None,
+    primary_beams: Optional[List[NDArray[np.float_]]] = None,
     should_perform_primary_beam_correction: bool = True,
 ) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
@@ -137,13 +153,6 @@ def line_emission_pipeline(
         num=observation_details.number_of_channels,
         endpoint=False,
     )
-
-    # Verify that, if primary beam correction is requested,
-    # the corresponding primary beams are provided
-    if should_perform_primary_beam_correction is True:
-        assert (
-            primary_beams is not None
-        ), "Primary beam correction was requested but no primary beams were provided."
 
     # Verify that, if primary beams are provided,
     # we have one primary beam per frequency channel
@@ -263,6 +272,12 @@ def line_emission_pipeline(
             # NOTE we are correcting each pointing before returning the dirty images,
             # i.e. before creating any mosaics of pointings
             if should_perform_primary_beam_correction is True:
+                # Verify that, if primary beam correction is requested,
+                # the corresponding primary beams are provided
+                assert (
+                    primary_beams is not None
+                ), "Primary beam correction was requested, but no beams provided."
+
                 primary_beam = primary_beams[index_freq]
                 dirty.data[0][0] /= primary_beam  # TODO handle full stokes
 
