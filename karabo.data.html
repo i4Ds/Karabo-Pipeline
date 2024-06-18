@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>karabo.data package &mdash; Karabo-Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=01f34227"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="karabo.imaging package" href="karabo.imaging.html" />
+    <link rel="prev" title="karabo package" href="karabo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/examples.html">Examples</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/simulation.html">karabo.simulation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/imaging.html">karabo.imaging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Karabo-Pipeline</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="karabo.html">karabo package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="karabo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">karabo.data package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="karabo.imaging.html">karabo.imaging package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="karabo.simulation.html">karabo.simulation package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="karabo.sourcedetection.html">karabo.sourcedetection package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="karabo.test.html">karabo.test package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="karabo.util.html">karabo.util package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="karabo.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="karabo.html#module-karabo.error">karabo.error module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="karabo.html#module-karabo.karabo_resource">karabo.karabo_resource module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="karabo.html#module-karabo.simulator_backend">karabo.simulator_backend module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="karabo.html#module-karabo.warning">karabo.warning module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="karabo.html#module-karabo">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Karabo-Pipeline</a></li>
+          <li class="breadcrumb-item"><a href="karabo.html">karabo package</a></li>
+      <li class="breadcrumb-item active">karabo.data package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/karabo.data.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="karabo-data-package">
+<h1>karabo.data package<a class="headerlink" href="#karabo-data-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-karabo.data.external_data">
+<span id="karabo-data-external-data-module"></span><h2>karabo.data.external_data module<a class="headerlink" href="#module-karabo.data.external_data" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.BATTYESurveyDownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">BATTYESurveyDownloadObject</span></span><a class="headerlink" href="#karabo.data.external_data.BATTYESurveyDownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.ContainerContents">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ContainerContents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">remote_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regexr_pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.data.external_data.ContainerContents" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.DownloadObject" title="karabo.data.external_data.DownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">DownloadObject</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.ContainerContents.get_all">
+<span class="sig-name descname"><span class="pre">get_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.data.external_data.ContainerContents.get_all" title="Link to this definition"></a></dt>
+<dd><p>Gets all objects with the according cache paths as a list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.ContainerContents.get_container_content">
+<span class="sig-name descname"><span class="pre">get_container_content</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#karabo.data.external_data.ContainerContents.get_container_content" title="Link to this definition"></a></dt>
+<dd><p>Gets the remote container-content as str.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.ContainerContents.get_file_paths">
+<span class="sig-name descname"><span class="pre">get_file_paths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.data.external_data.ContainerContents.get_file_paths" title="Link to this definition"></a></dt>
+<dd><p>Applies <cite>regexr_pattern</cite> to container-objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.ContainerContents.is_available">
+<span class="sig-name descname"><span class="pre">is_available</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#karabo.data.external_data.ContainerContents.is_available" title="Link to this definition"></a></dt>
+<dd><p>Checks if the container itself is available, not specific files.
+Is dependent on the <cite>regexr_pattern</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.DiffuseEmissionHaslam408DownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DiffuseEmissionHaslam408DownloadObject</span></span><a class="headerlink" href="#karabo.data.external_data.DiffuseEmissionHaslam408DownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.DilutedBATTYESurveyDownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DilutedBATTYESurveyDownloadObject</span></span><a class="headerlink" href="#karabo.data.external_data.DilutedBATTYESurveyDownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.DownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DownloadObject</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">remote_base_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.data.external_data.DownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Download handler for remote files &amp; dirs.</p>
+<p>Important: There is a remote file-naming-convention, to be able to provide
+updates of cached dirs/files &amp; to simplify maintainability.
+The convention for each object is &lt;dirname&gt;&lt;file|dir&gt;_v&lt;version&gt;, where the version
+should be an integer, starting from 1. &lt;dirname&gt; should be the same as &lt;file|dir&gt;.
+The additional &lt;dirname&gt; is to have a single directory for each object, so that
+additional file/dir versions don’t disturb the overall remote structure.</p>
+<p>The version of a downloaded object is determined by the current version of Karabo,
+meaning that they’re hard-coded. Because Karabo relies partially on remote-objects,
+we don’t guarantee their availability for deprecated Karabo versions.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.data.external_data.DownloadObject.URL_SEP">
+<span class="sig-name descname"><span class="pre">URL_SEP</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/'</span></em><a class="headerlink" href="#karabo.data.external_data.DownloadObject.URL_SEP" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.DownloadObject.download">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">download</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#karabo.data.external_data.DownloadObject.download" title="Link to this definition"></a></dt>
+<dd><p>Downloads <cite>url</cite> to <cite>local_file_path</cite> through a GET-request.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>url: Ressource to download.
+local_file_path: Local file-path.
+verify: Validate the server’s certificate?
+verbose: Verbose?</p>
+</dd>
+<dt>Returns:</dt><dd><p>Status-code (currently, always 200, otherwise RuntimeError).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.DownloadObject.get_object">
+<span class="sig-name descname"><span class="pre">get_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">remote_file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#karabo.data.external_data.DownloadObject.get_object" title="Link to this definition"></a></dt>
+<dd><p>Gets the requested file-path of this object and downloads the
+ressource, cache it on disk if not already done.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>remote_file_path: Remote file-path, relative to it’s base url.
+verify: Validate the server’s certificate if download is needed?
+verbose: Verbose download if it’s needed?</p>
+</dd>
+<dt>Returns:</dt><dd><p>Local file-path of the remote-hosted object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.DownloadObject.is_url_available">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_url_available</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#karabo.data.external_data.DownloadObject.is_url_available" title="Link to this definition"></a></dt>
+<dd><p>Checks whether the url is available or not.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>True if available, else False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.ExampleHDF5Map">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ExampleHDF5Map</span></span><a class="headerlink" href="#karabo.data.external_data.ExampleHDF5Map" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.GLEAMSurveyDownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">GLEAMSurveyDownloadObject</span></span><a class="headerlink" href="#karabo.data.external_data.GLEAMSurveyDownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.HISourcesSmallCatalogDownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">HISourcesSmallCatalogDownloadObject</span></span><a class="headerlink" href="#karabo.data.external_data.HISourcesSmallCatalogDownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.MALSSurveyV3DownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MALSSurveyV3DownloadObject</span></span><a class="headerlink" href="#karabo.data.external_data.MALSSurveyV3DownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.MGCLSContainerDownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MGCLSContainerDownloadObject</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">regexr_pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.data.external_data.MGCLSContainerDownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.ContainerContents" title="karabo.data.external_data.ContainerContents"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContainerContents</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.MIGHTEESurveyDownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MIGHTEESurveyDownloadObject</span></span><a class="headerlink" href="#karabo.data.external_data.MIGHTEESurveyDownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.SingleFileDownloadObject" title="karabo.data.external_data.SingleFileDownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleFileDownloadObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.data.external_data.SingleFileDownloadObject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SingleFileDownloadObject</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">remote_file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.data.external_data.SingleFileDownloadObject" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#karabo.data.external_data.DownloadObject" title="karabo.data.external_data.DownloadObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">DownloadObject</span></code></a></p>
+<p>Abstract single object download handler.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.SingleFileDownloadObject.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#karabo.data.external_data.SingleFileDownloadObject.get" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.data.external_data.SingleFileDownloadObject.is_available">
+<span class="sig-name descname"><span class="pre">is_available</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#karabo.data.external_data.SingleFileDownloadObject.is_available" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-karabo.data">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-karabo.data" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="karabo.html" class="btn btn-neutral float-left" title="karabo package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="karabo.imaging.html" class="btn btn-neutral float-right" title="karabo.imaging package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Jun 18, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
