@@ -2,11 +2,13 @@ FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
 ARG GIT_REV="main" BUILD="user" KARABO_VERSION=""
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
+USER karabo
+WORKDIR /home/karabo
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
-    PATH="/opt/conda/bin:${PATH}" \
+    PATH="${HOME}/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    /bin/bash ~/miniconda.sh -b -p $HOME/conda && \
     conda init && \
     rm ~/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
@@ -37,6 +39,7 @@ RUN mkdir Karabo-Pipeline && \
     python -m ipykernel install --user --name=karabo
 
 # set bash-env accordingly for interactive and non-interactive shells for docker & singularity
+USER root
 RUN mkdir opt/etc && \
     echo "conda activate karabo" >> ~/.bashrc && \
     cat ~/.bashrc | sed -n '/conda initialize/,/conda activate/p' > /opt/etc/conda_init_script
@@ -49,5 +52,5 @@ RUN echo "$CONDA_PREFIX"/lib > /etc/ld.so.conf.d/conda.conf && \
     ldconfig
 
 # Additional setup
-WORKDIR /workspace
+USER karabo
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
