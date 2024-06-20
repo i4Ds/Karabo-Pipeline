@@ -14,17 +14,20 @@ Docker images have the advantage that the packages needed for Karabo-pipeline ar
 
 What the possibilities using Docker are is far too extensive to describe here. We refer to the official [Docker reference](https://docs.docker.com/reference/) for this. We only show here a minimal example of how Docker could be used, so you can use e.g. a [Jupyter Notebook](https://jupyter.org/) with sample code and an existing Karabo environment.
 
-```shell
-docker run -it -v <source-dir>:<target-dir> -p 8888:8888 ghcr.io/i4ds/karabo-pipeline
-```
+There's a `karabo` user set per default in the container from Karabo >= `v0.26.0`. We recommend to map your `uid` and `gid` to the container to not get permission issues if you intend producing output artifacts. Here's an example:
 
-This starts the Docker container of the image interactively, where the port 8888 is forwarded and an editable directory is mounted. After that, you could do whatever you want. For demonstration purpose, we start the jupyter-server in the container with the following command:
 
 ```shell
-jupyter lab --ip 0.0.0.0 --no-browser --port=8888
+docker run --rm --user <docker-user>:$(id -u):$(id -g) -v <local-dir>:<container-dir> -p <local-port>:<container-port> <registry>/<repository>/<image-name>:<tag> bash -c <command>
 ```
 
-This will start a server on the same port as forwarded. Then copy the url which is given at the bottom and replace `hostname` with `localhost` and open it in a browser.
+which could results in something like launching a jupyter-notebook:
+
+```shell
+docker run --rm --user karabo:$(id -u):$(id -g) -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --port=8888'
+```
+
+This starts a port-forwarded jupyter-lab server in the container, accessible through a browser using the printed URL.
 
 ## Singularity Containers
 
@@ -36,6 +39,8 @@ singularity pull docker://ghcr.io/i4ds/karabo-pipeline
 ```
 
 This creates a `.sif` file which acts as a singularity image and can be used to launch your application. How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html). Be aware that Singularity mounts the home-directory by default if start a container from your home-directory, which may or may not be desirable (e.g. `conda init` of your home instead of the container could get executed if you execute a Singularity container interactively). Therefore, for interactive access of a Karabo Singularity container, we suggest to use the `--no-home` flag.
+
+It is expected that the correct python-interpreter is directly available without performing `conda activate karabo` for interactive and non-interactive shells. However, if it's not the case, just putting the activate-command before choosing the python-interpreter should solve this issue.
 
 ## Sarus Containers
 
