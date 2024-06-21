@@ -18,16 +18,16 @@ There's a `karabo` user set per default in the container from Karabo >= `v0.26.0
 
 
 ```shell
-docker run --rm --user <docker-user>:$(id -u):$(id -g) -v <local-dir>:<container-dir> -p <local-port>:<container-port> <registry>/<repository>/<image-name>:<tag> bash -c <command>
+docker run --rm --user <container-user>:<uid>:<gid> -v <local-dir>:<container-dir> -p <local-port>:<container-port> <registry>/<repository>/<image-name>:<tag> bash -c <command>
 ```
 
-which could results in something like launching a jupyter-notebook:
+which could results in something like launching a jupyter-notebook and destroying the container after termination:
 
 ```shell
 docker run --rm --user karabo:$(id -u):$(id -g) -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --port=8888'
 ```
 
-This starts a port-forwarded jupyter-lab server in the container, accessible through a browser using the printed URL.
+This starts a port-forwarded jupyter-lab server in the container, accessible through a browser using the printed URL. If you're operating on a remote server, don't forget to port-forwarding through SSH.
 
 ## Singularity Containers
 

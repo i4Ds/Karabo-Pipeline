@@ -53,6 +53,9 @@ RUN echo "source $BASH_ENV" >> /etc/bash.bashrc && \
 RUN echo "$CONDA_PREFIX"/lib > /etc/ld.so.conf.d/conda.conf && \
     ldconfig
 
+# allow access to all users to home-dir for singularity support (shouldn't be an issue?)
+RUN chmod 777 -R /home/karabo
+
 # Additional setup
 USER karabo
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
