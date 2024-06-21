@@ -16,16 +16,18 @@ What the possibilities using Docker are is far too extensive to describe here. W
 
 
 ```shell
-docker run --rm --user <uid>:<gid> -v <local-dir>:<container-dir> -p <local-port>:<container-port> <registry>/<repository>/<image-name>:<tag> bash -c <command>
+docker run --rm -v <local-dir>:<container-dir> -p <local-port>:<container-port> <registry>/<repository>/<image-name>:<tag> bash -c <command>
 ```
 
 which could results in something like launching a jupyter-notebook and destroying the container after termination:
 
 ```shell
-docker run --rm --user $(id -u):$(id -g) -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --port=8888'
+docker run --rm -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --port=8888'
 ```
 
 This starts a port-forwarded jupyter-lab server in the container, accessible through a browser using the printed URL. If you're operating on a remote server, don't forget to port-forwarding through SSH.
+
+It isn't recommended to just map the uid and gid through the `docker run` command, because for singularity compatibility we can't create a custom user. However, just setting the ID's would result in launched services like `jupyter lab` to lose permissions as root, which is needed to write service-specific files. Therefore, if you intend to add a writable mounted volume, you have to adjust the permissions by yourself.
 
 ## Singularity Containers
 
@@ -38,15 +40,13 @@ singularity pull docker://ghcr.io/i4ds/karabo-pipeline
 
 This creates a `.sif` file which acts as a singularity image and can be used to launch your application. How to use Singularity containers (e.g. mount directories or enable gpu-support) can be seen in the [Singularity documentation](https://docs.sylabs.io/guides/3.1/user-guide/cli.html). Be aware that Singularity mounts the home-directory by default if start a container from your home-directory, which may or may not be desirable (e.g. `conda init` of your home instead of the container could get executed if you execute a Singularity container interactively). Therefore, for interactive access of a Karabo Singularity container, we suggest to use the `--no-home` flag.
 
-It is expected that the correct python-interpreter is directly available without performing `conda activate karabo` for interactive and non-interactive shells. However, if it's not the case, just putting the activate-command before choosing the python-interpreter should solve this issue.
-
 ## Sarus Containers
 
 On CSCS, it is recommended to use [Sarus containers](https://sarus.readthedocs.io/en/stable/index.html) (see CSCS [Sarus guide](https://user.cscs.ch/tools/containers/sarus/)). Sarus commands are similar to Docker or Singularity. It is recommended to create a Sarus image in an interactive SLURM job using `srun --pty bash`. 
 
 **Setup**
 
-You should load `daint-gpu` or `daint-mc` before loading the `sarus` modulefile:
+On daint, you should load `daint-gpu` or `daint-mc` before loading the `sarus` modulefile. We haven't tested the setup on alps. This is supposed to be done at some point.
 
 ```shell
 module load daint-gpu \# or daint-mc
