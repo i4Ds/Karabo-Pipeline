@@ -22,7 +22,7 @@ docker run --rm -v <local-dir>:<container-dir> -p <local-port>:<container-port> 
 which could results in something like launching a jupyter-notebook and destroying the container after termination:
 
 ```shell
-docker run --rm -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --port=8888'
+docker run --rm -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --allow-root --port=8888'
 ```
 
 This starts a port-forwarded jupyter-lab server in the container, accessible through a browser using the printed URL. If you're operating on a remote server, don't forget to port-forwarding through SSH.
