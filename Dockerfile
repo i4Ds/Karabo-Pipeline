@@ -2,19 +2,15 @@ FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
 ARG GIT_REV="main" BUILD="user" KARABO_VERSION=""
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
-RUN useradd -ms /bin/bash karabo
-USER karabo
-WORKDIR /home/karabo
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
-    PATH="/home/karabo/conda/bin:${PATH}" \
+    PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p $HOME/conda && \
-    ~/conda/bin/conda init && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN echo $PATH && \
-    conda install -y -n base conda-libmamba-solver && \
+RUN conda install -y -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
     conda create -y -n karabo
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
@@ -33,18 +29,18 @@ RUN mkdir Karabo-Pipeline && \
     else \
     exit 1; \
     fi && \
-    mkdir ~/karabo-examples && \
-    cp -r karabo/examples/* ~/karabo-examples && \
+    mkdir /workspace && \
+    mkdir /workspace/karabo-examples && \
+    cp -r karabo/examples/* /workspace/karabo-examples && \
     cd ".." && \
     rm -rf Karabo-Pipeline/ && \
     pip install jupyterlab ipykernel pytest && \
     python -m ipykernel install --user --name=karabo
 
 # set bash-env accordingly for interactive and non-interactive shells for docker & singularity
-USER root
 RUN mkdir /opt/etc && \
-    echo "conda activate karabo" >> /home/karabo/.bashrc && \
-    cat /home/karabo/.bashrc | sed -n '/conda initialize/,/conda activate/p' > /opt/etc/conda_init_script
+    echo "conda activate karabo" >> ~/.bashrc && \
+    cat ~/.bashrc | sed -n '/conda initialize/,/conda activate/p' > /opt/etc/conda_init_script
 ENV BASH_ENV=/opt/etc/conda_init_script
 RUN echo "source $BASH_ENV" >> /etc/bash.bashrc && \
     echo "source $BASH_ENV" >> /etc/profile
@@ -53,9 +49,6 @@ RUN echo "source $BASH_ENV" >> /etc/bash.bashrc && \
 RUN echo "$CONDA_PREFIX"/lib > /etc/ld.so.conf.d/conda.conf && \
     ldconfig
 
-# allow access to all users to home-dir for singularity support (shouldn't be an issue?)
-RUN chmod 777 -R /home/karabo
-
 # Additional setup
-USER karabo
+WORKDIR /workspace
 ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]

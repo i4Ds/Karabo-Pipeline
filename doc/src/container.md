@@ -14,17 +14,15 @@ Docker images have the advantage that the packages needed for Karabo-pipeline ar
 
 What the possibilities using Docker are is far too extensive to describe here. We refer to the official [Docker reference](https://docs.docker.com/reference/) for this. We only show here a minimal example of how Docker could be used, so you can use e.g. a [Jupyter Notebook](https://jupyter.org/) with sample code and an existing Karabo environment.
 
-There's a `karabo` user set per default in the container from Karabo >= `v0.26.0`. We recommend to map your `uid` and `gid` to the container to not get permission issues if you intend producing output artifacts. Here's an example:
-
 
 ```shell
-docker run --rm --user <container-user>:<uid>:<gid> -v <local-dir>:<container-dir> -p <local-port>:<container-port> <registry>/<repository>/<image-name>:<tag> bash -c <command>
+docker run --rm --user <uid>:<gid> -v <local-dir>:<container-dir> -p <local-port>:<container-port> <registry>/<repository>/<image-name>:<tag> bash -c <command>
 ```
 
 which could results in something like launching a jupyter-notebook and destroying the container after termination:
 
 ```shell
-docker run --rm --user karabo:$(id -u):$(id -g) -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --port=8888'
+docker run --rm --user $(id -u):$(id -g) -p 8888:8888 ghcr.io/i4ds/karabo-pipeline:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --port=8888'
 ```
 
 This starts a port-forwarded jupyter-lab server in the container, accessible through a browser using the printed URL. If you're operating on a remote server, don't forget to port-forwarding through SSH.
@@ -66,9 +64,9 @@ sarus pull ghcr.io/i4ds/karabo-pipeline
 Karabo >= `v0.22.0` supports [MPICH](https://www.mpich.org/)-based MPI processes that enable multi-node workflows on CSCS (or any other system which supports MPICH MPI). Note, on CSCS, mpi-runs are launched through SLURM (not through mpirun or mpiexec) by setting the `-n` (total-mpi-tasks) and `-N` (mpi-tasks-per-node) options when launching a job. So you have to set them according to your task.
 
 ```shell
-srun -N2 -n2 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/home/karabo ghcr.io/i4ds/karabo-pipeline <mpi_application>
+srun -N2 -n2 -C gpu sarus run --mount=type=bind,source=<your_repo>,destination=/workspace ghcr.io/i4ds/karabo-pipeline <mpi_application>
 ```
 
-Here, an MPI application with 2 processes is launched with your repository mounted in the container (/home/karabo is the default working-directory). Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
+Here, an MPI application with 2 processes is launched with your repository mounted in the container. Make sure that you know how many processes are reasonable to run because it can rapidly sum up to a large number of nodehours.
 
 Sarus containers allow native mpi-hook to utilize the mpi of CSCS at optimized performance. This can be done by simply adding the `--mpi` flag to the sarus run command. Probably, there will be some warning about the minor version of some libmpi-files. However, according to [sarus abi-compatibility](https://sarus.readthedocs.io/en/stable/user/abi_compatibility.html) this shouldn't be an issue.
