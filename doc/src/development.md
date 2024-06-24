@@ -123,7 +123,7 @@ Upload a single file with `swift upload karabo_public <file>`
 ## Update Documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
-The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation
+The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation.
 
 If you want to add any sort of extra text like examples or other sort of documentation do this by adding a new .md file or .rst file inside of the /doc/src folder.
 Then write your text and then add the new file to index.rst in the topmost toctree. 

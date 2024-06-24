@@ -14,6 +14,7 @@ Karabo is a starting point for the `Square Kilometer Array <https://www.skateles
    installation_user
    container
    examples/examples.md
+   parallel_processing
 
 Main Modules
 ==================
