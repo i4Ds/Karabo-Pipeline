@@ -162,7 +162,7 @@ Then, you can serve the documentation locally:
 
 ```shell
 cd _build/
-python -m http.server 3000`
+python -m http.server 3000
 ```
 
 ## Update Tests
