@@ -122,7 +122,7 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager: DirtyImager,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
-    should_perform_primary_beam_correction: bool = True,
+    should_perform_primary_beam_correction: bool = False,
 ) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
