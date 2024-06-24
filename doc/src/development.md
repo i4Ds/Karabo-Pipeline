@@ -123,10 +123,10 @@ Upload a single file with `swift upload karabo_public <file>`
 ## Update Documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
-The .rst and .md files need to be referenced somehow inside of index.rst or an already referenced page inside of index.rst to be viewable by the public upon building the documentation.
+The .rst and .md files need to be referenced inside of index.rst or an already referenced page inside of index.rst, in order to be viewable by the public upon building the documentation.
 
-If you want to add any sort of extra text like examples or other sort of documentation do this by adding a new .md file or .rst file inside of the /doc/src folder.
-Then write your text and then add the new file to index.rst in the topmost toctree. 
+If you wish to add a new documentation file, create a new .md file or .rst file inside of the /doc/src folder.
+Then, reference the new file within index.rst in the topmost toctree. Forinstance, see below:
 
 ````rst
 
@@ -147,16 +147,22 @@ Welcome to Karabo-Pipeline's documentation!
 
 ````
 
-Also subfiles can also point to other files like the file type defines. 
-So an md file can reference like ``[some file](path/to/some/file)``.
+(Note that .md files can reference each other, e.g. with ``[some file](path/to/some/file)``).
 
-When adding new submodules or modules. You need to update the modules.rst file accordingly and add new files similiar to the karabo.simulation.rst. To enable the automatic generation of the documentation via the python docstrings.
-There is also the command ```sphinx-apidoc``` from sphinx (our doc engine), that can automate this.
-
-If you want to work this sphinx locally on your machine, for example to use this sphinx-apidoc command. Thus, assuming you've installed the dev-dependencies from pyproject.toml, use the following commands to generate the documentation:
+Once you have made changes to the documentation, you can test them via the following steps:
 
 ```shell
-make html
+cd doc/src/examples
+python combine_examples.py # Inserts code snippets into Examples documentation
+cd -
+sphinx-build -M html ./doc/src/ ./_build/
+```
+
+Then, you can serve the documentation locally:
+
+```shell
+cd _build/
+python -m http.server 3000`
 ```
 
 ## Update Tests
