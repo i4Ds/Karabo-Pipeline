@@ -15,8 +15,6 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
 from karabo.data.external_data import (
-    BATTYESurveyDownloadObject,
-    DilutedBATTYESurveyDownloadObject,
     ExampleHDF5Map,
     GLEAMSurveyDownloadObject,
     HISourcesSmallCatalogDownloadObject,
@@ -139,10 +137,6 @@ def test_get_cartesian(sky_data_with_ids: NDArray[np.object_]):
 def test_cscs_resource_availability():
     gleam = GLEAMSurveyDownloadObject()
     assert gleam.is_available()
-    with pytest.raises(NotImplementedError):
-        BATTYESurveyDownloadObject()
-    with pytest.raises(NotImplementedError):
-        DilutedBATTYESurveyDownloadObject()
     sample_sky = HISourcesSmallCatalogDownloadObject()
     assert sample_sky.is_available()
     mightee = MIGHTEESurveyDownloadObject()

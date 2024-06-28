@@ -71,7 +71,7 @@ class RascilDirtyImager(DirtyImager):
             config (RascilDirtyImagerConfig): see config attribute
         """
         super().__init__()
-        self.config = config
+        self.config: RascilDirtyImagerConfig = config
 
     @override
     def create_dirty_image(
