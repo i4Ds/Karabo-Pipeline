@@ -1,3 +1,4 @@
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -10,7 +11,14 @@ from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.util import auto_choose_dirty_imager_from_sim
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
-from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
+from karabo.simulation.line_emission import (
+    REFERENCE_FREQUENCY_HZ,
+    REFERENCE_FWHM_DEGREES,
+    CircleSkyRegion,
+    gaussian_beam_fwhm_for_frequency,
+    generate_gaussian_beam_data,
+    line_emission_pipeline,
+)
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
@@ -218,8 +226,185 @@ def test_compare_oskar_rascil_dirty_images():
     count_very_different_pixels = np.sum(
         ~np.isclose(oskar_data, rascil_data, atol=tolerance)
     )
-    count_pixels = np.product(oskar_data.shape)  # Number of entries in data array
+    count_pixels = np.prod(oskar_data.shape)  # Number of entries in data array
     fraction_very_different_pixels = count_very_different_pixels / count_pixels
 
     # Less than 1% of pixels are more different than this threshold
     assert fraction_very_different_pixels < 0.01
+
+
+@pytest.mark.parametrize(
+    "simulator_backend,telescope_name",
+    [
+        (SimulatorBackend.OSKAR, "SKA1MID"),
+        (SimulatorBackend.RASCIL, "MID"),
+    ],
+)
+def test_primary_beam_effects(simulator_backend, telescope_name):
+    print(f"Running test for {simulator_backend = }")
+    telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
+
+    pointings = [
+        CircleSkyRegion(
+            radius=1 * u.deg, center=SkyCoord(ra=20, dec=-30, unit="deg", frame="icrs")
+        ),
+        CircleSkyRegion(
+            radius=1 * u.deg,
+            center=SkyCoord(ra=20, dec=-31.4, unit="deg", frame="icrs"),
+        ),
+        CircleSkyRegion(
+            radius=1 * u.deg,
+            center=SkyCoord(ra=21.4, dec=-30, unit="deg", frame="icrs"),
+        ),
+        CircleSkyRegion(
+            radius=1 * u.deg,
+            center=SkyCoord(ra=21.4, dec=-31.4, unit="deg", frame="icrs"),
+        ),
+    ]
+
+    # The number of time steps is then determined as total_length / integration_time.
+    observation_length = timedelta(seconds=10000)  # 14400 = 4hours
+    integration_time = timedelta(seconds=1000)
+
+    # Load catalog of sources
+    catalog_path = HISourcesSmallCatalogDownloadObject().get()
+    sky = SkyModel.get_sky_model_from_h5_to_xarray(
+        path=catalog_path,
+    )
+
+    # Define observation channels and duration
+    observation = Observation(
+        start_date_and_time=datetime(2000, 3, 20, 12, 6, 39),
+        length=observation_length,
+        number_of_time_steps=int(
+            observation_length.total_seconds() / integration_time.total_seconds()
+        ),
+        start_frequency_hz=7e8,
+        frequency_increment_hz=8e7,
+        number_of_channels=2,
+    )
+
+    # Instantiate interferometer
+    interferometer_without_primary_beam = InterferometerSimulation(
+        time_average_sec=10,  # Not sure of the meaning of this parameter
+        ignore_w_components=True,
+        uv_filter_max=10000,
+        uv_filter_units=FilterUnits.Metres,
+        use_gpus=True,
+        station_type="Isotropic beam",
+        gauss_beam_fwhm_deg=0,
+        gauss_ref_freq_hz=0,
+        use_dask=False,
+    )
+
+    interferometer_with_primary_beam = InterferometerSimulation(
+        time_average_sec=10,  # Not sure of the meaning of this parameter
+        ignore_w_components=True,
+        uv_filter_max=10000,
+        uv_filter_units=FilterUnits.Metres,
+        use_gpus=True,
+        station_type="Gaussian beam",
+        gauss_beam_fwhm_deg=REFERENCE_FWHM_DEGREES,
+        gauss_ref_freq_hz=REFERENCE_FREQUENCY_HZ,
+        use_dask=False,
+    )
+
+    # Imaging details
+    npixels = 4096
+    image_width_degrees = 2
+    cellsize_radians = np.radians(image_width_degrees) / npixels
+    dirty_imager_config = DirtyImagerConfig(
+        imaging_npixel=npixels,
+        imaging_cellsize=cellsize_radians,
+    )
+    dirty_imager = auto_choose_dirty_imager_from_sim(
+        simulator_backend, dirty_imager_config
+    )
+
+    # Compute frequency channels
+    frequency_channel_starts = np.linspace(
+        observation.start_frequency_hz,
+        observation.start_frequency_hz
+        + observation.frequency_increment_hz * observation.number_of_channels,
+        num=observation.number_of_channels,
+        endpoint=False,
+    )
+
+    # Generate primary beam data
+    primary_beams = []
+    for frequency in frequency_channel_starts:
+        fwhm_degrees = gaussian_beam_fwhm_for_frequency(frequency)
+        fwhm_pixels = (fwhm_degrees / np.degrees(dirty_imager.config.imaging_cellsize),)
+
+        primary_beam = generate_gaussian_beam_data(
+            fwhm_pixels=fwhm_pixels,
+            x_size=dirty_imager.config.imaging_npixel,
+            y_size=dirty_imager.config.imaging_npixel,
+        )
+        primary_beams.append(primary_beam)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_base_directory = Path(tmpdir)
+
+        # Verify that we apply the correct primary beam corrections
+        # for each frequency channels
+        _, dirty_images_corrected_primary_beam = line_emission_pipeline(
+            output_base_directory=output_base_directory,
+            pointings=pointings,
+            sky_model=sky,
+            observation_details=observation,
+            telescope=telescope,
+            interferometer=interferometer_with_primary_beam,
+            simulator_backend=simulator_backend,
+            dirty_imager=dirty_imager,
+            primary_beams=primary_beams,
+            should_perform_primary_beam_correction=True,
+        )
+
+        _, dirty_images_without_primary_beam = line_emission_pipeline(
+            output_base_directory=output_base_directory,
+            pointings=pointings,
+            sky_model=sky,
+            observation_details=observation,
+            telescope=telescope,
+            interferometer=interferometer_without_primary_beam,
+            simulator_backend=simulator_backend,
+            dirty_imager=dirty_imager,
+            primary_beams=None,
+            should_perform_primary_beam_correction=False,
+        )
+
+        assert len(dirty_images_without_primary_beam) == observation.number_of_channels
+        assert (
+            len(dirty_images_corrected_primary_beam) == observation.number_of_channels
+        )
+
+        # Verify that images without beam effects are mostly close
+        # to images corrected for primary beam effects
+        for index_freq in range(observation.number_of_channels):
+            for index_p, _ in enumerate(pointings):
+                dirty_without_primary_beam = dirty_images_without_primary_beam[
+                    index_freq
+                ][index_p].data
+                dirty_corrected_primary_beam = dirty_images_corrected_primary_beam[
+                    index_freq
+                ][index_p].data
+
+                # Compute relative difference between images
+                # at each pointing and channel
+                relative_difference = np.abs(
+                    dirty_corrected_primary_beam / dirty_without_primary_beam - 1
+                )
+
+                # Set maximum accepted percentage of pixels
+                # that can be more different than desired threshold
+                threshold_relative_difference = 1
+                maximum_accepted_pixel_fraction_over_threshold_difference = 0.25
+                fraction_of_very_different_pixels = (
+                    relative_difference > threshold_relative_difference
+                ).sum() / np.prod(relative_difference.shape)
+
+                assert (
+                    fraction_of_very_different_pixels
+                    < maximum_accepted_pixel_fraction_over_threshold_difference
+                )

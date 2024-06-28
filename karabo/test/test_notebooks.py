@@ -52,7 +52,7 @@ def test_source_detection_big_files_notebook() -> None:
 
 
 @pytest.mark.skipif(
-    not RUN_NOTEBOOK_TESTS,
+    IS_GITHUB_RUNNER or not RUN_NOTEBOOK_TESTS,
     reason="'Error: The operation was canceled' when running this test on the package",
 )
 def test_source_detection_assesment_notebook() -> None:
@@ -60,7 +60,7 @@ def test_source_detection_assesment_notebook() -> None:
 
 
 @pytest.mark.skipif(
-    not RUN_NOTEBOOK_TESTS,
+    IS_GITHUB_RUNNER or not RUN_NOTEBOOK_TESTS,
     reason="'Error: The operation was canceled' when running this test on the package",
 )
 def test_LineEmission_notebook() -> None:

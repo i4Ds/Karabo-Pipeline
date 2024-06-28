@@ -53,7 +53,7 @@ class OskarDirtyImager(DirtyImager):
             config (OskarDirtyImagerConfig): see config attribute
         """
         super().__init__()
-        self.config = config
+        self.config: OskarDirtyImagerConfig = config
 
     @override
     def create_dirty_image(

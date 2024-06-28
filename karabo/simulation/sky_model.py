@@ -1552,7 +1552,7 @@ class SkyModel:
             A 2D xarray DataArray containing the sky model data. Rows represent data
             points and columns represent different data fields ('ra', 'dec', ...).
         """
-        f = h5py.File(path, "r")
+        f = h5py.File(path, "r", locking=False)
         data_arrays: List[xr.DataArray] = []
 
         # not sure why we have a default here, but keep for compatibility I guess?

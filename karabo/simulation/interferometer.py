@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 from typing import get_args as typing_get_args
 from typing import overload
+from warnings import warn
 
 import numpy as np
 import oskar
@@ -14,10 +15,12 @@ from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
+from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from ska_sdp_datamodels.visibility import create_visibility, export_visibility_to_hdf5
 from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
+from ska_sdp_func_python.sky_component import apply_beam_to_skycomponent
 from typing_extensions import assert_never
 
 from karabo.error import KaraboInterferometerSimulationError
@@ -333,6 +336,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: Observation,
         backend: Literal[SimulatorBackend.OSKAR] = ...,
+        primary_beam: None = ...,
     ) -> Visibility:
         ...
 
@@ -343,6 +347,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationLong,
         backend: Literal[SimulatorBackend.OSKAR] = ...,
+        primary_beam: None = ...,
     ) -> Visibility:
         ...
 
@@ -353,6 +358,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationParallized,
         backend: Literal[SimulatorBackend.OSKAR] = ...,
+        primary_beam: None = ...,
     ) -> List[Visibility]:
         ...
 
@@ -363,6 +369,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: Observation,
         backend: Literal[SimulatorBackend.RASCIL],
+        primary_beam: Optional[RASCILImage],
     ) -> RASCILVisibility:
         ...
 
@@ -373,6 +380,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationAbstract,
         backend: SimulatorBackend,
+        primary_beam: None = ...,
     ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
         ...
 
@@ -382,6 +390,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationAbstract,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
+        primary_beam: Optional[RASCILImage] = None,
     ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
         """
         Run a single interferometer simulation with the given sky, telescope.png and
@@ -390,8 +399,22 @@ class InterferometerSimulation:
         :param sky: sky model defining the sky sources
         :param observation: observation settings
         :param backend: Backend used to perform calculations (e.g. OSKAR, RASCIL)
+        :param primary_beam: Primary beam to be included into visibilities.
+            Currently only relevant for RASCIL.
+            For OSKAR, use the InterferometerSimulation constructor parameters instead.
         """
         if backend is SimulatorBackend.OSKAR:
+            if primary_beam is not None:
+                warn(
+                    """
+                    Providing a custom primary beam is not supported by OSKAR.
+                    The provided primary beam will be ignored.
+                    To configure a primary beam effect with OSKAR,
+                    set the InterferometerSimulation primary beam parameters
+                    (FWHM and reference frequency) instead.
+                    """
+                )
+
             if isinstance(observation, ObservationLong):
                 return self.__run_simulation_long(
                     telescope=telescope, sky=sky, observation=observation
@@ -406,7 +429,10 @@ class InterferometerSimulation:
                 )
         elif backend is SimulatorBackend.RASCIL:
             return self.__run_simulation_rascil(
-                telescope=telescope, sky=sky, observation=observation
+                telescope=telescope,
+                sky=sky,
+                observation=observation,
+                primary_beam=primary_beam,
             )
 
         assert_never(backend)
@@ -422,7 +448,11 @@ class InterferometerSimulation:
         self.ionosphere_fits_path = file_path
 
     def __run_simulation_rascil(
-        self, telescope: Telescope, sky: SkyModel, observation: ObservationAbstract
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: ObservationAbstract,
+        primary_beam: Optional[RASCILImage],
     ) -> RASCILVisibility:
         """
         Compute visibilities from SkyModel using the RASCIL backend.
@@ -432,6 +462,7 @@ class InterferometerSimulation:
         :param sky: SkyModel to be used in the simulation.
             Will be converted into a RASCIL-compatible list of SkyComponent objects.
         :param observation: Observation details
+        :param primary_beam: Primary beam to be included into visibilities.
         """
         # Steps followed in this simulation:
         # Compute hour angles based on Observation details
@@ -490,6 +521,9 @@ class InterferometerSimulation:
             desired_frequencies_hz=frequency_channel_starts,
             channel_bandwidth_hz=observation.frequency_increment_hz,
         )
+
+        if primary_beam is not None:
+            skycomponents = apply_beam_to_skycomponent(skycomponents, primary_beam)
 
         # Compute visibilities from SkyComponent list using DFT
         vis = dft_skycomponent_visibility(
