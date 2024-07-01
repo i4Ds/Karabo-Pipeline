@@ -5,8 +5,13 @@ https://ivoa.net/documents/ObsCore/
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Literal
+from warnings import warn
+
+from karabo.util.file_handler import assert_valid_ending
 
 
 @dataclass
@@ -19,10 +24,10 @@ class ObsCoreMeta:
     Args:
         dataproduct_type: Logical data product type (image etc.).
         dataproduct_subtype: Data product specific type.
-        calib_level: Calibration level {0, 1, 2, 3, 4}.
-        obs_collection: Name of the data collection.
-        obs_id: Observation ID.
-        obs_publisher_did: Dataset identifier given by the publisher.
+        calib_level: Calibration level {0, 1, 2, 3, 4} (NOT NULL).
+        obs_collection: Name of the data collection (NOT NULL).
+        obs_id: Observation ID (NOT NULL).
+        obs_publisher_did: Dataset identifier given by the publisher (NOT NULL).
         obs_title: Brief description of dataset in free format.
         obs_creator_did: IVOA dataset identifier given by the creator.
         target_class: Class of the Target object as in SSA.
@@ -56,40 +61,82 @@ class ObsCoreMeta:
         preview: TODO: couldn't find description in IVOA documentation.
     """
 
-    dataproduct_type: str | None
-    dataproduct_subtype: str | None
-    calib_level: Literal[0, 1, 2, 3, 4]  # not null
-    obs_collection: str  # not null
-    obs_id: str  # not null
-    obs_publisher_did: str  # not null
-    obs_title: str | None
-    obs_creator_did: str | None
-    target_class: str | None
-    access_url: str | None
-    access_format: str | None
-    access_estsize: int | None
-    target_name: str | None
-    s_ra: float | None
-    s_dec: float | None
-    s_fov: float | None
-    s_region: str | None
-    s_resolution: float | None
-    s_xel1: int | None
-    s_xel2: int | None
-    s_pixel_scale: float | None
-    t_min: float | None
-    t_max: float | None
-    t_exptime: float | None
-    t_resolution: float | None
-    t_xel: int | None
-    em_min: float | None
-    em_max: float | None
-    em_res_power: float | None
-    em_xel: int | None
-    em_ucd: str | None
-    o_ucd: str | None
-    pol_states: str | None
-    pol_xel: int | None
-    facility_name: str | None
-    instrument_name: str | None
-    preview: str | None
+    dataproduct_type: str | None = None
+    dataproduct_subtype: str | None = None
+    calib_level: Literal[0, 1, 2, 3, 4] | None = None  # not null
+    obs_collection: str | None = None  # not null
+    obs_id: str | None = None  # not null
+    obs_publisher_did: str | None = None  # not null
+    obs_title: str | None = None
+    obs_creator_did: str | None = None
+    target_class: str | None = None
+    access_url: str | None = None
+    access_format: str | None = None
+    access_estsize: int | None = None
+    target_name: str | None = None
+    s_ra: float | None = None
+    s_dec: float | None = None
+    s_fov: float | None = None
+    s_region: str | None = None
+    s_resolution: float | None = None
+    s_xel1: int | None = None
+    s_xel2: int | None = None
+    s_pixel_scale: float | None = None
+    t_min: float | None = None
+    t_max: float | None = None
+    t_exptime: float | None = None
+    t_resolution: float | None = None
+    t_xel: int | None = None
+    em_min: float | None = None
+    em_max: float | None = None
+    em_res_power: float | None = None
+    em_xel: int | None = None
+    em_ucd: str | None = None
+    o_ucd: str | None = None
+    pol_states: str | None = None
+    pol_xel: int | None = None
+    facility_name: str | None = None
+    instrument_name: str | None = None
+    preview: str | None = None
+
+    def to_json(
+        self,
+        fpath: Path | str,
+        ignore_none: bool = True,
+    ) -> None:
+        """Converts this dataclass into a JSON.
+
+        Args:
+            fpath: JSON file-path.
+            ignore_none: Ignore non-mandatory `None` fields?
+
+        Returns:
+            JSON as a str.
+        """
+        assert_valid_ending(path=fpath, ending=".json")
+        dictionary = asdict(self)
+        mandatory_fields = (
+            "calib_level",
+            "obs_collection",
+            "obs_id",
+            "obs_publisher_did",
+        )
+        mandatory_missing = [
+            field_name
+            for field_name in mandatory_fields
+            if getattr(self, field_name) is None
+        ]
+        if len(mandatory_missing) > 0:
+            wmsg = (
+                f"{mandatory_missing=} fields are None in `ObsCoreMeta`, "
+                + "but are mandatory to ObsTAP services."
+            )
+            warn(message=wmsg, category=UserWarning, stacklevel=1)
+        if ignore_none:
+            dictionary = {
+                key: value
+                for key, value in dictionary.items()
+                if value is not None or key in mandatory_fields
+            }
+        with open(file=fpath, mode="w") as json_file:
+            json_file.write(json.dumps(dictionary))
