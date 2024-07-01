@@ -1,6 +1,0 @@
-Telescope Configuration naming conventions:
-
-Karabo supports many telescope configurations from various observations cycle. 
-Karabo uses OSKAR telescope directory structure. The name of the directory is given the name of the telescope followed by configuration or cycle specification e.g. for VLA configuration C will be “vla.c.tm” and for ALMA cycle 4.2, the name is “alma.cycle4.2”. The  top-level directory must contain a special file to specify the telescope centre position (position.txt), a special file to specify the position of each station (layout.txt), and a set of sub-directories one for every station. Each of these sub-directories contains one or more special files to specify the configuration of that station. For telescope with dishes, it contain just a number.
-
-More details can be find on OSKAR: https://ska-telescope.gitlab.io/sim/oskar/telescope_model/telescope_model.html

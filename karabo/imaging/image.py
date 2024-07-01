@@ -480,7 +480,7 @@ class Image:
         two_dimensional_header["WCSAXES"] = 2
         temporary_data = self.data[channel_index][stokes_index]
 
-        for kw in ("CTYPE", "CRVAL", "CRPIX", "CDELT", "CUNIT", "NAXIS"):
+        for kw in ("CTYPE", "CROTA", "CRVAL", "CRPIX", "CDELT", "CUNIT", "NAXIS"):
             for n in (3, 4):
                 k = f"{kw}{n}"
                 if k in two_dimensional_header.keys():
