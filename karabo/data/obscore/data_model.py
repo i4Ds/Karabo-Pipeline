@@ -13,6 +13,18 @@ from warnings import warn
 
 from karabo.util.file_handler import assert_valid_ending
 
+_DataProductTypeType = Literal[
+    "image",
+    "cube",
+    "spectrum",
+    "sed",
+    "timeseries",
+    "visibility",
+    "event",
+    "measurements",
+]
+_CalibLevelType = Literal[0, 1, 2, 3, 4]
+
 
 @dataclass
 class ObsCoreMeta:
@@ -22,18 +34,32 @@ class ObsCoreMeta:
     defined in the SRCNet rucio database.
 
     Args:
-        dataproduct_type: Logical data product type (image etc.).
+        dataproduct_type: Logical data product type (image etc.). `image`, `cube`,
+            `spectrum`, `sed`, `timeseries`, `visibility`, `event` or `measurements`.
         dataproduct_subtype: Data product specific type.
         calib_level: Calibration level {0, 1, 2, 3, 4} (NOT NULL).
-        obs_collection: Name of the data collection (NOT NULL).
+            - 0: Raw instrumental data.
+            - 1: Instrumental data in a starndard format (FITS, VOTable, etc.)
+            - 2: Calibrated, science ready measurements without instrument signature.
+            - 3: Enhanced data products like mosaics, drizzled images or heavily
+                processed survey fields. May represent a combination of data from
+                multiple primary obs.
+            - 4: Analysis data products generated after scientific data manipulation.
+        obs_collection: Name of the data collection (NOT NULL). Either registered
+            shortname, full registered IVOA identifier or a data provider defined
+            shortname. Often used pattern: `<facility-name>/<instrument-name>`.
         obs_id: Observation ID (NOT NULL).
+            All data-products from a single observation should share the same `obs_id`.
+            This is just a unique str-ID with no form. Must be unique to a provider.
         obs_publisher_did: Dataset identifier given by the publisher (NOT NULL).
+            IVOA dataset identifier. Must be a unique value within the namespace
+            controlled by the dataset publisher (data center).
         obs_title: Brief description of dataset in free format.
         obs_creator_did: IVOA dataset identifier given by the creator.
         target_class: Class of the Target object as in SSA.
         access_url: URL used to access (download) dataset.
-        access_format: File content format (see BB.5.2).
-        access_estsize: [kbyte] Estimated size of dataset in kilo bytes.
+        access_format: File content format (MIME type) (`fits`, `jpeg`, `zip`, etc.).
+        access_estsize: [kbyte] Estimated size of dataset from `access_url`.
         target_name: Astronomical object observed, if any.
         s_ra: [deg] Central right ascension, ICRS.
         s_dec: [deg] Central declination, ICRS.
@@ -61,9 +87,9 @@ class ObsCoreMeta:
         preview: TODO: couldn't find description in IVOA documentation.
     """
 
-    dataproduct_type: str | None = None
+    dataproduct_type: _DataProductTypeType | None = None
     dataproduct_subtype: str | None = None
-    calib_level: Literal[0, 1, 2, 3, 4] | None = None  # not null
+    calib_level: _CalibLevelType | None = None  # not null
     obs_collection: str | None = None  # not null
     obs_id: str | None = None  # not null
     obs_publisher_did: str | None = None  # not null
