@@ -1,6 +1,8 @@
 """ObsCore Data Model.
 
 https://ivoa.net/documents/ObsCore/
+
+Recommended IVOA documents: https://www.ivoa.net/documents/index.html
 """
 
 from __future__ import annotations
@@ -113,8 +115,13 @@ class ObsCoreMeta:
         em_res_power: Spectral resolving power :math:`\lambda / \delta \lambda`.
         em_xel: Number of elements along the spectral axis.
         em_ucd: Nature of the spectral axis.
-        o_ucd: UCD of observable (e.g. phot.flux.density, phot.count, etc.)
+        o_ucd: UCD (semantic annotation(s)) of observable (e.g. phot.flux.density).
+            A UCD is a string containing `;` separated words, which can be separated
+            into atoms. The UCD-list is evolving over time and far too extensive to
+            describe here. Please have a look at the recommended version of IVOA
+            `UCDlist` document at `https://www.ivoa.net/documents/index.html`.
         pol_states: List of polarization states or NULL if not applicable.
+            Allowed: I, Q, U, V, RR, LL, RL, LR, XX, YY, XY, YX, POLI, POLA.
         pol_xel: Number of polarization samples.
         facility_name: Name of the facility used for this observation.
         instrument_name: Name of the instrument used for this observation.
@@ -174,24 +181,9 @@ class ObsCoreMeta:
             JSON as a str.
         """
         assert_valid_ending(path=fpath, ending=".json")
+        self.check_ObsCoreMeta(verbose=True)
+        mandatory_fields = self._get_mandatory_fields()
         dictionary = asdict(self)
-        mandatory_fields = (
-            "calib_level",
-            "obs_collection",
-            "obs_id",
-            "obs_publisher_did",
-        )
-        mandatory_missing = [
-            field_name
-            for field_name in mandatory_fields
-            if getattr(self, field_name) is None
-        ]
-        if len(mandatory_missing) > 0:
-            wmsg = (
-                f"{mandatory_missing=} fields are None in `ObsCoreMeta`, "
-                + "but are mandatory to ObsTAP services."
-            )
-            warn(message=wmsg, category=UserWarning, stacklevel=1)
         if ignore_none:
             dictionary = {
                 key: value
@@ -204,6 +196,8 @@ class ObsCoreMeta:
     def set_pol_states(self, pol_states: _PolStatesListType) -> None:
         """Sets `pol_states` from a pythonic interface to a `str` according to ObsCore.
 
+        Overwrites if `pol_states` already exists.
+
         Args:
             pol_states: Polarisation states.
         """
@@ -211,7 +205,6 @@ class ObsCoreMeta:
         pol_states_ordered = all_pol_states - (all_pol_states - set(pol_states))
         pol_states_str = "/".join(("", *pol_states_ordered, ""))
         self.pol_states = pol_states_str
-        return None
 
     def get_pol_states(self) -> _PolStatesListType | None:
         """Parses the polarisation states to `_PolStatesListType`.
@@ -220,18 +213,116 @@ class ObsCoreMeta:
             List of polarisation states if field-value is not None.
         """
 
-        def check_pol(pol_states: list[str]) -> TypeGuard[_PolStatesListType]:
+        def check_pol_type(pol_states: list[str]) -> TypeGuard[_PolStatesListType]:
             valid_pol_states = get_args(_PolStatesType)
             return all(pol_state in valid_pol_states for pol_state in pol_states)
 
         if self.pol_states is None:
             return None
+        pol_states = self.pol_states.split("/")[1:-1]
+        if check_pol_type(pol_states=pol_states):
+            return pol_states
         else:
-            pol_states = self.pol_states.split("/")[1:-1]
-            if check_pol(pol_states=pol_states):
-                return pol_states
-            else:
-                err_msg = (
-                    f"Invalid polarization values encountered in {self.pol_states=}"
+            err_msg = f"Invalid polarization values encountered in {self.pol_states=}"
+            raise ValueError(err_msg)
+
+    def check_ObsCoreMeta(self, verbose: bool = False) -> bool:
+        """Checks whether `ObsCoreMeta` is ready for serialization.
+
+        This doesn't perform a full check if all field-values are valid.
+        Currently supported checks:
+
+        Args:
+            verbose: Verbose?
+
+        Returns:
+            True if ready, else False.
+        """
+        return self._check_mandatory_fields(
+            verbose=verbose,
+        ) and self._check_polarization(
+            verbose=verbose,
+        )
+
+    @classmethod
+    def _get_mandatory_fields(cls) -> tuple[str, ...]:
+        """Gets the mandatory fields according to `REC-ObsCore-v1.1`.
+
+        Returns:
+            Mandatory field-names as tuple.
+        """
+        return (
+            "calib_level",
+            "obs_collection",
+            "obs_id",
+            "obs_publisher_did",
+        )
+
+    def _check_mandatory_fields(self, verbose: bool) -> bool:
+        """Checks mandatory fields.
+
+        Prints a warning to stderr if one or more field-values are None.
+
+        Args:
+            verbose: Verbose?
+
+        Returns:
+            True if mandatory fields are all set, else False.
+        """
+        mandatory_fields = self._get_mandatory_fields()
+        mandatory_missing = [
+            field_name
+            for field_name in mandatory_fields
+            if getattr(self, field_name) is None
+        ]
+        valid: bool = True
+        if len(mandatory_missing) > 0:
+            valid = False
+            if verbose:
+                wmsg = (
+                    f"{mandatory_missing=} fields are None in `ObsCoreMeta`, "
+                    + "but are mandatory to ObsTAP services."
                 )
-                raise ValueError(err_msg)
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+        return valid
+
+    def _check_polarization(self, verbose: bool) -> bool:
+        """Checks polarization fields according to `REC-ObsCore-v1.1`.
+
+        Args:
+            verbose: Verbose?
+
+        Returns:
+            True if polarization check succeeded without any issues, else False.
+        """
+        pol_xel = self.pol_xel
+        pol_states = self.pol_states
+        valid: bool = True
+        if pol_states is not None:
+            try:
+                _ = self.get_pol_states()
+            except ValueError as ve:
+                valid = False
+                if verbose:
+                    warn(message=str(ve), category=UserWarning, stacklevel=1)
+        if pol_xel is None and pol_states is not None:
+            valid = False
+            if verbose:
+                wmsg = f"`pol_xel` should be specified because {pol_states=}!"
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+        elif pol_xel is not None and pol_states is None:
+            valid = False
+            if verbose:
+                wmsg = f"`pol_states` should be specified because {pol_xel=}!"
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+        elif pol_xel is not None and pol_states is not None:
+            if pol_xel < 1:
+                wmsg = f"{pol_xel=} must be >= 1!"
+        if (pol_xel is not None or pol_states is not None) and (
+            self.o_ucd is None or (ucd_str := "phys.polarisation") not in self.o_ucd
+        ):
+            valid = False
+            if verbose:
+                wmsg = f"`o_ucd` must at least contain '{ucd_str}' but it doesn't!"
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+        return valid
