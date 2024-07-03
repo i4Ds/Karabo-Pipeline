@@ -60,8 +60,10 @@ class ObsCoreMeta:
     Args:
         dataproduct_type: Logical data product type (image etc.). `image`, `cube`,
             `spectrum`, `sed`, `timeseries`, `visibility`, `event` or `measurements`.
+
         dataproduct_subtype: Data product specific type defined by the ObsTAP provider.
             This is not a useful value for global discovery, but within an archive.
+
         calib_level: Calibration level {0, 1, 2, 3, 4} (NOT NULL).
             - 0: Raw instrumental data.
             - 1: Instrumental data in a starndard format (FITS, VOTable, etc.)
@@ -70,66 +72,100 @@ class ObsCoreMeta:
                 processed survey fields. May represent a combination of data from
                 multiple primary obs.
             - 4: Analysis data products generated after scientific data manipulation.
+
         obs_collection: Name of the data collection (NOT NULL). Either registered
             shortname, full registered IVOA identifier or a data provider defined
             shortname. Often used pattern: `<facility-name>/<instrument-name>`.
+
         obs_id: Observation ID (NOT NULL).
             All data-products from a single observation should share the same `obs_id`.
             This is just a unique str-ID with no form. Must be unique to a provider.
+
         obs_publisher_did: Dataset identifier given by the publisher (NOT NULL).
             IVOA dataset identifier. Must be a unique value within the namespace
             controlled by the dataset publisher (data center).
+
         obs_title: Brief description of dataset in free format.
+
         obs_creator_did: IVOA dataset identifier given by the creator.
+
         target_class: Class of the Target object as in SSA.
+
         access_url: URL used to access (download) dataset.
+
         access_format: File content format (MIME type) (`fits`, `jpeg`, `zip`, etc.).
+
         access_estsize: [kbyte] Estimated size of dataset from `access_url`.
+
         target_name: Astronomical object observed, if any. This is typically the name
             of an astronomical object, but could be the name of a survey field.
+
         s_ra: [deg] Central right ascension, ICRS.
+
         s_dec: [deg] Central declination, ICRS.
+
         s_fov: [deg] Region covered by the data product. For a circular region, this
             is the diameter. For most data products, the value should be large enough
             to include the entire are of the observation. For detailed spatial
             coverage, the `s_region` attribute can be used.
+
         s_region: Sky region covered by the data product (expressed in ICRS frame).
             The format for `point`, `circle` and `polygon` is described in `DALI-1.1`.
+
         s_resolution: [arcsec] Smallest resolvable spatial resolution of data as FWHM.
             If spatial frequency sampling is complex (e.g. interferometry), a typical
             value for spatial resolution estimate should be given.
+
         s_xel1: Number of elements along the first spatial axis.
+
         s_xel2: Number of elements along the second spatial axis.
+
         s_pixel_scale: Sampling period in world coordinate units along the spatial axis.
             It's the distance in WCS units between two pixel centers.
+
         t_min: [d] Observation start time in Modified Julian Day (MJD).
+
         t_max: [d] Observation stop time in Modified Julian Day (MJD).
+
         t_exptime: [s] Total exposure time. For simple exposures: `t_max` - `t_min`.
             For data where the exposure is not constant over the entire data product,
             the median exposure time per pixel is a good wa to characterize the typical
             value.
+
         t_resolution: [s] Minimal interpretable interval between two points along time.
             This can be an average or representative value. For products with no
             sampling along the time axis, it could be set to exposure time or null.
+
         t_xel: Number of elements along the time axis.
+
         em_min: [m] Minimal spectral value observed, expressed as a vacuum wavelength.
+
         em_max: [m] Maximum spectral value observed, expressed as a vacuum wavelength.
+
         em_res_power: Spectral resolving power :math:`\lambda / \delta \lambda`.
+
         em_xel: Number of elements along the spectral axis.
+
         em_ucd: Nature of the spectral axis. This is an em (electromagnetic spectrum)
             UCD (UCD-string see `o_ucd`), e.g. `em.freq`, `em.wl` or `em.energy`.
             Note: For ObsTAP implementation, the spectral axis coordinates are
             constrained as a wavelength quantity expressed in meters.
+
         o_ucd: UCD (semantic annotation(s)) of observable (e.g. phot.flux.density).
             A UCD is a string containing `;` separated words, which can be separated
             into atoms. The UCD-list is evolving over time and far too extensive to
             describe here. Please have a look at the recommended version of IVOA
             `UCDlist` document at `https://www.ivoa.net/documents/index.html`.
+
         pol_states: List of polarization states or NULL if not applicable.
             Allowed: I, Q, U, V, RR, LL, RL, LR, XX, YY, XY, YX, POLI, POLA.
+
         pol_xel: Number of polarization samples in `pol_states`.
+
         facility_name: Name of the facility used for this observation.
+
         instrument_name: Name of the instrument used for this observation.
+
         preview: TODO: couldn't find description in IVOA documentation.
     """
 
