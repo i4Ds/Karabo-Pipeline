@@ -122,7 +122,7 @@ class ObsCoreMeta:
             `UCDlist` document at `https://www.ivoa.net/documents/index.html`.
         pol_states: List of polarization states or NULL if not applicable.
             Allowed: I, Q, U, V, RR, LL, RL, LR, XX, YY, XY, YX, POLI, POLA.
-        pol_xel: Number of polarization samples.
+        pol_xel: Number of polarization samples in `pol_states`.
         facility_name: Name of the facility used for this observation.
         instrument_name: Name of the instrument used for this observation.
         preview: TODO: couldn't find description in IVOA documentation.
@@ -231,6 +231,9 @@ class ObsCoreMeta:
 
         This doesn't perform a full check if all field-values are valid.
         Currently supported checks:
+        - Presence of mandatory fields
+        - Polarization fields
+        - Axes fields
 
         Args:
             verbose: Verbose?
@@ -238,10 +241,16 @@ class ObsCoreMeta:
         Returns:
             True if ready, else False.
         """
-        return self._check_mandatory_fields(
-            verbose=verbose,
-        ) and self._check_polarization(
-            verbose=verbose,
+        return (
+            self._check_mandatory_fields(
+                verbose=verbose,
+            )
+            and self._check_polarization(
+                verbose=verbose,
+            )
+            and self._check_axes(
+                verbose=verbose,
+            )
         )
 
     @classmethod
@@ -308,21 +317,50 @@ class ObsCoreMeta:
         if pol_xel is None and pol_states is not None:
             valid = False
             if verbose:
-                wmsg = f"`pol_xel` should be specified because {pol_states=}!"
+                wmsg = f"`pol_xel` should be specified because {pol_states=}"
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         elif pol_xel is not None and pol_states is None:
             valid = False
             if verbose:
-                wmsg = f"`pol_states` should be specified because {pol_xel=}!"
+                wmsg = (
+                    f"{pol_xel=} is specified, but {pol_states=} which isn't consistent"
+                )
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         elif pol_xel is not None and pol_states is not None:
-            if pol_xel < 1:
-                wmsg = f"{pol_xel=} must be >= 1!"
+            if pol_xel != (num_pol_states := len(pol_states)):
+                wmsg = f"{pol_xel=} should be {num_pol_states=}"
         if (pol_xel is not None or pol_states is not None) and (
             self.o_ucd is None or (ucd_str := "phys.polarisation") not in self.o_ucd
         ):
             valid = False
             if verbose:
-                wmsg = f"`o_ucd` must at least contain '{ucd_str}' but it doesn't!"
+                wmsg = f"`o_ucd` must at least contain '{ucd_str}' but it doesn't"
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+        return valid
+
+    def _check_axes(self, verbose: bool) -> bool:
+        """Checks axis-lengths (`s_xel1`, `s_xel2`, `em_xel`, `t_xel`, `pol_xel`).
+
+        Args:
+            verbose: Verbose?
+
+        Returns:
+            True if checks passed, else False.
+        """
+        valid = True
+
+        def check_value(value: int | None) -> bool:
+            return value is None or value >= -1
+
+        axis_field_names = ("s_xel1", "s_xel2", "em_xel", "t_xel", "pol_xel")
+        invalid_fields: dict[str, str] = {}
+        for axis_field_name in axis_field_names:
+            field_value = getattr(self, axis_field_name)
+            if not check_value(value=field_value):
+                invalid_fields[axis_field_name] = field_value
+        if len(invalid_fields) > 0:
+            valid = False
+            if verbose:
+                wmsg = f"Invalid axes-values: {invalid_fields}"
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         return valid
