@@ -60,7 +60,8 @@ class ObsCoreMeta:
     Args:
         dataproduct_type: Logical data product type (image etc.). `image`, `cube`,
             `spectrum`, `sed`, `timeseries`, `visibility`, `event` or `measurements`.
-        dataproduct_subtype: Data product specific type.
+        dataproduct_subtype: Data product specific type defined by the ObsTAP provider.
+            This is not a useful value for global discovery, but within an archive.
         calib_level: Calibration level {0, 1, 2, 3, 4} (NOT NULL).
             - 0: Raw instrumental data.
             - 1: Instrumental data in a starndard format (FITS, VOTable, etc.)
@@ -100,6 +101,7 @@ class ObsCoreMeta:
         s_xel1: Number of elements along the first spatial axis.
         s_xel2: Number of elements along the second spatial axis.
         s_pixel_scale: Sampling period in world coordinate units along the spatial axis.
+            It's the distance in WCS units between two pixel centers.
         t_min: [d] Observation start time in Modified Julian Day (MJD).
         t_max: [d] Observation stop time in Modified Julian Day (MJD).
         t_exptime: [s] Total exposure time. For simple exposures: `t_max` - `t_min`.
@@ -114,7 +116,10 @@ class ObsCoreMeta:
         em_max: [m] Maximum spectral value observed, expressed as a vacuum wavelength.
         em_res_power: Spectral resolving power :math:`\lambda / \delta \lambda`.
         em_xel: Number of elements along the spectral axis.
-        em_ucd: Nature of the spectral axis.
+        em_ucd: Nature of the spectral axis. This is an em (electromagnetic spectrum)
+            UCD (UCD-string see `o_ucd`), e.g. `em.freq`, `em.wl` or `em.energy`.
+            Note: For ObsTAP implementation, the spectral axis coordinates are
+            constrained as a wavelength quantity expressed in meters.
         o_ucd: UCD (semantic annotation(s)) of observable (e.g. phot.flux.density).
             A UCD is a string containing `;` separated words, which can be separated
             into atoms. The UCD-list is evolving over time and far too extensive to
