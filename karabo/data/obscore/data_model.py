@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from pathlib import Path
-from typing import Literal, get_args
+from typing import List, Literal, Optional, Tuple, get_args
 from warnings import warn
 
 from typing_extensions import TypeGuard
 
+from karabo.util._types import FilePathType
 from karabo.util.file_handler import assert_valid_ending
 
 _DataProductTypeType = Literal[
@@ -44,7 +44,7 @@ _PolStatesType = Literal[
     "POLI",
     "POLA",
 ]
-_PolStatesListType = list[_PolStatesType]
+_PolStatesListType = List[_PolStatesType]
 
 
 @dataclass
@@ -165,51 +165,48 @@ class ObsCoreMeta:
         facility_name: Name of the facility used for this observation.
 
         instrument_name: Name of the instrument used for this observation.
-
-        preview: TODO: couldn't find description in IVOA documentation.
     """
 
-    dataproduct_type: _DataProductTypeType | None = None
-    dataproduct_subtype: str | None = None
-    calib_level: _CalibLevelType | None = None  # not null
-    obs_collection: str | None = None  # not null
-    obs_id: str | None = None  # not null
-    obs_publisher_did: str | None = None  # not null
-    obs_title: str | None = None
-    obs_creator_did: str | None = None
-    target_class: str | None = None
-    access_url: str | None = None
-    access_format: str | None = None
-    access_estsize: int | None = None
-    target_name: str | None = None
-    s_ra: float | None = None
-    s_dec: float | None = None
-    s_fov: float | None = None
-    s_region: str | None = None
-    s_resolution: float | None = None
-    s_xel1: int | None = None
-    s_xel2: int | None = None
-    s_pixel_scale: float | None = None
-    t_min: float | None = None
-    t_max: float | None = None
-    t_exptime: float | None = None
-    t_resolution: float | None = None
-    t_xel: int | None = None
-    em_min: float | None = None
-    em_max: float | None = None
-    em_res_power: float | None = None
-    em_xel: int | None = None
-    em_ucd: str | None = None
-    o_ucd: str | None = None
-    pol_states: str | None = None
-    pol_xel: int | None = None
-    facility_name: str | None = None
-    instrument_name: str | None = None
-    preview: str | None = None
+    dataproduct_type: Optional[_DataProductTypeType] = None
+    dataproduct_subtype: Optional[str] = None
+    calib_level: Optional[_CalibLevelType] = None  # not null
+    obs_collection: Optional[str] = None  # not null
+    obs_id: Optional[str] = None  # not null
+    obs_publisher_did: Optional[str] = None  # not null
+    obs_title: Optional[str] = None
+    obs_creator_did: Optional[str] = None
+    target_class: Optional[str] = None
+    access_url: Optional[str] = None
+    access_format: Optional[str] = None
+    access_estsize: Optional[int] = None
+    target_name: Optional[str] = None
+    s_ra: Optional[float] = None
+    s_dec: Optional[float] = None
+    s_fov: Optional[float] = None
+    s_region: Optional[str] = None
+    s_resolution: Optional[float] = None
+    s_xel1: Optional[int] = None
+    s_xel2: Optional[int] = None
+    s_pixel_scale: Optional[float] = None
+    t_min: Optional[float] = None
+    t_max: Optional[float] = None
+    t_exptime: Optional[float] = None
+    t_resolution: Optional[float] = None
+    t_xel: Optional[int] = None
+    em_min: Optional[float] = None
+    em_max: Optional[float] = None
+    em_res_power: Optional[float] = None
+    em_xel: Optional[int] = None
+    em_ucd: Optional[str] = None
+    o_ucd: Optional[str] = None
+    pol_states: Optional[str] = None
+    pol_xel: Optional[int] = None
+    facility_name: Optional[str] = None
+    instrument_name: Optional[str] = None
 
     def to_json(
         self,
-        fpath: Path | str,
+        fpath: FilePathType,
         ignore_none: bool = True,
     ) -> None:
         """Converts this dataclass into a JSON.
@@ -247,14 +244,14 @@ class ObsCoreMeta:
         pol_states_str = "/".join(("", *pol_states_ordered, ""))
         self.pol_states = pol_states_str
 
-    def get_pol_states(self) -> _PolStatesListType | None:
+    def get_pol_states(self) -> Optional[_PolStatesListType]:
         """Parses the polarisation states to `_PolStatesListType`.
 
         Returns:
             List of polarisation states if field-value is not None.
         """
 
-        def check_pol_type(pol_states: list[str]) -> TypeGuard[_PolStatesListType]:
+        def check_pol_type(pol_states: List[str]) -> TypeGuard[_PolStatesListType]:
             valid_pol_states = get_args(_PolStatesType)
             return all(pol_state in valid_pol_states for pol_state in pol_states)
 
@@ -295,7 +292,7 @@ class ObsCoreMeta:
         )
 
     @classmethod
-    def _get_mandatory_fields(cls) -> tuple[str, ...]:
+    def _get_mandatory_fields(cls) -> Tuple[str, ...]:
         """Gets the mandatory fields according to `REC-ObsCore-v1.1`.
 
         Returns:
