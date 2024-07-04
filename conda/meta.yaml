@@ -43,7 +43,7 @@ requirements:
     - mpich
     - nbformat
     - nbconvert
-    - {{ pin_compatible('numpy') }}
+    - {{ pin_compatible('numpy') }}  # currently (07.24) [version='>=1.16.6,<2.0a0'] which should be fine
     - oskarpy                 =2.8.3
     - pandas
     - psutil
