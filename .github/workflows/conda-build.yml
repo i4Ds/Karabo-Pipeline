@@ -80,6 +80,7 @@ jobs:
             KARABO_VERSION=${{ inputs.version }}
             if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
               KARABO_VERSION="${KARABO_VERSION:1}"
+            fi
             conda install -c conda-forge python versioneer
             VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
             if [[ "$VERSIONEER_VERSION" != *"$KARABO_VERSION"* ]] && [[ "$KARABO_VERSION" != *"dev"* ]]; then
