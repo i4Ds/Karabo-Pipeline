@@ -102,7 +102,7 @@ OSKAR_TELESCOPE_TO_FILENAMES: Dict[
     "ACA": "aca.{0}.tm",
     "ALMA": "alma.{0}.tm",
     "ASKAP": "askap.tm",
-    "ATCA": "atca.{0}.tm",
+    "ATCA": "atca_{0}.tm",
     "CARMA": "carma.{0}.tm",
     "LOFAR": "lofar.tm",
     "MKATPlus": "mkatplus.tm",
