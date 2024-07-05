@@ -1486,9 +1486,9 @@ class SkyModel:
                 "major axis FWHM (arcsec)",
                 "minor axis FWHM (arcsec)",
                 "position angle (deg)",
-                "source id (object)",
                 "true redshift",
                 "observed redshift",
+                "source id (object)",
             ],
         )
 
