@@ -59,7 +59,6 @@ jobs:
         id: bcs
         shell: bash -l {0}
         run: |
-          DEV_STR="dev"
           if [[ ${{ github.event_name }} == 'release' ]]
           then
             echo "Conda build from release"
@@ -79,24 +78,20 @@ jobs:
             BUILD_DOCKER=${{ inputs.buildDocker }}
             LATEST_DOCKER=${{ inputs.latestDocker }}
             KARABO_VERSION=${{ inputs.version }}
+            if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
+              KARABO_VERSION="${KARABO_VERSION:1}"
+            fi
             conda install -c conda-forge python versioneer
-            VERSIONEER_VERSION=$(/opt/conda/bin/python -c 'import versioneer; print(versioneer.get_version())')
-            if [[ "$VERSIONEER_VERSION" == *"+"* ]]; then
-              if [[ "$KARABO_VERSION" != *"$DEV_STR"* ]]; then
-                echo "Dirty commit-version needs to be a PEP440 conform dev-version"
-                exit 1
-              fi
-            else
-              if [[ "$KARABO_VERSION" != "$VERSIONEER_VERSION" ]]; then
-                echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
-                exit 1
-              fi
+            VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
+            if [[ "$VERSIONEER_VERSION" != *"$KARABO_VERSION"* ]] && [[ "$KARABO_VERSION" != *"dev"* ]]; then
+              echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
+              exit 1
             fi
           else
-            echo "Not specified github-event occured"
+            echo "Unexpected github-event occured"
             exit 1
           fi
-          if [[ "$KARABO_VERSION" == *"$DEV_STR"* ]]; then
+          if [[ "$KARABO_VERSION" == *"dev"* ]]; then
             if [[ $LATEST_DOCKER == 'true' ]]; then
               echo "Dev build docker image can not be tagged as latest!"
               exit 1
@@ -119,7 +114,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload $CONDA_ROOT/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
   
   test-build:
     needs: conda-build
