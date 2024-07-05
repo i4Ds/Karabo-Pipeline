@@ -114,7 +114,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload $CONDA_ROOT/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
   
   test-build:
     needs: conda-build
