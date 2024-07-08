@@ -8,14 +8,19 @@ Recommended IVOA documents: https://www.ivoa.net/documents/index.html
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
-from typing import List, Literal, Optional, Tuple, get_args
+from dataclasses import asdict, dataclass, fields
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, get_args
 from warnings import warn
 
 from typing_extensions import TypeGuard
 
+from karabo.imaging.image import Image
+from karabo.simulation.observation import Observation
+from karabo.simulation.telescope import Telescope
+from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
-from karabo.util.file_handler import assert_valid_ending
+from karabo.util.file_handler import assert_valid_ending, getsize
 
 _DataProductTypeType = Literal[
     "image",
@@ -47,12 +52,13 @@ _PolStatesType = Literal[
 _PolStatesListType = List[_PolStatesType]
 
 
-@dataclass
+@dataclass  # once when just Python >= 3.10 is supported, change to (kw_only=True)
 class ObsCoreMeta:
     r"""IVOA ObsCore v1.1 metadata (TAP column names).
 
-    This doesn't describe a full ObsCoreDM, but the mandatory and the ones
-    defined in the SRCNet rucio database.
+    This doesn't describe a full ObsCoreDM, but the mandatory and the non-mandatory
+    fields defined in the SRCNet rucio database. The actual JSON to send to a specific
+    ObsTAP service has to be created by yourself.
 
     The args-docstring provides just a rough idea of the according values. A
     more detailed description is provided by the ObsCore-v1.1 documentation.
@@ -64,7 +70,7 @@ class ObsCoreMeta:
         dataproduct_subtype: Data product specific type defined by the ObsTAP provider.
             This is not a useful value for global discovery, but within an archive.
 
-        calib_level: Calibration level {0, 1, 2, 3, 4} (NOT NULL).
+        calib_level: Calibration level {0, 1, 2, 3, 4} (mandatory).
             - 0: Raw instrumental data.
             - 1: Instrumental data in a starndard format (FITS, VOTable, etc.)
             - 2: Calibrated, science ready measurements without instrument signature.
@@ -73,15 +79,15 @@ class ObsCoreMeta:
                 multiple primary obs.
             - 4: Analysis data products generated after scientific data manipulation.
 
-        obs_collection: Name of the data collection (NOT NULL). Either registered
+        obs_collection: Name of the data collection (mandatory). Either registered
             shortname, full registered IVOA identifier or a data provider defined
             shortname. Often used pattern: `<facility-name>/<instrument-name>`.
 
-        obs_id: Observation ID (NOT NULL).
+        obs_id: Observation ID (mandatory).
             All data-products from a single observation should share the same `obs_id`.
             This is just a unique str-ID with no form. Must be unique to a provider.
 
-        obs_publisher_did: Dataset identifier given by the publisher (NOT NULL).
+        obs_publisher_did: Dataset identifier given by the publisher (mandatory).
             IVOA dataset identifier. Must be a unique value within the namespace
             controlled by the dataset publisher (data center).
 
@@ -89,7 +95,10 @@ class ObsCoreMeta:
 
         obs_creator_did: IVOA dataset identifier given by the creator.
 
-        target_class: Class of the Target object as in SSA.
+        target_class: Class of the target/object as in SSA.
+            Either SIMBAD-DB (see https://simbad.cds.unistra.fr/guide/otypes.htx
+            `Object type code`), OR NED-DB types
+            (see https://ned.ipac.caltech.edu/help/ui/nearposn-list_objecttypes).
 
         access_url: URL used to access (download) dataset.
 
@@ -110,7 +119,11 @@ class ObsCoreMeta:
             coverage, the `s_region` attribute can be used.
 
         s_region: Sky region covered by the data product (expressed in ICRS frame).
-            The format for `point`, `circle` and `polygon` is described in `DALI-1.1`.
+            It's a 'spoly` (spherical polygon) type, which is described in
+            `https://pgsphere.github.io/doc/funcs.html#funcs.spoly`. For example:
+            `{(204.712d,+47.405d),(204.380d,+48.311d),(202.349d,+49.116d),
+            (200.344d,+48.458d),(199.878d,+47.521d),(200.766d,+46.230d),
+            (202.537d,+45.844d),(204.237d,+46.55d)}`.
 
         s_resolution: [arcsec] Smallest resolvable spatial resolution of data as FWHM.
             If spatial frequency sampling is complex (e.g. interferometry), a typical
@@ -142,7 +155,7 @@ class ObsCoreMeta:
 
         em_max: [m] Maximum spectral value observed, expressed as a vacuum wavelength.
 
-        em_res_power: Spectral resolving power :math:`\lambda / \delta \lambda`.
+        em_res_power: Spectral resolving power `λ / δλ`.
 
         em_xel: Number of elements along the spectral axis.
 
@@ -169,10 +182,10 @@ class ObsCoreMeta:
 
     dataproduct_type: Optional[_DataProductTypeType] = None
     dataproduct_subtype: Optional[str] = None
-    calib_level: Optional[_CalibLevelType] = None  # not null
-    obs_collection: Optional[str] = None  # not null
-    obs_id: Optional[str] = None  # not null
-    obs_publisher_did: Optional[str] = None  # not null
+    calib_level: Optional[_CalibLevelType] = None  # mandatory field
+    obs_collection: Optional[str] = None  # mandatory field
+    obs_id: Optional[str] = None  # mandatory field
+    obs_publisher_did: Optional[str] = None  # mandatory field
     obs_title: Optional[str] = None
     obs_creator_did: Optional[str] = None
     target_class: Optional[str] = None
@@ -291,6 +304,91 @@ class ObsCoreMeta:
             )
         )
 
+    def update_from_telescope(self, obj: Telescope) -> None:
+        """Update fields from `Telescope`.
+
+        Args:
+            obj: `Telescope` instance.
+        """
+        tel_name = obj.name
+        if tel_name is not None:
+            pass
+        self.obs_collection = ""
+
+    def update_from_observation(self, obj: Observation) -> Dict[str, Any]:
+        """Update fields from `Observation`.
+
+        Assumes that RA/DEc in `obj` are in ICRS frame.
+
+        Args:
+            obj: `Observation` instance.
+        """
+        ra = obj.phase_centre_ra_deg
+        dec = obj.phase_centre_dec_deg
+        out: Dict[str, Any] = {"s_ra": ra, "s_dec": dec}
+        return out
+
+    def from_visibility(
+        self,
+        obj: Visibility,
+        calibrated: Optional[bool] = None,
+        inode: Optional[Union[str, Path]] = None,
+    ) -> Dict[str, Any]:
+        """Suggests fields from `Visibility`.
+
+        Args:
+            obj: `Visibility` instance.
+            calibrated: Calibrated visibilities?
+            inode: Estimate size of `inode`? Can take a while for very large dirs.
+        """
+        out: Dict[str, Any] = {"dataproduct_type": "visibility"}
+        if calibrated is not None:
+            if calibrated:
+                out["calib_level"] = 2
+            else:
+                out["calib_level"] = 1
+        if inode is not None:
+            out["access_estsize"] = int(getsize(inode=inode) / 1e3)  # B -> KB
+            # as far as I know, there's no MIME type for .ms or .vis
+        return out
+
+    def from_image(
+        self,
+        obj: Image,
+        inode: Optional[Union[str, Path]] = None,
+    ) -> Dict[str, Any]:
+        """Update fields from `Image`.
+
+        Args:
+            obj: `Image` instance.
+            inode: Estimate size of `inode`?
+        """
+        assert_valid_ending(path=obj.path, ending=".fits")
+        out: Dict[str, Any] = {
+            "dataproduct_type": "image",
+            "calib_level": 3,  # I think images are always a 3?
+            "access_format": "image/fits",
+        }
+        if inode is not None:
+            out["access_estsize"] = int(getsize(inode=inode) / 1e3)  # B -> KB
+        return out
+
+    def set_fields(self, **kwargs: Any) -> None:
+        """Set fields from `kwargs` if they're valid.
+
+        Args:
+            kwargs: Field names and values to set.
+        """
+        field_names = [field.name for field in fields(self)]
+        for k, v in kwargs.items():
+            if k not in field_names:
+                wmsg = (
+                    f"Skipping `{k}` because it's not a valid field of `ObsCoreMeta`."
+                )
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                continue
+            setattr(self, k, v)
+
     @classmethod
     def _get_mandatory_fields(cls) -> Tuple[str, ...]:
         """Gets the mandatory fields according to `REC-ObsCore-v1.1`.
@@ -391,7 +489,7 @@ class ObsCoreMeta:
             return value is None or value >= -1
 
         axis_field_names = ("s_xel1", "s_xel2", "em_xel", "t_xel", "pol_xel")
-        invalid_fields: dict[str, str] = {}
+        invalid_fields: Dict[str, str] = {}
         for axis_field_name in axis_field_names:
             field_value = getattr(self, axis_field_name)
             if not check_value(value=field_value):

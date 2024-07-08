@@ -50,7 +50,7 @@ class Visibility:
         self.ms_file_path = ms_file_path
 
     def write_to_file(self, path: FilePathType) -> None:
-        """Does just copying .vis file to `path`.
+        """Does just copy .vis file to `path`.
 
         Args:
             path: Path to where the .vis file should get copied.

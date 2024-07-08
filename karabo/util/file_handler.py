@@ -440,11 +440,11 @@ def assert_valid_ending(
         )
 
 
-def getsize(inode: str | Path) -> int:
-    """Gets the total size of a file or directory.
+def getsize(inode: Union[str, Path]) -> int:
+    """Gets the total size of a file or directory in number of bytes.
 
     Args:
-        inode: Node to get size from. Can take a while for large directories.
+        inode: Directory or file to get size from. Can take a while for a large dir.
 
     Returns:
         Number of bytes of `inode`.
@@ -455,7 +455,7 @@ def getsize(inode: str | Path) -> int:
         raise RuntimeError(err_msg)
     if os.path.isdir(inode_path):
         try:
-            du_out = subprocess.run(
+            du_out = subprocess.run(  # sh should be supported by any linux/WSL dist
                 ["du", "-sb", str(inode_path)], check=True, capture_output=True
             )
             nbytes = int(du_out.stdout.decode().split(sep="\t")[0])
