@@ -5,7 +5,9 @@ import os
 import random
 import shutil
 import string
+import subprocess
 from copy import copy
+from pathlib import Path
 from types import TracebackType
 from typing import Literal, Optional, Union, overload
 
@@ -436,3 +438,32 @@ def assert_valid_ending(
         raise AssertionError(
             f"Invalid file-ending, file {fname} must have {ending} extension!"
         )
+
+
+def getsize(inode: str | Path) -> int:
+    """Gets the total size of a file or directory.
+
+    Args:
+        inode: Node to get size from. Can take a while for large directories.
+
+    Returns:
+        Number of bytes of `inode`.
+    """
+    inode_path = Path(inode)
+    if not inode_path.exists():  # check validity before passing to system-call
+        err_msg = f"{inode=} doesn't exist!"
+        raise RuntimeError(err_msg)
+    if os.path.isdir(inode_path):
+        try:
+            du_out = subprocess.run(
+                ["du", "-sb", str(inode_path)], check=True, capture_output=True
+            )
+            nbytes = int(du_out.stdout.decode().split(sep="\t")[0])
+        except Exception as e:
+            err_msg = (
+                f"Get size of {inode=} failed unexpectedly (most likely a dev-error)."
+            )
+            raise RuntimeError(err_msg) from e
+    else:
+        nbytes = os.path.getsize(filename=inode)
+    return nbytes
