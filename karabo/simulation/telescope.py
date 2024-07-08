@@ -294,6 +294,19 @@ but was not provided. Please provide a value for the version field."
         else:
             assert_never(backend)
 
+    @property
+    def name(self) -> Optional[str]:
+        """Gets the telescope name (if available).
+
+        It's just the file-name of the referred telescope-file without the ending.
+
+        Returns:
+            Telescope name or `None`.
+        """
+        if self.path is None:
+            return None
+        return os.path.split(self.path)[-1].split(".")[0]
+
     def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
             return self.path
