@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, get_args
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, get_args, overload
 from warnings import warn
 
 from typing_extensions import TypeGuard
@@ -304,40 +304,69 @@ class ObsCoreMeta:
             )
         )
 
-    def update_from_telescope(self, obj: Telescope) -> None:
-        """Update fields from `Telescope`.
+    @overload
+    def from_telescope_and_observation(
+        self,
+        tel: Literal[None],
+        obs: Observation,
+    ) -> Dict[str, Any]:
+        ...
 
-        Args:
-            obj: `Telescope` instance.
-        """
-        tel_name = obj.name
-        if tel_name is not None:
-            pass
-        self.obs_collection = ""
+    @overload
+    def from_telescope_and_observation(
+        self,
+        tel: Telescope,
+        obs: Literal[None],
+    ) -> Dict[str, Any]:
+        ...
 
-    def update_from_observation(self, obj: Observation) -> Dict[str, Any]:
+    @overload
+    def from_telescope_and_observation(
+        self,
+        *,
+        tel: Telescope,
+        obs: Observation,
+    ) -> Dict[str, Any]:
+        ...
+
+    def from_telescope_and_observation(
+        self,
+        tel: Optional[Telescope] = None,
+        obs: Optional[Observation] = None,
+    ) -> Dict[str, Any]:
         """Update fields from `Observation`.
 
-        Assumes that RA/DEc in `obj` are in ICRS frame.
+        Assumes that RA/DEC in `obs` are in ICRS frame.
 
         Args:
             obj: `Observation` instance.
         """
-        ra = obj.phase_centre_ra_deg
-        dec = obj.phase_centre_dec_deg
-        out: Dict[str, Any] = {"s_ra": ra, "s_dec": dec}
+        out: Dict[str, Any] = {}
+        if tel is not None:
+            pass
+        if obs is not None:
+            out["s_ra"] = obs.phase_centre_ra_deg
+            out["s_dec"] = obs.phase_centre_dec_deg
+        if tel is not None and obs is not None:
+            end_freq_hz = (
+                obs.start_frequency_hz
+                + obs.frequency_increment_hz * obs.number_of_channels
+            )
+            b = float(tel.longest_baseline())
+            out["s_resolution"] = tel.ang_res(freq=end_freq_hz, b=b)
+
         return out
 
     def from_visibility(
         self,
-        obj: Visibility,
+        vis: Visibility,
         calibrated: Optional[bool] = None,
         inode: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:
         """Suggests fields from `Visibility`.
 
         Args:
-            obj: `Visibility` instance.
+            vis: `Visibility` instance.
             calibrated: Calibrated visibilities?
             inode: Estimate size of `inode`? Can take a while for very large dirs.
         """
@@ -354,16 +383,16 @@ class ObsCoreMeta:
 
     def from_image(
         self,
-        obj: Image,
+        img: Image,
         inode: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:
         """Update fields from `Image`.
 
         Args:
-            obj: `Image` instance.
+            img: `Image` instance.
             inode: Estimate size of `inode`?
         """
-        assert_valid_ending(path=obj.path, ending=".fits")
+        assert_valid_ending(path=img.path, ending=".fits")
         out: Dict[str, Any] = {
             "dataproduct_type": "image",
             "calib_level": 3,  # I think images are always a 3?

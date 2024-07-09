@@ -22,6 +22,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from astropy import units as u
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
 from rascil.processing_components.simulation.simulation_helpers import (
@@ -33,7 +34,10 @@ from typing_extensions import assert_never
 
 import karabo.error
 from karabo.error import KaraboError
-from karabo.simulation.coordinate_helper import east_north_to_long_lat
+from karabo.simulation.coordinate_helper import (
+    east_north_to_long_lat,
+    wgs84_to_cartesian,
+)
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import (
@@ -762,3 +766,67 @@ but was not provided. Please provide a value for the version field."
         cut_stations = df_tel[["x", "y"]].to_numpy()
         np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations)
         return tm_path, conversions
+
+    def get_baselines_wgs84(self) -> NDArray[np.float64]:
+        """Gets the interferometer baselines in WGS84.
+
+        This function assumes that `self.stations` provides WGS84 coordinates.
+
+        Returns:
+            Baselines lon[deg]/lat[deg]/alt[m] (nx3).
+        """
+        return np.array(
+            [
+                [station.longitude, station.latitude, station.altitude]
+                for station in self.stations
+            ]
+        )
+
+    def get_baselines_dists(self) -> NDArray[np.float64]:
+        """Gets the interferometer baselines distances in meters.
+
+        It's euclidean distance, not geodesic.
+
+        Returns:
+            Interferometer baselines dists in meters.
+        """
+        wgs84_baselines = self.get_baselines_wgs84()
+        lon, lat, alt = (
+            wgs84_baselines[:, 0],
+            wgs84_baselines[:, 1],
+            wgs84_baselines[:, 2],
+        )
+        cart_coords = wgs84_to_cartesian(lon, lat, alt)
+        dists: NDArray[np.float64] = np.linalg.norm(
+            cart_coords[:, np.newaxis, :] - cart_coords[np.newaxis, :, :], axis=2
+        )
+        return dists
+
+    def longest_baseline(self) -> np.float64:
+        """Gets the longest baseline in meters.
+
+        Returns:
+            Length of longest baseline.
+        """
+        dists = self.get_baselines_dists()
+        max_distance = np.max(dists)
+        return max_distance
+
+    @classmethod
+    def ang_res(cls, freq: float, b: float) -> float:
+        """Calculates angular resolution in arcsec.
+
+        Angular resolution: θ=λ/B
+        Wavelength: λ=c/f
+        B: Max baseline in meters
+
+        Args:
+            freq: Frequency [Hz].
+            b: Max baseline in meters (e.g. from `longest_baseline`).
+
+        Returns:
+            Angular resolution in arcsec.
+        """
+        ang_res = (299792458 / freq) / b * u.deg
+        ang_res_arcsec: float = ang_res.to(u.arcsec).value
+        return ang_res_arcsec
