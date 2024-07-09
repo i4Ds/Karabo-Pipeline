@@ -33,7 +33,7 @@ class ObservationAbstract(ABC):
         """
 
         Args:
-            start_date_and_time (Union[datetime, str]): The start time and date for
+            start_date_and_time (Union[datetime, str]): Start time UTC and date for
             the observation. Strings are converted to datetime objects
             using datetime.fromisoformat.
 

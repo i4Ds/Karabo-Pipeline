@@ -8,11 +8,13 @@ Recommended IVOA documents: https://www.ivoa.net/documents/index.html
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, get_args, overload
 from warnings import warn
 
+from oskar import VisHeader
 from typing_extensions import TypeGuard
 
 from karabo.imaging.image import Image
@@ -142,7 +144,7 @@ class ObsCoreMeta:
 
         t_exptime: [s] Total exposure time. For simple exposures: `t_max` - `t_min`.
             For data where the exposure is not constant over the entire data product,
-            the median exposure time per pixel is a good wa to characterize the typical
+            the median exposure time per pixel is a good way to characterize the typical
             value.
 
         t_resolution: [s] Minimal interpretable interval between two points along time.
@@ -305,63 +307,34 @@ class ObsCoreMeta:
         )
 
     @overload
-    def from_telescope_and_observation(
+    def from_visibility(
         self,
-        tel: Literal[None],
-        obs: Observation,
+        vis: Visibility,
+        calibrated: Optional[bool],
+        inode: Optional[Union[str, Path]],
+        tel: Telescope,
+        obs: Optional[Observation],
     ) -> Dict[str, Any]:
         ...
 
     @overload
-    def from_telescope_and_observation(
+    def from_visibility(
         self,
-        tel: Telescope,
+        vis: Visibility,
+        calibrated: Optional[bool],
+        inode: Optional[Union[str, Path]],
+        tel: Literal[None],
         obs: Literal[None],
     ) -> Dict[str, Any]:
         ...
-
-    @overload
-    def from_telescope_and_observation(
-        self,
-        *,
-        tel: Telescope,
-        obs: Observation,
-    ) -> Dict[str, Any]:
-        ...
-
-    def from_telescope_and_observation(
-        self,
-        tel: Optional[Telescope] = None,
-        obs: Optional[Observation] = None,
-    ) -> Dict[str, Any]:
-        """Update fields from `Observation`.
-
-        Assumes that RA/DEC in `obs` are in ICRS frame.
-
-        Args:
-            obj: `Observation` instance.
-        """
-        out: Dict[str, Any] = {}
-        if tel is not None:
-            pass
-        if obs is not None:
-            out["s_ra"] = obs.phase_centre_ra_deg
-            out["s_dec"] = obs.phase_centre_dec_deg
-        if tel is not None and obs is not None:
-            end_freq_hz = (
-                obs.start_frequency_hz
-                + obs.frequency_increment_hz * obs.number_of_channels
-            )
-            b = float(tel.longest_baseline())
-            out["s_resolution"] = tel.ang_res(freq=end_freq_hz, b=b)
-
-        return out
 
     def from_visibility(
         self,
         vis: Visibility,
         calibrated: Optional[bool] = None,
         inode: Optional[Union[str, Path]] = None,
+        tel: Optional[Telescope] = None,
+        obs: Optional[Observation] = None,
     ) -> Dict[str, Any]:
         """Suggests fields from `Visibility`.
 
@@ -369,16 +342,60 @@ class ObsCoreMeta:
             vis: `Visibility` instance.
             calibrated: Calibrated visibilities?
             inode: Estimate size of `inode`? Can take a while for very large dirs.
+            tel: `Telescope` to determine smallest spatial resolution.
+            obs: `Observation` to determine smallest spatial resolution.
         """
         out: Dict[str, Any] = {"dataproduct_type": "visibility"}
+        if os.path.exists(vis.vis_path):  # support of .vis files only atm
+            header, _ = VisHeader.read(vis.vis_path)
+            out["s_ra"] = header.phase_centre_ra_deg
+            out["s_dec"] = header.phase_centre_dec_deg
+            time_start_mjd_utc = header.time_start_mjd_utc
+            out["t_min"] = time_start_mjd_utc
+            time_inc_sec = header.time_inc_sec
+            total_duration_sec = time_inc_sec * header.num_times_total
+            time_end_mjd_utc = time_start_mjd_utc + (total_duration_sec / 86400.0)
+            out["t_max"] = time_end_mjd_utc
+            out["t_exptime"] = (
+                time_end_mjd_utc - time_start_mjd_utc
+            )  # assumes constant exposure time
+            t_res = max(time_inc_sec, header.time_average_sec)
+            out["t_resolution"] = t_res
+            num_elements_t = int(total_duration_sec / t_res)
+            out["t_xel"] = num_elements_t
+            freq_start_hz = header.freq_start_hz  # midpoint freq of first channel
+            channel_bandwidth_hz = header.channel_bandwidth_hz
+            freq_inc_hz = header.freq_inc_hz
+            min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
+            num_channels_total = header.num_channels_total
+            max_freq_hz = min_freq_hz + freq_inc_hz * num_channels_total
+            c = 299792458  # m/s
+            min_wavelength_m = c / max_freq_hz
+            out["em_min"] = min_wavelength_m
+            max_wavelength_m = c / freq_start_hz
+            out["em_max"] = max_wavelength_m
+            if freq_inc_hz != 0:
+                midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
+                out["em_res_power"] = midpoint_frequency_hz / freq_inc_hz
+            out["em_xel"] = num_channels_total
+            out["o_ucd"] = None  # TODO
+            out["pol_states"] = None  # TODO
+            out["pol_xel"] = None  # TODO
+            out["instrument_name"] = None  # TODO
         if calibrated is not None:
             if calibrated:
                 out["calib_level"] = 2
             else:
                 out["calib_level"] = 1
-        if inode is not None:
+        if inode is not None:  # supports any format (e.g. `.vis` & `.ms`)
             out["access_estsize"] = int(getsize(inode=inode) / 1e3)  # B -> KB
             # as far as I know, there's no MIME type for .ms or .vis
+        if tel is not None and obs is not None:
+            freq_inc_hz = obs.frequency_increment_hz
+            min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
+            end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
+            b = float(tel.longest_baseline())
+            out["s_resolution"] = tel.ang_res(freq=end_freq_hz, b=b)
         return out
 
     def from_image(
@@ -398,6 +415,9 @@ class ObsCoreMeta:
             "calib_level": 3,  # I think images are always a 3?
             "access_format": "image/fits",
         }
+        # TODO: `s_ra`, `s_dec`, `s_fov`, `s_region`, `s_resolution`, `s_xel1`, `s_xel2`
+        # TODO: `s_pixel_scale`, `em_xel`, `em_min`?, `em_max`?, `em_res_power`?
+        # TODO: `em_ucd`?, `o_ucd`?, `pol_states`?, `pol_xel`?
         if inode is not None:
             out["access_estsize"] = int(getsize(inode=inode) / 1e3)  # B -> KB
         return out
