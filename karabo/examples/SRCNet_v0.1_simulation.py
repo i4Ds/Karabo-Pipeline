@@ -11,7 +11,6 @@ from karabo.simulator_backend import SimulatorBackend
 
 SIMULATOR_BACKEND = SimulatorBackend.OSKAR
 
-# TODO explore_sky, see if phase center makes sense
 # phase center: should be mean of coverage
 # Link to metadata of survey:
 # https://archive.sarao.ac.za/search/MIGHTEE%20COSMOS/target/J0408-6545/captureblockid/1587911796/
@@ -20,12 +19,6 @@ sky_model = SkyModel.get_MIGHTEE_Sky()
 # Means of values from sky model description
 phase_center_ra = 150.12
 phase_center_dec = 2.21
-
-# Filter -> less data
-# sky = gleam_sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
-
-# Should only be necessary for plotting
-sky_model.setup_default_wcs(phase_center=[phase_center_ra, phase_center_dec])
 
 telescope = Telescope.constructor(
     # Would probably result in too much data, looks like AA4 layout
@@ -48,13 +41,17 @@ number_of_channels = math.floor(
 print(f"number_of_channels={number_of_channels}")
 
 # Original survey: 3593 dumps => Size: 6668.534 GB
-number_of_time_steps = 32
+number_of_time_steps = 384
 
-# TODO How should the beam be configured?
+# Wavelength 1340 MHz = 0.22372571 m
+# MeerKAT dish diameter = 13 m
+# FOV = Beam Width (FWHM) = 1.2 * 0.22372571 m / 13 m
+# = 0.020651604 rad = 1.1832497493784 deg
 simulation = InterferometerSimulation(
     channel_bandwidth_hz=frequency_increment_hz,
-    # would probably shrink data size a lot through averaging
-    # time_average_sec=1,
+    station_type="Gaussian beam",
+    gauss_beam_fwhm_deg=1.1832497493784,
+    gauss_ref_freq_hz=1.34e9,
 )
 
 observation = Observation(
@@ -74,9 +71,6 @@ observation = Observation(
 
 visibility = simulation.run_simulation(telescope, sky_model, observation)
 
-# Wavelength 1340 MHz = 0.22372571 m
-# MeerKAT dish diameter = 13 m
-# FOV = 1.2 * 0.22372571 m / 13 m = 0.020651604 rad
 # -> Cellsize < FOV / 4096 -> 0.0000050418955078125
 dirty_imager = WscleanDirtyImager(
     DirtyImagerConfig(
