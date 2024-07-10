@@ -58,7 +58,6 @@ OSKARTelescopesWithVersionType = Literal[
     "ATCA",
     "CARMA",
     "NGVLA",
-    "PDBI",
     "SMA",
     "VLA",
 ]
