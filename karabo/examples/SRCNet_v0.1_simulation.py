@@ -41,7 +41,7 @@ number_of_channels = math.floor(
 print(f"number_of_channels={number_of_channels}")
 
 # Original survey: 3593 dumps => Size: 6668.534 GB
-number_of_time_steps = 384
+number_of_time_steps = 256
 
 # Wavelength 1340 MHz = 0.22372571 m
 # MeerKAT dish diameter = 13 m
