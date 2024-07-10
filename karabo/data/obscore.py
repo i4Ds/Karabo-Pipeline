@@ -11,11 +11,23 @@ import json
 import os
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, get_args, overload
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    get_args,
+    overload,
+)
 from warnings import warn
 
+import numpy as np
 from oskar import VisHeader
-from typing_extensions import TypeGuard
+from typing_extensions import TypeGuard, assert_never
 
 from karabo.imaging.image import Image
 from karabo.simulation.observation import Observation
@@ -335,8 +347,12 @@ class ObsCoreMeta:
         inode: Optional[Union[str, Path]] = None,
         tel: Optional[Telescope] = None,
         obs: Optional[Observation] = None,
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:  # change to get actual dataclass?
         """Suggests fields from `Visibility`.
+
+        Supported visibility formats: `OSKAR .vis` files.
+
+        Not supported atm: `CASA .ms` measurement sets.
 
         Args:
             vis: `Visibility` instance.
@@ -346,7 +362,8 @@ class ObsCoreMeta:
             obs: `Observation` to determine smallest spatial resolution.
         """
         out: Dict[str, Any] = {"dataproduct_type": "visibility"}
-        if os.path.exists(vis.vis_path):  # support of .vis files only atm
+        # only .vis supported atm, Oskar can't read .ms with multiple spectral windows
+        if os.path.exists(vis.vis_path):  # assumes `vis_path` tp be
             header, _ = VisHeader.read(vis.vis_path)
             out["s_ra"] = header.phase_centre_ra_deg
             out["s_dec"] = header.phase_centre_dec_deg
@@ -378,18 +395,19 @@ class ObsCoreMeta:
                 midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
                 out["em_res_power"] = midpoint_frequency_hz / freq_inc_hz
             out["em_xel"] = num_channels_total
-            out["o_ucd"] = None  # TODO
-            out["pol_states"] = None  # TODO
-            out["pol_xel"] = None  # TODO
-            out["instrument_name"] = None  # TODO
+        out["em_ucd"] = "em.energy;em.radio"
+        out["o_ucd"] = "phot.flux.density;phys.polarization.stokes"
+        # no particular polarization infos here for `pol_states` & `pol_xel`
         if calibrated is not None:
             if calibrated:
                 out["calib_level"] = 2
             else:
                 out["calib_level"] = 1
-        if inode is not None:  # supports any format (e.g. `.vis` & `.ms`)
+        if inode is not None:  # supports any format (e.g. `.vis`, `.ms`, `.fits`, ...)
             out["access_estsize"] = int(getsize(inode=inode) / 1e3)  # B -> KB
-            # as far as I know, there's no MIME type for .ms or .vis
+            # as far as I know, there's no MIME type for .ms or .vis, but for `.fits`
+        if tel is not None and (tel_name := tel.name) is not None:
+            out["instrument_name"] = tel_name
         if tel is not None and obs is not None:
             freq_inc_hz = obs.frequency_increment_hz
             min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
@@ -402,8 +420,19 @@ class ObsCoreMeta:
         self,
         img: Image,
         inode: Optional[Union[str, Path]] = None,
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:  # change to get actual dataclass?
         """Update fields from `Image`.
+
+        Note: Because of potential inconsistencies between different .fits images
+            regarding header-keywords and their usage, only a minimal set of keywords
+            are considered with the following assumptions:
+
+        - `CDELT1` & `CDELT2`, (X,Y) coordinate increment at reference point are in deg.
+        - `NAXIS1` & `NAXIS2`, (X,Y) resolution of image.
+        - `CRVAL1` & `CRVAL2`, (RA,DEC) are in deg.
+
+        If the keywords considered made are not sufficient, extend the result yourself.
+        In case the assumptions are wrong for your use-case, don't use this function.
 
         Args:
             img: `Image` instance.
@@ -415,6 +444,30 @@ class ObsCoreMeta:
             "calib_level": 3,  # I think images are always a 3?
             "access_format": "image/fits",
         }
+        header = img.header
+        if not header["SIMPLE"]:
+            wmsg = f"{img.path} doesn't follow fits standard!"
+            warn(message=wmsg, category=UserWarning, stacklevel=1)
+        x_inc_deg = img.header["CDELT1"]
+        y_inc_deg = img.header["CDELT2"]
+        x_pixel = img.header["NAXIS1"]
+        y_pixel = img.header["NAXIS2"]
+        ra_deg = img.header["CRVAL1"]
+        dec_deg = img.header["CRVAL2"]
+
+        fov_deg = np.sqrt(  # noqa: F841
+            (x_inc_deg * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
+        )  # circular fov (flattened)
+        half_width_deg = abs(x_inc_deg) * x_pixel / 2
+        half_height_deg = abs(y_inc_deg) * y_pixel / 2
+        bottom_left = (ra_deg - half_width_deg, dec_deg - half_height_deg)  # noqa: F841
+        top_left = (ra_deg - half_width_deg, dec_deg + half_height_deg)  # noqa: F841
+        top_right = (ra_deg + half_width_deg, dec_deg + half_height_deg)  # noqa: F841
+        bottom_right = (  # noqa: F841
+            ra_deg + half_width_deg,
+            dec_deg - half_height_deg,
+        )
+
         # TODO: `s_ra`, `s_dec`, `s_fov`, `s_region`, `s_resolution`, `s_xel1`, `s_xel2`
         # TODO: `s_pixel_scale`, `em_xel`, `em_min`?, `em_max`?, `em_res_power`?
         # TODO: `em_ucd`?, `o_ucd`?, `pol_states`?, `pol_xel`?
@@ -437,6 +490,137 @@ class ObsCoreMeta:
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
                 continue
             setattr(self, k, v)
+
+    @classmethod
+    def spoly(
+        cls,
+        poly: Sequence[tuple[float, float]],
+        ndigits: int = 3,
+    ) -> str:
+        """Converts `args` to spoly str.
+
+        spoly: https://pgsphere.github.io/doc/funcs.html
+
+        E.g. `{(0,0),(1,0),(1,1)}`
+
+        Args:
+            args: Consecutive RA,DEC [deg] poly tuples.
+            ndigits: Number of digits to round.
+
+        Returns:
+            spoly str.
+        """
+        spoly_str = ""
+        if len(poly) < 3:
+            err_msg = "Polygon must have at least 3 (non-colinear) points!"
+            raise RuntimeError(err_msg)
+        for point in poly:
+            ra_str = cls._convert(
+                number=point[0], axis="RA", ndigits=ndigits, suffix="d"
+            )
+            dec_str = cls._convert(
+                number=point[1], axis="DEC", ndigits=ndigits, suffix="d"
+            )
+            spoly_str += f"({ra_str},{dec_str}),"
+        return "{" + spoly_str[:-1] + "}"
+
+    @classmethod
+    def spoint(
+        cls,
+        point: tuple[float, float],
+        ndigits: int = 3,
+    ) -> str:
+        """Converts `point` to spoint str.
+
+        spoint: https://pgsphere.github.io/doc/funcs.html
+
+        E.g. `(10d,20d)`
+
+        Args:
+            point: RA,DEC [deg] point.
+            ndigits: Number of digits to round.
+
+        Returns:
+            spoint str.
+        """
+        ra_str = cls._convert(number=point[0], axis="RA", ndigits=ndigits, suffix="d")
+        dec_str = cls._convert(number=point[1], axis="DEC", ndigits=ndigits, suffix="d")
+        return f"({ra_str},{dec_str})"
+
+    @classmethod
+    def scircle(
+        cls,
+        point: tuple[float, float],
+        radius: float,
+        ndigits: int = 3,
+    ) -> str:
+        """Converts `point` & `radius` to scircle str.
+
+        scircle: https://pgsphere.github.io/doc/funcs.html
+
+        E.g. `<(0d,90d),60d>`
+
+        Args:
+            point: RA,DEC [deg] point.
+            radius: Radius [deg].
+            ndigits: Number of digits to round.
+
+        Returns:
+            scircle str.
+        """
+        ra_str = cls._convert(number=point[0], axis="RA", ndigits=ndigits, suffix="d")
+        dec_str = cls._convert(number=point[1], axis="DEC", ndigits=ndigits, suffix="d")
+        radius_str = cls._convert(
+            number=radius, axis="radius", ndigits=ndigits, suffix="d"
+        )
+        return f"<({ra_str},{dec_str}),{radius_str}>"
+
+    @classmethod
+    def _convert(
+        cls,
+        number: float,
+        axis: Literal["RA", "DEC", "radius"],
+        *,
+        ndigits: int,
+        suffix: str = "",
+    ) -> str:
+        """Converts `number` to specified format.
+
+        Conversion according to args. `axis="DEC"` will get a sign attached.
+
+        Args:
+            number: Number to convert.
+            axis: RA will get coerced to [0,360], DEC checked for [-90,90] &
+                radius checked for [0,180]
+            ndigits: Number of digits to round.
+            suffix: str to attach at the end (e.g. "d").
+
+        Returns:
+            Converted `number`.
+        """
+        if axis == "RA":
+            if number > 360.0 or number < 0.0:
+                wmsg = f"Coercing {axis}={number} to {axis}={number}%360"
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+            number = number % 360
+            sign = ""
+        elif axis == "DEC":
+            if number < -90.0 or number > 90.0:
+                err_msg = f"DEC [deg] must be in range [-90,90], but {number=}"
+                raise ValueError(err_msg)
+            if number < 0.0:
+                sign = "-"
+            else:
+                sign = "+"
+        elif axis == "radius":
+            if number < 0.0 or number > 180.0:
+                err_msg = f"radius [deg] must be in range [0.180], but {number=}"
+                raise ValueError()
+        else:
+            assert_never(axis)
+        number = round(number=number, ndigits=ndigits)
+
+        return f"{sign}{number}{suffix}"
 
     @classmethod
     def _get_mandatory_fields(cls) -> Tuple[str, ...]:
