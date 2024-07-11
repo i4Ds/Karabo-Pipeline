@@ -134,7 +134,8 @@ class ObsCoreMeta:
 
         s_region: Sky region covered by the data product (expressed in ICRS frame).
             It's a 'spoly` (spherical polygon) type, which is described in
-            `https://pgsphere.github.io/doc/funcs.html#funcs.spoly`. For example:
+            `https://pgsphere.github.io/doc/funcs.html#funcs.spoly`. Use `spoly`,
+            `scircle` or `spoint` to create the formatted str. E.g. for spoly:
             `{(204.712d,+47.405d),(204.380d,+48.311d),(202.349d,+49.116d),
             (200.344d,+48.458d),(199.878d,+47.521d),(200.766d,+46.230d),
             (202.537d,+45.844d),(204.237d,+46.55d)}`.
@@ -398,6 +399,7 @@ class ObsCoreMeta:
         out["em_ucd"] = "em.energy;em.radio"
         out["o_ucd"] = "phot.flux.density;phys.polarization.stokes"
         # no particular polarization infos here for `pol_states` & `pol_xel`
+        # need dish/antenna size for `s_fov` & `s_region` (tracking-mode)
         if calibrated is not None:
             if calibrated:
                 out["calib_level"] = 2
@@ -495,9 +497,11 @@ class ObsCoreMeta:
     def spoly(
         cls,
         poly: Sequence[tuple[float, float]],
+        *,
         ndigits: int = 3,
+        suffix: str = "d",
     ) -> str:
-        """Converts `args` to spoly str.
+        """Converts `poly` to spoly str for `s_region`.
 
         spoly: https://pgsphere.github.io/doc/funcs.html
 
@@ -506,6 +510,7 @@ class ObsCoreMeta:
         Args:
             args: Consecutive RA,DEC [deg] poly tuples.
             ndigits: Number of digits to round.
+            suffix: Suffix for each number (e.g. "d" for deg).
 
         Returns:
             spoly str.
@@ -516,10 +521,16 @@ class ObsCoreMeta:
             raise RuntimeError(err_msg)
         for point in poly:
             ra_str = cls._convert(
-                number=point[0], axis="RA", ndigits=ndigits, suffix="d"
+                number=point[0],
+                axis="RA",
+                ndigits=ndigits,
+                suffix=suffix,
             )
             dec_str = cls._convert(
-                number=point[1], axis="DEC", ndigits=ndigits, suffix="d"
+                number=point[1],
+                axis="DEC",
+                ndigits=ndigits,
+                suffix=suffix,
             )
             spoly_str += f"({ra_str},{dec_str}),"
         return "{" + spoly_str[:-1] + "}"
@@ -528,9 +539,11 @@ class ObsCoreMeta:
     def spoint(
         cls,
         point: tuple[float, float],
+        *,
         ndigits: int = 3,
+        suffix: str = "d",
     ) -> str:
-        """Converts `point` to spoint str.
+        """Converts `point` to spoint str for `s_region`.
 
         spoint: https://pgsphere.github.io/doc/funcs.html
 
@@ -539,12 +552,23 @@ class ObsCoreMeta:
         Args:
             point: RA,DEC [deg] point.
             ndigits: Number of digits to round.
+            suffix: Suffix for each number (e.g. "d" for deg).
 
         Returns:
             spoint str.
         """
-        ra_str = cls._convert(number=point[0], axis="RA", ndigits=ndigits, suffix="d")
-        dec_str = cls._convert(number=point[1], axis="DEC", ndigits=ndigits, suffix="d")
+        ra_str = cls._convert(
+            number=point[0],
+            axis="RA",
+            ndigits=ndigits,
+            suffix=suffix,
+        )
+        dec_str = cls._convert(
+            number=point[1],
+            axis="DEC",
+            ndigits=ndigits,
+            suffix=suffix,
+        )
         return f"({ra_str},{dec_str})"
 
     @classmethod
@@ -552,9 +576,11 @@ class ObsCoreMeta:
         cls,
         point: tuple[float, float],
         radius: float,
+        *,
         ndigits: int = 3,
+        suffix: str = "d",
     ) -> str:
-        """Converts `point` & `radius` to scircle str.
+        """Converts `point` & `radius` to scircle str for `s_region`.
 
         scircle: https://pgsphere.github.io/doc/funcs.html
 
@@ -564,14 +590,28 @@ class ObsCoreMeta:
             point: RA,DEC [deg] point.
             radius: Radius [deg].
             ndigits: Number of digits to round.
+            suffix: Suffix for each number (e.g. "d" for deg).
 
         Returns:
             scircle str.
         """
-        ra_str = cls._convert(number=point[0], axis="RA", ndigits=ndigits, suffix="d")
-        dec_str = cls._convert(number=point[1], axis="DEC", ndigits=ndigits, suffix="d")
+        ra_str = cls._convert(
+            number=point[0],
+            axis="RA",
+            ndigits=ndigits,
+            suffix=suffix,
+        )
+        dec_str = cls._convert(
+            number=point[1],
+            axis="DEC",
+            ndigits=ndigits,
+            suffix=suffix,
+        )
         radius_str = cls._convert(
-            number=radius, axis="radius", ndigits=ndigits, suffix="d"
+            number=radius,
+            axis="radius",
+            ndigits=ndigits,
+            suffix=suffix,
         )
         return f"<({ra_str},{dec_str}),{radius_str}>"
 
@@ -615,7 +655,7 @@ class ObsCoreMeta:
         elif axis == "radius":
             if number < 0.0 or number > 180.0:
                 err_msg = f"radius [deg] must be in range [0.180], but {number=}"
-                raise ValueError()
+                raise ValueError(err_msg)
         else:
             assert_never(axis)
         number = round(number=number, ndigits=ndigits)
