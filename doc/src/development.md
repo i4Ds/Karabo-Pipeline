@@ -152,7 +152,8 @@ Welcome to Karabo-Pipeline's documentation!
 Once you have made changes to the documentation, you can test them via the following steps:
 
 ```shell
-python doc/src/examples/combine_examples.py  # Inserts code snippets into Examples documentation
+# Inserts code snippets into Examples documentation
+python doc/src/examples/combine_examples.py
 cp -a doc/src/ _build
 sphinx-apidoc . -o _build
 make html

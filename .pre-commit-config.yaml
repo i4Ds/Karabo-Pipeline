@@ -4,6 +4,7 @@ repos:
     hooks:
     -   id: check-added-large-files
         additional_dependencies: [tomli]
+        exclude: ".*.ipynb$"
     -   id: no-commit-to-branch
         args: [--branch, main]
 
