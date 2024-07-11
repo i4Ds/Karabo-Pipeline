@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import asdict, dataclass, fields
-from pathlib import Path
 from typing import (
     Any,
     Dict,
@@ -19,7 +18,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Union,
     get_args,
     overload,
 )
@@ -324,7 +322,6 @@ class ObsCoreMeta:
         self,
         vis: Visibility,
         calibrated: Optional[bool],
-        inode: Optional[Union[str, Path]],
         tel: Telescope,
         obs: Optional[Observation],
     ) -> Dict[str, Any]:
@@ -335,7 +332,6 @@ class ObsCoreMeta:
         self,
         vis: Visibility,
         calibrated: Optional[bool],
-        inode: Optional[Union[str, Path]],
         tel: Literal[None],
         obs: Literal[None],
     ) -> Dict[str, Any]:
@@ -345,27 +341,28 @@ class ObsCoreMeta:
         self,
         vis: Visibility,
         calibrated: Optional[bool] = None,
-        inode: Optional[Union[str, Path]] = None,
         tel: Optional[Telescope] = None,
         obs: Optional[Observation] = None,
     ) -> Dict[str, Any]:  # change to get actual dataclass?
         """Suggests fields from `Visibility`.
 
-        Supported visibility formats: `OSKAR .vis` files.
+        Supported formats: `OSKAR .vis` files.
 
         Not supported atm: `CASA .ms` measurement sets.
 
         Args:
             vis: `Visibility` instance.
             calibrated: Calibrated visibilities?
-            inode: Estimate size of `inode`? Can take a while for very large dirs.
             tel: `Telescope` to determine smallest spatial resolution.
             obs: `Observation` to determine smallest spatial resolution.
         """
         out: Dict[str, Any] = {"dataproduct_type": "visibility"}
         # only .vis supported atm, Oskar can't read .ms with multiple spectral windows
-        if os.path.exists(vis.vis_path):  # assumes `vis_path` tp be
-            header, _ = VisHeader.read(vis.vis_path)
+        # for multiple format-support, think about restructuring the entire function,
+        # not just another elif block!
+        vis_path = vis.vis_path
+        if os.path.exists(vis_path):
+            header, _ = VisHeader.read(vis_path)
             out["s_ra"] = header.phase_centre_ra_deg
             out["s_dec"] = header.phase_centre_dec_deg
             time_start_mjd_utc = header.time_start_mjd_utc
@@ -396,17 +393,16 @@ class ObsCoreMeta:
                 midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
                 out["em_res_power"] = midpoint_frequency_hz / freq_inc_hz
             out["em_xel"] = num_channels_total
+            out["access_estsize"] = int(getsize(inode=vis_path) / 1e3)  # B -> KB
         out["em_ucd"] = "em.energy;em.radio"
         out["o_ucd"] = "phot.flux.density;phys.polarization.stokes"
         # no particular polarization infos here for `pol_states` & `pol_xel`
         # need dish/antenna size for `s_fov` & `s_region` (tracking-mode)
         if calibrated is not None:
-            if calibrated:
+            if calibrated:  # can't be extracted from visibilities as far as I know
                 out["calib_level"] = 2
             else:
                 out["calib_level"] = 1
-        if inode is not None:  # supports any format (e.g. `.vis`, `.ms`, `.fits`, ...)
-            out["access_estsize"] = int(getsize(inode=inode) / 1e3)  # B -> KB
             # as far as I know, there's no MIME type for .ms or .vis, but for `.fits`
         if tel is not None and (tel_name := tel.name) is not None:
             out["instrument_name"] = tel_name
@@ -421,7 +417,6 @@ class ObsCoreMeta:
     def from_image(
         self,
         img: Image,
-        inode: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:  # change to get actual dataclass?
         """Update fields from `Image`.
 
@@ -438,43 +433,60 @@ class ObsCoreMeta:
 
         Args:
             img: `Image` instance.
-            inode: Estimate size of `inode`?
         """
-        assert_valid_ending(path=img.path, ending=".fits")
+        # TODO: This function can GREATLY be enhanced by specifying the allocation
+        # TODO: between the according `CTYPE` number and it's unit to allow stable
+        # TODO: value extraction, unit-conversion, remove assumptions and adding new
+        # TODO: keywords: `em_xel`,`em_min`,`em_max`,`em_res_power`
+        # TODO: Maybe the same for `pol_xel` and `pol_states`? Not sure tough.
+        # the values extracted here are just the consistent fields I've seen from
+        # different images.
+        file = img.path
+        assert_valid_ending(path=file, ending=".fits")
+        header = img.header
+        if not header["SIMPLE"]:
+            wmsg = f"{file} doesn't follow .fits standard!"
+            warn(message=wmsg, category=UserWarning, stacklevel=1)
+        x_inc_deg = img.header["CDELT1"]  # increment around center
+        y_inc_deg = img.header["CDELT2"]  # increment around center
+        x_pixel = img.header["NAXIS1"]
+        y_pixel = img.header["NAXIS2"]
+        ra_deg = img.header["CRVAL1"]  # RA-center
+        dec_deg = img.header["CRVAL2"]  # DEC-center
+
+        if x_inc_deg != y_inc_deg:
+            wmsg = (
+                f"Pixel-size is not square for `s_pixel_scale`: {x_inc_deg=}, "
+                + f"{y_inc_deg}. `s_pixel_scale` set to {x_inc_deg=}."
+            )
+            warn(message=wmsg, category=UserWarning, stacklevel=1)
+        fov_deg = np.sqrt(
+            (x_inc_deg * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
+        )  # circular fov of flattened image
+        half_width_deg = abs(x_inc_deg) * x_pixel / 2
+        half_height_deg = abs(y_inc_deg) * y_pixel / 2
+        bottom_left = (ra_deg - half_width_deg, dec_deg - half_height_deg)
+        top_left = (ra_deg - half_width_deg, dec_deg + half_height_deg)
+        top_right = (ra_deg + half_width_deg, dec_deg + half_height_deg)
+        bottom_right = (ra_deg + half_width_deg, dec_deg - half_height_deg)
+        spoly = self.spoly(
+            poly=(bottom_left, top_left, top_right, bottom_right),
+            ndigits=3,
+            suffix="d",
+        )
+        img_size_kb = int(getsize(inode=file) / 1e3)  # B -> KB
         out: Dict[str, Any] = {
             "dataproduct_type": "image",
             "calib_level": 3,  # I think images are always a 3?
             "access_format": "image/fits",
+            "s_xel1": x_pixel,
+            "s_xel2": y_pixel,
+            "s_pixel_scale": x_inc_deg,
+            "s_fov": fov_deg,
+            "s_region": spoly,
+            "em_ucd": "em.freq;em.radio",
+            "access_estsize": img_size_kb,
         }
-        header = img.header
-        if not header["SIMPLE"]:
-            wmsg = f"{img.path} doesn't follow fits standard!"
-            warn(message=wmsg, category=UserWarning, stacklevel=1)
-        x_inc_deg = img.header["CDELT1"]
-        y_inc_deg = img.header["CDELT2"]
-        x_pixel = img.header["NAXIS1"]
-        y_pixel = img.header["NAXIS2"]
-        ra_deg = img.header["CRVAL1"]
-        dec_deg = img.header["CRVAL2"]
-
-        fov_deg = np.sqrt(  # noqa: F841
-            (x_inc_deg * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
-        )  # circular fov (flattened)
-        half_width_deg = abs(x_inc_deg) * x_pixel / 2
-        half_height_deg = abs(y_inc_deg) * y_pixel / 2
-        bottom_left = (ra_deg - half_width_deg, dec_deg - half_height_deg)  # noqa: F841
-        top_left = (ra_deg - half_width_deg, dec_deg + half_height_deg)  # noqa: F841
-        top_right = (ra_deg + half_width_deg, dec_deg + half_height_deg)  # noqa: F841
-        bottom_right = (  # noqa: F841
-            ra_deg + half_width_deg,
-            dec_deg - half_height_deg,
-        )
-
-        # TODO: `s_ra`, `s_dec`, `s_fov`, `s_region`, `s_resolution`, `s_xel1`, `s_xel2`
-        # TODO: `s_pixel_scale`, `em_xel`, `em_min`?, `em_max`?, `em_res_power`?
-        # TODO: `em_ucd`?, `o_ucd`?, `pol_states`?, `pol_xel`?
-        if inode is not None:
-            out["access_estsize"] = int(getsize(inode=inode) / 1e3)  # B -> KB
         return out
 
     def set_fields(self, **kwargs: Any) -> None:
