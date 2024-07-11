@@ -152,16 +152,16 @@ Welcome to Karabo-Pipeline's documentation!
 Once you have made changes to the documentation, you can test them via the following steps:
 
 ```shell
-cd doc/src/examples
-python combine_examples.py # Inserts code snippets into Examples documentation
-cd -
-sphinx-build -M html ./doc/src/ ./_build/
+python doc/src/examples/combine_examples.py  # Inserts code snippets into Examples documentation
+cp -a doc/src/ _build
+sphinx-apidoc . -o _build
+make html
 ```
 
 Then, you can serve the documentation locally:
 
 ```shell
-cd _build/
+cd _deploy/html
 python -m http.server 3000
 ```
 
