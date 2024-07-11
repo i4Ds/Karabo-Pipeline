@@ -7,7 +7,7 @@
 | Meta | [![License - BSD 3-Clause](https://anaconda.org/i4ds/karabo-pipeline/badges/license.svg)](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) |
 
 [Documentation](https://i4ds.github.io/Karabo-Pipeline/) |
-[Example](karabo/examples/source_detection.ipynb) |
+[Examples](https://i4ds.github.io/Karabo-Pipeline/examples/examples.html) |
 [Contributors](CONTRIBUTORS.md)
 
 Karabo is a radio astronomy software distribution for validation and benchmarking of radio telescopes and algorithms. It can be used to simulate the behaviour of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) or other supported telescopes. Our goal is to make installation and ramp-up easier for researchers and developers.
