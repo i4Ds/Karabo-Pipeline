@@ -25,7 +25,7 @@ from warnings import warn
 
 import numpy as np
 from oskar import VisHeader
-from typing_extensions import TypeGuard, assert_never
+from typing_extensions import Self, TypeGuard, assert_never
 
 from karabo.imaging.image import Image
 from karabo.simulation.observation import Observation
@@ -318,33 +318,40 @@ class ObsCoreMeta:
         )
 
     @overload
+    @classmethod
     def from_visibility(
-        self,
+        cls,
         vis: Visibility,
         calibrated: Optional[bool],
         tel: Telescope,
         obs: Optional[Observation],
-    ) -> Dict[str, Any]:
+    ) -> Self:
         ...
 
     @overload
+    @classmethod
     def from_visibility(
-        self,
+        cls,
         vis: Visibility,
         calibrated: Optional[bool],
         tel: Literal[None],
         obs: Literal[None],
-    ) -> Dict[str, Any]:
+    ) -> Self:
         ...
 
+    @classmethod
     def from_visibility(
-        self,
+        cls,
         vis: Visibility,
         calibrated: Optional[bool] = None,
         tel: Optional[Telescope] = None,
         obs: Optional[Observation] = None,
-    ) -> Dict[str, Any]:  # change to get actual dataclass?
+    ) -> Self:
         """Suggests fields from `Visibility`.
+
+        This function may not adjust each field for your needs. In addition, there
+        is no possibility to fill some mandatory fields because there is just no
+        information available. Thus, you have to take care of some fields by yourself.
 
         Supported formats: `OSKAR .vis` files.
 
@@ -355,29 +362,32 @@ class ObsCoreMeta:
             calibrated: Calibrated visibilities?
             tel: `Telescope` to determine smallest spatial resolution.
             obs: `Observation` to determine smallest spatial resolution.
+
+        Returns:
+            `ObsCoreMeta` instance.
         """
-        out: Dict[str, Any] = {"dataproduct_type": "visibility"}
-        # only .vis supported atm, Oskar can't read .ms with multiple spectral windows
+        ocm = cls(dataproduct_type="visibility")
+        # only .vis supported atm, `OSKAR` can't read .ms with multiple spectral windows
         # for multiple format-support, think about restructuring the entire function,
         # not just another elif block!
         vis_path = vis.vis_path
         if os.path.exists(vis_path):
             header, _ = VisHeader.read(vis_path)
-            out["s_ra"] = header.phase_centre_ra_deg
-            out["s_dec"] = header.phase_centre_dec_deg
+            ocm.s_ra = header.phase_centre_ra_deg
+            ocm.s_dec = header.phase_centre_dec_deg
             time_start_mjd_utc = header.time_start_mjd_utc
-            out["t_min"] = time_start_mjd_utc
+            ocm.t_min = time_start_mjd_utc
             time_inc_sec = header.time_inc_sec
             total_duration_sec = time_inc_sec * header.num_times_total
             time_end_mjd_utc = time_start_mjd_utc + (total_duration_sec / 86400.0)
-            out["t_max"] = time_end_mjd_utc
-            out["t_exptime"] = (
+            ocm.t_max = time_end_mjd_utc
+            ocm.t_exptime = (
                 time_end_mjd_utc - time_start_mjd_utc
             )  # assumes constant exposure time
             t_res = max(time_inc_sec, header.time_average_sec)
-            out["t_resolution"] = t_res
+            ocm.t_resolution = t_res
             num_elements_t = int(total_duration_sec / t_res)
-            out["t_xel"] = num_elements_t
+            ocm.t_xel = num_elements_t
             freq_start_hz = header.freq_start_hz  # midpoint freq of first channel
             channel_bandwidth_hz = header.channel_bandwidth_hz
             freq_inc_hz = header.freq_inc_hz
@@ -386,39 +396,44 @@ class ObsCoreMeta:
             max_freq_hz = min_freq_hz + freq_inc_hz * num_channels_total
             c = 299792458  # m/s
             min_wavelength_m = c / max_freq_hz
-            out["em_min"] = min_wavelength_m
+            ocm.em_min = min_wavelength_m
             max_wavelength_m = c / freq_start_hz
-            out["em_max"] = max_wavelength_m
+            ocm.em_max = max_wavelength_m
             if freq_inc_hz != 0:
                 midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
-                out["em_res_power"] = midpoint_frequency_hz / freq_inc_hz
-            out["em_xel"] = num_channels_total
-            out["access_estsize"] = int(getsize(inode=vis_path) / 1e3)  # B -> KB
-        out["em_ucd"] = "em.energy;em.radio"
-        out["o_ucd"] = "phot.flux.density;phys.polarization.stokes"
+                ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
+            ocm.em_xel = num_channels_total
+            ocm.access_estsize = int(getsize(inode=vis_path) / 1e3)  # B -> KB
+        ocm.em_ucd = "em.energy;em.radio"
+        ocm.o_ucd = "phot.flux.density;phys.polarization.stokes"
         # no particular polarization infos here for `pol_states` & `pol_xel`
         # need dish/antenna size for `s_fov` & `s_region` (tracking-mode)
         if calibrated is not None:
             if calibrated:  # can't be extracted from visibilities as far as I know
-                out["calib_level"] = 2
+                ocm.calib_level = 2
             else:
-                out["calib_level"] = 1
+                ocm.calib_level = 1
             # as far as I know, there's no MIME type for .ms or .vis, but for `.fits`
         if tel is not None and (tel_name := tel.name) is not None:
-            out["instrument_name"] = tel_name
+            ocm.instrument_name = tel_name
         if tel is not None and obs is not None:
             freq_inc_hz = obs.frequency_increment_hz
             min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
             end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
             b = float(tel.longest_baseline())
-            out["s_resolution"] = tel.ang_res(freq=end_freq_hz, b=b)
-        return out
+            ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
+        return ocm
 
+    @classmethod
     def from_image(
-        self,
+        cls,
         img: Image,
-    ) -> Dict[str, Any]:  # change to get actual dataclass?
+    ) -> Self:
         """Update fields from `Image`.
+
+        This function may not adjust each field for your needs. In addition, there
+        is no possibility to fill some mandatory fields because there is just no
+        information available. Thus, you have to take care of some fields by yourself.
 
         Note: Because of potential inconsistencies between different .fits images
             regarding header-keywords and their usage, only a minimal set of keywords
@@ -428,11 +443,15 @@ class ObsCoreMeta:
         - `NAXIS1` & `NAXIS2`, (X,Y) resolution of image.
         - `CRVAL1` & `CRVAL2`, (RA,DEC) are in deg.
 
-        If the keywords considered made are not sufficient, extend the result yourself.
-        In case the assumptions are wrong for your use-case, don't use this function.
+        If the .fits keywords considered made are not sufficient, extend the result
+        yourself. In case the assumptions are wrong for your use-case, don't use
+        this function.
 
         Args:
             img: `Image` instance.
+
+        Returns:
+            `ObsCoreMeta` instance.
         """
         # TODO: This function can GREATLY be enhanced by specifying the allocation
         # TODO: between the according `CTYPE` number and it's unit to allow stable
@@ -469,25 +488,25 @@ class ObsCoreMeta:
         top_left = (ra_deg - half_width_deg, dec_deg + half_height_deg)
         top_right = (ra_deg + half_width_deg, dec_deg + half_height_deg)
         bottom_right = (ra_deg + half_width_deg, dec_deg - half_height_deg)
-        spoly = self.spoly(
+        spoly = cls.spoly(
             poly=(bottom_left, top_left, top_right, bottom_right),
             ndigits=3,
             suffix="d",
         )
         img_size_kb = int(getsize(inode=file) / 1e3)  # B -> KB
-        out: Dict[str, Any] = {
-            "dataproduct_type": "image",
-            "calib_level": 3,  # I think images are always a 3?
-            "access_format": "image/fits",
-            "s_xel1": x_pixel,
-            "s_xel2": y_pixel,
-            "s_pixel_scale": x_inc_deg,
-            "s_fov": fov_deg,
-            "s_region": spoly,
-            "em_ucd": "em.freq;em.radio",
-            "access_estsize": img_size_kb,
-        }
-        return out
+        ocm = cls(
+            dataproduct_type="image",
+            calib_level=3,  # I think images are always a 3?
+            access_format="image/fits",
+            s_xel1=x_pixel,
+            s_xel2=y_pixel,
+            s_pixel_scale=x_inc_deg,
+            s_fov=fov_deg,
+            s_region=spoly,
+            em_ucd="em.freq;em.radio",
+            access_estsize=img_size_kb,
+        )
+        return ocm
 
     def set_fields(self, **kwargs: Any) -> None:
         """Set fields from `kwargs` if they're valid.
