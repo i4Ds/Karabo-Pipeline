@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 from typing import (
     Any,
     Dict,
@@ -24,6 +24,10 @@ from typing import (
 from warnings import warn
 
 import numpy as np
+from astropy import units as u
+from astropy.io.fits.header import Header
+from astropy.units.core import UnitBase
+from astropy.units.quantity import Quantity
 from oskar import VisHeader
 from typing_extensions import Self, TypeGuard, assert_never
 
@@ -62,6 +66,101 @@ _PolStatesType = Literal[
     "POLA",
 ]
 _PolStatesListType = List[_PolStatesType]
+
+
+@dataclass(frozen=True)
+class FitsHeaderAxis:
+    """Fits header axis dataclass.
+
+    Descriptive dataclass for .fits axis and unit allocation infos.
+
+    Args:
+        axis: Axis number.
+        unit: Unit of value `CRVAL` and increment `CDELT` of axis in the .fits file.
+    """
+
+    axis: int
+    unit: UnitBase
+
+    def crval(self, header: Header) -> Quantity:
+        """CRVAL{`axis`} value at reference point in `CTYPE{`axis`} unit.
+
+        Args:
+            header: Header to extract value from.
+
+        Returns:
+            Value as astropy `Quantity`.
+        """
+        return header[f"CRVAL{self.axis}"] * self.unit
+
+    def cdelt(self, header: Header) -> Quantity:
+        """CDELT{`axis`} increment at reference point in `CTYPE{`axis`} unit.
+
+        Args:
+            header: Header to extract increment from.
+
+        Returns:
+            Value as astropy `Quantity`.
+        """
+        return header[f"CDELT{self.axis}"] * self.unit
+
+    def crpix(self, header: Header) -> float:
+        """CRPIX{`axis`} location at reference point along axis.
+
+        Args:
+            header: Header to extract location from.
+
+        Returns:
+            Location of axis.
+        """
+        return float(header[f"CRPIX{self.axis}"])
+
+    def naxis(self, header: Header) -> int:
+        """NAXIS{`axis`} length of axis.
+
+        Args:
+            header: Header to extract length from.
+
+        Returns:
+            Length of axis.
+        """
+        return int(header[f"NAXIS{self.axis}"])
+
+    def ctype(self, header: Header) -> str:
+        """CTYPE{`axis`} unit type of axis.
+
+        This is just a str, not an astropy unit-name.
+
+        Args:
+            header: Header to extract unit from.
+
+        Returns:
+            Unit as str.
+        """
+        return str(header[f"CTYPE{self.axis}"])
+
+
+@dataclass(frozen=True)
+class FitsHeaderAxes:
+    """Fits file axes description.
+
+    Needed for file-parsing for axis-position and unit-transformation.
+
+    Args:
+        x: X/RA axis (default: axis=0, unit=deg) of image.
+        y: Y/DEC axis (default: axis=1, unit=deg) of image.
+        freq: Freq axis (default: axis=2, unit=Hz) of image.
+    """
+
+    x: FitsHeaderAxis = field(
+        default_factory=lambda: FitsHeaderAxis(axis=0, unit=u.deg)
+    )
+    y: FitsHeaderAxis = field(
+        default_factory=lambda: FitsHeaderAxis(axis=1, unit=u.deg)
+    )
+    freq: FitsHeaderAxis = field(
+        default_factory=lambda: FitsHeaderAxis(axis=2, unit=u.Hz)
+    )
 
 
 @dataclass  # once when just Python >= 3.10 is supported, change to (kw_only=True)
@@ -395,17 +494,17 @@ class ObsCoreMeta:
             channel_bandwidth_hz = header.channel_bandwidth_hz
             freq_inc_hz = header.freq_inc_hz
             min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
-            num_channels_total = header.num_channels_total
-            max_freq_hz = min_freq_hz + freq_inc_hz * num_channels_total
+            n_channels = header.num_channels_total
+            max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
             c = 299792458  # m/s
-            min_wavelength_m = c / max_freq_hz
+            min_wavelength_m = c / min_freq_hz
             ocm.em_min = min_wavelength_m
-            max_wavelength_m = c / freq_start_hz
+            max_wavelength_m = c / max_freq_hz
             ocm.em_max = max_wavelength_m
             if freq_inc_hz != 0:
                 midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
                 ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
-            ocm.em_xel = num_channels_total
+            ocm.em_xel = n_channels
             ocm.access_estsize = int(getsize(inode=vis_path) / 1e3)  # B -> KB
         ocm.em_ucd = "em.energy;em.radio"
         ocm.o_ucd = "phot.flux.density;phys.polarization.stokes"
@@ -431,50 +530,44 @@ class ObsCoreMeta:
     def from_image(
         cls,
         img: Image,
+        fits_axes: FitsHeaderAxes = FitsHeaderAxes(),  # immutable default
     ) -> Self:
         """Update fields from `Image`.
 
         This function may not adjust each field for your needs. In addition, there
-        is no possibility to fill some mandatory fields because there is just no
-        information available. Thus, you have to take care of some fields by yourself.
+            is no possibility to fill some mandatory fields because there is just no
+            information available. Thus, you have to take care of some fields by
+            yourself.
 
-        Note: Because of potential inconsistencies between different .fits images
-            regarding header-keywords and their usage, only a minimal set of keywords
-            are considered with the following assumptions:
-
-        - `CDELT1` & `CDELT2`, (X,Y) coordinate increment at reference point are in deg.
-        - `NAXIS1` & `NAXIS2`, (X,Y) resolution of image.
-        - `CRVAL1` & `CRVAL2`, (RA,DEC) are in deg.
-
-        If the .fits keywords considered made are not sufficient, extend the result
-        yourself. In case the assumptions are wrong for your use-case, don't use
-        this function.
+        Note: This function assumes the presence of `NAXIS`, `CRPIX`, `CRVAL` & `CDELT`
+            for each axis-number specified in `fits_axes` to be present and correctly
+            specified for your .fits file in `img`. Otherwise, this function might fail
+            or produce corrupt values.
 
         Args:
             img: `Image` instance.
+            fits_axes: `FitsAxes` instance to specify axis-number and according unit
+                to extract and transform information from the .fits file of
+                `img` correctly.
 
         Returns:
             `ObsCoreMeta` instance.
         """
-        # TODO: This function can GREATLY be enhanced by specifying the allocation
-        # TODO: between the according `CTYPE` number and it's unit to allow stable
-        # TODO: value extraction, unit-conversion, remove assumptions and adding new
-        # TODO: keywords: `em_xel`,`em_min`,`em_max`,`em_res_power`
-        # TODO: Maybe the same for `pol_xel` and `pol_states`? Not sure tough.
-        # the values extracted here are just the consistent fields I've seen from
-        # different images.
         file = img.path
         assert_valid_ending(path=file, ending=".fits")
         header = img.header
         if not header["SIMPLE"]:
-            wmsg = f"{file} doesn't follow .fits standard!"
+            wmsg = f"{file} doesn't follow .fits standard! Info extraction might fail!"
             warn(message=wmsg, category=UserWarning, stacklevel=1)
-        x_inc_deg = img.header["CDELT1"]  # increment around center
-        y_inc_deg = img.header["CDELT2"]  # increment around center
-        x_pixel = img.header["NAXIS1"]
-        y_pixel = img.header["NAXIS2"]
-        ra_deg = img.header["CRVAL1"]  # RA-center
-        dec_deg = img.header["CRVAL2"]  # DEC-center
+        ra_deg = fits_axes.x.crval(header=header).to(u.deg).value  # center
+        dec_deg = fits_axes.y.crval(header=header).to(u.deg).value  # center
+        freq_center_hz = fits_axes.freq.crval(header=header).to(u.Hz).value  # center
+        x_inc_deg = fits_axes.x.cdelt(header=header).to(u.deg).value  # inc at center
+        y_inc_deg = fits_axes.y.cdelt(header=header).to(u.deg).value  # inc at center
+        freq_inc_hz = fits_axes.freq.cdelt(header=header).to(u.Hz).value
+        x_pixel = fits_axes.x.naxis(header=header)
+        y_pixel = fits_axes.y.naxis(header=header)
+        n_channels = fits_axes.freq.naxis(header=header)
 
         if x_inc_deg != y_inc_deg:
             wmsg = (
@@ -482,6 +575,13 @@ class ObsCoreMeta:
                 + f"{y_inc_deg}. `s_pixel_scale` set to {x_inc_deg=}."
             )
             warn(message=wmsg, category=UserWarning, stacklevel=1)
+        if n_channels > 1 and freq_inc_hz != 0.0:
+            em_res_power = freq_center_hz / freq_inc_hz
+        min_freq_hz = freq_center_hz - freq_inc_hz / 2
+        c = 299792458  # m/s
+        min_wavelength_m = c / min_freq_hz
+        max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
+        max_wavelength_m = c / max_freq_hz
         fov_deg = np.sqrt(
             (x_inc_deg * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
         )  # circular fov of flattened image
@@ -506,6 +606,10 @@ class ObsCoreMeta:
             s_pixel_scale=x_inc_deg,
             s_fov=fov_deg,
             s_region=spoly,
+            em_min=min_wavelength_m,
+            em_max=max_wavelength_m,
+            em_res_power=em_res_power,
+            em_xel=n_channels,
             em_ucd="em.freq;em.radio",
             access_estsize=img_size_kb,
         )
