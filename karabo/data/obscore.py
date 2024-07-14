@@ -10,17 +10,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import asdict, dataclass, field, fields
-from typing import (
-    Any,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    get_args,
-    overload,
-)
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, get_args
 from warnings import warn
 
 import numpy as np
@@ -153,13 +143,13 @@ class FitsHeaderAxes:
     """
 
     x: FitsHeaderAxis = field(
-        default_factory=lambda: FitsHeaderAxis(axis=0, unit=u.deg)
-    )
-    y: FitsHeaderAxis = field(
         default_factory=lambda: FitsHeaderAxis(axis=1, unit=u.deg)
     )
+    y: FitsHeaderAxis = field(
+        default_factory=lambda: FitsHeaderAxis(axis=2, unit=u.deg)
+    )
     freq: FitsHeaderAxis = field(
-        default_factory=lambda: FitsHeaderAxis(axis=2, unit=u.Hz)
+        default_factory=lambda: FitsHeaderAxis(axis=3, unit=u.Hz)
     )
 
 
@@ -419,28 +409,6 @@ class ObsCoreMeta:
             )
         )
 
-    @overload
-    @classmethod
-    def from_visibility(
-        cls,
-        vis: Visibility,
-        calibrated: Optional[bool],
-        tel: Telescope,
-        obs: Optional[Observation],
-    ) -> Self:
-        ...
-
-    @overload
-    @classmethod
-    def from_visibility(
-        cls,
-        vis: Visibility,
-        calibrated: Optional[bool],
-        tel: Literal[None],
-        obs: Literal[None],
-    ) -> Self:
-        ...
-
     @classmethod
     def from_visibility(
         cls,
@@ -508,7 +476,7 @@ class ObsCoreMeta:
             ocm.access_estsize = int(getsize(inode=vis_path) / 1e3)  # B -> KB
         ocm.em_ucd = "em.energy;em.radio"
         ocm.o_ucd = "phot.flux.density;phys.polarization.stokes"
-        # no particular polarization infos here for `pol_states` & `pol_xel`
+        # no particular polarization infos here for `pol_states` & `pol_xel`?
         # need dish/antenna size for `s_fov` & `s_region` (tracking-mode)
         if calibrated is not None:
             if calibrated:  # can't be extracted from visibilities as far as I know
@@ -569,23 +537,21 @@ class ObsCoreMeta:
         y_pixel = fits_axes.y.naxis(header=header)
         n_channels = fits_axes.freq.naxis(header=header)
 
-        if x_inc_deg != y_inc_deg:
+        if (s_pixel_scale := abs(x_inc_deg)) != abs(y_inc_deg):
             wmsg = (
                 f"Pixel-size is not square for `s_pixel_scale`: {x_inc_deg=}, "
-                + f"{y_inc_deg}. `s_pixel_scale` set to {x_inc_deg=}."
+                + f"{y_inc_deg}. `s_pixel_scale` set to {s_pixel_scale=}."
             )
             warn(message=wmsg, category=UserWarning, stacklevel=1)
-        if n_channels > 1 and freq_inc_hz != 0.0:
-            em_res_power = freq_center_hz / freq_inc_hz
         min_freq_hz = freq_center_hz - freq_inc_hz / 2
         c = 299792458  # m/s
         min_wavelength_m = c / min_freq_hz
         max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
         max_wavelength_m = c / max_freq_hz
         fov_deg = np.sqrt(
-            (x_inc_deg * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
+            (s_pixel_scale * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
         )  # circular fov of flattened image
-        half_width_deg = abs(x_inc_deg) * x_pixel / 2
+        half_width_deg = s_pixel_scale * x_pixel / 2
         half_height_deg = abs(y_inc_deg) * y_pixel / 2
         bottom_left = (ra_deg - half_width_deg, dec_deg - half_height_deg)
         top_left = (ra_deg - half_width_deg, dec_deg + half_height_deg)
@@ -599,20 +565,22 @@ class ObsCoreMeta:
         img_size_kb = int(getsize(inode=file) / 1e3)  # B -> KB
         ocm = cls(
             dataproduct_type="image",
-            calib_level=3,  # I think images are always a 3?
+            calib_level=3,  # Are images are always a 3?
             access_format="image/fits",
             s_xel1=x_pixel,
             s_xel2=y_pixel,
-            s_pixel_scale=x_inc_deg,
+            s_pixel_scale=s_pixel_scale,
             s_fov=fov_deg,
             s_region=spoly,
             em_min=min_wavelength_m,
             em_max=max_wavelength_m,
-            em_res_power=em_res_power,
             em_xel=n_channels,
             em_ucd="em.freq;em.radio",
             access_estsize=img_size_kb,
         )
+        if n_channels > 1 and freq_inc_hz != 0.0:
+            em_res_power = freq_center_hz / freq_inc_hz
+            ocm.em_res_power = em_res_power
         return ocm
 
     def set_fields(self, **kwargs: Any) -> None:
@@ -781,15 +749,10 @@ class ObsCoreMeta:
                 wmsg = f"Coercing {axis}={number} to {axis}={number}%360"
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
             number = number % 360
-            sign = ""
         elif axis == "DEC":
             if number < -90.0 or number > 90.0:
                 err_msg = f"DEC [deg] must be in range [-90,90], but {number=}"
                 raise ValueError(err_msg)
-            if number < 0.0:
-                sign = "-"
-            else:
-                sign = "+"
         elif axis == "radius":
             if number < 0.0 or number > 180.0:
                 err_msg = f"radius [deg] must be in range [0.180], but {number=}"
@@ -798,7 +761,7 @@ class ObsCoreMeta:
             assert_never(axis)
         number = round(number=number, ndigits=ndigits)
 
-        return f"{sign}{number}{suffix}"
+        return f"{number}{suffix}"
 
     @classmethod
     def _get_mandatory_fields(cls) -> Tuple[str, ...]:
