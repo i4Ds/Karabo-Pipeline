@@ -2,7 +2,7 @@
 
 ## Running a general interferometer simulation
 
-The following example also showcases the main pipeline ingredients for a telescope simulation, similar to the line emission scripts.
+The following example showcases a simple telescope simulation using the main pipeline ingredients.
 
 ```python
 from datetime import datetime
@@ -57,6 +57,10 @@ The notebook [SRCNet_simulation_walkthrough.ipynb](https://github.com/i4Ds/Karab
 See the script [line_emission.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/simulation/line_emission.py) and the notebook [LineEmissionBackendsComparison.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/LineEmissionBackendsComparison.ipynb) for an end-to-end line emission simulation.
 
 This simulation begins with a `SkyModel` instance, and with the definition of the desired `Observation` and `Telescope` details. Then, the `InterferometerSimulation` instance uses the requested backend (OSKAR and RASCIL are currently supported) to compute the corresponding visibilities, and the desired `DirtyImager` instance is used to convert the visibilities into dirty images. Optionally, we can include primary beam effects and correct for such effects in the final dirty images. Finally, we can mosaic different dirty images into one larger image using the `ImageMosaicker` class.
+
+## Source detection
+
+In the example notebook [source_detection.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/source_detection.ipynb), we simulate data, perform dirty imaging, clean the image, and then run and evaluate a source detection algorithm.
 
 ## Show telescope config
 
