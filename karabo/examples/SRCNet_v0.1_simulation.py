@@ -69,7 +69,12 @@ observation = Observation(
     frequency_increment_hz=frequency_increment_hz,
 )
 
-visibility = simulation.run_simulation(telescope, sky_model, observation)
+visibility = simulation.run_simulation(
+    telescope,
+    sky_model,
+    observation,
+    backend=SIMULATOR_BACKEND,
+)
 
 # -> Cellsize < FOV / 4096 -> 0.0000050418955078125
 dirty_imager = WscleanDirtyImager(
