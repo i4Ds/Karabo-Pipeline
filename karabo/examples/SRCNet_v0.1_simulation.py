@@ -1,3 +1,5 @@
+# This script generates simulated visibilities and dirty images resembling SKAO data.
+# Size of generated data is in the 10-100 GB range.
 import math
 from datetime import datetime, timedelta, timezone
 
@@ -9,12 +11,12 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
 
+# Simulate using OSKAR
 SIMULATOR_BACKEND = SimulatorBackend.OSKAR
 
-# phase center: should be mean of coverage
+# Phase center: should be mean of coverage
 # Link to metadata of survey:
 # https://archive.sarao.ac.za/search/MIGHTEE%20COSMOS/target/J0408-6545/captureblockid/1587911796/
-# Frequency filter -> less data
 sky_model = SkyModel.get_MIGHTEE_Sky()
 # Means of values from sky model description
 phase_center_ra = 150.12
@@ -34,7 +36,8 @@ end_frequency_hz = 1.375e9
 # From survey metadata
 frequency_increment_hz = 26123
 
-# Original survey: 32768 channels
+# Original survey: 32768 channels over the full frequency range
+# of 856 MHz to 1712 MHz
 number_of_channels = math.floor(
     (end_frequency_hz - start_frequency_hz) / frequency_increment_hz
 )
@@ -76,15 +79,13 @@ visibility = simulation.run_simulation(
     backend=SIMULATOR_BACKEND,
 )
 
-# -> Cellsize < FOV / 4096 -> 0.0000050418955078125
+# Imaging using WSClean
 dirty_imager = WscleanDirtyImager(
     DirtyImagerConfig(
         # Image size in degrees should be smaller than FOV
         # Bigger baseline -> higher resolution
         imaging_npixel=4096,
-        # Choose for MeerKAT and MIGHTEE freqs (1304-1375 MHz) (?)
-        # lambda = wave length w.r.t. frequency
-        # baseline unit: probably meters
+        # -> Cellsize < FOV / 4096 -> 0.0000050418955078125
         imaging_cellsize=5e-6,
         combine_across_frequencies=True,
     )
