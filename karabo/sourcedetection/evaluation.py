@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, Union, cast
+from typing import Any, List, Optional, Tuple, Union, cast
 
 import astropy.units as u
+import matplotlib.axes as mpl_axes
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from numpy.typing import NDArray
 from scipy.spatial import KDTree
 
@@ -435,7 +437,11 @@ class SourceDetectionEvaluation:
         flux_ratio = flux_pred / flux_ref
 
         # Flux ratio vs. RA & Dec
-        fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+        fig, axs = cast(
+            Tuple[Figure, NDArray[Any]], plt.subplots(1, 2, sharey=True)
+        )  # `NDArray[Axes]` is untypeable
+        ax1: mpl_axes.Axes = axs[0]
+        ax2: mpl_axes.Axes = axs[1]
         fig.suptitle("Flux ratio vs. Position")
         ax1.plot(ra_pred, flux_ratio, "o", color="b", markersize=5, alpha=0.5)
         ax2.plot(dec_pred, flux_ratio, "o", color="b", markersize=5, alpha=0.5)
@@ -465,9 +471,11 @@ class SourceDetectionEvaluation:
         hist_min = min(np.min(flux_in), np.min(flux_out))
         hist_max = max(np.max(flux_in), np.max(flux_out))
 
-        hist_bins = np.logspace(np.log10(hist_min), np.log10(hist_max), nbins)
+        hist_bins: List[float] = list(
+            np.logspace(np.log10(hist_min), np.log10(hist_max), nbins)
+        )
 
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         ax.hist(hist, bins=hist_bins, log=True, color=colors, label=labels)
 
         ax.set_title("Flux histogram")

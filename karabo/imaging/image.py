@@ -372,7 +372,7 @@ class Image:
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
         cmap: Optional[str] = "jet",
-        origin: Optional[str] = "lower",
+        origin: Optional[Literal["upper", "lower"]] = "lower",
         wcs_enabled: bool = True,
         invert_xaxis: bool = False,
         filename: Optional[str] = None,
