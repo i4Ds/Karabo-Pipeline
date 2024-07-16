@@ -1,1 +1,4 @@
 karabo/_version.py export-subst
+
+# Ignore examples in the language bar on GitHub
+karabo/examples/** linguist-vendored
