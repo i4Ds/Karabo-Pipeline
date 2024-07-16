@@ -12,7 +12,7 @@ The following example showcases a simple telescope simulation using the main pip
 
 Karabo is used in the SRCNet to generate simulated test data resembling SKAO data.
 
-The script `SRCNet_v0.1_simulation.py` (work in progress, TODO link will follow) generates simulated test data for the SRCNet v0.1 release. Data volume generated: TODO GB. Required hardware: TODO GB RAM, TODO GB storage. Approximate runtime with TODO cores: TODO h.
+The script `SRCNet_v0.1_simulation.py` (work in progress, TODO link will follow) generates simulated test data for the SRCNet v0.1 release. Data volume generated: 85 GB. Required hardware: 32 GB RAM, 100 GB storage. Approximate runtime with 16 cores: 18 h.
 
 The notebook [SRCNet_simulation_walkthrough.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_simulation_walkthrough.ipynb) contains a small example based on `SRCNet_v0.1_simulation.py` that can be run on a laptop in a couple of minutes. It walks you through the whole process, from loading the survey / sky model and configuring the telescope, to configuring observation parameters and setting up and running the simulation, to creating a dirty image from the generated visibilities.
 
