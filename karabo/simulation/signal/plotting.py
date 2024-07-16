@@ -1,12 +1,15 @@
 """Signal plotting helpers."""
-from typing import Annotated, Any, Literal, Union
 
+from typing import Annotated, Any, Literal, Tuple, Union, cast
+
+import matplotlib.axes as mpl_axes
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import tools21cm as t2c
 from matplotlib import colors
 from matplotlib.figure import Figure
+from numpy.typing import NDArray
 from sklearn.metrics import matthews_corrcoef
 
 from karabo.error import KaraboError
@@ -40,7 +43,10 @@ class SignalPlotting:
         loaded = data.load()
         x, y = loaded.xy_dims()
 
-        fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(16, 6))
+        # `plt.subplots` > 1-subplot ax is actually `NDArray[plt.Axes]`, but untyepable
+        fig, axs = cast(
+            Tuple[Figure, NDArray[Any]], plt.subplots(nrows=1, ncols=2, figsize=(16, 6))
+        )
         fig.suptitle(f"$z={loaded.z},~x_v=${loaded.x_frac.mean():.2f}", size=18)
         axs[0].set_title("Density contrast slice")
         pcm_dens = axs[0].pcolormesh(x, y, loaded.dens[0] / loaded.dens.mean() - 1)
@@ -432,10 +438,16 @@ class SegmentationPlotting:
             mask_xhi2.flatten(), xhi_seg[:128, :128, :128].flatten()
         )
 
-        fig, (ax1, ax2, ax3) = plt.subplots(
-            figsize=(20, 6),
-            ncols=3,
+        fig, axs = cast(
+            Tuple[Figure, NDArray[Any]],  # `NDArray[Axes]` is not typeable
+            plt.subplots(
+                figsize=(20, 6),
+                ncols=3,
+            ),
         )
+        ax1: mpl_axes.Axes = axs[0]
+        ax2: mpl_axes.Axes = axs[1]
+        ax3: mpl_axes.Axes = axs[2]
 
         fig.suptitle(f"SegU-Net segmentation with redshift {redshift}")
 
@@ -444,12 +456,12 @@ class SegmentationPlotting:
             xhi_seg[0],
             origin="lower",
             cmap="jet",
-            extent=[0, boxsize, 0, boxsize],
+            extent=(0.0, boxsize, 0.0, boxsize),
         )
         ax1.contour(
             mask_xhi2[0],
             colors="lime",
-            extent=[0, boxsize, 0, boxsize],
+            extent=(0.0, boxsize, 0.0, boxsize),
         )
         ax1.set_xlabel("x [Mpc]")
 
@@ -458,7 +470,7 @@ class SegmentationPlotting:
             xhi_seg_err[0],
             origin="lower",
             cmap="jet",
-            extent=[0, boxsize, 0, boxsize],
+            extent=(0.0, boxsize, 0.0, boxsize),
         )
         fig.colorbar(
             im2,
@@ -522,16 +534,22 @@ class SegmentationPlotting:
         y, x = np.mgrid[slice(dy / 2, box_dims, dy), slice(dx / 2, box_dims, dx)]
         phicoef_sup = matthews_corrcoef(mask_xhi.flatten(), 1 - xhii_stitch.flatten())
 
-        fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(18, 5))
+        fig, axs = cast(
+            Tuple[Figure, NDArray[Any]],  # `NDArray[Axes]` is not typeable
+            plt.subplots(nrows=1, ncols=3, figsize=(18, 5)),
+        )
+        ax1: mpl_axes.Axes = axs[0]
+        ax2: mpl_axes.Axes = axs[1]
+        ax3: mpl_axes.Axes = axs[2]
 
         fig.suptitle(f"Superpixel segmentation with redshift={redshift}")
 
-        kwargs = {}
-        if log_sky:
-            kwargs["norm"] = colors.SymLogNorm(linthresh=0.01)
-
         ax1.set_title("dt_smooth")
-        im1 = ax1.pcolormesh(x, y, dt_smooth[0], cmap="jet", **kwargs)
+        if log_sky:
+            norm = colors.SymLogNorm(linthresh=0.01)
+            im1 = ax1.pcolormesh(x, y, dt_smooth[0], cmap="jet", norm=norm)
+        else:
+            im1 = ax1.pcolormesh(x, y, dt_smooth[0], cmap="jet")
         fig.colorbar(im1, ax=ax1, label="[K]")
 
         ax2.set_title("superpixel_map")
