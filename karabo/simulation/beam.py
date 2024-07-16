@@ -1,9 +1,10 @@
 import os
 import subprocess
 import tempfile
-from typing import List, Literal, Optional, Tuple, Union, cast
+from typing import Any, List, Literal, Optional, Tuple, Union, cast
 
 import eidos
+import matplotlib.axes as mpl_axes
 import numpy as np
 from astropy import units
 from astropy.stats import gaussian_fwhm_to_sigma
@@ -12,10 +13,12 @@ from eidos.create_beam import zernike_parameters
 from eidos.spatial import recon_par
 from katbeam import JimBeam
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.projections.polar import PolarAxes
 from numpy.typing import ArrayLike, NDArray
 from scipy import interpolate
 from scipy.interpolate import RectBivariateSpline
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, assert_never
 
 from karabo.error import KaraboError
 from karabo.simulation.telescope import Telescope
@@ -194,9 +197,7 @@ class BeamPattern:
         elif pol == "I":
             beampixels = beam.I(x, y, freqMHz)
         else:
-            raise ValueError(
-                f"`pol` value of 'H', 'V' or 'I' is allowed, but is {pol}."
-            )
+            assert_never(pol)
         return x, y, beampixels
 
     @staticmethod
@@ -215,17 +216,17 @@ class BeamPattern:
                 f"{get_module_path_of_module(eidos)}"
                 + "/data/meerkat_beam_coeffs_ah_zp_dct.npy"
             )
-            params, freqs = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres)
+            params, _ = zernike_parameters(meerkat_beam_coeff_ah, npix, dia, thres)
             B = cast(NDArray[np.complex_], recon_par(params[ch, :]))
         elif mode == "EM":
             meerkat_beam_coeff_em = (
                 f"{get_module_path_of_module(eidos)}"
                 + "/data/meerkat_beam_coeffs_em_zp_dct.npy"
             )
-            params, freqs = zernike_parameters(meerkat_beam_coeff_em, npix, dia, thres)
+            params, _ = zernike_parameters(meerkat_beam_coeff_em, npix, dia, thres)
             B = cast(NDArray[np.complex_], recon_par(params[ch, :]))
         else:
-            raise ValueError(f"`mode` 'EM' and 'AH' are allowed but is {mode}.")
+            assert_never(mode)
         return B
 
     @staticmethod
@@ -233,39 +234,40 @@ class BeamPattern:
         B_ah: NDArray[np.complex_],
         path: Optional[str] = None,
     ) -> None:
-        _, ax = plt.subplots(2, 2)
+        # `plt.subplots` > 1-subplot ax is actually `NDArray[plt.Axes]`, but untyepable
+        _, ax = cast(Tuple[Figure, NDArray[Any]], plt.subplots(2, 2))
         log10_notzero = 10 ** (-10)
-        ax00 = ax[0, 0]
-        ax01 = ax[0, 1]
-        ax10 = ax[1, 0]
-        ax11 = ax[1, 1]
+        ax00: mpl_axes.Axes = ax[0, 0]
+        ax01: mpl_axes.Axes = ax[0, 1]
+        ax10: mpl_axes.Axes = ax[1, 0]
+        ax11: mpl_axes.Axes = ax[1, 1]
         B_ah[np.where(np.abs(B_ah) == 0)] = 1 + 1j
         ax00.imshow(
             10 * np.log10(np.abs(B_ah[0, 0]) + log10_notzero),
             aspect="auto",
             origin="lower",
-            extent=[-5, 5, -5, 5],
+            extent=(-5.0, 5.0, -5.0, 5.0),
         )
         ax00.set_title("E$_{00}^{h}$")
         ax01.imshow(
             10 * np.log10(np.abs(B_ah[0, 1]) + log10_notzero),
             aspect="auto",
             origin="lower",
-            extent=[-5, 5, -5, 5],
+            extent=(-5.0, 5.0, -5.0, 5.0),
         )
         ax01.set_title("E$_{01}^{h}$")
         ax10.imshow(
             10 * np.log10(np.abs(B_ah[1, 0]) + log10_notzero),
             aspect="auto",
             origin="lower",
-            extent=[-5, 5, -5, 5],
+            extent=(-5.0, 5.0, -5.0, 5.0),
         )
         ax10.set_title("E$_{10}^{h}$")
         im = ax11.imshow(
             10 * np.log10(np.abs(B_ah[1, 1]) + log10_notzero),
             aspect="auto",
             origin="lower",
-            extent=[-5, 5, -5, 5],
+            extent=(-5.0, 5.0, -5.0, 5.0),
         )
         ax11.set_title("E$_{11}^{h}$")
         ax10.set_xlabel("Deg")
@@ -285,10 +287,11 @@ class BeamPattern:
         npix: int,
         path: Optional[str] = None,
     ) -> None:
-        f, ax = plt.subplots(2, 1)
+        # `plt.subplots` > 1-subplot ax is actually `NDArray[plt.Axes]`, but untyepable
+        _, ax = cast(Tuple[Figure, NDArray[Any]], plt.subplots(2, 1))
         log10_notzero = 10 ** (-12)
-        ax0 = ax[0]
-        ax1 = ax[1]
+        ax0: mpl_axes.Axes = ax[0]
+        ax1: mpl_axes.Axes = ax[1]
         ax0.plot(
             np.linspace(-5, 5, npix),
             10 * np.log10(np.abs(B_ah[0, 0]) + log10_notzero)[250],
@@ -821,11 +824,16 @@ class BeamPattern:
         co_vmin, co_vmax = -1, 1
         cr_vmin, cr_vmax = -1.0e-2, 1.0e-2
         max_theta = max(data_x[0])
-        fig, axs = plt.subplots(
-            2, 2, subplot_kw={"projection": "polar"}, figsize=(8, 8)
-        )
-        XX_ax, XY_ax, YX_ax, YY_ax = axs.flat
-        for ax in axs.flat:
+        fig, axs = cast(
+            Tuple[Figure, NDArray[Any]],
+            plt.subplots(2, 2, subplot_kw={"projection": "polar"}, figsize=(8, 8)),
+        )  # untypeable NDArray[Axes] if `plt.subplots` > 1
+        XX_ax: PolarAxes = axs[0]
+        XY_ax: PolarAxes = axs[1]
+        YX_ax: PolarAxes = axs[2]
+        YY_ax: PolarAxes = axs[3]
+        axs_flat = [XX_ax, XY_ax, YX_ax, YY_ax]
+        for ax in axs_flat:
             ax.set_rticks(np.arange(0, max_theta, 10))
             ax.grid(False)  # For deprecation warning
         XX_ax.set_title(r"$V_{\rm XX}$")
