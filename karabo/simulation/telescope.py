@@ -22,6 +22,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from astropy import constants as const
 from astropy import units as u
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
@@ -826,6 +827,6 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Angular resolution in arcsec.
         """
-        ang_res = (299792458 / freq) / b * u.deg
+        ang_res = (const.c.value / freq) / b * u.deg
         ang_res_arcsec: float = ang_res.to(u.arcsec).value
         return ang_res_arcsec

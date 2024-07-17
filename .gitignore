@@ -89,6 +89,7 @@ config.yaml
 # Tests
 karabo/test/result/*
 karabo/test/data/*
+karabo/data/*.tm/**
 # Exception!
 !karabo/test/data/sdp
 example_telescope.png

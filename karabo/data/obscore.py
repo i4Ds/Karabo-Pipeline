@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, get_args
 from warnings import warn
 
 import numpy as np
+from astropy import constants as const
 from astropy import units as u
 from astropy.io.fits.header import Header
 from astropy.units.core import UnitBase
@@ -137,9 +138,9 @@ class FitsHeaderAxes:
     Needed for file-parsing for axis-position and unit-transformation.
 
     Args:
-        x: X/RA axis (default: axis=0, unit=deg) of image.
-        y: Y/DEC axis (default: axis=1, unit=deg) of image.
-        freq: Freq axis (default: axis=2, unit=Hz) of image.
+        x: X/RA axis (default: axis=1, unit=deg) of image.
+        y: Y/DEC axis (default: axis=2, unit=deg) of image.
+        freq: Freq axis (default: axis=3, unit=Hz) of image.
     """
 
     x: FitsHeaderAxis = field(
@@ -153,7 +154,7 @@ class FitsHeaderAxes:
     )
 
 
-@dataclass  # once when just Python >= 3.10 is supported, change to (kw_only=True)
+@dataclass  # TODO: once when just Python >= 3.10 is supported, change to (kw_only=True)
 class ObsCoreMeta:
     r"""IVOA ObsCore v1.1 metadata (TAP column names).
 
@@ -173,7 +174,7 @@ class ObsCoreMeta:
 
         calib_level: Calibration level {0, 1, 2, 3, 4} (mandatory).
             - 0: Raw instrumental data.
-            - 1: Instrumental data in a starndard format (FITS, VOTable, etc.)
+            - 1: Instrumental data in a standard format (FITS, VOTable, etc.)
             - 2: Calibrated, science ready measurements without instrument signature.
             - 3: Enhanced data products like mosaics, drizzled images or heavily
                 processed survey fields. May represent a combination of data from
@@ -216,7 +217,7 @@ class ObsCoreMeta:
 
         s_fov: [deg] Region covered by the data product. For a circular region, this
             is the diameter. For most data products, the value should be large enough
-            to include the entire are of the observation. For detailed spatial
+            to include the entire area of the observation. For detailed spatial
             coverage, the `s_region` attribute can be used.
 
         s_region: Sky region covered by the data product (expressed in ICRS frame).
@@ -420,7 +421,7 @@ class ObsCoreMeta:
         """Suggests fields from `Visibility`.
 
         This function may not adjust each field for your needs. In addition, there
-        is no possibility to fill some mandatory fields because there is just no
+        is no possibility to fill all mandatory fields because there is just no
         information available. Thus, you have to take care of some fields by yourself.
 
         Supported formats: `OSKAR .vis` files.
@@ -464,7 +465,7 @@ class ObsCoreMeta:
             min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
             n_channels = header.num_channels_total
             max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
-            c = 299792458  # m/s
+            c = const.c.value
             min_wavelength_m = c / min_freq_hz
             ocm.em_min = min_wavelength_m
             max_wavelength_m = c / max_freq_hz
@@ -544,7 +545,7 @@ class ObsCoreMeta:
             )
             warn(message=wmsg, category=UserWarning, stacklevel=1)
         min_freq_hz = freq_center_hz - freq_inc_hz / 2
-        c = 299792458  # m/s
+        c = const.c.value
         min_wavelength_m = c / min_freq_hz
         max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
         max_wavelength_m = c / max_freq_hz
@@ -838,7 +839,10 @@ class ObsCoreMeta:
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         elif pol_xel is not None and pol_states is not None:
             if pol_xel != (num_pol_states := len(pol_states)):
-                wmsg = f"{pol_xel=} should be {num_pol_states=}"
+                valid = False
+                if verbose:
+                    wmsg = f"{pol_xel=} should be {num_pol_states=}"
+                    warn(message=wmsg, category=UserWarning, stacklevel=1)
         if (pol_xel is not None or pol_states is not None) and (
             self.o_ucd is None or (ucd_str := "phys.polarisation") not in self.o_ucd
         ):
