@@ -11,6 +11,7 @@ build:
   number: {{ build }}
   string: py{{ py }}h{{ PKG_HASH }}_{{ build }}
 
+# IMPORTANT: If you add or remove dependencies, make sure to adjust environment.yaml as well.
 requirements:
   build:
     - python

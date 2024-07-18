@@ -7,6 +7,8 @@ dependencies:
 # Just Karabo's direct dependencies and Karabo constraints (from our code) should be handeled here.
 # Dependencies with unstable APIs (this usually includes Karabo-Feedstock) should be fixed.
 # Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
+# 
+# IMPORTANT: If you add or remove dependencies, make sure to adjust conda/meta.yaml as well.
   - python                  =3.9
   - aratmospy               =1.0.0
   - astropy
