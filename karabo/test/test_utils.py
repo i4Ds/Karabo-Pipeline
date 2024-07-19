@@ -55,9 +55,9 @@ def test_pkg_dist():
                 try:
                     pkg_to_dist[pkg].append(dist.metadata["Name"])
                 except KeyError:
-                    return pkg
+                    print(f"pkg-dist: {pkg=}", file=sys.stdout)
+                    print(f"pkg-dist: {pkg=}", file=sys.stderr)
+                    raise
         return dict(pkg_to_dist)
 
-    output = packages_distributions()
-    print(f"pkg-dist: {output=}", file=sys.stdout)
-    print(f"pkg-dist: {output=}", file=sys.stderr)
+    _ = packages_distributions()
