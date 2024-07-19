@@ -1,3 +1,7 @@
+import collections
+import sys
+from importlib import metadata
+
 import pytest
 
 import karabo
@@ -37,3 +41,23 @@ def test_is_cuda_available_true():
 
 def test_version():
     assert karabo.__version__ != "0+unknown"
+
+
+def test_pkg_dist():
+    def packages_distributions():
+        """
+        Return a mapping of top-level packages to their distributions.
+        Note: copied from https://github.com/python/importlib_metadata/pull/287
+        """
+        pkg_to_dist = collections.defaultdict(list)
+        for dist in metadata.distributions():
+            for pkg in (dist.read_text("top_level.txt") or "").split():
+                try:
+                    pkg_to_dist[pkg].append(dist.metadata["Name"])
+                except KeyError:
+                    return pkg
+        return dict(pkg_to_dist)
+
+    output = packages_distributions()
+    print(f"pkg-dist: {output=}", file=sys.stdout)
+    print(f"pkg-dist: {output=}", file=sys.stderr)
