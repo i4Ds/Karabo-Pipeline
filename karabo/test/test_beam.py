@@ -1,6 +1,10 @@
+import collections
 import os
 import tempfile
 from datetime import datetime, timedelta
+from importlib import metadata
+
+import pytest
 
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.beam import BeamPattern
@@ -9,6 +13,24 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test.conftest import TFiles
+
+
+def test_pkg_dist():
+    def packages_distributions():
+        """
+        Return a mapping of top-level packages to their distributions.
+        Note: copied from https://github.com/python/importlib_metadata/pull/287
+        """
+        pkg_to_dist = collections.defaultdict(list)
+        for dist in metadata.distributions():
+            for pkg in (dist.read_text("top_level.txt") or "").split():
+                try:
+                    pkg_to_dist[pkg].append(dist.metadata["Name"])
+                except KeyError:
+                    pytest.fail(reason=f"pkg-dist: {pkg=}")
+        return dict(pkg_to_dist)
+
+    _ = packages_distributions()
 
 
 def test_fit_element(tobject: TFiles):
