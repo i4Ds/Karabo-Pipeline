@@ -1,6 +1,7 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 def east_north_to_long_lat(
@@ -24,3 +25,28 @@ def east_north_to_long_lat(
         long * np.pi / 180
     )
     return new_longitude, new_latitude
+
+
+def wgs84_to_cartesian(
+    lon: Union[float, NDArray[np.float64]],
+    lat: Union[float, NDArray[np.float64]],
+    alt: Union[float, NDArray[np.float64]],
+    radius: int = 6371000,
+) -> NDArray[np.float64]:
+    """Transforms WGS84 to cartesian in meters.
+
+    Args:
+        lon: Longitude [deg].
+        lat: Latitude [deg].
+        alt: Altitude [m].
+        radius: Radius of earth in m.
+
+    Returns:
+        Cartesian x,y,z coordinates (nx3) in meters.
+    """
+    lat_rad = np.deg2rad(lat)
+    lon_rad = np.deg2rad(lon)
+    x = (radius + alt) * np.cos(lat_rad) * np.cos(lon_rad)
+    y = (radius + alt) * np.cos(lat_rad) * np.sin(lon_rad)
+    z = (radius + alt) * np.sin(lat_rad)
+    return np.array([x, y, z]).T
