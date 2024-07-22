@@ -4,9 +4,7 @@ import json
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional, Union
-
-from typing_extensions import assert_never
+from typing import Optional, Union, cast
 
 from karabo.data.obscore import ObsCoreMeta
 from karabo.util._types import FilePathType, TFilePathType
@@ -45,6 +43,7 @@ class RucioMeta:
     def to_json(
         self,
         fpath: Optional[FilePathType] = None,
+        *,
         ignore_none: bool = True,
     ) -> str:
         """Converts this dataclass into a JSON.
@@ -85,11 +84,12 @@ class RucioMeta:
         """
         meta_fname = f"{fname}.meta"
         if isinstance(fname, str):
-            return meta_fname
+            return cast(TFilePathType, meta_fname)
         elif isinstance(fname, Path):
-            return Path(meta_fname)
+            return cast(TFilePathType, Path(meta_fname))
         else:
-            assert_never(fname)
+            err_msg = f"Unexpected {type(fname)=}."
+            raise TypeError(err_msg)
 
 
 class RucioHandler:

@@ -323,6 +323,7 @@ class ObsCoreMeta:
     def to_json(
         self,
         fpath: Optional[FilePathType] = None,
+        *,
         ignore_none: bool = True,
     ) -> str:
         """Converts this dataclass into a JSON.
@@ -383,7 +384,11 @@ class ObsCoreMeta:
             err_msg = f"Invalid polarization values encountered in {self.pol_states=}"
             raise ValueError(err_msg)
 
-    def check_ObsCoreMeta(self, verbose: bool = False) -> bool:
+    def check_ObsCoreMeta(
+        self,
+        *,
+        verbose: bool = False,
+    ) -> bool:
         """Checks whether `ObsCoreMeta` is ready for serialization.
 
         This doesn't perform a full check if all field-values are valid.
@@ -414,6 +419,7 @@ class ObsCoreMeta:
     def from_visibility(
         cls,
         vis: Visibility,
+        *,
         calibrated: Optional[bool] = None,
         tel: Optional[Telescope] = None,
         obs: Optional[Observation] = None,
@@ -499,6 +505,7 @@ class ObsCoreMeta:
     def from_image(
         cls,
         img: Image,
+        *,
         fits_axes: FitsHeaderAxes = FitsHeaderAxes(),  # immutable default
     ) -> Self:
         """Update fields from `Image`.
@@ -778,7 +785,7 @@ class ObsCoreMeta:
             "obs_publisher_did",
         )
 
-    def _check_mandatory_fields(self, verbose: bool) -> bool:
+    def _check_mandatory_fields(self, *, verbose: bool) -> bool:
         """Checks mandatory fields.
 
         Prints a warning to stderr if one or more field-values are None.
@@ -806,7 +813,7 @@ class ObsCoreMeta:
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         return valid
 
-    def _check_polarization(self, verbose: bool) -> bool:
+    def _check_polarization(self, *, verbose: bool) -> bool:
         """Checks polarization fields according to `REC-ObsCore-v1.1`.
 
         Args:
@@ -852,7 +859,7 @@ class ObsCoreMeta:
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         return valid
 
-    def _check_axes(self, verbose: bool) -> bool:
+    def _check_axes(self, *, verbose: bool) -> bool:
         """Checks axis-lengths (`s_xel1`, `s_xel2`, `em_xel`, `t_xel`, `pol_xel`).
 
         Args:
