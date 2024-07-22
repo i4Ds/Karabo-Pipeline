@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import glob
 import os
-import random
 import shutil
-import string
 import subprocess
 from copy import copy
 from pathlib import Path
@@ -14,10 +12,10 @@ from typing import Literal, Optional, Union, overload
 from typing_extensions import assert_never
 
 from karabo.util._types import DirPathType, FilePathType
+from karabo.util.helpers import get_rnd_str
 from karabo.util.plotting_util import Font
 
 _LongShortTermType = Literal["long", "short"]
-_SeedType = Optional[Union[str, int, float, bytes]]
 
 
 def _get_env_value(
@@ -108,22 +106,6 @@ def _get_disk_cache_root(
     return tmpdir
 
 
-def _get_rnd_str(k: int, seed: _SeedType = None) -> str:
-    """Creates a random ascii+digits string with length=`k`.
-
-    Most tmp-file tools are using a string-length of 10.
-
-    Args:
-        k: Length of random string.
-        seed: Seed.
-
-    Returns:
-        Random generated string.
-    """
-    random.seed(seed)
-    return "".join(random.choices(string.ascii_letters + string.digits, k=k))
-
-
 def _get_cache_dir(term: _LongShortTermType) -> str:
     """Creates a user-deterministic cache-dir-name.
 
@@ -151,7 +133,7 @@ def _get_cache_dir(term: _LongShortTermType) -> str:
         seed = user + term
     else:
         seed = "42" + term
-    suffix = _get_rnd_str(k=10, seed=seed)
+    suffix = get_rnd_str(k=10, seed=seed)
     cache_dir_name = delimiter.join((prefix, suffix))
     return cache_dir_name
 
@@ -235,7 +217,7 @@ class FileHandler:
         purpose: Union[str, None] = None,
         unique: object = None,
         mkdir: bool = True,
-        seed: _SeedType = None,
+        seed: Optional[Union[str, int, float, bytes]] = None,
     ) -> str:
         ...
 
@@ -247,7 +229,7 @@ class FileHandler:
         purpose: Union[str, None] = None,
         unique: object = None,
         mkdir: bool = True,
-        seed: _SeedType = None,
+        seed: Optional[Union[str, int, float, bytes]] = None,
     ) -> str:
         ...
 
@@ -258,7 +240,7 @@ class FileHandler:
         purpose: Union[str, None] = None,
         unique: object = None,
         mkdir: bool = True,
-        seed: _SeedType = None,
+        seed: Optional[Union[str, int, float, bytes]] = None,
     ) -> str:
         """Gets a tmp-dir path.
 
@@ -302,7 +284,7 @@ class FileHandler:
             exist_ok = True
         elif term == "short":
             dir_path = FileHandler._get_term_dir(term=term)
-            dir_name = _get_rnd_str(k=10, seed=seed)
+            dir_name = get_rnd_str(k=10, seed=seed)
             if prefix is not None:
                 dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
@@ -323,7 +305,7 @@ class FileHandler:
                 seed = prefix + str(seed)
             else:
                 seed = prefix
-            dir_name = _get_rnd_str(k=10, seed=seed)
+            dir_name = get_rnd_str(k=10, seed=seed)
             dir_name = "".join((prefix, dir_name))
             dir_path = os.path.join(dir_path, dir_name)
             exist_ok = True
