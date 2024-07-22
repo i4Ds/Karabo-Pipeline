@@ -31,7 +31,7 @@ class RucioMeta:
             The dataset scope will be the same as that specified in namespace.
 
         meta: An object containing science metadata fields, which will be set against
-            the ingested file. Currently, this should be either a JSON or `ObsCoreMeta`.
+            the ingested file. This should be either a JSON string or `ObsCoreMeta`.
     """
 
     namespace: str
@@ -56,10 +56,12 @@ class RucioMeta:
         Returns:
             JSON as a str.
         """
-        self_copy = deepcopy(self)
-        if self_copy.meta is not None and isinstance(self_copy.meta, ObsCoreMeta):
-            self_copy.meta = self_copy.meta.to_json(fpath=None, ignore_none=ignore_none)
-        dictionary = asdict(self_copy)
+        if self.meta is not None and isinstance(self.meta, ObsCoreMeta):
+            self_new = deepcopy(self)  # to avoid mutable `self.to_json`
+            self_new.meta = self.meta.to_json(fpath=None, ignore_none=ignore_none)
+        else:
+            self_new = self
+        dictionary = asdict(self_new)
         if ignore_none:
             dictionary = {
                 key: value for key, value in dictionary.items() if value is not None
@@ -74,7 +76,10 @@ class RucioMeta:
     def get_meta_fname(cls, fname: TFilePathType) -> TFilePathType:
         """Gets the metadata-filename of `fname`.
 
-        It's according to the Rucio metadata specification (if up-to-date).
+        It's according to the Rucio metadata specification (if up-to-date). The
+            specification states that metadata is expected to be provided by two files:
+            fname: `data_name` and metadata: `data_name.<metadata_suffix>`, where the
+            suffix is set to `meta`.
 
         Args:
             fname: Filename to create metadata filename from.
@@ -88,13 +93,5 @@ class RucioMeta:
         elif isinstance(fname, Path):
             return cast(TFilePathType, Path(meta_fname))
         else:
-            err_msg = f"Unexpected {type(fname)=}."
-            raise TypeError(err_msg)
-
-
-class RucioHandler:
-    """SRCNet Rucio utils."""
-
-    def __init__(self) -> None:
-        """Constructor of `RucioHandler`."""
-        super().__init__()
+            err_msg = f"Unexpected {type(fname)=} of {fname=}."
+            raise TypeError(err_msg)  # `assert_never`` doesn't work here
