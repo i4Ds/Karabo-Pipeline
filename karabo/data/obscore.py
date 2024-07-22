@@ -900,10 +900,19 @@ class ObsCoreMeta:
     ) -> str:
         """Gets the IVOA identifier for `ObsCoreMeta.obs_creator_did`.
 
-        SRCNet rucio IVOID according to IVOA 'REC-Identifiers-2.0'. Do NOT specify
-            RFC 3986 delimiters in the input-args, they're added automatically.
+        IVOID according to IVOA 'REC-Identifiers-2.0'. Do NOT specify RFC 3986
+            delimiters in the input-args, they're added automatically.
 
         Please set up an Issue if this is not up-to-date anymore.
+
+        Args:
+            authority: Organization (usually a data provider) that has been granted
+                the right by the IVOA to create IVOA-compliant identifiers for
+                resources it registers.
+            path: Resource key. It's 'a resource that is unique within the namespace
+                of an authority identifier.
+            query: According to RFC 3986.
+            fragment: According to RFC 3986.
 
         Returns:
             IVOID.

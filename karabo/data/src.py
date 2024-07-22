@@ -5,7 +5,6 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional, Union, cast
-from warnings import warn
 
 from karabo.data.obscore import ObsCoreMeta
 from karabo.util._types import FilePathType, TFilePathType
@@ -98,36 +97,14 @@ class RucioMeta:
             raise TypeError(err_msg)  # `assert_never`` doesn't work here
 
     @classmethod
-    def get_ivoid_query(
-        cls,
-        *,
-        namespace: str,
-        name: str,
-    ) -> str:
-        """Gets the preferred IVOID query string.
-
-        This has nothing to do with the IVOID standard and is therefore not part
-            part of `get_ivoid`. This behavior might change once there's more
-            clarification from the SKA/SDP side.
-
-
-        Args:
-            namespace: `RucioMeta.namespace`.
-            name: `RucioMeta.name` (filename in Rucio).
-
-        Returns:
-            IVOID query string.
-        """
-        return f"{namespace}:{name}"
-
-    @classmethod
     def get_ivoid(
         cls,
         *,
         authority: str = "test.skao",
-        path: Optional[str] = "/~",
-        query: Optional[str],
-        fragment: Optional[str],
+        path: str = "/~",
+        namespace: str,
+        name: str,
+        fragment: Optional[str] = None,
     ) -> str:
         """Gets the IVOA identifier for `ObsCoreMeta.obs_creator_did`.
 
@@ -136,12 +113,20 @@ class RucioMeta:
 
         Please set up an Issue if this is not up-to-date anymore.
 
+        Args:
+            authority: Organization (usually a data provider) that has been granted
+                the right by the IVOA to create IVOA-compliant identifiers for
+                resources it registers.
+            path: Resource key. It's 'a resource that is unique within the namespace
+                of an authority identifier.
+            namespace: `RucioMeta.namespace`.
+            name: `RucioMeta.name` (filename in Rucio).
+            fragment: According to RFC 3986.
+
         Returns:
             IVOID.
         """
-        if query is None:
-            wmsg = f"{query=}, but should be set according to `get_ivoid_query`."
-            warn(message=wmsg, category=UserWarning, stacklevel=1)
+        query = f"{namespace}:{name}"  # according to current [07/2024] implementation
         return ObsCoreMeta.get_ivoid(
             authority=authority,
             path=path,
