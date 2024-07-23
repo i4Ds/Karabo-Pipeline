@@ -94,22 +94,22 @@ def main() -> None:
         dataset_name=None,
         meta=ocm,
     )
-    obs_publisher_did = RucioMeta.get_ivoid(  # rest args are defaults
-        namespace=rm.namespace,
-        name=rm.name,
-    )
 
     # ObsCore mandatory fields
     ocm.obs_collection = "MRO/ASKAP"
     obs_sim_id = 0  # unique observation-simulation ID of `USER`
     user_rnd_str = get_rnd_str(k=10, seed=os.environ.get("USER"))
     ocm.obs_id = f"karabo-{user_rnd_str}-{obs_sim_id}"
+    obs_publisher_did = RucioMeta.get_ivoid(  # rest args are defaults
+        namespace=rm.namespace,
+        name=rm.name,
+    )
     ocm.obs_publisher_did = obs_publisher_did
 
     # fill other fields of `ObsCoreMeta` here!
     # #####START#####
     # HERE
-    # #####END#####
+    # #####END#######
 
     rm.to_json(fpath=dp_path_meta)
 

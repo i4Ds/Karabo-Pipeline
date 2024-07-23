@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 import tempfile
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 import pytest
 from astropy import units as u
+from rfc3986.exceptions import InvalidComponentsError
 
 from karabo.data.external_data import (
     SingleFileDownloadObject,
@@ -61,6 +63,58 @@ class TestObsCoreMeta:
             ObsCoreMeta.spoly(poly=((0.0, 0.0), (100.0, -21.4), (332.1, 97.34)))
         with pytest.raises(RuntimeError):
             ObsCoreMeta.spoly(poly=((0.0, 0.0), (100.0, -21.4)))
+
+    @pytest.mark.parametrize(
+        ("authority", "path", "query", "fragment", "expected"),
+        [
+            ("", None, None, None, pytest.raises(ValueError)),
+            ("sk", None, None, None, pytest.raises(ValueError)),
+            ("ska", None, None, None, "ivo://ska"),
+            ("skao", None, None, None, "ivo://skao"),
+            ("skao", "~", None, None, pytest.raises(ValueError)),
+            ("skao", "/~", None, None, "ivo://skao/~"),
+            ("skao", "/~%", None, None, pytest.raises(InvalidComponentsError)),
+            ("skao", "/~/sth", None, None, "ivo://skao/~/sth"),
+            ("skao", "/~/sth@", None, None, pytest.raises(ValueError)),
+            ("skao", "/~/sth:", None, None, pytest.raises(ValueError)),
+            ("skao", None, "karabo", None, "ivo://skao?karabo"),
+            ("skao", "/~", "karabo", None, "ivo://skao/~?karabo"),
+            ("skao", "/~", "karabo:image.fits", None, "ivo://skao/~?karabo:image.fits"),
+            (
+                "skao",
+                "/~",
+                "karabo:image.fits",
+                "header",
+                "ivo://skao/~?karabo:image.fits#header",
+            ),
+        ],
+    )
+    def test_ivoid(
+        self,
+        authority: str,
+        path: str,
+        query: str,
+        fragment: str,
+        expected: Any,
+    ) -> None:
+        if isinstance(expected, str):
+            assert (
+                ObsCoreMeta.get_ivoid(
+                    authority=authority,
+                    path=path,
+                    query=query,
+                    fragment=fragment,
+                )
+                == expected
+            )
+        else:
+            with expected:
+                _ = ObsCoreMeta.get_ivoid(
+                    authority=authority,
+                    path=path,
+                    query=query,
+                    fragment=fragment,
+                )
 
     def test_from_visibility(self, minimal_visibility: Visibility) -> None:
         telescope = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)

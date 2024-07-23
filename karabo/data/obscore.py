@@ -16,6 +16,7 @@ from warnings import warn
 
 import numpy as np
 import rfc3986
+import rfc3986.validators
 from astropy import constants as const
 from astropy import units as u
 from astropy.io.fits.header import Header
@@ -944,12 +945,10 @@ class ObsCoreMeta:
             query=query,
             fragment=fragment,
         )
-        if not uri_ref.is_valid():
-            err_msg = (
-                f"Provided params: {authority=}, {path=}, {query=}, {fragment=} "
-                + "don't result in a valid RFC 3986 URI."
-            )
-            raise ValueError(err_msg)
+        validator = rfc3986.validators.Validator().check_validity_of(
+            "scheme", "host", "port", "userinfo", "path", "query", "fragment"
+        )
+        validator.validate(uri=uri_ref)
         return str(uri_ref.unsplit())
 
     @classmethod
