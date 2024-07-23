@@ -734,6 +734,68 @@ class ObsCoreMeta:
         return f"<({ra_str},{dec_str}),{radius_str}>"
 
     @classmethod
+    def get_ivoid(
+        cls,
+        *,
+        authority: str,
+        path: Optional[str],
+        query: Optional[str],
+        fragment: Optional[str],
+    ) -> str:
+        """Gets the IVOA identifier for `ObsCoreMeta.obs_creator_did`.
+
+        IVOID according to IVOA 'REC-Identifiers-2.0'. Do NOT specify RFC 3986
+            delimiters in the input-args, they're added automatically.
+
+        Please set up an Issue if this is not up-to-date anymore.
+
+        Args:
+            authority: Organization (usually a data provider) that has been granted
+                the right by the IVOA to create IVOA-compliant identifiers for
+                resources it registers.
+            path: Resource key. It's 'a resource that is unique within the namespace
+                of an authority identifier.
+            query: According to RFC 3986.
+            fragment: According to RFC 3986.
+
+        Returns:
+            IVOID.
+        """
+        # all checks here are IVOID specs on top of RFC 3986
+        # not sure if it matters if own or RFC 3986 validation comes first
+        if len(authority) < 3:
+            err_msg = f"{authority=} must be at least 3 chars long."
+            raise ValueError(err_msg)
+        if not authority[0].isalnum():
+            err_msg = f"{authority=} must begin with an alphanumeric char."
+            raise ValueError(err_msg)
+        if not cls._is_unreserved(string=authority):
+            err_msg = f"{authority=} must only contain unreserved chars, ~ discouraged."
+            raise ValueError(err_msg)
+        if path is not None and len(path) > 0:
+            if path[0] != "/":
+                err_msg = f"Non-empty {path=} must start with a `/`."
+                raise ValueError(err_msg)
+            if cls._contains_percent_encoded_chars(string=path):
+                err_msg = f"{path=} must not contain percent-encoded chars."
+                raise ValueError(err_msg)
+            if cls._contains_col_or_commercial_at_signs(string=path):
+                err_msg = f"{path=} contains `:` or `@`."
+                raise ValueError(err_msg)
+        uri_ref = rfc3986.URIReference(
+            scheme="ivo",  # fixed in Identifiers-2.0 spec
+            authority=authority,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
+        validator = rfc3986.validators.Validator().check_validity_of(
+            "scheme", "host", "port", "userinfo", "path", "query", "fragment"
+        )
+        validator.validate(uri=uri_ref)
+        return str(uri_ref.unsplit())
+
+    @classmethod
     def _convert(
         cls,
         number: float,
@@ -889,67 +951,6 @@ class ObsCoreMeta:
                 wmsg = f"Invalid axes-values: {invalid_fields}"
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         return valid
-
-    @classmethod
-    def get_ivoid(
-        cls,
-        *,
-        authority: str,
-        path: Optional[str],
-        query: Optional[str],
-        fragment: Optional[str],
-    ) -> str:
-        """Gets the IVOA identifier for `ObsCoreMeta.obs_creator_did`.
-
-        IVOID according to IVOA 'REC-Identifiers-2.0'. Do NOT specify RFC 3986
-            delimiters in the input-args, they're added automatically.
-
-        Please set up an Issue if this is not up-to-date anymore.
-
-        Args:
-            authority: Organization (usually a data provider) that has been granted
-                the right by the IVOA to create IVOA-compliant identifiers for
-                resources it registers.
-            path: Resource key. It's 'a resource that is unique within the namespace
-                of an authority identifier.
-            query: According to RFC 3986.
-            fragment: According to RFC 3986.
-
-        Returns:
-            IVOID.
-        """
-        # all checks here are IVOID specs on top of RFC 3986
-        if len(authority) < 3:
-            err_msg = f"{authority=} must be at least 3 chars long."
-            raise ValueError(err_msg)
-        if not authority[0].isalnum():
-            err_msg = f"{authority=} must begin with an alphanumeric char."
-            raise ValueError(err_msg)
-        if not cls._is_unreserved(string=authority):
-            err_msg = f"{authority=} must only contain unreserved chars, ~ discouraged."
-            raise ValueError(err_msg)
-        if path is not None and len(path) > 0:
-            if path[0] != "/":
-                err_msg = f"Non-empty {path=} must start with a `/`."
-                raise ValueError(err_msg)
-            if cls._contains_percent_encoded_chars(string=path):
-                err_msg = f"{path=} must not contain percent-encoded chars."
-                raise ValueError(err_msg)
-            if cls._contains_col_or_commercial_at_signs(string=path):
-                err_msg = f"{path=} contains `:` or `@`."
-                raise ValueError(err_msg)
-        uri_ref = rfc3986.URIReference(
-            scheme="ivo",  # fixed in Identifiers-2.0 spec
-            authority=authority,
-            path=path,
-            query=query,
-            fragment=fragment,
-        )
-        validator = rfc3986.validators.Validator().check_validity_of(
-            "scheme", "host", "port", "userinfo", "path", "query", "fragment"
-        )
-        validator.validate(uri=uri_ref)
-        return str(uri_ref.unsplit())
 
     @classmethod
     def _is_unreserved(cls, string: str) -> bool:

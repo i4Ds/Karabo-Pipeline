@@ -15,11 +15,13 @@ from karabo.data.external_data import (
     cscs_karabo_public_testing_base_url,
 )
 from karabo.data.obscore import FitsHeaderAxes, FitsHeaderAxis, ObsCoreMeta
+from karabo.data.src import RucioMeta
 from karabo.imaging.image import Image
 from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
+from karabo.util.helpers import get_rnd_str
 
 
 @pytest.fixture(scope="module")
@@ -194,3 +196,31 @@ class TestObsCoreMeta:
             ocm.obs_publisher_did = "<obs-publisher-did>"
             _ = ocm.to_json(fpath=meta_path)
             assert os.path.exists(meta_path)
+
+
+class TestRucioMeta:
+    def test_json_creation(self, minimal_fits_restored: Image) -> None:
+        axes = FitsHeaderAxes(freq=FitsHeaderAxis(axis=4, unit=u.Hz))
+        ocm = ObsCoreMeta.from_image(img=minimal_fits_restored, fits_axes=axes)
+        name = os.path.split(minimal_fits_restored.path)[-1]
+        rm = RucioMeta(
+            namespace="karabo-sim",
+            name=name,
+            lifetime=86400,  # 1 day
+            dataset_name=None,
+            meta=ocm,
+        )
+        ocm.obs_collection = "MRO/ASKAP"
+        obs_sim_id = 0  # unique observation-simulation ID of `USER`
+        user_rnd_str = get_rnd_str(k=10, seed=os.environ.get("USER"))
+        ocm.obs_id = f"karabo-{user_rnd_str}-{obs_sim_id}"
+        obs_publisher_did = RucioMeta.get_ivoid(  # rest args are defaults
+            namespace=rm.namespace,
+            name=rm.name,
+        )
+        ocm.obs_publisher_did = obs_publisher_did
+        fname_meta = RucioMeta.get_meta_fname(fname=minimal_fits_restored.path)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fpath_meta = os.path.join(tmpdir, os.path.split(fname_meta)[-1])
+            rm.to_json(fpath=fpath_meta)
+            assert os.path.exists(fpath_meta)
