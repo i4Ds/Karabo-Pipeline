@@ -67,16 +67,17 @@ class TestObsCoreMeta:
     @pytest.mark.parametrize(
         ("authority", "path", "query", "fragment", "expected"),
         [
-            ("", None, None, None, pytest.raises(ValueError)),
-            ("sk", None, None, None, pytest.raises(ValueError)),
+            ("", None, None, None, pytest.raises(ValueError)),  # authority < 3
+            ("sk", None, None, None, pytest.raises(ValueError)),  # authority < 3
             ("ska", None, None, None, "ivo://ska"),
+            ("éka", None, None, None, pytest.raises(ValueError)),  # start is not alphan
             ("skao", None, None, None, "ivo://skao"),
-            ("skao", "~", None, None, pytest.raises(ValueError)),
+            ("skao", "~", None, None, pytest.raises(ValueError)),  # path must start w /
             ("skao", "/~", None, None, "ivo://skao/~"),
             ("skao", "/~%", None, None, pytest.raises(InvalidComponentsError)),
             ("skao", "/~/sth", None, None, "ivo://skao/~/sth"),
-            ("skao", "/~/sth@", None, None, pytest.raises(ValueError)),
-            ("skao", "/~/sth:", None, None, pytest.raises(ValueError)),
+            ("skao", "/~/sth@", None, None, pytest.raises(ValueError)),  # has @ in path
+            ("skao", "/~/sth:", None, None, pytest.raises(ValueError)),  # has : in path
             ("skao", None, "karabo", None, "ivo://skao?karabo"),
             ("skao", "/~", "karabo", None, "ivo://skao/~?karabo"),
             ("skao", "/~", "karabo:image.fits", None, "ivo://skao/~?karabo:image.fits"),
