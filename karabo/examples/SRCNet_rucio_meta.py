@@ -112,6 +112,7 @@ def main() -> None:
     # #####END#######
 
     rm.to_json(fpath=dp_path_meta)
+    print(f"Created {dp_path_meta}")
 
 
 if __name__ == "__main__":
