@@ -50,7 +50,7 @@ class RucioMeta:
 
         Args:
             fpath: JSON file-path to write dump. Consider using `get_meta_fname`
-                to get and `fpath` according to the Rucio specification.
+                to get an `fpath` according to the Rucio specification.
             ignore_none: Ignore `None` fields?
 
         Returns:
@@ -85,7 +85,7 @@ class RucioMeta:
             fname: Filename to create metadata filename from.
 
         Returns:
-            Metadat filename (or filepath if `fname` was also a filepath).
+            Metadata filename (or filepath if `fname` was also a filepath).
         """
         meta_fname = f"{fname}.meta"
         if isinstance(fname, str):

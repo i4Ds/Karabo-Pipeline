@@ -1,12 +1,12 @@
 """Example script to attach Rucio ObsCore metadata data-products for ingestion.
 
-This script probably needs adaption for you use-case. The parameters e.g. are not
+This script probably needs adaption for your use-case. The parameters e.g. are not
     customizable through an API. It also assumes that there's already a visibility
     and image file available. Otherwise, you have to create them first. The manually
-    added values in this script are arbitrary to some extend and should be set (or not)
+    added values in this script are arbitrary to some extent and should be set (or not)
     by yourself.
 
-An end-to-end workflow would add the needed parts at the end of it's simulation.
+An end-to-end workflow would add the needed parts at the end of its simulation.
     However, we just operate on existing files to avoid example-duplication.
 """
 
@@ -60,7 +60,7 @@ def main() -> None:
         ocm = ObsCoreMeta.from_image(img=image, fits_axes=axes)
     elif dp_type == "visibility":
         vis = Visibility(vis_path=dp_path)  # .vis supported, .ms not atm [07/2024]
-        # To extract additonal information, `Telescope` & `Observation` should be
+        # To extract additional information, `Telescope` & `Observation` should be
         # provided with the same settings as `vis` was created. As mentioned in the
         # module docstring, this is only necessary because we don't show the whole
         # workflow here.
@@ -86,6 +86,7 @@ def main() -> None:
 
     # adapt each field according to your needs
 
+    # be sure that name & namespace together are unique, e.g. by having different fnames
     name = os.path.split(dp_path)[-1]
     rm = RucioMeta(
         namespace="karabo-sim",
