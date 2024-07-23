@@ -162,7 +162,7 @@ class ObsCoreMeta:
     r"""IVOA ObsCore v1.1 metadata (TAP column names).
 
     This doesn't describe a full ObsCoreDM, but the mandatory and the non-mandatory
-    fields defined in the SRCNet rucio database. The actual JSON to send to a specific
+    fields defined in the SRCNet Rucio database. The actual JSON to send to a specific
     ObsTAP service has to be created by yourself.
 
     The args-docstring provides just a rough idea of the according values. A
@@ -369,10 +369,10 @@ class ObsCoreMeta:
         self.pol_states = pol_states_str
 
     def get_pol_states(self) -> Optional[_PolStatesListType]:
-        """Parses the polarisation states to `_PolStatesListType`.
+        """Parses the polarization states to `_PolStatesListType`.
 
         Returns:
-            List of polarisation states if field-value is not None.
+            List of polarization states if field-value is not None.
         """
 
         def check_pol_type(pol_states: List[str]) -> TypeGuard[_PolStatesListType]:

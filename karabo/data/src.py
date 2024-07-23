@@ -108,7 +108,7 @@ class RucioMeta:
     ) -> str:
         """Gets the IVOA identifier for `ObsCoreMeta.obs_creator_did`.
 
-        SRCNet rucio IVOID according to IVOA 'REC-Identifiers-2.0'. Do NOT specify
+        SRCNet Rucio IVOID according to IVOA 'REC-Identifiers-2.0'. Do NOT specify
             RFC 3986 delimiters in the input-args, they're added automatically.
 
         Please set up an Issue if this is not up-to-date anymore.
