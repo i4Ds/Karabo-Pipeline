@@ -62,7 +62,18 @@ class DownloadObject:
         if os.path.exists(download_dir):
             dir_existed = True
         try:
-            response = requests.get(url, stream=True, verify=verify)
+            # Make sure user is informed of the download before the GET request.
+            # We had problems with the GET request hanging infinitely and
+            # no message whatsoever to the user.
+            print(f"Starting download of {url}")
+
+            # Note on the timeout from the request docs:
+            # timeout is not a time limit on the entire response download;
+            # rather, an exception is raised if the server has not issued a response
+            # for timeout seconds (more precisely, if no bytes have been received
+            # on the underlying socket for timeout seconds).
+            # If no timeout is specified explicitly, requests do not time out.
+            response = requests.get(url, stream=True, verify=verify, timeout=60)
             if response.status_code != 200:
                 response.raise_for_status()  # Will only raise for 4xx codes, so...
                 raise RuntimeError(

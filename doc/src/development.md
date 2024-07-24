@@ -166,6 +166,8 @@ cd _deploy/html
 python -m http.server 3000
 ```
 
+If you add new examples to karabo/examples, please make sure to reference them on the examples page in the docs with a short description so they're visible to users. Edit example_structure.md and then generate examples.md using combine_examples.py.
+
 ## Update Tests
 
 We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)). To add a new test simply go to the `karabo/test` folder.
