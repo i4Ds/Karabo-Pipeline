@@ -29,7 +29,7 @@ def run_tests(
     """Launches pytest.
 
     Args:
-        args: pytest cli-args, e.g. "-k test_myfavorite"
+        args: pytest cli-args, e.g. "-k test_my_favorite"
     """
     if pytest_args is not None:
         args = pytest_args.split(" ")

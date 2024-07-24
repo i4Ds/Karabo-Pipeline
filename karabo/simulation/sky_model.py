@@ -347,7 +347,7 @@ class SkySourcesUnits:
     ) -> Dict[str, float]:
         """Extracts all col-names and it's encoded frequency (in Hz).
 
-        `string` has to be formattable, meaning it must containt a {0} for beeing
+        `string` has to be formattable, meaning it must contain a {0} for being
         the frequency placeholder. Otherwise it will fail.
 
         Important: This function doesn't consider the unit of `SkyModel.sources`
@@ -501,7 +501,7 @@ class SkyModel:
 
     `SkyModel.compute` method is used to load the data into memory as a numpy array.
     It should be called after all the filtering and other operations are completed
-    and to avoid doing the same calculation multiple thems when e.g. on a cluster.
+    and to avoid doing the same calculation multiple them when e.g. on a cluster.
 
     :ivar sources:  List of all point sources in the sky as `xarray.DataArray`.
                     The source_ids reside in `SkyModel.source_ids` if provided
@@ -668,7 +668,7 @@ class SkyModel:
                 provided_keys = list(sources.indexes.keys())
                 raise KaraboSkyModelError(
                     f"Provided index name {provided_keys} (object id's) of `sources` "
-                    + f"don't match already existing indicex name {sky_keys}."
+                    + f"don't match already existing index name {sky_keys}."
                 )
         else:
             assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
@@ -707,7 +707,7 @@ class SkyModel:
             else:
                 da = sources
         elif isinstance(sources, np.ndarray):
-            # For numpy ndarrays, we delete the ID column of the sources
+            # For numpy ndarray, we delete the ID column of the sources
             if sources.shape[1] in (
                 1 + SkyModel.SOURCES_COLS,
                 13,
@@ -1340,9 +1340,9 @@ class SkyModel:
     def sources(self, value: Optional[_SkySourcesType]) -> None:
         """Sources setter.
 
-        Does also allow numpy-arrays.
-        But mypy doesn't allow getter and setter to have different dtypes (issue 3004).
-        Just set "# type: ignore [assignment]" in case you don't have exctly an `xarray`
+        Does also allow numpy-arrays. But mypy doesn't allow getter and setter to
+            have different dtypes (issue 3004). Just set "# type: ignore [assignment]"
+            in case you don't have exactly an `xarray`.
 
         Args:
             value: sources, `xarray.DataArray` or `np.ndarray`
@@ -1457,7 +1457,7 @@ class SkyModel:
         :param value: values to store
         """
         if self.sources is None:
-            raise KaraboSkyModelError("Can't acces `sources` because it's None.")
+            raise KaraboSkyModelError("Can't access `sources` because it's None.")
         # access `sources.getter`, not `sources.setter` which is fine
         self.sources[key] = value
 
@@ -1644,7 +1644,7 @@ class SkyModel:
         for i in range(num_formatted):
             freq: Optional[float] = None
             sources_i: Optional[xr.DataArray] = None
-            breaked = False
+            broken = False
             for spm_field in fields(prefix_mapping):
                 if (
                     field_values := getattr(prefix_mapping, spm_field.name)
@@ -1665,7 +1665,7 @@ class SkyModel:
                         if (min_freq is not None and col_freq < min_freq) or (
                             max_freq is not None and col_freq > max_freq
                         ):  # freq-filtering in case of formatted `prefix_mapping`
-                            breaked = True
+                            broken = True
                             break
                         if freq is None:
                             freq = col_freq
@@ -1696,7 +1696,7 @@ class SkyModel:
                     else:
                         col_idx = cls.COL_IDX[field_name]  # type: ignore[index]
                         sources_i[:, col_idx] = col_data
-            if breaked:
+            if broken:
                 continue
             if sources_i is None:  # num_formatted <= 0 should be impossible
                 raise RuntimeError(_DEV_ERROR_MSG)
@@ -2061,7 +2061,7 @@ class SkyModel:
 
         MALS's frequency-range: 902-1644 MHz.
 
-        For puplications, please honor their work by citing them as follows:
+        For publications, please honor their work by citing them as follows:
         - If you describe MALS or associated science, please cite 'Gupta et al. 2016'.
         - If you use DR1 data products, please cite 'Deka et al. 2024'.
 
@@ -2119,7 +2119,7 @@ class SkyModel:
     def sky_test(cls: Type[_TSkyModel]) -> _TSkyModel:
         """
 
-        Construction of a sky model which can be used for testing and visualising the
+        Construction of a sky model which can be used for testing and visualizing the
         simulation with equal distributed point sources around the phase center ra=20,
         deg=-30.
 

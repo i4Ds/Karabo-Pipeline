@@ -123,7 +123,7 @@ class Superimpose:
         Returns
         -------
         BaseImage
-            If the input includes at least one Image3D, the returntype is a Image3D,
+            If the input includes at least one Image3D, the return type is a Image3D,
             else Image2D.
 
         Raises

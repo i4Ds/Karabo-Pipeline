@@ -2,7 +2,7 @@ Contributors of Karabo
 ============================
 Karabo has been developed and used by a group of active community. Everyone is more than welcomed to is a great way to make the project better and more accessible to more users.
 
-Technical Project Managment
+Technical Project Management
 ----------
 * [Simon Felix](https://www.fhnw.ch/de/personen/simon-felix), FHNW
     - Research associate at the FHNW Institute for Data Science﻿
@@ -18,7 +18,7 @@ Committers are people who have made substantial contribution to the project and 
 * [Lukas Gehrig](https://github.com/Lukas113), FHNW
     - Research assistant at FHNW
 * [Rohit Sharma](https://github.com/rohitcbscient), FHNW
-    - Solar physicist working primarily on data analysis of various radio telescopes, Extreme Ultra-Voilet and X-rays space-based observatories. 
+    - Solar physicist working primarily on data analysis of various radio telescopes, Extreme Ultra-Violet and X-rays space-based observatories. 
 * [Filip Schramka](https://github.com/fschramka), FHNW
     - Research associate at FHNW
 * [Vincenzo Timmel](https://github.com/kenfus), FHNW

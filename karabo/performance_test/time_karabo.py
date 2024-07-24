@@ -101,7 +101,7 @@ def main(n_random_sources: int) -> None:
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
-    # Try differnet algorithm
+    # Try different algorithm
     # More sources
     (
         deconvolved,

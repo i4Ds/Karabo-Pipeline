@@ -125,7 +125,7 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
 
         # visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
         # ---------- Combine the Visibilties --------------
-        # visiblity_files= [
+        # visibility_files= [
         #     './karabo/test/data/beam_vis_1.vis',
         #     './karabo/test/data/beam_vis_2.vis',
         #     './karabo/test/data/beam_vis_3.vis',

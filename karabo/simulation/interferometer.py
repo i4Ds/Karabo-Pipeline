@@ -29,7 +29,7 @@ from karabo.simulation.observation import (
     Observation,
     ObservationAbstract,
     ObservationLong,
-    ObservationParallized,
+    ObservationParallelized,
 )
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
@@ -356,7 +356,7 @@ class InterferometerSimulation:
         self,
         telescope: Telescope,
         sky: SkyModel,
-        observation: ObservationParallized,
+        observation: ObservationParallelized,
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
     ) -> List[Visibility]:
@@ -419,8 +419,8 @@ class InterferometerSimulation:
                 return self.__run_simulation_long(
                     telescope=telescope, sky=sky, observation=observation
                 )
-            elif isinstance(observation, ObservationParallized):
-                return self.__run_simulation_parallized_observation(
+            elif isinstance(observation, ObservationParallelized):
+                return self.__run_simulation_parallelized_observation(
                     telescope=telescope, sky=sky, observation=observation
                 )
             else:
@@ -534,11 +534,11 @@ class InterferometerSimulation:
 
         return vis
 
-    def __run_simulation_parallized_observation(
+    def __run_simulation_parallelized_observation(
         self,
         telescope: Telescope,
         sky: SkyModel,
-        observation: ObservationParallized,
+        observation: ObservationParallelized,
     ) -> List[Visibility]:
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
@@ -769,7 +769,7 @@ class InterferometerSimulation:
         Visibility.combine_vis(visibility_paths, self.ms_file_path)
 
         print("Done with simulation.")
-        # Returns currently just one of the visiblities, of the first day.
+        # Returns currently just one of the visibilities, of the first day.
         return Visibility(visibility_paths[0], self.ms_file_path)
 
     def simulate_foreground_vis(

@@ -49,7 +49,7 @@ class DownloadObject:
         """Downloads `url` to `local_file_path` through a GET-request.
 
         Args:
-            url: Ressource to download.
+            url: Resource to download.
             local_file_path: Local file-path.
             verify: Validate the server's certificate?
             verbose: Verbose?
@@ -111,7 +111,7 @@ class DownloadObject:
         verbose: bool = True,
     ) -> str:
         """Gets the requested file-path of this object and downloads the
-        ressource, cache it on disk if not already done.
+        resource, cache it on disk if not already done.
 
         Args:
             remote_file_path: Remote file-path, relative to it's base url.

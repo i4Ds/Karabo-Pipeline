@@ -21,7 +21,7 @@ By default, Karabo will use /tmp as the root dir for output and the data is writ
 
 The notebook [SRCNet_simulation_walkthrough.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_simulation_walkthrough.ipynb) contains a small example based on `SRCNet_v0.1_simulation.py` that can be run on a laptop in a couple of minutes. It walks you through the whole process, from loading the survey / sky model and configuring the telescope, to configuring observation parameters and setting up and running the simulation, to creating a dirty image from the generated visibilities.
 
-In addition, we provide utility to create SRCNet Rucio metadata for the ingestion daemon for `images` and `visibilities` dataproducts. The example script [SRCNet_rucio_meta.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_rucio_meta.py) provides a template, which may need some customization according to your needs (e.g. include the script into a full simulation pipeline).
+In addition, we provide utility to create SRCNet Rucio metadata for the ingestion daemon for `images` and `visibilities` data products. The example script [SRCNet_rucio_meta.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_rucio_meta.py) provides a template, which may need some customization according to your needs (e.g. include the script into a full simulation pipeline).
 
 ## Performing a line emission simulation, using both OSKAR and RASCIL
 

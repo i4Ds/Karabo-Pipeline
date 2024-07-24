@@ -43,7 +43,7 @@ class SignalPlotting:
         loaded = data.load()
         x, y = loaded.xy_dims()
 
-        # `plt.subplots` > 1-subplot ax is actually `NDArray[plt.Axes]`, but untyepable
+        # `plt.subplots` > 1-subplot ax is actually `NDArray[plt.Axes]`, but untypeable
         fig, axs = cast(
             Tuple[Figure, NDArray[Any]], plt.subplots(nrows=1, ncols=2, figsize=(16, 6))
         )
@@ -89,10 +89,10 @@ class SignalPlotting:
 
         fig, ax = plt.subplots(1, 1, figsize=(6, 5))
         ax.set_title(f"21 cm signal, z={data.redshift}")
-        colour_bar = ax.pcolormesh(x_label, y_label, image_data)
+        color_bar = ax.pcolormesh(x_label, y_label, image_data)
         ax.set_xlabel(r"$x$ [Mpc]")
         ax.set_ylabel(r"$y$ [Mpc]")
-        fig.colorbar(colour_bar, ax=ax, label="K")
+        fig.colorbar(color_bar, ax=ax, label="K")
 
         return fig
 
@@ -298,15 +298,15 @@ class SignalPlotting:
         title : str
             Title to be shown in the figure.
         tick_count : int, optional
-            The count of ticks to show anlong each axis, by default 5
+            The count of ticks to show along each axis, by default 5
         x_label : str, optional
             Label to be plotted along the X-axis.
         y_label : str, optional
             Label to be plotted along the Y-axis.
         bar_label: str, optional
-            Label for the colour bar.
+            Label for the color bar.
         log_bar : bool, optional
-            If the colour bar should have a symmetric log norm applied.
+            If the color bar should have a symmetric log norm applied.
 
         Returns
         -------
@@ -354,7 +354,7 @@ class SignalPlotting:
         log_bar: bool = False,
     ) -> Figure:
         """
-        Plot a RA/DEC data in a polar plot with the intensity representing the colour.
+        Plot a RA/DEC data in a polar plot with the intensity representing the color.
 
         Parameters
         ----------
@@ -367,9 +367,9 @@ class SignalPlotting:
         title : str
             Title to be shown in the figure.
         bar_label: str, optional
-            Label for the colour bar.
+            Label for the color bar.
         log_bar : bool, optional
-            If the colour bar should have a symmetric log norm applied.
+            If the color bar should have a symmetric log norm applied.
 
         Returns
         -------
@@ -508,7 +508,7 @@ class SegmentationPlotting:
         signal_image : Image3D
             Image cube
         log_sky : bool, optional
-            If the colour bar of the sky plot should have a symmetric log norm applied.
+            If the color bar of the sky plot should have a symmetric log norm applied.
 
         Returns
         -------

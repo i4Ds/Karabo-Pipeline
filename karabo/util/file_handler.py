@@ -141,7 +141,7 @@ def _get_cache_dir(term: _LongShortTermType) -> str:
 class FileHandler:
     """Utility file-handler for unspecified directories.
 
-    Provides chache-management functionality.
+    Provides cache-management functionality.
     `FileHandler.root_stm` (short-term-memory-dir) and `FileHandler.root_ltm`
     (long-term-memory-dir) are static root-directories where each according cache-dir
     is located. In case someone wants to extract something specific from the cache,
@@ -161,22 +161,22 @@ class FileHandler:
     LTM-root
     └── karabo-LTM-<user>-<10 rnd chars+digits>
         ├── <prefix><10 rnd chars+digits>
-        |    ├── <sbudir>
+        |    ├── <subdir>
         |    └── <file>
         └── <prefix><10 rnd chars+digits>
-             ├── <sbudir>
+             ├── <subdir>
              └── <file>
 
     STM-root
     └── karabo-STM-<user>-<10 rnd chars+digits>
         ├── <prefix><10 rnd chars+digits>
-        |    ├── <sbudir>
+        |    ├── <subdir>
         |    └── <file>
         └── <prefix><10 rnd chars+digits>
-             ├── <sbudir>
+             ├── <subdir>
              └── <file>
 
-    FileHanlder can be used the same way as `tempfile.TemporaryDirectory` using `with`.
+    FileHandler can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """
 
     root_stm: str = _get_disk_cache_root(term="short")
@@ -335,7 +335,7 @@ class FileHandler:
     ) -> None:
         """Removes the entire directory specified by `term`.
 
-        We stronlgy suggest to NOT use this function in a workflow. This function
+        We strongly suggest to NOT use this function in a workflow. This function
         removed the entire karabo-disk-cache. So if there's another karabo-process
         running in parallel, you could mess with their disk-cache as well.
 
@@ -366,7 +366,7 @@ class FileHandler:
 
     @classmethod
     def remove_empty_dirs(cls, term: _LongShortTermType = "short") -> None:
-        """Removes emtpy directories in the chosen cache-dir.
+        """Removes empty directories in the chosen cache-dir.
 
         Args:
             term: "long" or "short" term memory

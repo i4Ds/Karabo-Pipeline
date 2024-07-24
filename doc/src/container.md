@@ -8,7 +8,7 @@ We provide for the Karabo-pipeline [Docker images](https://www.docker.com/resour
 docker pull ghcr.io/i4ds/karabo-pipeline:latest
 ```
 
-Docker images have the advantage that the packages needed for Karabo-pipeline are already pre-installed and you can usually run them on other operating systems. So in case the dependency resolvement of older Karabo installations is not up to date anymore, with Docker images you don't have to worry as the installation process has already been performed. In addition, Docker images can easily transform into other containers like Singularity or Sarus, which are often used in HPC-clusters.
+Docker images have the advantage that the packages needed for Karabo-pipeline are already pre-installed and you can usually run them on other operating systems. So in case the dependency resolving of older Karabo installations is not up to date anymore, with Docker images you don't have to worry as the installation process has already been performed. In addition, Docker images can easily transform into other containers like Singularity or Sarus, which are often used in HPC-clusters.
 
 ## Launch a Docker Container
 

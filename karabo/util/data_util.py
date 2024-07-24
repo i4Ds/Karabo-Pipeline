@@ -80,8 +80,8 @@ def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
 
     sources = []
     with open(file, newline="") as sourcefile:
-        spamreader = csv.reader(sourcefile, delimiter=",", quotechar="|")
-        for row in spamreader:
+        spam_reader = csv.reader(sourcefile, delimiter=",", quotechar="|")
+        for row in spam_reader:
             if len(row) == 0:
                 continue
             if row[0].startswith("#"):
@@ -171,7 +171,7 @@ def input_wrapper(
 ) -> str:
     """
     Wrapper of standard `input` to define what return `ret` it will get during
-    Unit-tests, since the test just stops oterwise.
+    Unit-tests, since the test just stops otherwise.
     The environment variable 'SKIP_INPUT' or 'UNIT_TEST' must be set
     with an arbitrary value to return `ret`.
 

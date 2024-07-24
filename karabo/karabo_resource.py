@@ -46,7 +46,7 @@ class NumpyHandleError:
 
 
 class HiddenPrints:
-    """Captures `sys.stdout` and/or `sys.stderr` to silent ouput."""
+    """Captures `sys.stdout` and/or `sys.stderr` to silent output."""
 
     def __init__(
         self,

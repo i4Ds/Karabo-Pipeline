@@ -240,7 +240,7 @@ class Telescope:
             # https://github.com/python/mypy/issues/12535
             if name in get_args(OSKARTelescopesWithVersionType):
                 name = cast(OSKARTelescopesWithVersionType, name)
-                datapath = OSKAR_TELESCOPE_TO_FILENAMES[name]
+                data_path = OSKAR_TELESCOPE_TO_FILENAMES[name]
                 accepted_versions = OSKAR_TELESCOPE_TO_VERSIONS[name]
                 assert (
                     version is not None
@@ -250,10 +250,10 @@ but was not provided. Please provide a value for the version field."
                     version in accepted_versions
                 ), f"""{version = } is not one of the accepted versions.
                 List of accepted versions: {accepted_versions}"""
-                datapath = datapath.format(version.value)
+                data_path = data_path.format(version.value)
             elif name in get_args(OSKARTelescopesWithoutVersionType):
                 name = cast(OSKARTelescopesWithoutVersionType, name)
-                datapath = OSKAR_TELESCOPE_TO_FILENAMES[name]
+                data_path = OSKAR_TELESCOPE_TO_FILENAMES[name]
                 assert (
                     version is None
                 ), f"""version is not a required field
@@ -266,7 +266,7 @@ but was not provided. Please provide a value for the version field."
                 """
                 )
 
-            path = os.path.join(get_module_absolute_path(), "data", datapath)
+            path = os.path.join(get_module_absolute_path(), "data", data_path)
             return cls.read_OSKAR_tm_file(path)
         elif backend is SimulatorBackend.RASCIL:
             if version is not None:
@@ -677,14 +677,14 @@ but was not provided. Please provide a value for the version field."
         stations = np.loadtxt(os.path.join(tel_path, "layout.txt"))
         if (n_stations_layout := stations.shape[0]) != (n_stations := df_tel.shape[0]):
             raise KaraboError(
-                f"Number of stations missmatch of {n_stations_layout=} & {n_stations=}"
+                f"Number of stations mismatch of {n_stations_layout=} & {n_stations=}"
             )
         df_tel["x"] = stations[:, 0]
         df_tel["y"] = stations[:, 1]
         return df_tel
 
     @classmethod
-    def create_baseline_cut_telelescope(
+    def create_baseline_cut_telescope(
         cls,
         lcut: NPFloatLike,
         hcut: NPFloatLike,

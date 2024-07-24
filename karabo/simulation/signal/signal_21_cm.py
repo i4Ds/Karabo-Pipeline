@@ -1,4 +1,5 @@
 """21cm Signal simulation."""
+
 import re
 from pathlib import Path
 from typing import Callable, Final, Optional, cast
@@ -104,7 +105,7 @@ class Signal21cm(BaseSignal[Image3D]):
     @staticmethod
     def default_r_hii(redshift: float) -> float:
         """
-        Lightcone HII region size calculation function (default implementation).
+        Light cone HII region size calculation function (default implementation).
 
         Parameters
         ----------
@@ -114,7 +115,7 @@ class Signal21cm(BaseSignal[Image3D]):
         Returns
         -------
         float
-            Lightcone radius.
+            Light cone radius.
         """
         return cast(float, 30 * np.exp(-(redshift - 7.0) / 3))
 
@@ -127,7 +128,7 @@ class Signal21cm(BaseSignal[Image3D]):
         r_hii: Optional[Callable[[float], float]] = None,
     ) -> Image3D:
         """
-        Generate an image with randomized lightcones.
+        Generate an image with randomized light cones.
 
         Parameters
         ----------
@@ -147,7 +148,7 @@ class Signal21cm(BaseSignal[Image3D]):
         Returns
         -------
         Image3D
-            The generated cube with multiple lightcones.
+            The generated cube with multiple light cones.
         """
         cube = np.zeros((n_cells, n_cells, n_cells))
         xx, yy, zz = np.meshgrid(

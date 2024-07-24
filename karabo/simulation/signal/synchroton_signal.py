@@ -1,4 +1,5 @@
 """Synchroton signal catalogue wrapper."""
+
 from pathlib import Path
 from typing import Annotated, Literal, Optional
 
@@ -62,10 +63,10 @@ class SignalSynchroton(BaseSignal[Image2D]):
         Parameters
         ----------
         centre : SkyCoord
-            Center point. lon = right ascention, lat = declination
+            Center point. lon = right ascension, lat = declination
         fov : Angle
-            Field of view for the right ascention in degrees. Must be between 0 < fov <=
-            180. lon = right ascention fov, lat = declination fov
+            Field of view for the right ascension in degrees. Must be between 0 < fov <=
+            180. lon = right ascension fov, lat = declination fov
         grid_size : tuple[Annotated[int, Literal["X"]], Annotated[int, Literal["Y"]]]
             Size of the simulated output image (X, Y).
         diffuse_emission_path : Optional[Path], optional

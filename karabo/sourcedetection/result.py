@@ -25,7 +25,7 @@ from karabo.warning import KaraboWarning
 ImageType = Literal[
     "RMS_map",
     "mean_map",
-    "polarized_intensity",
+    "polarised_intensity",
     "gaussian_residual",
     "gaussian_model",
     "shapelet_residual",
@@ -49,7 +49,7 @@ BDSFResultIdxsToUseForKarabo = [
     14,
     8,
     9,
-]  # 0: Gaus_id, 4: RA, 6: DEC, 12: Total_flux, 14: Peak_flux, 8: RA_max, 9: E_RA_max
+]  # 0: Gauss_id, 4: RA, 6: DEC, 12: Total_flux, 14: Peak_flux, 8: RA_max, 9: E_RA_max
 # See: https://pybdsf.readthedocs.io/en/latest/write_catalog.html#definition-of-output-columns # noqa E501
 
 
@@ -216,10 +216,10 @@ class SourceDetectionResult(ISourceDetectionResult):
             source_image = Image.read_from_file(
                 os.path.join(tmpdir, "source_image.fits")
             )
-            source_catalouge = np.loadtxt(
+            source_catalog = np.loadtxt(
                 os.path.join(tmpdir, "detected_sources.csv"), delimiter=","
             )
-        return SourceDetectionResult(source_catalouge, source_image)
+        return SourceDetectionResult(source_catalog, source_image)
 
     def __save_sources_to_csv(self, filepath: FilePathType) -> None:
         """
@@ -348,7 +348,7 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     def get_mean_map_image(self) -> Image:
         return self.__get_result_image("mean")
 
-    def get_polarized_intensity_image(self) -> Image:
+    def get_polarised_intensity_image(self) -> Image:
         return self.__get_result_image("pi")
 
     def get_gaussian_residual_image(self) -> Image:
@@ -531,8 +531,8 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
     def get_mean_map_image(self) -> Image:
         return self.__get_result_image("mean_map")
 
-    def get_polarized_intensity_image(self) -> Image:
-        return self.__get_result_image("polarized_intensity")
+    def get_polarised_intensity_image(self) -> Image:
+        return self.__get_result_image("polarised_intensity")
 
     def get_gaussian_residual_image(self) -> Image:
         return self.__get_result_image("gaussian_residual")

@@ -361,7 +361,7 @@ class ObsCoreMeta:
         Overwrites if `pol_states` already exists.
 
         Args:
-            pol_states: Polarisation states.
+            pol_states: Polarization states.
         """
         all_pol_states = set(get_args(_PolStatesType))
         pol_states_ordered = all_pol_states - (all_pol_states - set(pol_states))

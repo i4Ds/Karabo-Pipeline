@@ -172,12 +172,12 @@ class Visibility:
 
     @staticmethod
     def combine_vis(
-        visiblity_files: List[FilePathType],
+        visibility_files: List[FilePathType],
         combined_ms_filepath: Optional[DirPathType] = None,
         group_by: str = "day",
         return_path: bool = False,
     ) -> Optional[DirPathType]:
-        print(f"Combining {len(visiblity_files)} visibilities...")
+        print(f"Combining {len(visibility_files)} visibilities...")
         if combined_ms_filepath is None:
             tmp_dir = FileHandler().get_tmp_dir(
                 prefix="combine-vis-",
@@ -189,7 +189,7 @@ class Visibility:
         out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
 
         # Loop over visibility files and read data
-        for vis_file in visiblity_files:
+        for vis_file in visibility_files:
             (header, handle) = oskar.VisHeader.read(str(vis_file))
             block = oskar.VisBlock.create_from_header(header)
             for k in range(header.num_blocks):
@@ -219,7 +219,7 @@ class Visibility:
         # Write combined visibility data
         print(f"### Writing combined visibilities in {combined_ms_filepath} ...")
 
-        num_files = len(visiblity_files)
+        num_files = len(visibility_files)
         if group_by == "day":
             for j in range(num_files):
                 num_times = out_vis[j].shape[0]

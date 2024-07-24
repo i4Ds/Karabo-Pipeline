@@ -1,4 +1,5 @@
 """Module for dask-related functionality."""
+
 from __future__ import annotations
 
 import asyncio
@@ -58,7 +59,7 @@ class DaskHandlerBasic:
     memory_limit: Optional[float] = None
     n_threads_per_worker: Optional[int] = None
     use_dask: Optional[bool] = None
-    use_proccesses: bool = False  # Some packages, such as pybdsf, do not work
+    use_processes: bool = False  # Some packages, such as pybdsf, do not work
     # with processes because they spawn subprocesses.
 
     _setup_called: bool = False
@@ -84,7 +85,7 @@ class DaskHandlerBasic:
                 initialize(comm=MPI.COMM_WORLD)
             else:
                 initialize(nthreads=n_threads_per_worker, comm=MPI.COMM_WORLD)
-            cls.dask_client = Client(processes=cls.use_proccesses)
+            cls.dask_client = Client(processes=cls.use_processes)
             if MPI.COMM_WORLD.rank == 0:
                 print(f"Dashboard link: {cls.dask_client.dashboard_link}", flush=True)
                 atexit.register(cls._dask_cleanup)
@@ -167,7 +168,7 @@ class DaskHandlerBasic:
         """Estimates the number of workers considering settings and availability.
 
         Returns:
-            Etimated number of workers.
+            Estimated number of workers.
         """
         memory_limit = cls.memory_limit
         if memory_limit is None:
@@ -208,7 +209,7 @@ class DaskHandlerBasic:
         client = Client(
             n_workers=n_workers,
             threads_per_worker=cls.n_threads_per_worker,
-            processes=cls.use_proccesses,
+            processes=cls.use_processes,
         )
         return client
 
@@ -425,7 +426,7 @@ class DaskHandlerSlurm(DaskHandlerBasic):
                 n_workers=cls.n_workers_scheduler_node,
                 threads_per_worker=cls.n_threads_per_worker,
             )
-            dask_client = Client(cluster, proccesses=cls.use_proccesses)
+            dask_client = Client(cluster, processes=cls.use_processes)
 
             # Calculate number of workers per node
             n_workers_per_node = cls._calc_num_of_workers()
@@ -734,7 +735,7 @@ class DaskHandler(DaskHandlerBasic):
         """Estimates the number of workers considering settings and availability.
 
         Returns:
-            Etimated number of workers.
+            Estimated number of workers.
         """
         return cls._handler._calc_num_of_workers()
 

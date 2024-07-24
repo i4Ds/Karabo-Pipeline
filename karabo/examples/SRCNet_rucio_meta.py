@@ -33,14 +33,14 @@ def main() -> None:
         "--dp-path",
         required=True,
         type=str,
-        help="Path to data-product inode (most likely file).",
+        help="Path to data product inode (most likely file).",
     )
     parser.add_argument(
         "--dp-type",
         required=True,
         type=str,
         choices=["image", "visibility"],
-        help="Dataproduct type. See `ObsCoreMeta` which file-formats are supported.",
+        help="Data product type. See `ObsCoreMeta` which file-formats are supported.",
     )
     args = parser.parse_args()
     dp_path: str = args.dp_path
@@ -81,7 +81,7 @@ def main() -> None:
             obs=observation,
         )
     else:
-        err_msg = f"Uexpected {dp_type=}, allowed are only `dp-type` choices."
+        err_msg = f"Unexpected {dp_type=}, allowed are only `dp-type` choices."
         raise RuntimeError(err_msg)
 
     # adapt each field according to your needs
