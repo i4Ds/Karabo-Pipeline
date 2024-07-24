@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import asdict, dataclass, field, fields
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, get_args
 from warnings import warn
 
 import numpy as np
+import rfc3986
+import rfc3986.validators
 from astropy import constants as const
 from astropy import units as u
 from astropy.io.fits.header import Header
@@ -159,7 +162,7 @@ class ObsCoreMeta:
     r"""IVOA ObsCore v1.1 metadata (TAP column names).
 
     This doesn't describe a full ObsCoreDM, but the mandatory and the non-mandatory
-    fields defined in the SRCNet rucio database. The actual JSON to send to a specific
+    fields defined in the SRCNet Rucio database. The actual JSON to send to a specific
     ObsTAP service has to be created by yourself.
 
     The args-docstring provides just a rough idea of the according values. A
@@ -191,7 +194,8 @@ class ObsCoreMeta:
 
         obs_publisher_did: Dataset identifier given by the publisher (mandatory).
             IVOA dataset identifier. Must be a unique value within the namespace
-            controlled by the dataset publisher (data center).
+            controlled by the dataset publisher (data center). `ObsCoreMeta.get_ivoid`
+            may help creating this value.
 
         obs_title: Brief description of dataset in free format.
 
@@ -323,6 +327,7 @@ class ObsCoreMeta:
     def to_json(
         self,
         fpath: Optional[FilePathType] = None,
+        *,
         ignore_none: bool = True,
     ) -> str:
         """Converts this dataclass into a JSON.
@@ -364,10 +369,10 @@ class ObsCoreMeta:
         self.pol_states = pol_states_str
 
     def get_pol_states(self) -> Optional[_PolStatesListType]:
-        """Parses the polarisation states to `_PolStatesListType`.
+        """Parses the polarization states to `_PolStatesListType`.
 
         Returns:
-            List of polarisation states if field-value is not None.
+            List of polarization states if field-value is not None.
         """
 
         def check_pol_type(pol_states: List[str]) -> TypeGuard[_PolStatesListType]:
@@ -383,7 +388,11 @@ class ObsCoreMeta:
             err_msg = f"Invalid polarization values encountered in {self.pol_states=}"
             raise ValueError(err_msg)
 
-    def check_ObsCoreMeta(self, verbose: bool = False) -> bool:
+    def check_ObsCoreMeta(
+        self,
+        *,
+        verbose: bool = False,
+    ) -> bool:
         """Checks whether `ObsCoreMeta` is ready for serialization.
 
         This doesn't perform a full check if all field-values are valid.
@@ -414,6 +423,7 @@ class ObsCoreMeta:
     def from_visibility(
         cls,
         vis: Visibility,
+        *,
         calibrated: Optional[bool] = None,
         tel: Optional[Telescope] = None,
         obs: Optional[Observation] = None,
@@ -499,6 +509,7 @@ class ObsCoreMeta:
     def from_image(
         cls,
         img: Image,
+        *,
         fits_axes: FitsHeaderAxes = FitsHeaderAxes(),  # immutable default
     ) -> Self:
         """Update fields from `Image`.
@@ -723,6 +734,68 @@ class ObsCoreMeta:
         return f"<({ra_str},{dec_str}),{radius_str}>"
 
     @classmethod
+    def get_ivoid(
+        cls,
+        *,
+        authority: str,
+        path: Optional[str],
+        query: Optional[str],
+        fragment: Optional[str],
+    ) -> str:
+        """Gets the IVOA identifier for `ObsCoreMeta.obs_creator_did`.
+
+        IVOID according to IVOA 'REC-Identifiers-2.0'. Do NOT specify RFC 3986
+            delimiters in the input-args, they're added automatically.
+
+        Please set up an Issue if this is not up-to-date anymore.
+
+        Args:
+            authority: Organization (usually a data provider) that has been granted
+                the right by the IVOA to create IVOA-compliant identifiers for
+                resources it registers.
+            path: Resource key. It's 'a resource that is unique within the namespace
+                of an authority identifier.
+            query: According to RFC 3986.
+            fragment: According to RFC 3986.
+
+        Returns:
+            IVOID.
+        """
+        # all checks here are IVOID specs on top of RFC 3986
+        # not sure if it matters if own or RFC 3986 validation comes first
+        if len(authority) < 3:
+            err_msg = f"{authority=} must be at least 3 chars long."
+            raise ValueError(err_msg)
+        if not authority[0].isalnum():
+            err_msg = f"{authority=} must begin with an alphanumeric char."
+            raise ValueError(err_msg)
+        if not cls._is_unreserved(string=authority):
+            err_msg = f"{authority=} must only contain unreserved chars, ~ discouraged."
+            raise ValueError(err_msg)
+        if path is not None and len(path) > 0:
+            if path[0] != "/":
+                err_msg = f"Non-empty {path=} must start with a `/`."
+                raise ValueError(err_msg)
+            if cls._contains_percent_encoded_chars(string=path):
+                err_msg = f"{path=} must not contain percent-encoded chars."
+                raise ValueError(err_msg)
+            if cls._contains_col_or_commercial_at_signs(string=path):
+                err_msg = f"{path=} contains `:` or `@`."
+                raise ValueError(err_msg)
+        uri_ref = rfc3986.URIReference(
+            scheme="ivo",  # fixed in Identifiers-2.0 spec
+            authority=authority,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
+        validator = rfc3986.validators.Validator().check_validity_of(
+            "scheme", "host", "port", "userinfo", "path", "query", "fragment"
+        )
+        validator.validate(uri=uri_ref)
+        return str(uri_ref.unsplit())
+
+    @classmethod
     def _convert(
         cls,
         number: float,
@@ -778,7 +851,7 @@ class ObsCoreMeta:
             "obs_publisher_did",
         )
 
-    def _check_mandatory_fields(self, verbose: bool) -> bool:
+    def _check_mandatory_fields(self, *, verbose: bool) -> bool:
         """Checks mandatory fields.
 
         Prints a warning to stderr if one or more field-values are None.
@@ -806,7 +879,7 @@ class ObsCoreMeta:
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         return valid
 
-    def _check_polarization(self, verbose: bool) -> bool:
+    def _check_polarization(self, *, verbose: bool) -> bool:
         """Checks polarization fields according to `REC-ObsCore-v1.1`.
 
         Args:
@@ -852,7 +925,7 @@ class ObsCoreMeta:
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         return valid
 
-    def _check_axes(self, verbose: bool) -> bool:
+    def _check_axes(self, *, verbose: bool) -> bool:
         """Checks axis-lengths (`s_xel1`, `s_xel2`, `em_xel`, `t_xel`, `pol_xel`).
 
         Args:
@@ -878,3 +951,43 @@ class ObsCoreMeta:
                 wmsg = f"Invalid axes-values: {invalid_fields}"
                 warn(message=wmsg, category=UserWarning, stacklevel=1)
         return valid
+
+    @classmethod
+    def _is_unreserved(cls, string: str) -> bool:
+        """Checks if `string` contains only RFC 3986 unreserved chars.
+
+        Args:
+            string: String to check.
+
+        Returns:
+            True if `string` contains only unreserved chars, else False.
+        """
+        unreserved_chars = re.compile(r"^[A-Za-z0-9\-._~]+$")
+        return unreserved_chars.match(string) is not None
+
+    @classmethod
+    def _contains_percent_encoded_chars(cls, string: str) -> bool:
+        """Checks if `string` contains percent-encoded chars.
+
+        This is a % followed by exactly two hexadecimal digits.
+
+        Args:
+            string: String to check.
+
+        Returns:
+            True if `string` contains percent-encoded chars, else False.
+        """
+        percent_encoded_pattern = re.compile(r"%[0-9A-Fa-f]{2}")
+        return percent_encoded_pattern.search(string) is not None
+
+    @classmethod
+    def _contains_col_or_commercial_at_signs(cls, string: str) -> bool:
+        """Checks for colons and commercial at signs in `string`.
+
+        Args:
+            string: String to check.
+
+        Returns:
+            True if `string` contains one of the chars, else False.
+        """
+        return ":" in string or "@" in string

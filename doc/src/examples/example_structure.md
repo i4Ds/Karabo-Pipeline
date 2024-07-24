@@ -20,6 +20,8 @@ Suggested command due to the runtime and due to Karabo currently logging to STDO
 
 The notebook [SRCNet_simulation_walkthrough.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_simulation_walkthrough.ipynb) contains a small example based on `SRCNet_v0.1_simulation.py` that can be run on a laptop in a couple of minutes. It walks you through the whole process, from loading the survey / sky model and configuring the telescope, to configuring observation parameters and setting up and running the simulation, to creating a dirty image from the generated visibilities.
 
+In addition, we provide utility to create SRCNet Rucio metadata for the ingestion daemon for `images` and `visibilities` dataproducts. The example script [SRCNet_rucio_meta.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_rucio_meta.py) provides a template, which may need some customization according to your needs (e.g. include the script into a full simulation pipeline).
+
 ## Performing a line emission simulation, using both OSKAR and RASCIL
 
 See the script [line_emission.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/simulation/line_emission.py) and the notebook [LineEmissionBackendsComparison.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/LineEmissionBackendsComparison.ipynb) for an end-to-end line emission simulation.
