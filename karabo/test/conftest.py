@@ -1,4 +1,5 @@
 """Pytest global fixtures needs to be here!"""
+
 import os
 from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
@@ -89,7 +90,6 @@ class TFiles:
     detection_zip: str = os.path.join(data_path, "detection.zip")
     detection_result_csv: str = os.path.join(data_path, "detection_result_512.px.csv")
     filtered_sky_csv: str = os.path.join(data_path, "filtered_sky.csv")
-    restored_fits: str = os.path.join(data_path, "restored.fits")
     run5_cst: str = os.path.join(data_path, "run5.cst")
     visibilities_gleam_ms: str = os.path.join(data_path, "visibilities_gleam.ms")
     poission_vis_ms: str = os.path.join(data_path, "poisson_vis.ms")

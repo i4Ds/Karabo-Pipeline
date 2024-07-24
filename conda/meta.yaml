@@ -60,7 +60,8 @@ requirements:
     - xarray                  >=2022.11
     # transversal dependencies which we need to reference to get mpi-wheels
     - conda-forge::fftw       =*=mpi_mpich*
-
+    # exclude buggy versions of other tools
+    - setuptools              !=71.0.0, !=71.0.1, !=71.0.2  # buggy with `importlib_metadata`
 
 test:
   imports:
