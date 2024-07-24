@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Literal, TypedDict, Union
+from typing import Any, Dict, List, Literal, TypedDict, TypeVar, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -73,6 +73,7 @@ OskarSettingsTreeType: TypeAlias = Dict[str, Dict[str, Any]]
 DirPathType: TypeAlias = Union[Path, str]
 # Used for file paths
 FilePathType: TypeAlias = Union[Path, str]
+TFilePathType = TypeVar("TFilePathType", bound=FilePathType)
 
 
 class BeamType(TypedDict):
