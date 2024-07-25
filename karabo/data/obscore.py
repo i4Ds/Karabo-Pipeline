@@ -324,20 +324,20 @@ class ObsCoreMeta:
     facility_name: Optional[str] = None
     instrument_name: Optional[str] = None
 
-    def to_json(
+    def to_dict(
         self,
         fpath: Optional[FilePathType] = None,
         *,
         ignore_none: bool = True,
-    ) -> str:
-        """Converts this dataclass into a JSON.
+    ) -> Dict[str, Any]:
+        """Converts this dataclass into a dict.
 
         Args:
-            fpath: JSON file-path to write dump.
+            fpath: File-path to write dump.
             ignore_none: Ignore non-mandatory `None` fields?
 
         Returns:
-            JSON as a str.
+            Dictionary.
         """
         self.check_ObsCoreMeta(verbose=True)
         mandatory_fields = self._get_mandatory_fields()
@@ -348,12 +348,11 @@ class ObsCoreMeta:
                 for key, value in dictionary.items()
                 if value is not None or key in mandatory_fields
             }
-        dump = json.dumps(dictionary)
         if fpath is not None:
-            assert_valid_ending(path=fpath, ending=".json")
+            dump = json.dumps(dictionary)
             with open(file=fpath, mode="w") as json_file:
                 json_file.write(dump)
-        return dump
+        return dictionary
 
     def set_pol_states(self, pol_states: _PolStatesListType) -> None:
         """Sets `pol_states` from a pythonic interface to a `str` according to ObsCore.

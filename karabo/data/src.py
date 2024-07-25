@@ -4,7 +4,8 @@ import json
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Any, Dict, Optional, Union, cast
+from warnings import warn
 
 from karabo.data.obscore import ObsCoreMeta
 from karabo.util._types import FilePathType, TFilePathType
@@ -31,34 +32,35 @@ class RucioMeta:
             The dataset scope will be the same as that specified in namespace.
 
         meta: An object containing science metadata fields, which will be set against
-            the ingested file. This should be either a JSON string or `ObsCoreMeta`.
+            the ingested file. This should be either a dict of `ObsCoreMeta` or an
+            instance of `ObsCoreMeta`.
     """
 
     namespace: str
     name: str
     lifetime: int
     dataset_name: Optional[str] = None
-    meta: Optional[Union[str, ObsCoreMeta]] = None
+    meta: Optional[Union[Dict[str, Any], ObsCoreMeta]] = None
 
-    def to_json(
+    def to_dict(
         self,
         fpath: Optional[FilePathType] = None,
         *,
         ignore_none: bool = True,
-    ) -> str:
-        """Converts this dataclass into a JSON.
+    ) -> Dict[str, Any]:
+        """Converts this dataclass into a dict.
 
         Args:
-            fpath: JSON file-path to write dump. Consider using `get_meta_fname`
+            fpath: File-path to write dump. Consider using `get_meta_fname`
                 to get an `fpath` according to the Rucio specification.
             ignore_none: Ignore `None` fields?
 
         Returns:
-            JSON as a str.
+            Dictionary.
         """
         if self.meta is not None and isinstance(self.meta, ObsCoreMeta):
             self_new = deepcopy(self)  # to avoid mutable `self.to_json`
-            self_new.meta = self.meta.to_json(fpath=None, ignore_none=ignore_none)
+            self_new.meta = self.meta.to_dict(fpath=None, ignore_none=ignore_none)
         else:
             self_new = self
         dictionary = asdict(self_new)
@@ -66,11 +68,15 @@ class RucioMeta:
             dictionary = {
                 key: value for key, value in dictionary.items() if value is not None
             }
-        dump = json.dumps(dictionary)
         if fpath is not None:
+            meta_suffix = RucioMeta._metadata_suffix()
+            if not str(fpath).endswith(meta_suffix):
+                wmsg = f"Provided {fpath=} doesn't end with {meta_suffix=}"
+                warn(message=wmsg, category=UserWarning, stacklevel=1)
+            dump = json.dumps(dictionary)
             with open(file=fpath, mode="w") as json_file:
                 json_file.write(dump)
-        return dump
+        return dictionary
 
     @classmethod
     def get_meta_fname(cls, fname: TFilePathType) -> TFilePathType:
@@ -87,7 +93,8 @@ class RucioMeta:
         Returns:
             Metadata filename (or filepath if `fname` was also a filepath).
         """
-        meta_fname = f"{fname}.meta"
+        meta_suffix = cls._metadata_suffix()
+        meta_fname = f"{fname}.{meta_suffix}"
         if isinstance(fname, str):
             return cast(TFilePathType, meta_fname)
         elif isinstance(fname, Path):
@@ -133,3 +140,12 @@ class RucioMeta:
             query=query,
             fragment=fragment,
         )
+
+    @classmethod
+    def _metadata_suffix(cls) -> str:
+        """Gets metadata suffix.
+
+        Returns:
+            Metadata suffix.
+        """
+        return "meta"
