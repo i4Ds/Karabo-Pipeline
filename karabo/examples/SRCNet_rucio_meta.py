@@ -112,7 +112,7 @@ def main() -> None:
     # HERE
     # #####END#######
 
-    rm.to_json(fpath=dp_path_meta)
+    _ = rm.to_dict(fpath=dp_path_meta)
     print(f"Created {dp_path_meta}")
 
 

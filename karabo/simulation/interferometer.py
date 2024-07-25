@@ -393,9 +393,9 @@ class InterferometerSimulation:
         primary_beam: Optional[RASCILImage] = None,
     ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
         """
-        Run a single interferometer simulation with the given sky, telescope.png and
+        Run a single interferometer simulation with the given sky, telescope and
         observation settings.
-        :param telescope: telescope.png model defining the telescope.png configuration
+        :param telescope: telescope model defining the configuration
         :param sky: sky model defining the sky sources
         :param observation: observation settings
         :param backend: Backend used to perform calculations (e.g. OSKAR, RASCIL)

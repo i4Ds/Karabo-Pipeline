@@ -159,12 +159,11 @@ class TestObsCoreMeta:
         with tempfile.TemporaryDirectory() as tmpdir:
             meta_path = os.path.join(tmpdir, "obscore-vis.json")
             with pytest.warns(UserWarning):  # mandatory fields not set
-                json_str = ocm.to_json()
-                assert len(json_str) > 1
+                _ = ocm.to_dict()
             ocm.obs_collection = "<obs-collection>"
             ocm.obs_id = "<obs-id>"
             ocm.obs_publisher_did = "<obs-publisher-did>"
-            _ = ocm.to_json(fpath=meta_path)
+            _ = ocm.to_dict(fpath=meta_path)
             assert os.path.exists(meta_path)
 
     def test_from_image(self, minimal_fits_restored: Image) -> None:
@@ -189,12 +188,11 @@ class TestObsCoreMeta:
         with tempfile.TemporaryDirectory() as tmpdir:
             meta_path = os.path.join(tmpdir, "obscore-img.json")
             with pytest.warns(UserWarning):  # mandatory fields not set
-                json_str = ocm.to_json()
-                assert len(json_str) > 1
+                _ = ocm.to_dict()
             ocm.obs_collection = "<obs-collection>"
             ocm.obs_id = "<obs-id>"
             ocm.obs_publisher_did = "<obs-publisher-did>"
-            _ = ocm.to_json(fpath=meta_path)
+            _ = ocm.to_dict(fpath=meta_path)
             assert os.path.exists(meta_path)
 
 
@@ -222,5 +220,5 @@ class TestRucioMeta:
         fname_meta = RucioMeta.get_meta_fname(fname=minimal_fits_restored.path)
         with tempfile.TemporaryDirectory() as tmpdir:
             fpath_meta = os.path.join(tmpdir, os.path.split(fname_meta)[-1])
-            rm.to_json(fpath=fpath_meta)
+            _ = rm.to_dict(fpath=fpath_meta)
             assert os.path.exists(fpath_meta)
