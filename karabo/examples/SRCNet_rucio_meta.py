@@ -89,7 +89,7 @@ def main() -> None:
     # be sure that name & namespace together are unique, e.g. by having different fnames
     name = os.path.split(dp_path)[-1]
     rm = RucioMeta(
-        namespace="karabo-sim",
+        namespace="testing",  # needs to be specified by Rucio service
         name=name,
         lifetime=86400,  # 1 day
         dataset_name=None,
@@ -99,7 +99,7 @@ def main() -> None:
     # ObsCore mandatory fields
     ocm.obs_collection = "MRO/ASKAP"
     obs_sim_id = 0  # unique observation-simulation ID of `USER`
-    user_rnd_str = get_rnd_str(k=10, seed=os.environ.get("USER"))
+    user_rnd_str = get_rnd_str(k=7, seed=os.environ.get("USER"))
     ocm.obs_id = f"karabo-{user_rnd_str}-{obs_sim_id}"
     obs_publisher_did = RucioMeta.get_ivoid(  # rest args are defaults
         namespace=rm.namespace,
