@@ -105,7 +105,7 @@ class EoRProfile:
         """
         Plot the fluctuation profile of the 21cm signal.
 
-        Either the x_hi parmater needs to be given or the calculated profile.
+        Either the x_hi parameter needs to be given or the calculated profile.
 
         Parameters
         ----------

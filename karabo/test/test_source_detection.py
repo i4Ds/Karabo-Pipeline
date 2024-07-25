@@ -72,7 +72,7 @@ def test_source_detection_plot(
     # Compare the assignment
     np.testing.assert_array_equal(
         assignments,
-        np.load(tobject.gt_assigment),
+        np.load(tobject.gt_assignment),
         err_msg="The assignment has changed!",
     )
     mapping = SourceDetectionEvaluation(
@@ -159,17 +159,17 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     detected = np.flipud(gtruth)
 
     # Calculate result
-    assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
+    assignment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
         gtruth, detected, 0.5, top_k=3
     )
 
-    # Check that the result is correct by flipping the assigment
+    # Check that the result is correct by flipping the assignment
     # and checking that it is equal
     assert np.all(
-        assigment[:, 0] == np.flipud(assigment[:, 1])
+        assignment[:, 0] == np.flipud(assignment[:, 1])
     ), "Automatic assignment of ground truth and detected is not correct"
 
-    # Check reassigment of detected points, i.e. that the same detected point is
+    # Check reassignment of detected points, i.e. that the same detected point is
     # not assigned to multiple ground truth points
     # Create matrices of ground truth and prediction
     gtruth = np.array([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]])
@@ -177,14 +177,14 @@ def test_automatic_assignment_of_ground_truth_and_prediction():
     detected = np.array([[0.0, 0.0], [0.1, 0.0], [0.2, 0.0], [0.3, 0.0]])
 
     # Calculate result
-    assigment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
+    assignment = SourceDetectionEvaluation.automatic_assignment_of_ground_truth_and_prediction(  # noqa
         gtruth, detected, np.inf, top_k=4
     )
 
-    # Check that the result is correct by flipping the assigment
+    # Check that the result is correct by flipping the assignment
     # and checking that it is equal
     assert np.all(
-        assigment[:, 0] == np.flipud(assigment[:, 1])
+        assignment[:, 0] == np.flipud(assignment[:, 1])
     ), "Automatic assignment of ground truth and detected is not correct"
 
 
@@ -229,10 +229,10 @@ def test_full_source_detection(
 
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
 def test_create_detection_from_ms_cuda():
-    phasecenter = np.array([225, -65])
+    phase_center = np.array([225, -65])
     sky = SkyModel.get_random_poisson_disk_sky(
-        phasecenter + np.array([-5, -5]),
-        phasecenter + np.array([+5, +5]),
+        phase_center + np.array([-5, -5]),
+        phase_center + np.array([+5, +5]),
         100,
         200,
         0.4,
@@ -246,8 +246,8 @@ def test_create_detection_from_ms_cuda():
     observation = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=phasecenter[0],
-        phase_centre_dec_deg=phasecenter[1],
+        phase_centre_ra_deg=phase_center[0],
+        phase_centre_dec_deg=phase_center[1],
         number_of_time_steps=1,
         frequency_increment_hz=20e6,
         number_of_channels=3,

@@ -1,4 +1,5 @@
 """Galactic Foreground signal catalogue wrapper."""
+
 import re
 from pathlib import Path
 from typing import Annotated, Final, Literal, Optional
@@ -67,17 +68,17 @@ class SignalGalacticForeground(BaseSignal[Image2D]):
         Parameters
         ----------
         centre : Angle
-            Center point. lon = right ascention, lat = declination
+            Center point. lon = right ascension, lat = declination
         fov : Angle
-            Field of view for the right ascention in degrees. Must be between 0 < fov <=
-            180. lon = right ascention fov, lat = declination fov
+            Field of view for the right ascension in degrees. Must be between 0 < fov <=
+            180. lon = right ascension fov, lat = declination fov
         redshifts : list[float]
             At what redshifts to observe the catalogue at.
         grid_size : tuple[Annotated[int, Literal["X"]], Annotated[int, Literal["Y"]]]
             Size of the simulated output image (X, Y).
         gleam_file_path : Optional[Path], optional
             Path to the gleam catalogue path to use, by default None. If None, the
-            default GELAM Catalogue from Karabo is used.
+            default GLEAM Catalogue from Karabo is used.
         """
         self.centre = centre
         self.redshifts = redshifts
@@ -181,16 +182,16 @@ class SignalGalacticForeground(BaseSignal[Image2D]):
         list[float]
             List of available redshift values.
         """
-        re_intensitiy_col = re.compile("Fint([0-9]+)")
+        re_intensity_col = re.compile("Fint([0-9]+)")
         redshifts: list[float] = []
 
         if gleam_catalogue is None:
             gleam_catalogue, _ = SignalGalacticForeground._load_gleam(gleam_file_path)
 
         for col in gleam_catalogue.columns:
-            intensitiy_col = re_intensitiy_col.search(col)
-            if intensitiy_col is not None:
-                redshifts.append(int(intensitiy_col.group(1)) / 10)
+            intensity_col = re_intensity_col.search(col)
+            if intensity_col is not None:
+                redshifts.append(int(intensity_col.group(1)) / 10)
 
         return redshifts
 

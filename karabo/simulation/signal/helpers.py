@@ -181,7 +181,7 @@ def map_radec_datapoints_to_grid(
     par_count: int = 5,
 ) -> Annotated[npt.NDArray[np.float_], Literal["X", "Y"]]:
     """
-    Map the given datapoints with a destination to source mapping.
+    Map the given data points with a destination to source mapping.
 
     For each pixel in the destination grid, the equivalent degree range in the
     source will be summed together and set in the destination grid.
@@ -199,7 +199,7 @@ def map_radec_datapoints_to_grid(
     intensity_column : str
         Name of the column to use for the intensities.
     par_count : int, optional
-        How many processes to use to map the datapoints. By default 5.
+        How many processes to use to map the data points. By default 5.
 
     Returns
     -------

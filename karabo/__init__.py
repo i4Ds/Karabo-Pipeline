@@ -2,6 +2,7 @@
 Hence, you ONLY have deps available here which are available during build-time and
 in karabo. If you don't know what that means, don't touch anything here.
 """
+
 import os
 import platform
 import sys
@@ -27,7 +28,7 @@ if "WSL" in platform.release() and (
     os.execv(sys.executable, ["python"] + sys.argv)
 
 if "SLURM_JOB_ID" in os.environ:
-    # if-statement is an ugly workaraound to not import pkgs not available at
+    # if-statement is an ugly workaround to not import pkgs not available at
     # build/install-time. This is something which is happening if you install the
     # dependencies of Karabo through pip. Then, `versioneer`` determines the current
     # version of Karabo automatically, which is done through this root-init-file.

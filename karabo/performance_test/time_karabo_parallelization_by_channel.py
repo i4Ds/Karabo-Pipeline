@@ -70,7 +70,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)
 
-    # Check that the created visiblities are corresponding to the number of channels
+    # Check that the created visibilities are corresponding to the number of channels
 
     with open(
         f"output_{str(n_workers)}_nodes_{n_channels}_channels.txt",

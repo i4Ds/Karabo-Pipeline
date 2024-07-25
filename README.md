@@ -10,13 +10,13 @@
 [Examples](https://i4ds.github.io/Karabo-Pipeline/examples/examples.html) |
 [Contributors](CONTRIBUTORS.md)
 
-Karabo is a radio astronomy software distribution for validation and benchmarking of radio telescopes and algorithms. It can be used to simulate the behaviour of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) or other supported telescopes. Our goal is to make installation and ramp-up easier for researchers and developers.
+Karabo is a radio astronomy software distribution for validation and benchmarking of radio telescopes and algorithms. It can be used to simulate the behavior of the [Square Kilometer Array](https://www.skatelescope.org/the-ska-project/) or other supported telescopes. Our goal is to make installation and ramp-up easier for researchers and developers.
 
 Karabo includes and relies on OSKAR, RASCIL, WSClean, PyBDSF, [MIGHTEE](https://arxiv.org/abs/2211.05741), [GLEAM](https://www.mwatelescope.org/science/galactic-science/gleam/), Aratmospy, Bluebild, Eidos, Dask, Tools21cm, katbeam plus configuration of 20 well-known telescopes. Karabo can simulate instrument behavior and atmospheric effects, run imaging algorithms, and evaluate results.
 
 <img src="https://github.com/i4Ds/Karabo-Pipeline/assets/4119188/1b5086c4-9df7-4732-a832-89fdbd8abba9" width="50%" />
 
-You can use Karabo to build your own data processing pipelines by combinding existing libraries and your own code. Karabo is written in Python, composed of modules that can be set up in an interactive Jupyter Notebook environment.
+You can use Karabo to build your own data processing pipelines by combining existing libraries and your own code. Karabo is written in Python, composed of modules that can be set up in an interactive Jupyter Notebook environment.
 
 Installation
 ------------

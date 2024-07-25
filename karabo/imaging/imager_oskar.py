@@ -31,11 +31,11 @@ class OskarDirtyImagerConfig(DirtyImagerConfig):
         imaging_npixel (int): see DirtyImagerConfig
         imaging_cellsize (float): see DirtyImagerConfig
         combine_across_frequencies (bool): see DirtyImagerConfig
-        imaging_phasecentre (Optional[str]): Phase centre (in SkyCoord string format).
+        imaging_phase_centre (Optional[str]): Phase centre (in SkyCoord string format).
             Defaults to None.
     """
 
-    imaging_phasecentre: Optional[str] = None
+    imaging_phase_centre: Optional[str] = None
 
 
 class OskarDirtyImager(DirtyImager):
@@ -98,8 +98,8 @@ class OskarDirtyImager(DirtyImager):
             cellsize_arcsec=3600 * np.degrees(self.config.imaging_cellsize),
             image_size=self.config.imaging_npixel,
         )
-        if self.config.imaging_phasecentre is not None:
-            phase_centre = SkyCoord(self.config.imaging_phasecentre, frame="icrs")
+        if self.config.imaging_phase_centre is not None:
+            phase_centre = SkyCoord(self.config.imaging_phase_centre, frame="icrs")
             ra = phase_centre.ra.degree
             dec = phase_centre.dec.degree
 

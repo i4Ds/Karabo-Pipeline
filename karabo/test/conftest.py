@@ -92,10 +92,10 @@ class TFiles:
     filtered_sky_csv: str = os.path.join(data_path, "filtered_sky.csv")
     run5_cst: str = os.path.join(data_path, "run5.cst")
     visibilities_gleam_ms: str = os.path.join(data_path, "visibilities_gleam.ms")
-    poission_vis_ms: str = os.path.join(data_path, "poisson_vis.ms")
+    poisson_vis_ms: str = os.path.join(data_path, "poisson_vis.ms")
 
     # Source Detection Plot (sdp) related files
-    gt_assigment: str = os.path.join(data_path, "sdp", "gt_assigment.npy")
+    gt_assignment: str = os.path.join(data_path, "sdp", "gt_assignment.npy")
     gt_plot: str = os.path.join(data_path, "sdp", "gt_plot.png")
     gt_plot_error_ra_dec: str = os.path.join(
         data_path, "sdp", "gt_plot_error_ra_dec.png"
@@ -127,7 +127,7 @@ def tobject() -> TFiles:
 def clean_disk() -> Generator[None, None, None]:
     """Automatically clears FileHandler's short-term-memory after each test.
 
-    Needed in some cases where the underlying functions do use FileHanlder
+    Needed in some cases where the underlying functions do use FileHandler
      which could lead to IOError because of disk-space limitations.
     """
     # Setup: fill with logic

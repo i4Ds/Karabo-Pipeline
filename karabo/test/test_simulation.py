@@ -17,7 +17,7 @@ from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
-from karabo.simulation.observation import Observation, ObservationParallized
+from karabo.simulation.observation import Observation, ObservationParallelized
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
@@ -115,7 +115,7 @@ def test_simulation_meerkat(
     # Download golden files for comparison
     golden_continuous_fits_path = continuous_fits_downloader.get()
 
-    # Parameter defintion
+    # Parameter definition
     ra_deg = 20
     dec_deg = -30
     start_time = datetime(2000, 3, 20, 12, 6, 39)
@@ -158,7 +158,7 @@ def test_simulation_meerkat(
         )
     )
     dirty = dirty_imager.create_dirty_image(visibility)
-    # Temporary directory containging output files for validation
+    # Temporary directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
         continuous_fits_path = outpath / "test_continuous_emission.fits"
@@ -198,7 +198,7 @@ def test_simulation_noise_meerkat(
     # Download golden files for comparison
     golden_continuous_noise_fits_path = continuous_noise_fits_downloader.get()
 
-    # Parameter defintion
+    # Parameter definition
     ra_deg = 20
     dec_deg = -30
     start_time = datetime(2000, 3, 20, 12, 6, 39)
@@ -245,7 +245,7 @@ def test_simulation_noise_meerkat(
         )
     )
     dirty = dirty_imager.create_dirty_image(visibility)
-    # Temporary directory containging output files for validation
+    # Temporary directory containing output files for validation
     with tempfile.TemporaryDirectory() as tmpdir:
         outpath = Path(tmpdir)
         continuous_noise_fits_path = outpath / "test_continuous_emission_noise.fits"
@@ -288,7 +288,7 @@ def test_parallelization_by_observation() -> None:
 
     simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=1)
 
-    obs_parallized = ObservationParallized(
+    obs_parallelized = ObservationParallelized(
         center_frequencies_hz=CENTER_FREQUENCIES_HZ,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         channel_bandwidths_hz=CHANNEL_BANDWIDTHS_HZ,
@@ -298,7 +298,7 @@ def test_parallelization_by_observation() -> None:
         n_channels=N_CHANNELS,
     )
 
-    visibilities = simulation.run_simulation(telescope, sky, obs_parallized)
+    visibilities = simulation.run_simulation(telescope, sky, obs_parallelized)
 
     for i, vis in enumerate(visibilities):
         dirty_imager = RascilDirtyImager(

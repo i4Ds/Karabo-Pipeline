@@ -8,7 +8,7 @@ from karabo.util.file_handler import FileHandler
 
 
 def test_file_handler():
-    """Test global FileHanlder functionality."""
+    """Test global FileHandler functionality."""
     with tempfile.TemporaryDirectory() as tmpdir:
         FileHandler.root_ltm = tmpdir
         FileHandler.root_stm = tmpdir

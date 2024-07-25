@@ -171,7 +171,7 @@ def _convert_clean_beam_to_degrees(
     im: Image,
     beam_pixels: tuple[float, float, float],
 ) -> BeamType:
-    """Convert clean beam in pixels to arcsec, arcesc, degree.
+    """Convert clean beam in pixels to arcsec, arcsec, degree.
 
     Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/blob/main/src/ska_sdp_func_python/image/operations.py  # noqa: E501
 

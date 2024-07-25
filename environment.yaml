@@ -3,8 +3,8 @@ channels:
   - nvidia/label/cuda-11.7.0
   - conda-forge
 dependencies:
-# Set dependencies and it's contraints in the package they belong. Otherwise you just cause chaos for future builds.
-# Just Karabo's direct dependencies and Karabo constraints (from our code) should be handeled here.
+# Set dependencies and it's constraints in the package they belong. Otherwise you just cause chaos for future builds.
+# Just Karabo's direct dependencies and Karabo constraints (from our code) should be handled here.
 # Dependencies with unstable APIs (this usually includes Karabo-Feedstock) should be fixed.
 # Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
 # 

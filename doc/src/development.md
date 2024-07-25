@@ -126,7 +126,7 @@ The docs are built from the python source code and other doc source files locate
 The .rst and .md files need to be referenced inside of index.rst or an already referenced page inside of index.rst, in order to be viewable by the public upon building the documentation.
 
 If you wish to add a new documentation file, create a new .md file or .rst file inside of the /doc/src folder.
-Then, reference the new file within index.rst in the topmost toctree. Forinstance, see below:
+Then, reference the new file within index.rst in the topmost toctree. For instance, see below:
 
 ````rst
 
@@ -172,7 +172,7 @@ If you add new examples to karabo/examples, please make sure to reference them o
 
 We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), with a few imports from the `unittest` package ([unittest docs](https://docs.python.org/3/library/unittest.html)). To add a new test simply go to the `karabo/test` folder.
 
-Add tests for when you write some sort of new code that you feel like might break. Be aware that tests utilize the functionality of the testing-framework and therefore might not behave exaclty the same as you whould execute the code just as a function. The most important file to consider is `conftest.py`, which could impact the other tests.
+Add tests for when you write some sort of new code that you feel like might break. Be aware that tests utilize the functionality of the testing-framework and therefore might not behave exactly the same as you would execute the code just as a function. The most important file to consider is `conftest.py`, which could impact the other tests.
 
 ## Create a Release
 When everything is merged which should be merged, a new Release can be deployed as following:
@@ -182,7 +182,7 @@ When everything is merged which should be merged, a new Release can be deployed 
 - Check that the `Target` is set to `main`.
 - Describe the release (get inspired by the previous releases).
 - Click `Publish release`. 
-- Check on [Karabo-Pipeline | Github Actions](https://github.com/i4Ds/Karabo-Pipeline/actions) that the release is succesful. 
+- Check on [Karabo-Pipeline | Github Actions](https://github.com/i4Ds/Karabo-Pipeline/actions) that the release is successful. 
 - Check that the new version is on [Anaconda.org | Packages](https://anaconda.org/i4ds/karabo-pipeline)
 - Check on [Karabo-Pipeline | Docker Images](https://github.com/i4ds/Karabo-Pipeline/pkgs/container/karabo-pipeline) that the released image is live.
 

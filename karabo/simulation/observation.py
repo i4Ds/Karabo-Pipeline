@@ -315,7 +315,7 @@ class ObservationLong(ObservationAbstract):
             raise KaraboError(f"`length` should be max 12 hours but is {self.length}!")
 
 
-class ObservationParallized(ObservationAbstract):
+class ObservationParallelized(ObservationAbstract):
     """
     This class allows the use of several observations on different
     days over a certain period of time within one day.
