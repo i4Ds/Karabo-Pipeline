@@ -56,7 +56,7 @@ class RucioMeta:
             ignore_none: Ignore `None` fields?
 
         Returns:
-            Dictionary.
+            Dataclass as dict.
         """
         if self.meta is not None and isinstance(self.meta, ObsCoreMeta):
             self_new = deepcopy(self)  # to avoid mutable `self.to_json`

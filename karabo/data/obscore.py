@@ -337,7 +337,7 @@ class ObsCoreMeta:
             ignore_none: Ignore non-mandatory `None` fields?
 
         Returns:
-            Dictionary.
+            Dataclass as dict.
         """
         self.check_ObsCoreMeta(verbose=True)
         mandatory_fields = self._get_mandatory_fields()
