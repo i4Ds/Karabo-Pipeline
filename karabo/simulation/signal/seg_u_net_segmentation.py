@@ -29,7 +29,7 @@ class FixedSegUNet(t2c.segmentation.segunet21cm):  # type: ignore[misc]
         """SegU-Net: segmentation of 21cm images with U-shape network.
 
            - tta (int): default 0 (super-fast, no pixel-error map) implement the error
-             map with time-test augmentated technique in the prediction process
+             map with time-test augmented technique in the prediction process
            - verbose (bool): default False, activate verbosity
 
         Description:
