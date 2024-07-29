@@ -1,7 +1,8 @@
 import os
+import pathlib as pl
 import tempfile
 from unittest import mock
-import pathlib as pl
+
 import pytest
 
 from karabo.simulation.telescope import Telescope
