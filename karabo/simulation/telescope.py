@@ -481,7 +481,7 @@ but was not provided. Please provide a value for the version field."
         self.path = tmp_dir
         return tel
 
-    def write_to_file(self, dir: DirPathType, overwrite=False) -> None:
+    def write_to_file(self, dir: DirPathType, *, overwrite: bool = False) -> None:
         """
         Create .tm telescope configuration at the specified path
         :param dir: directory in which the configuration will be saved in.
