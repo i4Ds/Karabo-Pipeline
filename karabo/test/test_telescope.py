@@ -16,6 +16,7 @@ from karabo.simulation.telescope_versions import (
 )
 from karabo.simulator_backend import SimulatorBackend
 
+
 @pytest.mark.parametrize("filename", ["test_telescope.tm"])
 def test_write_tm_file(filename):
     BACKEND = SimulatorBackend.OSKAR

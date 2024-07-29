@@ -484,7 +484,8 @@ but was not provided. Please provide a value for the version field."
     def write_to_file(self, dir: DirPathType) -> None:
         """
         Create .tm telescope configuration at the specified path
-        :param dir: directory in which the configuration will be saved in. Raises an excpetion if directory exists.
+        :param dir: directory in which the configuration will be saved in.
+        Raises an excpetion if directory exists.
         :raise FileExistsError: Directoty exists
         """
         os.makedirs(dir)
@@ -504,7 +505,7 @@ but was not provided. Please provide a value for the version field."
 
     def __write_position_txt(self, position_file_path: str) -> None:
         position_file = open(position_file_path, "a")
-        
+
         position_file.write(
             f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude} \n"
         )
