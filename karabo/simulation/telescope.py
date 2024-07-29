@@ -475,21 +475,21 @@ but was not provided. Please provide a value for the version field."
         os.makedirs(tmp_dir, exist_ok=True)
         if not FileHandler.is_dir_empty(dirname=tmp_dir):
             FileHandler.empty_dir(dir_path=tmp_dir)
-        self.write_to_file(tmp_dir)
+        self.write_to_file(tmp_dir, overwrite=True)
         tel = OskarTelescope()
         tel.load(tmp_dir)
         self.path = tmp_dir
         return tel
 
-    def write_to_file(self, dir: DirPathType) -> None:
+    def write_to_file(self, dir: DirPathType, overwrite=False) -> None:
         """
         Create .tm telescope configuration at the specified path
         :param dir: directory in which the configuration will be saved in.
-        Raises an excpetion if directory exists.
-        :raise FileExistsError: Directoty exists
+        :param overwrite: If True an existing directory is overwritten.
         """
-        os.makedirs(dir)
-
+        os.makedirs(dir, exist_ok=overwrite)
+        if not FileHandler.is_dir_empty(dirname=dir):
+            FileHandler.empty_dir(dir_path=dir)
         self.__write_position_txt(os.path.join(dir, "position.txt"))
         self.__write_layout_txt(
             os.path.join(dir, "layout.txt"),
