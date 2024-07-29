@@ -513,7 +513,6 @@ but was not provided. Please provide a value for the version field."
     def __write_layout_txt(
         self, layout_path: str, elements: List[EastNorthCoordinate]
     ) -> None:
-        print(f"***************** {layout_path}")
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
