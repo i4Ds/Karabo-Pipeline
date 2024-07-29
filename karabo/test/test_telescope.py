@@ -1,7 +1,8 @@
 import os
+import pathlib as pl
 import tempfile
 from unittest import mock
-import pathlib as pl
+
 import pytest
 
 from karabo.simulation.telescope import Telescope
@@ -18,20 +19,15 @@ from karabo.simulator_backend import SimulatorBackend
 
 
 @pytest.mark.parametrize("filename", ["test_telescope.tm"])
-def test_write_tm_file(filename):
+def test_write_and_read_tm_file(filename):
     BACKEND = SimulatorBackend.OSKAR
     tel = Telescope.constructor("EXAMPLE", backend=BACKEND)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_filename = os.path.join(tmpdir, filename)
         tel.write_to_file(tmp_filename)
         assert pl.Path(tmp_filename).resolve().exists()
-
-
-def test_read_tm_file():
-    tel = Telescope.constructor("EXAMPLE")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tel.plot_telescope(os.path.join(tmpdir, "oskar_tel.png"))
-        assert len(tel.stations) == 30
+        new_tel = Telescope.read_OSKAR_tm_file(tmp_filename)
+        assert len(new_tel.stations) == 30
 
 
 def test_convert_to_oskar():
