@@ -4,6 +4,7 @@ import tempfile
 from unittest import mock
 
 import pytest
+from ska_sdp_datamodels.configuration.config_model import Configuration
 
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.telescope_versions import (
@@ -59,85 +60,97 @@ def test_OSKAR_telescope_with_version_but_version_not_required():
         Telescope.constructor("MeerKAT", version="Not None version")
 
 
-def test_read_alma_file():
+def test_create_alma_telescope():
     tel = Telescope.constructor("ALMA", ALMAVersions.CYCLE_1_1)
-    tel.plot_telescope()
     assert len(tel.stations) == 32
 
 
-def test_read_meerkat_file():
+def test_create_meerkat_telescope():
     tel = Telescope.constructor("MeerKAT")
-    tel.plot_telescope()
     assert len(tel.stations) == 64
 
 
 @pytest.mark.parametrize("version", ALMAVersions)
 def test_read_all_ALMA_versions(version):
-    tel = Telescope.constructor("ALMA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("ALMA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create ALMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", ACAVersions)
 def test_read_all_ACA_versions(version):
-    tel = Telescope.constructor("ACA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("ACA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create ALMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", CARMAVersions)
 def test_read_all_CARMA_versions(version):
-    tel = Telescope.constructor("CARMA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("CARMA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create CARMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", NGVLAVersions)
 def test_read_all_NG_VLA_versions(version):
-    tel = Telescope.constructor("NGVLA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("NGVLA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create NGVLA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", PDBIVersions)
 def test_read_all_PDBI_versions(version):
-    tel = Telescope.constructor("PDBI", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("PDBI", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create PDBI telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", SMAVersions)
 def test_read_all_SMA_versions(version):
-    tel = Telescope.constructor("SMA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("SMA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create SMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", VLAVersions)
 def rest_read_all_VLA_versions(version):
-    tel = Telescope.constructor("VLA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("VLA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create VLA telescope with version {version}")
 
 
 def test_read_SKA_LOW():
     tel = Telescope.constructor("SKA1LOW")
-    tel.plot_telescope()
+    assert len(tel.stations) == 512
 
 
 def test_read_SKA_MID():
     tel = Telescope.constructor("SKA1MID")
-    tel.plot_telescope()
+    assert len(tel.stations) == 197
 
 
 def test_read_VLBA():
     tel = Telescope.constructor("VLBA")
-    tel.plot_telescope()
+    assert len(tel.stations) == 10
 
 
 def test_read_WSRT():
     tel = Telescope.constructor("WSRT")
-    tel.plot_telescope()
+    assert len(tel.stations) == 14
 
 
 def test_RASCIL_telescope():
     tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
     assert tel.backend is SimulatorBackend.RASCIL
-
-    tel.plot_telescope()
+    info = tel.get_backend_specific_information()
+    assert isinstance(info, Configuration)
 
 
 # Interesting and funny article on asserting with mocks:
