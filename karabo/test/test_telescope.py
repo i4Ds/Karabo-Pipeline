@@ -1,7 +1,7 @@
 import os
 import tempfile
 from unittest import mock
-
+import pathlib as pl
 import pytest
 
 from karabo.simulation.telescope import Telescope
@@ -15,6 +15,15 @@ from karabo.simulation.telescope_versions import (
     VLAVersions,
 )
 from karabo.simulator_backend import SimulatorBackend
+
+
+def test_write_tm_file():
+    BACKEND = SimulatorBackend.OSKAR
+    tel = Telescope.constructor("EXAMPLE", backend=BACKEND)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_filename = os.path.join(tmpdir, "test_telescope.tm")
+        tel.write_to_file(tmp_filename)
+        assert pl.Path(tmp_filename).resolve().exists()
 
 
 def test_read_tm_file():
