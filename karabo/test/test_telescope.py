@@ -16,12 +16,12 @@ from karabo.simulation.telescope_versions import (
 )
 from karabo.simulator_backend import SimulatorBackend
 
-
-def test_write_tm_file():
+@pytest.mark.parametrize("filename", ["test_telescope.tm"])
+def test_write_tm_file(filename):
     BACKEND = SimulatorBackend.OSKAR
     tel = Telescope.constructor("EXAMPLE", backend=BACKEND)
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmp_filename = os.path.join(tmpdir, "test_telescope.tm")
+        tmp_filename = os.path.join(tmpdir, filename)
         tel.write_to_file(tmp_filename)
         assert pl.Path(tmp_filename).resolve().exists()
 
