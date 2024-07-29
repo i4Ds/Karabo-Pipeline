@@ -624,6 +624,7 @@ but was not provided. Please provide a value for the version field."
         layout_file = open(path)
         lines = layout_file.readlines()
         for line in lines:
+            line = line.rstrip()
             station_position = re.split("[\\s,]+", line)
             values = np.zeros(6)
             i = 0
