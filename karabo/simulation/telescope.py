@@ -54,7 +54,7 @@ from karabo.simulation.telescope_versions import (
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
-from karabo.util.file_handler import FileHandler
+from karabo.util.file_handler import FileHandler, write_dir
 from karabo.util.math_util import long_lat_to_cartesian
 
 OSKARTelescopesWithVersionType = Literal[
@@ -458,11 +458,6 @@ but was not provided. Please provide a value for the version field."
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
 
-        Note: Once this function is called, it returns the same `OskarTelescope`
-            for each function call bound to this object-instance. Thus, changing
-            Telescope-parameters on this instance after calling this function
-            won't have an effect on the returned `OskarTelescope` anymore.
-
         :return: OSKAR Telescope object
         """
         tmp_dir = FileHandler().get_tmp_dir(
@@ -471,36 +466,42 @@ but was not provided. Please provide a value for the version field."
             unique=self,
             mkdir=False,
         )
-        tmp_dir = os.path.join(tmp_dir, "oskar-telescope")
-        os.makedirs(tmp_dir, exist_ok=True)
-        if not FileHandler.is_dir_empty(dirname=tmp_dir):
-            FileHandler.empty_dir(dir_path=tmp_dir)
-        self.write_to_file(tmp_dir)
+        tmp_dir = os.path.join(tmp_dir, "oskar-telescope.tm")
+        self.write_to_disk(dir_name=tmp_dir, overwrite=True)
         tel = OskarTelescope()
         tel.load(tmp_dir)
         self.path = tmp_dir
         return tel
 
-    def write_to_file(self, dir: DirPathType) -> None:
-        """
-        Create .tm telescope configuration at the specified path
+    def write_to_disk(self, dir_name: DirPathType, *, overwrite: bool = False) -> None:
+        """Write `dir_path` to disk (must have .tm ending).
+
         :param dir: directory in which the configuration will be saved in.
+        :param overwrite: If True an existing directory is overwritten if exists. Be
+            careful to put the correct dir as input because the old one can get removed!
         """
-        self.__write_position_txt(os.path.join(dir, "position.txt"))
-        self.__write_layout_txt(
-            os.path.join(dir, "layout.txt"),
-            [station.position for station in self.stations],
-        )
-        for i, station in enumerate(self.stations):
-            station_path = f"{dir}{os.path.sep}station{'{:03d}'.format(i)}"
-            os.mkdir(station_path)
+        if not str(dir_name).endswith(
+            ".tm"
+        ):  # for OSKAR & `overwrite` security purpose
+            err_msg = f"{dir_name=} has to end with a `.tm`, but doesn't."
+            raise RuntimeError(err_msg)
+        with write_dir(dir=dir_name, overwrite=overwrite) as wd:
+            self.__write_position_txt(os.path.join(wd, "position.txt"))
             self.__write_layout_txt(
-                os.path.join(station_path, "layout.txt"),
-                station.antennas,
+                os.path.join(wd, "layout.txt"),
+                [station.position for station in self.stations],
             )
+            for i, station in enumerate(self.stations):
+                station_path = f"{wd}{os.path.sep}station{'{:03d}'.format(i)}"
+                os.mkdir(station_path)
+                self.__write_layout_txt(
+                    os.path.join(station_path, "layout.txt"),
+                    station.antennas,
+                )
 
     def __write_position_txt(self, position_file_path: str) -> None:
         position_file = open(position_file_path, "a")
+
         position_file.write(
             f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude} \n"
         )
