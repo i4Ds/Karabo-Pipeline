@@ -381,7 +381,7 @@ class FileHandler:
     def empty_dir(cls, dir_path: DirPathType) -> None:
         """Deletes all contents of `dir_path`, but not the directory itself.
 
-        This function assumes that all filed and directories are owned by
+        This function assumes that all files and directories are owned by
         the function-user.
 
         Args:
