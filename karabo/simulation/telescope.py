@@ -54,7 +54,7 @@ from karabo.simulation.telescope_versions import (
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
-from karabo.util.file_handler import FileHandler
+from karabo.util.file_handler import FileHandler, write_dir
 from karabo.util.math_util import long_lat_to_cartesian
 
 OSKARTelescopesWithVersionType = Literal[
@@ -472,10 +472,8 @@ but was not provided. Please provide a value for the version field."
             mkdir=False,
         )
         tmp_dir = os.path.join(tmp_dir, "oskar-telescope")
-        os.makedirs(tmp_dir, exist_ok=True)
-        if not FileHandler.is_dir_empty(dirname=tmp_dir):
-            FileHandler.empty_dir(dir_path=tmp_dir)
-        self.write_to_file(tmp_dir)
+        if not os.path.exists(tmp_dir):
+            self.write_to_file(tmp_dir)
         tel = OskarTelescope()
         tel.load(tmp_dir)
         self.path = tmp_dir
@@ -485,22 +483,22 @@ but was not provided. Please provide a value for the version field."
         """
         Create .tm telescope configuration at the specified path
         :param dir: directory in which the configuration will be saved in.
-        :param overwrite: If True an existing directory is overwritten.
+        :param overwrite: If True an existing directory is overwritten if exists. Be
+            careful to put the correct dir as input because the old one can get removed!
         """
-        if not FileHandler.is_dir_empty(dirname=dir):
-            FileHandler.empty_dir(dir_path=dir)
-        self.__write_position_txt(os.path.join(dir, "position.txt"))
-        self.__write_layout_txt(
-            os.path.join(dir, "layout.txt"),
-            [station.position for station in self.stations],
-        )
-        for i, station in enumerate(self.stations):
-            station_path = f"{dir}{os.path.sep}station{'{:03d}'.format(i)}"
-            os.mkdir(station_path)
+        with write_dir(dir=dir, overwrite=overwrite) as wd:
+            self.__write_position_txt(os.path.join(wd, "position.txt"))
             self.__write_layout_txt(
-                os.path.join(station_path, "layout.txt"),
-                station.antennas,
+                os.path.join(wd, "layout.txt"),
+                [station.position for station in self.stations],
             )
+            for i, station in enumerate(self.stations):
+                station_path = f"{wd}{os.path.sep}station{'{:03d}'.format(i)}"
+                os.mkdir(station_path)
+                self.__write_layout_txt(
+                    os.path.join(station_path, "layout.txt"),
+                    station.antennas,
+                )
 
     def __write_position_txt(self, position_file_path: str) -> None:
         position_file = open(position_file_path, "a")
