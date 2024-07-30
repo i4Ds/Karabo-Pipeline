@@ -71,6 +71,7 @@ OskarSettingsTreeType: TypeAlias = Dict[str, Dict[str, Any]]
 
 # Used for directory paths, to which one can append a file name
 DirPathType: TypeAlias = Union[Path, str]
+TDirPathType = TypeVar("TDirPathType", bound=DirPathType)
 # Used for file paths
 FilePathType: TypeAlias = Union[Path, str]
 TFilePathType = TypeVar("TFilePathType", bound=FilePathType)

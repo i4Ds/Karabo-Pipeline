@@ -4,7 +4,7 @@ import tempfile
 
 import pytest
 
-from karabo.util.file_handler import FileHandler
+from karabo.util.file_handler import FileHandler, write_dir
 
 
 def test_file_handler():
@@ -84,3 +84,56 @@ def test_object_bound_file_handler():
         tmpdir_fh2 = FileHandler().get_tmp_dir(unique=my_obj)
         assert len(os.listdir(FileHandler.stm())) == 1
         assert tmpdir_fh1 == tmpdir_fh2
+
+
+def test_write_dir():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # test successful subdir creation
+        dir1 = os.path.join(tmpdir, "dir1")
+        with write_dir(dir=dir1, overwrite=False) as wd:
+            os.makedirs(os.path.join(wd, "subdir1"))
+        assert os.path.exists(os.path.join(dir1, "subdir1"))
+
+        # test overwrite=False
+        with pytest.raises(FileExistsError):
+            with write_dir(dir=dir1, overwrite=False) as wd:
+                pass
+
+        # test overwrite=True
+        with write_dir(dir=dir1, overwrite=True) as wd:
+            os.makedirs(os.path.join(wd, "subdir2"))
+        assert not os.path.exists(os.path.join(dir1, "subdir1"))
+        assert os.path.exists(os.path.join(dir1, "subdir2"))
+
+        # test interrupt
+        try:
+            with write_dir(dir=dir1, overwrite=True) as wd:
+                os.makedirs(os.path.join(wd, "subdir3"))
+                raise RuntimeError()
+        except RuntimeError:
+            pass
+        assert not os.path.exists(os.path.join(dir1, "subdir1"))
+        assert os.path.exists(os.path.join(dir1, "subdir2"))
+        assert not os.path.exists(os.path.join(dir1, "subdir3"))
+
+        # test multiple subdir removal
+        try:
+            with write_dir(dir=dir1, overwrite=True) as wd:
+                subdirs = os.path.join(wd, "subdir4", "subdir4", "subdir4")
+                os.makedirs(subdirs)
+                assert os.path.exists(subdirs)
+                raise RuntimeError()
+        except RuntimeError:
+            pass
+        assert os.path.exists(os.path.join(dir1, "subdir2"))
+        assert not os.path.exists(os.path.join(dir1, "subdir4"))
+
+        # test successful root-dir removal
+        dir2 = os.path.join(tmpdir, "dir2")
+        try:
+            with write_dir(dir=dir2, overwrite=False) as wd:
+                os.makedirs(os.path.join(wd, "subdir1"))
+                raise RuntimeError()
+        except RuntimeError:
+            pass
+        assert not os.path.exists(dir2)

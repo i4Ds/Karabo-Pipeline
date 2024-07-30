@@ -4,6 +4,8 @@ import glob
 import os
 import shutil
 import subprocess
+from collections.abc import Generator
+from contextlib import contextmanager
 from copy import copy
 from pathlib import Path
 from types import TracebackType
@@ -11,9 +13,10 @@ from typing import Literal, Optional, Union, overload
 
 from typing_extensions import assert_never
 
-from karabo.util._types import DirPathType, FilePathType
+from karabo.util._types import DirPathType, FilePathType, TDirPathType
 from karabo.util.helpers import get_rnd_str
 from karabo.util.plotting_util import Font
+from karabo.warning import _DEV_ERROR_MSG
 
 _LongShortTermType = Literal["long", "short"]
 
@@ -449,3 +452,56 @@ def getsize(inode: Union[str, Path]) -> int:
     else:
         nbytes = os.path.getsize(filename=inode)
     return nbytes
+
+
+@contextmanager
+def write_dir(
+    dir: TDirPathType, *, overwrite: bool = False
+) -> Generator[TDirPathType, None, None]:
+    """Enables transactional creating and writing into `dir`.
+
+    Assumes that `dir` is empty, meaning NOT partially filled with anything.
+
+    This function is NOT thread-safe!
+
+    Args:
+        dir: Directory to create & write.
+        overwrite: Allow overwrite? Be aware that it will replace the entire
+            `dir` if it already exists. So be careful to provide the correct dir.
+
+    Yields:
+        Directory to fill safely.
+    """
+    dir_path = Path(dir)  # `Path(dir)` handles trailing "/"
+    parent_dir, dirname = os.path.split(dir_path)
+    if not overwrite and os.path.exists(dir_path):
+        err_msg = f"{dir} already exists."
+        raise FileExistsError(err_msg)
+    new_dirs = [
+        parent for parent in [dir_path, *dir_path.parents] if not os.path.exists(parent)
+    ]
+    root_created_dir = new_dirs[-1] if len(new_dirs) > 0 else None
+    if root_created_dir is not None and os.path.exists(root_created_dir):
+        raise RuntimeError(_DEV_ERROR_MSG)  # to absolutely be sure it doesn't exist
+    rnd_str = get_rnd_str(k=10, seed=dirname)
+    tmpdir = type(dir)(os.path.join(parent_dir, f".{rnd_str}-{dirname}"))
+    tmpdir_old = os.path.join(parent_dir, f".{rnd_str}-old-{dirname}")
+    try:
+        os.makedirs(tmpdir, exist_ok=False)
+        yield tmpdir  # type: ignore[misc]
+        if overwrite and os.path.exists(dir_path):
+            os.rename(src=dir_path, dst=tmpdir_old)
+            os.rename(src=tmpdir, dst=dir_path)
+            shutil.rmtree(
+                path=tmpdir_old
+            )  # potentially dangerous if `dir` is accidentally set to another dir
+        else:
+            os.rename(src=tmpdir, dst=dir_path)
+    except BaseException:
+        if os.path.exists(tmpdir_old):
+            shutil.rmtree(path=tmpdir_old)
+        if os.path.exists(tmpdir):
+            shutil.rmtree(path=tmpdir)
+        if root_created_dir is not None and os.path.exists(root_created_dir):
+            shutil.rmtree(path=root_created_dir)
+        raise
