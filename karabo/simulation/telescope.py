@@ -475,7 +475,7 @@ but was not provided. Please provide a value for the version field."
         os.makedirs(tmp_dir, exist_ok=True)
         if not FileHandler.is_dir_empty(dirname=tmp_dir):
             FileHandler.empty_dir(dir_path=tmp_dir)
-        self.write_to_file(tmp_dir, overwrite=True)
+        self.write_to_file(tmp_dir)
         tel = OskarTelescope()
         tel.load(tmp_dir)
         self.path = tmp_dir
