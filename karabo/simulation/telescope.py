@@ -487,7 +487,6 @@ but was not provided. Please provide a value for the version field."
         :param dir: directory in which the configuration will be saved in.
         :param overwrite: If True an existing directory is overwritten.
         """
-        os.makedirs(dir, exist_ok=overwrite)
         if not FileHandler.is_dir_empty(dirname=dir):
             FileHandler.empty_dir(dir_path=dir)
         self.__write_position_txt(os.path.join(dir, "position.txt"))
