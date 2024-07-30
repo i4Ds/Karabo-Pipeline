@@ -458,11 +458,6 @@ but was not provided. Please provide a value for the version field."
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
 
-        Note: Once this function is called, it returns the same `OskarTelescope`
-            for each function call bound to this object-instance. Thus, changing
-            Telescope-parameters on this instance after calling this function
-            won't have an effect on the returned `OskarTelescope` anymore.
-
         :return: OSKAR Telescope object
         """
         tmp_dir = FileHandler().get_tmp_dir(
@@ -471,22 +466,26 @@ but was not provided. Please provide a value for the version field."
             unique=self,
             mkdir=False,
         )
-        tmp_dir = os.path.join(tmp_dir, "oskar-telescope")
-        if not os.path.exists(tmp_dir):
-            self.write_to_file(tmp_dir)
+        tmp_dir = os.path.join(tmp_dir, "oskar-telescope.tm")
+        self.write_to_disk(dir_name=tmp_dir, overwrite=True)
         tel = OskarTelescope()
         tel.load(tmp_dir)
         self.path = tmp_dir
         return tel
 
-    def write_to_file(self, dir: DirPathType, *, overwrite: bool = False) -> None:
-        """
-        Create .tm telescope configuration at the specified path
+    def write_to_disk(self, dir_name: DirPathType, *, overwrite: bool = False) -> None:
+        """Write `dir_path` to disk (must have .tm ending).
+
         :param dir: directory in which the configuration will be saved in.
         :param overwrite: If True an existing directory is overwritten if exists. Be
             careful to put the correct dir as input because the old one can get removed!
         """
-        with write_dir(dir=dir, overwrite=overwrite) as wd:
+        if not str(dir_name).endswith(
+            ".tm"
+        ):  # for OSKAR & `overwrite` security purpose
+            err_msg = f"{dir_name=} has to end with a `.tm`, but doesn't."
+            raise RuntimeError(err_msg)
+        with write_dir(dir=dir_name, overwrite=overwrite) as wd:
             self.__write_position_txt(os.path.join(wd, "position.txt"))
             self.__write_layout_txt(
                 os.path.join(wd, "layout.txt"),

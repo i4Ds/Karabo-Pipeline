@@ -24,7 +24,7 @@ def test_write_tm_file(filename):
     tel = Telescope.constructor("EXAMPLE", backend=BACKEND)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_filename = os.path.join(tmpdir, filename)
-        tel.write_to_file(tmp_filename)
+        tel.write_to_disk(tmp_filename)
         assert pl.Path(tmp_filename).resolve().exists()
 
 
