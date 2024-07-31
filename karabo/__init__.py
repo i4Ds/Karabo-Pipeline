@@ -3,9 +3,12 @@ Hence, you ONLY have deps available here which are available during build-time a
 in karabo. If you don't know what that means, don't touch anything here.
 """
 
+import logging
 import os
 import platform
 import sys
+from logging import LogRecord
+from sysconfig import get_path
 
 from ._version import get_versions
 
@@ -39,8 +42,30 @@ if "SLURM_JOB_ID" in os.environ:
 
     DaskHandlerSlurm._prepare_slurm_nodes_for_dask()
 
-# set rascil data directory environment variable
-# see https://ska-telescope.gitlab.io/external/rascil/RASCIL_install.html
-from karabo.util.setup_pkg import set_rascil_data_directory_env  # noqa: E402
 
-set_rascil_data_directory_env()
+# Avoid the following RASCIL warning:
+# The RASCIL data directory is not available - continuing but any simulations will fail
+# ...which pops up because we don't download the RASCIL data directory.
+# To the best of our knowledge, we don't need the data directory. (31.07.2024)
+# We can therefore ignore this warning and avoid unnecessarily alerting users with it.
+def filter_message(record: LogRecord) -> int:
+    if (
+        record.getMessage()
+        == "The RASCIL data directory is not available - continuing but any simulations will fail"  # noqa: E501
+    ):
+        return 0
+    else:
+        return 1
+
+
+# Install filter on the RASCIL sub-module logger that logs the warning.
+# This logger is instantiated with __file__ as its name.
+logger_name = os.path.join(
+    get_path("platlib"),
+    "rascil",
+    "processing_components",
+    "util",
+    "installation_checks.py",
+)
+logger = logging.getLogger(logger_name)
+logger.addFilter(filter_message)
