@@ -59,6 +59,7 @@ def test_OSKAR_telescope_with_version_but_version_not_required():
     with pytest.raises(AssertionError):
         Telescope.constructor("MeerKAT", version="Not None version")
 
+
 def test_OSKAR_telescope_plot_file_created():
     with tempfile.TemporaryDirectory() as tmpfile:
         temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
@@ -194,12 +195,24 @@ def test_get_RASCIL_backend_information():
     info = tel.get_backend_specific_information()
     assert isinstance(info, Configuration)
 
+
 def test_RASCIL_telescope_plot_file_created():
     with tempfile.TemporaryDirectory() as tmpfile:
         temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
         tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
-        tel.plot_telescope()
+        tel.plot_telescope(temp_plot_file_name)
         assert os.path.exists(temp_plot_file_name)
+        assert os.path.getsize(temp_plot_file_name) == 20583
+
+
+# There is an if statement in Telescope::plot_telescope for the
+# RASCIL backend. Let's test it
+def test_RASCIL_telescope_no_plot_file_created():
+    with tempfile.TemporaryDirectory() as tmpfile:
+        temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+        tel.plot_telescope()
+        assert not os.path.exists(temp_plot_file_name)
 
 
 def test_get_invalid_backend_information():
