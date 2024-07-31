@@ -59,6 +59,14 @@ def test_OSKAR_telescope_with_version_but_version_not_required():
     with pytest.raises(AssertionError):
         Telescope.constructor("MeerKAT", version="Not None version")
 
+def test_OSKAR_telescope_plot_file_created():
+    with tempfile.TemporaryDirectory() as tmpfile:
+        temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
+        tel = Telescope.constructor("MeerKAT")
+        tel.plot_telescope(temp_plot_file_name)
+        assert os.path.exists(temp_plot_file_name)
+        assert os.path.getsize(temp_plot_file_name) == 28171
+
 
 def test_create_alma_telescope():
     tel = Telescope.constructor("ALMA", ALMAVersions.CYCLE_1_1)
@@ -185,6 +193,13 @@ def test_get_RASCIL_backend_information():
     tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
     info = tel.get_backend_specific_information()
     assert isinstance(info, Configuration)
+
+def test_RASCIL_telescope_plot_file_created():
+    with tempfile.TemporaryDirectory() as tmpfile:
+        temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+        tel.plot_telescope()
+        assert os.path.exists(temp_plot_file_name)
 
 
 def test_get_invalid_backend_information():
