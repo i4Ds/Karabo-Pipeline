@@ -9,7 +9,7 @@ from typing_extensions import assert_never
 try:
     from tensorflow.python.keras.models import load_model
 except ImportError:
-    from tensorflow.keras.models import load_model  # type: ignore
+    from tensorflow.keras.models import load_model
 
 from karabo.simulation.signal.base_segmentation import BaseSegmentation
 from karabo.simulation.signal.typing import Image3D, SegmentationOutput
