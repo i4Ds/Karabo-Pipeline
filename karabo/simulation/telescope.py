@@ -402,7 +402,7 @@ but was not provided. Please provide a value for the version field."
         if self.backend is SimulatorBackend.OSKAR:
             self.plot_telescope_OSKAR(file)
         elif self.backend is SimulatorBackend.RASCIL:
-            plot_configuration(self.get_backend_specific_information())
+            plot_configuration(self.get_backend_specific_information(), plot_file=file)
         else:
             logging.warning(
                 f"""Backend {self.backend} is not valid.
@@ -620,6 +620,7 @@ but was not provided. Please provide a value for the version field."
         layout_file = open(path)
         lines = layout_file.readlines()
         for line in lines:
+            line = line.rstrip()
             station_position = re.split("[\\s,]+", line)
             values = np.zeros(6)
             i = 0
