@@ -48,14 +48,14 @@ if "SLURM_JOB_ID" in os.environ:
 # ...which pops up because we don't download the RASCIL data directory.
 # To the best of our knowledge, we don't need the data directory. (31.07.2024)
 # We can therefore ignore this warning and avoid unnecessarily alerting users with it.
-def filter_message(record: LogRecord) -> int:
+def filter_message(record: LogRecord) -> bool:
     if (
         record.getMessage()
         == "The RASCIL data directory is not available - continuing but any simulations will fail"  # noqa: E501
     ):
-        return 0
+        return False
     else:
-        return 1
+        return True
 
 
 # Install filter on the RASCIL sub-module logger that logs the warning.
