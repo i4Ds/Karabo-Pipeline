@@ -402,14 +402,7 @@ but was not provided. Please provide a value for the version field."
         if self.backend is SimulatorBackend.OSKAR:
             self.plot_telescope_OSKAR(file)
         elif self.backend is SimulatorBackend.RASCIL:
-            if file is not None:
-                plot_configuration(
-                    self.get_backend_specific_information(),
-                    plot_file=file
-                )
-            else:
-                plot_configuration(self.get_backend_specific_information())
-
+            plot_configuration(self.get_backend_specific_information(), plot_file=file)
         else:
             logging.warning(
                 f"""Backend {self.backend} is not valid.
