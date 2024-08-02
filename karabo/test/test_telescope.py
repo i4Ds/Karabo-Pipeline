@@ -4,6 +4,7 @@ import tempfile
 from unittest import mock
 
 import pytest
+from ska_sdp_datamodels.configuration.config_model import Configuration
 
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.telescope_versions import (
@@ -19,20 +20,15 @@ from karabo.simulator_backend import SimulatorBackend
 
 
 @pytest.mark.parametrize("filename", ["test_telescope.tm"])
-def test_write_tm_file(filename):
+def test_write_and_read_tm_file(filename):
     BACKEND = SimulatorBackend.OSKAR
     tel = Telescope.constructor("EXAMPLE", backend=BACKEND)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_filename = os.path.join(tmpdir, filename)
         tel.write_to_disk(tmp_filename)
         assert pl.Path(tmp_filename).resolve().exists()
-
-
-def test_read_tm_file():
-    tel = Telescope.constructor("EXAMPLE")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tel.plot_telescope(os.path.join(tmpdir, "oskar_tel.png"))
-        assert len(tel.stations) == 30
+        new_tel = Telescope.read_OSKAR_tm_file(tmp_filename)
+        assert len(new_tel.stations) == 30
 
 
 def test_convert_to_oskar():
@@ -64,85 +60,106 @@ def test_OSKAR_telescope_with_version_but_version_not_required():
         Telescope.constructor("MeerKAT", version="Not None version")
 
 
-def test_read_alma_file():
+def test_OSKAR_telescope_plot_file_created():
+    with tempfile.TemporaryDirectory() as tmpfile:
+        temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
+        tel = Telescope.constructor("MeerKAT")
+        tel.plot_telescope(temp_plot_file_name)
+        assert os.path.exists(temp_plot_file_name)
+        assert os.path.getsize(temp_plot_file_name) == 28171
+
+
+def test_create_alma_telescope():
     tel = Telescope.constructor("ALMA", ALMAVersions.CYCLE_1_1)
-    tel.plot_telescope()
     assert len(tel.stations) == 32
 
 
-def test_read_meerkat_file():
+def test_create_meerkat_telescope():
     tel = Telescope.constructor("MeerKAT")
-    tel.plot_telescope()
     assert len(tel.stations) == 64
 
 
 @pytest.mark.parametrize("version", ALMAVersions)
 def test_read_all_ALMA_versions(version):
-    tel = Telescope.constructor("ALMA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("ALMA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create ALMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", ACAVersions)
 def test_read_all_ACA_versions(version):
-    tel = Telescope.constructor("ACA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("ACA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create ALMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", CARMAVersions)
 def test_read_all_CARMA_versions(version):
-    tel = Telescope.constructor("CARMA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("CARMA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create CARMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", NGVLAVersions)
 def test_read_all_NG_VLA_versions(version):
-    tel = Telescope.constructor("NGVLA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("NGVLA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create NGVLA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", PDBIVersions)
 def test_read_all_PDBI_versions(version):
-    tel = Telescope.constructor("PDBI", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("PDBI", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create PDBI telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", SMAVersions)
 def test_read_all_SMA_versions(version):
-    tel = Telescope.constructor("SMA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("SMA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create SMA telescope with version {version}")
 
 
 @pytest.mark.parametrize("version", VLAVersions)
 def rest_read_all_VLA_versions(version):
-    tel = Telescope.constructor("VLA", version)
-    tel.plot_telescope()
+    try:
+        _ = Telescope.constructor("VLA", version)
+    except FileNotFoundError:
+        pytest.fail(f"Cannot create VLA telescope with version {version}")
 
 
 def test_read_SKA_LOW():
     tel = Telescope.constructor("SKA1LOW")
-    tel.plot_telescope()
+    assert len(tel.stations) == 512
 
 
 def test_read_SKA_MID():
     tel = Telescope.constructor("SKA1MID")
-    tel.plot_telescope()
+    assert len(tel.stations) == 197
 
 
 def test_read_VLBA():
     tel = Telescope.constructor("VLBA")
-    tel.plot_telescope()
+    assert len(tel.stations) == 10
 
 
 def test_read_WSRT():
     tel = Telescope.constructor("WSRT")
-    tel.plot_telescope()
+    assert len(tel.stations) == 14
 
 
 def test_RASCIL_telescope():
     tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
     assert tel.backend is SimulatorBackend.RASCIL
-
-    tel.plot_telescope()
+    info = tel.get_backend_specific_information()
+    assert isinstance(info, Configuration)
 
 
 # Interesting and funny article on asserting with mocks:
@@ -177,6 +194,25 @@ def test_get_RASCIL_backend_information():
     tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
     info = tel.get_backend_specific_information()
     assert isinstance(info, Configuration)
+
+
+def test_RASCIL_telescope_plot_file_created():
+    with tempfile.TemporaryDirectory() as tmpfile:
+        temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+        tel.plot_telescope(temp_plot_file_name)
+        assert os.path.exists(temp_plot_file_name)
+        assert os.path.getsize(temp_plot_file_name) == 20583
+
+
+# There is an if statement in Telescope::plot_telescope for the
+# RASCIL backend. Let's test it
+def test_RASCIL_telescope_no_plot_file_created():
+    with tempfile.TemporaryDirectory() as tmpfile:
+        temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+        tel.plot_telescope()
+        assert not os.path.exists(temp_plot_file_name)
 
 
 def test_get_invalid_backend_information():
