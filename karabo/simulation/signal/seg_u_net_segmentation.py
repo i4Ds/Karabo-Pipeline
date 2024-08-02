@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-import pkg_resources  # type: ignore
+import pkg_resources
 import tools21cm as t2c
 from typing_extensions import assert_never
 
