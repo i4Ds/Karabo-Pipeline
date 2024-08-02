@@ -404,8 +404,7 @@ but was not provided. Please provide a value for the version field."
         elif self.backend is SimulatorBackend.RASCIL:
             if file is not None:
                 plot_configuration(
-                    self.get_backend_specific_information(),
-                    plot_file=file
+                    self.get_backend_specific_information(), plot_file=file
                 )
             else:
                 plot_configuration(self.get_backend_specific_information())
