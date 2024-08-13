@@ -109,7 +109,7 @@ def main() -> None:
 
     imaging_npixel = 2048
     fov_deg = np.cos(np.deg2rad(45)) * filter_radius_deg * 2  # for squared image(s)
-    imaging_cellsize = imaging_npixel / fov_deg
+    imaging_cellsize = fov_deg / imaging_npixel
 
     restored = WscleanImageCleaner(
         WscleanImageCleanerConfig(
