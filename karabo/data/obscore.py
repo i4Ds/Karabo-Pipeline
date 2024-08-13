@@ -509,7 +509,7 @@ class ObsCoreMeta:
         cls,
         img: Image,
         *,
-        fits_axes: FitsHeaderAxes = FitsHeaderAxes(),  # immutable default
+        fits_axes: Optional[FitsHeaderAxes] = None,
     ) -> Self:
         """Update fields from `Image`.
 
@@ -534,10 +534,12 @@ class ObsCoreMeta:
         """
         file = img.path
         assert_valid_ending(path=file, ending=".fits")
+        if fits_axes is None:
+            fits_axes = FitsHeaderAxes()
         header = img.header
         if not header["SIMPLE"]:
             wmsg = f"{file} doesn't follow .fits standard! Info extraction might fail!"
-            warn(message=wmsg, category=UserWarning, stacklevel=1)
+            warn(message=wmsg, category=UserWarning, stacklevel=2)
         ra_deg = fits_axes.x.crval(header=header).to(u.deg).value  # center
         dec_deg = fits_axes.y.crval(header=header).to(u.deg).value  # center
         freq_center_hz = fits_axes.freq.crval(header=header).to(u.Hz).value  # center

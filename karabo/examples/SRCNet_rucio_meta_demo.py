@@ -37,7 +37,7 @@ def main() -> None:
     # data products, because this is not the focus of this script.
     sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=231e6)  # in Hz
     phase_center = [250, -80]  # RA,DEC in deg
-    filter_radius_deg = 0.80
+    filter_radius_deg = 0.8
     sky = sky.filter_by_radius(0, filter_radius_deg, phase_center[0], phase_center[1])
     tel = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
     freq_inc_hz = 1e8
@@ -46,9 +46,9 @@ def main() -> None:
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
-        number_of_channels=16 * 2,
+        number_of_channels=16,
         frequency_increment_hz=freq_inc_hz,
-        number_of_time_steps=24 * 2,
+        number_of_time_steps=24,
     )
     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=freq_inc_hz)
     vis = interferometer_sim.run_simulation(
@@ -107,14 +107,15 @@ def main() -> None:
 
     # -----Imaging-----
 
-    imaging_npixel = 2048
-    fov_deg = np.cos(np.deg2rad(45)) * filter_radius_deg * 2  # for squared image(s)
-    imaging_cellsize = fov_deg / imaging_npixel
+    imaging_npixel = 2048  # TODO: calc size on synthesized beam, not fov
+    fov_deg = filter_radius_deg * 2  # for squared image(s)
+    imaging_cellsize = np.deg2rad(fov_deg) / imaging_npixel
 
     restored = WscleanImageCleaner(
         WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
+            niter=5000,  # 10 times less than default
         )
     ).create_cleaned_image(  # currently, wsclean needs casa .ms, which is also created
         ms_file_path=vis.ms_file_path,
