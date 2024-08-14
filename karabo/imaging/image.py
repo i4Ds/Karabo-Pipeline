@@ -20,6 +20,7 @@ from typing import (
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.coordinates.sky_coordinate import SkyCoord
 from astropy.io import fits
 from astropy.io.fits.header import Header
 from astropy.nddata import Cutout2D, NDData
@@ -746,6 +747,35 @@ class Image:
         wcs = WCS(self.header)
         wcs_2d = wcs.sub(ra_dec_axis)
         return wcs_2d
+
+    @classmethod
+    def get_corners_in_world(cls, header: Header) -> NDArray[np.float64]:
+        wcs = WCS(header)
+        if wcs.naxis < 2:
+            err_msg = (
+                f"Header must have at least to axis (RA,DEC), but has {wcs.naxis=}"
+            )
+            raise RuntimeError(err_msg)
+        naxis1 = header["NAXIS1"]
+        naxis2 = header["NAXIS2"]
+        corners = np.zeros(
+            shape=(4, wcs.naxis),
+            dtype=np.int64,
+        )
+        corners[1, 0] = naxis1  # bottom-right
+        corners[2, 1] = naxis2  # top-left
+        corners[3, 0] = naxis1  # top-right
+        corners[3, 1] = naxis2  # # top-right
+
+        world = wcs.pixel_to_world(*[corners[:, i] for i in range(corners.shape[1])])
+        if not isinstance(world, list):
+            err_msg = f"Unexpected {type(world)=}: {world=}"
+            raise TypeError(err_msg)
+        sky_coords: SkyCoord = world[0]
+        world_coords: NDArray[np.float64] = (
+            sky_coords.transform_to("icrs").to_table().to_pandas().to_numpy()
+        )
+        return world_coords
 
 
 class ImageMosaicker:
