@@ -18,6 +18,7 @@ import os
 from datetime import datetime
 
 import numpy as np
+from astropy import constants as const
 from astropy import units as u
 
 from karabo.data.obscore import FitsHeaderAxes, FitsHeaderAxis, ObsCoreMeta
@@ -40,13 +41,23 @@ def main() -> None:
     filter_radius_deg = 0.8
     sky = sky.filter_by_radius(0, filter_radius_deg, phase_center[0], phase_center[1])
     tel = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
+    start_freq_hz = 76e6
+    num_chan = 16
     freq_inc_hz = 1e8
+
+    if num_chan < 1:
+        err_msg = f"{num_chan=} but must be < 1"
+        raise ValueError(err_msg)
+    if num_chan == 1 and freq_inc_hz != 0:
+        err_msg = f"{freq_inc_hz=} but must be 0 if only one channel is specified"
+        raise ValueError(err_msg)
+
     obs = Observation(
-        start_frequency_hz=76e6,
+        start_frequency_hz=start_freq_hz,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
-        number_of_channels=16,
+        number_of_channels=num_chan,
         frequency_increment_hz=freq_inc_hz,
         number_of_time_steps=24,
     )
@@ -107,10 +118,15 @@ def main() -> None:
 
     # -----Imaging-----
 
-    imaging_npixel = 2048  # TODO: calc size on synthesized beam, not fov
-    fov_deg = filter_radius_deg * 2  # for squared image(s)
-    imaging_cellsize = np.deg2rad(fov_deg) / imaging_npixel
+    mean_freq = start_freq_hz + freq_inc_hz * (num_chan - 1) / 2
+    wavelength = const.c.value / mean_freq  # in m
+    synthesized_beam = wavelength / tel.max_baseline()  # in rad
+    imaging_cellsize = synthesized_beam / 3  # consider nyquist sampling theorem
+    fov_deg = 2 * filter_radius_deg  # angular fov
+    imaging_npixel_estimate = fov_deg / np.rad2deg(imaging_cellsize)  # not even&rounded
+    imaging_npixel = int(np.floor((imaging_npixel_estimate + 1) / 2.0) * 2.0)
 
+    print(f"Imaging: {imaging_npixel=}, {imaging_cellsize=} ...")
     restored = WscleanImageCleaner(
         WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
