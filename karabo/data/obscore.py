@@ -540,8 +540,6 @@ class ObsCoreMeta:
         if not header["SIMPLE"]:
             wmsg = f"{file} doesn't follow .fits standard! Info extraction might fail!"
             warn(message=wmsg, category=UserWarning, stacklevel=2)
-        ra_deg = fits_axes.x.crval(header=header).to(u.deg).value  # center
-        dec_deg = fits_axes.y.crval(header=header).to(u.deg).value  # center
         freq_center_hz = fits_axes.freq.crval(header=header).to(u.Hz).value  # center
         x_inc_deg = fits_axes.x.cdelt(header=header).to(u.deg).value  # inc at center
         y_inc_deg = fits_axes.y.cdelt(header=header).to(u.deg).value  # inc at center
@@ -564,14 +562,11 @@ class ObsCoreMeta:
         fov_deg = np.sqrt(
             (s_pixel_scale * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
         )  # circular fov of flattened image
-        half_width_deg = s_pixel_scale * x_pixel / 2
-        half_height_deg = abs(y_inc_deg) * y_pixel / 2
-        bottom_left = (ra_deg - half_width_deg, dec_deg - half_height_deg)
-        top_left = (ra_deg - half_width_deg, dec_deg + half_height_deg)
-        top_right = (ra_deg + half_width_deg, dec_deg + half_height_deg)
-        bottom_right = (ra_deg + half_width_deg, dec_deg - half_height_deg)
+        world_coords = Image.get_corners_in_world(header=header)
+        # assuming `get_corners_in_world` has circling corner order
+        corners = [(world_coord[0], world_coord[1]) for world_coord in world_coords]
         spoly = cls.spoly(
-            poly=(bottom_left, top_left, top_right, bottom_right),
+            poly=corners,
             ndigits=3,
             suffix="d",
         )

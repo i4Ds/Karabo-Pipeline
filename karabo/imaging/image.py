@@ -750,6 +750,16 @@ class Image:
 
     @classmethod
     def get_corners_in_world(cls, header: Header) -> NDArray[np.float64]:
+        """Get the image corners RA,DEC of bl, br, tr & tl from `header` in deg.
+
+        Assumes that `header` has at least two axis RA & DEC.
+
+        Args:
+            header: Header to extract image-infos.
+
+        Returns:
+            Corners in world coordinates [deg] with shape 4x2.
+        """
         wcs = WCS(header)
         if wcs.naxis < 2:
             err_msg = (
@@ -763,13 +773,16 @@ class Image:
             dtype=np.int64,
         )
         corners[1, 0] = naxis1  # bottom-right
-        corners[2, 1] = naxis2  # top-left
-        corners[3, 0] = naxis1  # top-right
-        corners[3, 1] = naxis2  # # top-right
+        corners[2, 0] = naxis1  # top-right
+        corners[2, 1] = naxis2  # # top-right
+        corners[3, 1] = naxis2  # top-left
 
         world = wcs.pixel_to_world(*[corners[:, i] for i in range(corners.shape[1])])
-        if not isinstance(world, list):
-            err_msg = f"Unexpected {type(world)=}: {world=}"
+        if not isinstance(world, list):  # typeguard would be safer, but was lazy
+            err_msg = (
+                f"Expected list[{SkyCoord.__name__}], "
+                + f"but got {type(world)=} of {world=}"
+            )
             raise TypeError(err_msg)
         sky_coords: SkyCoord = world[0]
         world_coords: NDArray[np.float64] = (
