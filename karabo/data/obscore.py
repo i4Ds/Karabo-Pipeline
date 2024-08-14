@@ -500,7 +500,7 @@ class ObsCoreMeta:
             freq_inc_hz = obs.frequency_increment_hz
             min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
             end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
-            b = float(tel.longest_baseline())
+            b = float(tel.max_baseline())
             ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
         return ocm
 
@@ -555,7 +555,7 @@ class ObsCoreMeta:
                 f"Pixel-size is not square for `s_pixel_scale`: {x_inc_deg=}, "
                 + f"{y_inc_deg}. `s_pixel_scale` set to {s_pixel_scale=}."
             )
-            warn(message=wmsg, category=UserWarning, stacklevel=1)
+            warn(message=wmsg, category=UserWarning, stacklevel=2)
         min_freq_hz = freq_center_hz - freq_inc_hz / 2
         c = const.c.value
         min_wavelength_m = c / min_freq_hz
