@@ -118,12 +118,13 @@ def main() -> None:
 
     # -----Imaging-----
 
+    # calc imaging params
     mean_freq = start_freq_hz + freq_inc_hz * (num_chan - 1) / 2
     wavelength = const.c.value / mean_freq  # in m
     synthesized_beam = wavelength / tel.max_baseline()  # in rad
     imaging_cellsize = synthesized_beam / 3  # consider nyquist sampling theorem
     fov_deg = 2 * filter_radius_deg  # angular fov
-    imaging_npixel_estimate = fov_deg / np.rad2deg(imaging_cellsize)  # not even&rounded
+    imaging_npixel_estimate = fov_deg / np.rad2deg(imaging_cellsize)  # not even|rounded
     imaging_npixel = int(np.floor((imaging_npixel_estimate + 1) / 2.0) * 2.0)
 
     print(f"Imaging: {imaging_npixel=}, {imaging_cellsize=} ...")
@@ -168,7 +169,7 @@ def main() -> None:
         namespace=restored_rm.namespace,
         name=restored_rm.name,
     )
-    vis_ocm.obs_publisher_did = obs_publisher_did
+    restored_ocm.obs_publisher_did = obs_publisher_did
 
     # fill/correct other fields of `ObsCoreMeta` here!
     # #####START#####
