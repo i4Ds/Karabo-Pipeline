@@ -2,11 +2,11 @@
 
 Here, we create a simulated visibilities and a cleaned image. This is just an example
 script which should be highly adapted, e.g. you custom-sky, simulation params (for
-larger data-products, simulation params as user-input, multiple simulations, etc.
+larger data-products, simulation params as user-input, multiple simulations, etc.).
 
 Be aware that API-changes can take place in future Karabo-versions.
 
-If not specified further (e.g. through `XDG_CACHE_HOME` or `FileHandler.root_stm`),
+If not specified further (e.g. using `XDG_CACHE_HOME` or `FileHandler.root_stm`),
 Karabo is using /tmp. Thus if you have a script which is producing large and/or many
 data products, we suggest to adapt the cache-root to a volume with more space.
 """
@@ -28,6 +28,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
+from karabo.util.file_handler import FileHandler
 from karabo.util.helpers import get_rnd_str
 
 
@@ -44,13 +45,6 @@ def main() -> None:
     num_chan = 16
     freq_inc_hz = 1e8
 
-    if num_chan < 1:
-        err_msg = f"{num_chan=} but must be < 1"
-        raise ValueError(err_msg)
-    if num_chan == 1 and freq_inc_hz != 0:
-        err_msg = f"{freq_inc_hz=} but must be 0 if only one channel is specified"
-        raise ValueError(err_msg)
-
     obs = Observation(
         start_frequency_hz=start_freq_hz,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
@@ -60,25 +54,17 @@ def main() -> None:
         frequency_increment_hz=freq_inc_hz,
         number_of_time_steps=24,
     )
-    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=freq_inc_hz)
+    # define any unique (required for ingestion) output-file-path
+    vis_path = os.path.join(FileHandler.stm(), "my-unique-vis-fname.vis")
+    interferometer_sim = InterferometerSimulation(
+        vis_path=vis_path, channel_bandwidth_hz=freq_inc_hz
+    )
     vis = interferometer_sim.run_simulation(
         telescope=tel,
         sky=sky,
         observation=obs,
         backend=SimulatorBackend.OSKAR,
     )
-    # here, I customize the `vis.vis_path` to not have the same file-name for each
-    # simulation which would be suboptimal for ingestion. Should probably be more
-    # specific for your use-case.
-    vis_path = os.path.join(
-        os.path.split(vis.vis_path)[0],
-        f"gleam-ra{phase_center[0]}-dec{phase_center[1]}.vis",
-    )
-    os.rename(
-        vis.vis_path,
-        vis_path,
-    )
-    vis.vis_path = vis_path
 
     # create metadata of visibility (currently [08-24], .vis supported, casa .ms not)
     vis_ocm = ObsCoreMeta.from_visibility(
@@ -96,7 +82,7 @@ def main() -> None:
     )
     # ObsCore mandatory fields
     vis_ocm.obs_collection = "MRO/ASKAP"
-    obs_sim_id = 0  # nc for new simulation
+    obs_sim_id = 0  # inc/change for new simulation
     user_rnd_str = get_rnd_str(k=7, seed=os.environ.get("USER"))
     obs_id = f"karabo-{user_rnd_str}-{obs_sim_id}"  # unique ID per user & simulation
     vis_ocm.obs_id = obs_id
@@ -127,6 +113,7 @@ def main() -> None:
     imaging_npixel = int(np.floor((imaging_npixel_estimate + 1) / 2.0) * 2.0)
 
     print(f"Imaging: {imaging_npixel=}, {imaging_cellsize=} ...", flush=True)
+    restored_path = os.path.join(FileHandler.stm(), "my-unique-image.fits")
     restored = WscleanImageCleaner(
         WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
@@ -135,18 +122,8 @@ def main() -> None:
         )
     ).create_cleaned_image(  # currently, wsclean needs casa .ms, which is also created
         ms_file_path=vis.ms_file_path,
+        output_fits_path=restored_path,
     )
-
-    # customize fname for restored image for the same reason as visibilities
-    restored_image_path = os.path.join(
-        os.path.split(restored.path)[0],
-        f"gleam-ra{phase_center[0]}-dec{phase_center[1]}.fits",
-    )
-    os.rename(
-        restored.path,
-        restored_image_path,
-    )
-    restored.path = restored_image_path
 
     # create metadata for restored .fits image
     # `FitsHeaderAxes` may need adaption based on the structure of your .fits image
