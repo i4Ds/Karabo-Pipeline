@@ -113,7 +113,7 @@ def main() -> None:
     imaging_npixel = int(np.floor((imaging_npixel_estimate + 1) / 2.0) * 2.0)
 
     print(f"Imaging: {imaging_npixel=}, {imaging_cellsize=} ...", flush=True)
-    restored_path = os.path.join(FileHandler.stm(), "my-unique-image.fits")
+    restored_path = os.path.join(FileHandler.stm(), "my-unique-image-fname.fits")
     restored = WscleanImageCleaner(
         WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
