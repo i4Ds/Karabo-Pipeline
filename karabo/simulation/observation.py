@@ -68,16 +68,6 @@ class ObservationAbstract(ABC):
             Defaults to 1.
         """
 
-        if number_of_channels < 1:
-            err_msg = f"{number_of_channels=} but must be < 1"
-            raise ValueError(err_msg)
-        if number_of_channels == 1 and frequency_increment_hz != 0:
-            err_msg = (
-                f"{frequency_increment_hz=} but must be 0 if only one "
-                + "channel is specified"
-            )
-            raise ValueError(err_msg)
-
         self.start_frequency_hz = start_frequency_hz
 
         if isinstance(start_date_and_time, str):
