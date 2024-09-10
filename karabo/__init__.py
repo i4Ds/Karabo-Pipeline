@@ -3,12 +3,11 @@ Hence, you ONLY have deps available here which are available during build-time a
 in karabo. If you don't know what that means, don't touch anything here.
 """
 
-import logging
 import os
 import platform
 import sys
-from logging import LogRecord
-from sysconfig import get_path
+
+from karabo.util.rascil_util import filter_data_dir_warning_message
 
 from ._version import get_versions
 
@@ -42,30 +41,4 @@ if "SLURM_JOB_ID" in os.environ:
 
     DaskHandlerSlurm._prepare_slurm_nodes_for_dask()
 
-
-# Avoid the following RASCIL warning:
-# The RASCIL data directory is not available - continuing but any simulations will fail
-# ...which pops up because we don't download the RASCIL data directory.
-# To the best of our knowledge, we don't need the data directory. (31.07.2024)
-# We can therefore ignore this warning and avoid unnecessarily alerting users with it.
-def filter_message(record: LogRecord) -> bool:
-    if (
-        record.getMessage()
-        == "The RASCIL data directory is not available - continuing but any simulations will fail"  # noqa: E501
-    ):
-        return False
-    else:
-        return True
-
-
-# Install filter on the RASCIL sub-module logger that logs the warning.
-# This logger is instantiated with __file__ as its name.
-logger_name = os.path.join(
-    get_path("platlib"),
-    "rascil",
-    "processing_components",
-    "util",
-    "installation_checks.py",
-)
-logger = logging.getLogger(logger_name)
-logger.addFilter(filter_message)
+filter_data_dir_warning_message()

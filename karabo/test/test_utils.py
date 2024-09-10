@@ -4,6 +4,7 @@ import os
 import pytest
 
 import karabo
+import karabo.util.rascil_util
 from karabo.test.conftest import RUN_GPU_TESTS
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
 
@@ -17,7 +18,7 @@ CUDA_AVAILABLE = is_cuda_available()
 
 @pytest.mark.skipif(
     CUDA_AVAILABLE,
-    reason="get-gpu-memory thorows a RuntimeError only if cuda is not available",
+    reason="get-gpu-memory throws a RuntimeError only if cuda is not available",
 )
 def test_gpu_memory_error():
     with pytest.raises(RuntimeError):
@@ -42,18 +43,12 @@ def test_version():
     assert karabo.__version__ != "0+unknown"
 
 
-def test_rascil_logger_path_valid():
-    logger_path = karabo.logger_name
-    assert os.path.exists(logger_path)
-    assert os.path.isfile(logger_path)
+def test_suppress_rascil_warning(caplog):
+    path_to_rascil_module = karabo.util.rascil_util.DATA_DIR_WARNING_PATH_TO_MODULE
+    # Make sure RASCIL module of concern is where we expect it
+    assert os.path.isfile(path_to_rascil_module)
 
-
-def test_rascil_warning_supressed(caplog):
-    logger = karabo.logger
-    message_to_suppress = (
-        "The RASCIL data directory is not available - continuing but any "
-        "simulations will fail"
-    )
+    logger = logging.getLogger(path_to_rascil_module)
     with caplog.at_level(logging.WARNING):
-        logger.warning(message_to_suppress)
-    assert message_to_suppress not in caplog.text
+        logger.warning(karabo.util.rascil_util.DATA_DIR_WARNING_MESSAGE)
+    assert karabo.util.rascil_util.DATA_DIR_WARNING_MESSAGE not in caplog.text
