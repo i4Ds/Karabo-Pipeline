@@ -85,7 +85,7 @@ class DownloadObject:
             desc = f"Downloading {url} to {local_file_path}"
             response.raw.read = functools.partial(
                 response.raw.read, decode_content=True
-            )
+            )  # noqa
             with tqdm.wrapattr(
                 response.raw,
                 "read",

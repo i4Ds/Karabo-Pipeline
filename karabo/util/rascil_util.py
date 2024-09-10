@@ -13,7 +13,7 @@ DATA_DIR_WARNING_PATH_TO_MODULE = os.path.join(
 )
 
 
-def filter_data_dir_warning_message():
+def filter_data_dir_warning_message() -> None:
     """Avoid unnecessary RASCIL warning that confuses users.
 
     Avoid the following RASCIL warning:
