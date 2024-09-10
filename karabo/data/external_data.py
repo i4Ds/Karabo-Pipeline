@@ -83,9 +83,9 @@ class DownloadObject:
             os.makedirs(download_dir, exist_ok=True)
 
             desc = f"Downloading {url} to {local_file_path}"
-            response.raw.read = functools.partial(  # noqa
-                response.raw.read, decode_content=True  # noqa
-            )  # noqa
+            response.raw.read = functools.partial(
+                response.raw.read, decode_content=True
+            )  # type: ignore
             with tqdm.wrapattr(
                 response.raw,
                 "read",
