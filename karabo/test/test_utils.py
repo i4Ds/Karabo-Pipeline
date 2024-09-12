@@ -1,7 +1,9 @@
+import importlib
 import logging
 import os
 
 import pytest
+import rascil
 
 import karabo
 import karabo.util.rascil_util
@@ -43,12 +45,26 @@ def test_version():
     assert karabo.__version__ != "0+unknown"
 
 
-def test_suppress_rascil_warning(caplog):
+def test_suppress_rascil_warning(caplog: pytest.LogCaptureFixture):
     path_to_rascil_module = karabo.util.rascil_util.DATA_DIR_WARNING_PATH_TO_MODULE
-    # Make sure RASCIL module of concern is where we expect it
+    # Make sure RASCIL module of concern is where we expect it.
+    # Otherwise the suppression won't work since the logger uses the file path
+    # of the module as its name.
     assert os.path.isfile(path_to_rascil_module)
 
-    logger = logging.getLogger(path_to_rascil_module)
-    with caplog.at_level(logging.WARNING):
-        logger.warning(karabo.util.rascil_util.DATA_DIR_WARNING_MESSAGE)
-    assert karabo.util.rascil_util.DATA_DIR_WARNING_MESSAGE not in caplog.text
+    logger_name = path_to_rascil_module
+    logger = logging.getLogger(logger_name)
+    # Remove filter that was already added at this point by karabo.__init__.py
+    logger.filters.clear()
+    with caplog.at_level(level=logging.WARNING, logger=logger_name):
+        # Load rascil, warning should be logged
+        importlib.reload(rascil)
+    warning_message = karabo.util.rascil_util.DATA_DIR_WARNING_MESSAGE
+    assert any(warning_message in record.message for record in caplog.records)
+    caplog.clear()
+    with caplog.at_level(level=logging.WARNING, logger=logger_name):
+        # Load karabo, installing the filter in __init__.py that suppresses the warning
+        importlib.reload(karabo)
+        # Load rascil, warning should not be logged
+        importlib.reload(rascil)
+    assert not any(warning_message in record.message for record in caplog.records)
