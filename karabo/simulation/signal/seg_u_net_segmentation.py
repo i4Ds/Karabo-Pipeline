@@ -8,7 +8,7 @@ from typing_extensions import assert_never
 
 try:
     from tensorflow.python.keras.models import load_model
-except ImportError:  # noqa: E722
+except ImportError:
     from tensorflow.keras.models import load_model
 
 from karabo.simulation.signal.base_segmentation import BaseSegmentation
