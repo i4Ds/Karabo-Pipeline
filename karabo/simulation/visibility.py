@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import numpy as np
 import oskar
@@ -11,6 +11,8 @@ from numpy.typing import NDArray
 
 from karabo.util._types import DirPathType, FilePathType
 from karabo.util.file_handler import FileHandler
+
+VisibilityFormat = Literal["MS", "VIS"]
 
 
 class Visibility:
