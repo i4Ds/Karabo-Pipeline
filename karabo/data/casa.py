@@ -140,7 +140,6 @@ class _CasaTableABC(ABC):
 class CasaMSMeta:
     """Utility class to extract metadata from CASA Measurement Sets."""
 
-    main: MSMainTable
     observation: MSObservationTable
     polarization: MSPolarizationTable
     antenna: MSAntennaTable
@@ -164,14 +163,12 @@ class CasaMSMeta:
         Returns:
             Dataclass containing CASA Measurement Sets metadata.
         """
-        main_table = MSMainTable.from_ms(ms_path=ms_path)
         obs_table = MSObservationTable.from_ms(ms_path=ms_path)
         pol_table = MSPolarizationTable.from_ms(ms_path=ms_path)
         antenna_table = MSAntennaTable.from_ms(ms_path=ms_path)
         field_table = MSFieldTable.from_ms(ms_path=ms_path)
         spectral_window_table = MSSpectralWindowTable.from_ms(ms_path=ms_path)
         return cls(
-            main=main_table,
             observation=obs_table,
             polarization=pol_table,
             antenna=antenna_table,
