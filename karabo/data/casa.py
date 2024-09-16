@@ -1,16 +1,20 @@
+"""Module to access CASA Measurement Set metadata.
+
+Details see MS v2.0: https://casacore.github.io/casacore-notes/229.html
+"""
+
 from __future__ import annotations
 
 import os
+from contextlib import redirect_stdout
 from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import Any, Dict, Type, TypeVar, Union
+from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import numpy as np
 from casacore.tables import table
 from numpy.typing import NDArray
 from typing_extensions import Self
-
-from karabo.karabo_resource import HiddenPrints
 
 _TDataClass = TypeVar("_TDataClass")
 
@@ -19,7 +23,6 @@ def _get_cols(
     table: table,
     *,
     row: int = 0,
-    fill_str: bool = False,
 ) -> Dict[str, Any]:
     """Utility function to extract casacore `table` KV.
 
@@ -42,11 +45,8 @@ def _get_cols(
             if isinstance(col, list) or isinstance(col, np.ndarray):
                 col = col[row]  # these two types are row specific
             cols[name.lower()] = col
-        except RuntimeError as e:  # can happen if col-name not present in `table`
-            if fill_str and "SSMIndStringColumn" in str(e):
-                cols[name.lower()] = ""
-            else:
-                pass  # col just doesn't get added because it doesn't exist
+        except RuntimeError:  # can happen if col-name not present in `table`
+            cols[name.lower()] = None
     if len(cols) == 0:
         err_msg = "No cols found in `table"
         raise RuntimeError(err_msg)
@@ -58,7 +58,6 @@ def _create_dataclass(
     classtype: Type[_TDataClass],
     *,
     row: int = 0,
-    fill_str: bool = False,
 ) -> _TDataClass:
     """Creates an instance of of `classtype` from `table` values.
 
@@ -73,13 +72,12 @@ def _create_dataclass(
         table: Casacore table to extract data from.
         classtype: Dataclass to create an instance from.
         row: Row to access (e.g. for observation, "OBSERVATION_ID" is the row number).
-        fill_str: Fill non-existing string colnames with empty str?
 
     Returns:
         Created dataclass.
     """
-    cols = _get_cols(table=table, row=row, fill_str=fill_str)
-    field_types = {f.name: f.type for f in fields(CasaMSObservation)}
+    cols = _get_cols(table=table, row=row)
+    field_types = {f.name: f.type for f in fields(MSObservationTable)}
     field_names = list(field_types.keys())
     missing_fields = set(field_names) - set(cols.keys())
     if len(missing_fields) > 0:  # ensures safe access to `cols[field_name]`
@@ -93,7 +91,7 @@ def _create_dataclass(
 class CasaMSMeta:
     """Utility class to extract metadata from CASA Measurement Sets."""
 
-    observation: CasaMSObservation
+    observation: MSObservationTable
 
     @classmethod
     def from_ms(
@@ -111,23 +109,35 @@ class CasaMSMeta:
         Returns:
             Dataclass containing CASA Measurement Sets metadata.
         """
-        casa_ms_obs = CasaMSObservation.from_ms(ms_path=ms_path, obs_id=obs_id)
+        casa_ms_obs = MSObservationTable.from_ms(ms_path=ms_path, obs_id=obs_id)
         return cls(observation=casa_ms_obs)
 
 
 @dataclass
-class CasaMSObservation:
-    """Utility class to extract observational metadata from CASA Measurement Sets"""
+class MSObservationTable:
+    """Utility class to extract observational metadata from CASA Measurement Sets.
 
-    flag_row: bool
-    log: str
-    observer: str
-    project: str
-    release_date: float
-    schedule: Dict[str, Any]
-    schedule_type: str
+    Args:
+        telescope_name: Telescope name.
+        time_range: Start, end times [s].
+        observer: Name of observer(s).
+        log: Observing log.
+        schedule_type: Schedule type.
+        schedule: Project schedule.
+        project: Project identification string.
+        release_date: Target release date [s].
+        flag_row: Row flag.
+    """
+
     telescope_name: str
     time_range: NDArray[np.float64]
+    observer: str
+    log: Optional[Dict[str, Any]]
+    schedule_type: str
+    schedule: Dict[str, Any]
+    project: str
+    release_date: Optional[float]
+    flag_row: bool
 
     @classmethod
     def from_ms(
@@ -145,10 +155,12 @@ class CasaMSObservation:
         Returns:
             Dataclass containing CASA Measurement Sets observational metadata.
         """
-        with HiddenPrints(stdout=True, stderr=False):
+        with redirect_stdout(None):
             obs_table = table(os.path.join(ms_path, "OBSERVATION"))
         self = _create_dataclass(
-            table=obs_table, classtype=cls, row=obs_id, fill_str=True
+            table=obs_table,
+            classtype=cls,
+            row=obs_id,
         )
         self.time_range = self.time_range / 86400  # converted to mjd-utc
         return self
