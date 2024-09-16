@@ -6,6 +6,7 @@ Details see MS v2.0: https://casacore.github.io/casacore-notes/229.html
 from __future__ import annotations
 
 import os
+from abc import ABC, abstractmethod
 from contextlib import redirect_stdout
 from dataclasses import dataclass, fields
 from pathlib import Path
@@ -13,7 +14,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 from warnings import warn
 
 import numpy as np
-from casacore.tables import table
+from casacore.tables import table as casa_table
 from numpy.typing import NDArray
 from typing_extensions import Self
 
@@ -21,7 +22,7 @@ _TDataClass = TypeVar("_TDataClass")
 
 
 def _get_cols(
-    table: table,
+    table: casa_table,
     *,
     subtable_id: Optional[int] = None,
 ) -> Dict[str, Any]:
@@ -57,7 +58,7 @@ def _get_cols(
 
 
 def _create_table(
-    table: table,
+    table: casa_table,
     classtype: Type[_TDataClass],
     *,
     subtable_id: Optional[int] = None,
@@ -94,6 +95,48 @@ def _create_table(
 
 
 @dataclass
+class _CasaTableABC(ABC):
+    """Abstract table dataclass."""
+
+    @classmethod
+    @abstractmethod
+    def _table_name(cls) -> str:
+        """Table name for `from_ms` function.
+
+        Returns:
+            Table name.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def from_ms(
+        cls,
+        ms_path: Union[str, Path],
+    ) -> Self:
+        """Gets CASA Measurement Sets from `ms_path`.
+
+        Args:
+            ms_path: Measurement set path.
+
+        Returns:
+            Dataclass containing CASA Measurement Set table metadata.
+        """
+        table_name = cls._table_name()
+        if table_name == "MAIN":
+            table_path = ms_path
+        else:
+            table_path = os.path.join(ms_path, table_name)
+        with redirect_stdout(None):
+            table_instance = casa_table(table_path)
+        self = _create_table(
+            table=table_instance,
+            classtype=cls,
+            subtable_id=None,
+        )
+        return self
+
+
+@dataclass
 class CasaMSMeta:
     """Utility class to extract metadata from CASA Measurement Sets."""
 
@@ -102,15 +145,12 @@ class CasaMSMeta:
     polarization: MSPolarizationTable
     antenna: MSAntennaTable
     field: MSFieldTable
+    spectral_window: MSSpectralWindowTable
 
     @classmethod
     def from_ms(
         cls,
         ms_path: Union[str, Path],
-        *,
-        obs_id: int = 0,
-        pol_id: int = 0,
-        field_id: int = 0,
     ) -> Self:
         """Gets CASA Measurement Sets metadata from `ms_path`.
 
@@ -120,30 +160,35 @@ class CasaMSMeta:
 
         Args:
             ms_path: Measurement set path.
-            obs_id: Observation ID (is the row number of the MS).
-            pol_id: Polarization ID (index into polarization sub-table).
-            field_id: Field ID (index into field sub-table).
 
         Returns:
             Dataclass containing CASA Measurement Sets metadata.
         """
         main_table = MSMainTable.from_ms(ms_path=ms_path)
-        obs_table = MSObservationTable.from_ms(ms_path=ms_path, obs_id=obs_id)
-        pol_table = MSPolarizationTable.from_ms(ms_path=ms_path, pol_id=pol_id)
+        obs_table = MSObservationTable.from_ms(ms_path=ms_path)
+        pol_table = MSPolarizationTable.from_ms(ms_path=ms_path)
         antenna_table = MSAntennaTable.from_ms(ms_path=ms_path)
-        field_table = MSFieldTable.from_ms(ms_path=ms_path, field_id=field_id)
+        field_table = MSFieldTable.from_ms(ms_path=ms_path)
+        spectral_window_table = MSSpectralWindowTable.from_ms(ms_path=ms_path)
         return cls(
             main=main_table,
             observation=obs_table,
             polarization=pol_table,
             antenna=antenna_table,
             field=field_table,
+            spectral_window=spectral_window_table,
         )
 
 
 @dataclass
-class MSMainTable:
+class MSMainTable(_CasaTableABC):
     """Utility class to extract main table metadata from CASA Measurement Sets.
+
+    Each row (dim0) of the main table represents a measurement.
+
+    The loading of this dataclass can get out of hand if the measurement set has many
+        measurement sets. There we suggest to access the according column directly
+        via casacore to avoid eager loading.
 
     Args:
         time: Mid-point (not centroid) of data interval [s].
@@ -193,53 +238,19 @@ class MSMainTable:
     uvw: NDArray[np.float64]
 
     @classmethod
-    def from_ms(
-        cls,
-        ms_path: Union[str, Path],
-    ) -> Self:
-        """Gets CASA Measurement Sets main table metadata from `ms_path`.
-
-        Args:
-            ms_path: Measurement set path.
-
-        Returns:
-            Dataclass containing CASA Measurement Sets main table metadata.
-        """
-        with redirect_stdout(None):
-            main_table = table(ms_path)
-        self = _create_table(
-            table=main_table,
-            classtype=cls,
-            subtable_id=None,
-        )
-        return self
-
-    @classmethod
-    def n_measurements(
-        cls,
-        ms_path: Union[str, Path],
-    ) -> int:
-        """Gets the number of measurements.
-
-        Args:
-            ms_path: Measurement set path.
-
-        Returns:
-            Number of measurements.
-        """
-        with redirect_stdout(None):
-            main_table = table(ms_path)
-        time_array: NDArray[np.float64] = main_table.getcol("TIME")
-        return time_array.shape[0]
+    def _table_name(cls) -> str:
+        return "MAIN"
 
 
 @dataclass
-class MSObservationTable:
+class MSObservationTable(_CasaTableABC):
     """Utility class to extract observational metadata from CASA Measurement Sets.
+
+    OBSERVATION_ID is the row-nr (dim0).
 
     Args:
         telescope_name: Telescope name.
-        time_range: Start, end times [s].
+        time_range: Start, end times [s] (div by 86400 to get mjd-utc).
         observer: Name of observer(s).
         log: Observing log.
         schedule_type: Schedule type.
@@ -249,101 +260,59 @@ class MSObservationTable:
         flag_row: Row flag.
     """
 
-    telescope_name: str
+    telescope_name: List[str]
     time_range: NDArray[np.float64]
-    observer: str
+    observer: List[str]
     log: Optional[Dict[str, Any]]
-    schedule_type: str
-    schedule: Dict[str, Any]
-    project: str
-    release_date: Optional[float]
-    flag_row: bool
+    schedule_type: List[str]
+    schedule: Optional[Dict[str, Any]]
+    project: List[str]
+    release_date: NDArray[np.float64]
+    flag_row: NDArray[np.bool_]
 
     @classmethod
-    def from_ms(
-        cls,
-        ms_path: Union[str, Path],
-        *,
-        obs_id: int = 0,
-    ) -> Self:
-        """Gets CASA Measurement Sets observational metadata from `ms_path`.
-
-        Args:
-            ms_path: Measurement set path.
-            obs_id: Observation ID (is the row number of the MS).
-
-        Returns:
-            Dataclass containing CASA Measurement Sets observational metadata.
-        """
-        with redirect_stdout(None):
-            obs_table = table(os.path.join(ms_path, "OBSERVATION"))
-        self = _create_table(
-            table=obs_table,
-            classtype=cls,
-            subtable_id=obs_id,
-        )
-        self.time_range = self.time_range / 86400  # converted to mjd-utc
-        return self
+    def _table_name(cls) -> str:
+        return "OBSERVATION"
 
 
 @dataclass
-class MSPolarizationTable:
+class MSPolarizationTable(_CasaTableABC):
     """Utility class to extract polarization metadata from CASA Measurement Sets.
+
+    POLARIZATION_ID is the row-nr (dim0).
 
     Args:
         num_corr: Number of correlations.
-        corr_type: Polarization of correlation, shape=(`num_corr`).
-        corr_product: Receptor cross-products, shape=(2, `num_corr`).
+        corr_type: Polarization of correlation; dim1=`num_corr`.
+        corr_product: Receptor cross-products; dim1=2, dim2=`num_corr`.
         flag_row: True if data in this row are invalid, else False.
     """
 
-    num_corr: int
+    num_corr: NDArray[np.int32]
     corr_type: NDArray[np.int32]
     corr_product: NDArray[np.int32]
-    flag_row: bool
+    flag_row: NDArray[np.bool_]
 
     @classmethod
-    def from_ms(
-        cls,
-        ms_path: Union[str, Path],
-        *,
-        pol_id: int = 0,
-    ) -> Self:
-        """Gets CASA Measurement Sets polarization metadata from `ms_path`.
-
-        Args:
-            ms_path: Measurement set path.
-            pol_id: Polarization ID (index into polarization sub-table).
-
-        Returns:
-            Dataclass containing CASA Measurement Sets polarization metadata.
-        """
-        with redirect_stdout(None):
-            pol_table = table(os.path.join(ms_path, "POLARIZATION"))
-        self = _create_table(
-            table=pol_table,
-            classtype=cls,
-            subtable_id=pol_id,
-        )
-        return self
+    def _table_name(cls) -> str:
+        return "POLARIZATION"
 
 
 @dataclass
-class MSAntennaTable:
+class MSAntennaTable(_CasaTableABC):
     """Utility class to extract antenna metadata from CASA Measurement Sets.
 
-    This class contains all antennas and therefore is not a subtable.
+    ANTENNA_ID is the row-nr (dim0).
 
     Args:
-        name: Antenna names.
-        station: Station names.
-        type: Antenna types.
+        name: Antenna name.
+        station: Station name.
+        type: Antenna type.
         mount: Mount type:alt-az, equatorial, X-Y, orbiting, bizarre.
-        position: Antenna X,Y,Z phase reference positions [m], shape=(`n_antennas`,3).
-        offset: Axes oﬀset of mount to FEED REFERENCE point [m], shape=(`n_antennas`,3).
-        dish_diameter: Diameter of dish, shape=(`n_antennas`).
-        flag_row: True if data in this row are invalid, else False,
-            shape=(`n_antennas`).
+        position: Antenna X,Y,Z phase reference positions [m], dim1=3.
+        offset: Axes oﬀset of mount to FEED REFERENCE point [m], dim1=3.
+        dish_diameter: Diameter of dish.
+        flag_row: True if data in this row are invalid, else False.
     """
 
     name: List[str]
@@ -353,55 +322,18 @@ class MSAntennaTable:
     position: NDArray[np.float64]
     offset: NDArray[np.float64]
     dish_diameter: NDArray[np.float64]
-    flag_row: NDArray[np.bool_]  # TODO: Change to np.bool when np >=2.0
+    flag_row: NDArray[np.bool_]
 
     @classmethod
-    def from_ms(
-        cls,
-        ms_path: Union[str, Path],
-    ) -> Self:
-        """Gets CASA Measurement Sets antenna metadata from `ms_path`.
-
-        Args:
-            ms_path: Measurement set path.
-            antenna_id: Antenna ID (index into antenna sub-table).
-
-        Returns:
-            Dataclass containing CASA Measurement Sets antenna metadata.
-        """
-        with redirect_stdout(None):
-            antenna_table = table(os.path.join(ms_path, "ANTENNA"))
-        self = _create_table(
-            table=antenna_table,
-            classtype=cls,
-            subtable_id=None,
-        )
-        return self
-
-    @classmethod
-    def n_antennas(
-        cls,
-        ms_path: Union[str, Path],
-    ) -> int:
-        """Gets the number of antennas of `ms_path`.
-
-        This function doesn't consider anything like different antenna types.
-
-        Args:
-            ms_path: Measurement set path.
-
-        Returns:
-            Number of antennas.
-        """
-        with redirect_stdout(None):
-            antenna_table = table(os.path.join(ms_path, "ANTENNA"))
-        pos_array: NDArray[np.float64] = antenna_table.getcol("POSITION")
-        return pos_array.shape[0]
+    def _table_name(cls) -> str:
+        return "ANTENNA"
 
 
 @dataclass
-class MSFieldTable:
+class MSFieldTable(_CasaTableABC):
     """Utility class to extract field metadata from CASA Measurement Sets.
+
+    FIELD_ID is the row-nr (dim0).
 
     Args:
         name: Name of field.
@@ -419,37 +351,69 @@ class MSFieldTable:
         flag_row: True if data in this row are invalid, else False.
     """
 
-    name: str
-    code: str
-    time: float
-    num_poly: int
+    name: List[str]
+    code: List[str]
+    time: NDArray[np.float64]
+    num_poly: NDArray[np.int32]
     delay_dir: NDArray[np.float64]
     phase_dir: NDArray[np.float64]
     reference_dir: NDArray[np.float64]
-    source_id: int
-    flag_row: bool
+    source_id: NDArray[np.int32]
+    flag_row: NDArray[np.bool_]
 
     @classmethod
-    def from_ms(
-        cls,
-        ms_path: Union[str, Path],
-        *,
-        field_id: int = 0,
-    ) -> Self:
-        """Gets CASA Measurement Sets field metadata from `ms_path`.
+    def _table_name(cls) -> str:
+        return "FIELD"
 
-        Args:
-            ms_path: Measurement set path.
-            field_id: Field ID (index into field sub-table).
 
-        Returns:
-            Dataclass containing CASA Measurement Sets field metadata.
-        """
-        with redirect_stdout(None):
-            field_table = table(os.path.join(ms_path, "FIELD"))
-        self = _create_table(
-            table=field_table,
-            classtype=cls,
-            subtable_id=field_id,
-        )
-        return self
+@dataclass
+class MSSpectralWindowTable(_CasaTableABC):
+    """Utility class to extract spectral window metadata from CASA Measurement Sets.
+
+    SPECTRAL_WINDOW_ID is the row-nr (dim0).
+
+    Args:
+        name: Spectral window name; user specified.
+        ref_frequency: The reference frequency [Hz]. A frequency representative of
+            this spectral window, usually the sky frequency corresponding to the DC
+            edge of the baseband. Used by the calibration system if a fixed scaling
+            frequency is required or in algorithms to identify the observing band.
+        chan_freq: Center frequencies [Hz] for each channel in the data matrix;
+            dim1=`n_channels`. These can be frequency-dependent, to accommodate
+            instruments such as acousto-optical spectrometers. Note that the channel
+            frequencies may be in ascending or descending frequency order.
+        chan_width: Channel width [Hz] of each spectral channel; dim1=`n_channels`.
+        meas_freq_ref: Frequency measure reference for CHAN_FREQ. This allows a
+            row-based reference for this column in order to optimize the choice of
+            measure reference when Doppler tracking is used.
+        effective_bw: The effective noise bandwidth of each spectral channel [Hz];
+            dim1=`n_channels`.
+        resolution: The effective spectral resolution [Hz] of each channel;
+            dim1=`n_channels`.
+        total_bandwidth: The total bandwidth [Hz] for this spectral window.
+        net_sideband: The net sideband for this spectral window.
+        if_conv_chain: Identification of the electronic signal path for the case of
+            multiple (simultaneous) IFs. (e.g. VLA: AC=0, BD=1, ATCA: Freq1=0, Freq2=1).
+        freq_group: The frequency group to which the spectral window belongs. This is
+            used to associate spectral windows for joint calibration purposes.
+        freq_group_name: The frequency group name; user specified.
+        flag_row: True if the row does not contain valid data.
+    """
+
+    name: List[str]
+    ref_frequency: NDArray[np.float64]
+    chan_freq: NDArray[np.float64]
+    chan_width: NDArray[np.float64]
+    meas_freq_ref: NDArray[np.int32]
+    effective_bw: NDArray[np.float64]
+    resolution: NDArray[np.float64]
+    total_bandwidth: NDArray[np.float64]
+    net_sideband: NDArray[np.int32]
+    if_conv_chain: NDArray[np.int32]
+    freq_group: NDArray[np.int32]
+    freq_group_name: List[str]
+    flag_row: NDArray[np.bool_]
+
+    @classmethod
+    def _table_name(cls) -> str:
+        return "SPECTRAL_WINDOW"
