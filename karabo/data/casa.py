@@ -22,13 +22,13 @@ _TDataClass = TypeVar("_TDataClass")
 def _get_cols(
     table: table,
     *,
-    row: int = 0,
+    row: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Utility function to extract casacore `table` KV.
 
     Args:
         table: Table to get columns from.
-        row: Row number.
+        row: Row number. If not specified, no specific row will be selected.
         fill_str: Fill non-existing string colnames with empty str?
 
     Raises:
@@ -42,7 +42,9 @@ def _get_cols(
     for name in table.colnames():
         try:
             col = table.getcol(columnname=name)
-            if isinstance(col, list) or isinstance(col, np.ndarray):
+            if row is not None and (
+                isinstance(col, list) or isinstance(col, np.ndarray)
+            ):
                 col = col[row]  # these two types are row specific
             cols[name.lower()] = col
         except RuntimeError:  # can happen if col-name not present in `table`
@@ -57,7 +59,7 @@ def _create_dataclass(
     table: table,
     classtype: Type[_TDataClass],
     *,
-    row: int = 0,
+    row: Optional[int] = None,
 ) -> _TDataClass:
     """Creates an instance of of `classtype` from `table` values.
 
@@ -71,13 +73,13 @@ def _create_dataclass(
     Args:
         table: Casacore table to extract data from.
         classtype: Dataclass to create an instance from.
-        row: Row to access (e.g. for observation, "OBSERVATION_ID" is the row number).
+        row: Row number. If not specified, no specific row will be selected.
 
     Returns:
         Created dataclass.
     """
     cols = _get_cols(table=table, row=row)
-    field_types = {f.name: f.type for f in fields(MSObservationTable)}
+    field_types = {f.name: f.type for f in fields(classtype)}
     field_names = list(field_types.keys())
     missing_fields = set(field_names) - set(cols.keys())
     if len(missing_fields) > 0:  # ensures safe access to `cols[field_name]`
@@ -92,6 +94,7 @@ class CasaMSMeta:
     """Utility class to extract metadata from CASA Measurement Sets."""
 
     observation: MSObservationTable
+    polarization: MSPolarizationTable
 
     @classmethod
     def from_ms(
@@ -99,18 +102,22 @@ class CasaMSMeta:
         ms_path: Union[str, Path],
         *,
         obs_id: int = 0,
+        pol_id: int = 0,
     ) -> Self:
         """Gets CASA Measurement Sets metadata from `ms_path`.
 
         Args:
             ms_path: Measurement set path.
             obs_id: Observation id (is the row number of the MS).
+            pol_id: Polarization id (index into polarization sub-table).
+
 
         Returns:
             Dataclass containing CASA Measurement Sets metadata.
         """
         casa_ms_obs = MSObservationTable.from_ms(ms_path=ms_path, obs_id=obs_id)
-        return cls(observation=casa_ms_obs)
+        casa_ms_pol = MSPolarizationTable.from_ms(ms_path=ms_path, pol_id=pol_id)
+        return cls(observation=casa_ms_obs, polarization=casa_ms_pol)
 
 
 @dataclass
@@ -163,4 +170,46 @@ class MSObservationTable:
             row=obs_id,
         )
         self.time_range = self.time_range / 86400  # converted to mjd-utc
+        return self
+
+
+@dataclass
+class MSPolarizationTable:
+    """Utility class to extract polarization metadata from CASA Measurement Sets.
+
+    Args:
+        num_corr: Number of correlations.
+        corr_type: Polarization of correlation, shape=(`num_corr`).
+        corr_product: Receptor cross-products, shape=(2, `num_corr`).
+        flag_row: Row flag.
+    """
+
+    num_corr: int
+    corr_type: NDArray[np.int32]
+    corr_product: NDArray[np.int32]
+    flag_row: bool
+
+    @classmethod
+    def from_ms(
+        cls,
+        ms_path: Union[str, Path],
+        *,
+        pol_id: int = 0,
+    ) -> Self:
+        """Gets CASA Measurement Sets polarization metadata from `ms_path`.
+
+        Args:
+            ms_path: Measurement set path.
+            pol_id: Polarization id (index into polarization sub-table).
+
+        Returns:
+            Dataclass containing CASA Measurement Sets polarization metadata.
+        """
+        with redirect_stdout(None):
+            pol_table = table(os.path.join(ms_path, "POLARIZATION"))
+        self = _create_dataclass(
+            table=pol_table,
+            classtype=cls,
+            row=pol_id,
+        )
         return self
