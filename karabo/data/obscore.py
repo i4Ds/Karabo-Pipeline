@@ -25,6 +25,7 @@ from astropy.units.quantity import Quantity
 from oskar import VisHeader
 from typing_extensions import Self, TypeGuard, assert_never
 
+from karabo.data.casa import CasaMSMeta
 from karabo.imaging.image import Image
 from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
@@ -450,8 +451,28 @@ class ObsCoreMeta:
         # only .vis supported atm, `OSKAR` can't read .ms with multiple spectral windows
         # for multiple format-support, think about restructuring the entire function,
         # not just another elif block!
-        vis_path = vis.vis_path
-        if os.path.exists(vis_path):
+        ms_path = vis.ms_file_path
+        if os.path.exists(ms_path):
+            ms_meta = CasaMSMeta.from_ms(ms_path=ms_path)
+            field_table = ms_meta.field
+            if not np.all(field_table.num_poly == 0):
+                err_msg = (
+                    "Phase-center(s) depicted as polynomials in time is not supported."
+                )
+                raise NotImplementedError(err_msg)
+            if (n_phase_center := field_table.phase_dir.shape[0]) > 1:
+                wmsg = (
+                    f"Found {n_phase_center=} in `ObsCoreMeta.from_visibility` of "
+                    + f"{ms_path=}. Computing mean phase-center!"
+                )
+                warn(wmsg, category=RuntimeWarning, stacklevel=2)
+            phase_dir = np.rad2deg(field_table.phase_dir)
+            phase_dir[..., 0] = phase_dir[..., 0] % 360  # ensures pos RA
+            phase_center_deg = phase_dir.mean(axis=(0, 1))
+            ocm.s_ra = phase_center_deg[0]
+            ocm.s_dec = phase_center_deg[1]
+
+            vis_path = ""
             header, _ = VisHeader.read(vis_path)
             ocm.s_ra = header.phase_centre_ra_deg
             ocm.s_dec = header.phase_centre_dec_deg
