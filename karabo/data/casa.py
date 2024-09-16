@@ -97,9 +97,10 @@ def _create_table(
 class CasaMSMeta:
     """Utility class to extract metadata from CASA Measurement Sets."""
 
+    main: MSMainTable
     observation: MSObservationTable
     polarization: MSPolarizationTable
-    antennas: MSAntennaTable
+    antenna: MSAntennaTable
 
     @classmethod
     def from_ms(
@@ -123,14 +124,108 @@ class CasaMSMeta:
         Returns:
             Dataclass containing CASA Measurement Sets metadata.
         """
-        casa_ms_obs = MSObservationTable.from_ms(ms_path=ms_path, obs_id=obs_id)
-        casa_ms_pol = MSPolarizationTable.from_ms(ms_path=ms_path, pol_id=pol_id)
-        casa_ms_antennas = MSAntennaTable.from_ms(ms_path=ms_path)
+        main_table = MSMainTable.from_ms(ms_path=ms_path)
+        obs_table = MSObservationTable.from_ms(ms_path=ms_path, obs_id=obs_id)
+        pol_table = MSPolarizationTable.from_ms(ms_path=ms_path, pol_id=pol_id)
+        antenna_table = MSAntennaTable.from_ms(ms_path=ms_path)
         return cls(
-            observation=casa_ms_obs,
-            polarization=casa_ms_pol,
-            antennas=casa_ms_antennas,
+            main=main_table,
+            observation=obs_table,
+            polarization=pol_table,
+            antenna=antenna_table,
         )
+
+
+@dataclass
+class MSMainTable:
+    """Utility class to extract main table metadata from CASA Measurement Sets.
+
+    Args:
+        time: Mid-point (not centroid) of data interval [s].
+        antenna1: First antenna (index to sub-table).
+        antenna2: Second antenna (index to sub-table).
+        feed1: Feed for `antenna1`.
+        feed2: Feed for `antenna2`.
+        data_desc_id: Index to the DATA_DESCRIPTION sub-table.
+        processor_id: Index to the PROCESSOR sub-table.
+        field_id: Field identifier.
+        interval: Data sampling interval. This is the nominal data interval and does not
+            include the effects of bad data or partial integration [s].
+        exposure: Effective data interval, including bad data and partial averaging [s].
+        time_centroid: Time centroid [s].
+        scan_number: Arbitrary scan number to identify data taken in the same logical
+            scan. Not required to be unique.
+        array_id: Subarray identifier, which identifies data in separate subarrays.
+        observation_id: Observation identifier which identifies data from separate
+            observations.
+        state_id: State identifier.
+        uvw: Coordinates for the baseline from ANTENNA2 to ANTENNA1, i.e. the baseline
+            is equal to the difference POSITION2 - POSITION1. The UVW given are for the
+            TIME_CENTROID, and correspond in general to the reference type for the
+            PHASE_DIR of the relevant field. I.e. J2000 if the phase reference direction
+            is given in J2000 coordinates. However, any known reference is valid. Note
+            that the choice of baseline direction and UVW definition (W towards source
+            direction; V in plane through source and system’s pole; U in direction of
+            increasing longitude coordinate) also determines the sign of the phase of
+            the recorded data.
+    """
+
+    time: NDArray[np.float64]
+    antenna1: NDArray[np.int32]
+    antenna2: NDArray[np.int32]
+    feed1: NDArray[np.int32]
+    feed2: NDArray[np.int32]
+    data_desc_id: NDArray[np.int32]
+    processor_id: NDArray[np.int32]
+    field_id: NDArray[np.int32]
+    interval: NDArray[np.float64]
+    exposure: NDArray[np.float64]
+    time_centroid: NDArray[np.float64]
+    scan_number: NDArray[np.int32]
+    array_id: NDArray[np.int32]
+    observation_id: NDArray[np.int32]
+    state_id: NDArray[np.int32]
+    uvw: NDArray[np.float64]
+
+    @classmethod
+    def from_ms(
+        cls,
+        ms_path: Union[str, Path],
+    ) -> Self:
+        """Gets CASA Measurement Sets main table metadata from `ms_path`.
+
+        Args:
+            ms_path: Measurement set path.
+
+        Returns:
+            Dataclass containing CASA Measurement Sets main table metadata.
+        """
+        with redirect_stdout(None):
+            main_table = table(ms_path)
+        self = _create_table(
+            table=main_table,
+            classtype=cls,
+            subtable_id=None,
+        )
+        return self
+
+    @classmethod
+    def n_measurements(
+        cls,
+        ms_path: Union[str, Path],
+    ) -> int:
+        """Gets the number of measurements.
+
+        Args:
+            ms_path: Measurement set path.
+
+        Returns:
+            Number of measurements.
+        """
+        with redirect_stdout(None):
+            main_table = table(ms_path)
+        time_array: NDArray[np.float64] = main_table.getcol("TIME")
+        return time_array.shape[0]
 
 
 @dataclass
@@ -232,7 +327,7 @@ class MSPolarizationTable:
 class MSAntennaTable:
     """Utility class to extract antenna metadata from CASA Measurement Sets.
 
-    This class is contains all antennas and therefore is not a subtable.
+    This class contains all antennas and therefore is not a subtable.
 
     Args:
         name: Antenna names.
@@ -252,7 +347,7 @@ class MSAntennaTable:
     position: NDArray[np.float64]
     offset: NDArray[np.float64]
     dish_diameter: NDArray[np.float64]
-    flag_row: NDArray[np.bool_]  # TODO: Change when np >=2.0
+    flag_row: NDArray[np.bool_]  # TODO: Change to np.bool when np >=2.0
 
     @classmethod
     def from_ms(
