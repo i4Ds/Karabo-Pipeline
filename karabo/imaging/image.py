@@ -20,6 +20,7 @@ from typing import (
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.coordinates.sky_coordinate import SkyCoord
 from astropy.io import fits
 from astropy.io.fits.header import Header
 from astropy.nddata import Cutout2D, NDData
@@ -746,6 +747,48 @@ class Image:
         wcs = WCS(self.header)
         wcs_2d = wcs.sub(ra_dec_axis)
         return wcs_2d
+
+    @classmethod
+    def get_corners_in_world(cls, header: Header) -> NDArray[np.float64]:
+        """Get the image corners RA,DEC of bl, br, tr & tl from `header` in deg.
+
+        Assumes that `header` has at least two axis RA & DEC.
+
+        Args:
+            header: Header to extract image-infos.
+
+        Returns:
+            Corners in world coordinates [deg] with shape 4x2.
+        """
+        wcs = WCS(header)
+        if wcs.naxis < 2:
+            err_msg = (
+                f"Header must have at least to axis (RA,DEC), but has {wcs.naxis=}"
+            )
+            raise RuntimeError(err_msg)
+        naxis1 = header["NAXIS1"]
+        naxis2 = header["NAXIS2"]
+        corners = np.zeros(
+            shape=(4, wcs.naxis),
+            dtype=np.int64,
+        )
+        corners[1, 0] = naxis1  # bottom-right
+        corners[2, 0] = naxis1  # top-right
+        corners[2, 1] = naxis2  # # top-right
+        corners[3, 1] = naxis2  # top-left
+
+        world = wcs.pixel_to_world(*[corners[:, i] for i in range(corners.shape[1])])
+        if not isinstance(world, list):  # typeguard would be safer, but was lazy
+            err_msg = (
+                f"Expected list[{SkyCoord.__name__}], "
+                + f"but got {type(world)=} of {world=}"
+            )
+            raise TypeError(err_msg)
+        sky_coords: SkyCoord = world[0]
+        world_coords: NDArray[np.float64] = (
+            sky_coords.transform_to("icrs").to_table().to_pandas().to_numpy()
+        )
+        return world_coords
 
 
 class ImageMosaicker:

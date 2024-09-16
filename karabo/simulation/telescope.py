@@ -804,7 +804,7 @@ but was not provided. Please provide a value for the version field."
         )
         return dists
 
-    def longest_baseline(self) -> np.float64:
+    def max_baseline(self) -> np.float64:
         """Gets the longest baseline in meters.
 
         Returns:
