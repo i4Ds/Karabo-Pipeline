@@ -101,6 +101,7 @@ class CasaMSMeta:
     observation: MSObservationTable
     polarization: MSPolarizationTable
     antenna: MSAntennaTable
+    field: MSFieldTable
 
     @classmethod
     def from_ms(
@@ -109,6 +110,7 @@ class CasaMSMeta:
         *,
         obs_id: int = 0,
         pol_id: int = 0,
+        field_id: int = 0,
     ) -> Self:
         """Gets CASA Measurement Sets metadata from `ms_path`.
 
@@ -120,6 +122,7 @@ class CasaMSMeta:
             ms_path: Measurement set path.
             obs_id: Observation ID (is the row number of the MS).
             pol_id: Polarization ID (index into polarization sub-table).
+            field_id: Field ID (index into field sub-table).
 
         Returns:
             Dataclass containing CASA Measurement Sets metadata.
@@ -128,11 +131,13 @@ class CasaMSMeta:
         obs_table = MSObservationTable.from_ms(ms_path=ms_path, obs_id=obs_id)
         pol_table = MSPolarizationTable.from_ms(ms_path=ms_path, pol_id=pol_id)
         antenna_table = MSAntennaTable.from_ms(ms_path=ms_path)
+        field_table = MSFieldTable.from_ms(ms_path=ms_path, field_id=field_id)
         return cls(
             main=main_table,
             observation=obs_table,
             polarization=pol_table,
             antenna=antenna_table,
+            field=field_table,
         )
 
 
@@ -289,7 +294,7 @@ class MSPolarizationTable:
         num_corr: Number of correlations.
         corr_type: Polarization of correlation, shape=(`num_corr`).
         corr_product: Receptor cross-products, shape=(2, `num_corr`).
-        flag_row: Row flag.
+        flag_row: True if data in this row are invalid, else False.
     """
 
     num_corr: int
@@ -337,7 +342,8 @@ class MSAntennaTable:
         position: Antenna X,Y,Z phase reference positions [m], shape=(`n_antennas`,3).
         offset: Axes oﬀset of mount to FEED REFERENCE point [m], shape=(`n_antennas`,3).
         dish_diameter: Diameter of dish, shape=(`n_antennas`).
-        flag_row: Row ﬂag, shape=(`n_antennas`).
+        flag_row: True if data in this row are invalid, else False,
+            shape=(`n_antennas`).
     """
 
     name: List[str]
@@ -391,3 +397,59 @@ class MSAntennaTable:
             antenna_table = table(os.path.join(ms_path, "ANTENNA"))
         pos_array: NDArray[np.float64] = antenna_table.getcol("POSITION")
         return pos_array.shape[0]
+
+
+@dataclass
+class MSFieldTable:
+    """Utility class to extract field metadata from CASA Measurement Sets.
+
+    Args:
+        name: Name of field.
+        code: Special characteristics of field.
+        time: Time origin for the directions and rates [s].
+        num_poly: Series order.
+        delay_dir: Direction of delay center [rad], shape=(2,`num_poly`+1).
+            Can be expressed as a polynomial in time.
+        phase_dir: Phase center [rad, shape=(2,`num_poly`+1).
+            Can be expressed as a polynomial in time.
+        reference_dir: Reference center [rad], shape=(2,`num_poly`+1).
+            Can be expressed as a polynomial in time.
+        source_id: Points to an entry in the optional SOURCE subtable, a value of −1
+            indicates there is no corresponding source defined.
+        flag_row: True if data in this row are invalid, else False.
+    """
+
+    name: str
+    code: str
+    time: float
+    num_poly: int
+    delay_dir: NDArray[np.float64]
+    phase_dir: NDArray[np.float64]
+    reference_dir: NDArray[np.float64]
+    source_id: int
+    flag_row: bool
+
+    @classmethod
+    def from_ms(
+        cls,
+        ms_path: Union[str, Path],
+        *,
+        field_id: int = 0,
+    ) -> Self:
+        """Gets CASA Measurement Sets field metadata from `ms_path`.
+
+        Args:
+            ms_path: Measurement set path.
+            field_id: Field ID (index into field sub-table).
+
+        Returns:
+            Dataclass containing CASA Measurement Sets field metadata.
+        """
+        with redirect_stdout(None):
+            field_table = table(os.path.join(ms_path, "FIELD"))
+        self = _create_table(
+            table=field_table,
+            classtype=cls,
+            subtable_id=field_id,
+        )
+        return self
