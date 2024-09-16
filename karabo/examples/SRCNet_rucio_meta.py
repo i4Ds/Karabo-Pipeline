@@ -1,119 +1,160 @@
 """Example script to attach Rucio ObsCore metadata data-products for ingestion.
 
-This script probably needs adaption for your use-case. The parameters e.g. are not
-    customizable through an API. It also assumes that there's already a visibility
-    and image file available. Otherwise, you have to create them first. The manually
-    added values in this script are arbitrary to some extent and should be set (or not)
-    by yourself.
+Here, we create a simulated visibilities and a cleaned image. This is just an example
+script which should be highly adapted, e.g. you custom-sky, simulation params (for
+larger data-products, simulation params as user-input, multiple simulations, etc.).
 
-An end-to-end workflow would add the needed parts at the end of its simulation.
-    However, we just operate on existing files to avoid example-duplication.
+Be aware that API-changes can take place in future Karabo-versions.
+
+If not specified further (e.g. using `XDG_CACHE_HOME` or `FileHandler.root_stm`),
+Karabo is using /tmp. Thus if you have a script which is producing large and/or many
+data products, we suggest to adapt the cache-root to a volume with more space.
 """
 
 from __future__ import annotations
 
 import os
-from argparse import ArgumentParser
 from datetime import datetime
 
+import numpy as np
+from astropy import constants as const
 from astropy import units as u
 
 from karabo.data.obscore import FitsHeaderAxes, FitsHeaderAxis, ObsCoreMeta
 from karabo.data.src import RucioMeta
-from karabo.imaging.image import Image
+from karabo.imaging.imager_wsclean import WscleanImageCleaner, WscleanImageCleanerConfig
+from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
+from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.visibility import Visibility
+from karabo.simulator_backend import SimulatorBackend
+from karabo.util.file_handler import FileHandler
 from karabo.util.helpers import get_rnd_str
 
 
 def main() -> None:
-    parser = ArgumentParser()
-    parser.add_argument(
-        "--dp-path",
-        required=True,
-        type=str,
-        help="Path to data product inode (most likely file).",
+    # sky-to-visibilities simulation
+    # the params for this example are highly adapted to not create large
+    # data products, because this is not the focus of this script.
+    sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=231e6)  # in Hz
+    phase_center = [250, -80]  # RA,DEC in deg
+    filter_radius_deg = 0.8
+    sky = sky.filter_by_radius(0, filter_radius_deg, phase_center[0], phase_center[1])
+    tel = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
+    start_freq_hz = 76e6
+    num_chan = 16
+    freq_inc_hz = 1e8
+
+    obs = Observation(
+        start_frequency_hz=start_freq_hz,
+        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
+        phase_centre_ra_deg=phase_center[0],
+        phase_centre_dec_deg=phase_center[1],
+        number_of_channels=num_chan,
+        frequency_increment_hz=freq_inc_hz,
+        number_of_time_steps=24,
     )
-    parser.add_argument(
-        "--dp-type",
-        required=True,
-        type=str,
-        choices=["image", "visibility"],
-        help="Data product type. See `ObsCoreMeta` which file-formats are supported.",
+    # define any unique (required for ingestion) output-file-path
+    vis_path = os.path.join(FileHandler.stm(), "my-unique-vis-fname.vis")
+    interferometer_sim = InterferometerSimulation(
+        vis_path=vis_path, channel_bandwidth_hz=freq_inc_hz
     )
-    args = parser.parse_args()
-    dp_path: str = args.dp_path
-    dp_type: str = args.dp_type
+    vis = interferometer_sim.run_simulation(
+        telescope=tel,
+        sky=sky,
+        observation=obs,
+        backend=SimulatorBackend.OSKAR,
+    )
 
-    if not os.path.exists(dp_path):
-        err_msg = f"Inode {dp_path=} doesn't exist!"
-        raise RuntimeError(err_msg)
-    dp_path_meta = RucioMeta.get_meta_fname(fname=dp_path)
-    if os.path.exists(dp_path_meta):
-        err_msg = f"{dp_path_meta=} already exists!"
-        raise FileExistsError(err_msg)
-    if dp_type == "image":
-        image = Image(path=dp_path)
-        # `FitsHeaderAxes` may need adaption based on the structure of your .fits image
-        axes = FitsHeaderAxes(freq=FitsHeaderAxis(axis=4, unit=u.Hz))
-        ocm = ObsCoreMeta.from_image(img=image, fits_axes=axes)
-    elif dp_type == "visibility":
-        vis = Visibility(vis_path=dp_path)  # .vis supported, .ms not atm [07/2024]
-        # To extract additional information, `Telescope` & `Observation` should be
-        # provided with the same settings as `vis` was created. As mentioned in the
-        # module docstring, this is only necessary because we don't show the whole
-        # workflow here.
-        telescope = Telescope.constructor("ASKAP")
-        observation = Observation(  # settings from notebook, of `minimal_visibility`
-            start_frequency_hz=100e6,
-            start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-            phase_centre_ra_deg=250.0,
-            phase_centre_dec_deg=-80.0,
-            number_of_channels=16,
-            frequency_increment_hz=1e6,
-            number_of_time_steps=24,
-        )
-        ocm = ObsCoreMeta.from_visibility(
-            vis=vis,
-            calibrated=False,
-            tel=telescope,
-            obs=observation,
-        )
-    else:
-        err_msg = f"Unexpected {dp_type=}, allowed are only `dp-type` choices."
-        raise RuntimeError(err_msg)
-
-    # adapt each field according to your needs
-
-    # be sure that name & namespace together are unique, e.g. by having different fnames
-    name = os.path.split(dp_path)[-1]
-    rm = RucioMeta(
+    # create metadata of visibility (currently [08-24], .vis supported, casa .ms not)
+    vis_ocm = ObsCoreMeta.from_visibility(
+        vis=vis,
+        calibrated=False,
+        tel=tel,
+        obs=obs,
+    )
+    vis_rm = RucioMeta(
         namespace="testing",  # needs to be specified by Rucio service
-        name=name,
+        name=os.path.split(vis.vis_path)[-1],  # remove path-infos for `name`
         lifetime=86400,  # 1 day
         dataset_name=None,
-        meta=ocm,
+        meta=vis_ocm,
     )
-
     # ObsCore mandatory fields
-    ocm.obs_collection = "MRO/ASKAP"
-    obs_sim_id = 0  # unique observation-simulation ID of `USER`
+    vis_ocm.obs_collection = "MRO/ASKAP"
+    obs_sim_id = 0  # inc/change for new simulation
     user_rnd_str = get_rnd_str(k=7, seed=os.environ.get("USER"))
-    ocm.obs_id = f"karabo-{user_rnd_str}-{obs_sim_id}"
+    obs_id = f"karabo-{user_rnd_str}-{obs_sim_id}"  # unique ID per user & simulation
+    vis_ocm.obs_id = obs_id
     obs_publisher_did = RucioMeta.get_ivoid(  # rest args are defaults
-        namespace=rm.namespace,
-        name=rm.name,
+        namespace=vis_rm.namespace,
+        name=vis_rm.name,
     )
-    ocm.obs_publisher_did = obs_publisher_did
+    vis_ocm.obs_publisher_did = obs_publisher_did
 
-    # fill other fields of `ObsCoreMeta` here!
+    # fill/correct other fields of `ObsCoreMeta` here!
     # #####START#####
     # HERE
     # #####END#######
 
-    _ = rm.to_dict(fpath=dp_path_meta)
-    print(f"Created {dp_path_meta}")
+    vis_path_meta = RucioMeta.get_meta_fname(fname=vis.vis_path)
+    _ = vis_rm.to_dict(fpath=vis_path_meta)
+    print(f"Created {vis_path_meta=}")
+
+    # -----Imaging-----
+
+    # calc imaging params
+    mean_freq = start_freq_hz + freq_inc_hz * (num_chan - 1) / 2
+    wavelength = const.c.value / mean_freq  # in m
+    synthesized_beam = wavelength / tel.max_baseline()  # in rad
+    imaging_cellsize = synthesized_beam / 3  # consider nyquist sampling theorem
+    fov_deg = 2 * filter_radius_deg  # angular fov
+    imaging_npixel_estimate = fov_deg / np.rad2deg(imaging_cellsize)  # not even|rounded
+    imaging_npixel = int(np.floor((imaging_npixel_estimate + 1) / 2.0) * 2.0)
+
+    print(f"Imaging: {imaging_npixel=}, {imaging_cellsize=} ...", flush=True)
+    restored_path = os.path.join(FileHandler.stm(), "my-unique-image-fname.fits")
+    restored = WscleanImageCleaner(
+        WscleanImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+            niter=5000,  # 10 times less than default
+        )
+    ).create_cleaned_image(  # currently, wsclean needs casa .ms, which is also created
+        ms_file_path=vis.ms_file_path,
+        output_fits_path=restored_path,
+    )
+
+    # create metadata for restored .fits image
+    # `FitsHeaderAxes` may need adaption based on the structure of your .fits image
+    axes = FitsHeaderAxes(freq=FitsHeaderAxis(axis=3, unit=u.Hz))
+    restored_ocm = ObsCoreMeta.from_image(img=restored, fits_axes=axes)
+    restored_rm = RucioMeta(
+        namespace="testing",  # needs to be specified by Rucio service
+        name=os.path.split(restored.path)[-1],  # remove path-infos for `name`
+        lifetime=86400,  # 1 day
+        dataset_name=None,
+        meta=restored_ocm,
+    )
+    # ObsCore mandatory fields
+    # some of the metadata is taken from above, since both data-products originate
+    # from the same observation
+    restored_ocm.obs_collection = vis_ocm.obs_collection
+    restored_ocm.obs_id = vis_ocm.obs_id
+    obs_publisher_did = RucioMeta.get_ivoid(  # rest args are defaults
+        namespace=restored_rm.namespace,
+        name=restored_rm.name,
+    )
+    restored_ocm.obs_publisher_did = obs_publisher_did
+
+    # fill/correct other fields of `ObsCoreMeta` here!
+    # #####START#####
+    # HERE
+    # #####END#######
+
+    restored_path_meta = RucioMeta.get_meta_fname(fname=restored.path)
+    _ = restored_rm.to_dict(fpath=restored_path_meta)
+    print(f"Created {restored_path_meta=}")
 
 
 if __name__ == "__main__":
