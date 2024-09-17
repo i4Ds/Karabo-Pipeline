@@ -55,9 +55,9 @@ def main() -> None:
         number_of_time_steps=24,
     )
     # define any unique (required for ingestion) output-file-path
-    vis_path = os.path.join(FileHandler.stm(), "my-unique-vis-fname.vis")
+    ms_path = os.path.join(FileHandler.stm(), "my-unique-ms.ms")
     interferometer_sim = InterferometerSimulation(
-        vis_path=vis_path, channel_bandwidth_hz=freq_inc_hz
+        ms_file_path=ms_path, channel_bandwidth_hz=freq_inc_hz
     )
     vis = interferometer_sim.run_simulation(
         telescope=tel,
@@ -66,16 +66,13 @@ def main() -> None:
         backend=SimulatorBackend.OSKAR,
     )
 
-    # create metadata of visibility (currently [08-24], .vis supported, casa .ms not)
     vis_ocm = ObsCoreMeta.from_visibility(
         vis=vis,
         calibrated=False,
-        tel=tel,
-        obs=obs,
     )
     vis_rm = RucioMeta(
         namespace="testing",  # needs to be specified by Rucio service
-        name=os.path.split(vis.vis_path)[-1],  # remove path-infos for `name`
+        name=os.path.split(vis.ms_file_path)[-1],  # remove path-infos for `name`
         lifetime=86400,  # 1 day
         dataset_name=None,
         meta=vis_ocm,
@@ -97,7 +94,7 @@ def main() -> None:
     # HERE
     # #####END#######
 
-    vis_path_meta = RucioMeta.get_meta_fname(fname=vis.vis_path)
+    vis_path_meta = RucioMeta.get_meta_fname(fname=vis.ms_file_path)
     _ = vis_rm.to_dict(fpath=vis_path_meta)
     print(f"Created {vis_path_meta=}")
 

@@ -8,10 +8,20 @@ Recommended IVOA documents: https://www.ivoa.net/documents/index.html
 from __future__ import annotations
 
 import json
-import os
 import re
 from dataclasses import asdict, dataclass, field, fields
-from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, get_args
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    get_args,
+)
 from warnings import warn
 
 import numpy as np
@@ -22,12 +32,10 @@ from astropy import units as u
 from astropy.io.fits.header import Header
 from astropy.units.core import UnitBase
 from astropy.units.quantity import Quantity
-from oskar import VisHeader
 from typing_extensions import Self, TypeGuard, assert_never
 
-from karabo.data.casa import CasaMSMeta
+from karabo.data.casa import MSMainTable, MSMeta, MSPolarizationTable
 from karabo.imaging.image import Image
-from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
@@ -355,7 +363,7 @@ class ObsCoreMeta:
                 json_file.write(dump)
         return dictionary
 
-    def set_pol_states(self, pol_states: _PolStatesListType) -> None:
+    def set_pol_states(self, pol_states: Union[_PolStatesListType, List[int]]) -> None:
         """Sets `pol_states` from a pythonic interface to a `str` according to ObsCore.
 
         Overwrites if `pol_states` already exists.
@@ -363,8 +371,37 @@ class ObsCoreMeta:
         Args:
             pol_states: Polarization states.
         """
-        all_pol_states = set(get_args(_PolStatesType))
-        pol_states_ordered = all_pol_states - (all_pol_states - set(pol_states))
+
+        def is_int_list(
+            val: Union[_PolStatesListType, List[int]],
+        ) -> TypeGuard[List[int]]:
+            return all(isinstance(x, int) for x in val)
+
+        def is_str_list(
+            val: Union[_PolStatesListType, List[int]],
+        ) -> TypeGuard[_PolStatesListType]:
+            return all(isinstance(x, str) for x in val)
+
+        all_pol_states: _PolStatesListType = list(get_args(_PolStatesType))
+        if is_int_list(pol_states):
+            stokes_types = MSPolarizationTable.get_stokes_type(corr_type=pol_states)
+            pol_states_list = cast(
+                _PolStatesListType,
+                [
+                    stokes_type
+                    for stokes_type in stokes_types
+                    if stokes_type in all_pol_states
+                ],
+            )
+        elif is_str_list(pol_states):
+            pol_states_list = pol_states
+        else:
+            err_msg = f"{pol_states=} must be of type `list[int]` or `list[str]`."
+            raise TypeError(err_msg)
+
+        pol_states_ordered = set(all_pol_states) - (
+            set(all_pol_states) - set(pol_states_list)
+        )
         pol_states_str = "/".join(("", *pol_states_ordered, ""))
         self.pol_states = pol_states_str
 
@@ -422,11 +459,9 @@ class ObsCoreMeta:
     @classmethod
     def from_visibility(
         cls,
-        vis: Visibility,
+        vis: Visibility,  # not sure if also MS-path should be allowed
         *,
         calibrated: Optional[bool] = None,
-        tel: Optional[Telescope] = None,
-        obs: Optional[Observation] = None,
     ) -> Self:
         """Suggests fields from `Visibility`.
 
@@ -434,101 +469,87 @@ class ObsCoreMeta:
         is no possibility to fill all mandatory fields because there is just no
         information available. Thus, you have to take care of some fields by yourself.
 
-        Supported formats: `OSKAR .vis` files.
-
-        Not supported atm: `CASA .ms` measurement sets.
+        Supported formats: CASA Measurement Sets.
 
         Args:
             vis: `Visibility` instance.
             calibrated: Calibrated visibilities?
-            tel: `Telescope` to determine smallest spatial resolution.
-            obs: `Observation` to determine smallest spatial resolution.
 
         Returns:
             `ObsCoreMeta` instance.
         """
         ocm = cls(dataproduct_type="visibility")
-        # only .vis supported atm, `OSKAR` can't read .ms with multiple spectral windows
-        # for multiple format-support, think about restructuring the entire function,
-        # not just another elif block!
         ms_path = vis.ms_file_path
-        if os.path.exists(ms_path):
-            ms_meta = CasaMSMeta.from_ms(ms_path=ms_path)
-            field_table = ms_meta.field
-            if not np.all(field_table.num_poly == 0):
-                err_msg = (
-                    "Phase-center(s) depicted as polynomials in time is not supported."
-                )
-                raise NotImplementedError(err_msg)
-            if (n_phase_center := field_table.phase_dir.shape[0]) > 1:
-                wmsg = (
-                    f"Found {n_phase_center=} in `ObsCoreMeta.from_visibility` of "
-                    + f"{ms_path=}. Computing mean phase-center!"
-                )
-                warn(wmsg, category=RuntimeWarning, stacklevel=2)
-            phase_dir = np.rad2deg(field_table.phase_dir)
-            phase_dir[..., 0] = phase_dir[..., 0] % 360  # ensures pos RA
-            phase_center_deg = phase_dir.mean(axis=(0, 1))
-            ocm.s_ra = phase_center_deg[0]
-            ocm.s_dec = phase_center_deg[1]
-
-            vis_path = ""
-            header, _ = VisHeader.read(vis_path)
-            ocm.s_ra = header.phase_centre_ra_deg
-            ocm.s_dec = header.phase_centre_dec_deg
-            time_start_mjd_utc = header.time_start_mjd_utc
-            ocm.t_min = time_start_mjd_utc
-            time_inc_sec = header.time_inc_sec
-            total_duration_sec = time_inc_sec * header.num_times_total
-            time_end_mjd_utc = time_start_mjd_utc + (total_duration_sec / 86400.0)
-            ocm.t_max = time_end_mjd_utc
-            ocm.t_exptime = (
-                time_end_mjd_utc - time_start_mjd_utc
-            )  # assumes constant exposure time
-            t_res = max(time_inc_sec, header.time_average_sec)
-            ocm.t_resolution = t_res
-            num_elements_t = int(total_duration_sec / t_res)
-            ocm.t_xel = num_elements_t
-            freq_start_hz = header.freq_start_hz  # midpoint freq of first channel
-            channel_bandwidth_hz = header.channel_bandwidth_hz
-            freq_inc_hz = header.freq_inc_hz
-            min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
-            n_channels = header.num_channels_total
-            max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
-            c = const.c.value
-            min_wavelength_m = c / min_freq_hz
-            ocm.em_min = min_wavelength_m
-            max_wavelength_m = c / max_freq_hz
-            ocm.em_max = max_wavelength_m
-            if freq_inc_hz != 0:
-                midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
-                ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
-            ocm.em_xel = n_channels
-            ocm.access_estsize = int(getsize(inode=vis_path) / 1e3)  # B -> KB
+        c = const.c.value
+        ms_meta = MSMeta.from_ms(ms_path=ms_path)
+        field_table = ms_meta.field
+        if not np.all(field_table.num_poly == 0):
+            err_msg = (
+                "Phase-center(s) depicted as polynomials in time is not supported."
+            )
+            raise NotImplementedError(err_msg)
+        if (n_phase_center := field_table.phase_dir.shape[0]) > 1:
+            wmsg = (
+                f"Found {n_phase_center=} in `ObsCoreMeta.from_visibility` for "
+                + f"{ms_path=}. Computing mean/central phase-center!"
+            )
+            warn(wmsg, category=RuntimeWarning, stacklevel=2)
+        phase_dir_deg = np.rad2deg(field_table.phase_dir)
+        phase_dir_deg[:, :, 0] = phase_dir_deg[:, :, 0] % 360  # ensures positive RA
+        phase_center_deg = phase_dir_deg.mean(axis=(0, 1))
+        ocm.s_ra = phase_center_deg[0]
+        ocm.s_dec = phase_center_deg[1]
+        observation = ms_meta.observation
+        time_start_mjd_utc = observation.time_range[:, 0].min() / 86400
+        ocm.t_min = time_start_mjd_utc
+        time_end_mjd_utc = observation.time_range[:, 1].max() / 86400
+        ocm.t_max = time_end_mjd_utc
+        ocm.t_exptime = np.abs(  # abs is just to be sure
+            observation.time_range[:, 1] - observation.time_range[:, 0]
+        ).mean()  # in s, not mjd-utc
+        ocm.t_resolution = np.median(  # chosen representative value over min-interval
+            MSMainTable.get_col(
+                ms_path=ms_path,
+                col="INTERVAL",  # according to MS v2.0
+                nrow=300000000,  # to avoid memory & time issues, should be repres
+            )
+        )
+        ocm.t_xel = MSMainTable.nrows(ms_path=ms_path)
+        spectral_window = ms_meta.spectral_window
+        ocm.em_min = c / np.min(
+            spectral_window.chan_freq - spectral_window.chan_width / 2
+        )
+        ocm.em_max = c / np.max(
+            spectral_window.chan_freq + spectral_window.chan_width / 2
+        )
+        ocm.em_res_power = np.median(
+            spectral_window.chan_freq / spectral_window.chan_width
+        )
+        ocm.em_xel = spectral_window.chan_freq.ravel().shape[0]
+        ocm.access_estsize = int(getsize(inode=ms_path) / 1e3)  # B -> KB
+        ocm.instrument_name = ",".join(np.unique(ms_meta.observation.telescope_name))
+        b = float(np.max(ms_meta.antenna.baseline_dists()))
+        ocm.s_resolution = Telescope.ang_res(
+            freq=float(np.max(spectral_window.ref_frequency)),
+            b=b,
+        )
+        ocm.pol_xel = MSPolarizationTable.nrows(ms_path=ms_path)
+        corr_types = np.unique(ms_meta.polarization.corr_type.ravel()).tolist()
+        ocm.set_pol_states(pol_states=corr_types)
         ocm.em_ucd = "em.energy;em.radio"
         ocm.o_ucd = "phot.flux.density;phys.polarization.stokes"
-        # no particular polarization infos here for `pol_states` & `pol_xel`?
-        # need dish/antenna size for `s_fov` & `s_region` (tracking-mode)
         if calibrated is not None:
             if calibrated:  # can't be extracted from visibilities as far as I know
                 ocm.calib_level = 2
             else:
                 ocm.calib_level = 1
             # as far as I know, there's no MIME type for .ms or .vis, but for `.fits`
-        if tel is not None and (tel_name := tel.name) is not None:
-            ocm.instrument_name = tel_name
-        if tel is not None and obs is not None:
-            freq_inc_hz = obs.frequency_increment_hz
-            min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
-            end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
-            b = float(tel.max_baseline())
-            ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
         return ocm
 
     @classmethod
     def from_image(
         cls,
-        img: Image,
+        img: Image,  # not sure if also fits-path should be allowed
         *,
         fits_axes: Optional[FitsHeaderAxes] = None,
     ) -> Self:
@@ -812,6 +833,7 @@ class ObsCoreMeta:
         validator.validate(uri=uri_ref)
         return str(uri_ref.unsplit())
 
+    @classmethod
     @classmethod
     def _convert(
         cls,

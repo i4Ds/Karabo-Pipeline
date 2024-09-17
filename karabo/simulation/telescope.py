@@ -816,9 +816,7 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Length of longest baseline.
         """
-        dists = type(self).get_baselines_dists(
-            baselines_wgs84=self.get_baselines_wgs84()
-        )
+        dists = self.get_baselines_dists(baselines_wgs84=self.get_baselines_wgs84())
         max_distance = np.max(dists)
         return max_distance
 

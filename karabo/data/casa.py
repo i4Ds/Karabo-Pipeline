@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from contextlib import redirect_stdout
 from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, overload
 from warnings import warn
 
 import numpy as np
@@ -355,6 +355,73 @@ class MSPolarizationTable(_CasaTableABC):
     def _table_name(cls) -> str:
         return "POLARIZATION"
 
+    @overload
+    @classmethod
+    def get_stokes_type(cls, corr_type: List[int]) -> List[str]:
+        ...
+
+    @overload
+    @classmethod
+    def get_stokes_type(cls, corr_type: int) -> str:
+        ...
+
+    @classmethod
+    def get_stokes_type(cls, corr_type: Union[int, List[int]]) -> Union[str, List[str]]:
+        """Gets the stokes type(s) from corr type(s).
+
+        Args:
+            corr_type: Correlation type(s).
+
+        Returns:
+            Stokes type(s).
+        """
+        stokes_types = [
+            "Undefined",
+            "I",
+            "Q",
+            "U",
+            "V",
+            "RR",
+            "RL",
+            "LR",
+            "LL",
+            "XX",
+            "XY",
+            "YX",
+            "YY",
+            "RX",
+            "RY",
+            "LX",
+            "LY",
+            "XR",
+            "XL",
+            "YR",
+            "YL",
+            "PP",
+            "PQ",
+            "QP",
+            "QQ",
+            "RCircular",
+            "LCircular",
+            "Linear",
+            "Ptotal",
+            "Plinear",
+            "PFtotal",
+            "PFlinear",
+            "Pangle",
+        ]
+        n_types = len(stokes_types)
+        corr_to_stokes = {i: stokes for i, stokes in enumerate(stokes_types)}
+        if isinstance(corr_type, int):
+            if corr_type > n_types:
+                corr_type = 0
+            return corr_to_stokes[corr_type]
+        else:
+            return [
+                corr_to_stokes[corr] if corr < n_types else corr_to_stokes[0]
+                for corr in corr_type
+            ]
+
 
 @dataclass
 class MSAntennaTable(_CasaTableABC):
@@ -385,6 +452,19 @@ class MSAntennaTable(_CasaTableABC):
     @classmethod
     def _table_name(cls) -> str:
         return "ANTENNA"
+
+    def baseline_dists(self) -> NDArray[np.float64]:
+        """Computes the baseline euclidean distances in [m].
+
+        This function assumes that `self.position` is in ITRF.
+
+        Returns:
+            Baseline distances nxn where n is the number of antennas.
+        """
+        dists: NDArray[np.float64] = np.linalg.norm(
+            self.position[:, np.newaxis, :] - self.position[np.newaxis, :, :], axis=2
+        )
+        return dists
 
 
 @dataclass
