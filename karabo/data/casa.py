@@ -109,6 +109,28 @@ class _CasaTableABC(ABC):
         raise NotImplementedError()
 
     @classmethod
+    def _get_casa_table_instance(
+        cls,
+        ms_path: Union[str, Path],
+    ) -> casa_table:
+        """Gets a casa table instance from `_CasaTable ABC` inherited dataclass.
+
+        Args:
+            ms_path: Measurement set path.
+
+        Returns:
+            Casa table instance.
+        """
+        table_name = cls._table_name()
+        if table_name == "MAIN":
+            table_path = ms_path
+        else:
+            table_path = os.path.join(ms_path, table_name)
+        with redirect_stdout(None):
+            table_instance = casa_table(table_path)
+        return table_instance
+
+    @classmethod
     def from_ms(
         cls,
         ms_path: Union[str, Path],
@@ -121,17 +143,11 @@ class _CasaTableABC(ABC):
         Returns:
             Dataclass containing CASA Measurement Set table metadata.
         """
-        table_name = cls._table_name()
-        if table_name == "MAIN":
-            table_path = ms_path
-        else:
-            table_path = os.path.join(ms_path, table_name)
-        with redirect_stdout(None):
-            table_instance = casa_table(table_path)
+        table_instance = cls._get_casa_table_instance(ms_path=ms_path)
         self = _create_table(
             table=table_instance,
             classtype=cls,
-            subtable_id=None,
+            subtable_id=None,  # None means full table
         )
         return self
 
@@ -152,7 +168,7 @@ class _CasaTableABC(ABC):
 
         Args:
             ms_path: Measurement Set path.
-            col: Column name.
+            col: Column name (upper & lower-case allowed).
             startrow: Start row index.
             nrow: Number of rows to select. -1 is default and means all rows. This value
                 can be used to avoid potential memory issues (dep on dtype of `col).
@@ -160,18 +176,29 @@ class _CasaTableABC(ABC):
         Returns:
             According column of table.
         """
-        table_name = cls._table_name()
-        if table_name == "MAIN":
-            table_path = ms_path
-        else:
-            table_path = os.path.join(ms_path, table_name)
-        with redirect_stdout(None):
-            table_instance = casa_table(table_path)
-        return table_instance.getcol(col, startrow=startrow, nrow=nrow)
+        table_instance = cls._get_casa_table_instance(ms_path=ms_path)
+        return table_instance.getcol(col.upper(), startrow=startrow, nrow=nrow)
+
+    @classmethod
+    def nrows(
+        cls,
+        ms_path: Union[str, Path],
+    ) -> int:
+        """Returns the number of rows of the according dataclass MS table.
+
+        Args:
+            ms_path: Measurement Set path.
+
+        Returns:
+            Number of rows.
+        """
+        table_instance = cls._get_casa_table_instance(ms_path=ms_path)
+        nrows = int(table_instance.nrows())
+        return nrows
 
 
 @dataclass
-class CasaMSMeta:
+class MSMeta:
     """Utility class to extract metadata from CASA Measurement Sets."""
 
     observation: MSObservationTable
