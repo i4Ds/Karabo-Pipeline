@@ -135,6 +135,40 @@ class _CasaTableABC(ABC):
         )
         return self
 
+    @classmethod
+    def get_col(
+        cls,
+        ms_path: Union[str, Path],
+        col: str,
+        *,
+        startrow: int = 0,
+        nrow: int = -1,  # 500M is about 4GB for float64
+    ) -> Any:  # usually list[str], NDArray[np.float64|np.int32|np.bool], dict[str,Any]
+        """Get a specific column `col` of `ms_path`.
+
+        This is a very useful function in particular for the main table since it
+            can hold a large amount of data and loading a whole main table is just
+            not reasonable.
+
+        Args:
+            ms_path: Measurement Set path.
+            col: Column name.
+            startrow: Start row index.
+            nrow: Number of rows to select. -1 is default and means all rows. This value
+                can be used to avoid potential memory issues (dep on dtype of `col).
+
+        Returns:
+            According column of table.
+        """
+        table_name = cls._table_name()
+        if table_name == "MAIN":
+            table_path = ms_path
+        else:
+            table_path = os.path.join(ms_path, table_name)
+        with redirect_stdout(None):
+            table_instance = casa_table(table_path)
+        return table_instance.getcol(col, startrow=startrow, nrow=nrow)
+
 
 @dataclass
 class CasaMSMeta:
@@ -184,8 +218,8 @@ class MSMainTable(_CasaTableABC):
     Each row (dim0) of the main table represents a measurement.
 
     The loading of this dataclass can get out of hand if the measurement set has many
-        measurement sets. There we suggest to access the according column directly
-        via casacore to avoid eager loading.
+        measurement sets. There we suggest to access the according column via `get_col`
+        or directly from casacore to avoid eager loading.
 
     Args:
         time: Mid-point (not centroid) of data interval [s].
