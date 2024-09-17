@@ -18,11 +18,7 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
-from ska_sdp_datamodels.visibility import (
-    create_visibility,
-    export_visibility_to_hdf5,
-    export_visibility_to_ms,
-)
+from ska_sdp_datamodels.visibility import create_visibility, export_visibility_to_hdf5
 from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
 from ska_sdp_func_python.sky_component import apply_beam_to_skycomponent
 from typing_extensions import assert_never
@@ -48,6 +44,7 @@ from karabo.util._types import (
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
+from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import export_visibility_to_ms
 
 
 class CorrelationType(enum.Enum):
