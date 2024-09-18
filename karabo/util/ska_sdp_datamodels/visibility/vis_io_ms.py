@@ -2,6 +2,10 @@
 # pylint: disable=too-many-nested-blocks,too-many-branches
 # pylint: disable=invalid-name, duplicate-code
 """
+Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels
+Copyright: SKAO
+License: Apache License 2.0
+
 Base functions to create and export Visibility
 from/into Measurement Set files.
 They take definitions of columns from msv2.py

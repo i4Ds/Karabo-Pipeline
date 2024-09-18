@@ -2,6 +2,10 @@
 # pylint: disable=too-many-instance-attributes, too-many-locals
 # pylint: disable=duplicate-code
 """
+Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels
+Copyright: SKAO
+License: Apache License 2.0
+
 MeasurementSets V2 Reference Codes Based on Python-casacore
 """
 

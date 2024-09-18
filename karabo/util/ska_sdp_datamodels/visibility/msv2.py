@@ -2,6 +2,10 @@
 # pylint: disable=too-many-statements, too-many-branches
 # pylint: disable=invalid-name
 """
+Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels
+Copyright: SKAO
+License: Apache License 2.0
+
 MeasurementSets V2 Codes Based on Python-casacore For ska-sdp-datamodels
 """
 
