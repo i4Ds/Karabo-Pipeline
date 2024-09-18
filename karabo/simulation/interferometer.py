@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
-from ska_sdp_datamodels.visibility import create_visibility, export_visibility_to_hdf5
+from ska_sdp_datamodels.visibility import create_visibility
 from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
 from ska_sdp_func_python.sky_component import apply_beam_to_skycomponent
 from typing_extensions import assert_never
@@ -490,6 +490,12 @@ class InterferometerSimulation:
         # Apply DFT to compute visibilities from SkyComponent list
         # Return visibilities
 
+        if visibility_format != "MS":
+            raise ValueError(
+                f"Visibility format {visibility_format} is not supported, "
+                "only MS is supported for RASCIL"
+            )
+
         # Hour angles and integration time from observation
         observation_hour_angles = observation.compute_hour_angles_of_observation()
         observation_integration_time_seconds = (
@@ -550,13 +556,8 @@ class InterferometerSimulation:
         )
 
         # Save visibilities to disk
-        if visibility_format == "MS":
-            # TODO verify output
-            export_visibility_to_ms(self.ms_file_path, [vis])
-        elif visibility_format == "VIS":
-            export_visibility_to_hdf5(vis, self.vis_path)
-        else:
-            assert_never(visibility_format)
+        # TODO verify output
+        export_visibility_to_ms(self.ms_file_path, [vis])
 
         return vis
 
@@ -605,7 +606,7 @@ class InterferometerSimulation:
         )
         if visibility_format == "MS":
             visibilities_dir = os.path.join(tmp_dir, "measurements")
-        elif visibility_format == "VIS":
+        elif visibility_format == "OSKAR_VIS":
             visibilities_dir = os.path.join(tmp_dir, "visibilities")
         else:
             assert_never(visibility_format)
@@ -619,7 +620,7 @@ class InterferometerSimulation:
                         visibilities_dir, f"start_freq_{start_freq}.MS"
                     ),
                 )
-            elif visibility_format == "VIS":
+            elif visibility_format == "OSKAR_VIS":
                 interferometer_params = self.__get_OSKAR_settings_tree(
                     input_telpath=input_telpath,
                     vis_path=os.path.join(
@@ -649,7 +650,7 @@ class InterferometerSimulation:
                 Visibility(ms_file_path=r["interferometer"]["ms_filename"])
                 for r in results
             ]
-        elif visibility_format == "VIS":
+        elif visibility_format == "OSKAR_VIS":
             return [
                 Visibility(vis_path=r["interferometer"]["oskar_vis_filename"])
                 for r in results
@@ -684,7 +685,7 @@ class InterferometerSimulation:
                 input_telpath=input_telpath,
                 ms_file_path=self.ms_file_path,
             )
-        elif visibility_format == "VIS":
+        elif visibility_format == "OSKAR_VIS":
             interferometer_params = self.__get_OSKAR_settings_tree(
                 input_telpath=input_telpath,
                 vis_path=self.vis_path,
@@ -703,7 +704,7 @@ class InterferometerSimulation:
         if visibility_format == "MS":
             visibility_path = params_total["interferometer"]["ms_filename"]
             visibility = Visibility(ms_file_path=visibility_path)
-        elif visibility_format == "VIS":
+        elif visibility_format == "OSKAR_VIS":
             visibility_path = params_total["interferometer"]["oskar_vis_filename"]
             visibility = Visibility(vis_path=visibility_path)
         else:

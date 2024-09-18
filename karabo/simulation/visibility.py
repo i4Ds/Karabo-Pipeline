@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from karabo.util._types import DirPathType, FilePathType
 from karabo.util.file_handler import FileHandler
 
-VisibilityFormat = Literal["MS", "VIS"]
+VisibilityFormat = Literal["MS", "OSKAR_VIS"]
 
 
 class Visibility:
