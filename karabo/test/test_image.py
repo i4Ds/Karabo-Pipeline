@@ -21,7 +21,7 @@ from karabo.test.conftest import TFiles
 
 
 def test_image_circle(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = auto_choose_dirty_imager_from_vis(
         vis,
@@ -46,7 +46,7 @@ def test_image_circle(tobject: TFiles):
 
 
 def test_dirty_image(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = auto_choose_dirty_imager_from_vis(
         vis,
@@ -63,7 +63,7 @@ def test_dirty_image(tobject: TFiles):
 
 
 def test_dirty_image_resample(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
     SHAPE = 2048
 
     dirty_imager = auto_choose_dirty_imager_from_vis(
@@ -98,7 +98,7 @@ def test_dirty_image_resample(tobject: TFiles):
 
 
 def test_dirty_image_cutout(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = RascilDirtyImager(
         RascilDirtyImagerConfig(
@@ -125,7 +125,7 @@ def test_dirty_image_cutout(tobject: TFiles):
 
 
 def test_dirty_image_N_cutout(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = auto_choose_dirty_imager_from_vis(
         vis,
@@ -156,7 +156,7 @@ def test_dirty_image_N_cutout(tobject: TFiles):
 
 
 def test_cellsize_overwrite(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
@@ -186,7 +186,7 @@ def test_cellsize_overwrite(tobject: TFiles):
 
 
 def test_cellsize_overwrite_false(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
     dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
             imaging_npixel=2048,

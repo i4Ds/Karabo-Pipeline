@@ -8,7 +8,7 @@ from karabo.test.conftest import TFiles
 
 
 def test_ImageMosaicker(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = auto_choose_dirty_imager_from_vis(
         vis,

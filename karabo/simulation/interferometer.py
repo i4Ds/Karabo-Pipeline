@@ -833,8 +833,6 @@ class InterferometerSimulation:
         foreground: SkyModel,
         foreground_observation: Observation,
         foreground_vis_file: str,
-        write_ms: bool,
-        foreground_ms_file: str,
     ) -> Tuple[
         Visibility,
         List[NDArray[np.complex_]],
@@ -862,8 +860,6 @@ class InterferometerSimulation:
         ff_uu = fg_block.baseline_uu_metres()
         ff_vv = fg_block.baseline_vv_metres()
         ff_ww = fg_block.baseline_ww_metres()
-        if write_ms:
-            visibility.write_to_file(foreground_ms_file)
         return (
             visibility,
             foreground_cross_correlation,
