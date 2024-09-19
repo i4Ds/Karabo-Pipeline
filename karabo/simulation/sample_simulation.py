@@ -38,11 +38,10 @@ def run_sample_simulation(
 
     if verbose:
         print("Setting Up Telescope")
-    askap_tel = Telescope.constructor("ASKAP", backend=SIMULATOR_BACKEND)
+    askap_tel = Telescope.constructor("ASKAP", version=None, backend=SIMULATOR_BACKEND)
 
     if verbose:
         print("Setting Up Observation")
-
     observation_settings = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
@@ -56,7 +55,7 @@ def run_sample_simulation(
         print("Generating Visibilities")
 
     vis = Visibility()
-    vis_path = vis.vis_path
+    vis_path = str(vis.vis_path)
 
     print(f"Saving file to {vis_path}")
     interferometer_sim = InterferometerSimulation(
