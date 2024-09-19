@@ -1,7 +1,6 @@
 import enum
 import os
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 from typing import get_args as typing_get_args
 from typing import overload
@@ -178,7 +177,7 @@ class InterferometerSimulation:
     def __init__(
         self,
         ms_file_path: Optional[str] = None,
-        vis_path: Optional[Union[Path, str]] = None,
+        vis_path: Optional[str] = None,
         channel_bandwidth_hz: IntFloat = 0,
         time_average_sec: IntFloat = 0,
         max_time_per_samples: int = 8,
