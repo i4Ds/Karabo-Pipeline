@@ -500,7 +500,7 @@ class ObsCoreMeta:
             freq_inc_hz = obs.frequency_increment_hz
             min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
             end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
-            b = float(tel.longest_baseline())
+            b = float(tel.max_baseline())
             ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
         return ocm
 
@@ -509,7 +509,7 @@ class ObsCoreMeta:
         cls,
         img: Image,
         *,
-        fits_axes: FitsHeaderAxes = FitsHeaderAxes(),  # immutable default
+        fits_axes: Optional[FitsHeaderAxes] = None,
     ) -> Self:
         """Update fields from `Image`.
 
@@ -534,12 +534,12 @@ class ObsCoreMeta:
         """
         file = img.path
         assert_valid_ending(path=file, ending=".fits")
+        if fits_axes is None:
+            fits_axes = FitsHeaderAxes()
         header = img.header
         if not header["SIMPLE"]:
             wmsg = f"{file} doesn't follow .fits standard! Info extraction might fail!"
-            warn(message=wmsg, category=UserWarning, stacklevel=1)
-        ra_deg = fits_axes.x.crval(header=header).to(u.deg).value  # center
-        dec_deg = fits_axes.y.crval(header=header).to(u.deg).value  # center
+            warn(message=wmsg, category=UserWarning, stacklevel=2)
         freq_center_hz = fits_axes.freq.crval(header=header).to(u.Hz).value  # center
         x_inc_deg = fits_axes.x.cdelt(header=header).to(u.deg).value  # inc at center
         y_inc_deg = fits_axes.y.cdelt(header=header).to(u.deg).value  # inc at center
@@ -553,7 +553,7 @@ class ObsCoreMeta:
                 f"Pixel-size is not square for `s_pixel_scale`: {x_inc_deg=}, "
                 + f"{y_inc_deg}. `s_pixel_scale` set to {s_pixel_scale=}."
             )
-            warn(message=wmsg, category=UserWarning, stacklevel=1)
+            warn(message=wmsg, category=UserWarning, stacklevel=2)
         min_freq_hz = freq_center_hz - freq_inc_hz / 2
         c = const.c.value
         min_wavelength_m = c / min_freq_hz
@@ -562,14 +562,11 @@ class ObsCoreMeta:
         fov_deg = np.sqrt(
             (s_pixel_scale * x_pixel) ** 2 + (y_inc_deg * y_pixel) ** 2
         )  # circular fov of flattened image
-        half_width_deg = s_pixel_scale * x_pixel / 2
-        half_height_deg = abs(y_inc_deg) * y_pixel / 2
-        bottom_left = (ra_deg - half_width_deg, dec_deg - half_height_deg)
-        top_left = (ra_deg - half_width_deg, dec_deg + half_height_deg)
-        top_right = (ra_deg + half_width_deg, dec_deg + half_height_deg)
-        bottom_right = (ra_deg + half_width_deg, dec_deg - half_height_deg)
+        world_coords = Image.get_corners_in_world(header=header)
+        # assuming `get_corners_in_world` has circling corner order
+        corners = [(world_coord[0], world_coord[1]) for world_coord in world_coords]
         spoly = cls.spoly(
-            poly=(bottom_left, top_left, top_right, bottom_right),
+            poly=corners,
             ndigits=3,
             suffix="d",
         )
