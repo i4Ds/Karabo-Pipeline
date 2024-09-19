@@ -65,4 +65,8 @@ def run_sample_simulation(
         askap_tel, sky, observation_settings, backend=SIMULATOR_BACKEND
     )
 
+    # In case run_simulation returns a list of vis (allowed by type hint)
+    if isinstance(visibility_askap, list):
+        visibility_askap = visibility_askap[0]
+
     return visibility_askap, sky
