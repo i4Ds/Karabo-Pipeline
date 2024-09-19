@@ -8,7 +8,9 @@ from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
 
 
-def run_sample_simulation(phase_center=[250, -80], verbose=False) -> Visibility:
+def run_sample_simulation(
+    phase_center: list[float] = [250, -80], verbose: bool = False
+) -> tuple[Visibility, SkyModel]:
     """
     Creates example visibilities for use in tests, experiments and examples.
 
