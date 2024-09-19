@@ -24,8 +24,6 @@ def run_sample_simulation(
         SkyModel: Sky model used for the simulation
     """
 
-    SIMULATOR_BACKEND = SimulatorBackend.OSKAR
-
     if verbose:
         print("Getting Sky Survey")
     # Get GLEAM Survey Sky
@@ -38,7 +36,9 @@ def run_sample_simulation(
 
     if verbose:
         print("Setting Up Telescope")
-    askap_tel = Telescope.constructor("ASKAP", version=None, backend=SIMULATOR_BACKEND)
+    askap_tel = Telescope.constructor(
+        "ASKAP", version=None, backend=SimulatorBackend.OSKAR
+    )
 
     if verbose:
         print("Setting Up Observation")
@@ -62,7 +62,7 @@ def run_sample_simulation(
         vis_path=vis_path, channel_bandwidth_hz=1e6
     )
     visibility_askap = interferometer_sim.run_simulation(
-        askap_tel, sky, observation_settings, backend=SIMULATOR_BACKEND
+        askap_tel, sky, observation_settings, backend=SimulatorBackend.OSKAR
     )
 
     # In case run_simulation returns a list of vis (allowed by type hint)
