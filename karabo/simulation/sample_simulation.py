@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Union
 
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -9,13 +10,13 @@ from karabo.simulator_backend import SimulatorBackend
 
 
 def run_sample_simulation(
-    phase_center: list[float] = [250, -80], verbose: bool = False
+    phase_center: Union[list[float], None] = None, *, verbose: bool = False
 ) -> tuple[Visibility, SkyModel]:
     """
     Creates example visibilities for use in tests, experiments and examples.
 
     Args:
-        phase_center: ra and dec of the sky
+        phase_center: ra and dec of the sky. Defaults to [250, -80] if not provided.
         verbose: Boolean to decide if console outputs are made during simulation
         (e.g. for use in ipynb)
 
@@ -23,6 +24,9 @@ def run_sample_simulation(
         Visibility: visibilities created by the simulation
         SkyModel: Sky model used for the simulation
     """
+
+    if phase_center is None:
+        phase_center = [250, -80]
 
     if verbose:
         print("Getting Sky Survey")
