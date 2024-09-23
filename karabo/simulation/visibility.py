@@ -41,7 +41,7 @@ class Visibility:
                 f"{format_matches}"
             )
         else:
-            self.visibility_format = format_matches[0]
+            self.visibility_format: VisibilityFormat = format_matches[0]
 
     @staticmethod
     def combine_spectral_foreground_vis(

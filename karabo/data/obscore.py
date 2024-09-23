@@ -8,6 +8,7 @@ Recommended IVOA documents: https://www.ivoa.net/documents/index.html
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import asdict, dataclass, field, fields
 from typing import (
@@ -32,10 +33,12 @@ from astropy import units as u
 from astropy.io.fits.header import Header
 from astropy.units.core import UnitBase
 from astropy.units.quantity import Quantity
+from oskar import VisHeader
 from typing_extensions import Self, TypeGuard, assert_never
 
 from karabo.data.casa import MSMainTable, MSMeta, MSPolarizationTable
 from karabo.imaging.image import Image
+from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
@@ -467,6 +470,8 @@ class ObsCoreMeta:
         vis: Visibility,  # not sure if also MS-path should be allowed
         *,
         calibrated: Optional[bool] = None,
+        tel: Optional[Telescope] = None,
+        obs: Optional[Observation] = None,
     ) -> Self:
         """Suggests fields from `Visibility`.
 
@@ -474,73 +479,134 @@ class ObsCoreMeta:
         is no possibility to fill all mandatory fields because there is just no
         information available. Thus, you have to take care of some fields by yourself.
 
-        Supported formats: CASA Measurement Sets.
+        Supported formats: CASA Measurement Sets & OSKAR-vis binary. CASA MS format
+            is preferred since it provides more metadata information compared to
+            OSKAR binaries.
 
         Args:
             vis: `Visibility` instance.
             calibrated: Calibrated visibilities?
+            tel: `Telescope` to determine smallest spatial resolution. This parameter
+                has just an effect if the underlying vis-format of `vis` is an OSKAR-vis
+                binary.
+            obs: `Observation` to determine smallest spatial resolution. This
+                parameter has just an effect if the underlying vis-format of `vis` is an
+                OSKAR-vis binary.
 
         Returns:
             `ObsCoreMeta` instance.
         """
         ocm = cls(dataproduct_type="visibility")
-        ms_path = vis.visibility_path
+        vis_inode = vis.visibility_path
+        if not os.path.exists(vis_inode):
+            err_msg = f"{vis_inode} doesn't exist!"
+            raise FileNotFoundError(err_msg)
         c = const.c.value
-        ms_meta = MSMeta.from_ms(ms_path=ms_path)
-        field_table = ms_meta.field
-        if not np.all(field_table.num_poly == 0):
-            err_msg = (
-                "Phase-center(s) depicted as polynomials in time is not supported."
+        if vis.visibility_format == "MS":
+            if tel is not None or obs is not None:
+                wmsg = (
+                    "Providing `tel` or `obs` in `ObsCoreMeta.from_visibility` for "
+                    + "underlying CASA Measurement Set visibility has no effect!"
+                )
+                warn(wmsg, category=UserWarning, stacklevel=2)
+            ms_meta = MSMeta.from_ms(ms_path=vis_inode)
+            field_table = ms_meta.field
+            if not np.all(field_table.num_poly == 0):
+                err_msg = (
+                    "Phase-center(s) depicted as polynomials in time is not supported."
+                )
+                raise NotImplementedError(err_msg)
+            if (n_phase_center := field_table.phase_dir.shape[0]) > 1:
+                wmsg = (
+                    f"Found {n_phase_center=} in `ObsCoreMeta.from_visibility` for "
+                    + f"{vis_inode=}. Computing mean/central phase-center!"
+                )
+                warn(wmsg, category=RuntimeWarning, stacklevel=2)
+            phase_dir_deg = np.rad2deg(field_table.phase_dir)
+            phase_dir_deg[:, :, 0] = phase_dir_deg[:, :, 0] % 360  # ensures positive RA
+            phase_center_deg = phase_dir_deg.mean(axis=(0, 1))
+            ocm.s_ra = phase_center_deg[0]
+            ocm.s_dec = phase_center_deg[1]
+            observation = ms_meta.observation
+            time_start_mjd_utc = observation.time_range[:, 0].min() / 86400
+            ocm.t_min = time_start_mjd_utc
+            time_end_mjd_utc = observation.time_range[:, 1].max() / 86400
+            ocm.t_max = time_end_mjd_utc
+            ocm.t_exptime = np.abs(  # abs is just to be sure
+                observation.time_range[:, 1] - observation.time_range[:, 0]
+            ).mean()  # in s, not mjd-utc
+            ocm.t_resolution = np.median(  # chosen repres value over min-interval
+                MSMainTable.get_col(
+                    ms_path=vis_inode,
+                    col="INTERVAL",  # according to MS v2.0
+                    nrow=300000000,  # to avoid memory & time issues, should be repres
+                )
             )
-            raise NotImplementedError(err_msg)
-        if (n_phase_center := field_table.phase_dir.shape[0]) > 1:
-            wmsg = (
-                f"Found {n_phase_center=} in `ObsCoreMeta.from_visibility` for "
-                + f"{ms_path=}. Computing mean/central phase-center!"
+            ocm.t_xel = MSMainTable.nrows(ms_path=vis_inode)
+            spectral_window = ms_meta.spectral_window
+            ocm.em_min = c / np.min(
+                spectral_window.chan_freq - spectral_window.chan_width / 2
             )
-            warn(wmsg, category=RuntimeWarning, stacklevel=2)
-        phase_dir_deg = np.rad2deg(field_table.phase_dir)
-        phase_dir_deg[:, :, 0] = phase_dir_deg[:, :, 0] % 360  # ensures positive RA
-        phase_center_deg = phase_dir_deg.mean(axis=(0, 1))
-        ocm.s_ra = phase_center_deg[0]
-        ocm.s_dec = phase_center_deg[1]
-        observation = ms_meta.observation
-        time_start_mjd_utc = observation.time_range[:, 0].min() / 86400
-        ocm.t_min = time_start_mjd_utc
-        time_end_mjd_utc = observation.time_range[:, 1].max() / 86400
-        ocm.t_max = time_end_mjd_utc
-        ocm.t_exptime = np.abs(  # abs is just to be sure
-            observation.time_range[:, 1] - observation.time_range[:, 0]
-        ).mean()  # in s, not mjd-utc
-        ocm.t_resolution = np.median(  # chosen representative value over min-interval
-            MSMainTable.get_col(
-                ms_path=ms_path,
-                col="INTERVAL",  # according to MS v2.0
-                nrow=300000000,  # to avoid memory & time issues, should be repres
+            ocm.em_max = c / np.max(
+                spectral_window.chan_freq + spectral_window.chan_width / 2
             )
-        )
-        ocm.t_xel = MSMainTable.nrows(ms_path=ms_path)
-        spectral_window = ms_meta.spectral_window
-        ocm.em_min = c / np.min(
-            spectral_window.chan_freq - spectral_window.chan_width / 2
-        )
-        ocm.em_max = c / np.max(
-            spectral_window.chan_freq + spectral_window.chan_width / 2
-        )
-        ocm.em_res_power = np.median(
-            spectral_window.chan_freq / spectral_window.chan_width
-        )
-        ocm.em_xel = spectral_window.chan_freq.ravel().shape[0]
-        ocm.access_estsize = int(getsize(inode=ms_path) / 1e3)  # B -> KB
-        ocm.instrument_name = ",".join(np.unique(ms_meta.observation.telescope_name))
-        b = float(np.max(ms_meta.antenna.baseline_dists()))
-        ocm.s_resolution = Telescope.ang_res(
-            freq=float(np.max(spectral_window.ref_frequency)),
-            b=b,
-        )
-        ocm.pol_xel = MSPolarizationTable.nrows(ms_path=ms_path)
-        corr_types = np.unique(ms_meta.polarization.corr_type.ravel()).tolist()
-        ocm.set_pol_states(pol_states=corr_types)
+            ocm.em_res_power = np.median(
+                spectral_window.chan_freq / spectral_window.chan_width
+            )
+            ocm.em_xel = spectral_window.chan_freq.ravel().shape[0]
+            ocm.instrument_name = ",".join(
+                np.unique(ms_meta.observation.telescope_name)
+            )
+            b = float(np.max(ms_meta.antenna.baseline_dists()))
+            ocm.s_resolution = Telescope.ang_res(
+                freq=float(np.max(spectral_window.ref_frequency)),
+                b=b,
+            )
+            ocm.pol_xel = MSPolarizationTable.nrows(ms_path=vis_inode)
+            corr_types = np.unique(ms_meta.polarization.corr_type.ravel()).tolist()
+            ocm.set_pol_states(pol_states=corr_types)
+        elif vis.visibility_format == "OSKAR_VIS":
+            header, _ = VisHeader.read(vis_inode)
+            ocm.s_ra = header.phase_centre_ra_deg
+            ocm.s_dec = header.phase_centre_dec_deg
+            time_start_mjd_utc = header.time_start_mjd_utc
+            ocm.t_min = time_start_mjd_utc
+            time_inc_sec = header.time_inc_sec
+            total_duration_sec = time_inc_sec * header.num_times_total
+            time_end_mjd_utc = time_start_mjd_utc + (total_duration_sec / 86400.0)
+            ocm.t_max = time_end_mjd_utc
+            ocm.t_exptime = (
+                time_end_mjd_utc - time_start_mjd_utc
+            ) * 86400  # assumes constant exposure time & mjd to [s]
+            t_res = max(time_inc_sec, header.time_average_sec)
+            ocm.t_resolution = t_res
+            num_elements_t = int(total_duration_sec / t_res)
+            ocm.t_xel = num_elements_t
+            freq_start_hz = header.freq_start_hz  # midpoint freq of first channel
+            channel_bandwidth_hz = header.channel_bandwidth_hz
+            freq_inc_hz = header.freq_inc_hz
+            min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
+            n_channels = header.num_channels_total
+            max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
+            min_wavelength_m = c / min_freq_hz
+            ocm.em_min = min_wavelength_m
+            max_wavelength_m = c / max_freq_hz
+            ocm.em_max = max_wavelength_m
+            if freq_inc_hz != 0:
+                midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
+                ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
+            ocm.em_xel = n_channels
+            if tel is not None and (tel_name := tel.name) is not None:
+                ocm.instrument_name = tel_name
+            if tel is not None and obs is not None:
+                freq_inc_hz = obs.frequency_increment_hz
+                min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
+                end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
+                b = float(tel.max_baseline())
+                ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
+        else:
+            assert_never(vis.visibility_format)
+        ocm.access_estsize = int(getsize(inode=vis_inode) / 1e3)  # B -> KB
         ocm.em_ucd = "em.energy;em.radio"
         ocm.o_ucd = "phot.flux.density;phys.polarisation"
         if calibrated is not None:
