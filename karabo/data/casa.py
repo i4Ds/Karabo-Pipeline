@@ -31,7 +31,6 @@ def _get_cols(
     Args:
         table: Table to get columns from.
         subtable_id: Row number. If not specified, no specific row will be selected.
-        fill_str: Fill non-existing string colnames with empty str?
 
     Raises:
         RuntimeError: If no column is successfully extracted.
@@ -52,7 +51,7 @@ def _get_cols(
         except RuntimeError:  # can happen if col-name not present in `table`
             cols[name.lower()] = None
     if len(cols) == 0:
-        err_msg = "No cols found in `table"
+        err_msg = "No cols found in `table`."
         raise RuntimeError(err_msg)
     return cols
 
