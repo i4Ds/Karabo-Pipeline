@@ -199,14 +199,23 @@ class _CasaTableABC(ABC):
 
 @dataclass
 class MSMeta:
-    """Utility class to extract metadata from CASA Measurement Sets."""
+    """Utility class to extract metadata from CASA Measurement Sets.
+
+    Args:
+        observation: Observations.
+        polarization: Polarizations.
+        antenna: Antennas.
+        field: Fields.
+        spectral_window: Spectral Windows.
+        ms_version: CASA MS version.
+    """
 
     observation: MSObservationTable
     polarization: MSPolarizationTable
     antenna: MSAntennaTable
     field: MSFieldTable
     spectral_window: MSSpectralWindowTable
-    version: MS_VERSION
+    ms_version: MS_VERSION
 
     @classmethod
     def from_ms(
@@ -237,7 +246,7 @@ class MSMeta:
             antenna=antenna_table,
             field=field_table,
             spectral_window=spectral_window_table,
-            version=ms_version,
+            ms_version=ms_version,
         )
 
 
