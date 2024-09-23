@@ -6,11 +6,12 @@ from typing import List, Literal, Optional, get_args
 
 import numpy as np
 import oskar
-from numpy.typing import NDArray
 
 from karabo.util._types import DirPathType, FilePathType
 from karabo.util.file_handler import FileHandler
 
+# If you add a new format, if possible, please support automatic matching of a path
+# to the format in Visibility._parse_visibility_format_from_path.
 VisibilityFormat = Literal["MS", "OSKAR_VIS"]
 
 
@@ -49,100 +50,6 @@ class Visibility:
             if f(visibility_path) is True:
                 return visibility_format
         return None
-
-    @staticmethod
-    def combine_spectral_foreground_vis(
-        foreground_vis_file: str,
-        spectral_vis_output: List[str],
-        combined_vis_filepath: str,
-    ) -> None:
-        """
-        This function combines the visibilities of foreground and spectral lines
-        Inputs: foreground visibility file, list of spectral line vis files,
-        output path & name of combined vis file
-        """
-        print("#--- Performing visibilities combination...")
-        (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
-        foreground_cross_correlation: List[NDArray[np.complex64]] = list()
-        fg_chan = [0] * fg_header.num_blocks
-        foreground_freq = fg_header.freq_start_hz + fg_header.freq_inc_hz * np.arange(
-            fg_header.num_channels_total
-        )
-        nvis = len(spectral_vis_output)
-        out_vis: List[List[NDArray[np.complex64]]] = list()
-        # fg_max_channel=fg_header.max_channels_per_block;
-        for i in range(fg_header.num_blocks):
-            fg_block = oskar.VisBlock.create_from_header(fg_header)
-            fg_block.read(fg_header, fg_handle, i)
-            fg_chan[i] = fg_block.num_channels
-            foreground_cross_correlation.append(fg_block.cross_correlations())
-        ff_uu = fg_block.baseline_uu_metres()
-        ff_vv = fg_block.baseline_vv_metres()
-        ff_ww = fg_block.baseline_ww_metres()
-        # for j in tqdm(range(nvis)):
-        for j in range(nvis):
-            (sp_header, sp_handle) = oskar.VisHeader.read(spectral_vis_output[j])
-            spec_freq = sp_header.freq_start_hz
-            spec_idx = int(
-                np.where(
-                    abs(foreground_freq - spec_freq)
-                    == np.min(abs(foreground_freq - spec_freq))
-                )[0]
-            )
-            print(spec_freq, spec_idx)
-            out_vis.append(list())
-            for k in range(sp_header.num_blocks):
-                sp_block = oskar.VisBlock.create_from_header(sp_header)
-                sp_block.read(sp_header, sp_handle, k)
-                out_vis[j].append(sp_block.cross_correlations())
-            block_num = int(spec_idx / fg_header.max_channels_per_block)
-            chan_block_num = int(
-                spec_idx - block_num * fg_header.max_channels_per_block
-            )
-            fcc = foreground_cross_correlation[block_num][:, chan_block_num, :, :]
-            foreground_cross_correlation[block_num][:, chan_block_num, :, :] = (
-                fcc + out_vis[j][0][0]
-            )
-        # --------- Writing the Visibilities
-        os.system("rm -rf " + combined_vis_filepath)
-        ms = oskar.MeasurementSet.create(
-            combined_vis_filepath,
-            fg_block.num_stations,
-            fg_header.num_channels_total,
-            fg_block.num_pols,
-            fg_header.freq_start_hz,
-            fg_header.freq_inc_hz,
-        )
-        ms.set_phase_centre(
-            fg_header.phase_centre_ra_deg, fg_header.phase_centre_dec_deg
-        )
-        # Write data one block at a time.
-        time_inc = fg_header.time_inc_sec
-        print("### Writing combined visibilities in ", combined_vis_filepath)
-        start_row = 0
-        exposure_sec = fg_header.get_time_average_sec()
-        fg_chan = [0] * len(foreground_cross_correlation)
-        time_stamp = fg_header.get_time_start_mjd_utc()
-        ms.write_coords(
-            start_row,
-            fg_block.num_baselines,
-            ff_uu[0],
-            ff_vv[0],
-            ff_ww[0],
-            exposure_sec,
-            time_inc,
-            time_stamp,
-        )
-        fcc_array = foreground_cross_correlation[0]
-        for k in range(len(foreground_cross_correlation) - 1):
-            fcc_array = np.hstack((fcc_array, foreground_cross_correlation[k + 1]))
-        ms.write_vis(
-            start_row,
-            0,
-            fg_header.num_channels_total,
-            fg_block.num_baselines,
-            fcc_array,
-        )
 
     @staticmethod
     def combine_vis(
@@ -251,94 +158,6 @@ class Visibility:
                     block.num_baselines,
                     out_vis_reshaped[t],
                 )
-        if return_path:
-            return combined_ms_filepath
-        else:
-            return None
-
-    @staticmethod
-    def combine_vis_sky_chunks(
-        visibility_files: List[FilePathType],
-        combined_ms_filepath: Optional[DirPathType] = None,
-        return_path: bool = False,
-    ) -> Optional[DirPathType]:
-        print(f"Combining {len(visibility_files)} visibilities...")
-        if combined_ms_filepath is None:
-            tmp_dir = FileHandler().get_tmp_dir(
-                prefix="combine-vis-sky-chunks-",
-                purpose="combine-vis-sky-chunks disk-cache.",
-            )
-            combined_ms_filepath = os.path.join(tmp_dir, "combined.MS")
-
-        # Initialize lists to store data
-        out_vis, uui, vvi, wwi, time_start, time_inc, time_ave = ([] for _ in range(7))
-
-        # Loop over visibility files and read data
-        for vis_file in visibility_files:
-            (header, handle) = oskar.VisHeader.read(vis_file)
-            block = oskar.VisBlock.create_from_header(header)
-            for k in range(header.num_blocks):
-                block.read(header, handle, k)
-            out_vis.append(block.cross_correlations())
-            uui.append(block.baseline_uu_metres())
-            vvi.append(block.baseline_vv_metres())
-            wwi.append(block.baseline_ww_metres())
-            time_inc.append(header.time_inc_sec)
-            time_start.append(header.time_start_mjd_utc)
-            time_ave.append(header.get_time_average_sec())
-
-        # Combine visibility data
-        combined_vis = np.sum(out_vis, axis=0)
-        combined_uu = np.mean(uui, axis=0)
-        combined_vv = np.mean(vvi, axis=0)
-        combined_ww = np.mean(wwi, axis=0)
-        combined_time_start = np.min(time_start)
-        combined_time_inc = np.min(time_inc)
-        combined_time_ave = np.mean(time_ave)
-
-        print(f"Num channels: {block.num_channels}")
-        # Create a new measurement set
-        ms = oskar.MeasurementSet.create(
-            str(combined_ms_filepath),
-            block.num_stations,
-            block.num_channels,
-            block.num_pols,
-            header.freq_start_hz,
-            header.freq_inc_hz,
-        )
-        deg2rad = np.pi / 180
-        ms.set_phase_centre(
-            header.phase_centre_ra_deg * deg2rad, header.phase_centre_dec_deg * deg2rad
-        )
-
-        # Write combined visibility data
-        print("### Writing combined visibilities in ", combined_ms_filepath)
-
-        num_files = len(visibility_files)
-        for j in range(num_files):
-            num_times = out_vis[j].shape[0]
-            for t in range(num_times):
-                time_stamp = combined_time_inc * combined_time_start
-                exposure_sec = combined_time_ave
-                start_row = t * block.num_baselines
-                ms.write_coords(
-                    start_row,
-                    block.num_baselines,
-                    combined_uu[t],
-                    combined_vv[t],
-                    combined_ww[t],
-                    exposure_sec,
-                    combined_time_ave,
-                    time_stamp,
-                )
-                ms.write_vis(
-                    start_row,
-                    0,
-                    block.num_channels,
-                    block.num_baselines,
-                    combined_vis[t],
-                )
-
         if return_path:
             return combined_ms_filepath
         else:
