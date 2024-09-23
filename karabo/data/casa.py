@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from contextlib import redirect_stdout
 from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, overload
+from typing import Any, Dict, List, Literal, Optional, Type, TypeVar, Union, overload
 from warnings import warn
 
 import numpy as np
@@ -19,6 +19,7 @@ from numpy.typing import NDArray
 from typing_extensions import Self
 
 _TDataClass = TypeVar("_TDataClass")
+MS_VERSION = Literal["1.0", "2.0"]  # atm [09-2024]
 
 
 def _get_cols(
@@ -205,6 +206,7 @@ class MSMeta:
     antenna: MSAntennaTable
     field: MSFieldTable
     spectral_window: MSSpectralWindowTable
+    version: MS_VERSION
 
     @classmethod
     def from_ms(
@@ -228,12 +230,14 @@ class MSMeta:
         antenna_table = MSAntennaTable.from_ms(ms_path=ms_path)
         field_table = MSFieldTable.from_ms(ms_path=ms_path)
         spectral_window_table = MSSpectralWindowTable.from_ms(ms_path=ms_path)
+        ms_version = MSMainTable.ms_version(ms_path=ms_path)
         return cls(
             observation=obs_table,
             polarization=pol_table,
             antenna=antenna_table,
             field=field_table,
             spectral_window=spectral_window_table,
+            version=ms_version,
         )
 
 
@@ -297,6 +301,24 @@ class MSMainTable(_CasaTableABC):
     @classmethod
     def _table_name(cls) -> str:
         return "MAIN"
+
+    @classmethod
+    def ms_version(
+        cls,
+        ms_path: Union[str, Path],
+    ) -> MS_VERSION:
+        """Gets the CASA MS version of `ms_path`.
+
+        Args:
+            ms_path: Measurement set path.
+
+        Returns:
+            Version of CASA Measurement Set.
+        """
+        ms_path
+        ct = cls._get_casa_table_instance(ms_path=ms_path)
+        version: MS_VERSION = ct.getkeyword("MS_VERSION")
+        return version
 
 
 @dataclass
