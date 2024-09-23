@@ -484,7 +484,7 @@ class ObsCoreMeta:
             `ObsCoreMeta` instance.
         """
         ocm = cls(dataproduct_type="visibility")
-        ms_path = vis.ms_file_path
+        ms_path = vis.visibility_path
         c = const.c.value
         ms_meta = MSMeta.from_ms(ms_path=ms_path)
         field_table = ms_meta.field

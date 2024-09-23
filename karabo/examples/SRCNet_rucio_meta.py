@@ -72,7 +72,7 @@ def main() -> None:
     )
     vis_rm = RucioMeta(
         namespace="testing",  # needs to be specified by Rucio service
-        name=os.path.split(vis.ms_file_path)[-1],  # remove path-infos for `name`
+        name=os.path.split(vis.visibility_path)[-1],  # remove path-infos for `name`
         lifetime=86400,  # 1 day
         dataset_name=None,
         meta=vis_ocm,
@@ -94,7 +94,7 @@ def main() -> None:
     # HERE
     # #####END#######
 
-    vis_path_meta = RucioMeta.get_meta_fname(fname=vis.ms_file_path)
+    vis_path_meta = RucioMeta.get_meta_fname(fname=vis.visibility_path)
     _ = vis_rm.to_dict(fpath=vis_path_meta)
     print(f"Created {vis_path_meta=}")
 
@@ -118,7 +118,7 @@ def main() -> None:
             niter=5000,  # 10 times less than default
         )
     ).create_cleaned_image(  # currently, wsclean needs casa .ms, which is also created
-        ms_file_path=vis.ms_file_path,
+        ms_file_path=vis.visibility_path,
         output_fits_path=restored_path,
     )
 
