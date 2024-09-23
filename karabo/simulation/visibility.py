@@ -12,36 +12,43 @@ from karabo.util._types import DirPathType, FilePathType
 from karabo.util.file_handler import FileHandler
 
 VisibilityFormat = Literal["MS", "OSKAR_VIS"]
-_VISIBILITY_FORMAT_VALIDATORS = {
-    "MS": lambda path: str(path).lower().endswith(".ms"),
-    "OSKAR_VIS": lambda path: str(path).lower().endswith(".vis"),
-}
-assert len(get_args(VisibilityFormat)) == len(_VISIBILITY_FORMAT_VALIDATORS)
-assert all(f in _VISIBILITY_FORMAT_VALIDATORS for f in get_args(VisibilityFormat))
 
 
 # TODO refactor all code accessing ms_file_path or vis_path
 class Visibility:
-    def __init__(self, visibility_path: FilePathType) -> None:
+    def __init__(
+        self,
+        visibility_path: FilePathType,
+        visibility_format: Optional[VisibilityFormat] = None,
+    ) -> None:
         self.visibility_path = visibility_path
-
-        format_matches = [
-            f
-            for f in get_args(VisibilityFormat)
-            if _VISIBILITY_FORMAT_VALIDATORS[f](self.visibility_path) is True
-        ]
-        if len(format_matches) == 0:
-            raise ValueError(
-                f"{self.visibility_path} is not a valid path for any of the allowed "
-                f"visibility formats {get_args(VisibilityFormat)}"
-            )
-        elif len(format_matches) > 1:
-            raise RuntimeError(
-                f"{self.visibility_path} matches multiple visibility formats: "
-                f"{format_matches}"
-            )
+        if visibility_format is not None:
+            self.visibility_format = visibility_format
         else:
-            self.visibility_format = format_matches[0]
+            self.visibility_format = self._parse_visibility_format_from_path(
+                self.visibility_path
+            )
+            if self.visibility_format is None:
+                raise ValueError(
+                    f"Could not match {self.visibility_path} to one of the supported "
+                    f"visibility formats {get_args(VisibilityFormat)}"
+                )
+            print(
+                f"Matched path {self.visibility_path} "
+                f"to format {self.visibility_format}"
+            )
+
+    @staticmethod
+    def _parse_visibility_format_from_path(
+        visibility_path: FilePathType,
+    ) -> Optional[VisibilityFormat]:
+        for visibility_format, f in [
+            ("MS", lambda path: str(path).lower().endswith(".ms")),
+            ("OSKAR_VIS", lambda path: str(path).lower().endswith(".vis")),
+        ]:
+            if f(visibility_path) is True:
+                return visibility_format
+        return None
 
     @staticmethod
     def combine_spectral_foreground_vis(
