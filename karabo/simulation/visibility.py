@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import os
 import os.path
-import shutil
-from typing import List, Optional
+from typing import List, Literal, Optional, get_args
 
 import numpy as np
 import oskar
@@ -12,69 +11,37 @@ from numpy.typing import NDArray
 from karabo.util._types import DirPathType, FilePathType
 from karabo.util.file_handler import FileHandler
 
+VisibilityFormat = Literal["MS", "OSKAR_VIS"]
+_VISIBILITY_FORMAT_VALIDATORS = {
+    "MS": lambda path: str(path).lower().endswith(".ms"),
+    "OSKAR_VIS": lambda path: str(path).lower().endswith(".vis"),
+}
+assert len(get_args(VisibilityFormat)) == len(_VISIBILITY_FORMAT_VALIDATORS)
+assert all(f in _VISIBILITY_FORMAT_VALIDATORS for f in get_args(VisibilityFormat))
 
+
+# TODO refactor all code accessing ms_file_path or vis_path
 class Visibility:
-    def __init__(
-        self,
-        vis_path: Optional[FilePathType] = None,
-        ms_file_path: Optional[DirPathType] = None,
-    ) -> None:
-        """
-        Initializes a Visibility object.
+    def __init__(self, visibility_path: FilePathType) -> None:
+        self.visibility_path = visibility_path
 
-        Parameters
-        ----------
-        path : Optional[str], default=None
-            Specifies the path to the visibility file to be created or read.
-        ms_file_path : Optional[str], default=None
-            Specifies the path to the measurement set (MS) file that will be
-            used to create the visibility file.
-        file_name : str, default='visibility'
-            Specifies the name of the visibility file to be created or read.
-
-        Returns
-        -------
-        None
-        """
-        if vis_path is None or ms_file_path is None:
-            tmp_dir = FileHandler().get_tmp_dir(
-                prefix="visibility-",
-                purpose="visibility disk-cache",
-                unique=self,
+        format_matches = [
+            f
+            for f in get_args(VisibilityFormat)
+            if _VISIBILITY_FORMAT_VALIDATORS[f](self.visibility_path) is True
+        ]
+        if len(format_matches) == 0:
+            raise ValueError(
+                f"{self.visibility_path} is not a valid path for any of the allowed "
+                f"visibility formats {get_args(VisibilityFormat)}"
             )
-            if vis_path is None:
-                vis_path = os.path.join(tmp_dir, "visibility.vis")
-            if ms_file_path is None:
-                ms_file_path = os.path.join(tmp_dir, "measurements.MS")
-        self.vis_path = vis_path
-        self.ms_file_path = ms_file_path
-
-    def write_to_file(self, path: FilePathType) -> None:
-        """Does just copy .vis file to `path`.
-
-        Args:
-            path: Path to where the .vis file should get copied.
-        """
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        shutil.copy(self.vis_path, path)
-
-    @staticmethod
-    def read_from_file(path: DirPathType) -> Visibility:
-        if Visibility.is_measurement_set(path=path):
-            vis = Visibility(ms_file_path=path)
-        elif Visibility.is_vis_file(path=path):
-            vis = Visibility(vis_path=path)
+        elif len(format_matches) > 1:
+            raise RuntimeError(
+                f"{self.visibility_path} matches multiple visibility formats: "
+                f"{format_matches}"
+            )
         else:
-            raise ValueError(f"File must be a .ms or .vis file, but is {path=} instead")
-        return vis
-
-    @staticmethod
-    def is_measurement_set(path: DirPathType) -> bool:
-        return str(path).lower().endswith(".ms")
-
-    @staticmethod
-    def is_vis_file(path: FilePathType) -> bool:
-        return str(path).lower().endswith(".vis")
+            self.visibility_format = format_matches[0]
 
     @staticmethod
     def combine_spectral_foreground_vis(

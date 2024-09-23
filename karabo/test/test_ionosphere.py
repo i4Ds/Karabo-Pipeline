@@ -113,7 +113,6 @@ def test_ionosphere(sky_data: NDArray[np.float64]):
             number_of_channels=1,
         )
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.write_to_file(os.path.join(tmpdir, "test_ion.ms"))
 
         dirty_imager = auto_choose_dirty_imager_from_vis(
             visibility,

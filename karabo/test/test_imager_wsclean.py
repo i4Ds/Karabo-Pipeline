@@ -19,7 +19,7 @@ from karabo.util.file_handler import FileHandler
 
 
 def test_dirty_image(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = WscleanDirtyImager(
         DirtyImagerConfig(
@@ -33,7 +33,7 @@ def test_dirty_image(tobject: TFiles):
 
 
 def test_dirty_image_custom_path(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
     dirty_imager = WscleanDirtyImager(
         DirtyImagerConfig(
             imaging_npixel=2048,

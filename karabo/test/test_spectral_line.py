@@ -37,13 +37,10 @@ def simulate_spectral_vis(
     spectral_sky_data[:, 0] = ra_spec
     spectral_sky_data[:, 1] = dec_spec
     spectral_vis_output = [0] * npoints
-    spectral_ms_output = [0] * npoints
     freq_spec = [0] * npoints
     for i in range(npoints):
         spectral_vis_output[i] = f"{spec_path}_vis_spectral_{i}.vis"
-        spectral_ms_output[i] = f"{spec_path}_vis_spectral_{i}.ms"
         os.system("rm -rf " + spectral_vis_output[i])
-        os.system("rm -rf " + spectral_ms_output[i])
         print(
             "#### Computing Visibilities for Spectral Lines Begins for "
             + str(i + 1)
@@ -80,9 +77,13 @@ def simulate_spectral_vis(
             frequency_increment_hz=chan_width,
             number_of_channels=1,
         )
-        visibility = simulation.run_simulation(telescope, spectral_sky, observation)
-        visibility.write_to_file(spectral_ms_output[i])
-    return spectral_vis_output, spectral_ms_output
+        _ = simulation.run_simulation(
+            telescope,
+            spectral_sky,
+            observation,
+            visibility_format="OSKAR_VIS",
+        )
+    return spectral_vis_output
 
 
 @pytest.mark.skip(reason="faulty test (or karabo-code?), needs to be adapted.")
@@ -96,8 +97,6 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
     chan_width = 1e6  # 100 kHz
     with tempfile.TemporaryDirectory() as tmpdir:
         foreground_vis_file = os.path.join(tmpdir, "vis_foreground.vis")
-        foreground_ms_file = os.path.join(tmpdir, "vis_foreground.ms")
-        write_foreground_ms = True
         foreground = SkyModel()
         foreground.add_point_sources(sky_data)
         telescope = Telescope.constructor("MeerKAT")
@@ -139,8 +138,6 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
             foreground,
             foreground_observation,
             foreground_vis_file,
-            write_foreground_ms,
-            foreground_ms_file,
         )
         if make_foreground_image:
             dirty_imager = auto_choose_dirty_imager_from_vis(
@@ -201,9 +198,6 @@ def test_disabled_spectral_line(sky_data: NDArray[np.float64]):
         npoints = int((dfreq[-1] - dfreq[0]) / chan_width)
         foreground_vis_file = os.path.join(tmpdir, "vis_foreground.vis")
         combined_vis_filepath = os.path.join(tmpdir, "combined_fg_spectral_line_vis.ms")
-        spectral_vis_output = [0] * npoints
-        for i in range(npoints):
-            spectral_vis_output[i] = os.path.join(tmpdir, f"vis_spectral_{i}.vis")
         Visibility.combine_spectral_foreground_vis(
             foreground_vis_file, spectral_vis_output, combined_vis_filepath
         )
