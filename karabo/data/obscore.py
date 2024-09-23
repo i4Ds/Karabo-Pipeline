@@ -363,7 +363,9 @@ class ObsCoreMeta:
                 json_file.write(dump)
         return dictionary
 
-    def set_pol_states(self, pol_states: Union[_PolStatesListType, List[int]]) -> None:
+    def set_pol_states(
+        self, pol_states: Optional[Union[_PolStatesListType, List[int]]]
+    ) -> None:
         """Sets `pol_states` from a pythonic interface to a `str` according to ObsCore.
 
         Overwrites if `pol_states` already exists.
@@ -382,28 +384,31 @@ class ObsCoreMeta:
         ) -> TypeGuard[_PolStatesListType]:
             return all(isinstance(x, str) for x in val)
 
-        all_pol_states: _PolStatesListType = list(get_args(_PolStatesType))
-        if is_int_list(pol_states):
-            stokes_types = MSPolarizationTable.get_stokes_type(corr_type=pol_states)
-            pol_states_list = cast(
-                _PolStatesListType,
-                [
-                    stokes_type
-                    for stokes_type in stokes_types
-                    if stokes_type in all_pol_states
-                ],
-            )
-        elif is_str_list(pol_states):
-            pol_states_list = pol_states
+        if pol_states is None or len(pol_states) == 0:
+            self.pol_states = None
         else:
-            err_msg = f"{pol_states=} must be of type `list[int]` or `list[str]`."
-            raise TypeError(err_msg)
+            all_pol_states: _PolStatesListType = list(get_args(_PolStatesType))
+            if is_int_list(pol_states):
+                stokes_types = MSPolarizationTable.get_stokes_type(corr_type=pol_states)
+                pol_states_list = cast(
+                    _PolStatesListType,
+                    [
+                        stokes_type
+                        for stokes_type in stokes_types
+                        if stokes_type in all_pol_states
+                    ],
+                )
+            elif is_str_list(pol_states):
+                pol_states_list = pol_states
+            else:
+                err_msg = f"{pol_states=} must be of type `list[int]` or `list[str]`."
+                raise TypeError(err_msg)
 
-        pol_states_ordered = set(all_pol_states) - (
-            set(all_pol_states) - set(pol_states_list)
-        )
-        pol_states_str = "/".join(("", *pol_states_ordered, ""))
-        self.pol_states = pol_states_str
+            pol_states_ordered = set(all_pol_states) - (
+                set(all_pol_states) - set(pol_states_list)
+            )
+            pol_states_str = "/".join(("", *pol_states_ordered, ""))
+            self.pol_states = pol_states_str
 
     def get_pol_states(self) -> Optional[_PolStatesListType]:
         """Parses the polarization states to `_PolStatesListType`.
@@ -537,13 +542,13 @@ class ObsCoreMeta:
         corr_types = np.unique(ms_meta.polarization.corr_type.ravel()).tolist()
         ocm.set_pol_states(pol_states=corr_types)
         ocm.em_ucd = "em.energy;em.radio"
-        ocm.o_ucd = "phot.flux.density;phys.polarization.stokes"
+        ocm.o_ucd = "phot.flux.density;phys.polarisation"
         if calibrated is not None:
             if calibrated:  # can't be extracted from visibilities as far as I know
                 ocm.calib_level = 2
             else:
                 ocm.calib_level = 1
-            # as far as I know, there's no MIME type for .ms or .vis, but for `.fits`
+        # as far as I know, there's no MIME type for .ms or .vis, but for `.fits`
         return ocm
 
     @classmethod
