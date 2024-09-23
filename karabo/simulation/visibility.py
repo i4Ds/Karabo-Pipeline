@@ -23,6 +23,7 @@ class Visibility:
         format: Optional[VisibilityFormat] = None,
     ) -> None:
         self.path = path
+        self.format: VisibilityFormat
         if format is not None:
             self.format = format
         else:
