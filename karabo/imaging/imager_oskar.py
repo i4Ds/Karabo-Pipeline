@@ -114,6 +114,11 @@ class OskarDirtyImager(DirtyImager):
         image.header["NAXIS"] = 4
         image.header["NAXIS4"] = 1
 
+        # This card is not set correctly by OSKAR. It sets the value to 0.0 which
+        # prevents the calculation of the world coordinate system later on.
+        # Using the value from RASCIL imager, which sets it correctly.
+        image.header.set("CDELT3", 1.0, "Coordinate increment at reference point")
+
         image.write_to_file(path=output_fits_path, overwrite=True)
 
         return image

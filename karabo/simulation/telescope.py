@@ -784,19 +784,25 @@ but was not provided. Please provide a value for the version field."
             ]
         )
 
-    def get_baselines_dists(self) -> NDArray[np.float64]:
+    @classmethod  # cls-fun to detach instance constraint
+    def get_baselines_dists(
+        cls,
+        baselines_wgs84: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
         """Gets the interferometer baselines distances in meters.
 
         It's euclidean distance, not geodesic.
 
+        Args:
+            baselines_wgs84: nx3 wgs84 baselines.
+
         Returns:
             Interferometer baselines dists in meters.
         """
-        wgs84_baselines = self.get_baselines_wgs84()
         lon, lat, alt = (
-            wgs84_baselines[:, 0],
-            wgs84_baselines[:, 1],
-            wgs84_baselines[:, 2],
+            baselines_wgs84[:, 0],
+            baselines_wgs84[:, 1],
+            baselines_wgs84[:, 2],
         )
         cart_coords = wgs84_to_cartesian(lon, lat, alt)
         dists: NDArray[np.float64] = np.linalg.norm(
@@ -804,13 +810,13 @@ but was not provided. Please provide a value for the version field."
         )
         return dists
 
-    def longest_baseline(self) -> np.float64:
+    def max_baseline(self) -> np.float64:
         """Gets the longest baseline in meters.
 
         Returns:
             Length of longest baseline.
         """
-        dists = self.get_baselines_dists()
+        dists = self.get_baselines_dists(baselines_wgs84=self.get_baselines_wgs84())
         max_distance = np.max(dists)
         return max_distance
 
@@ -824,7 +830,7 @@ but was not provided. Please provide a value for the version field."
 
         Args:
             freq: Frequency [Hz].
-            b: Max baseline in meters (e.g. from `longest_baseline`).
+            b: Max baseline in meters (e.g. from `max_baseline`).
 
         Returns:
             Angular resolution in arcsec.
