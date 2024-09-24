@@ -33,7 +33,7 @@ from karabo.simulation.observation import (
 )
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.visibility import Visibility, VisibilityFormat
+from karabo.simulation.visibility import Visibility, VisibilityFormat, combine_vis
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     DirPathType,
@@ -802,8 +802,7 @@ class InterferometerSimulation:
                 pb.save_cst_file(beam[4], telescope=telescope)
                 pb.fit_elements(telescope)
 
-            # Creating VIS files, not MS, because Visibility.combine_vis needs
-            # VIS as input.
+            # Creating VIS files, not MS, because combine_vis needs VIS as input.
             vis_path = os.path.join(ms_dir, f"{current_date}.vis")
             interferometer_params = self.__get_OSKAR_settings_tree(
                 input_telpath=input_telpath,
@@ -821,8 +820,10 @@ class InterferometerSimulation:
             runs.append(params_total)
 
         # Combine the visibilities
-        visibility_paths = [x["interferometer"]["oskar_vis_filename"] for x in runs]
-        Visibility.combine_vis(visibility_paths, self.ms_file_path)
+        visibilities = [
+            Visibility(x["interferometer"]["oskar_vis_filename"]) for x in runs
+        ]
+        combine_vis(visibilities, self.ms_file_path)
 
         print("Done with simulation.")
         return Visibility(ms_file_path=self.ms_file_path)
