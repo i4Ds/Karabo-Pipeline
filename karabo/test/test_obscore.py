@@ -30,7 +30,7 @@ def minimal_visibility() -> Visibility:
         remote_file_path="test_minimal_visibility.vis",
         remote_base_url=cscs_karabo_public_testing_base_url,
     ).get()
-    return Visibility(vis_path=vis_path)
+    return Visibility(vis_path)
 
 
 @pytest.fixture(scope="module")

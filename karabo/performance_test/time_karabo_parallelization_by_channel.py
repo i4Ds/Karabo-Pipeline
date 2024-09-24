@@ -65,7 +65,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
         observation_settings,
     )
 
-    print(f"MS Vis is {vis.ms_file_path}")
+    print(f"Path to visibility: {vis.path}")
 
     time_taken = round((time.time() - start) / 60, 2)
     print("Time taken: (minutes)", time_taken)

@@ -99,7 +99,6 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
             beam_method="Gaussian Beam",
         )
         simulation = InterferometerSimulation(
-            ms_file_path=combined_ms_filepath,
             channel_bandwidth_hz=2e7,
             time_average_sec=7,
             noise_enable=False,
@@ -121,6 +120,8 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
             telescope=telescope,
             sky=sky,
             observation=observation_long,
+            visibility_format="MS",
+            visibility_path=combined_ms_filepath,
         )
 
         dirty_imager = auto_choose_dirty_imager_from_vis(

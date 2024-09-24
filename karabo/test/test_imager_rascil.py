@@ -70,7 +70,7 @@ def test_create_cleaned_image():
             # use_dask=True,
         )
     ).create_cleaned_image(
-        ms_file_path=visibility_askap.ms_file_path,
+        ms_file_path=visibility_askap.path,
     )
 
     assert os.path.exists(restored.path)

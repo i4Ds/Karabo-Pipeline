@@ -230,16 +230,14 @@ def line_emission_pipeline(
                     and pointing {index_p}, there are 0 sources in the sky model.
                     Setting visibility to None, and skipping analysis."""
 
-            interferometer.vis_path = (
-                f"{output_base_directory}/visibilities_f{index_freq}_p{index_p}"
-            )
-
             vis = interferometer.run_simulation(
                 telescope=telescope,
                 sky=filtered_sky,
                 observation=observation,
                 backend=simulator_backend,
                 primary_beam=primary_beam,
+                visibility_format="OSKAR_VIS",
+                visibility_path=f"{output_base_directory}/visibilities_f{index_freq}_p{index_p}",  # noqa: E501
             )
 
             visibilities[-1].append(vis)

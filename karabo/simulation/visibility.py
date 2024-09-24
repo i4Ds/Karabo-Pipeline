@@ -15,7 +15,6 @@ from karabo.util.file_handler import FileHandler
 VisibilityFormat = Literal["MS", "OSKAR_VIS"]
 
 
-# TODO refactor all code accessing ms_file_path or vis_path
 class Visibility:
     def __init__(
         self,

@@ -33,7 +33,6 @@ def test_beam():
     # ------------- Simulation Begins
     with tempfile.TemporaryDirectory() as tmpdir:
         simulation = InterferometerSimulation(
-            vis_path=os.path.join(tmpdir, "beam_vis.vis"),
             channel_bandwidth_hz=2e7,
             time_average_sec=1,
             noise_enable=False,
@@ -52,7 +51,13 @@ def test_beam():
             frequency_increment_hz=1e6,
             number_of_channels=1,
         )
-        visibility = simulation.run_simulation(telescope, sky, observation)  # noqa
+        visibility = simulation.run_simulation(
+            telescope,
+            sky,
+            observation,
+            visibility_format="OSKAR_VIS",
+            visibility_path=os.path.join(tmpdir, "beam_vis.vis"),
+        )
 
         dirty_imager = auto_choose_dirty_imager_from_vis(
             visibility,

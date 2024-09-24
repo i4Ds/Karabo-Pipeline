@@ -267,7 +267,7 @@ def test_create_detection_from_ms_cuda():
             use_cuda=True,
         )
     ).create_cleaned_image_variants(
-        ms_file_path=visibility.ms_file_path,
+        ms_file_path=visibility.path,
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:

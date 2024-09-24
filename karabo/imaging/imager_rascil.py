@@ -89,7 +89,7 @@ class RascilDirtyImager(DirtyImager):
 
         if isinstance(visibility, Visibility):
             # Convert OSKAR Visibility to RASCIL-compatible format
-            block_visibilities = create_visibility_from_ms(str(visibility.ms_file_path))
+            block_visibilities = create_visibility_from_ms(str(visibility.path))
 
             if len(block_visibilities) != 1:
                 raise NotImplementedError(
