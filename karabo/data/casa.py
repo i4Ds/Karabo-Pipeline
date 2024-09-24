@@ -63,11 +63,10 @@ def _create_table(
     *,
     subtable_id: Optional[int] = None,
 ) -> _TDataClass:
-    """Creates an instance of of `classtype` from `table` values.
+    """Creates an instance of `classtype` from `table` values.
 
-    This function assumes that ALL fields of `classtype` are available in `table` in
-        either lower OR upper as table keys. It's not an issue whether `table` has
-        more keys than `classtype`.
+    If a dataclass field is missing in the table, this function will produce
+        an according warning (mainly for devs).
 
     This function doesn't provide any runtime type safety measures because such an
         implementation is just too cumbersome and prone to errors.

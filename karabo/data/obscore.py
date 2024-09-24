@@ -467,7 +467,7 @@ class ObsCoreMeta:
     @classmethod
     def from_visibility(
         cls,
-        vis: Visibility,  # not sure if also MS-path should be allowed
+        vis: Visibility,
         *,
         calibrated: Optional[bool] = None,
         tel: Optional[Telescope] = None,
