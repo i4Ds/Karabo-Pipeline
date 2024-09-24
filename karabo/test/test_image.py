@@ -254,7 +254,7 @@ def test_imaging():
             use_dask=True,
         )
     ).create_cleaned_image_variants(
-        ms_file_path=visibility_askap.ms_file_path,
+        ms_file_path=visibility_askap.path,
     )
 
     assert os.path.exists(deconvolved.path)

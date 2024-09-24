@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
@@ -86,14 +85,8 @@ class OskarDirtyImager(DirtyImager):
             )
         imager = oskar.Imager()
 
-        # Use VIS file path by default. If it does not exist, switch to MS file path.
-        # visibility should have at least one valid path by construction
-        input_file = visibility.vis_path
-        if not Path(input_file).exists():
-            input_file = visibility.ms_file_path
-
         imager.set(
-            input_file=input_file,
+            input_file=visibility.path,
             output_root=output_fits_path,
             cellsize_arcsec=3600 * np.degrees(self.config.imaging_cellsize),
             image_size=self.config.imaging_npixel,

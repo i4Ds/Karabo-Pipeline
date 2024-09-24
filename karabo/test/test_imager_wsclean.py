@@ -87,7 +87,7 @@ def test_create_cleaned_image():
             imaging_cellsize=imaging_cellsize,
         )
     ).create_cleaned_image(
-        ms_file_path=visibility.ms_file_path,
+        ms_file_path=visibility.path,
     )
 
     assert os.path.exists(restored.path)
@@ -110,7 +110,7 @@ def test_create_cleaned_image_custom_path():
                 imaging_cellsize=imaging_cellsize,
             )
         ).create_cleaned_image(
-            ms_file_path=visibility.ms_file_path,
+            ms_file_path=visibility.path,
             output_fits_path=output_fits_path,
         )
 
@@ -140,7 +140,7 @@ def test_create_cleaned_image_reuse_dirty():
             imaging_cellsize=imaging_cellsize,
         )
     ).create_cleaned_image(
-        ms_file_path=visibility.ms_file_path,
+        ms_file_path=visibility.path,
         dirty_fits_path=dirty_image.path,
     )
 
@@ -161,7 +161,7 @@ def test_create_image_custom_command():
         "-niter 50000 "
         "-mgain 0.8 "
         "-auto-threshold 3 "
-        f"{visibility.ms_file_path}"
+        f"{visibility.path}"
     )
 
     assert os.path.exists(restored.path)
@@ -180,7 +180,7 @@ def test_create_image_custom_command_multiple_outputs():
         "-niter 50000 "
         "-mgain 0.8 "
         "-auto-threshold 3 "
-        f"{visibility.ms_file_path}",
+        f"{visibility.path}",
         ["wsclean-image.fits", "wsclean-residual.fits"],
     )
 

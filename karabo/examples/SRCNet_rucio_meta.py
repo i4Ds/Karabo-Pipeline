@@ -59,7 +59,7 @@ def main() -> None:
         axes = FitsHeaderAxes(freq=FitsHeaderAxis(axis=4, unit=u.Hz))
         ocm = ObsCoreMeta.from_image(img=image, fits_axes=axes)
     elif dp_type == "visibility":
-        vis = Visibility(vis_path=dp_path)  # .vis supported, .ms not atm [07/2024]
+        vis = Visibility(dp_path)  # .vis supported, .ms not atm [07/2024]
         # To extract additional information, `Telescope` & `Observation` should be
         # provided with the same settings as `vis` was created. As mentioned in the
         # module docstring, this is only necessary because we don't show the whole

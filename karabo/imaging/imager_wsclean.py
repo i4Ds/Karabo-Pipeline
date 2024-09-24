@@ -94,7 +94,7 @@ class WscleanDirtyImager(DirtyImager):
             f"{_WSCLEAN_BINARY} "
             f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
             f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
-            f"{visibility.ms_file_path}"
+            f"{visibility.path}"
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(

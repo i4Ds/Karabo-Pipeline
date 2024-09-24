@@ -37,6 +37,7 @@ from karabo.simulation.visibility import Visibility, VisibilityFormat, combine_v
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     DirPathType,
+    FilePathType,
     IntFloat,
     OskarSettingsTreeType,
     PrecisionType,
@@ -81,8 +82,6 @@ StationTypeType = Literal[
 class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
-    :ivar ms_file_path: Optional. File path of the MS (mass spectrometry) file.
-    :ivar vis_path: Optional. File path for visibilities output.
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
                                 smearing. (Note that this can be different to the
                                 frequency increment if channels do not cover a
@@ -177,8 +176,6 @@ class InterferometerSimulation:
 
     def __init__(
         self,
-        ms_file_path: Optional[str] = None,
-        vis_path: Optional[str] = None,
         channel_bandwidth_hz: IntFloat = 0,
         time_average_sec: IntFloat = 0,
         max_time_per_samples: int = 8,
@@ -219,9 +216,6 @@ class InterferometerSimulation:
         ionosphere_screen_pixel_size_m: Optional[float] = 0,
         ionosphere_isoplanatic_screen: Optional[bool] = False,
     ) -> None:
-        self._ms_file_path = ms_file_path
-        self._vis_path = vis_path
-
         self.channel_bandwidth_hz: IntFloat = channel_bandwidth_hz
         self.time_average_sec: IntFloat = time_average_sec
         self.max_time_per_samples: int = max_time_per_samples
@@ -296,39 +290,22 @@ class InterferometerSimulation:
         self.ionosphere_screen_pixel_size_m = ionosphere_screen_pixel_size_m
         self.ionosphere_isoplanatic_screen = ionosphere_isoplanatic_screen
 
-    @property
-    def ms_file_path(self) -> str:
-        ms_file_path = self._ms_file_path
-        if ms_file_path is None:
-            tmp_dir = FileHandler().get_tmp_dir(
-                prefix="interferometer-",
-                purpose="interferometer disk-cache.",
-                unique=self,
-            )
-            ms_file_path = os.path.join(tmp_dir, "measurements.MS")
-            self._ms_file_path = ms_file_path
-        return ms_file_path
-
-    @ms_file_path.setter
-    def ms_file_path(self, value: str) -> None:
-        self._ms_file_path = value
-
-    @property
-    def vis_path(self) -> str:
-        vis_path = self._vis_path
-        if vis_path is None:
-            tmp_dir = FileHandler().get_tmp_dir(
-                prefix="interferometer-",
-                purpose="interferometer disk-cache.",
-                unique=self,
-            )
-            vis_path = os.path.join(tmp_dir, "visibility.vis")
-            self._vis_path = vis_path
-        return vis_path
-
-    @vis_path.setter
-    def vis_path(self, value: str) -> None:
-        self._vis_path = value
+    def _get_visibility_path_in_tmp_dir(
+        self,
+        visibility_format: VisibilityFormat,
+    ) -> str:
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix="interferometer-",
+            purpose="interferometer disk-cache.",
+            unique=self,
+        )
+        if visibility_format == "MS":
+            visibility_path = os.path.join(tmp_dir, "measurements.MS")
+        elif visibility_format == "OSKAR_VIS":
+            visibility_path = os.path.join(tmp_dir, "visibility.vis")
+        else:
+            assert_never(visibility_format)
+        return visibility_path
 
     @overload
     def run_simulation(
@@ -339,6 +316,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
+        visibility_path: FilePathType = ...,
     ) -> Visibility:
         ...
 
@@ -351,6 +329,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
+        visibility_path: FilePathType = ...,
     ) -> Visibility:
         ...
 
@@ -363,6 +342,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
+        visibility_path: FilePathType = ...,
     ) -> List[Visibility]:
         ...
 
@@ -375,6 +355,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.RASCIL],
         primary_beam: Optional[RASCILImage],
         visibility_format: VisibilityFormat = ...,
+        visibility_path: FilePathType = ...,
     ) -> RASCILVisibility:
         ...
 
@@ -387,6 +368,7 @@ class InterferometerSimulation:
         backend: SimulatorBackend,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
+        visibility_path: FilePathType = ...,
     ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
         ...
 
@@ -398,6 +380,7 @@ class InterferometerSimulation:
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
         primary_beam: Optional[RASCILImage] = None,
         visibility_format: VisibilityFormat = "MS",
+        visibility_path: FilePathType = None,
     ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
         """
         Run a single interferometer simulation with the given sky, telescope and
@@ -410,6 +393,8 @@ class InterferometerSimulation:
             Currently only relevant for RASCIL.
             For OSKAR, use the InterferometerSimulation constructor parameters instead.
         """
+        if visibility_path is None:
+            visibility_path = self._get_visibility_path_in_tmp_dir(visibility_format)
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
                 warn(
@@ -428,6 +413,7 @@ class InterferometerSimulation:
                     sky=sky,
                     observation=observation,
                     visibility_format=visibility_format,
+                    visibility_path=visibility_path,
                 )
             elif isinstance(observation, ObservationParallelized):
                 return self.__run_simulation_parallelized_observation(
@@ -442,6 +428,7 @@ class InterferometerSimulation:
                     sky=sky,
                     observation=observation,
                     visibility_format=visibility_format,
+                    visibility_path=visibility_path,
                 )
         elif backend is SimulatorBackend.RASCIL:
             return self.__run_simulation_rascil(
@@ -449,6 +436,7 @@ class InterferometerSimulation:
                 sky=sky,
                 observation=observation,
                 visibility_format=visibility_format,
+                visibility_path=visibility_path,
                 primary_beam=primary_beam,
             )
 
@@ -470,6 +458,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationAbstract,
         visibility_format: VisibilityFormat,
+        visibility_path: FilePathType,
         primary_beam: Optional[RASCILImage],
     ) -> RASCILVisibility:
         """
@@ -557,7 +546,7 @@ class InterferometerSimulation:
 
         # Save visibilities to disk
         # TODO verify output
-        export_visibility_to_ms(self.ms_file_path, [vis])
+        export_visibility_to_ms(visibility_path, [vis])
 
         return vis
 
@@ -647,12 +636,11 @@ class InterferometerSimulation:
 
         if visibility_format == "MS":
             return [
-                Visibility(ms_file_path=r["interferometer"]["ms_filename"])
-                for r in results
+                Visibility(path=r["interferometer"]["ms_filename"]) for r in results
             ]
         elif visibility_format == "OSKAR_VIS":
             return [
-                Visibility(vis_path=r["interferometer"]["oskar_vis_filename"])
+                Visibility(path=r["interferometer"]["oskar_vis_filename"])
                 for r in results
             ]
         else:
@@ -664,6 +652,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationAbstract,
         visibility_format: VisibilityFormat,
+        visibility_path: FilePathType,
     ) -> Visibility:
         # The following line depends on the mode with which we're loading
         # the sky (explained in documentation)
@@ -683,12 +672,12 @@ class InterferometerSimulation:
         if visibility_format == "MS":
             interferometer_params = self.__get_OSKAR_settings_tree(
                 input_telpath=input_telpath,
-                ms_file_path=self.ms_file_path,
+                ms_file_path=str(visibility_path),
             )
         elif visibility_format == "OSKAR_VIS":
             interferometer_params = self.__get_OSKAR_settings_tree(
                 input_telpath=input_telpath,
-                vis_path=self.vis_path,
+                vis_path=str(visibility_path),
             )
         else:
             assert_never(visibility_format)
@@ -703,10 +692,10 @@ class InterferometerSimulation:
 
         if visibility_format == "MS":
             visibility_path = params_total["interferometer"]["ms_filename"]
-            visibility = Visibility(ms_file_path=visibility_path)
+            visibility = Visibility(visibility_path)
         elif visibility_format == "OSKAR_VIS":
             visibility_path = params_total["interferometer"]["oskar_vis_filename"]
-            visibility = Visibility(vis_path=visibility_path)
+            visibility = Visibility(visibility_path)
         else:
             assert_never(visibility_format)
         print(f"Saved visibility to {visibility_path}")
@@ -749,6 +738,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationLong,
         visibility_format: VisibilityFormat,
+        visibility_path: FilePathType,
     ) -> Visibility:
         if visibility_format != "MS":
             raise NotImplementedError(
@@ -823,10 +813,10 @@ class InterferometerSimulation:
         visibilities = [
             Visibility(x["interferometer"]["oskar_vis_filename"]) for x in runs
         ]
-        combine_vis(visibilities, self.ms_file_path)
+        combine_vis(visibilities, visibility_path)
 
         print("Done with simulation.")
-        return Visibility(ms_file_path=self.ms_file_path)
+        return Visibility(visibility_path)
 
     def simulate_foreground_vis(
         self,
