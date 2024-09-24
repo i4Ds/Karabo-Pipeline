@@ -497,12 +497,12 @@ class ObsCoreMeta:
             `ObsCoreMeta` instance.
         """
         ocm = cls(dataproduct_type="visibility")
-        vis_inode = vis.visibility_path
+        vis_inode = vis.path
         if not os.path.exists(vis_inode):
             err_msg = f"{vis_inode} doesn't exist!"
             raise FileNotFoundError(err_msg)
         c = const.c.value
-        if vis.visibility_format == "MS":
+        if vis.format == "MS":
             if tel is not None or obs is not None:
                 wmsg = (
                     "Providing `tel` or `obs` in `ObsCoreMeta.from_visibility` for "
@@ -565,7 +565,7 @@ class ObsCoreMeta:
             ocm.pol_xel = MSPolarizationTable.nrows(ms_path=vis_inode)
             corr_types = np.unique(ms_meta.polarization.corr_type.ravel()).tolist()
             ocm.set_pol_states(pol_states=corr_types)
-        elif vis.visibility_format == "OSKAR_VIS":
+        elif vis.format == "OSKAR_VIS":
             header, _ = VisHeader.read(vis_inode)
             ocm.s_ra = header.phase_centre_ra_deg
             ocm.s_dec = header.phase_centre_dec_deg
@@ -605,7 +605,7 @@ class ObsCoreMeta:
                 b = float(tel.max_baseline())
                 ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
         else:
-            assert_never(vis.visibility_format)
+            assert_never(vis.format)
         ocm.access_estsize = int(getsize(inode=vis_inode) / 1e3)  # B -> KB
         ocm.em_ucd = "em.energy;em.radio"
         ocm.o_ucd = "phot.flux.density;phys.polarisation"
