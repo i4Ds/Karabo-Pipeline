@@ -14,7 +14,6 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.image import create_image
 from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
@@ -76,7 +75,7 @@ def line_emission_pipeline(
     dirty_imager: DirtyImager,
     primary_beams: List[NDArray[np.float_]],
     should_perform_primary_beam_correction: Literal[True] = ...,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
 
@@ -92,7 +91,7 @@ def line_emission_pipeline(
     dirty_imager: DirtyImager,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: Literal[False] = ...,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
 
@@ -108,7 +107,7 @@ def line_emission_pipeline(
     dirty_imager: DirtyImager,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: bool = ...,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
 
@@ -123,7 +122,7 @@ def line_emission_pipeline(
     dirty_imager: DirtyImager,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
     should_perform_primary_beam_correction: bool = False,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
     only emits within one frequency channel.
@@ -169,7 +168,7 @@ def line_emission_pipeline(
     print("Computing visibilities...")
 
     # Loop through pointings
-    visibilities: List[List[Union[Visibility, RASCILVisibility]]] = []
+    visibilities: List[List[Visibility]] = []
 
     for index_freq, frequency_start in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")

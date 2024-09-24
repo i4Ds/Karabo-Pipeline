@@ -17,7 +17,6 @@ from dask.distributed import Client
 from numpy.typing import NDArray
 from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from ska_sdp_datamodels.visibility import create_visibility
 from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
 from ska_sdp_func_python.sky_component import apply_beam_to_skycomponent
@@ -356,7 +355,7 @@ class InterferometerSimulation:
         primary_beam: Optional[RASCILImage],
         visibility_format: VisibilityFormat = ...,
         visibility_path: FilePathType = ...,
-    ) -> RASCILVisibility:
+    ) -> Visibility:
         ...
 
     @overload
@@ -369,7 +368,7 @@ class InterferometerSimulation:
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
         visibility_path: FilePathType = ...,
-    ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
+    ) -> Union[Visibility, List[Visibility]]:
         ...
 
     def run_simulation(
@@ -381,7 +380,7 @@ class InterferometerSimulation:
         primary_beam: Optional[RASCILImage] = None,
         visibility_format: VisibilityFormat = "MS",
         visibility_path: FilePathType = None,
-    ) -> Union[Visibility, List[Visibility], RASCILVisibility]:
+    ) -> Union[Visibility, List[Visibility]]:
         """
         Run a single interferometer simulation with the given sky, telescope and
         observation settings.
@@ -460,7 +459,7 @@ class InterferometerSimulation:
         visibility_format: VisibilityFormat,
         visibility_path: FilePathType,
         primary_beam: Optional[RASCILImage],
-    ) -> RASCILVisibility:
+    ) -> Visibility:
         """
         Compute visibilities from SkyModel using the RASCIL backend.
 
@@ -548,7 +547,7 @@ class InterferometerSimulation:
         # TODO verify output
         export_visibility_to_ms(visibility_path, [vis])
 
-        return vis
+        return Visibility(visibility_path)
 
     def __run_simulation_parallelized_observation(
         self,
