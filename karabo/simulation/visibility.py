@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import os.path
-from typing import List, Literal, Optional, get_args
+from typing import List, Literal, Optional, cast, get_args
 
 import numpy as np
 import oskar
@@ -26,12 +26,13 @@ class Visibility:
         if format is not None:
             self.format = format
         else:
-            self.format = self._parse_visibility_format_from_path(self.path)
-            if self.format is None:
+            format = self._parse_visibility_format_from_path(self.path)
+            if format is None:
                 raise ValueError(
                     f"Could not match {self.path} to one of the supported "
                     f"visibility formats {get_args(VisibilityFormat)}"
                 )
+            self.format = format
             print(f"Matched path {self.path} to format {self.format}")
 
     @staticmethod
@@ -43,7 +44,7 @@ class Visibility:
             ("OSKAR_VIS", lambda path: str(path).lower().endswith(".vis")),
         ]:
             if f(visibility_path) is True:
-                return visibility_format
+                return cast(VisibilityFormat, visibility_format)
         return None
 
 

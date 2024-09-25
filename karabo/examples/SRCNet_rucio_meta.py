@@ -56,14 +56,14 @@ def main() -> None:
     )
     # define any unique (required for ingestion) output-file-path
     ms_path = os.path.join(FileHandler.stm(), "my-unique-ms.ms")
-    interferometer_sim = InterferometerSimulation(
-        ms_file_path=ms_path, channel_bandwidth_hz=freq_inc_hz
-    )
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=freq_inc_hz)
     vis = interferometer_sim.run_simulation(
         telescope=tel,
         sky=sky,
         observation=obs,
         backend=SimulatorBackend.OSKAR,
+        visibility_format="MS",
+        visibility_path=ms_path,
     )
 
     vis_ocm = ObsCoreMeta.from_visibility(
@@ -117,10 +117,7 @@ def main() -> None:
             imaging_cellsize=imaging_cellsize,
             niter=5000,  # 10 times less than default
         )
-    ).create_cleaned_image(  # currently, wsclean needs casa .ms, which is also created
-        ms_file_path=vis.path,
-        output_fits_path=restored_path,
-    )
+    ).create_cleaned_image(vis, output_fits_path=restored_path)
 
     # create metadata for restored .fits image
     # `FitsHeaderAxes` may need adaption based on the structure of your .fits image

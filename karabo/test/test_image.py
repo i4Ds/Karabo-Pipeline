@@ -253,9 +253,7 @@ def test_imaging():
             clean_restored_output="integrated",
             use_dask=True,
         )
-    ).create_cleaned_image_variants(
-        ms_file_path=visibility_askap.path,
-    )
+    ).create_cleaned_image_variants(visibility_askap)
 
     assert os.path.exists(deconvolved.path)
     assert os.path.exists(restored.path)

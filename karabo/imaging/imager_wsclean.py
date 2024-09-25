@@ -7,7 +7,6 @@ import subprocess
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from typing_extensions import override
 
 from karabo.imaging.image import Image
@@ -68,16 +67,14 @@ class WscleanDirtyImager(DirtyImager):
     @override
     def create_dirty_image(
         self,
-        visibility: Union[Visibility, RASCILVisibility],
+        visibility: Visibility,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
-        if isinstance(visibility, RASCILVisibility):
+        if visibility.format != "MS":
             raise NotImplementedError(
-                "WSClean imaging applied to "
-                "RASCIL visibilities is currently not supported. "
-                "For RASCIL visibilities please use the RASCIL imager."
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for WSClean imaging"
             )
-
         # TODO combine_across_frequencies
         # -channels-out <count>?
         if self.config.combine_across_frequencies is False:
@@ -173,10 +170,16 @@ class WscleanImageCleaner(ImageCleaner):
     @override
     def create_cleaned_image(
         self,
-        ms_file_path: FilePathType,
+        visibility: Visibility,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
+        if visibility.format != "MS":
+            raise NotImplementedError(
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for WSClean imaging"
+            )
+
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_CLEANED,
             purpose=self.TMP_PURPOSE_CLEANED,
@@ -199,7 +202,7 @@ class WscleanImageCleaner(ImageCleaner):
                 if self.config.auto_threshold is not None
                 else ""
             )
-            + str(ms_file_path)
+            + str(visibility.path)
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(

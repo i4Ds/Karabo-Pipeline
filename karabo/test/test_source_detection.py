@@ -266,9 +266,7 @@ def test_create_detection_from_ms_cuda():
             ingest_vis_nchan=3,
             use_cuda=True,
         )
-    ).create_cleaned_image_variants(
-        ms_file_path=visibility.path,
-    )
+    ).create_cleaned_image_variants(visibility)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         convolved.write_to_file(os.path.join(tmpdir, "convolved.fits"))

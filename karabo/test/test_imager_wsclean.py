@@ -86,9 +86,7 @@ def test_create_cleaned_image():
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
         )
-    ).create_cleaned_image(
-        ms_file_path=visibility.path,
-    )
+    ).create_cleaned_image(visibility)
 
     assert os.path.exists(restored.path)
 
@@ -109,10 +107,7 @@ def test_create_cleaned_image_custom_path():
                 imaging_npixel=imaging_npixel,
                 imaging_cellsize=imaging_cellsize,
             )
-        ).create_cleaned_image(
-            ms_file_path=visibility.path,
-            output_fits_path=output_fits_path,
-        )
+        ).create_cleaned_image(visibility, output_fits_path=output_fits_path)
 
         assert restored.path == output_fits_path
         assert os.path.exists(restored.path)
@@ -139,10 +134,7 @@ def test_create_cleaned_image_reuse_dirty():
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
         )
-    ).create_cleaned_image(
-        ms_file_path=visibility.path,
-        dirty_fits_path=dirty_image.path,
-    )
+    ).create_cleaned_image(visibility, dirty_fits_path=dirty_image.path)
 
     assert os.path.exists(dirty_image.path)
     assert os.path.exists(restored.path)

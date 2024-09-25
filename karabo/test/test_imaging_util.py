@@ -3,33 +3,31 @@ from datetime import datetime
 import numpy as np
 import pytest
 from numpy.typing import NDArray
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
-from typing_extensions import assert_never
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_oskar import OskarDirtyImager
-from karabo.imaging.imager_rascil import RascilDirtyImager
-from karabo.imaging.util import (
-    auto_choose_dirty_imager_from_sim,
-    auto_choose_dirty_imager_from_vis,
-)
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.visibility import Visibility
+from karabo.simulation.visibility import VisibilityFormat
 from karabo.simulator_backend import SimulatorBackend
 
 
 @pytest.mark.parametrize(
-    "backend,telescope_name",
+    "backend,telescope_name,visibility_format,combine_across_frequencies",
     [
-        (SimulatorBackend.OSKAR, "SKA1MID"),
-        (SimulatorBackend.RASCIL, "MID"),
+        (SimulatorBackend.OSKAR, "SKA1MID", "OSKAR_VIS", True),
+        (SimulatorBackend.OSKAR, "SKA1MID", "MS", True),
+        (SimulatorBackend.RASCIL, "MID", "MS", False),
     ],
 )
 def test_auto_choose_dirty_imager(
-    sky_data: NDArray[np.float64], backend: SimulatorBackend, telescope_name: str
+    sky_data: NDArray[np.float64],
+    backend: SimulatorBackend,
+    telescope_name: str,
+    visibility_format: VisibilityFormat,
+    combine_across_frequencies: bool,
 ) -> None:
     sky = SkyModel()
     sky.add_point_sources(sky_data)
@@ -52,27 +50,20 @@ def test_auto_choose_dirty_imager(
         number_of_channels=4,
     )
 
-    visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
+    visibility = simulation.run_simulation(
+        telescope,
+        sky,
+        observation,
+        backend=backend,
+        visibility_format=visibility_format,
+    )
 
     dirty_imager_config = DirtyImagerConfig(
         imaging_npixel=1024,
         imaging_cellsize=3 / 180 * np.pi / 1024,
+        combine_across_frequencies=combine_across_frequencies,
     )
 
     dirty_imager = auto_choose_dirty_imager_from_vis(visibility, dirty_imager_config)
-    if backend is SimulatorBackend.OSKAR:
-        assert isinstance(visibility, Visibility)
-        assert isinstance(dirty_imager, OskarDirtyImager)
-    elif backend is SimulatorBackend.RASCIL:
-        assert isinstance(visibility, RASCILVisibility)
-        assert isinstance(dirty_imager, RascilDirtyImager)
-    else:
-        assert_never(backend)
-
-    dirty_imager = auto_choose_dirty_imager_from_sim(backend, dirty_imager_config)
-    if backend is SimulatorBackend.OSKAR:
-        assert isinstance(dirty_imager, OskarDirtyImager)
-    elif backend is SimulatorBackend.RASCIL:
-        assert isinstance(dirty_imager, RascilDirtyImager)
-    else:
-        assert_never(backend)
+    dirty_image = dirty_imager.create_dirty_image(visibility)
+    assert dirty_image.data.ndim == 4

@@ -315,7 +315,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
-        visibility_path: FilePathType = ...,
+        visibility_path: Optional[FilePathType] = ...,
     ) -> Visibility:
         ...
 
@@ -328,7 +328,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
-        visibility_path: FilePathType = ...,
+        visibility_path: Optional[FilePathType] = ...,
     ) -> Visibility:
         ...
 
@@ -341,7 +341,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
-        visibility_path: FilePathType = ...,
+        visibility_path: Optional[FilePathType] = ...,
     ) -> List[Visibility]:
         ...
 
@@ -353,8 +353,8 @@ class InterferometerSimulation:
         observation: Observation,
         backend: Literal[SimulatorBackend.RASCIL],
         primary_beam: Optional[RASCILImage],
-        visibility_format: VisibilityFormat = ...,
-        visibility_path: FilePathType = ...,
+        visibility_format: VisibilityFormat = "MS",
+        visibility_path: Optional[FilePathType] = ...,
     ) -> Visibility:
         ...
 
@@ -367,7 +367,7 @@ class InterferometerSimulation:
         backend: SimulatorBackend,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
-        visibility_path: FilePathType = ...,
+        visibility_path: Optional[FilePathType] = ...,
     ) -> Union[Visibility, List[Visibility]]:
         ...
 
@@ -379,7 +379,7 @@ class InterferometerSimulation:
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
         primary_beam: Optional[RASCILImage] = None,
         visibility_format: VisibilityFormat = "MS",
-        visibility_path: FilePathType = None,
+        visibility_path: Optional[FilePathType] = None,
     ) -> Union[Visibility, List[Visibility]]:
         """
         Run a single interferometer simulation with the given sky, telescope and
@@ -479,9 +479,9 @@ class InterferometerSimulation:
         # Return visibilities
 
         if visibility_format != "MS":
-            raise ValueError(
+            raise NotImplementedError(
                 f"Visibility format {visibility_format} is not supported, "
-                "only MS is supported for RASCIL"
+                "currently only MS is supported for RASCIL simulations"
             )
 
         # Hour angles and integration time from observation

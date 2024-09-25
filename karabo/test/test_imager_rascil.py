@@ -69,8 +69,6 @@ def test_create_cleaned_image():
             # TODO DASK_TEST_ISSUE Commented out to avoid test failure on GitHub
             # use_dask=True,
         )
-    ).create_cleaned_image(
-        ms_file_path=visibility_askap.path,
-    )
+    ).create_cleaned_image(visibility_askap)
 
     assert os.path.exists(restored.path)

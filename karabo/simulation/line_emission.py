@@ -16,8 +16,8 @@ from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
 from karabo.imaging.image import Image, ImageMosaicker
-from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_sim
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
@@ -72,7 +72,7 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: List[NDArray[np.float_]],
     should_perform_primary_beam_correction: Literal[True] = ...,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
@@ -88,7 +88,7 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: Literal[False] = ...,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
@@ -104,7 +104,7 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: bool = ...,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
@@ -119,7 +119,7 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
     should_perform_primary_beam_correction: bool = False,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
@@ -190,8 +190,8 @@ def line_emission_pipeline(
             else:
                 # Currently supported backend for custom primary beams: RASCIL
                 primary_beam = create_image(
-                    npixel=dirty_imager.config.imaging_npixel,
-                    cellsize=dirty_imager.config.imaging_cellsize,
+                    npixel=dirty_imager_config.imaging_npixel,
+                    cellsize=dirty_imager_config.imaging_cellsize,
                     phasecentre=center,
                     polarisation_frame=PolarisationFrame(
                         "stokesI"
@@ -258,6 +258,7 @@ def line_emission_pipeline(
                 backend = "OSKAR"
             else:
                 backend = "RASCIL"
+            dirty_imager = auto_choose_dirty_imager_from_vis(vis, dirty_imager_config)
             dirty = dirty_imager.create_dirty_image(
                 visibility=vis,
                 output_fits_path=os.path.join(
@@ -374,9 +375,6 @@ if __name__ == "__main__":
         imaging_npixel=npixels,
         imaging_cellsize=cellsize_radians,
     )
-    dirty_imager = auto_choose_dirty_imager_from_sim(
-        simulator_backend, dirty_imager_config
-    )
 
     # Create interferometer simulation
     beam_type: Literal["Gaussian beam", "Isotropic beam"]
@@ -406,13 +404,13 @@ if __name__ == "__main__":
         for frequency in frequency_channel_starts:
             fwhm_degrees = gaussian_beam_fwhm_for_frequency(frequency)
             fwhm_pixels = fwhm_degrees / np.degrees(
-                dirty_imager.config.imaging_cellsize
+                dirty_imager_config.imaging_cellsize
             )
 
             primary_beam = generate_gaussian_beam_data(
                 fwhm_pixels=fwhm_pixels,
-                x_size=dirty_imager.config.imaging_npixel,
-                y_size=dirty_imager.config.imaging_npixel,
+                x_size=dirty_imager_config.imaging_npixel,
+                y_size=dirty_imager_config.imaging_npixel,
             )
             primary_beams.append(primary_beam)
     else:
@@ -443,7 +441,7 @@ if __name__ == "__main__":
         telescope=telescope,
         interferometer=interferometer,
         simulator_backend=simulator_backend,
-        dirty_imager=dirty_imager,
+        dirty_imager_config=dirty_imager_config,
         primary_beams=primary_beams,
         should_perform_primary_beam_correction=should_perform_primary_beam_correction,
     )
