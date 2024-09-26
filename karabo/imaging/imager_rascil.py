@@ -76,6 +76,7 @@ class RascilDirtyImager(DirtyImager):
     def create_dirty_image(
         self,
         visibility: Visibility,
+        /,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         if visibility.format != "MS":
@@ -272,6 +273,7 @@ class RascilImageCleaner(ImageCleaner):
     def create_cleaned_image(
         self,
         visibility: Visibility,
+        /,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
@@ -309,6 +311,7 @@ class RascilImageCleaner(ImageCleaner):
     def create_cleaned_image_variants(
         self,
         visibility: Visibility,
+        /,
         deconvolved_fits_path: Optional[FilePathType] = None,
         restored_fits_path: Optional[FilePathType] = None,
         residual_fits_path: Optional[FilePathType] = None,

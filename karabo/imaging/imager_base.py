@@ -45,6 +45,7 @@ class DirtyImager(ABC):
     def create_dirty_image(
         self,
         visibility: Visibility,
+        /,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         """Creates a dirty image from a visibility.
@@ -96,6 +97,7 @@ class ImageCleaner(ABC):
     def create_cleaned_image(
         self,
         visibility: Visibility,
+        /,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:

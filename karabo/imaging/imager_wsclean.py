@@ -68,6 +68,7 @@ class WscleanDirtyImager(DirtyImager):
     def create_dirty_image(
         self,
         visibility: Visibility,
+        /,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         if visibility.format != "MS":
@@ -171,6 +172,7 @@ class WscleanImageCleaner(ImageCleaner):
     def create_cleaned_image(
         self,
         visibility: Visibility,
+        /,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:

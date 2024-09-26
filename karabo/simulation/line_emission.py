@@ -262,7 +262,7 @@ def line_emission_pipeline(
                 backend = "RASCIL"
             dirty_imager = auto_choose_dirty_imager_from_vis(vis, dirty_imager_config)
             dirty = dirty_imager.create_dirty_image(
-                visibility=vis,
+                vis,
                 output_fits_path=os.path.join(
                     output_base_directory, f"dirty_{backend}_{index_p}.fits"
                 ),
