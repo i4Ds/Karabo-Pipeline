@@ -32,7 +32,12 @@ from karabo.simulation.observation import (
 )
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.visibility import Visibility, VisibilityFormat, combine_vis
+from karabo.simulation.visibility import (
+    Visibility,
+    VisibilityFormat,
+    combine_vis,
+    is_valid_path_for_format,
+)
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     DirPathType,
@@ -311,20 +316,7 @@ class InterferometerSimulation:
         self,
         telescope: Telescope,
         sky: SkyModel,
-        observation: Observation,
-        backend: Literal[SimulatorBackend.OSKAR] = ...,
-        primary_beam: None = ...,
-        visibility_format: VisibilityFormat = ...,
-        visibility_path: Optional[FilePathType] = ...,
-    ) -> Visibility:
-        ...
-
-    @overload
-    def run_simulation(
-        self,
-        telescope: Telescope,
-        sky: SkyModel,
-        observation: ObservationLong,
+        observation: Union[Observation, ObservationLong],
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
@@ -341,7 +333,7 @@ class InterferometerSimulation:
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
-        visibility_path: Optional[FilePathType] = ...,
+        visibility_path: None = ...,
     ) -> List[Visibility]:
         ...
 
@@ -353,22 +345,9 @@ class InterferometerSimulation:
         observation: Observation,
         backend: Literal[SimulatorBackend.RASCIL],
         primary_beam: Optional[RASCILImage],
-        visibility_format: VisibilityFormat = "MS",
+        visibility_format: Literal["MS"] = ...,
         visibility_path: Optional[FilePathType] = ...,
     ) -> Visibility:
-        ...
-
-    @overload
-    def run_simulation(
-        self,
-        telescope: Telescope,
-        sky: SkyModel,
-        observation: ObservationAbstract,
-        backend: SimulatorBackend,
-        primary_beam: None = ...,
-        visibility_format: VisibilityFormat = ...,
-        visibility_path: Optional[FilePathType] = ...,
-    ) -> Union[Visibility, List[Visibility]]:
         ...
 
     def run_simulation(
@@ -394,6 +373,10 @@ class InterferometerSimulation:
         """
         if visibility_path is None:
             visibility_path = self._get_visibility_path_in_tmp_dir(visibility_format)
+        if not is_valid_path_for_format(visibility_path, visibility_format):
+            raise ValueError(
+                f"{visibility_path} is not a valid path for format {visibility_format}"
+            )
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
                 warn(
@@ -634,13 +617,10 @@ class InterferometerSimulation:
         )
 
         if visibility_format == "MS":
-            return [
-                Visibility(path=r["interferometer"]["ms_filename"]) for r in results
-            ]
+            return [Visibility(r["interferometer"]["ms_filename"]) for r in results]
         elif visibility_format == "OSKAR_VIS":
             return [
-                Visibility(path=r["interferometer"]["oskar_vis_filename"])
-                for r in results
+                Visibility(r["interferometer"]["oskar_vis_filename"]) for r in results
             ]
         else:
             assert_never(visibility_format)

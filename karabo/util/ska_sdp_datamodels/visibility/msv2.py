@@ -1,3 +1,4 @@
+# type: ignore
 # pylint: disable=too-many-lines, too-many-arguments, too-many-locals
 # pylint: disable=too-many-statements, too-many-branches
 # pylint: disable=invalid-name

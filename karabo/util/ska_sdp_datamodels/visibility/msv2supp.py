@@ -1,3 +1,4 @@
+# type: ignore
 """
 Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels
 Copyright: SKAO

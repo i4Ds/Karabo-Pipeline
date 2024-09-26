@@ -1,3 +1,4 @@
+# type: ignore
 # pylint: disable=invalid-name, too-few-public-methods, too-many-arguments
 # pylint: disable=too-many-instance-attributes, too-many-locals
 # pylint: disable=duplicate-code

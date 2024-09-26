@@ -235,9 +235,11 @@ def line_emission_pipeline(
                 observation=observation,
                 backend=simulator_backend,
                 primary_beam=primary_beam,
-                visibility_format="OSKAR_VIS",
-                visibility_path=f"{output_base_directory}/visibilities_f{index_freq}_p{index_p}",  # noqa: E501
-            )
+                visibility_path=os.path.join(
+                    output_base_directory,
+                    f"visibilities_f{index_freq}_p{index_p}",
+                ),
+            )  # type: ignore[call-overload]
 
             visibilities[-1].append(vis)
 

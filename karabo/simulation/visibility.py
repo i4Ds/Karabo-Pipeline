@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import os.path
-from typing import List, Literal, Optional, cast, get_args
+from typing import Callable, Dict, List, Literal, Optional, get_args
 
 import numpy as np
 import oskar
@@ -10,41 +10,45 @@ import oskar
 from karabo.util._types import DirPathType, FilePathType
 from karabo.util.file_handler import FileHandler
 
-# If you add a new format, if possible, please support automatic matching of a path
-# to the format in Visibility._parse_visibility_format_from_path.
+# If you add a new format, a corresponding path validator function needs to be added
+# to _VISIBILITY_FORMAT_VALIDATORS.
 VisibilityFormat = Literal["MS", "OSKAR_VIS"]
+_VISIBILITY_FORMAT_VALIDATORS: Dict[
+    VisibilityFormat, Callable[[FilePathType], bool]
+] = {
+    "MS": lambda path: str(path).lower().endswith(".ms"),
+    "OSKAR_VIS": lambda path: str(path).lower().endswith(".vis"),
+}
+assert len(get_args(VisibilityFormat)) == len(_VISIBILITY_FORMAT_VALIDATORS)
+assert all(f in _VISIBILITY_FORMAT_VALIDATORS for f in get_args(VisibilityFormat))
+
+
+def is_valid_path_for_format(path: FilePathType, format: VisibilityFormat) -> bool:
+    return _VISIBILITY_FORMAT_VALIDATORS[format](path)
 
 
 class Visibility:
-    def __init__(
-        self,
-        path: FilePathType,
-        format: Optional[VisibilityFormat] = None,
-    ) -> None:
+    def __init__(self, path: FilePathType) -> None:
         self.path = path
-        self.format: VisibilityFormat
-        if format is not None:
-            self.format = format
-        else:
-            format = self._parse_visibility_format_from_path(self.path)
-            if format is None:
-                raise ValueError(
-                    f"Could not match {self.path} to one of the supported "
-                    f"visibility formats {get_args(VisibilityFormat)}"
-                )
-            self.format = format
-            print(f"Matched path {self.path} to format {self.format}")
 
-    @staticmethod
+        self.format: VisibilityFormat
+        format = self._parse_visibility_format_from_path(self.path)
+        if format is None:
+            raise ValueError(
+                f"Could not match {self.path} to one of the supported "
+                f"visibility formats {get_args(VisibilityFormat)}"
+            )
+        self.format = format
+        print(f"Matched path {self.path} to format {self.format}")
+
+    @classmethod
     def _parse_visibility_format_from_path(
-        visibility_path: FilePathType,
+        cls,
+        path: FilePathType,
     ) -> Optional[VisibilityFormat]:
-        for visibility_format, f in [
-            ("MS", lambda path: str(path).lower().endswith(".ms")),
-            ("OSKAR_VIS", lambda path: str(path).lower().endswith(".vis")),
-        ]:
-            if f(visibility_path) is True:
-                return cast(VisibilityFormat, visibility_format)
+        for format in sorted(_VISIBILITY_FORMAT_VALIDATORS.keys()):
+            if is_valid_path_for_format(path, format):
+                return format
         return None
 
 
