@@ -237,7 +237,7 @@ def line_emission_pipeline(
                 primary_beam=primary_beam,
                 visibility_path=os.path.join(
                     output_base_directory,
-                    f"visibilities_f{index_freq}_p{index_p}",
+                    f"visibilities_f{index_freq}_p{index_p}.MS",
                 ),
             )  # type: ignore[call-overload]
 
