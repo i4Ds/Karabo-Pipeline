@@ -615,6 +615,14 @@ class ObsCoreMeta:
             else:
                 ocm.calib_level = 1
         # as far as I know, there's no MIME type for .ms or .vis, but for `.fits`
+        if tel is not None and (tel_name := tel.name) is not None:
+            ocm.instrument_name = tel_name
+        if tel is not None and obs is not None:
+            freq_inc_hz = obs.frequency_increment_hz
+            min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
+            end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
+            b = float(tel.max_baseline())
+            ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
         return ocm
 
     @classmethod

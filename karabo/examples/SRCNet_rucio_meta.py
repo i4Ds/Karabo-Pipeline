@@ -69,6 +69,8 @@ def main() -> None:
     vis_ocm = ObsCoreMeta.from_visibility(
         vis=vis,
         calibrated=False,
+        tel=tel,
+        obs=obs,
     )
     vis_rm = RucioMeta(
         namespace="testing",  # needs to be specified by Rucio service
