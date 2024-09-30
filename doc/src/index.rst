@@ -26,12 +26,6 @@ Main Modules
 
 .. toctree::
    :maxdepth: 2
-   :caption: Imaging
-
-   main_features/imaging.rst
-
-.. toctree::
-   :maxdepth: 2
    :caption: Source Detection
 
    main_features/sourcedetection.rst
