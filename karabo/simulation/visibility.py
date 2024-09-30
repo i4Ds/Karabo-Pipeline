@@ -29,6 +29,8 @@ def is_valid_path_for_format(path: FilePathType, format: VisibilityFormat) -> bo
 
 class Visibility:
     def __init__(self, path: FilePathType) -> None:
+        if not os.path.exists(path):
+            raise ValueError(f"Path {path} does not exist")
         self.path = path
 
         self.format: VisibilityFormat
