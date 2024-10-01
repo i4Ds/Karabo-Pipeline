@@ -6,3 +6,6 @@ coverage:
     patch:
       default:
         target: 0%  # sets required coverage for a success
+
+ignore:
+  - "karabo/util/ska_sdp_datamodels"  # ignore temporary copy of ska_sdp_datamodels MS functionality
