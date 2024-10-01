@@ -242,20 +242,19 @@ def create_image_custom_command(
     Use absolute paths to reference files or directories like the measurement set.
 
     Args:
-        command (str): Command to execute. Example: wsclean -size 2048 2048
+        command: Command to execute. Example: wsclean -size 2048 2048
             -scale 0.0022222222222222222deg -niter 50000 -mgain 0.8
             -abs-threshold 100µJy /tmp/measurements.MS
-        output_filenames (Union[str, List[str]], optional): WSClean output filename(s)
+        output_filenames: WSClean output filename(s)
             (relative to the working directory) that should be returned
             as Image objects. Can be a string for one file or a list of strings
             for multiple files.
             Example 1: "wsclean-image.fits"
             Example 2: ['wsclean-image.fits', 'wsclean-residual.fits']
-            Defaults to "wsclean-image.fits".
 
     Returns:
-        Union[Image, List[Image]]: If output_filenames is a string, returns an Image
-            object of the file output_filenames.
+        If output_filenames is a string, returns an Image object of the file
+            output_filenames.
             If output_filenames is a list of strings, returns a list of Image objects,
             one object per filename in output_filenames.
     """

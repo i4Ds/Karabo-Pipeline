@@ -24,10 +24,26 @@ assert all(f in _VISIBILITY_FORMAT_VALIDATORS for f in get_args(VisibilityFormat
 
 
 def is_valid_path_for_format(path: FilePathType, format: VisibilityFormat) -> bool:
+    """Tests if a path is valid for a specific format
+
+    Args:
+        path: path to visibility
+        format: visibility format
+
+    Returns:
+        True if valid, False otherwise
+    """
     return _VISIBILITY_FORMAT_VALIDATORS[format](path)
 
 
 class Visibility:
+    """Class representing visibility data on the filesystem
+
+    Args:
+        path: Path to visibility data directory (for MS format) or file.
+            Visibility format will be inferred from the path.
+    """
+
     def __init__(self, path: FilePathType) -> None:
         if not os.path.exists(path):
             raise ValueError(f"Path {path} does not exist")

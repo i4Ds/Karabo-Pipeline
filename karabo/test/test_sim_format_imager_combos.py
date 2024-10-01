@@ -1,4 +1,3 @@
-# TODO files abräumen
 import os
 
 import pytest

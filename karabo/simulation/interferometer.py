@@ -360,17 +360,27 @@ class InterferometerSimulation:
         visibility_format: VisibilityFormat = "MS",
         visibility_path: Optional[FilePathType] = None,
     ) -> Union[Visibility, List[Visibility]]:
+        """Run an interferometer simulation, generating simulated visibility data.
+
+        Args:
+            telescope: Telescope model defining the configuration
+            sky: sky model defining the sky sources
+            observation: observation settings
+            backend: Simulation backend to be used
+            primary_beam: Primary beam to be included into visibilities.
+                Currently only relevant for RASCIL.
+                For OSKAR, use the InterferometerSimulation constructor parameters
+                instead.
+            visibility_format: Visibility format in which to write generated data to
+                disk
+            visibility_path: Path for the visibility output file. If None, visibility
+                will be written to short term cache directory.
+
+        Returns:
+            Visibility object of the generated data or list of Visibility objects
+                for ObservationParallelized observations.
         """
-        Run a single interferometer simulation with the given sky, telescope and
-        observation settings.
-        :param telescope: telescope model defining the configuration
-        :param sky: sky model defining the sky sources
-        :param observation: observation settings
-        :param backend: Backend used to perform calculations (e.g. OSKAR, RASCIL)
-        :param primary_beam: Primary beam to be included into visibilities.
-            Currently only relevant for RASCIL.
-            For OSKAR, use the InterferometerSimulation constructor parameters instead.
-        """
+
         if visibility_path is None:
             visibility_path = self._get_visibility_path_in_tmp_dir(visibility_format)
         if not is_valid_path_for_format(visibility_path, visibility_format):
@@ -443,17 +453,6 @@ class InterferometerSimulation:
         visibility_path: FilePathType,
         primary_beam: Optional[RASCILImage],
     ) -> Visibility:
-        """
-        Compute visibilities from SkyModel using the RASCIL backend.
-
-        :param telescope: Telescope configuration.
-            Should be created using the RASCIL backend
-        :param sky: SkyModel to be used in the simulation.
-            Will be converted into a RASCIL-compatible list of SkyComponent objects.
-        :param observation: Observation details
-        :param visibility_format: visibility format to generate
-        :param primary_beam: Primary beam to be included into visibilities.
-        """
         # Steps followed in this simulation:
         # Compute hour angles based on Observation details
         # Create an empty visibility according to the observation details
@@ -527,7 +526,6 @@ class InterferometerSimulation:
         )
 
         # Save visibilities to disk
-        # TODO verify output
         export_visibility_to_ms(visibility_path, [vis])
 
         return Visibility(visibility_path)
@@ -686,14 +684,6 @@ class InterferometerSimulation:
         params_total: OskarSettingsTreeType,
         precision: PrecisionType = "double",
     ) -> Dict[str, Any]:
-        """
-        Run a single interferometer simulation with a given sky,
-        telescope and observation settings.
-        :param params_total: Combined parameters for the interferometer
-        :param os_sky: OSKAR sky model as np.array or oskar.Sky
-        :param precision: precision of the simulation
-        """
-
         setting_tree = oskar.SettingsTree("oskar_sim_interferometer")
         setting_tree.from_dict(params_total)
 

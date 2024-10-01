@@ -320,23 +320,20 @@ class RascilImageCleaner(ImageCleaner):
         """Creates a clean image from visibilities.
 
         Args:
-            visibility (Visibility): Visibility from which a clean image should be
-                created. Please note: only MS visibilities supported.
-            deconvolved_fits_path (Optional[FilePathType], optional): Path to write the
-                deconvolved image to. Example: /tmp/deconvolved.fits.
+            visibility: Visibility from which a clean image should be created.
+                Please note: only MS visibilities supported.
+            deconvolved_fits_path: Path to write the deconvolved image to.
+                Example: /tmp/deconvolved.fits.
                 If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
-            restored_fits_path (Optional[FilePathType], optional): Path to write the
-                restored image to. Example: /tmp/restored.fits.
+            restored_fits_path: Path to write the restored image to.
+                Example: /tmp/restored.fits.
                 If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
-            residual_fits_path (Optional[FilePathType], optional): Path to write the
-                residual image to. Example: /tmp/residual.fits.
+            residual_fits_path: Path to write the residual image to.
+                Example: /tmp/residual.fits.
                 If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
 
         Returns:
-            Tuple[Image, Image, Image]: Tuple of deconvolved, restored, residual images
+            A tuple (deconvolved, restored, residual) of images
         """
         if visibility.format != "MS":
             raise NotImplementedError(

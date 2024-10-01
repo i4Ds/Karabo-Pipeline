@@ -18,18 +18,18 @@ def run_sample_simulation(
 ) -> Tuple[
     Visibility, IntFloatList, SkyModel, Telescope, Observation, InterferometerSimulation
 ]:
-    """
-    TODO update
-    Creates example visibilities for use in tests, experiments and examples.
+    """Creates example visibilities for use in tests, experiments and examples.
 
     Args:
-        phase_center: ra and dec of the sky. Defaults to [250, -80] if not provided.
-        verbose: Boolean to decide if console outputs are made during simulation
-        (e.g. for use in ipynb)
+        simulator_backend: Backend to use for simulation
+        visibility_format: Visibility format in which to write generated data to disk
+        verbose: Enable / disable progress prints
 
     Returns:
-        Visibility: visibilities created by the simulation
-        SkyModel: Sky model used for the simulation
+        A tuple (visibility, phase_center, sky, telescope, observation,
+            interferometer_sim) with the generated visibility data and phase center,
+            sky model, telescope, observation and interferometer configuration used
+            to generate it.
     """
     if simulator_backend == SimulatorBackend.RASCIL:
         raise NotImplementedError(
