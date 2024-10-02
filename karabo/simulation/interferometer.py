@@ -49,7 +49,9 @@ from karabo.util._types import (
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
-from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import export_visibility_to_ms
+from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (  # type: ignore[attr-defined] # noqa: E501
+    export_visibility_to_ms,
+)
 
 
 class CorrelationType(enum.Enum):

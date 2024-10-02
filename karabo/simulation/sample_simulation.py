@@ -50,9 +50,7 @@ def run_sample_simulation(
 
     if verbose:
         print("Setting Up Telescope")
-    telescope = Telescope.constructor(
-        "ASKAP", version=None, backend=simulator_backend
-    )  # type: ignore[call-overload]
+    telescope = Telescope.constructor("ASKAP", version=None, backend=simulator_backend)
 
     if verbose:
         print("Setting Up Observation")
@@ -75,7 +73,7 @@ def run_sample_simulation(
         observation,
         backend=simulator_backend,
         visibility_format=visibility_format,
-    )  # type: ignore[call-overload]
+    )
 
     # In case run_simulation returns a list of vis (allowed by type hint)
     if isinstance(visibility, list):
