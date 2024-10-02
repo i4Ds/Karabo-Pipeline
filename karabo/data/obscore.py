@@ -562,9 +562,11 @@ class ObsCoreMeta:
                 freq=float(np.max(spectral_window.ref_frequency)),
                 b=b,
             )
-            ocm.pol_xel = MSPolarizationTable.nrows(ms_path=vis_inode)
             corr_types = np.unique(ms_meta.polarization.corr_type.ravel()).tolist()
             ocm.set_pol_states(pol_states=corr_types)
+            pol_states = ocm.get_pol_states()
+            if pol_states is not None:
+                ocm.pol_xel = len(pol_states)
         elif vis.format == "OSKAR_VIS":
             header, _ = VisHeader.read(vis_inode)
             ocm.s_ra = header.phase_centre_ra_deg
@@ -724,7 +726,7 @@ class ObsCoreMeta:
                 wmsg = (
                     f"Skipping `{k}` because it's not a valid field of `ObsCoreMeta`."
                 )
-                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                warn(message=wmsg, category=UserWarning, stacklevel=2)
                 continue
             setattr(self, k, v)
 
@@ -939,7 +941,7 @@ class ObsCoreMeta:
         if axis == "RA":
             if number > 360.0 or number < 0.0:
                 wmsg = f"Coercing {axis}={number} to {axis}={number}%360"
-                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                warn(message=wmsg, category=UserWarning, stacklevel=2)
             number = number % 360
         elif axis == "DEC":
             if number < -90.0 or number > 90.0:
@@ -994,7 +996,7 @@ class ObsCoreMeta:
                     f"{mandatory_missing=} fields are None in `ObsCoreMeta`, "
                     + "but are mandatory to ObsTAP services."
                 )
-                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                warn(message=wmsg, category=UserWarning, stacklevel=2)
         return valid
 
     def _check_polarization(self, *, verbose: bool) -> bool:
@@ -1013,34 +1015,41 @@ class ObsCoreMeta:
             try:
                 _ = self.get_pol_states()
             except ValueError as ve:
-                valid = False
+                valid = False  # pol-state string is corrupt (e.g. self-set)
                 if verbose:
-                    warn(message=str(ve), category=UserWarning, stacklevel=1)
+                    warn(message=str(ve), category=UserWarning, stacklevel=2)
         if pol_xel is None and pol_states is not None:
             valid = False
             if verbose:
                 wmsg = f"`pol_xel` should be specified because {pol_states=}"
-                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                warn(message=wmsg, category=UserWarning, stacklevel=2)
         elif pol_xel is not None and pol_states is None:
             valid = False
             if verbose:
                 wmsg = (
                     f"{pol_xel=} is specified, but {pol_states=} which isn't consistent"
                 )
-                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                warn(message=wmsg, category=UserWarning, stacklevel=2)
         elif pol_xel is not None and pol_states is not None:
-            if pol_xel != (num_pol_states := len(pol_states)):
-                valid = False
-                if verbose:
-                    wmsg = f"{pol_xel=} should be {num_pol_states=}"
-                    warn(message=wmsg, category=UserWarning, stacklevel=1)
+            try:
+                pol_states_list = self.get_pol_states()
+            except ValueError:
+                valid = False  # pol-state string is corrupt (e.g. self-set)
+            else:
+                if pol_states_list is not None and pol_xel != (
+                    num_pol_states := len(pol_states_list)
+                ):
+                    valid = False
+                    if verbose:
+                        wmsg = f"{pol_xel=} should be {num_pol_states=}"
+                        warn(message=wmsg, category=UserWarning, stacklevel=2)
         if (pol_xel is not None or pol_states is not None) and (
             self.o_ucd is None or (ucd_str := "phys.polarisation") not in self.o_ucd
         ):
             valid = False
             if verbose:
                 wmsg = f"`o_ucd` must at least contain '{ucd_str}' but it doesn't"
-                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                warn(message=wmsg, category=UserWarning, stacklevel=2)
         return valid
 
     def _check_axes(self, *, verbose: bool) -> bool:
@@ -1067,7 +1076,7 @@ class ObsCoreMeta:
             valid = False
             if verbose:
                 wmsg = f"Invalid axes-values: {invalid_fields}"
-                warn(message=wmsg, category=UserWarning, stacklevel=1)
+                warn(message=wmsg, category=UserWarning, stacklevel=2)
         return valid
 
     @classmethod

@@ -387,6 +387,7 @@ class InterferometerSimulation:
             raise ValueError(
                 f"{visibility_path} is not a valid path for format {visibility_format}"
             )
+        os.makedirs(os.path.dirname(visibility_path), exist_ok=True)
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
                 warn(

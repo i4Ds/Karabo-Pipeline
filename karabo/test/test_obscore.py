@@ -8,12 +8,9 @@ from typing import Any
 import numpy as np
 import pytest
 from astropy import units as u
+from pytest import FixtureRequest
 from rfc3986.exceptions import InvalidComponentsError
 
-from karabo.data.external_data import (
-    SingleFileDownloadObject,
-    cscs_karabo_public_testing_base_url,
-)
 from karabo.data.obscore import FitsHeaderAxes, FitsHeaderAxis, ObsCoreMeta
 from karabo.data.src import RucioMeta
 from karabo.imaging.image import Image
@@ -22,24 +19,6 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util.helpers import get_rnd_str
-
-
-@pytest.fixture(scope="module")
-def minimal_visibility() -> Visibility:
-    vis_path = SingleFileDownloadObject(
-        remote_file_path="test_minimal_visibility.vis",
-        remote_base_url=cscs_karabo_public_testing_base_url,
-    ).get()
-    return Visibility(vis_path)
-
-
-@pytest.fixture(scope="module")
-def minimal_fits_restored() -> Image:
-    restored_path = SingleFileDownloadObject(
-        remote_file_path="test_minimal_clean_restored.fits",
-        remote_base_url=cscs_karabo_public_testing_base_url,
-    ).get()
-    return Image(path=restored_path)
 
 
 class TestObsCoreMeta:
@@ -119,19 +98,35 @@ class TestObsCoreMeta:
                     fragment=fragment,
                 )
 
-    def test_from_visibility(self, minimal_visibility: Visibility) -> None:
-        telescope = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
-        observation = Observation(  # settings from notebook, of `minimal_visibility`
-            start_frequency_hz=100e6,
-            start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-            phase_centre_ra_deg=250.0,
-            phase_centre_dec_deg=-80.0,
-            number_of_channels=16,
-            frequency_increment_hz=1e6,
-            number_of_time_steps=24,
-        )
+    @pytest.mark.parametrize(
+        "vis_fixture_name",
+        [
+            "minimal_oskar_vis",
+            "minimal_casa_ms",
+        ],
+    )
+    def test_from_visibility(
+        self,
+        vis_fixture_name: str,
+        request: FixtureRequest,
+    ) -> None:
+        visibility: Visibility = request.getfixturevalue(vis_fixture_name)
+        if visibility.format == "OSKAR_VIS":
+            telescope = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
+            observation = Observation(  # original settings for `minimal_oskar_vis`
+                start_frequency_hz=100e6,
+                start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
+                phase_centre_ra_deg=250.0,
+                phase_centre_dec_deg=-80.0,
+                number_of_channels=16,
+                frequency_increment_hz=1e6,
+                number_of_time_steps=24,
+            )
+        else:
+            telescope = None
+            observation = None
         ocm = ObsCoreMeta.from_visibility(
-            vis=minimal_visibility,
+            vis=visibility,
             calibrated=False,
             tel=telescope,
             obs=observation,
@@ -153,8 +148,12 @@ class TestObsCoreMeta:
         assert ocm.em_ucd is not None
         assert ocm.o_ucd is not None
         assert ocm.calib_level == 1  # because `calibrated` flag set to False
-        assert ocm.instrument_name == telescope.name
+        assert ocm.instrument_name is not None
         assert ocm.s_resolution is not None and ocm.s_resolution > 0.0
+
+        if visibility.format == "MS":
+            assert ocm.pol_xel is not None and ocm.pol_xel > 0
+            assert ocm.pol_states is not None and len(ocm.pol_states) > 0
 
         with tempfile.TemporaryDirectory() as tmpdir:
             meta_path = os.path.join(tmpdir, "obscore-vis.json")

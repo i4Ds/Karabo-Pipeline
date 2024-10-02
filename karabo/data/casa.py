@@ -325,7 +325,9 @@ class MSMainTable(_CasaTableABC):
         """
         ms_path
         ct = cls._get_casa_table_instance(ms_path=ms_path)
-        version: MS_VERSION = ct.getkeyword("MS_VERSION")
+        version: MS_VERSION = str(  # type: ignore[assignment]
+            ct.getkeyword("MS_VERSION")
+        )  # noqa: E501
         return version
 
 
