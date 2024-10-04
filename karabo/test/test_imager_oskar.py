@@ -33,7 +33,10 @@ def test_dirty_image_custom_output_path(tobject: TFiles):
             tmp_dir,
             "test_dirty_image_custom_output_path.fits",
         )
-        dirty_image = dirty_imager.create_dirty_image(vis, output_fits_path)
+        dirty_image = dirty_imager.create_dirty_image(
+            vis,
+            output_fits_path=output_fits_path,
+        )
 
         assert dirty_image.data.ndim == 4
         assert os.path.exists(dirty_image.path)

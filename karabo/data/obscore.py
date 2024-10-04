@@ -915,7 +915,6 @@ class ObsCoreMeta:
         return str(uri_ref.unsplit())
 
     @classmethod
-    @classmethod
     def _convert(
         cls,
         number: float,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import os.path
-from typing import Callable, Dict, List, Literal, Optional, get_args
+from typing import Callable, Dict, List, Literal, Optional, Union, get_args
 
 import numpy as np
 import oskar
@@ -14,7 +14,7 @@ from karabo.util.file_handler import FileHandler
 # to _VISIBILITY_FORMAT_VALIDATORS.
 VisibilityFormat = Literal["MS", "OSKAR_VIS"]
 _VISIBILITY_FORMAT_VALIDATORS: Dict[
-    VisibilityFormat, Callable[[FilePathType], bool]
+    VisibilityFormat, Callable[[Union[DirPathType, FilePathType]], bool]
 ] = {
     "MS": lambda path: str(path).lower().endswith(".ms"),
     "OSKAR_VIS": lambda path: str(path).lower().endswith(".vis"),
@@ -23,7 +23,10 @@ assert len(get_args(VisibilityFormat)) == len(_VISIBILITY_FORMAT_VALIDATORS)
 assert all(f in _VISIBILITY_FORMAT_VALIDATORS for f in get_args(VisibilityFormat))
 
 
-def is_valid_path_for_format(path: FilePathType, format: VisibilityFormat) -> bool:
+def is_valid_path_for_format(
+    path: Union[DirPathType, FilePathType],
+    format: VisibilityFormat,
+) -> bool:
     """Tests if a path is valid for a specific format
 
     Args:
@@ -36,6 +39,15 @@ def is_valid_path_for_format(path: FilePathType, format: VisibilityFormat) -> bo
     return _VISIBILITY_FORMAT_VALIDATORS[format](path)
 
 
+def parse_visibility_format_from_path(
+    path: Union[DirPathType, FilePathType]
+) -> Optional[VisibilityFormat]:
+    for format in sorted(_VISIBILITY_FORMAT_VALIDATORS.keys()):
+        if is_valid_path_for_format(path, format):
+            return format
+    return None
+
+
 class Visibility:
     """Class representing visibility data on the filesystem
 
@@ -44,13 +56,13 @@ class Visibility:
             Visibility format will be inferred from the path.
     """
 
-    def __init__(self, path: FilePathType) -> None:
+    def __init__(self, path: Union[DirPathType, FilePathType]) -> None:
         if not os.path.exists(path):
             raise ValueError(f"Path {path} does not exist")
         self.path = path
 
         self.format: VisibilityFormat
-        format = self._parse_visibility_format_from_path(self.path)
+        format = parse_visibility_format_from_path(self.path)
         if format is None:
             raise ValueError(
                 f"Could not match {self.path} to one of the supported "
@@ -58,16 +70,6 @@ class Visibility:
             )
         self.format = format
         print(f"Matched path {self.path} to format {self.format}")
-
-    @classmethod
-    def _parse_visibility_format_from_path(
-        cls,
-        path: FilePathType,
-    ) -> Optional[VisibilityFormat]:
-        for format in sorted(_VISIBILITY_FORMAT_VALIDATORS.keys()):
-            if is_valid_path_for_format(path, format):
-                return format
-        return None
 
 
 def combine_vis(

@@ -58,6 +58,7 @@ class OskarDirtyImager(DirtyImager):
         self,
         visibility: Visibility,
         /,
+        *,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         # Validate requested filepath

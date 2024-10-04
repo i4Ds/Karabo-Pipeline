@@ -46,6 +46,7 @@ class DirtyImager(ABC):
         self,
         visibility: Visibility,
         /,
+        *,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         """Creates a dirty image from a visibility.
@@ -98,6 +99,7 @@ class ImageCleaner(ABC):
         self,
         visibility: Visibility,
         /,
+        *,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
@@ -107,7 +109,7 @@ class ImageCleaner(ABC):
             visibility: Visibility from which a clean image should be created.
             dirty_fits_path: Path to dirty image FITS file that
                 should be reused to create a clean image. If None, dirty image will be
-                created first from the visibility. Defaults to None.
+                created first from the visibilities. Defaults to None.
             output_fits_path: Path to write the clean image to.
                 Example: /tmp/restored.fits.
                 If None, will be set to a temporary directory and a default file name.
