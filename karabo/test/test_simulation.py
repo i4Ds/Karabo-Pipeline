@@ -329,14 +329,7 @@ def test_run_sample_simulation() -> None:
     old_stdout = sys.stdout
     sys.stdout = StringIO()
 
-    (
-        visibility,
-        phase_center,
-        sky,
-        telescope,
-        observation,
-        interferometer_sim,
-    ) = run_sample_simulation(verbose=True)
+    visibility, *_ = run_sample_simulation(verbose=True)
 
     output = sys.stdout.getvalue()
     sys.stdout = old_stdout

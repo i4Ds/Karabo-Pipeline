@@ -640,7 +640,8 @@ class InterferometerSimulation:
             start_freq = observation_params["observation"]["start_frequency_hz"]
             interferometer_params = self.__get_OSKAR_settings_tree(
                 input_telpath=input_telpath,
-                ms_file_path=os.path.join(
+                visibility_filename_key=filename_key,
+                visibility_path=os.path.join(
                     visibilities_root_dir, f"start_freq_{start_freq}.{ending}"
                 ),
             )
@@ -685,19 +686,16 @@ class InterferometerSimulation:
             )
         # Create params for the interferometer
         if visibility_format == "MS":
-            interferometer_params = self.__get_OSKAR_settings_tree(
-                input_telpath=input_telpath,
-                ms_file_path=str(visibility_path),
-            )
             filename_key = "ms_filename"
         elif visibility_format == "OSKAR_VIS":
-            interferometer_params = self.__get_OSKAR_settings_tree(
-                input_telpath=input_telpath,
-                vis_path=str(visibility_path),
-            )
             filename_key = "oskar_vis_filename"
         else:
             assert_never(visibility_format)
+        interferometer_params = self.__get_OSKAR_settings_tree(
+            input_telpath=input_telpath,
+            visibility_filename_key=filename_key,
+            visibility_path=visibility_path,
+        )
 
         # Initialise the telescope and observation settings
         observation_params = observation.get_OSKAR_settings_tree()
@@ -772,6 +770,7 @@ class InterferometerSimulation:
         ms_dir = os.path.join(tmp_dir, "measurements")
         os.makedirs(ms_dir, exist_ok=False)
 
+        intermediate_visibility_filename_key = "oskar_vis_filename"
         # Loop over days
         for i, current_date in enumerate(
             pd.date_range(
@@ -799,7 +798,8 @@ class InterferometerSimulation:
             vis_path = os.path.join(ms_dir, f"{current_date}.vis")
             interferometer_params = self.__get_OSKAR_settings_tree(
                 input_telpath=input_telpath,
-                vis_path=vis_path,
+                visibility_filename_key=intermediate_visibility_filename_key,
+                visibility_path=vis_path,
             )
 
             params_total = {**interferometer_params, **observation_params}
@@ -814,7 +814,8 @@ class InterferometerSimulation:
 
         # Combine the visibilities
         visibilities = [
-            Visibility(x["interferometer"]["oskar_vis_filename"]) for x in runs
+            Visibility(x["interferometer"][intermediate_visibility_filename_key])
+            for x in runs
         ]
         combine_vis(visibilities, visibility_path)
 
@@ -871,12 +872,9 @@ class InterferometerSimulation:
     def __get_OSKAR_settings_tree(
         self,
         input_telpath: DirPathType,
-        ms_file_path: Optional[str] = None,
-        vis_path: Optional[str] = None,
+        visibility_filename_key: str,
+        visibility_path: Union[DirPathType, FilePathType],
     ) -> OskarSettingsTreeType:
-        if ms_file_path is None and vis_path is None:
-            raise ValueError("Either ms_file_path or vis_path needs to be set")
-
         settings: OskarSettingsTreeType = {
             "simulator": {
                 "use_gpus": self.use_gpus,
@@ -918,10 +916,7 @@ class InterferometerSimulation:
             },
         }
 
-        if ms_file_path is not None:
-            settings["interferometer"]["ms_filename"] = ms_file_path
-        if vis_path is not None:
-            settings["interferometer"]["oskar_vis_filename"] = vis_path
+        settings["interferometer"][visibility_filename_key] = str(visibility_path)
 
         if self.ionosphere_fits_path:
             settings["telescope"].update(

@@ -8,7 +8,6 @@ from karabo.imaging.imager_wsclean import (
     WscleanImageCleanerConfig,
     create_image_custom_command,
 )
-from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 from karabo.util.file_handler import FileHandler
@@ -50,14 +49,7 @@ def test_dirty_image_custom_path(tobject: TFiles):
         assert os.path.exists(dirty_image.path)
 
 
-def _run_sim() -> Visibility:
-    visibility, _, _, _, _, _ = run_sample_simulation()
-    return visibility
-
-
-def test_create_cleaned_image():
-    visibility = _run_sim()
-
+def test_create_cleaned_image(default_sample_simulation_visibility: Visibility):
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
@@ -66,14 +58,14 @@ def test_create_cleaned_image():
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
         )
-    ).create_cleaned_image(visibility)
+    ).create_cleaned_image(default_sample_simulation_visibility)
 
     assert os.path.exists(restored.path)
 
 
-def test_create_cleaned_image_custom_path():
-    visibility = _run_sim()
-
+def test_create_cleaned_image_custom_path(
+    default_sample_simulation_visibility: Visibility,
+):
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
@@ -87,15 +79,18 @@ def test_create_cleaned_image_custom_path():
                 imaging_npixel=imaging_npixel,
                 imaging_cellsize=imaging_cellsize,
             )
-        ).create_cleaned_image(visibility, output_fits_path=output_fits_path)
+        ).create_cleaned_image(
+            default_sample_simulation_visibility,
+            output_fits_path=output_fits_path,
+        )
 
         assert restored.path == output_fits_path
         assert os.path.exists(restored.path)
 
 
-def test_create_cleaned_image_reuse_dirty():
-    visibility = _run_sim()
-
+def test_create_cleaned_image_reuse_dirty(
+    default_sample_simulation_visibility: Visibility,
+):
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
@@ -105,7 +100,7 @@ def test_create_cleaned_image_reuse_dirty():
             imaging_cellsize=imaging_cellsize,
         ),
     )
-    dirty_image = dirty_imager.create_dirty_image(visibility)
+    dirty_image = dirty_imager.create_dirty_image(default_sample_simulation_visibility)
     assert os.path.exists(dirty_image.path)
 
     restored = WscleanImageCleaner(
@@ -113,14 +108,15 @@ def test_create_cleaned_image_reuse_dirty():
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
         )
-    ).create_cleaned_image(visibility, dirty_fits_path=dirty_image.path)
+    ).create_cleaned_image(
+        default_sample_simulation_visibility,
+        dirty_fits_path=dirty_image.path,
+    )
     assert os.path.exists(dirty_image.path)
     assert os.path.exists(restored.path)
 
 
-def test_create_image_custom_command():
-    visibility = _run_sim()
-
+def test_create_image_custom_command(default_sample_simulation_visibility: Visibility):
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
@@ -131,15 +127,15 @@ def test_create_image_custom_command():
         "-niter 50000 "
         "-mgain 0.8 "
         "-auto-threshold 3 "
-        f"{visibility.path}"
+        f"{default_sample_simulation_visibility.path}"
     )
 
     assert os.path.exists(restored.path)
 
 
-def test_create_image_custom_command_multiple_outputs():
-    visibility = _run_sim()
-
+def test_create_image_custom_command_multiple_outputs(
+    default_sample_simulation_visibility: Visibility,
+):
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
@@ -150,7 +146,7 @@ def test_create_image_custom_command_multiple_outputs():
         "-niter 50000 "
         "-mgain 0.8 "
         "-auto-threshold 3 "
-        f"{visibility.path}",
+        f"{default_sample_simulation_visibility.path}",
         ["wsclean-image.fits", "wsclean-residual.fits"],
     )
 

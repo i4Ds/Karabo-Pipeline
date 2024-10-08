@@ -16,6 +16,7 @@ from karabo.data.external_data import (
     cscs_karabo_public_testing_base_url,
 )
 from karabo.imaging.image import Image
+from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.visibility import Visibility
 from karabo.test import data_path
 from karabo.util.file_handler import FileHandler
@@ -130,7 +131,7 @@ def tobject() -> TFiles:
     return TFiles()
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def clean_disk() -> Generator[None, None, None]:
     """Automatically clears FileHandler's short-term-memory after each test.
 
@@ -235,3 +236,9 @@ def minimal_fits_restored() -> Image:
         remote_base_url=cscs_karabo_public_testing_base_url,
     ).get()
     return Image(path=restored_path)
+
+
+@pytest.fixture(scope="session")
+def default_sample_simulation_visibility() -> Visibility:
+    visibility, *_ = run_sample_simulation()
+    return visibility

@@ -25,7 +25,7 @@ IMAGING_CELLSIZE = 3.878509448876288e-05
 def test_oskar_imager(
     simulator_backend: SimulatorBackend, visibility_format: VisibilityFormat
 ) -> None:
-    visibility, _, _, _, _, _ = run_sample_simulation(
+    visibility, *_ = run_sample_simulation(
         simulator_backend=simulator_backend,
         visibility_format=visibility_format,
     )
@@ -49,7 +49,7 @@ def test_oskar_imager(
 def test_rascil_imager(
     simulator_backend: SimulatorBackend, visibility_format: VisibilityFormat
 ) -> None:
-    visibility, _, _, _, _, _ = run_sample_simulation(
+    visibility, *_ = run_sample_simulation(
         simulator_backend=simulator_backend,
         visibility_format=visibility_format,
     )
@@ -73,7 +73,7 @@ def test_rascil_imager(
 def test_wsclean_imager(
     simulator_backend: SimulatorBackend, visibility_format: VisibilityFormat
 ) -> None:
-    visibility, _, _, _, _, _ = run_sample_simulation(
+    visibility, *_ = run_sample_simulation(
         simulator_backend=simulator_backend,
         visibility_format=visibility_format,
     )

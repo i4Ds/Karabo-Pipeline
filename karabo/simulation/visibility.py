@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import os.path
-from typing import Callable, Dict, List, Literal, Optional, Union, get_args
+from typing import Callable, Dict, Final, List, Literal, Optional, Union, get_args
 
 import numpy as np
 import oskar
@@ -13,8 +13,8 @@ from karabo.util.file_handler import FileHandler
 # If you add a new format, a corresponding path validator function needs to be added
 # to _VISIBILITY_FORMAT_VALIDATORS.
 VisibilityFormat = Literal["MS", "OSKAR_VIS"]
-_VISIBILITY_FORMAT_VALIDATORS: Dict[
-    VisibilityFormat, Callable[[Union[DirPathType, FilePathType]], bool]
+_VISIBILITY_FORMAT_VALIDATORS: Final[
+    Dict[VisibilityFormat, Callable[[Union[DirPathType, FilePathType]], bool]]
 ] = {
     "MS": lambda path: str(path).lower().endswith(".ms"),
     "OSKAR_VIS": lambda path: str(path).lower().endswith(".vis"),
@@ -58,7 +58,7 @@ class Visibility:
 
     def __init__(self, path: Union[DirPathType, FilePathType]) -> None:
         if not os.path.exists(path):
-            raise ValueError(f"Path {path} does not exist")
+            raise FileNotFoundError(f"Path {path} does not exist")
         self.path = path
 
         self.format: VisibilityFormat
@@ -72,12 +72,13 @@ class Visibility:
         print(f"Matched path {self.path} to format {self.format}")
 
 
+# TODO Support MS, then adjust InterferometerSimulation.__run_simulation_long to support
+# both formats.
 def combine_vis(
     visibilities: List[Visibility],
     combined_ms_filepath: Optional[DirPathType] = None,
     group_by: str = "day",
-    return_path: bool = False,
-) -> Optional[DirPathType]:
+) -> DirPathType:
     if not all(v.format == "OSKAR_VIS" for v in visibilities):
         raise NotImplementedError("Only OSKAR_VIS visibilities supported")
 
@@ -181,7 +182,5 @@ def combine_vis(
                 block.num_baselines,
                 out_vis_reshaped[t],
             )
-    if return_path:
-        return combined_ms_filepath
-    else:
-        return None
+
+    return combined_ms_filepath

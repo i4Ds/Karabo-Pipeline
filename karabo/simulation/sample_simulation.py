@@ -75,8 +75,4 @@ def run_sample_simulation(
         visibility_format=visibility_format,
     )
 
-    # In case run_simulation returns a list of vis (allowed by type hint)
-    if isinstance(visibility, list):
-        visibility = visibility[0]
-
     return visibility, phase_center, sky, telescope, observation, interferometer_sim
