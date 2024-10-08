@@ -8,11 +8,11 @@ import pytest
 from astropy.io import fits
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.test.util import get_compatible_dirty_imager
 
 
 @pytest.mark.skip(reason="`run_simulation` is taking way too long")
@@ -59,7 +59,7 @@ def test_beam():
             visibility_path=os.path.join(tmpdir, "beam_vis.vis"),
         )
 
-        dirty_imager = auto_choose_dirty_imager_from_vis(
+        dirty_imager = get_compatible_dirty_imager(
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=4096,

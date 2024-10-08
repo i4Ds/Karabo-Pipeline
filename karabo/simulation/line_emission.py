@@ -17,7 +17,7 @@ from ska_sdp_datamodels.science_data_model.polarisation_model import Polarisatio
 
 from karabo.imaging.image import Image, ImageMosaicker
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
@@ -261,7 +261,13 @@ def line_emission_pipeline(
                 backend = "OSKAR"
             else:
                 backend = "RASCIL"
-            dirty_imager = auto_choose_dirty_imager_from_vis(vis, dirty_imager_config)
+            dirty_imager = RascilDirtyImager(
+                RascilDirtyImagerConfig(
+                    imaging_npixel=dirty_imager_config.imaging_npixel,
+                    imaging_cellsize=dirty_imager_config.imaging_cellsize,
+                    combine_across_frequencies=dirty_imager_config.combine_across_frequencies,  # noqa: E501
+                )
+            )
             dirty = dirty_imager.create_dirty_image(
                 vis,
                 output_fits_path=os.path.join(

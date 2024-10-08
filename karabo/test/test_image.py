@@ -11,19 +11,19 @@ from karabo.imaging.imager_rascil import (
     RascilImageCleaner,
     RascilImageCleanerConfig,
 )
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
+from karabo.test.util import get_compatible_dirty_imager
 
 
 def test_image_circle(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
@@ -48,7 +48,7 @@ def test_image_circle(tobject: TFiles):
 def test_dirty_image(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
@@ -66,7 +66,7 @@ def test_dirty_image_resample(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
     SHAPE = 2048
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=SHAPE,
@@ -127,7 +127,7 @@ def test_dirty_image_cutout(tobject: TFiles):
 def test_dirty_image_N_cutout(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,

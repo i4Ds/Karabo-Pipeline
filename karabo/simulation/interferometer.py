@@ -35,9 +35,7 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import (
     Visibility,
     VisibilityFormat,
-    combine_vis,
-    is_valid_path_for_format,
-    parse_visibility_format_from_path,
+    VisibilityFormatUtil,
 )
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
@@ -317,7 +315,10 @@ class InterferometerSimulation:
         else:
             os.makedirs(os.path.dirname(visibility_path), exist_ok=True)
 
-        if not is_valid_path_for_format(visibility_path, visibility_format):
+        if not VisibilityFormatUtil.is_valid_path_for_format(
+            visibility_path,
+            visibility_format,
+        ):
             raise ValueError(
                 f"{visibility_path} is not a valid path for format {visibility_format}"
             )
@@ -444,7 +445,9 @@ class InterferometerSimulation:
                 )
             elif isinstance(observation, ObservationParallelized):
                 if visibility_path is not None:
-                    parsed_format = parse_visibility_format_from_path(visibility_path)
+                    parsed_format = VisibilityFormatUtil.parse_visibility_format_from_path(  # noqa: E501
+                        visibility_path
+                    )
                     if parsed_format is not None:
                         warn(
                             "If an observation of type ObservationParallelized is "
@@ -817,7 +820,7 @@ class InterferometerSimulation:
             Visibility(x["interferometer"][intermediate_visibility_filename_key])
             for x in runs
         ]
-        combine_vis(visibilities, visibility_path)
+        Visibility.combine_vis(visibilities, combined_ms_filepath=visibility_path)
 
         print("Done with simulation.")
         return Visibility(visibility_path)

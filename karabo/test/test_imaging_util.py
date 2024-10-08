@@ -5,13 +5,13 @@ import pytest
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import VisibilityFormat
 from karabo.simulator_backend import SimulatorBackend
+from karabo.test.util import get_compatible_dirty_imager
 
 
 @pytest.mark.parametrize(
@@ -22,7 +22,7 @@ from karabo.simulator_backend import SimulatorBackend
         (SimulatorBackend.RASCIL, "MID", "MS", False),
     ],
 )
-def test_auto_choose_dirty_imager(
+def test_get_compatible_dirty_imager(
     sky_data: NDArray[np.float64],
     backend: SimulatorBackend,
     telescope_name: str,
@@ -64,6 +64,6 @@ def test_auto_choose_dirty_imager(
         combine_across_frequencies=combine_across_frequencies,
     )
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(visibility, dirty_imager_config)
+    dirty_imager = get_compatible_dirty_imager(visibility, dirty_imager_config)
     dirty_image = dirty_imager.create_dirty_image(visibility)
     assert dirty_image.data.ndim == 4

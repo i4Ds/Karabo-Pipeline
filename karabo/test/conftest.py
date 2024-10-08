@@ -131,9 +131,9 @@ def tobject() -> TFiles:
     return TFiles()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 def clean_disk() -> Generator[None, None, None]:
-    """Automatically clears FileHandler's short-term-memory after each test.
+    """Automatically clears FileHandler's short-term-memory after each test file.
 
     Needed in some cases where the underlying functions do use FileHandler
      which could lead to IOError because of disk-space limitations.

@@ -17,13 +17,13 @@ from karabo.data.external_data import (
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationParallelized
 from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
+from karabo.test.util import get_compatible_dirty_imager
 
 
 # DownloadObject instances used to download different golden files:
@@ -92,7 +92,7 @@ def test_backend_simulations(
 
     visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         visibility,
         DirtyImagerConfig(
             imaging_npixel=1024,
