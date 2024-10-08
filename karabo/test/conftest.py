@@ -238,7 +238,7 @@ def minimal_fits_restored() -> Image:
     return Image(path=restored_path)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def default_sample_simulation_visibility() -> Visibility:
     visibility, *_ = run_sample_simulation()
     return visibility
