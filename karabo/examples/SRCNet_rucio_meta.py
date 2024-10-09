@@ -55,18 +55,17 @@ def main() -> None:
         number_of_time_steps=24,
     )
     # define any unique (required for ingestion) output-file-path
-    vis_path = os.path.join(FileHandler.stm(), "my-unique-vis-fname.vis")
-    interferometer_sim = InterferometerSimulation(
-        vis_path=vis_path, channel_bandwidth_hz=freq_inc_hz
-    )
+    ms_path = os.path.join(FileHandler.stm(), "my-unique-ms.ms")
+    interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=freq_inc_hz)
     vis = interferometer_sim.run_simulation(
         telescope=tel,
         sky=sky,
         observation=obs,
         backend=SimulatorBackend.OSKAR,
+        visibility_format="MS",
+        visibility_path=ms_path,
     )
 
-    # create metadata of visibility (currently [08-24], .vis supported, casa .ms not)
     vis_ocm = ObsCoreMeta.from_visibility(
         vis=vis,
         calibrated=False,
@@ -75,7 +74,7 @@ def main() -> None:
     )
     vis_rm = RucioMeta(
         namespace="testing",  # needs to be specified by Rucio service
-        name=os.path.split(vis.vis_path)[-1],  # remove path-infos for `name`
+        name=os.path.split(vis.path)[-1],  # remove path-infos for `name`
         lifetime=86400,  # 1 day
         dataset_name=None,
         meta=vis_ocm,
@@ -97,7 +96,7 @@ def main() -> None:
     # HERE
     # #####END#######
 
-    vis_path_meta = RucioMeta.get_meta_fname(fname=vis.vis_path)
+    vis_path_meta = RucioMeta.get_meta_fname(fname=vis.path)
     _ = vis_rm.to_dict(fpath=vis_path_meta)
     print(f"Created {vis_path_meta=}")
 
@@ -120,10 +119,7 @@ def main() -> None:
             imaging_cellsize=imaging_cellsize,
             niter=5000,  # 10 times less than default
         )
-    ).create_cleaned_image(  # currently, wsclean needs casa .ms, which is also created
-        ms_file_path=vis.ms_file_path,
-        output_fits_path=restored_path,
-    )
+    ).create_cleaned_image(vis, output_fits_path=restored_path)
 
     # create metadata for restored .fits image
     # `FitsHeaderAxes` may need adaption based on the structure of your .fits image

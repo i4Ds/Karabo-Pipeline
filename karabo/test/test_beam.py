@@ -75,8 +75,6 @@ def test_gaussian_beam():
     # ------------- Simulation Begins
     with tempfile.TemporaryDirectory() as tmpdir:
         simulation = InterferometerSimulation(
-            vis_path=os.path.join(tmpdir, "beam_vis.vis"),
-            ms_file_path=os.path.join(tmpdir, "beam_vis.ms"),
             channel_bandwidth_hz=2e7,
             time_average_sec=8,
             noise_enable=False,
@@ -98,7 +96,13 @@ def test_gaussian_beam():
             frequency_increment_hz=2e7,
             number_of_channels=1,
         )
-        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility = simulation.run_simulation(
+            telescope,
+            sky,
+            observation,
+            visibility_format="MS",
+            visibility_path=os.path.join(tmpdir, "beam_vis.ms"),
+        )
 
         # RASCIL IMAGING
         dirty_imager = RascilDirtyImager(

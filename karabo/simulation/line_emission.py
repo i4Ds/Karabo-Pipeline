@@ -14,11 +14,10 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.image import create_image
 from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 
 from karabo.imaging.image import Image, ImageMosaicker
-from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_sim
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
@@ -73,10 +72,10 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: List[NDArray[np.float_]],
     should_perform_primary_beam_correction: Literal[True] = ...,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
 
@@ -89,10 +88,10 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: Literal[False] = ...,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
 
@@ -105,10 +104,10 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: bool = ...,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
 
@@ -120,10 +119,10 @@ def line_emission_pipeline(
     telescope: Telescope,
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
-    dirty_imager: DirtyImager,
+    dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
     should_perform_primary_beam_correction: bool = False,
-) -> Tuple[List[List[Union[Visibility, RASCILVisibility]]], List[List[Image]]]:
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
     only emits within one frequency channel.
@@ -169,7 +168,7 @@ def line_emission_pipeline(
     print("Computing visibilities...")
 
     # Loop through pointings
-    visibilities: List[List[Union[Visibility, RASCILVisibility]]] = []
+    visibilities: List[List[Visibility]] = []
 
     for index_freq, frequency_start in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")
@@ -191,8 +190,8 @@ def line_emission_pipeline(
             else:
                 # Currently supported backend for custom primary beams: RASCIL
                 primary_beam = create_image(
-                    npixel=dirty_imager.config.imaging_npixel,
-                    cellsize=dirty_imager.config.imaging_cellsize,
+                    npixel=dirty_imager_config.imaging_npixel,
+                    cellsize=dirty_imager_config.imaging_cellsize,
                     phasecentre=center,
                     polarisation_frame=PolarisationFrame(
                         "stokesI"
@@ -230,17 +229,18 @@ def line_emission_pipeline(
                     and pointing {index_p}, there are 0 sources in the sky model.
                     Setting visibility to None, and skipping analysis."""
 
-            interferometer.vis_path = (
-                f"{output_base_directory}/visibilities_f{index_freq}_p{index_p}"
-            )
-
             vis = interferometer.run_simulation(
                 telescope=telescope,
                 sky=filtered_sky,
                 observation=observation,
                 backend=simulator_backend,
                 primary_beam=primary_beam,
-            )
+                visibility_format="MS",
+                visibility_path=os.path.join(
+                    output_base_directory,
+                    f"visibilities_f{index_freq}_p{index_p}.MS",
+                ),
+            )  # type: ignore[call-overload]
 
             visibilities[-1].append(vis)
 
@@ -261,8 +261,15 @@ def line_emission_pipeline(
                 backend = "OSKAR"
             else:
                 backend = "RASCIL"
+            dirty_imager = RascilDirtyImager(
+                RascilDirtyImagerConfig(
+                    imaging_npixel=dirty_imager_config.imaging_npixel,
+                    imaging_cellsize=dirty_imager_config.imaging_cellsize,
+                    combine_across_frequencies=dirty_imager_config.combine_across_frequencies,  # noqa: E501
+                )
+            )
             dirty = dirty_imager.create_dirty_image(
-                visibility=vis,
+                vis,
                 output_fits_path=os.path.join(
                     output_base_directory, f"dirty_{backend}_{index_p}.fits"
                 ),
@@ -377,9 +384,6 @@ if __name__ == "__main__":
         imaging_npixel=npixels,
         imaging_cellsize=cellsize_radians,
     )
-    dirty_imager = auto_choose_dirty_imager_from_sim(
-        simulator_backend, dirty_imager_config
-    )
 
     # Create interferometer simulation
     beam_type: Literal["Gaussian beam", "Isotropic beam"]
@@ -409,13 +413,13 @@ if __name__ == "__main__":
         for frequency in frequency_channel_starts:
             fwhm_degrees = gaussian_beam_fwhm_for_frequency(frequency)
             fwhm_pixels = fwhm_degrees / np.degrees(
-                dirty_imager.config.imaging_cellsize
+                dirty_imager_config.imaging_cellsize
             )
 
             primary_beam = generate_gaussian_beam_data(
                 fwhm_pixels=fwhm_pixels,
-                x_size=dirty_imager.config.imaging_npixel,
-                y_size=dirty_imager.config.imaging_npixel,
+                x_size=dirty_imager_config.imaging_npixel,
+                y_size=dirty_imager_config.imaging_npixel,
             )
             primary_beams.append(primary_beam)
     else:
@@ -446,7 +450,7 @@ if __name__ == "__main__":
         telescope=telescope,
         interferometer=interferometer,
         simulator_backend=simulator_backend,
-        dirty_imager=dirty_imager,
+        dirty_imager_config=dirty_imager_config,
         primary_beams=primary_beams,
         should_perform_primary_beam_correction=should_perform_primary_beam_correction,
     )

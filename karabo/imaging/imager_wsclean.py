@@ -7,7 +7,6 @@ import subprocess
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from typing_extensions import override
 
 from karabo.imaging.image import Image
@@ -68,16 +67,16 @@ class WscleanDirtyImager(DirtyImager):
     @override
     def create_dirty_image(
         self,
-        visibility: Union[Visibility, RASCILVisibility],
+        visibility: Visibility,
+        /,
+        *,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
-        if isinstance(visibility, RASCILVisibility):
+        if visibility.format != "MS":
             raise NotImplementedError(
-                "WSClean imaging applied to "
-                "RASCIL visibilities is currently not supported. "
-                "For RASCIL visibilities please use the RASCIL imager."
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for WSClean imaging"
             )
-
         # TODO combine_across_frequencies
         # -channels-out <count>?
         if self.config.combine_across_frequencies is False:
@@ -94,7 +93,7 @@ class WscleanDirtyImager(DirtyImager):
             f"{_WSCLEAN_BINARY} "
             f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
             f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
-            f"{visibility.ms_file_path}"
+            f"{visibility.path}"
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(
@@ -173,10 +172,18 @@ class WscleanImageCleaner(ImageCleaner):
     @override
     def create_cleaned_image(
         self,
-        ms_file_path: FilePathType,
+        visibility: Visibility,
+        /,
+        *,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
+        if visibility.format != "MS":
+            raise NotImplementedError(
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for WSClean imaging"
+            )
+
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_CLEANED,
             purpose=self.TMP_PURPOSE_CLEANED,
@@ -199,7 +206,7 @@ class WscleanImageCleaner(ImageCleaner):
                 if self.config.auto_threshold is not None
                 else ""
             )
-            + str(ms_file_path)
+            + str(visibility.path)
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(
@@ -237,20 +244,19 @@ def create_image_custom_command(
     Use absolute paths to reference files or directories like the measurement set.
 
     Args:
-        command (str): Command to execute. Example: wsclean -size 2048 2048
+        command: Command to execute. Example: wsclean -size 2048 2048
             -scale 0.0022222222222222222deg -niter 50000 -mgain 0.8
             -abs-threshold 100µJy /tmp/measurements.MS
-        output_filenames (Union[str, List[str]], optional): WSClean output filename(s)
+        output_filenames: WSClean output filename(s)
             (relative to the working directory) that should be returned
             as Image objects. Can be a string for one file or a list of strings
             for multiple files.
             Example 1: "wsclean-image.fits"
             Example 2: ['wsclean-image.fits', 'wsclean-residual.fits']
-            Defaults to "wsclean-image.fits".
 
     Returns:
-        Union[Image, List[Image]]: If output_filenames is a string, returns an Image
-            object of the file output_filenames.
+        If output_filenames is a string, returns an Image object of the file
+            output_filenames.
             If output_filenames is a list of strings, returns a list of Image objects,
             one object per filename in output_filenames.
     """

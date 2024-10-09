@@ -9,7 +9,6 @@ from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_sim
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission import (
     REFERENCE_FREQUENCY_HZ,
@@ -104,9 +103,6 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
         imaging_npixel=npixels,
         imaging_cellsize=cellsize_radians,
     )
-    dirty_imager = auto_choose_dirty_imager_from_sim(
-        simulator_backend, dirty_imager_config
-    )
 
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
@@ -116,7 +112,7 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
         telescope=telescope,
         interferometer=interferometer,
         simulator_backend=simulator_backend,
-        dirty_imager=dirty_imager,
+        dirty_imager_config=dirty_imager_config,
     )
 
     assert len(visibilities) == observation.number_of_channels
@@ -192,9 +188,6 @@ def test_compare_oskar_rascil_dirty_images():
             )
         )
 
-        dirty_imager = auto_choose_dirty_imager_from_sim(
-            simulator_backend, dirty_imager_config
-        )
         _, dirty_images = line_emission_pipeline(
             output_base_directory=output_base_directory,
             pointings=[pointing],
@@ -203,7 +196,7 @@ def test_compare_oskar_rascil_dirty_images():
             telescope=telescope,
             interferometer=interferometer,
             simulator_backend=simulator_backend,
-            dirty_imager=dirty_imager,
+            dirty_imager_config=dirty_imager_config,
         )
 
         backend_to_dirty_images[simulator_backend] = dirty_images
@@ -317,9 +310,6 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
         imaging_npixel=npixels,
         imaging_cellsize=cellsize_radians,
     )
-    dirty_imager = auto_choose_dirty_imager_from_sim(
-        simulator_backend, dirty_imager_config
-    )
 
     # Compute frequency channels
     frequency_channel_starts = np.linspace(
@@ -334,12 +324,12 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
     primary_beams = []
     for frequency in frequency_channel_starts:
         fwhm_degrees = gaussian_beam_fwhm_for_frequency(frequency)
-        fwhm_pixels = (fwhm_degrees / np.degrees(dirty_imager.config.imaging_cellsize),)
+        fwhm_pixels = (fwhm_degrees / np.degrees(dirty_imager_config.imaging_cellsize),)
 
         primary_beam = generate_gaussian_beam_data(
             fwhm_pixels=fwhm_pixels,
-            x_size=dirty_imager.config.imaging_npixel,
-            y_size=dirty_imager.config.imaging_npixel,
+            x_size=dirty_imager_config.imaging_npixel,
+            y_size=dirty_imager_config.imaging_npixel,
         )
         primary_beams.append(primary_beam)
 
@@ -356,7 +346,7 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
             telescope=telescope,
             interferometer=interferometer_with_primary_beam,
             simulator_backend=simulator_backend,
-            dirty_imager=dirty_imager,
+            dirty_imager_config=dirty_imager_config,
             primary_beams=primary_beams,
             should_perform_primary_beam_correction=True,
         )
@@ -369,7 +359,7 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
             telescope=telescope,
             interferometer=interferometer_without_primary_beam,
             simulator_backend=simulator_backend,
-            dirty_imager=dirty_imager,
+            dirty_imager_config=dirty_imager_config,
             primary_beams=None,
             should_perform_primary_beam_correction=False,
         )

@@ -27,11 +27,7 @@ def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
         telescope = Telescope.read_OSKAR_tm_file(telescope_path)
         sky = SkyModel()
         sky.add_point_sources(sky_data)
-        ms_path = os.path.join(tmpdir, "out.ms")
-        vis_path = os.path.join(tmpdir, "out.vis")
         simulation = InterferometerSimulation(
-            ms_file_path=ms_path,
-            vis_path=vis_path,
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
             noise_enable=False,
@@ -55,7 +51,13 @@ def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
             number_of_channels=1,
         )
 
-        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility = simulation.run_simulation(
+            telescope,
+            sky,
+            observation,
+            visibility_format="MS",
+            visibility_path=os.path.join(tmpdir, "out.ms"),
+        )
 
         dirty_imager = RascilDirtyImager(
             RascilDirtyImagerConfig(

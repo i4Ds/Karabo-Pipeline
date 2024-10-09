@@ -78,7 +78,7 @@ if __name__ == "__main__":
         sky_model,
         observation,
         backend=SIMULATOR_BACKEND,
-    )
+    )  # type: ignore[call-overload]
 
     # Imaging using WSClean
     dirty_imager = WscleanDirtyImager(

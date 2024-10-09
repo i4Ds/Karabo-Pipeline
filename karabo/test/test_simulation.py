@@ -17,14 +17,13 @@ from karabo.data.external_data import (
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation, ObservationParallelized
 from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
+from karabo.test.util import get_compatible_dirty_imager
 
 
 # DownloadObject instances used to download different golden files:
@@ -93,7 +92,7 @@ def test_backend_simulations(
 
     visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         visibility,
         DirtyImagerConfig(
             imaging_npixel=1024,
@@ -320,48 +319,31 @@ def test_parallelization_by_observation() -> None:
         assert dirty.header["CDELT4"] == CHANNEL_BANDWIDTHS_HZ[i]
 
 
-def test_run_sample_simulation(
-    verbose: bool = True, phase_center: list = [250, -80]
-) -> None:
+def test_run_sample_simulation() -> None:
     """
     Executes the ASKAP sample simulation, captures verbose output,
     validates the output files, and checks the sky model filtering.
-
-    Args:
-        verbose: Boolean flag to capture verbose output from the simulation.
-        phase_center: List containing the RA and DEC of the phase center
-        for the simulation.
     """
 
     # run simulation and capture output
     old_stdout = sys.stdout
     sys.stdout = StringIO()
 
-    visibilities, sky = run_sample_simulation(
-        verbose=verbose, phase_center=phase_center
-    )
+    visibility, *_ = run_sample_simulation(verbose=True)
 
     output = sys.stdout.getvalue()
     sys.stdout = old_stdout
 
-    # returns non-None values of the correct type
-    assert visibilities is not None
-    assert sky is not None
-    assert isinstance(visibilities, Visibility)
-    assert isinstance(sky, SkyModel)
-
     # verbose output content
-    if verbose:
-        expected_messages = [
-            "Getting Sky Survey",
-            "Filtering Sky Model",
-            "Setting Up Telescope",
-            "Setting Up Observation",
-            "Generating Visibilities",
-        ]
-        for message in expected_messages:
-            assert message in output
+    expected_messages = [
+        "Getting Sky Survey",
+        "Filtering Sky Model",
+        "Setting Up Telescope",
+        "Setting Up Observation",
+        "Generating Visibilities",
+    ]
+    for message in expected_messages:
+        assert message in output
 
     # Ensure the visibilities file path is valid
-    vis_path = visibilities.vis_path
-    assert os.path.exists(vis_path)
+    assert os.path.exists(visibility.path)

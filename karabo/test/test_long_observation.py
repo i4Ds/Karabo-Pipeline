@@ -6,13 +6,13 @@ import numpy as np
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test.conftest import TFiles
+from karabo.test.util import get_compatible_dirty_imager
 
 
 # Test cases
@@ -99,7 +99,6 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
             beam_method="Gaussian Beam",
         )
         simulation = InterferometerSimulation(
-            ms_file_path=combined_ms_filepath,
             channel_bandwidth_hz=2e7,
             time_average_sec=7,
             noise_enable=False,
@@ -121,17 +120,11 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
             telescope=telescope,
             sky=sky,
             observation=observation_long,
+            visibility_format="MS",
+            visibility_path=combined_ms_filepath,
         )
 
-        # visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
-        # ---------- Combine the Visibilties --------------
-        # visibility_files= [
-        #     './karabo/test/data/beam_vis_1.vis',
-        #     './karabo/test/data/beam_vis_2.vis',
-        #     './karabo/test/data/beam_vis_3.vis',
-        # ]
-
-        dirty_imager = auto_choose_dirty_imager_from_vis(
+        dirty_imager = get_compatible_dirty_imager(
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=4096,

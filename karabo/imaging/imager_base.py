@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Union
-
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
+from typing import Optional
 
 from karabo.imaging.image import Image
 from karabo.simulation.visibility import Visibility
@@ -46,20 +44,18 @@ class DirtyImager(ABC):
     @abstractmethod
     def create_dirty_image(
         self,
-        # TODO find better solution
-        # use general format throughout pipeline,
-        # convert to specific format where it's necessary.
-        # https://github.com/i4Ds/Karabo-Pipeline/issues/421
-        visibility: Union[Visibility, RASCILVisibility],
+        visibility: Visibility,
+        /,
+        *,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         """Creates a dirty image from a visibility.
 
         Args:
-            visibility (Union[Visibility, RASCILVisibility]): Visibility object
+            visibility: Visibility object
                 from which to create the dirty image. Contains the visibilities
                 of an observation.
-            output_fits_path (Optional[FilePathType]): Path to write the dirty image to.
+            output_fits_path: Path to write the dirty image to.
                 Example: /tmp/dirty.fits.
                 If None, will be set to a temporary directory and a default file name.
                 Defaults to None.
@@ -101,19 +97,20 @@ class ImageCleaner(ABC):
     @abstractmethod
     def create_cleaned_image(
         self,
-        ms_file_path: FilePathType,
+        visibility: Visibility,
+        /,
+        *,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
         """Creates a clean image from a dirty image or from visibilities.
 
         Args:
-            ms_file_path (FilePathType): Path to measurement set from which
-                a clean image should be created.
-            dirty_fits_path (Optional[FilePathType]): Path to dirty image FITS file that
+            visibility: Visibility from which a clean image should be created.
+            dirty_fits_path: Path to dirty image FITS file that
                 should be reused to create a clean image. If None, dirty image will be
-                created first from the measurement set. Defaults to None.
-            output_fits_path (Optional[FilePathType]): Path to write the clean image to.
+                created first from the visibilities. Defaults to None.
+            output_fits_path: Path to write the clean image to.
                 Example: /tmp/restored.fits.
                 If None, will be set to a temporary directory and a default file name.
                 Defaults to None.

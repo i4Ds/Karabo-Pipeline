@@ -9,11 +9,11 @@ from astropy.wcs import WCS
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.test.util import get_compatible_dirty_imager
 
 
 def sim_ion(
@@ -113,9 +113,8 @@ def test_ionosphere(sky_data: NDArray[np.float64]):
             number_of_channels=1,
         )
         visibility = simulation.run_simulation(telescope, sky, observation)
-        visibility.write_to_file(os.path.join(tmpdir, "test_ion.ms"))
 
-        dirty_imager = auto_choose_dirty_imager_from_vis(
+        dirty_imager = get_compatible_dirty_imager(
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=2048,

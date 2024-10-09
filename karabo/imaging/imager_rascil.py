@@ -13,7 +13,6 @@ from rascil.workflows import (
 )
 from rascil.workflows.rsexecute.execution_support import rsexecute
 from ska_sdp_datamodels.science_data_model import PolarisationFrame
-from ska_sdp_datamodels.visibility import Visibility as RASCILVisibility
 from ska_sdp_func_python.image import image_gather_channels
 from ska_sdp_func_python.imaging import (
     create_image_from_visibility,
@@ -76,10 +75,17 @@ class RascilDirtyImager(DirtyImager):
     @override
     def create_dirty_image(
         self,
-        visibility: Union[Visibility, RASCILVisibility],
+        visibility: Visibility,
+        /,
+        *,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
-        # Validate requested filepath
+        if visibility.format != "MS":
+            raise NotImplementedError(
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for RASCIL imaging"
+            )
+
         if output_fits_path is None:
             tmp_dir = FileHandler().get_tmp_dir(
                 prefix="Imager-Dirty-",
@@ -87,15 +93,12 @@ class RascilDirtyImager(DirtyImager):
             )
             output_fits_path = os.path.join(tmp_dir, "dirty.fits")
 
-        if isinstance(visibility, Visibility):
-            # Convert OSKAR Visibility to RASCIL-compatible format
-            block_visibilities = create_visibility_from_ms(str(visibility.ms_file_path))
-
-            if len(block_visibilities) != 1:
-                raise NotImplementedError(
-                    "This imager currently doesn't support more than one visibility."
-                )
-            visibility = block_visibilities[0]
+        block_visibilities = create_visibility_from_ms(str(visibility.path))
+        if len(block_visibilities) != 1:
+            raise NotImplementedError(
+                "This imager currently doesn't support more than one visibility."
+            )
+        visibility = block_visibilities[0]
 
         # Compute dirty image from visibilities
         model = create_image_from_visibility(
@@ -270,17 +273,24 @@ class RascilImageCleaner(ImageCleaner):
     @override
     def create_cleaned_image(
         self,
-        ms_file_path: FilePathType,
+        visibility: Visibility,
+        /,
+        *,
         dirty_fits_path: Optional[FilePathType] = None,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
+        if visibility.format != "MS":
+            raise NotImplementedError(
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for RASCIL imaging"
+            )
         if dirty_fits_path is not None:
             raise NotImplementedError(
                 "Creating a cleaned image from an existing dirty image is not "
                 "currently supported by this ImageCleaner."
             )
 
-        _, restored, _ = self._compute(ms_file_path)
+        _, restored, _ = self._compute(visibility.path)
 
         if output_fits_path is not None:
             assert_valid_ending(path=output_fits_path, ending=".fits")
@@ -302,7 +312,8 @@ class RascilImageCleaner(ImageCleaner):
 
     def create_cleaned_image_variants(
         self,
-        ms_file_path: FilePathType,
+        visibility: Visibility,
+        /,
         deconvolved_fits_path: Optional[FilePathType] = None,
         restored_fits_path: Optional[FilePathType] = None,
         residual_fits_path: Optional[FilePathType] = None,
@@ -311,26 +322,28 @@ class RascilImageCleaner(ImageCleaner):
         """Creates a clean image from visibilities.
 
         Args:
-            ms_file_path (FilePathType): Path to measurement set from which
-                a clean image should be created
-            deconvolved_fits_path (Optional[FilePathType], optional): Path to write the
-                deconvolved image to. Example: /tmp/deconvolved.fits.
+            visibility: Visibility from which a clean image should be created.
+                Please note: only MS visibilities supported.
+            deconvolved_fits_path: Path to write the deconvolved image to.
+                Example: /tmp/deconvolved.fits.
                 If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
-            restored_fits_path (Optional[FilePathType], optional): Path to write the
-                restored image to. Example: /tmp/restored.fits.
+            restored_fits_path: Path to write the restored image to.
+                Example: /tmp/restored.fits.
                 If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
-            residual_fits_path (Optional[FilePathType], optional): Path to write the
-                residual image to. Example: /tmp/residual.fits.
+            residual_fits_path: Path to write the residual image to.
+                Example: /tmp/residual.fits.
                 If None, will be set to a temporary directory and a default file name.
-                Defaults to None.
 
         Returns:
-            Tuple[Image, Image, Image]: Tuple of deconvolved, restored, residual images
+            A tuple (deconvolved, restored, residual) of images
         """
+        if visibility.format != "MS":
+            raise NotImplementedError(
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for RASCIL imaging"
+            )
 
-        residual, restored, skymodel = self._compute(ms_file_path)
+        residual, restored, skymodel = self._compute(visibility.path)
 
         deconvolved_fits_path = deconvolved_fits_path
         restored_fits_path = restored_fits_path
