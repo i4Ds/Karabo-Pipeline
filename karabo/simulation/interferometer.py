@@ -341,9 +341,7 @@ class InterferometerSimulation:
                 visibilities_root_dir = os.path.join(tmp_dir, "visibilities")
             else:
                 assert_never(visibility_format)
-            os.makedirs(visibilities_root_dir, exist_ok=False)
-        else:
-            os.makedirs(visibilities_root_dir, exist_ok=True)
+        os.makedirs(visibilities_root_dir, exist_ok=True)
 
         return visibilities_root_dir
 
