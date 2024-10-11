@@ -1,5 +1,5 @@
 # This script generates simulated visibilities and dirty images resembling SKAO data.
-# Size of generated data is in the 10-100 GB range.
+# Size of generated data is around 45 GB.
 import math
 from datetime import datetime, timedelta, timezone
 
