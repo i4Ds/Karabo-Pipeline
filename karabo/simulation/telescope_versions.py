@@ -193,7 +193,43 @@ class PDBIVersions(enum.Enum):
     D = "d"
 
 
+class SKAMidAA05Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKAMidAA1Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKAMidAA2Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
 class SKAMidAAStarVersions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKAMidAA4Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA05Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA1Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA2Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAAStarVersions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA4Versions(enum.Enum):
     SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
 
 
