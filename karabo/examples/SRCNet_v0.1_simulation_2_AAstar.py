@@ -8,6 +8,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulation.telescope_versions import SKAMidAAStarVersions
 from karabo.simulator_backend import SimulatorBackend
 
 if __name__ == "__main__":
@@ -22,8 +23,9 @@ if __name__ == "__main__":
     phase_center_ra = 150.12
     phase_center_dec = 2.21
 
-    telescope = Telescope.constructor(  # type: ignore
-        name="SKA-MID_AA*",
+    telescope = Telescope.constructor(  # type: ignore[call-overload]
+        name="SKA-MID-AAstar",
+        version=SKAMidAAStarVersions.SKA_OST_ARRAY_CONFIG_2_3_1,
         backend=SIMULATOR_BACKEND,
     )
 
