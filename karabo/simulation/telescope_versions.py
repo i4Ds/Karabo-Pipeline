@@ -193,6 +193,10 @@ class PDBIVersions(enum.Enum):
     D = "d"
 
 
+class SKAMidAAStarVersions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
 class SMAVersions(enum.Enum):
     COMPACT_N = "compact.n"
     COMPACT = "compact"

@@ -1,5 +1,5 @@
 # This script generates simulated visibilities and dirty images resembling SKAO data.
-# Size of generated data is around 1.5 TB.
+# Size of generated data is around TODO TB. TODO add images
 import math
 from datetime import datetime, timedelta, timezone
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # Original survey: 3593 dumps => Size: 6668.534 GB
     # Observation time: 8 h
     # SKA operations: 4 h blocks of cleaned data from SDP to SRCNet
-    number_of_time_steps = 1600
+    number_of_time_steps = 1800
 
     # Wavelength 1340 MHz = 0.22372571 m
     # MeerKAT dish diameter = 13.5 m

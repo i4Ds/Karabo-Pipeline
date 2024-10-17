@@ -48,6 +48,7 @@ from karabo.simulation.telescope_versions import (
     CARMAVersions,
     NGVLAVersions,
     PDBIVersions,
+    SKAMidAAStarVersions,
     SMAVersions,
     VLAVersions,
 )
@@ -64,6 +65,7 @@ OSKARTelescopesWithVersionType = Literal[
     "CARMA",
     "NGVLA",
     "PDBI",
+    "SKA-MID-AAstar",
     "SMA",
     "VLA",
 ]
@@ -112,6 +114,7 @@ OSKAR_TELESCOPE_TO_FILENAMES: Dict[
     "MKATPlus": "mkatplus.tm",
     "NGVLA": "ngvla-{0}.tm",
     "PDBI": "pdbi-{0}.tm",
+    "SKA-MID-AAstar": "SKA-MID-AAstar.{0}.tm",
     "SKA1LOW": "ska1low.tm",
     "SKA1MID": "ska1mid.tm",
     "SMA": "sma.{0}.tm",
@@ -126,6 +129,7 @@ OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum
     "CARMA": CARMAVersions,
     "NGVLA": NGVLAVersions,
     "PDBI": PDBIVersions,
+    "SKA-MID-AAstar": SKAMidAAStarVersions,
     "SMA": SMAVersions,
     "VLA": VLAVersions,
 }
