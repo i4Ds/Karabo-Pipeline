@@ -51,14 +51,16 @@ if __name__ == "__main__":
     # Wavelength 1340 MHz = 0.22372571 m
     # MeerKAT dish diameter = 13.5 m
     # SKA-Mid dish diameter = 15 m
-    # AA*: (64*13.5 m + 80*15 m) / 144 =~ 14.33 m
-    # FOV = Beam Width (FWHM) = 1.2 * 0.22372571 m / 14.33 m
-    # = 0.01873488150732728541521284019539 rad =~ 1.07343 deg
+    # AA*: 64*13.5 m + 80*15 m
+    # 1.25 factor according to SKAO's yitl_observatory_data_rates.ipynb
+    # FOV = Beam Width (FWHM) = 1.25 * 0.22372571 m / 15 m
+    # = 0.01864380916666666666666666666667 rad = 1.0682115792999662 deg
     simulation = InterferometerSimulation(
         channel_bandwidth_hz=frequency_increment_hz,
         station_type="Gaussian beam",
-        gauss_beam_fwhm_deg=1.07343,
+        gauss_beam_fwhm_deg=1.0682115792999662,
         gauss_ref_freq_hz=1.34e9,
+        use_gpus=True,
     )
 
     observation = Observation(
@@ -89,7 +91,7 @@ if __name__ == "__main__":
             # Image size in degrees should be smaller than FOV
             # Bigger baseline -> higher resolution
             imaging_npixel=4096,
-            # -> Cellsize < FOV / 4096 -> 4.5739456804998255408234473133276e-6
+            # -> Cellsize < FOV / 4096 -> 4.5517112223307291666666666666675e-6
             imaging_cellsize=4.5e-6,
             combine_across_frequencies=False,
         )
