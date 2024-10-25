@@ -1,9 +1,14 @@
 # This script generates simulated visibilities and dirty images resembling SKAO data.
-# Size of generated data is around TODO TB. TODO add images
+# Size of generated data is around 1.6 TB.
 import math
 from datetime import datetime, timedelta, timezone
 
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_wsclean import (
+    WscleanDirtyImager,
+    WscleanImageCleaner,
+    WscleanImageCleanerConfig,
+)
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -12,6 +17,8 @@ from karabo.simulation.telescope_versions import SKAMidAAStarVersions
 from karabo.simulator_backend import SimulatorBackend
 
 if __name__ == "__main__":
+    print(f"{datetime.now()} Script started")
+
     # Simulate using OSKAR
     SIMULATOR_BACKEND = SimulatorBackend.OSKAR
 
@@ -41,7 +48,7 @@ if __name__ == "__main__":
     number_of_channels = math.floor(
         (end_frequency_hz - start_frequency_hz) / frequency_increment_hz
     )
-    print(f"number_of_channels={number_of_channels}")
+    print(f"{datetime.now()} number_of_channels={number_of_channels}")
 
     # Original survey: 3593 dumps => Size: 6668.534 GB
     # Observation time: 8 h
@@ -78,6 +85,7 @@ if __name__ == "__main__":
         frequency_increment_hz=frequency_increment_hz,
     )
 
+    print(f"{datetime.now()} Starting simulation")
     visibility = simulation.run_simulation(
         telescope,
         sky_model,
@@ -86,14 +94,33 @@ if __name__ == "__main__":
     )  # type: ignore[call-overload]
 
     # Imaging using WSClean
-    dirty_imager = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            # Image size in degrees should be smaller than FOV
-            # Bigger baseline -> higher resolution
-            imaging_npixel=4096,
-            # -> Cellsize < FOV / 4096 -> 4.5517112223307291666666666666675e-6
-            imaging_cellsize=4.5e-6,
-            combine_across_frequencies=False,
+    # Image size in degrees should be smaller than FOV
+    # Bigger baseline -> higher resolution
+    # Image resolution from SKAO's generate_visibilities.ipynb
+    imaging_npixel = 20000
+    # -> Cellsize < FOV / 20000 -> 9.321904583333333333333333333335e-7
+    imaging_cellsize = 9.3e-7
+
+    print(f"{datetime.now()} Creating dirty image")
+    dirty_imager = WscleanDirtyImager(
+        DirtyImagerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+            combine_across_frequencies=True,
         )
     )
-    dirty = dirty_imager.create_dirty_image(visibility)
+    dirty_image = dirty_imager.create_dirty_image(visibility)
+
+    print(f"{datetime.now()} Creating cleaned image")
+    image_cleaner = WscleanImageCleaner(
+        WscleanImageCleanerConfig(
+            imaging_npixel=imaging_npixel,
+            imaging_cellsize=imaging_cellsize,
+        )
+    )
+    cleaned_image = image_cleaner.create_cleaned_image(
+        visibility,
+        dirty_fits_path=dirty_image.path,
+    )
+
+    print(f"{datetime.now()} Script finished")
