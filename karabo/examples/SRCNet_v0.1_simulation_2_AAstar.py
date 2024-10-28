@@ -98,7 +98,7 @@ if __name__ == "__main__":
     # Bigger baseline -> higher resolution
     # Image resolution from SKAO's generate_visibilities.ipynb
     imaging_npixel = 20000
-    # -> Cellsize < FOV / 20000 -> 9.321904583333333333333333333335e-7
+    # -> Cellsize < FOV / 20000 -> 9.32190458333e-7
     imaging_cellsize = 9.3e-7
 
     print(f"{datetime.now()} Creating dirty image")
