@@ -1,3 +1,4 @@
+import math
 import os
 import tempfile
 from datetime import datetime, timedelta
@@ -10,6 +11,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.simulator_backend import SimulatorBackend
 
 
 def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
@@ -69,3 +71,16 @@ def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
         dirty = dirty_imager.create_dirty_image(visibility)
         dirty.write_to_file(os.path.join(tmpdir, "baseline_cut.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")
+
+
+def test_oskar_telescope_baseline():
+    site_tel = Telescope.constructor("LOFAR", backend=SimulatorBackend.OSKAR)
+    baseline_wgs = site_tel.get_baselines_wgs84()
+    assert len(baseline_wgs) == 134
+
+    max_baseline_length = site_tel.max_baseline()
+    assert math.isclose(max_baseline_length, 998420.050)
+
+    freq_Hz = 100e6
+    angular_res = site_tel.ang_res(freq_Hz, max_baseline_length)
+    assert math.isclose(angular_res, 0.01081, rel_tol=1e-4)
