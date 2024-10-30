@@ -44,6 +44,5 @@ def test_east_north_to_long_lat(east, north, test_lat, test_lon):
         east_relative=east, north_relative=north, long=lon, lat=lat
     )
 
-    print(f"{new_lon=}  {new_lat=}")
     assert math.isclose(new_lon - test_lon, 0.0, abs_tol=1e-4)
     assert math.isclose(new_lat - test_lat, 0.0, abs_tol=1e-4)
