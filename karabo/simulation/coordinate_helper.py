@@ -19,8 +19,8 @@ def east_north_to_long_lat(
     """
 
     # https://stackoverflow.com/questions/7477003/calculating-new-longitude-latitude-from-old-n-meters
-    r_earth = 6371000
-    # astropy uses 6378100.0 (astropy.constants.R_earth.value)
+    r_earth = 6378100
+    # from astropy (astropy.constants.R_earth.value)
     new_latitude = lat + (east_relative / r_earth) * (180 / np.pi)
     new_longitude = long + (north_relative / r_earth) * (180 / np.pi) / np.cos(
         long * np.pi / 180
@@ -32,7 +32,7 @@ def wgs84_to_cartesian(
     lon: Union[float, NDArray[np.float64]],
     lat: Union[float, NDArray[np.float64]],
     alt: Union[float, NDArray[np.float64]],
-    radius: int = 6371000,
+    radius: int = 6378100,
 ) -> NDArray[np.float64]:
     """Transforms WGS84 to cartesian in meters.
 
