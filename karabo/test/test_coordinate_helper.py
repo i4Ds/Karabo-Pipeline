@@ -1,6 +1,7 @@
 import math
 
 import numpy as np
+import pytest
 from numpy.typing import NDArray
 
 from karabo.simulation.coordinate_helper import (
@@ -27,19 +28,22 @@ def test_wgs84_to_cartesian():
 # east,north = 1000, 1000   --> lat,lon = 52.920378,6.876678
 # east,north = -1000, -1000 --> lat,lon = 52.902411,6.858582
 
+testdata = [
+    (1000, 1000, 52.920378, 6.876678),  # go east and north 1000m
+    (-1000, -1000, 52.902411, 6.858582),  # go west and south 1000m
+]
 
-def test_east_north_to_long_lat():
+
+@pytest.mark.parametrize("east, north, test_lat, test_lon", testdata)
+def test_east_north_to_long_lat(east, north, test_lat, test_lon):
     # coords of LOFAR in NL
     lon = 6.86763008
     lat = 52.91139459
-    # go to new position 1000 m east and north.
-    east = 1000
-    north = 1000
 
     new_lon, new_lat = east_north_to_long_lat(
         east_relative=east, north_relative=north, long=lon, lat=lat
     )
 
     print(f"{new_lon=}  {new_lat=}")
-    assert math.isclose(new_lon - 6.876678, 0.0, abs_tol=1e-4)
-    assert math.isclose(new_lat - 52.920378, 0.0, abs_tol=1e-4)
+    assert math.isclose(new_lon - test_lon, 0.0, abs_tol=1e-4)
+    assert math.isclose(new_lat - test_lat, 0.0, abs_tol=1e-4)
