@@ -19,11 +19,10 @@ def east_north_to_long_lat(
     """
 
     # https://stackoverflow.com/questions/7477003/calculating-new-longitude-latitude-from-old-n-meters
-    r_earth = 6378100
-    # from astropy (astropy.constants.R_earth.value)
-    new_latitude = lat + (east_relative / r_earth) * (180 / np.pi)
-    new_longitude = long + (north_relative / r_earth) * (180 / np.pi) / np.cos(
-        long * np.pi / 180
+    r_earth = 6378100  # from astropy (astropy.constants.R_earth.value)
+    new_latitude = lat + np.rad2deg(east_relative / r_earth)
+    new_longitude = long + np.rad2deg(north_relative / r_earth) / np.cos(
+        np.deg2rad(long)
     )
     return new_longitude, new_latitude
 
