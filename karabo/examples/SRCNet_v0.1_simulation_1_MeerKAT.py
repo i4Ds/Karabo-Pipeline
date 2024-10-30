@@ -1,5 +1,5 @@
-# This script generates simulated visibilities and dirty images resembling SKAO data.
-# Size of generated data is around 45 GB.
+# This script generates simulated visibilities and a dirty image resembling SKAO data.
+# Size of generated data is around 43 GB.
 import math
 from datetime import datetime, timedelta, timezone
 
@@ -24,8 +24,6 @@ if __name__ == "__main__":
     phase_center_dec = 2.21
 
     telescope = Telescope.constructor(  # type: ignore
-        # Would probably result in too much data, looks like AA4 layout
-        # "SKA1MID",
         name="MeerKAT",
         backend=SIMULATOR_BACKEND,
     )

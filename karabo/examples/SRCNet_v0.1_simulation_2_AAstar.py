@@ -1,5 +1,13 @@
-# This script generates simulated visibilities and dirty images resembling SKAO data.
-# Size of generated data is around 1.6 TB.
+# This script generates simulated visibilities and images resembling SKAO data.
+#
+# Images: dirty image and cleaned image using WSClean.
+# These are MFS images (frequency channels aggregated into one channel),
+# not full image cubes.
+#
+# Size of generated data is around 3 TB:
+# - 1.5 TB visibilities (before image cleaning)
+# - 3 TB visibilities (after image cleaning)
+# - 12 GB images
 import math
 from datetime import datetime, timedelta, timezone
 
