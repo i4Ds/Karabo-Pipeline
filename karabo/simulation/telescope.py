@@ -279,7 +279,7 @@ but was not provided. Please provide a value for the version field."
                 )
             assert name in get_args(RASCILTelescopes)
             try:
-                configuration = create_named_configuration(name)
+                telescope: Telescope = cls.__convert_to_karabo_telescope(name)
             except ValueError as e:
                 raise ValueError(
                     f"""Requested telescope {name} is not supported by this backend.
@@ -287,20 +287,12 @@ but was not provided. Please provide a value for the version field."
     https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels/-/blob/d6dcce6288a7bf6d9ce63ab16e799977723e7ae5/src/ska_sdp_datamodels/configuration/config_create.py"""  # noqa
                 ) from e
 
-            config_earth_location = configuration.location
-            telescope = Telescope(
-                longitude=config_earth_location.lon.to("deg").value,
-                latitude=config_earth_location.lat.to("deg").value,
-                altitude=config_earth_location.height.to("m").value,
-            )
-            telescope.backend = SimulatorBackend.RASCIL
-            telescope.RASCIL_configuration = configuration
-
             return telescope
         else:
             assert_never(backend)
 
-    def __convert_to_karabo_telescope(self, instr_name: str) -> Telescope:
+    @classmethod
+    def __convert_to_karabo_telescope(cls, instr_name: str) -> Telescope:
         """Converts a site saved in RASCIl data format into a Karabo Telescope.
 
         :param instr_name: The name of the instrument to convert.
@@ -319,6 +311,8 @@ but was not provided. Please provide a value for the version field."
         altitude = site_location_gc.height.to("m").value
 
         telescope = Telescope(longitude, latitude, altitude)
+        # This is used in some inteferometer simulations
+        telescope.RASCIL_configuration = config
 
         station_coords = config.xyz.data
         for i, coord in enumerate(station_coords):
