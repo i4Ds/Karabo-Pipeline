@@ -166,7 +166,7 @@ class Telescope:
             Altitude (in meters) at the center of the telescope, default is 0.
         """
         self.path: Optional[DirPathType] = None
-        self._name = Optional[str] = None
+        self._name: Optional[str] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
         self.centre_altitude = altitude
