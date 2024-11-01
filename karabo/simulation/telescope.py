@@ -523,6 +523,14 @@ but was not provided. Please provide a value for the version field."
 
     @classmethod
     def read_OSKAR_tm_file(cls, path: DirPathType) -> Telescope:
+        """Reads an OSKAR telescope model from disk and
+        returns an object of karabo.simulation.telescope.Telescope
+
+        :param path: Path to a valid telescope model (extemsion *.tm)
+        :return: A karabo.simulation.telescope.Telescope object
+        :raises: A karabo.error.KaraboError if the path does not exit,
+        or the data in the file cannot be read.
+        """
         path_ = str(path)
         abs_station_dir_paths = []
         center_position_file = None
