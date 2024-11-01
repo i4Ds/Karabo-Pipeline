@@ -527,7 +527,8 @@ but was not provided. Please provide a value for the version field."
         returns an object of karabo.simulation.telescope.Telescope
 
         :param path: Path to a valid telescope model (extemsion *.tm)
-        :return: A karabo.simulation.telescope.Telescope object
+        :return: A karabo.simulation.telescope.Telescope object. Importantn:
+        The object has the backend set to SimulatorBackend.OSKAR.
         :raises: A karabo.error.KaraboError if the path does not exit,
         or the data in the file cannot be read.
         """
