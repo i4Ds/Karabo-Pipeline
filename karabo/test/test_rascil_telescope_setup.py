@@ -1,17 +1,17 @@
-from typing import get_args
-
 import pytest
 
-from karabo.simulation.telescope import RASCILTelescopes, Telescope
+from karabo.simulation.telescope import SimulatorBackend, Telescope
 
-
-@pytest.mark.parametrize("site_name", get_args(RASCILTelescopes))
-def test_set_telescope_name_from_oskar_telescope(site_name):
-    # create dummy telescope, name will be overriden later
-    site: Telescope = Telescope.constructor("EXAMPLE")
-
-    site.name = site_name
-    assert site.name == site_name
+rascil_telesecopes_to_test = [
+    # (site_name, num_stations)
+    # data files are read from
+    # /envs/karabo/lib/python3.9/site-packages/ska_sdp_datamodels/configuration/ \
+    # example_antenna_files/
+    ("LOWBD2", 512),
+    ("MID", 197),
+    ("ASKAP", 36),
+    ("LOFAR", 134),
+]
 
 
 def test_set_telescope_name():
@@ -24,3 +24,27 @@ def test_set_telescope_name():
 
     site.name = site_name
     assert site.name == site_name
+
+
+@pytest.mark.parametrize("site_name, _", rascil_telesecopes_to_test)
+def test_set_telescope_from_oskar_telescope(site_name, _):
+    # we must set the backend to RASCIL. Otherwise OSKAR is used by default
+    site: Telescope = Telescope.constructor(site_name, backend=SimulatorBackend.RASCIL)
+
+    site.name = site_name
+    assert site.name == site_name
+    assert site.backend == SimulatorBackend.RASCIL
+
+
+@pytest.mark.parametrize("site_name, num_stations", rascil_telesecopes_to_test)
+def test_num_of_stations(site_name, num_stations):
+    site: Telescope = Telescope.constructor(site_name, backend=SimulatorBackend.RASCIL)
+    assert len(site.stations) == num_stations
+
+
+# @pytest.mark.parametrize("site_name, num_stations", rascil_telesecopes_to_test)
+# def test_num_of_baselines(site_name, num_stations):
+#         site: Telescope =
+# Telescope.constructor(site_name, backend=SimulatorBackend.RASCIL)
+#         num_baselines = num_stations * (num_stations-1) // 2
+#         assert len(site.get_baselines_wgs84()) == num_baselines
