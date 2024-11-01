@@ -166,6 +166,7 @@ class Telescope:
             Altitude (in meters) at the center of the telescope, default is 0.
         """
         self.path: Optional[DirPathType] = None
+        self._name = Optional[str] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
         self.centre_altitude = altitude
@@ -307,9 +308,18 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Telescope name or `None`.
         """
-        if self.path is None:
+        if self._name:
+            return self._name
+        elif self._name is None and self.path is None:
             return None
         return os.path.split(self.path)[-1].split(".")[0]
+
+    @name.setter
+    def name(self, value: str):
+        """Sets the name of the telescope. Usually, this is the name
+        of the telescope model file w/o ending
+        """
+        self._name = value
 
     def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
@@ -524,13 +534,13 @@ but was not provided. Please provide a value for the version field."
     @classmethod
     def read_OSKAR_tm_file(cls, path: DirPathType) -> Telescope:
         """Reads an OSKAR telescope model from disk and
-        returns an object of karabo.simulation.telescope.Telescope
+           returns an object of karabo.simulation.telescope.Telescope
 
         :param path: Path to a valid telescope model (extemsion *.tm)
         :return: A karabo.simulation.telescope.Telescope object. Importantn:
-        The object has the backend set to SimulatorBackend.OSKAR.
+           The object has the backend set to SimulatorBackend.OSKAR.
         :raises: A karabo.error.KaraboError if the path does not exit,
-        or the data in the file cannot be read.
+           or the data in the file cannot be read.
         """
         path_ = str(path)
         abs_station_dir_paths = []
