@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 from astropy import constants as const
 from astropy import units as u
+from astropy.coordinates import EarthLocation
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
 from rascil.processing_components.simulation.simulation_helpers import (
@@ -298,6 +299,40 @@ but was not provided. Please provide a value for the version field."
             return telescope
         else:
             assert_never(backend)
+
+    def __convert_to_karabo_telescope(self, instr_name: str) -> Telescope:
+        """Converts a site saved in RASCIl data format into a Karabo Telescope.
+
+        :param instr_name: The name of the instrument to convert.
+
+        :returns: An instance of Karabo Telescope.
+        :rtype: karabo.simulation.telescope.Telecope
+        :raises: ValueError if instr_name is not a valid RASCIL telescope
+        """
+        config: Configuration = create_named_configuration(instr_name)
+
+        site_location_gc: EarthLocation = config.location
+        # this conversion returns complex type with unit
+        # lon,lat,alt = site_location_gc.geodetic
+        longitude = site_location_gc.lon.to("deg").value
+        latitude = site_location_gc.lat.to("deg").value
+        altitude = site_location_gc.height.to("m").value
+
+        telescope = Telescope(longitude, latitude, altitude)
+
+        station_coords = config.xyz.data
+        for i, coord in enumerate(station_coords):
+            telescope.add_station(
+                horizontal_x=coord[0],
+                horizontal_y=coord[1],
+                horizontal_z=coord[2],
+            )
+
+            # there are only stations in the rascil files no antennas
+            # we add a dummy antenna
+            telescope.add_antenna_to_station(i, 0.1, 0.1)
+            telescope.backend = SimulatorBackend.RASCIL
+        return telescope
 
     @property
     def name(self) -> Optional[str]:
