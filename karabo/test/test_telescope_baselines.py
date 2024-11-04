@@ -4,6 +4,7 @@ import tempfile
 from datetime import datetime, timedelta
 
 import numpy as np
+import pytest
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
@@ -14,16 +15,27 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
 
 
-def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
+@pytest.fixture
+def oskar_telescope() -> Telescope:
+    return Telescope.constructor("MeerKAT", backend=SimulatorBackend.OSKAR)
+
+
+@pytest.fixture
+def rascil_telescope() -> Telescope:
+    return Telescope.constructor("LOFAR", backend=SimulatorBackend.RASCIL)
+
+
+def test_baselines_based_cutoff(
+    oskar_telescope: Telescope, sky_data: NDArray[np.float64]
+):
     lcut = 5000
     hcut = 10000  # Lower cut off and higher cut-off in meters
-    tel = Telescope.constructor("MeerKAT")
     with tempfile.TemporaryDirectory() as tmpdir:
         tm_path = os.path.join(tmpdir, "tel-cut.tm")
         telescope_path, _ = Telescope.create_baseline_cut_telescope(
             lcut,
             hcut,
-            tel,
+            oskar_telescope,
             tm_path=tm_path,
         )
         telescope = Telescope.read_OSKAR_tm_file(telescope_path)
@@ -73,14 +85,33 @@ def test_baselines_based_cutoff(sky_data: NDArray[np.float64]):
         dirty.plot(title="Flux Density (Jy)")
 
 
-def test_oskar_telescope_baseline():
-    site_tel = Telescope.constructor("LOFAR", backend=SimulatorBackend.OSKAR)
-    baseline_wgs = site_tel.get_baselines_wgs84()
-    assert len(baseline_wgs) == 134
+def test_telescope_max_baseline_length(
+    oskar_telescope: Telescope, rascil_telescope: Telescope
+):
+    max_length_oskar = oskar_telescope.max_baseline()
+    # Should be the same +/- 1 m
+    assert math.isclose(max_length_oskar - 7500.0, 0, abs_tol=1)
 
-    max_baseline_length = site_tel.max_baseline()
-    assert math.isclose(max_baseline_length, 998420.050)
+    max_length_rascil = rascil_telescope.max_baseline()
+    # Should be the same +/- 1 m
+    assert math.isclose(max_length_rascil - 995242.0, 0, abs_tol=1)
 
     freq_Hz = 100e6
-    angular_res = site_tel.ang_res(freq_Hz, max_baseline_length)
-    assert math.isclose(angular_res, 0.01081, rel_tol=1e-4)
+    angular_res = Telescope.ang_res(freq_Hz, max_length_oskar)
+    assert math.isclose(angular_res, 1.44, rel_tol=1e-2)
+
+
+def test_telescope_stations(oskar_telescope: Telescope, rascil_telescope: Telescope):
+    # station has 30 stations according to *.tm file
+    baseline_wgs = oskar_telescope.get_stations_wgs84()
+    assert len(baseline_wgs) == 64
+
+    baseline_wgs = rascil_telescope.get_stations_wgs84()
+    assert len(baseline_wgs) == 134
+
+
+def test_telescope_baseline_length(rascil_telescope):
+    stations_wgs = rascil_telescope.get_stations_wgs84()
+    num_stations = len(stations_wgs)
+    baseline_length = Telescope.get_baseline_lengths(stations_wgs)
+    assert len(baseline_length) == num_stations * (num_stations - 1) / 2

@@ -831,7 +831,7 @@ but was not provided. Please provide a value for the version field."
     ) -> NDArray[np.float64]:
         """Gets the interferometer baselines distances in meters.
 
-        It's euclidean distance, not geodesic.
+        It's euclidean distance (aka geocentred), not geodesic.
 
         Args:
             baselines_wgs84: nx3 wgs84 baselines.
@@ -844,10 +844,16 @@ but was not provided. Please provide a value for the version field."
             stations_wgs84[:, 1],
             stations_wgs84[:, 2],
         )
-        cart_coords = wgs84_to_cartesian(lon, lat, alt)
-        dists: NDArray[np.float64] = np.linalg.norm(
-            cart_coords[:, np.newaxis, :] - cart_coords[np.newaxis, :, :], axis=2
+        cart_coords: NDArray[np.float64] = wgs84_to_cartesian(lon, lat, alt)
+        baseline_idx: List[Tuple[int, int]] = list(
+            combinations(range(len(stations_wgs84)), 2)
         )
+
+        dists: NDArray[np.float64] = np.empty((len(baseline_idx)))
+        for i in range(len(baseline_idx)):
+            ii, jj = baseline_idx[i]
+            dists[i] = np.linalg.norm(cart_coords[ii] - cart_coords[jj])
+
         return dists
 
     def max_baseline(self) -> np.float64:
