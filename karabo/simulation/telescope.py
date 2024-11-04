@@ -6,7 +6,7 @@ import logging
 import os
 import re
 import shutil
-from itertools import product
+from itertools import combinations
 from typing import (
     Dict,
     List,
@@ -734,26 +734,6 @@ but was not provided. Please provide a value for the version field."
         return df_tel
 
     @classmethod
-    def __create_baselines(cls, n_stations) -> List[Tuple[int, int]]:
-        """Calculates the baselines of the interferometer. A baseline connects
-        two stations.
-        :param n_stations: Number of stations of the telescope
-        :return: A list of index pairs denoting endpoints of a baseline.
-        """
-        baselines: List[Tuple[int, int]] = sorted(
-            [  # each unique combination-idx a station with another station
-                tuple(station_idx)  # type: ignore[misc]
-                for station_idx in set(
-                    map(
-                        frozenset, product(np.arange(n_stations), np.arange(n_stations))
-                    )
-                )
-                if len(station_idx) > 1
-            ]
-        )
-        return baselines
-
-    @classmethod
     def create_baseline_cut_telescope(
         cls,
         lcut: NPFloatLike,
@@ -782,16 +762,17 @@ but was not provided. Please provide a value for the version field."
             raise KaraboError(f"{tm_path=} must end with '.tm'.")
         df_tel = Telescope._get_station_infos(tel_path=tel.path)
         n_stations = df_tel.shape[0]
-        baselines: List[Tuple[int, int]] = cls.__create_baselines(n_stations)
-        n_baselines = len(baselines)
+        baseline_idx: List[Tuple[int, int]] = list(combinations(range(n_stations), 2))
+
+        n_baselines = len(baseline_idx)
 
         station_x = df_tel["x"].to_numpy()
         station_y = df_tel["y"].to_numpy()
         baseline_dist = np.zeros(n_baselines)
-        for i, (x, y) in enumerate(baselines):
+        for i, (x, y) in enumerate(baseline_idx):
             baseline_dist[i] = np.linalg.norm(station_x[x] - station_y[y])
         cut_idx = np.where((baseline_dist > lcut) & (baseline_dist < hcut))
-        cut_station_list = np.unique(np.array(baselines)[cut_idx])
+        cut_station_list = np.unique(np.array(baseline_idx)[cut_idx])
         df_tel = df_tel[df_tel["station-nr"].isin(cut_station_list)].reset_index(
             drop=True
         )
