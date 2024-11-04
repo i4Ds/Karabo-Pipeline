@@ -825,7 +825,7 @@ but was not provided. Please provide a value for the version field."
         )
 
     @classmethod  # cls-fun to detach instance constraint
-    def get_baselines_dists(
+    def get_baseline_lengths(
         cls,
         baselines_wgs84: NDArray[np.float64],
     ) -> NDArray[np.float64]:
@@ -856,7 +856,7 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Length of longest baseline.
         """
-        dists = self.get_baselines_dists(baselines_wgs84=self.get_stations_wgs84())
+        dists = self.get_baseline_lengths(baselines_wgs84=self.get_stations_wgs84())
         max_distance = np.max(dists)
         return max_distance
 
