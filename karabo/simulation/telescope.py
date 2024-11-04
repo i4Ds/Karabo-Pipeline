@@ -734,6 +734,26 @@ but was not provided. Please provide a value for the version field."
         return df_tel
 
     @classmethod
+    def __create_baselines(cls, n_stations) -> List[Tuple[int, int]]:
+        """Calculates the baselines of the interferometer. A baseline connects
+        two stations.
+        :param n_stations: Number of stations of the telescope
+        :return: A list of index pairs denoting endpoints of a baseline.
+        """
+        baselines: List[Tuple[int, int]] = sorted(
+            [  # each unique combination-idx a station with another station
+                tuple(station_idx)  # type: ignore[misc]
+                for station_idx in set(
+                    map(
+                        frozenset, product(np.arange(n_stations), np.arange(n_stations))
+                    )
+                )
+                if len(station_idx) > 1
+            ]
+        )
+        return baselines
+
+    @classmethod
     def create_baseline_cut_telescope(
         cls,
         lcut: NPFloatLike,
@@ -762,20 +782,11 @@ but was not provided. Please provide a value for the version field."
             raise KaraboError(f"{tm_path=} must end with '.tm'.")
         df_tel = Telescope._get_station_infos(tel_path=tel.path)
         n_stations = df_tel.shape[0]
+        baselines: List[Tuple[int, int]] = cls.__create_baselines(n_stations)
+        n_baselines = len(baselines)
+
         station_x = df_tel["x"].to_numpy()
         station_y = df_tel["y"].to_numpy()
-        baselines: List[Tuple[int, int]] = sorted(
-            [  # each unique combination-idx a station with another station
-                tuple(station_idx)  # type: ignore[misc]
-                for station_idx in set(
-                    map(
-                        frozenset, product(np.arange(n_stations), np.arange(n_stations))
-                    )
-                )
-                if len(station_idx) > 1
-            ]
-        )
-        n_baselines = len(baselines)
         baseline_dist = np.zeros(n_baselines)
         for i, (x, y) in enumerate(baselines):
             baseline_dist[i] = np.linalg.norm(station_x[x] - station_y[y])
@@ -817,13 +828,13 @@ but was not provided. Please provide a value for the version field."
         np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations)
         return tm_path, conversions
 
-    def get_baselines_wgs84(self) -> NDArray[np.float64]:
-        """Gets the interferometer baselines in WGS84.
+    def get_stations_wgs84(self) -> NDArray[np.float64]:
+        """Gets the coordinates of the interferometer stations in WGS84.
 
         This function assumes that `self.stations` provides WGS84 coordinates.
 
         Returns:
-            Baselines lon[deg]/lat[deg]/alt[m] (nx3).
+            Stations lon[deg]/lat[deg]/alt[m] (nx3).
         """
         return np.array(
             [
@@ -864,7 +875,7 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Length of longest baseline.
         """
-        dists = self.get_baselines_dists(baselines_wgs84=self.get_baselines_wgs84())
+        dists = self.get_baselines_dists(baselines_wgs84=self.get_stations_wgs84())
         max_distance = np.max(dists)
         return max_distance
 
