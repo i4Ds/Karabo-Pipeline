@@ -827,7 +827,7 @@ but was not provided. Please provide a value for the version field."
     @classmethod  # cls-fun to detach instance constraint
     def get_baseline_lengths(
         cls,
-        baselines_wgs84: NDArray[np.float64],
+        stations_wgs84: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """Gets the interferometer baselines distances in meters.
 
@@ -840,9 +840,9 @@ but was not provided. Please provide a value for the version field."
             Interferometer baselines dists in meters.
         """
         lon, lat, alt = (
-            baselines_wgs84[:, 0],
-            baselines_wgs84[:, 1],
-            baselines_wgs84[:, 2],
+            stations_wgs84[:, 0],
+            stations_wgs84[:, 1],
+            stations_wgs84[:, 2],
         )
         cart_coords = wgs84_to_cartesian(lon, lat, alt)
         dists: NDArray[np.float64] = np.linalg.norm(
@@ -856,7 +856,7 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Length of longest baseline.
         """
-        dists = self.get_baseline_lengths(baselines_wgs84=self.get_stations_wgs84())
+        dists = self.get_baseline_lengths(stations_wgs84=self.get_stations_wgs84())
         max_distance = np.max(dists)
         return max_distance
 
