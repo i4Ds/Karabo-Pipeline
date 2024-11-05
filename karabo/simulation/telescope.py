@@ -741,17 +741,18 @@ but was not provided. Please provide a value for the version field."
         tel: Telescope,
         tm_path: Optional[DirPathType] = None,
     ) -> Tuple[DirPathType, Dict[str, str]]:
-        """Cut telescope `tel` for baseline-lengths.
+        """Returns a telescope model for telescope `tel` with baseline lengths
+        only between `lcut` and `hcut` metres.
 
-        Args:
-            lcut: Lower cut
-            hcut: Higher cut
-            tel: Telescope to cut off
-            tm_path: .tm file-path to save the cut-telescope.
-                `tm_path` will get overwritten if it already exists.
+            Args:
+                lcut: Lower cut
+                hcut: Higher cut
+                tel: Telescope to cut off
+                tm_path: .tm file-path to save the cut-telescope.
+                    `tm_path` will get overwritten if it already exists.
 
-        Returns:
-            .tm file-path & station-name conversion (e.g. station055 -> station009)
+            Returns:
+                .tm file-path & station-name conversion (e.g. station055 -> station009)
         """
         if tel.path is None:
             raise KaraboError(
