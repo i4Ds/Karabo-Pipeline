@@ -724,7 +724,7 @@ but was not provided. Please provide a value for the version field."
             raise KaraboError(
                 f"Stations found in {tel_path} are not ascending from station<0 - n>. "
             )
-        stations = np.loadtxt(os.path.join(tel_path, "layout.txt"))
+        stations = np.loadtxt(os.path.join(tel_path, "layout.txt"), delimiter=",")
         if (n_stations_layout := stations.shape[0]) != (n_stations := df_tel.shape[0]):
             raise KaraboError(
                 f"Number of stations mismatch of {n_stations_layout=} & {n_stations=}"
