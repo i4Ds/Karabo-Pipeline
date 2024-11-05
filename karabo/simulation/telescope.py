@@ -807,7 +807,7 @@ but was not provided. Please provide a value for the version field."
             dst=os.path.join(tm_path, "position.txt"),
         )
         cut_stations = df_tel[["x", "y"]].to_numpy()
-        np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations)
+        np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations, delimiter=",")
         return tm_path, conversions
 
     def get_stations_wgs84(self) -> NDArray[np.float64]:
