@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import shutil
-import tempfile
 from itertools import combinations
 from typing import (
     Dict,
@@ -292,9 +291,14 @@ but was not provided. Please provide a value for the version field."
             # create_baseline_cut_telescope() need access to an OSKAR telescope
             # model (.tm). This is not available for RASCIL datasets.
             # Thus, we create a temporary one.
-            tmp_tm_path = tempfile.mkdtemp(suffix=".tm", prefix=f"{name}_")
-            telescope.write_to_disk(tmp_tm_path)
-            telescope.path = tmp_tm_path
+            disk_cache = FileHandler().get_tmp_dir(
+                prefix="telescope-constructor-rascil-",
+                mkdir=False,
+            )
+            tm_path = os.path.join(disk_cache, f"{name}.tm")
+
+            telescope.write_to_disk(tm_path)
+            telescope.path = tm_path
             return telescope
         else:
             assert_never(backend)
@@ -735,7 +739,6 @@ but was not provided. Please provide a value for the version field."
                 f"Stations found in {tel_path} are not ascending from station<0 - n>. "
             )
         stations = np.array(cls.__read_layout_txt(os.path.join(tel_path, "layout.txt")))
-        # stations = np.loadtxt(os.path.join(tel_path, "layout.txt"), delimiter=" ")
         if (n_stations_layout := stations.shape[0]) != (n_stations := df_tel.shape[0]):
             raise KaraboError(
                 f"Number of stations mismatch of {n_stations_layout=} & {n_stations=}"
