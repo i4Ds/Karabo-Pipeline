@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import shutil
+import tempfile
 from itertools import combinations
 from typing import (
     Dict,
@@ -287,6 +288,13 @@ but was not provided. Please provide a value for the version field."
     https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels/-/blob/d6dcce6288a7bf6d9ce63ab16e799977723e7ae5/src/ska_sdp_datamodels/configuration/config_create.py"""  # noqa
                 ) from e
 
+            # Function like _get_station_infos() and
+            # create_baseline_cut_telescope() need access to an OSKAR telescope
+            # model (.tm). This is not available for RASCIL datasets.
+            # Thus, we create a temporary one.
+            tmp_tm_path = tempfile.mkdtemp(suffix=".tm", prefix=f"{name}_")
+            telescope.write_to_disk(tmp_tm_path)
+            telescope.path = tmp_tm_path
             return telescope
         else:
             assert_never(backend)
@@ -524,7 +532,7 @@ but was not provided. Please provide a value for the version field."
         ):  # for OSKAR & `overwrite` security purpose
             err_msg = f"{dir_name=} has to end with a `.tm`, but doesn't."
             raise RuntimeError(err_msg)
-        with write_dir(dir=dir_name, overwrite=overwrite) as wd:
+        with write_dir(dir=dir_name, overwrite=True) as wd:
             self.__write_position_txt(os.path.join(wd, "position.txt"))
             self.__write_layout_txt(
                 os.path.join(wd, "layout.txt"),
@@ -542,7 +550,7 @@ but was not provided. Please provide a value for the version field."
         position_file = open(position_file_path, "a")
 
         position_file.write(
-            f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude} \n"
+            f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude}\n"
         )
         position_file.close()
 
@@ -552,8 +560,8 @@ but was not provided. Please provide a value for the version field."
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
-                f"{element.x}, {element.y}, {element.z}, {element.x_error}, "
-                + f"{element.y_error}, {element.z_error} \n"
+                f"{element.x} {element.y} {element.z} {element.x_error} "
+                + f"{element.y_error} {element.z_error}\n"
             )
         layout_file.close()
 
@@ -586,7 +594,9 @@ but was not provided. Please provide a value for the version field."
                 )
 
         if center_position_file is None:
-            raise karabo.error.KaraboError("Missing crucial position.txt file_or_dir")
+            raise karabo.error.KaraboError(
+                f"Missing crucial position.txt in {file_or_dir}"
+            )
 
         if station_layout_file is None:
             raise karabo.error.KaraboError(
@@ -724,7 +734,8 @@ but was not provided. Please provide a value for the version field."
             raise KaraboError(
                 f"Stations found in {tel_path} are not ascending from station<0 - n>. "
             )
-        stations = np.loadtxt(os.path.join(tel_path, "layout.txt"), delimiter=",")
+        stations = np.array(cls.__read_layout_txt(os.path.join(tel_path, "layout.txt")))
+        # stations = np.loadtxt(os.path.join(tel_path, "layout.txt"), delimiter=" ")
         if (n_stations_layout := stations.shape[0]) != (n_stations := df_tel.shape[0]):
             raise KaraboError(
                 f"Number of stations mismatch of {n_stations_layout=} & {n_stations=}"
@@ -807,7 +818,7 @@ but was not provided. Please provide a value for the version field."
             dst=os.path.join(tm_path, "position.txt"),
         )
         cut_stations = df_tel[["x", "y"]].to_numpy()
-        np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations, delimiter=",")
+        np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations, delimiter=" ")
         return tm_path, conversions
 
     def get_stations_wgs84(self) -> NDArray[np.float64]:
