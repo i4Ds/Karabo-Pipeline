@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
-from numpy.typing import NDArray
 
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -13,6 +12,7 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
+from karabo.util.data_util import get_module_absolute_path
 
 
 @pytest.fixture
@@ -25,9 +25,30 @@ def rascil_telescope() -> Telescope:
     return Telescope.constructor("LOFAR", backend=SimulatorBackend.RASCIL)
 
 
-def test_baselines_based_cutoff(
-    oskar_telescope: Telescope, sky_data: NDArray[np.float64]
-):
+@pytest.fixture
+def sky_model() -> SkyModel:
+    sky = SkyModel()
+    sky_data = np.array(
+        [
+            [20.0, -30.0, 1, 0, 0, 0, 100.0e6, -0.7, 0.0, 0, 0, 0],
+            [20.0, -30.5, 3, 2, 2, 0, 100.0e6, -0.7, 0.0, 600, 50, 45],
+            [20.5, -30.5, 3, 0, 0, 2, 100.0e6, -0.7, 0.0, 700, 10, -10],
+        ]
+    )
+    sky.add_point_sources(sky_data)
+    return sky
+
+
+# This test only tests that the function runs without error. This includes
+#   - counting number of stations in telescope after cut
+#   - assert that output measurement set was created
+#   - assert that FITS image calculated with cut baseline was written
+# However, it doesn't test if the result is correct. You would expect a
+# different image quality. This is because a cut baseline reduces the
+# resolution if the instrument.
+def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
+    #  Max. baselength of MeerKAT is 7500 m. Thus, we cut somewhere
+    # inbetween,
     lcut = 5000
     hcut = 10000  # Lower cut off and higher cut-off in meters
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -39,28 +60,24 @@ def test_baselines_based_cutoff(
             tm_path=tm_path,
         )
         telescope = Telescope.read_OSKAR_tm_file(telescope_path)
+        # There are 64 stations fpr MeerKAT. After baseline cut there are
+        # 11 left.
+        assert len(telescope.get_stations_wgs84()) == 11
+
         sky = SkyModel()
         sky.add_point_sources(sky_data)
         simulation = InterferometerSimulation(
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
-            noise_enable=False,
-            noise_seed="time",
-            noise_freq="Range",
-            noise_rms="Range",
-            noise_start_freq=1.0e9,
-            noise_inc_freq=1.0e8,
-            noise_number_freq=24,
-            noise_rms_start=5000,
-            noise_rms_end=10000,
         )
+
         observation = Observation(
             phase_centre_ra_deg=20.0,
+            phase_centre_dec_deg=-30.5,
             start_date_and_time=datetime(2022, 1, 1, 11, 00, 00, 521489),
             length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
-            phase_centre_dec_deg=-30.5,
             number_of_time_steps=1,
-            start_frequency_hz=1.0e9,
+            start_frequency_hz=100e6,
             frequency_increment_hz=1e6,
             number_of_channels=1,
         )
@@ -81,8 +98,18 @@ def test_baselines_based_cutoff(
             )
         )
         dirty = dirty_imager.create_dirty_image(visibility)
+        assert os.path.isdir(visibility.path)
+
         dirty.write_to_file(os.path.join(tmpdir, "baseline_cut.fits"), overwrite=True)
-        dirty.plot(title="Flux Density (Jy)")
+
+        assert os.path.isfile(os.path.join(tmpdir, "baseline_cut.fits"))
+
+        dirty.plot(
+            title="Flux Density (Jy)",
+            filename=os.path.join(
+                get_module_absolute_path(), "test/data/image_cut.png"
+            ),
+        )
 
 
 def test_telescope_max_baseline_length(
