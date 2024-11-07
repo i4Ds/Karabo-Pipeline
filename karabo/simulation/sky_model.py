@@ -825,8 +825,8 @@ class SkyModel:
 
         if dataframe.shape[1] > cls.SOURCES_COLS:
             print(
-                f"""CSV has {dataframe.shape[1] - cls.SOURCES_COLS + 1}
-            too many rows. The extra rows will be cut off."""
+                f"CSV has {dataframe.shape[1] - cls.SOURCES_COLS + 1} "
+                f"rows too many. The extra rows will be cut off."
             )
 
         return cls(dataframe)
