@@ -349,14 +349,14 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Telescope name or `None`.
         """
-        if self._name:
+        if self._name is not None:
             return self._name
-        elif self._name is None and self.path is None:
+        if self.path is None:
             return None
         return os.path.split(self.path)[-1].split(".")[0]
 
     @name.setter
-    def name(self, value: str):
+    def name(self, value: str) -> None:
         """Sets the name of the telescope. Usually, this is the name
         of the telescope model file w/o ending
         """
