@@ -120,6 +120,18 @@ Upload a single file with `swift upload karabo_public <file>`
 1. Create a new folder inside the container with `swift post karabo_public <folder_name>`
 2. Upload all files inside the folder with `swift upload karabo_public <folder_name>`
 
+## Add SKA layouts as OSKAR telescopes
+
+In karabo.data._add_oskar_ska_layouts, there is the script array_config_to_oskar_tm.py to convert an ska-ost-array-config array layout to an OSKAR telescope model (.tm directory), which can then be added to Karabo by copying it to karabo/data/ and adding the telescope and telescope version to karabo/simulation/telescope.py and karabo/simulation/telescope_versions.py, respectively. I decided to add each layout as a telescope, e.g. SKA-LOW-AA0.5, and use ska-ost-array-config-\[SKA_OST_ARRAY_CONFIG_PACKAGE_VERSION\] as the version, e.g. ska-ost-array-config-2.3.1.
+
+Code to be adjusted:
+- telescope.py: add telescope to OSKARTelescopesWithVersionType
+- telescope.py: add telescope to directory name mapping to OSKAR_TELESCOPE_TO_FILENAMES
+- telescope_versions.py: add versions enum, see existing enums for inspiration
+- telescope.py: add telescope to versions class mapping to OSKAR_TELESCOPE_TO_VERSIONS
+
+Setup info to run the script can be found in the README in karabo.data._add_oskar_ska_layouts.
+
 ## Update Documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
