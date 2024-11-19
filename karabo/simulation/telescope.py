@@ -446,6 +446,11 @@ but was not provided. Please provide a value for the version field."
                     horizontal_z_coordinate_error,
                 )
             )
+        else:
+            raise IndexError(
+                "You tried to add an antenna to a station that doesn't exist.\n"
+                f"station_index must be between 0 and {len(self.stations)-1}"
+            )
 
     def plot_telescope(self, file: Optional[str] = None) -> None:
         """
