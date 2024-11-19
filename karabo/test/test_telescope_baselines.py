@@ -2,9 +2,11 @@ import math
 import os
 import tempfile
 from datetime import datetime, timedelta
+from typing import Dict, Tuple
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -13,6 +15,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util.data_util import get_module_absolute_path
+from karabo.util.file_handler import DirPathType
 
 
 @pytest.fixture
@@ -45,7 +48,7 @@ def sky_model() -> SkyModel:
 #   - assert that FITS image calculated with cut baseline was written
 # However, it doesn't test if the result is correct. You would expect a
 # different image quality. This is because a cut baseline reduces the
-# resolution if the instrument.
+# resolution of the instrument.
 def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
     #  Max. baselength of MeerKAT is 7500 m. Thus, we cut somewhere
     # inbetween,
@@ -53,12 +56,16 @@ def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
     hcut = 10000  # Lower cut off and higher cut-off in meters
     with tempfile.TemporaryDirectory() as tmpdir:
         tm_path = os.path.join(tmpdir, "tel-cut.tm")
-        telescope_path, _ = Telescope.create_baseline_cut_telescope(
+        baseline_cut: Tuple[
+            DirPathType, Dict[str, str]
+        ] = Telescope.create_baseline_cut_telescope(
             lcut,
             hcut,
             oskar_telescope,
             tm_path=tm_path,
         )
+
+        telescope_path, _ = baseline_cut
         telescope = Telescope.read_OSKAR_tm_file(telescope_path)
         # There are 64 stations fpr MeerKAT. After baseline cut there are
         # 11 left.
@@ -115,22 +122,22 @@ def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
 def test_telescope_max_baseline_length(
     oskar_telescope: Telescope, rascil_telescope: Telescope
 ):
-    max_length_oskar = oskar_telescope.max_baseline()
+    max_length_oskar: np.float64 = oskar_telescope.max_baseline()
     # Should be the same +/- 1 m
     assert math.isclose(max_length_oskar - 7500.0, 0, abs_tol=1)
 
-    max_length_rascil = rascil_telescope.max_baseline()
+    max_length_rascil: np.float64 = rascil_telescope.max_baseline()
     # Should be the same +/- 1 m
     assert math.isclose(max_length_rascil - 995242.0, 0, abs_tol=1)
 
     freq_Hz = 100e6
-    angular_res = Telescope.ang_res(freq_Hz, max_length_oskar)
+    angular_res: float = Telescope.ang_res(freq_Hz, max_length_oskar)
     assert math.isclose(angular_res, 1.44, rel_tol=1e-2)
 
 
 def test_telescope_stations(oskar_telescope: Telescope, rascil_telescope: Telescope):
     # station has 30 stations according to *.tm file
-    baseline_wgs = oskar_telescope.get_stations_wgs84()
+    baseline_wgs: NDArray[np.float64] = oskar_telescope.get_stations_wgs84()
     assert len(baseline_wgs) == 64
 
     baseline_wgs = rascil_telescope.get_stations_wgs84()
@@ -138,7 +145,7 @@ def test_telescope_stations(oskar_telescope: Telescope, rascil_telescope: Telesc
 
 
 def test_telescope_baseline_length(rascil_telescope):
-    stations_wgs = rascil_telescope.get_stations_wgs84()
+    stations_wgs: NDArray[np.float64] = rascil_telescope.get_stations_wgs84()
     num_stations = len(stations_wgs)
-    baseline_length = Telescope.get_baseline_lengths(stations_wgs)
+    baseline_length: NDArray[np.float64] = Telescope.get_baseline_lengths(stations_wgs)
     assert len(baseline_length) == num_stations * (num_stations - 1) / 2
