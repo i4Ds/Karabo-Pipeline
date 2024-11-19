@@ -42,9 +42,11 @@ def test_num_of_stations(site_name, num_stations):
     assert len(site.stations) == num_stations
 
 
-# @pytest.mark.parametrize("site_name, num_stations", rascil_telesecopes_to_test)
-# def test_num_of_baselines(site_name, num_stations):
-#         site: Telescope =
-# Telescope.constructor(site_name, backend=SimulatorBackend.RASCIL)
-#         num_baselines = num_stations * (num_stations-1) // 2
-#         assert len(site.get_baselines_wgs84()) == num_baselines
+@pytest.mark.parametrize("site_name, num_stations", rascil_telesecopes_to_test)
+def test_num_of_baselines(site_name, num_stations):
+    site: Telescope = Telescope.constructor(site_name, backend=SimulatorBackend.RASCIL)
+
+    # This is the predicted number of baselines
+    num_baselines = num_stations * (num_stations - 1) // 2
+    stations = site.get_stations_wgs84()
+    assert len(site.get_baseline_lengths(stations)) == num_baselines
