@@ -538,7 +538,7 @@ but was not provided. Please provide a value for the version field."
         ):  # for OSKAR & `overwrite` security purpose
             err_msg = f"{dir_name=} has to end with a `.tm`, but doesn't."
             raise RuntimeError(err_msg)
-        with write_dir(dir=dir_name, overwrite=True) as wd:
+        with write_dir(dir=dir_name, overwrite=overwrite) as wd:
             self.__write_position_txt(os.path.join(wd, "position.txt"))
             self.__write_layout_txt(
                 os.path.join(wd, "layout.txt"),
