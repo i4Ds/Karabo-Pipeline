@@ -334,10 +334,12 @@ but was not provided. Please provide a value for the version field."
                 horizontal_z=coord[2],
             )
 
-            # there are only stations in the rascil files no antennas
+            # there are only stations in the rascil files no antennas.
             # we add a dummy antenna in order to avoid the creation
             # of an empty file. This matches other files. See
             # karabo/data/aca.all.tm/station000/layout.txt for example.
+            # Reason: Value not set to 0 probably to compensate
+            # for dish diameter. (see comment for PR #631)
             telescope.add_antenna_to_station(i, 0.1, 0.1)
             telescope.backend = SimulatorBackend.RASCIL
         return telescope
