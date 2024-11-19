@@ -46,7 +46,7 @@ def test_num_of_stations(site_name, num_stations):
 def test_num_of_baselines(site_name, num_stations):
     site: Telescope = Telescope.constructor(site_name, backend=SimulatorBackend.RASCIL)
 
-    # This is the predicted number of baselines
+    # This is the expected number of baselines
     num_baselines = num_stations * (num_stations - 1) // 2
     stations = site.get_stations_wgs84()
     assert len(site.get_baseline_lengths(stations)) == num_baselines
