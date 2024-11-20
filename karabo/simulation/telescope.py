@@ -313,7 +313,7 @@ but was not provided. Please provide a value for the version field."
         :rtype: karabo.simulation.telescope.Telecope
         :raises: ValueError if instr_name is not a valid RASCIL telescope
         """
-        config: Configuration = create_named_configuration(instr_name)
+        config = create_named_configuration(instr_name)
 
         site_location_gc: EarthLocation = config.location
         # this conversion returns complex type with unit
