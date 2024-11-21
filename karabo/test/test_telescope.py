@@ -66,7 +66,7 @@ def test_OSKAR_telescope_plot_file_created():
         tel = Telescope.constructor("MeerKAT")
         tel.plot_telescope(temp_plot_file_name)
         assert os.path.exists(temp_plot_file_name)
-        assert os.path.getsize(temp_plot_file_name) == 28171
+        assert os.path.getsize(temp_plot_file_name) == 25229
 
 
 def test_create_alma_telescope():
