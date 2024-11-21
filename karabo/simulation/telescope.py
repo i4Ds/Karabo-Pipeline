@@ -36,10 +36,7 @@ from typing_extensions import assert_never
 
 import karabo.error
 from karabo.error import KaraboError
-from karabo.simulation.coordinate_helper import (
-    east_north_to_long_lat,
-    wgs84_to_cartesian,
-)
+from karabo.simulation.coordinate_helper import wgs84_to_cartesian
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import (
@@ -479,32 +476,23 @@ but was not provided. Please provide a value for the version field."
         import matplotlib.pyplot as plt
 
         fig, ax = plt.subplots()
-        antenna_x = []
-        antenna_y = []
         station_x = []
         station_y = []
         for station in self.stations:
             station_x.append(station.longitude)
             station_y.append(station.latitude)
 
-            for antenna in station.antennas:
-                long, lat = east_north_to_long_lat(
-                    antenna.x, antenna.y, station.longitude, station.latitude
-                )
-                antenna_x.append(long)
-                antenna_y.append(lat)
-
-        ax.scatter(antenna_x, antenna_y, label="Antennas")
-        ax.scatter(station_x, station_y, label="Stations")
+        # we set the colour manually in order to keep the colour scheme.
+        ax.scatter(station_x, station_y, label="Stations", c="tab:orange")
 
         x = np.array([self.centre_longitude])
         y = np.array([self.centre_latitude])
 
-        ax.scatter(x, y, label="Centre")
+        ax.scatter(x, y, label="Centre", c="tab:green")
         ax.ticklabel_format(useOffset=False)
         ax.set_xlabel("Longitude [deg]")
         ax.set_ylabel("Latitude [deg]")
-        ax.set_title("Antenna Locations")
+        ax.set_title("Site Overview")
         ax.legend(loc="upper left", shadow=False, fontsize="medium")
 
         if file is not None:
