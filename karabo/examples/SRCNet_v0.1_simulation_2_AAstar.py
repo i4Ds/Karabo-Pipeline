@@ -32,9 +32,6 @@ from karabo.simulator_backend import SimulatorBackend
 from karabo.util.helpers import get_rnd_str
 
 # Simulation
-# Serves as prefix for filenames / DIDs, therefore needs to be unique
-RUN_NAME = "pi_24_run_1"
-
 # Phase center: should be mean of coverage
 # Means of values from sky model description
 PHASE_CENTER_RA = 150.12
@@ -60,6 +57,12 @@ OBS_COLLECTION = "SKAO/SKAMID"
 obs_sim_id = 0  # inc/change for new simulation
 user_rnd_str = get_rnd_str(k=7, seed=os.environ.get("USER"))
 OBS_ID = f"karabo-{user_rnd_str}-{obs_sim_id}"  # unique ID per user & simulation
+
+# Prefix for name part of Rucio DIDs.
+# Example: visibilities DID will be [RUCIO_NAMESPACE]:[RUCIO_NAME_PREFIX]measurements.MS
+# Keep in mind that DIDs need to be globally unique.
+# Would probably make sense to make OBS_ID part of this for future runs.
+RUCIO_NAME_PREFIX = "pi24_run_1_"
 
 
 def generate_visibilities() -> Visibility:
@@ -143,7 +146,6 @@ def create_visibilities_metadata(visibility: Visibility) -> None:
     name = os.path.split(visibility.path)[-1]
     rm = RucioMeta(
         namespace=RUCIO_NAMESPACE,  # needs to be specified by Rucio service
-        # TODO proper name
         name=name,
         lifetime=RUCIO_LIFETIME,
         dataset_name=None,
@@ -233,17 +235,38 @@ if __name__ == "__main__":
     print(f"{datetime.now()} Starting simulation")
     visibility = generate_visibilities()
 
+    visibility_path_renamed = os.path.join(
+        os.path.dirname(visibility.path),
+        f"{RUCIO_NAME_PREFIX}measurements.MS",
+    )
+    os.rename(visibility.path, visibility_path_renamed)
+    visibility = Visibility(visibility_path_renamed)
+
     print(f"{datetime.now()} Creating visibility metadata")
     create_visibilities_metadata(visibility)
 
     print(f"{datetime.now()} Creating dirty image")
     dirty_image = create_dirty_image(visibility)
 
+    dirty_image_path_renamed = os.path.join(
+        os.path.dirname(dirty_image.path),
+        f"{RUCIO_NAME_PREFIX}dirty.fits",
+    )
+    os.rename(dirty_image.path, dirty_image_path_renamed)
+    dirty_image = Image(path=dirty_image_path_renamed)
+
     print(f"{datetime.now()} Creating dirty image metadata")
     create_image_metadata(dirty_image)
 
     print(f"{datetime.now()} Creating cleaned image")
     cleaned_image = create_cleaned_image(visibility, dirty_image)
+
+    cleaned_image_path_renamed = os.path.join(
+        os.path.dirname(cleaned_image.path),
+        f"{RUCIO_NAME_PREFIX}cleaned.fits",
+    )
+    os.rename(cleaned_image.path, cleaned_image_path_renamed)
+    cleaned_image = Image(path=cleaned_image_path_renamed)
 
     print(f"{datetime.now()} Creating cleaned image metadata")
     create_image_metadata(cleaned_image)
