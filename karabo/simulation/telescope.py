@@ -602,7 +602,7 @@ but was not provided. Please provide a value for the version field."
         if station_layout_file is None:
             raise karabo.error.KaraboError(
                 "Missing layout.txt file in station directory. "
-                "Only Layout.txt is support. "
+                "Only layout.txt is supported. "
                 "The layout_ecef.txt and layout_wgs84.txt as "
                 "defined in the OSKAR Telescope .tm specification are not "
                 "supported currently."
