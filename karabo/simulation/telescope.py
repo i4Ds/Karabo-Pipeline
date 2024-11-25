@@ -27,9 +27,6 @@ from astropy import units as u
 from astropy.coordinates import EarthLocation
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
-from rascil.processing_components.simulation.simulation_helpers import (
-    plot_configuration,
-)
 from ska_sdp_datamodels.configuration.config_create import create_named_configuration
 from ska_sdp_datamodels.configuration.config_model import Configuration
 from typing_extensions import assert_never
@@ -378,7 +375,7 @@ but was not provided. Please provide a value for the version field."
             # Reason: Value not set to 0 probably to compensate
             # for dish diameter. (see comment for PR #631)
             telescope.add_antenna_to_station(i, 0.1, 0.1)
-            telescope.backend = SimulatorBackend.RASCIL
+        telescope.backend = SimulatorBackend.RASCIL
         return telescope
 
     @property
@@ -473,7 +470,7 @@ but was not provided. Please provide a value for the version field."
         :param horizontal_z_coordinate_error: altitude of antenna error
         :return:
         """
-        if station_index < len(self.stations):
+        if station_index >= 0 and station_index < len(self.stations):
             station = self.stations[station_index]
             station.add_station_antenna(
                 EastNorthCoordinate(
@@ -499,7 +496,9 @@ but was not provided. Please provide a value for the version field."
         if self.backend is SimulatorBackend.OSKAR:
             self.plot_telescope_OSKAR(file)
         elif self.backend is SimulatorBackend.RASCIL:
-            plot_configuration(self.get_backend_specific_information(), plot_file=file)
+            # we can use plot_telescope_OSKAR here because we converted
+            # the RASCIl setup into an OSKAR setup when constructing it.
+            self.plot_telescope_OSKAR(file)
         else:
             logging.warning(
                 f"""Backend {self.backend} is not valid.
@@ -532,7 +531,7 @@ but was not provided. Please provide a value for the version field."
         ax.ticklabel_format(useOffset=False)
         ax.set_xlabel("Longitude [deg]")
         ax.set_ylabel("Latitude [deg]")
-        ax.set_title("Site Overview")
+        ax.set_title(f"{self.name} Overview")
         ax.legend(loc="upper left", shadow=False, fontsize="medium")
 
         if file is not None:
