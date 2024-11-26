@@ -9,7 +9,7 @@
 # - 1.5 TB visibilities (before image cleaning)
 # - 3 TB visibilities (after image cleaning)
 # - 12 GB images
-# TODO import math
+import math
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -41,15 +41,14 @@ PHASE_CENTER_DEC = 2.21
 # Image size in degrees should be smaller than FOV
 # Bigger baseline -> higher resolution
 # Image resolution from SKAO's generate_visibilities.ipynb
-# TODO IMAGING_NPIXEL = 20000
-IMAGING_NPIXEL = 2000
+IMAGING_NPIXEL = 20000
 # -> Cellsize < FOV / 20000 -> 9.32190458333e-7
 IMAGING_CELLSIZE = 9.3e-7
 
 # Rucio
 RUCIO_NAMESPACE = "chocolate"
-# TODO RUCIO_LIFETIME = 31536000
-RUCIO_LIFETIME = 3600
+# in seconds
+RUCIO_LIFETIME = 31536000
 
 # Metadata
 OBS_COLLECTION = "SKAO/SKAMID"
@@ -63,6 +62,11 @@ OBS_ID = f"karabo-{user_rnd_str}-{obs_sim_id}"  # unique ID per user & simulatio
 # Keep in mind that DIDs need to be globally unique.
 # Would probably make sense to make OBS_ID part of this for future runs.
 RUCIO_NAME_PREFIX = "pi24_run_1_"
+
+# Output root dir, this is just a default, set to your liking
+OUTPUT_ROOT_DIR = os.path.join(os.environ["SCRATCH"], f"{RUCIO_NAME_PREFIX}output")
+os.makedirs(OUTPUT_ROOT_DIR, exist_ok=False)
+print(f"Output will be written under output root dir {OUTPUT_ROOT_DIR}")
 
 
 def generate_visibilities() -> Visibility:
@@ -80,24 +84,22 @@ def generate_visibilities() -> Visibility:
 
     # From sky model description
     start_frequency_hz = 1.304e9
-    # TODO end_frequency_hz = 1.375e9
+    end_frequency_hz = 1.375e9
 
     # From survey metadata
     frequency_increment_hz = 26123
 
     # Original survey: 32768 channels over the full frequency range
     # of 856 MHz to 1712 MHz
-    # TODO number_of_channels = math.floor(
-    #     (end_frequency_hz - start_frequency_hz) / frequency_increment_hz
-    # )
-    number_of_channels = 1
+    number_of_channels = math.floor(
+        (end_frequency_hz - start_frequency_hz) / frequency_increment_hz
+    )
     print(f"{datetime.now()} number_of_channels={number_of_channels}")
 
     # Original survey: 3593 dumps => Size: 6668.534 GB
     # Observation time: 8 h
     # SKA operations: 4 h blocks of cleaned data from SDP to SRCNet
-    # TODO number_of_time_steps = 1800
-    number_of_time_steps = 1
+    number_of_time_steps = 1800
 
     # Wavelength 1340 MHz = 0.22372571 m
     # MeerKAT dish diameter = 13.5 m
@@ -134,6 +136,10 @@ def generate_visibilities() -> Visibility:
         sky_model,
         observation,
         backend=simulator_backend,
+        visibility_path=os.path.join(
+            OUTPUT_ROOT_DIR,
+            f"{RUCIO_NAME_PREFIX}measurements.MS",
+        ),
     )  # type: ignore[call-overload]
 
 
@@ -176,7 +182,13 @@ def create_dirty_image(visibility: Visibility) -> Image:
         )
     )
 
-    return dirty_imager.create_dirty_image(visibility)
+    return dirty_imager.create_dirty_image(
+        visibility,
+        output_fits_path=os.path.join(
+            OUTPUT_ROOT_DIR,
+            f"{RUCIO_NAME_PREFIX}dirty.fits",
+        ),
+    )
 
 
 def create_cleaned_image(visibility: Visibility, dirty_image: Image) -> Image:
@@ -190,6 +202,10 @@ def create_cleaned_image(visibility: Visibility, dirty_image: Image) -> Image:
     return image_cleaner.create_cleaned_image(
         visibility,
         dirty_fits_path=dirty_image.path,
+        output_fits_path=os.path.join(
+            OUTPUT_ROOT_DIR,
+            f"{RUCIO_NAME_PREFIX}cleaned.fits",
+        ),
     )
 
 
@@ -235,38 +251,17 @@ if __name__ == "__main__":
     print(f"{datetime.now()} Starting simulation")
     visibility = generate_visibilities()
 
-    visibility_path_renamed = os.path.join(
-        os.path.dirname(visibility.path),
-        f"{RUCIO_NAME_PREFIX}measurements.MS",
-    )
-    os.rename(visibility.path, visibility_path_renamed)
-    visibility = Visibility(visibility_path_renamed)
-
     print(f"{datetime.now()} Creating visibility metadata")
     create_visibilities_metadata(visibility)
 
     print(f"{datetime.now()} Creating dirty image")
     dirty_image = create_dirty_image(visibility)
 
-    dirty_image_path_renamed = os.path.join(
-        os.path.dirname(dirty_image.path),
-        f"{RUCIO_NAME_PREFIX}dirty.fits",
-    )
-    os.rename(dirty_image.path, dirty_image_path_renamed)
-    dirty_image = Image(path=dirty_image_path_renamed)
-
     print(f"{datetime.now()} Creating dirty image metadata")
     create_image_metadata(dirty_image)
 
     print(f"{datetime.now()} Creating cleaned image")
     cleaned_image = create_cleaned_image(visibility, dirty_image)
-
-    cleaned_image_path_renamed = os.path.join(
-        os.path.dirname(cleaned_image.path),
-        f"{RUCIO_NAME_PREFIX}cleaned.fits",
-    )
-    os.rename(cleaned_image.path, cleaned_image_path_renamed)
-    cleaned_image = Image(path=cleaned_image_path_renamed)
 
     print(f"{datetime.now()} Creating cleaned image metadata")
     create_image_metadata(cleaned_image)
