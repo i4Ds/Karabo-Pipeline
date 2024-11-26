@@ -140,7 +140,7 @@ def test_telescope_stations(oskar_telescope: Telescope, rascil_telescope: Telesc
     baseline_wgs: NDArray[np.float64] = oskar_telescope.get_stations_wgs84()
     assert len(baseline_wgs) == 64
 
-    baseline_wgs = rascil_telescope.get_stations_wgs84()
+    baseline_wgs: NDArray[np.float64] = rascil_telescope.get_stations_wgs84()
     assert len(baseline_wgs) == 134
 
 
