@@ -131,7 +131,7 @@ def generate_visibilities() -> Visibility:
         frequency_increment_hz=frequency_increment_hz,
     )
 
-    return simulation.run_simulation(
+    return simulation.run_simulation(  # type: ignore[no-any-return]
         telescope,
         sky_model,
         observation,
@@ -140,7 +140,7 @@ def generate_visibilities() -> Visibility:
             OUTPUT_ROOT_DIR,
             f"{RUCIO_NAME_PREFIX}measurements.MS",
         ),
-    )  # type: ignore[call-overload, no-any-return]
+    )  # type: ignore[call-overload]
 
 
 def create_visibilities_metadata(visibility: Visibility) -> None:
