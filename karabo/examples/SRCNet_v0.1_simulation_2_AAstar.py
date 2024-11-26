@@ -140,7 +140,7 @@ def generate_visibilities() -> Visibility:
             OUTPUT_ROOT_DIR,
             f"{RUCIO_NAME_PREFIX}measurements.MS",
         ),
-    )  # type: ignore[call-overload]
+    )  # type: ignore[call-overload, no-any-return]
 
 
 def create_visibilities_metadata(visibility: Visibility) -> None:
