@@ -19,9 +19,8 @@ def test_wgs84_to_cartesian():
         lon=6.86763008, lat=52.91139459, alt=50.11317741
     )
 
-    assert math.isclose(cart_coord[0], 3826923.9, rel_tol=0.01)
-    assert math.isclose(cart_coord[1], 460915.1, rel_tol=0.01)
-    assert math.isclose(cart_coord[2], 5064643.2, rel_tol=0.01)
+    geocentric_coords_expected = [3826923.9, 460915.1, 5064643.2]
+    assert np.isclose(cart_coord, geocentric_coords_expected, rtol=0.01).all()
 
 
 #
