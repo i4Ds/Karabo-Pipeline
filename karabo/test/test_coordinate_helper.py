@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import pytest
 from numpy.typing import NDArray
@@ -39,9 +37,10 @@ def test_east_north_to_long_lat(east, north, test_lat, test_lon):
     lon = 6.86763008
     lat = 52.91139459
 
-    new_lon, new_lat = east_north_to_long_lat(
-        east_relative=east, north_relative=north, long=lon, lat=lat
+    new_coords = np.array(
+        east_north_to_long_lat(
+            east_relative=east, north_relative=north, long=lon, lat=lat
+        )
     )
 
-    assert math.isclose(new_lon - test_lon, 0.0, abs_tol=1e-4)
-    assert math.isclose(new_lat - test_lat, 0.0, abs_tol=1e-4)
+    assert np.isclose(new_coords, np.array([test_lon, test_lat]), atol=1e-4).all()
