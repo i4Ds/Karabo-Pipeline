@@ -6,7 +6,7 @@ import logging
 import os
 import re
 import shutil
-from itertools import product
+from itertools import combinations
 from typing import (
     Dict,
     List,
@@ -24,21 +24,17 @@ import numpy as np
 import pandas as pd
 from astropy import constants as const
 from astropy import units as u
+from astropy.coordinates import EarthLocation
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
-from rascil.processing_components.simulation.simulation_helpers import (
-    plot_configuration,
-)
+from scipy.spatial.distance import pdist
 from ska_sdp_datamodels.configuration.config_create import create_named_configuration
 from ska_sdp_datamodels.configuration.config_model import Configuration
 from typing_extensions import assert_never
 
 import karabo.error
 from karabo.error import KaraboError
-from karabo.simulation.coordinate_helper import (
-    east_north_to_long_lat,
-    wgs84_to_cartesian,
-)
+from karabo.simulation.coordinate_helper import wgs84_to_cartesian
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
 from karabo.simulation.telescope_versions import (
@@ -206,6 +202,7 @@ class Telescope:
             Altitude (in meters) at the center of the telescope, default is 0.
         """
         self.path: Optional[DirPathType] = None
+        self._name: Optional[str] = None
         self.centre_longitude = longitude
         self.centre_latitude = latitude
         self.centre_altitude = altitude
@@ -317,7 +314,7 @@ but was not provided. Please provide a value for the version field."
                 )
             assert name in get_args(RASCILTelescopes)
             try:
-                configuration = create_named_configuration(name)
+                telescope: Telescope = cls.__convert_to_karabo_telescope(name)
             except ValueError as e:
                 raise ValueError(
                     f"""Requested telescope {name} is not supported by this backend.
@@ -325,18 +322,70 @@ but was not provided. Please provide a value for the version field."
     https://gitlab.com/ska-telescope/sdp/ska-sdp-datamodels/-/blob/d6dcce6288a7bf6d9ce63ab16e799977723e7ae5/src/ska_sdp_datamodels/configuration/config_create.py"""  # noqa
                 ) from e
 
-            config_earth_location = configuration.location
-            telescope = Telescope(
-                longitude=config_earth_location.lon.to("deg").value,
-                latitude=config_earth_location.lat.to("deg").value,
-                altitude=config_earth_location.height.to("m").value,
+            # Function like _get_station_infos() and
+            # create_baseline_cut_telescope() need access to an OSKAR telescope
+            # model (.tm). This is not available for RASCIL datasets.
+            # Thus, we create a temporary one.
+            disk_cache = FileHandler().get_tmp_dir(
+                prefix="telescope-constructor-rascil-",
+                mkdir=False,
             )
-            telescope.backend = SimulatorBackend.RASCIL
-            telescope.RASCIL_configuration = configuration
+            tm_path = os.path.join(disk_cache, f"{name}.tm")
 
+            telescope.write_to_disk(tm_path)
+            telescope.path = tm_path
             return telescope
         else:
             assert_never(backend)
+
+    @classmethod
+    def __convert_to_karabo_telescope(cls, instr_name: str) -> Telescope:
+        """Converts a site saved in RASCIl data format into a Karabo Telescope.
+        This function acts as an adapter to make the functionality in Telescope
+        class work for a RASCIL telescope. Namely the functions max_baseline()
+        and get_baseline_lengths().
+        It derives the necessary data structures from the RASCIL_configuration
+        and fits them into those of the Telescope class. The resuting class is
+        a SimulatorBackend.RASCIL but has the stations: List[Station]
+        list filled as well. Nevertheless, it should only be used as a RASCIL
+        telescope class.
+
+        :param instr_name: The name of the instrument to convert.
+
+        :returns: An instance of Karabo Telescope.
+        :rtype: karabo.simulation.telescope.Telecope
+        :raises: ValueError if instr_name is not a valid RASCIL telescope
+        """
+        config = create_named_configuration(instr_name)
+
+        site_location_gc: EarthLocation = config.location
+        # this conversion returns complex type with unit
+        # lon,lat,alt = site_location_gc.geodetic
+        longitude = site_location_gc.lon.to("deg").value
+        latitude = site_location_gc.lat.to("deg").value
+        altitude = site_location_gc.height.to("m").value
+
+        telescope = Telescope(longitude, latitude, altitude)
+        # This is used in some inteferometer simulations
+        telescope.RASCIL_configuration = config
+
+        station_coords = config.xyz.data
+        for i, coord in enumerate(station_coords):
+            telescope.add_station(
+                horizontal_x=coord[0],
+                horizontal_y=coord[1],
+                horizontal_z=coord[2],
+            )
+
+            # there are only stations in the rascil files no antennas.
+            # we add a dummy antenna in order to avoid the creation
+            # of an empty file. This matches other files. See
+            # karabo/data/aca.all.tm/station000/layout.txt for example.
+            # Reason: Value not set to 0 probably to compensate
+            # for dish diameter. (see comment for PR #631)
+            telescope.add_antenna_to_station(i, 0.1, 0.1)
+        telescope.backend = SimulatorBackend.RASCIL
+        return telescope
 
     @property
     def name(self) -> Optional[str]:
@@ -347,9 +396,18 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Telescope name or `None`.
         """
+        if self._name is not None:
+            return self._name
         if self.path is None:
             return None
         return os.path.split(self.path)[-1].split(".")[0]
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Sets the name of the telescope. Usually, this is the name
+        of the telescope model file w/o ending
+        """
+        self._name = value
 
     def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
@@ -421,7 +479,7 @@ but was not provided. Please provide a value for the version field."
         :param horizontal_z_coordinate_error: altitude of antenna error
         :return:
         """
-        if station_index < len(self.stations):
+        if station_index >= 0 and station_index < len(self.stations):
             station = self.stations[station_index]
             station.add_station_antenna(
                 EastNorthCoordinate(
@@ -433,6 +491,11 @@ but was not provided. Please provide a value for the version field."
                     horizontal_z_coordinate_error,
                 )
             )
+        else:
+            raise IndexError(
+                "You tried to add an antenna to a station that doesn't exist.\n"
+                f"station_index must be between 0 and {len(self.stations)-1}"
+            )
 
     def plot_telescope(self, file: Optional[str] = None) -> None:
         """
@@ -442,7 +505,9 @@ but was not provided. Please provide a value for the version field."
         if self.backend is SimulatorBackend.OSKAR:
             self.plot_telescope_OSKAR(file)
         elif self.backend is SimulatorBackend.RASCIL:
-            plot_configuration(self.get_backend_specific_information(), plot_file=file)
+            # we can use plot_telescope_OSKAR here because we converted
+            # the RASCIl setup into an OSKAR setup when constructing it.
+            self.plot_telescope_OSKAR(file)
         else:
             logging.warning(
                 f"""Backend {self.backend} is not valid.
@@ -459,32 +524,23 @@ but was not provided. Please provide a value for the version field."
         import matplotlib.pyplot as plt
 
         fig, ax = plt.subplots()
-        antenna_x = []
-        antenna_y = []
         station_x = []
         station_y = []
         for station in self.stations:
             station_x.append(station.longitude)
             station_y.append(station.latitude)
 
-            for antenna in station.antennas:
-                long, lat = east_north_to_long_lat(
-                    antenna.x, antenna.y, station.longitude, station.latitude
-                )
-                antenna_x.append(long)
-                antenna_y.append(lat)
-
-        ax.scatter(antenna_x, antenna_y, label="Antennas")
-        ax.scatter(station_x, station_y, label="Stations")
+        # we set the colour manually in order to keep the colour scheme.
+        ax.scatter(station_x, station_y, label="Stations", c="tab:orange")
 
         x = np.array([self.centre_longitude])
         y = np.array([self.centre_latitude])
 
-        ax.scatter(x, y, label="Centre")
+        ax.scatter(x, y, label="Centre", c="tab:green")
         ax.ticklabel_format(useOffset=False)
         ax.set_xlabel("Longitude [deg]")
         ax.set_ylabel("Latitude [deg]")
-        ax.set_title("Antenna Locations")
+        ax.set_title(f"{self.name} Overview")
         ax.legend(loc="upper left", shadow=False, fontsize="medium")
 
         if file is not None:
@@ -543,7 +599,7 @@ but was not provided. Please provide a value for the version field."
         position_file = open(position_file_path, "a")
 
         position_file.write(
-            f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude} \n"
+            f"{self.centre_longitude} {self.centre_latitude} {self.centre_altitude}\n"
         )
         position_file.close()
 
@@ -553,8 +609,8 @@ but was not provided. Please provide a value for the version field."
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
-                f"{element.x}, {element.y}, {element.z}, {element.x_error}, "
-                + f"{element.y_error}, {element.z_error} \n"
+                f"{element.x} {element.y} {element.z} {element.x_error} "
+                + f"{element.y_error} {element.z_error}\n"
             )
         layout_file.close()
 
@@ -563,6 +619,15 @@ but was not provided. Please provide a value for the version field."
 
     @classmethod
     def read_OSKAR_tm_file(cls, path: DirPathType) -> Telescope:
+        """Reads an OSKAR telescope model from disk and
+           returns an object of karabo.simulation.telescope.Telescope
+
+        :param path: Path to a valid telescope model (extemsion *.tm)
+        :return: A karabo.simulation.telescope.Telescope object. Importantn:
+           The object has the backend set to SimulatorBackend.OSKAR.
+        :raises: A karabo.error.KaraboError if the path does not exit,
+           or the data in the file cannot be read.
+        """
         path_ = str(path)
         abs_station_dir_paths = []
         center_position_file = None
@@ -578,12 +643,14 @@ but was not provided. Please provide a value for the version field."
                 )
 
         if center_position_file is None:
-            raise karabo.error.KaraboError("Missing crucial position.txt file_or_dir")
+            raise karabo.error.KaraboError(
+                f"Missing crucial position.txt in {file_or_dir}"
+            )
 
         if station_layout_file is None:
             raise karabo.error.KaraboError(
                 "Missing layout.txt file in station directory. "
-                "Only Layout.txt is support. "
+                "Only layout.txt is supported. "
                 "The layout_ecef.txt and layout_wgs84.txt as "
                 "defined in the OSKAR Telescope .tm specification are not "
                 "supported currently."
@@ -716,7 +783,7 @@ but was not provided. Please provide a value for the version field."
             raise KaraboError(
                 f"Stations found in {tel_path} are not ascending from station<0 - n>. "
             )
-        stations = np.loadtxt(os.path.join(tel_path, "layout.txt"))
+        stations = np.array(cls.__read_layout_txt(os.path.join(tel_path, "layout.txt")))
         if (n_stations_layout := stations.shape[0]) != (n_stations := df_tel.shape[0]):
             raise KaraboError(
                 f"Number of stations mismatch of {n_stations_layout=} & {n_stations=}"
@@ -733,17 +800,18 @@ but was not provided. Please provide a value for the version field."
         tel: Telescope,
         tm_path: Optional[DirPathType] = None,
     ) -> Tuple[DirPathType, Dict[str, str]]:
-        """Cut telescope `tel` for baseline-lengths.
+        """Returns a telescope model for telescope `tel` with baseline lengths
+        only between `lcut` and `hcut` metres.
 
-        Args:
-            lcut: Lower cut
-            hcut: Higher cut
-            tel: Telescope to cut off
-            tm_path: .tm file-path to save the cut-telescope.
-                `tm_path` will get overwritten if it already exists.
+            Args:
+                lcut: Lower cut
+                hcut: Higher cut
+                tel: Telescope to cut off
+                tm_path: .tm file-path to save the cut-telescope.
+                    `tm_path` will get overwritten if it already exists.
 
-        Returns:
-            .tm file-path & station-name conversion (e.g. station055 -> station009)
+            Returns:
+                .tm file-path & station-name conversion (e.g. station055 -> station009)
         """
         if tel.path is None:
             raise KaraboError(
@@ -754,25 +822,17 @@ but was not provided. Please provide a value for the version field."
             raise KaraboError(f"{tm_path=} must end with '.tm'.")
         df_tel = Telescope._get_station_infos(tel_path=tel.path)
         n_stations = df_tel.shape[0]
+        baseline_idx: List[Tuple[int, int]] = list(combinations(range(n_stations), 2))
+
+        n_baselines = len(baseline_idx)
+
         station_x = df_tel["x"].to_numpy()
         station_y = df_tel["y"].to_numpy()
-        baselines: List[Tuple[int, int]] = sorted(
-            [  # each unique combination-idx a station with another station
-                tuple(station_idx)  # type: ignore[misc]
-                for station_idx in set(
-                    map(
-                        frozenset, product(np.arange(n_stations), np.arange(n_stations))
-                    )
-                )
-                if len(station_idx) > 1
-            ]
-        )
-        n_baselines = len(baselines)
         baseline_dist = np.zeros(n_baselines)
-        for i, (x, y) in enumerate(baselines):
+        for i, (x, y) in enumerate(baseline_idx):
             baseline_dist[i] = np.linalg.norm(station_x[x] - station_y[y])
         cut_idx = np.where((baseline_dist > lcut) & (baseline_dist < hcut))
-        cut_station_list = np.unique(np.array(baselines)[cut_idx])
+        cut_station_list = np.unique(np.array(baseline_idx)[cut_idx])
         df_tel = df_tel[df_tel["station-nr"].isin(cut_station_list)].reset_index(
             drop=True
         )
@@ -806,16 +866,16 @@ but was not provided. Please provide a value for the version field."
             dst=os.path.join(tm_path, "position.txt"),
         )
         cut_stations = df_tel[["x", "y"]].to_numpy()
-        np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations)
+        np.savetxt(os.path.join(tm_path, "layout.txt"), cut_stations, delimiter=" ")
         return tm_path, conversions
 
-    def get_baselines_wgs84(self) -> NDArray[np.float64]:
-        """Gets the interferometer baselines in WGS84.
+    def get_stations_wgs84(self) -> NDArray[np.float64]:
+        """Gets the coordinates of the interferometer stations in WGS84.
 
         This function assumes that `self.stations` provides WGS84 coordinates.
 
         Returns:
-            Baselines lon[deg]/lat[deg]/alt[m] (nx3).
+            Stations lon[deg]/lat[deg]/alt[m] (nx3).
         """
         return np.array(
             [
@@ -824,14 +884,14 @@ but was not provided. Please provide a value for the version field."
             ]
         )
 
-    @classmethod  # cls-fun to detach instance constraint
-    def get_baselines_dists(
+    @classmethod
+    def get_baseline_lengths(
         cls,
-        baselines_wgs84: NDArray[np.float64],
+        stations_wgs84: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """Gets the interferometer baselines distances in meters.
 
-        It's euclidean distance, not geodesic.
+        It's euclidean distance (aka geocentric), not geodesic.
 
         Args:
             baselines_wgs84: nx3 wgs84 baselines.
@@ -840,15 +900,14 @@ but was not provided. Please provide a value for the version field."
             Interferometer baselines dists in meters.
         """
         lon, lat, alt = (
-            baselines_wgs84[:, 0],
-            baselines_wgs84[:, 1],
-            baselines_wgs84[:, 2],
+            stations_wgs84[:, 0],
+            stations_wgs84[:, 1],
+            stations_wgs84[:, 2],
         )
-        cart_coords = wgs84_to_cartesian(lon, lat, alt)
-        dists: NDArray[np.float64] = np.linalg.norm(
-            cart_coords[:, np.newaxis, :] - cart_coords[np.newaxis, :, :], axis=2
-        )
-        return dists
+
+        cart_coords: NDArray[np.float64] = wgs84_to_cartesian(lon, lat, alt)
+
+        return cast(NDArray[np.float64], pdist(cart_coords))
 
     def max_baseline(self) -> np.float64:
         """Gets the longest baseline in meters.
@@ -856,7 +915,7 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Length of longest baseline.
         """
-        dists = self.get_baselines_dists(baselines_wgs84=self.get_baselines_wgs84())
+        dists = self.get_baseline_lengths(stations_wgs84=self.get_stations_wgs84())
         max_distance = np.max(dists)
         return max_distance
 

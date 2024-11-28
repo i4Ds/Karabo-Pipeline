@@ -819,14 +819,14 @@ class SkyModel:
 
         if dataframe.shape[1] < 3:
             raise KaraboSkyModelError(
-                f"CSV does not have the necessary 3 basic columns (RA, DEC and "
+                "CSV does not have the necessary 3 basic columns (RA, DEC and "
                 f"STOKES I), but only {dataframe.shape[1]} columns."
             )
 
         if dataframe.shape[1] > cls.SOURCES_COLS:
             print(
-                f"""CSV has {dataframe.shape[1] - cls.SOURCES_COLS + 1}
-            too many rows. The extra rows will be cut off."""
+                f"CSV has {dataframe.shape[1] - cls.SOURCES_COLS + 1} "
+                "rows too many. The extra rows will be cut off."
             )
 
         return cls(dataframe)
