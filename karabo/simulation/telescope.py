@@ -27,6 +27,7 @@ from astropy import units as u
 from astropy.coordinates import EarthLocation
 from numpy.typing import NDArray
 from oskar.telescope import Telescope as OskarTelescope
+from scipy.spatial.distance import pdist
 from ska_sdp_datamodels.configuration.config_create import create_named_configuration
 from ska_sdp_datamodels.configuration.config_model import Configuration
 from typing_extensions import assert_never
@@ -883,14 +884,14 @@ but was not provided. Please provide a value for the version field."
             ]
         )
 
-    @classmethod  # cls-fun to detach instance constraint
+    @classmethod
     def get_baseline_lengths(
         cls,
         stations_wgs84: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         """Gets the interferometer baselines distances in meters.
 
-        It's euclidean distance (aka geocentred), not geodesic.
+        It's euclidean distance (aka geocentric), not geodesic.
 
         Args:
             baselines_wgs84: nx3 wgs84 baselines.
@@ -906,20 +907,7 @@ but was not provided. Please provide a value for the version field."
 
         cart_coords: NDArray[np.float64] = wgs84_to_cartesian(lon, lat, alt)
 
-        # Create an index list of all pairs of stations, i.e.
-        # (1,2), (1,3), (1,4), ...., (n,n-2), (n,n-1)
-        baseline_idx: List[Tuple[int, int]] = list(
-            combinations(range(len(stations_wgs84)), 2)
-        )
-
-        dists: NDArray[np.float64] = np.empty((len(baseline_idx)))
-
-        # straighforward, no scipy magic (scipy's pdist()) needed
-        for i in range(len(baseline_idx)):
-            ii, jj = baseline_idx[i]
-            dists[i] = np.linalg.norm(cart_coords[ii] - cart_coords[jj])
-
-        return dists
+        return cast(NDArray[np.float64], pdist(cart_coords))
 
     def max_baseline(self) -> np.float64:
         """Gets the longest baseline in meters.
