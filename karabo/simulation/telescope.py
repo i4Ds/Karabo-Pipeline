@@ -340,6 +340,14 @@ but was not provided. Please provide a value for the version field."
     @classmethod
     def __convert_to_karabo_telescope(cls, instr_name: str) -> Telescope:
         """Converts a site saved in RASCIl data format into a Karabo Telescope.
+        This function acts as an adapter to make the functionality in Telescope
+        class work for a RASCIL telescope. Namely the functions max_baseline()
+        and get_baseline_lengths().
+        It derives the necessary data structures from the RASCIL_configuration
+        and fits them into those of the Telescope class. The resuting class is
+        a SimulatorBackend.RASCIL but has the stations: List[Station]
+        list filled as well. Nevertheless, it should only be used as a RASCIL
+        telescope class.
 
         :param instr_name: The name of the instrument to convert.
 
