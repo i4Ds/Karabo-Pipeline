@@ -132,6 +132,29 @@ Code to be adjusted:
 
 Setup info to run the script can be found in the README in karabo.data._add_oskar_ska_layouts.
 
+## Add ALMA layouts as OSKAR telescopes
+
+The dishes of the ALMA telescope (Atacama Large Microwave Array) can operate in different configurations. These 'cycles' are set up at different points in time (see link [1]). For the next year (2025) three new cycles are added to the configuration: cycle 9, 10 and 11. There is a script that helps to import new cycle configurations to Karabo. It fetches the latest config files from the ALMA server (see link [2]) and converts them to an OSKAR telescope model (.tm directory). This can then be added to Karabo by copying it to `karabo/data/`. 
+
+The script and a README file can be found in `karabo.data._add_oskar_alma_layouts`.
+
+The files are fetched directly from the ALMA server. The url is not under our control. Therefore, the url may change which breaks the code. In this case have a look at link [2] and update the variable `CONFIG_FILE_URL` in the code.
+
+###  Setup
+1. Create and activate a Python virtual env / conda env or similar
+2. `pip install requests` should be enough
+3. Adjust code line `ALMA_CYCLE = 10` according to the desired version of the ALMA cycle.
+
+### Convert the configurations
+1. Run the script. The OSKAR .tm-foders are written to the current working directory
+2. Copy the directories to  `karabo/data/`
+3. Add the cycle name and version to `karabo/simulation/telescope.py` and `karabo/simulation/telescope_versions.py`, respectively.
+
+### Important links
+1. The ALMA configuration schedule: https://almascience.eso.org/news/the-alma-configuration-schedule-for-cycles-9-10-and-11
+2. The configuration files: https://almascience.eso.org/tools/casa-simulator
+
+
 ## Update Documentation
 
 The docs are built from the python source code and other doc source files located in /doc/src.
