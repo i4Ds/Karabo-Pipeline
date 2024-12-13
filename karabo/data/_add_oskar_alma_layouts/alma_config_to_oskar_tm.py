@@ -119,8 +119,8 @@ if not file_extension:
 
 temp_filename = os.path.join(temp_dir, f"{CONFIG_FILE_BASENAME}.{file_extension}")
 
-with open(temp_filename, "wb") as file:
-    file.write(response.content)
+with open(temp_filename, "wb") as tmpfile:
+    tmpfile.write(response.content)
 
 if file_extension == "zip":
     with ZipFile(temp_filename) as configzip:
