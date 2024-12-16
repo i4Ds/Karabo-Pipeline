@@ -8,6 +8,13 @@ The following example showcases a simple telescope simulation using the main pip
 <example_interfe_simu.py>
 ```
 
+## Show telescope config
+
+```python
+<example_tel_set.py>
+```
+
+
 ## Imaging
 
 The notebook [imaging.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/imaging.ipynb), shows how to use different dirty imaging and image cleaning algorithms.
@@ -44,11 +51,7 @@ See the script [line_emission.py](https://github.com/i4Ds/Karabo-Pipeline/blob/m
 
 This simulation begins with a `SkyModel` instance, and with the definition of the desired `Observation` and `Telescope` details. Then, the `InterferometerSimulation` instance uses the requested backend (OSKAR and RASCIL are currently supported) to compute the corresponding visibilities, and the desired `DirtyImager` instance is used to convert the visibilities into dirty images. Optionally, we can include primary beam effects and correct for such effects in the final dirty images. Finally, we can mosaic different dirty images into one larger image using the `ImageMosaicker` class.
 
-## Show telescope config
 
-```python
-<example_tel_set.py>
-```
 
 ![Image](../images/telescope.png)
 
