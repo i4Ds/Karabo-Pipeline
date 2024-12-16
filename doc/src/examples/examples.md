@@ -53,7 +53,6 @@ telescope = Telescope.constructor("EXAMPLE")
 telescope.plot_telescope(file="example_telescope.png")
 ```
 
-
 ## Imaging
 
 The notebook [imaging.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/imaging.ipynb), shows how to use different dirty imaging and image cleaning algorithms.

@@ -16,8 +16,9 @@ Karabo is a starting point for the `Square Kilometer Array <https://www.skateles
    examples/examples.md
    parallel_processing
 
-Main Modules
-==================
+
+Modules
+===============
 .. toctree::
    :maxdepth: 2
    :caption: Simulation
@@ -29,18 +30,10 @@ Main Modules
    :caption: Source Detection
 
    main_features/sourcedetection.rst
-   
 
-Modules
-==================
-.. toctree::
-   :maxdepth: 1
-   :caption: Modules
-
-   modules.rst
 
 Development
-==================
+===========
 .. toctree::
    :maxdepth: 2
    :caption: Developers

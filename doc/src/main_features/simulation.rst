@@ -1,6 +1,13 @@
 karabo.simulation
 =================
 
+Overview
+------------
+This module contains the functionality required for an interferometer simulation. This includes defining a sky model and selecting a telescope. 
+
+Classes
+-------
+
 .. autoclass:: karabo.simulation.sky_model.SkyModel
    :members:
    :special-members: __init__
