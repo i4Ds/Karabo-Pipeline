@@ -1,5 +1,5 @@
 karabo.simulation
-============
+=================
 
 .. autoclass:: karabo.simulation.sky_model.SkyModel
    :members:

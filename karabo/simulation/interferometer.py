@@ -87,96 +87,95 @@ StationTypeType = Literal[
 class InterferometerSimulation:
     """
     Class containing all configuration for the Interferometer Simulation.
+
     :ivar channel_bandwidth_hz: The channel width, in Hz, used to simulate bandwidth
-                                smearing. (Note that this can be different to the
-                                frequency increment if channels do not cover a
-                                contiguous frequency range.)
+        smearing. (Note that this can be different to the
+        frequency increment if channels do not cover a
+        contiguous frequency range).
     :ivar time_average_sec: The correlator time-average duration, in seconds, used
-                            to simulate time averaging smearing.
+    to simulate time averaging smearing.
     :ivar max_time_per_samples: The maximum number of time samples held in memory
-                                before being written to disk.
+    before being written to disk.
     :ivar correlation_type: The type of correlations to produce. Any value of Enum
-                            CorrelationType
+    CorrelationType
     :ivar uv_filter_min: The minimum value of the baseline UV length allowed by the
-                         filter. Values outside this range are not evaluated
+    filter. Values outside this range are not evaluated
     :ivar uv_filter_max: The maximum value of the baseline UV length allowed by the
-                         filter. Values outside this range are not evaluated.
+        filter. Values outside this range are not evaluated.
     :ivar uv_filter_units: The units of the baseline UV length filter values.
-                           Any value of Enum FilterUnits
+        Any value of Enum FilterUnits
     :ivar force_polarised_ms: If True, always write the Measurement Set in polarised
-                              format even if the simulation was run in the single
-                              polarisation 'Scalar' (or Stokes-I) mode. If False,
-                              the size of the polarisation dimension in the
-                              Measurement Set will be determined by the simulation
-                              mode.
+        format even if the simulation was run in the single
+        polarisation 'Scalar' (or Stokes-I) mode. If False,
+        the size of the polarisation dimension in the
+        Measurement Set will be determined by the simulation mode.
     :ivar ignore_w_components: If enabled, baseline W-coordinate component values will
-                               be set to 0. This will disable W-smearing. Use only if
-                               you know what you're doing!
+        be set to 0. This will disable W-smearing. Use only if
+        you know what you're doing!
     :ivar noise_enable: If true, noise is added.
     :ivar noise_seed: Random number generator seed.
     :ivar noise_start_freq: The start frequency in Hz for which noise is included, if
-                            noise is set to true.
+        noise is set to true.
     :ivar noise_inc_freq: The frequency increment in Hz, if noise is set to true.
     :ivar noise_number_freq: The number of frequency taken into account, if noise is set
-                             to true.
+         to true.
     :ivar noise_rms_start: Station RMS (noise) flux density range start value, in Jy.
-                           The range is expanded linearly over the number of frequencies
-                           for which noise is defined.
+        The range is expanded linearly over the number of frequencies
+        for which noise is defined.
     :ivar noise_rms_end: Station RMS (noise) flux density range end value, in Jy. The
-                         range is expanded linearly over the number of frequencies for
-                         which noise is defined.
+        range is expanded linearly over the number of frequencies for
+        which noise is defined.
     :ivar noise_rms: The specifications for the RMS noise value:
-                        Telescope model: values are loaded from files in the telescope
-                                         model directory.
-                        Data file: values are loaded from the specified file.
-                        Range: values are evaluated according to the specified range
-                               parameters (Default).
-                     The noise values are specified in Jy and represent the RMS noise of
-                     an unpolarised source in terms of flux measured in a single
-                     polarisation of the detector.
+        Telescope model: values are loaded from files in the telescope
+            model directory.
+        Data file: values are loaded from the specified file.
+        Range: values are evaluated according to the specified range
+            parameters (Default).
+        The noise values are specified in Jy and represent the RMS noise of
+        an unpolarised source in terms of flux measured in a single
+        polarisation of the detector.
     :ivar noise_freq: The list of frequencies for which noise values are defined:
-                        Telescope model: frequencies are loaded from a data file in
-                                         the telescope model directory.
-                        Observation settings: frequencies are defined by the observation
-                                              settings.
-                        Data file: frequencies are loaded from the specified data file.
-                        Range: frequencies are specified by the range parameters
-                               (Default).
+        Telescope model: frequencies are loaded from a data file in
+             the telescope model directory.
+        Observation settings: frequencies are defined by the observation
+         settings.
+        Data file: frequencies are loaded from the specified data file.
+        Range: frequencies are specified by the range parameters (Default).
     :ivar enable_array_beam: If true, then the contribution to the station beam from
-                             the array pattern (given by beam-forming the antennas in
-                             the station) is evaluated.
+     the array pattern (given by beam-forming the antennas in
+     the station) is evaluated.
     :ivar enable_numerical_beam: If true, make use of any available numerical element
-                                 pattern files. If numerical pattern data are missing,
-                                 the functional type will be used instead.
-    :ivar beam_polX: currently only considered for `ObservationLong`
-    :ivar beam_polX: currently only considered for `ObservationLong`
+        pattern files. If numerical pattern data are missing,
+         the functional type will be used instead.
+    :ivar beam_polX: currently only considered for 'ObservationLong'
+    :ivar beam_polX: currently only considered for 'ObservationLong'
     :ivar use_gpus: Set to true if you want to use gpus for the simulation
     :ivar client: The dask client to use for the simulation
     :ivar split_idxs_per_group: The indices of the sky model to split for each group
-                                of workers. If None, the sky model will not be split.
-                                Useful if the sky model is too large to fit into the
-                                memory of a single worker. Group index should be
-                                strictly monotonic increasing.
+         of workers. If None, the sky model will not be split.
+        Useful if the sky model is too large to fit into the
+        memory of a single worker. Group index should be
+        strictly monotonic increasing.
     :ivar precision: For the arithmetic use you can choose between "single" or
-                     "double" precision
+        "double" precision
     :ivar station_type: Here you can choose the type of each station in the
-                        interferometer. You can either disable all station beam
-                        effects by choosing "Isotropic beam". Or select one of the
-                        following beam types:
-                        "Gaussian beam", "Aperture array" or "VLA (PBCOR)"
+        interferometer. You can either disable all station beam
+        effects by choosing "Isotropic beam". Or select one of the
+        following beam types:
+        "Gaussian beam", "Aperture array" or "VLA (PBCOR)"
     :ivar enable_power_pattern: If true, gauss_beam_fwhm_deg will be taken in as
-                                power pattern.
+        power pattern.
     :ivar gauss_beam_fwhm_deg: If you choose "Gaussian beam" as station type you need
-                               specify the full-width half maximum value at the
-                               reference frequency of the Gaussian beam here.
-                               Units = degrees. If enable_power_pattern is True,
-                               gauss_beam_fwhm_deg is in power pattern, otherwise
-                               it is in field pattern.
+        specify the full-width half maximum value at the
+        reference frequency of the Gaussian beam here.
+        Units = degrees. If enable_power_pattern is True,
+        gauss_beam_fwhm_deg is in power pattern, otherwise
+        it is in field pattern.
     :ivar gauss_ref_freq_hz: The reference frequency of the specified FWHM, in Hz.
     :ivar ionosphere_fits_path: The path to a fits file containing an ionospheric screen
-                                generated with ARatmospy. The file parameters
-                                (times/frequencies) should coincide with the planned
-                                observation.
+        generated with ARatmospy. The file parameters
+        (times/frequencies) should coincide with the planned observation.
+
     """
 
     def __init__(

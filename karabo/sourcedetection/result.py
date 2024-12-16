@@ -117,7 +117,7 @@ class SourceDetectionResult(ISourceDetectionResult):
 
         Parameters
         ----------
-        cls : Type[_SourceDetectionResultType]
+        cls : Type[SourceDetectionResultType]
             The class on which this method is called.
         image : Image or List[Image]
             Image object for source detection. Can be a single image or a list of
@@ -132,12 +132,12 @@ class SourceDetectionResult(ISourceDetectionResult):
             greater than 1 requires Dask.
         overlap : int, default 0
             The overlap between split parts of the image in pixels.
-        **kwargs : Any
+        ** kwargs : Any
             Additional keyword arguments to pass to PyBDSF.process_image function.
 
         Returns
         -------
-        Optional[List[_SourceDetectionResultType]]
+        Optional[List[SourceDetectionResultType]]
             A list of detected sources, or None if all pixels in the image are blanked
             or on failure.
 

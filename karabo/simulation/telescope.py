@@ -263,12 +263,13 @@ class Telescope:
         :param backend: Underlying package to be used for the telescope configuration,
             since each package stores the arrays in a different format.
             Defaults to OSKAR.
-        :raises: ValueError if the combination of input parameters is invalid.
+        :raise ValueError: If the combination of input parameters is invalid.
             Specifically, if the requested telescope requires a version,
             but an invalid version (or no version) is provided,
             or if the requested telescope name is not
             supported by the requested backend.
-        :returns: Telescope instance.
+
+        :return: Telescope instance
         """
         if backend is SimulatorBackend.OSKAR:
             # Explicitly cast name depending on whether it requires a telescope version
@@ -340,21 +341,22 @@ but was not provided. Please provide a value for the version field."
 
     @classmethod
     def __convert_to_karabo_telescope(cls, instr_name: str) -> Telescope:
-        """Converts a site saved in RASCIl data format into a Karabo Telescope.
-        This function acts as an adapter to make the functionality in Telescope
-        class work for a RASCIL telescope. Namely the functions max_baseline()
-        and get_baseline_lengths().
-        It derives the necessary data structures from the RASCIL_configuration
-        and fits them into those of the Telescope class. The resuting class is
-        a SimulatorBackend.RASCIL but has the stations: List[Station]
-        list filled as well. Nevertheless, it should only be used as a RASCIL
-        telescope class.
+        """
+        Converts a site saved in RASCIl data format into a Karabo Telescope.
+            This function acts as an adapter to make the functionality in Telescope
+            class work for a RASCIL telescope. Namely the functions max_baseline()
+            and get_baseline_lengths().
+            It derives the necessary data structures from the RASCIL_configuration
+            and fits them into those of the Telescope class. The resuting class is
+            a SimulatorBackend.RASCIL but has the stations: List[Station]
+            list filled as well. Nevertheless, it should only be used as a RASCIL
+            telescope class.
 
         :param instr_name: The name of the instrument to convert.
-
+        :raise ValueError: If instr_name is not a valid RASCIL telescope
         :returns: An instance of Karabo Telescope.
         :rtype: karabo.simulation.telescope.Telecope
-        :raises: ValueError if instr_name is not a valid RASCIL telescope
+
         """
         config = create_named_configuration(instr_name)
 
@@ -473,10 +475,11 @@ but was not provided. Please provide a value for the version field."
         :param horizontal_y: north coordinate relative to the station center in metres
         :param horizontal_z: altitude of antenna
         :param horizontal_x_coordinate_error: east coordinate error
-        relative to the station center in metres
+            relative to the station center in metres
         :param horizontal_y_coordinate_error: north coordinate error
-        relative to the station center in metres
+            relative to the station center in metres
         :param horizontal_z_coordinate_error: altitude of antenna error
+
         :return:
         """
         if station_index >= 0 and station_index < len(self.stations):
@@ -622,7 +625,7 @@ but was not provided. Please provide a value for the version field."
         """Reads an OSKAR telescope model from disk and
            returns an object of karabo.simulation.telescope.Telescope
 
-        :param path: Path to a valid telescope model (extemsion *.tm)
+        :param path: Path to a valid telescope model (extemsion * .tm)
         :return: A karabo.simulation.telescope.Telescope object. Importantn:
            The object has the backend set to SimulatorBackend.OSKAR.
         :raises: A karabo.error.KaraboError if the path does not exit,
@@ -800,18 +803,18 @@ but was not provided. Please provide a value for the version field."
         tel: Telescope,
         tm_path: Optional[DirPathType] = None,
     ) -> Tuple[DirPathType, Dict[str, str]]:
-        """Returns a telescope model for telescope `tel` with baseline lengths
-        only between `lcut` and `hcut` metres.
+        """
+        Returns a telescope model for telescope `tel` with baseline lengths
+            only between `lcut` and `hcut` metres.
 
-            Args:
-                lcut: Lower cut
-                hcut: Higher cut
-                tel: Telescope to cut off
-                tm_path: .tm file-path to save the cut-telescope.
-                    `tm_path` will get overwritten if it already exists.
+        :param lcut: Lower cut
+        :param hcut: Higher cut
+        :param tel: Telescope to cut off
+        :param tm_path: .tm file-path to save the cut-telescope.
+            `tm_path` will get overwritten if it already exists.
 
-            Returns:
-                .tm file-path & station-name conversion (e.g. station055 -> station009)
+        :return: .tm file-path & station-name
+            conversion (e.g. station055 -> station009)
         """
         if tel.path is None:
             raise KaraboError(

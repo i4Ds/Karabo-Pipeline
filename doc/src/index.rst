@@ -46,4 +46,3 @@ Development
    :caption: Developers
 
    development.md
-   installation_no_conda
