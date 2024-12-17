@@ -155,66 +155,65 @@ class RascilImageCleanerConfig(ImageCleanerConfig):
 
     Adds parameters specific to RascilImageCleaner.
 
-    Attributes:
-        imaging_npixel (int): see ImageCleanerConfig
-        imaging_cellsize (float): see ImageCleanerConfig
-        ingest_dd (List[int]): Data descriptors in MS to read (all must have the same
-            number of channels). Defaults to [0].
-        ingest_vis_nchan (Optional[int]): Number of channels in a single data
-            descriptor in the MS. Defaults to None.
-        ingest_chan_per_vis (int): Number of channels per blockvis (before any average).
-            Defaults to 1.
-        imaging_nchan (int): Number of channels per image. Defaults to 1.
-        imaging_w_stacking (Union[bool, str]): Use the improved w stacking method
-            in Nifty Gridder?. Defaults to True.
-        imaging_flat_sky (Union[bool, str]): If using a primary beam, normalise to
-        flat sky? Defaults to False.
-        override_cellsize (bool): Override the cellsize if it is above
-            the critical cellsize? Defaults to False.
-        imaging_uvmax (Optional[float]): TODO. Defaults to None.
-        imaging_uvmin (float): TODO. Defaults to 0.
-        imaging_dft_kernel (Optional[DftKernelType]): DFT kernel: cpu_looped | gpu_raw.
-            Defaults to None.
-        client (Optional[Client]): Dask client. Defaults to None.
-        use_dask (bool): Use dask? Defaults to False.
-        n_threads (int): n_threads per worker. Defaults to 1.
-        use_cuda (bool): Use CUDA for Nifty Gridder? Defaults to False.
-        img_context (ImageContextType): Which nifty gridder to use. Defaults to "ng".
-        clean_algorithm (CleanAlgorithmType): Deconvolution algorithm
-            (hogbom or msclean or mmclean). Defaults to "hogbom".
-        clean_beam (Optional[Dict[CleanBeamInDegType, float]]): major axis, minor axis,
-            position angle (deg). Defaults to None.
-        clean_scales (List[int]): Scales for multiscale clean (pixels) e.g. [0, 6, 10].
-            Defaults to [0].
-        clean_nmoment (int): Number of frequency moments in mmclean
-            (1=constant, 2=linear). Defaults to 4.
-        clean_nmajor (int): Number of major cycles in cip or ical. Defaults to 5.
-        clean_niter (int): Number of minor cycles in CLEAN. Defaults to 1000.
-        clean_psf_support (int): Half-width of psf used in cleaning (pixels).
-            Defaults to 256.
-        clean_gain (float): Clean loop gain. Defaults to 0.1.
-        clean_threshold (float): Clean stopping threshold (Jy/beam). Defaults to 1e-4.
-        clean_component_threshold (Optional[float]): Sources with absolute flux
-            > this level (Jy) are fit or extracted using skycomponents.
-            Defaults to None.
-        clean_component_method (CleanComponentMethodType): Method to convert sources
-            in image to skycomponents: "fit" in frequency or "extract" actual values.
-            Defaults to "fit".
-        clean_fractional_threshold (float): Fractional stopping threshold for major
-            cycle. Defaults to 0.3.
-        clean_facets (int) Number of overlapping facets in faceted clean along each
-            axis. Defaults to 1.
-        clean_overlap (int): Overlap of facets in clean (pixels). Defaults to 32.
-        clean_taper (CleanTaperType): Type of interpolation between facets in
-            deconvolution: none or linear or tukey. Defaults to "tukey".
-        clean_restore_facets (int): Number of overlapping facets in restore step
-            along each axis. Defaults to 1.
-        clean_restore_overlap (int): Overlap of facets in restore step (pixels).
-            Defaults to 32.
-        clean_restore_taper (CleanTaperType): Type of interpolation between facets in
-            restore step (none, linear or tukey). Defaults to "tukey".
-        clean_restored_output (CleanRestoredOutputType): Type of restored image output:
-            taylor, list, or integrated. Defaults to "list".
+    :param imaging_npixel: see ImageCleanerConfig
+    :param imaging_cellsize: see ImageCleanerConfig
+    :param ingest_dd: Data descriptors in MS to read (all must have the same \
+        number of channels). Defaults to [0].
+    :param ingest_vis_nchan: Number of channels in a single data \
+        descriptor in the MS. Defaults to None.
+    :param ingest_chan_per_vis: Number of channels per blockvis (before any average). \
+        Defaults to 1.
+    :param imaging_nchan: Number of channels per image. Defaults to 1.
+    :param imaging_w_stacking: Use the improved w stacking method \
+        in Nifty Gridder. Defaults to True.
+    :param imaging_flat_sky: If using a primary beam, normalise to \
+        flat sky. Defaults to False.
+    :param override_cellsize: Override the cellsize if it is above \
+        the critical cellsize. Defaults to False.
+    :param imaging_uvmax: TODO. Defaults to None.
+    :param imaging_uvmin: TODO. Defaults to 0.
+    :param imaging_dft_kernel: DFT kernel: cpu_looped | gpu_raw.\
+        Defaults to None.
+    :param client: Dask client. Defaults to None.
+    :param use_dask: Use dask? Defaults to False.
+    :param n_threads: n_threads per worker. Defaults to 1.
+    :param use_cuda: Use CUDA for Nifty Gridder? Defaults to False.
+    :param img_context: Which nifty gridder to use. Defaults to "ng".
+    :param clean_algorithm: Deconvolution algorithm \
+        (hogbom or msclean or mmclean). Defaults to "hogbom".
+    :param clean_beam: major axis, minor axis,\
+        position angle (deg). Defaults to None.
+    :param clean_scales: Scales for multiscale clean (pixels) e.g. [0, 6, 10].\
+        Defaults to [0].
+    :param clean_nmoment: Number of frequency moments in mmclean\
+        (1=constant, 2=linear). Defaults to 4.
+    :param clean_nmajor: Number of major cycles in cip or ical. Defaults to 5.
+    :param clean_niter: Number of minor cycles in CLEAN. Defaults to 1000.
+    :param clean_psf_support: Half-width of psf used in cleaning (pixels).\
+        Defaults to 256.
+    :param clean_gain: Clean loop gain. Defaults to 0.1.
+    :param clean_threshold: Clean stopping threshold (Jy/beam). Defaults to 1e-4.
+    :param clean_component_threshold: Sources with absolute flux \
+        > this level (Jy) are fit or extracted using skycomponents.\
+        Defaults to None.
+    :param clean_component_method: Method to convert sources \
+        in image to skycomponents: "fit" in frequency or "extract" actual values. \
+        Defaults to "fit".
+    :param clean_fractional_threshold: Fractional stopping threshold for major \
+        cycle. Defaults to 0.3.
+    :param clean_facets: Number of overlapping facets in faceted clean along each\
+        axis. Defaults to 1.
+    :param clean_overlap: Overlap of facets in clean (pixels). Defaults to 32.
+    :param clean_taper: Type of interpolation between facets in \
+        deconvolution: none or linear or tukey. Defaults to "tukey".
+    :param clean_restore_facets: Number of overlapping facets in restore step \
+        along each axis. Defaults to 1.
+    :param clean_restore_overlap: Overlap of facets in restore step (pixels). \
+        Defaults to 32.
+    :param clean_restore_taper: Type of interpolation between facets in \
+        restore step (none, linear or tukey). Defaults to "tukey".
+    :param clean_restored_output: Type of restored image output:\
+        taylor, list, or integrated. Defaults to "list".
     """
 
     ingest_dd: List[int] = field(default_factory=_create_ingest_dd_default_value)
