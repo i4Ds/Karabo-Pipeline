@@ -101,3 +101,11 @@ The name of the directory is given the name of the telescope followed by configu
 
 More details can be find in the OSKAR documentation and source code: https://ska-telescope.gitlab.io/sim/oskar/telescope_model/telescope_model.html
 
+## Using our Demo Installation
+We offer an always up-to-date demo installation for Karabo on Renkulab. This demo was created for a workshop at Swiss SKA Days in September 2024. It can be found here:
+
+[SwissSKADays-Karabo-Workshop](https://renkulab.io/projects/menkalinan56/swissskadays-karabo-workshop)
+
+You do not need an account to use the demo. Just hit the green 'Start' button in the top right corner. However, if you want to save your work you need to log in using your GitHub account, your ORCID id, or your edu-ID. Then fork the project. Now changes you make will be saved to your GitLab repository linked to your Renkulab accout.
+
+A good starting point may be the slide deck of the workshop. You can find it in the folder documents. The code in the slides is available as Jupyter notebooks in the folder notebooks. Those help you get started.
