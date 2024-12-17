@@ -69,4 +69,6 @@ We offer an always up-to-date demo installation for Karabo on Renkulab. This dem
 
 You do not need an account to use the demo. Just hit the green 'Start' button in the top right corner. However, if you want to save your work you need to log in using your GitHub account, your ORCID id, or your edu-ID. Then fork the project. Now changes you make will be saved to your GitLab repository linked to your Renkulab accout.
 
+The free server on Renkulab has limited resources. You will not be able to run much larger simulations than those provided in the demo notebooks. 
+
 A good starting point may be the slide deck of the workshop. You can find it in the folder documents. The code in the slides is available as Jupyter notebooks in the folder notebooks. Those help you get started.
