@@ -29,14 +29,17 @@ class SourceDetectionEvaluation:
         source_detection: ISourceDetectionResult,
     ) -> None:
         """Class that holds the mapping of a source detection to truth mapping.
+
         :param sky: `SkyModel` where the `assignment` comes from
         :param ground_truth: 2xn array of pixel positions of ground truth
         :param assignments: jx3 np.ndarray where each row represents an assignment:
-        - first column is the `ground_truth` index
-        - second column is the predicted `source_detection.detected_sources` index
-        - third column is the euclidean distance between the assignment
+
+            - first column is the `ground_truth` index
+            - second column is the predicted `source_detection.detected_sources` index
+            - third column is the euclidean distance between the assignment
         :param sky_idxs: Sky sources indices of `SkyModel` from `assignment`
         :param source_detection: SourceDetectionResult from a previous source-detection
+
         """
         self.sky = sky
         self.ground_truth = ground_truth
