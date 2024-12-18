@@ -681,11 +681,12 @@ class Image:
         Calculate the power spectrum of this image.
 
         :param resolution: Resolution in radians needed for conversion from Jy to Kelvin
-        :param signal_channel: channel containing both signal and noise
+        :param signal_channel: channel containing both signal and noise \
         (arr of same shape as nchan of Image), optional
-        :return (profile, theta_axis)
-            profile: Brightness temperature for each angular scale in Kelvin
-            theta_axis: Angular scale data in degrees
+
+        :return (profile, theta_axis):
+            - profile: Brightness temperature for each angular scale in Kelvin
+            - theta_axis: Angular scale data in degrees
         """
         profile, theta = power_spectrum(self.path, resolution, signal_channel)
         return profile, theta
@@ -701,7 +702,7 @@ class Image:
         Plot the power spectrum of this image.
 
         :param resolution: Resolution in radians needed for conversion from Jy to Kelvin
-        :param signal_channel: channel containing both signal and noise
+        :param signal_channel: channel containing both signal and noise \
         (arr of same shape as nchan of Image), optional
         :param save_png: True if result should be saved, default = False
         :param block: Whether plotting should block the remaining of the script

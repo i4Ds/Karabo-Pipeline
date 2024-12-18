@@ -144,10 +144,11 @@ class BeamPattern:
         arr: ArrayLike,
         output_file_path: str,
     ) -> None:
-        """
-        Takes array of dimensions (*,8), and returns a cst files
+        """Takes array of dimensions (* ,8), and returns a cst files
         :param arr:
-        :return:  cst file with given output filename
+        :param out_file_path: The name of the output file. Must include path.
+
+        :return: cst file with given output filename
         """
         line1 = (
             "Theta [deg.]  Phi   [deg.]  Abs(Dir.)   Horiz(Abs)  "
@@ -175,9 +176,11 @@ class BeamPattern:
         sampling_step: int = 80,
     ) -> Tuple[NDArray[np.float_], NDArray[np.float_], NDArray[np.float_]]:
         """
-
-        :param pol:
-        :param beamextent:
+        :param f: The frequency for which the beam is simulated (MHz)
+        :param pol: The polarisation of the beam. Valid values are "H", "V", and "I"
+        :param beamextentx:
+        :param beamextendy:
+        :param sampling_step:
         :return:
         """
         beam = JimBeam("MKAT-AA-UHF-JIM-2020")

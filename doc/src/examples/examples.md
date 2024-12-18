@@ -44,6 +44,15 @@ observation = Observation(
 simulation.run_simulation(telescope, sky, observation)
 ```
 
+## Show telescope config
+
+```python
+from karabo.simulation.telescope import Telescope
+
+telescope = Telescope.constructor("EXAMPLE")
+telescope.plot_telescope(file="example_telescope.png")
+```
+
 ## Imaging
 
 The notebook [imaging.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/imaging.ipynb), shows how to use different dirty imaging and image cleaning algorithms.
@@ -80,14 +89,7 @@ See the script [line_emission.py](https://github.com/i4Ds/Karabo-Pipeline/blob/m
 
 This simulation begins with a `SkyModel` instance, and with the definition of the desired `Observation` and `Telescope` details. Then, the `InterferometerSimulation` instance uses the requested backend (OSKAR and RASCIL are currently supported) to compute the corresponding visibilities, and the desired `DirtyImager` instance is used to convert the visibilities into dirty images. Optionally, we can include primary beam effects and correct for such effects in the final dirty images. Finally, we can mosaic different dirty images into one larger image using the `ImageMosaicker` class.
 
-## Show telescope config
 
-```python
-from karabo.simulation.telescope import Telescope
-
-telescope = Telescope.constructor("EXAMPLE")
-telescope.plot_telescope(file="example_telescope.png")
-```
 
 ![Image](../images/telescope.png)
 
@@ -99,3 +101,13 @@ The name of the directory is given the name of the telescope followed by configu
 
 More details can be find in the OSKAR documentation and source code: https://ska-telescope.gitlab.io/sim/oskar/telescope_model/telescope_model.html
 
+## Using our Demo Installation
+We offer an always up-to-date demo installation for Karabo on Renkulab. This demo was created for a workshop at Swiss SKA Days in September 2024. It can be found here:
+
+[SwissSKADays-Karabo-Workshop](https://renkulab.io/projects/menkalinan56/swissskadays-karabo-workshop)
+
+You do not need an account to use the demo. Just hit the green 'Start' button in the top right corner. However, if you want to save your work you need to log in using your GitHub account, your ORCID id, or your edu-ID. Then fork the project. Now changes you make will be saved to your GitLab repository linked to your Renkulab accout.
+
+The free server on Renkulab has limited resources. You will not be able to run much larger simulations than those provided in the demo notebooks. 
+
+A good starting point may be the slide deck of the workshop. You can find it in the folder documents. The code in the slides is available as Jupyter notebooks in the folder notebooks. Those help you get started.

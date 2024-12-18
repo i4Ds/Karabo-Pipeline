@@ -29,14 +29,17 @@ class SourceDetectionEvaluation:
         source_detection: ISourceDetectionResult,
     ) -> None:
         """Class that holds the mapping of a source detection to truth mapping.
+
         :param sky: `SkyModel` where the `assignment` comes from
         :param ground_truth: 2xn array of pixel positions of ground truth
         :param assignments: jx3 np.ndarray where each row represents an assignment:
-        - first column is the `ground_truth` index
-        - second column is the predicted `source_detection.detected_sources` index
-        - third column is the euclidean distance between the assignment
+
+            - first column is the `ground_truth` index
+            - second column is the predicted `source_detection.detected_sources` index
+            - third column is the euclidean distance between the assignment
         :param sky_idxs: Sky sources indices of `SkyModel` from `assignment`
         :param source_detection: SourceDetectionResult from a previous source-detection
+
         """
         self.sky = sky
         self.ground_truth = ground_truth
@@ -109,37 +112,38 @@ class SourceDetectionEvaluation:
         top_k: int = 3,
     ) -> NDArray[np.float_]:
         """Automatic assignment of the predicted sources `predicted` to the
-        ground truth `gtruth`. The strategy is the following (similar to
-        `AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61,
-        Marc MASIAS MOYSET, 2014`):
-        Each distance between the predicted and the ground truth sources is calculated.
-        Any distances > `max_dist` are not considered.
-        Assign the closest distance from the predicted and ground truth.
-        Repeat the assignment, until every source from the gtruth has an
-        assignment if possible, not allowing any double assignments from the predicted
-        sources to the ground truth and vice versa. So each ground truth source
-        should be assigned with a predicted source if at least one was in range
-        and the predicted source assigned to another ground truth source before.
-        If there are duplicate sources (e.g. same source, different frequency), the
-        duplicate sources are removed and the assignment is done on the remaining.
+            ground truth `gtruth`. The strategy is the following (similar to
+            `AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61,
+            Marc MASIAS MOYSET, 2014`):
+            Each distance between the predicted and the ground truth sources is
+            calculated. Any distances > `max_dist` are not considered.
+            Assign the closest distance from the predicted and ground truth.
+            Repeat the assignment, until every source from the gtruth has an
+            assignment if possible, not allowing any double assignments from the
+            predicted sources to the ground truth and vice versa. So each ground truth
+            source should be assigned with a predicted source if at least one was
+            in range and the predicted source assigned to another ground truth source
+            before. If there are duplicate sources (e.g. same source, different
+            frequency), the duplicate sources are removed and the assignment is done
+            on the remaining.
 
         :param ground_truth: nx2 np.ndarray with the ground truth pixel
-        coordinates of the catalog
+            coordinates of the catalog
         :param detected: kx2 np.ndarray with the predicted pixel
-        coordinates of the image
+            coordinates of the image
         :param max_dist: maximal allowed euclidean distance for assignment
-        (in pixel domain)
+            (in pixel domain)
         :param top_k: number of top predictions to be considered in scipy.spatial.
-        KDTree. A small value could lead to imperfect results.
+            KDTree. A small value could lead to imperfect results.
         :return: nx3 np.ndarray where each row represents an assignment
-        - first column represents the ground truth index
-            (return is sorted by this column) a minus index means a ground-truth
-            source with no allocated prediction
-        - second column represents the predicted index
-            a minus index means a predicted source with no allocated ground-truth
-        - third column represents the euclidean distance between the assignment
-            a "inf" means no allocation between ground-truth and prediction
-            of that source
+            - first column represents the ground truth index
+                (return is sorted by this column) a minus index means a ground-truth
+                source with no allocated prediction
+            - second column represents the predicted index
+                a minus index means a predicted source with no allocated ground-truth
+            - third column represents the euclidean distance between the assignment
+                a "inf" means no allocation between ground-truth and prediction
+                of that source
 
         """
         # Check if there are duplicate sources and if yes, remove them
