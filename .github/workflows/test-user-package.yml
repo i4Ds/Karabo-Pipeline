@@ -36,7 +36,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: "true"
+          conda-remove-defaults: "true"
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
