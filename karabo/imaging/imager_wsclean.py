@@ -48,6 +48,7 @@ class WscleanDirtyImager(DirtyImager):
     Attributes:
         config (DirtyImagerConfig): Config containing parameters for
             dirty imaging
+
     """
 
     TMP_PREFIX_DIRTY = "WSClean-dirty-"
@@ -60,6 +61,7 @@ class WscleanDirtyImager(DirtyImager):
 
         Args:
             config (DirtyImagerConfig): see config attribute
+
         """
         super().__init__()
         self.config = config
@@ -132,6 +134,7 @@ class WscleanImageCleanerConfig(ImageCleanerConfig):
             a good value. Defaults to 0.8.
         auto_threshold (Optional[int]): Relative clean threshold. Estimate noise level
             using a robust estimator and stop at sigma x stddev. Defaults to 3.
+
     """
 
     niter: Optional[int] = 50000
@@ -153,6 +156,7 @@ class WscleanImageCleaner(ImageCleaner):
     Attributes:
         config (WscleanImageCleanerConfig): Config containing parameters for
             WSClean image cleaning.
+
     """
 
     TMP_PREFIX_CLEANED = "WSClean-cleaned-"
@@ -165,6 +169,7 @@ class WscleanImageCleaner(ImageCleaner):
 
         Args:
             config (WscleanImageCleanerConfig): see config attribute
+
         """
         super().__init__()
         self.config = config
@@ -244,8 +249,9 @@ def create_image_custom_command(
     Use absolute paths to reference files or directories like the measurement set.
 
     Args:
-        command: Command to execute. Example: wsclean -size 2048 2048
-            -scale 0.0022222222222222222deg -niter 50000 -mgain 0.8
+        command: Command to execute.
+            Example: wsclean -size 2048 2048
+            -scale 0.00222222deg -niter 50000 -mgain 0.8
             -abs-threshold 100µJy /tmp/measurements.MS
         output_filenames: WSClean output filename(s)
             (relative to the working directory) that should be returned
@@ -255,10 +261,12 @@ def create_image_custom_command(
             Example 2: ['wsclean-image.fits', 'wsclean-residual.fits']
 
     Returns:
-        If output_filenames is a string, returns an Image object of the file
+
+        - If output_filenames is a **string**, returns an Image object of the file \
             output_filenames.
-            If output_filenames is a list of strings, returns a list of Image objects,
-            one object per filename in output_filenames.
+        - If output_filenames is a **list of strings**, returns a list of \
+            Image objects, one object per filename in output_filenames.
+
     """
 
     tmp_dir = FileHandler().get_tmp_dir(

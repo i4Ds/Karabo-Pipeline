@@ -33,7 +33,7 @@ Modules
    main_features/base_imaging.rst
    main_features/oskar_imaging.rst
    main_features/rascil_imaging.rst
-
+   main_features/wsclean_imaging.rst
 
 .. toctree::
    :maxdepth: 2

@@ -31,6 +31,7 @@ class OskarDirtyImagerConfig(DirtyImagerConfig):
         combine_across_frequencies (bool): see DirtyImagerConfig
         imaging_phase_centre (Optional[str]): Phase centre (in SkyCoord string format).
             Defaults to None.
+
     """
 
     imaging_phase_centre: Optional[str] = None
@@ -42,6 +43,7 @@ class OskarDirtyImager(DirtyImager):
     Attributes:
         config (OskarDirtyImagerConfig): Config containing parameters for
             OSKAR dirty imaging.
+
     """
 
     def __init__(self, config: OskarDirtyImagerConfig) -> None:
@@ -49,6 +51,7 @@ class OskarDirtyImager(DirtyImager):
 
         Args:
             config (OskarDirtyImagerConfig): see config attribute
+
         """
         super().__init__()
         self.config: OskarDirtyImagerConfig = config

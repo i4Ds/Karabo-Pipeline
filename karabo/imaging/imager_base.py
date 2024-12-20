@@ -26,6 +26,7 @@ class DirtyImagerConfig:
         imaging_cellsize (float): Scale of a pixel in radians
         combine_across_frequencies (bool): Whether or not to combine images
             across all frequency channels into one image. Defaults to True.
+
     """
 
     imaging_npixel: int
@@ -37,6 +38,7 @@ class DirtyImager(ABC):
     """Abstract base class for a dirty imager.
 
     A dirty imager creates dirty images from visibilities.
+
     """
 
     config: DirtyImagerConfig
@@ -62,6 +64,7 @@ class DirtyImager(ABC):
 
         Returns:
             Image: Dirty image
+
         """
 
         ...
@@ -80,6 +83,7 @@ class ImageCleanerConfig:
     Attributes:
         imaging_npixel (int): Image size
         imaging_cellsize (float): Scale of a pixel in radians
+
     """
 
     imaging_npixel: int
@@ -92,6 +96,7 @@ class ImageCleaner(ABC):
     An image cleaner creates clean images from dirty images
     or directly from visibilities, in that case including the
     dirty imaging process.
+
     """
 
     @abstractmethod
@@ -105,7 +110,7 @@ class ImageCleaner(ABC):
     ) -> Image:
         """Creates a clean image from a dirty image or from visibilities.
 
-        Arguments:
+        Args:
             visibility: Visibility from which a clean image should be created.
             dirty_fits_path: Path to dirty image FITS file that
                 should be reused to create a clean image. If None, dirty image will be
@@ -117,6 +122,7 @@ class ImageCleaner(ABC):
 
         Returns:
             Image: Clean image
+
         """
 
         ...
