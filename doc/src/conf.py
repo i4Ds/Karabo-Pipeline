@@ -40,6 +40,7 @@ extensions = [
     "sphinx_rtd_theme",
     "myst_parser",
     "sphinx.ext.githubpages",
+    "sphinx.ext.napoleon",
 ]
 
 source_suffix = {
