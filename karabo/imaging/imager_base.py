@@ -110,7 +110,7 @@ class ImageCleaner(ABC):
     ) -> Image:
         """Creates a clean image from a dirty image or from visibilities.
 
-        Args:
+        Arguments:
             visibility: Visibility from which a clean image should be created.
             dirty_fits_path: Path to dirty image FITS file that
                 should be reused to create a clean image. If None, dirty image will be
