@@ -21,6 +21,8 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           mamba-version: "*"
+          channels: conda-forge,defaults
+          channel-priority: true
       - name: Install Deps
         shell: bash -el {0}
         run: |
