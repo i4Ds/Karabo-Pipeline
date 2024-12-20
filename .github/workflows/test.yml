@@ -22,8 +22,8 @@ jobs:
         with:
           mamba-version: "*"
           channels: conda-forge
-          channel-priority: true
-          conda-remove-defaults: true
+          channel-priority: "true"
+          conda-remove-defaults: "true"
       - name: Install Deps
         shell: bash -el {0}
         run: |
