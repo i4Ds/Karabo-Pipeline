@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>karabo.imaging.imager_rascil &mdash; Karabo-Pipeline 0+untagged.1.gfd7beae documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9250fbeb"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="karabo.sourcedetection" href="sourcedetection.html" />
+    <link rel="prev" title="karabo.imaging.imager_oskar" href="oskar_imaging.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallel_processing.html">Parallel processing with Karabo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">karabo.simulation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="imaging.html">karabo.imaging.image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_imaging.html">karabo.imaging.imager_base</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oskar_imaging.html">karabo.imaging.imager_oskar</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">karabo.imaging.imager_rascil</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#classes">Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilDirtyImagerConfig"><code class="docutils literal notranslate"><span class="pre">RascilDirtyImagerConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilDirtyImagerConfig.__init__"><code class="docutils literal notranslate"><span class="pre">RascilDirtyImagerConfig.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilDirtyImager"><code class="docutils literal notranslate"><span class="pre">RascilDirtyImager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilDirtyImager.__init__"><code class="docutils literal notranslate"><span class="pre">RascilDirtyImager.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilDirtyImager.create_dirty_image"><code class="docutils literal notranslate"><span class="pre">RascilDirtyImager.create_dirty_image()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleanerConfig"><code class="docutils literal notranslate"><span class="pre">RascilImageCleanerConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleanerConfig.__init__"><code class="docutils literal notranslate"><span class="pre">RascilImageCleanerConfig.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleaner"><code class="docutils literal notranslate"><span class="pre">RascilImageCleaner</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleaner.__init__"><code class="docutils literal notranslate"><span class="pre">RascilImageCleaner.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleaner.create_cleaned_image"><code class="docutils literal notranslate"><span class="pre">RascilImageCleaner.create_cleaned_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleaner.create_cleaned_image_variants"><code class="docutils literal notranslate"><span class="pre">RascilImageCleaner.create_cleaned_image_variants()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">karabo.imaging.imager_rascil</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/main_features/rascil_imaging.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="karabo-imaging-imager-rascil">
+<h1>karabo.imaging.imager_rascil<a class="headerlink" href="#karabo-imaging-imager-rascil" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This package summerizes tools and functions to be used with the imager
+from the RASCIL backend. This backend allows both calculating a dirty
+images and a cleaned image, respoectivley.</p>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilDirtyImagerConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilDirtyImagerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">imaging_npixel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imaging_cellsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override_cellsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilDirtyImagerConfig" title="Link to this definition"></a></dt>
+<dd><p>Config / parameters of a RascilDirtyImager.</p>
+<p>Adds parameters specific to RascilDirtyImager.</p>
+<dl>
+<dt>Attributes:</dt><dd><p>imaging_npixel (int): see DirtyImagerConfig
+imaging_cellsize (float): see DirtyImagerConfig
+combine_across_frequencies (bool): see DirtyImagerConfig
+override_cellsize (bool): Override the cellsize if it is</p>
+<blockquote>
+<div><p>above the critical cellsize. Defaults to False.</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilDirtyImagerConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">imaging_npixel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imaging_cellsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override_cellsize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilDirtyImagerConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilDirtyImager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilDirtyImager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilDirtyImagerConfig" title="karabo.imaging.imager_rascil.RascilDirtyImagerConfig"><span class="pre">RascilDirtyImagerConfig</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilDirtyImager" title="Link to this definition"></a></dt>
+<dd><p>Dirty imager based on the RASCIL library.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><dl class="simple">
+<dt>config (RascilDirtyImagerConfig): Config containing parameters for</dt><dd><p>RASCIL dirty imaging.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilDirtyImager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilDirtyImagerConfig" title="karabo.imaging.imager_rascil.RascilDirtyImagerConfig"><span class="pre">RascilDirtyImagerConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilDirtyImager.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initializes the instance with a config.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>config (RascilDirtyImagerConfig): see config attribute</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilDirtyImager.create_dirty_image">
+<span class="sig-name descname"><span class="pre">create_dirty_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">visibility</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_fits_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilDirtyImager.create_dirty_image" title="Link to this definition"></a></dt>
+<dd><p>Creates a dirty image from a visibility.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>visibility: Visibility object</dt><dd><p>from which to create the dirty image. Contains the visibilities
+of an observation.</p>
+</dd>
+<dt>output_fits_path: Path to write the dirty image to.</dt><dd><p>Example: /tmp/dirty.fits.
+If None, will be set to a temporary directory and a default file name.
+Defaults to None.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>Image: Dirty image</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilImageCleanerConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilImageCleanerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">imaging_npixel:</span> <span class="pre">int,</span> <span class="pre">imaging_cellsize:</span> <span class="pre">float,</span> <span class="pre">ingest_dd:</span> <span class="pre">~typing.List[int]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">ingest_vis_nchan:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">ingest_chan_per_vis:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">imaging_nchan:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">imaging_w_stacking:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">imaging_flat_sky:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">override_cellsize:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">imaging_uvmax:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">imaging_uvmin:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">imaging_dft_kernel:</span> <span class="pre">~typing.Literal['cpu_looped',</span> <span class="pre">'gpu_raw']</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">client:</span> <span class="pre">~distributed.client.Client</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">use_dask:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">n_threads:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">use_cuda:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">img_context:</span> <span class="pre">~typing.Literal['awprojection',</span> <span class="pre">'2d',</span> <span class="pre">'ng',</span> <span class="pre">'wg']</span> <span class="pre">=</span> <span class="pre">'ng',</span> <span class="pre">clean_algorithm:</span> <span class="pre">~typing.Literal['hogbom',</span> <span class="pre">'msclean',</span> <span class="pre">'mmclean']</span> <span class="pre">=</span> <span class="pre">'hogbom',</span> <span class="pre">clean_beam:</span> <span class="pre">~typing.Dict[~typing.Literal['bmaj',</span> <span class="pre">'bmin',</span> <span class="pre">'bpa'],</span> <span class="pre">float]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">clean_scales:</span> <span class="pre">~typing.List[int]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">clean_nmoment:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">4,</span> <span class="pre">clean_nmajor:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">5,</span> <span class="pre">clean_niter:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1000,</span> <span class="pre">clean_psf_support:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">256,</span> <span class="pre">clean_gain:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.1,</span> <span class="pre">clean_threshold:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0001,</span> <span class="pre">clean_component_threshold:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">clean_component_method:</span> <span class="pre">~typing.Literal['fit',</span> <span class="pre">'extract']</span> <span class="pre">=</span> <span class="pre">'fit',</span> <span class="pre">clean_fractional_threshold:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.3,</span> <span class="pre">clean_facets:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">clean_overlap:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">32,</span> <span class="pre">clean_taper:</span> <span class="pre">~typing.Literal['none',</span> <span class="pre">'linear',</span> <span class="pre">'tukey']</span> <span class="pre">=</span> <span class="pre">'tukey',</span> <span class="pre">clean_restore_facets:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">clean_restore_overlap:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">32,</span> <span class="pre">clean_restore_taper:</span> <span class="pre">~typing.Literal['none',</span> <span class="pre">'linear',</span> <span class="pre">'tukey']</span> <span class="pre">=</span> <span class="pre">'tukey',</span> <span class="pre">clean_restored_output:</span> <span class="pre">~typing.Literal['taylor',</span> <span class="pre">'list',</span> <span class="pre">'integrated']</span> <span class="pre">=</span> <span class="pre">'list'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilImageCleanerConfig" title="Link to this definition"></a></dt>
+<dd><p>Config / parameters of a RascilImageCleaner.</p>
+<p>Adds parameters specific to RascilImageCleaner.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>imaging_npixel</strong> – see ImageCleanerConfig</p></li>
+<li><p><strong>imaging_cellsize</strong> – see ImageCleanerConfig</p></li>
+<li><p><strong>ingest_dd</strong> – Data descriptors in MS to read (all must have the same         number of channels). Defaults to [0].</p></li>
+<li><p><strong>ingest_vis_nchan</strong> – Number of channels in a single data         descriptor in the MS. Defaults to None.</p></li>
+<li><p><strong>ingest_chan_per_vis</strong> – Number of channels per blockvis (before any average).         Defaults to 1.</p></li>
+<li><p><strong>imaging_nchan</strong> – Number of channels per image. Defaults to 1.</p></li>
+<li><p><strong>imaging_w_stacking</strong> – Use the improved w stacking method         in Nifty Gridder. Defaults to True.</p></li>
+<li><p><strong>imaging_flat_sky</strong> – If using a primary beam, normalise to         flat sky. Defaults to False.</p></li>
+<li><p><strong>override_cellsize</strong> – Override the cellsize if it is above         the critical cellsize. Defaults to False.</p></li>
+<li><p><strong>imaging_uvmax</strong> – TODO. Defaults to None.</p></li>
+<li><p><strong>imaging_uvmin</strong> – TODO. Defaults to 0.</p></li>
+<li><p><strong>imaging_dft_kernel</strong> – DFT kernel: cpu_looped | gpu_raw.        Defaults to None.</p></li>
+<li><p><strong>client</strong> – Dask client. Defaults to None.</p></li>
+<li><p><strong>use_dask</strong> – Use dask? Defaults to False.</p></li>
+<li><p><strong>n_threads</strong> – n_threads per worker. Defaults to 1.</p></li>
+<li><p><strong>use_cuda</strong> – Use CUDA for Nifty Gridder? Defaults to False.</p></li>
+<li><p><strong>img_context</strong> – Which nifty gridder to use. Defaults to “ng”.</p></li>
+<li><p><strong>clean_algorithm</strong> – Deconvolution algorithm         (hogbom or msclean or mmclean). Defaults to “hogbom”.</p></li>
+<li><p><strong>clean_beam</strong> – major axis, minor axis,        position angle (deg). Defaults to None.</p></li>
+<li><p><strong>clean_scales</strong> – Scales for multiscale clean (pixels) e.g. [0, 6, 10].        Defaults to [0].</p></li>
+<li><p><strong>clean_nmoment</strong> – Number of frequency moments in mmclean        (1=constant, 2=linear). Defaults to 4.</p></li>
+<li><p><strong>clean_nmajor</strong> – Number of major cycles in cip or ical. Defaults to 5.</p></li>
+<li><p><strong>clean_niter</strong> – Number of minor cycles in CLEAN. Defaults to 1000.</p></li>
+<li><p><strong>clean_psf_support</strong> – Half-width of psf used in cleaning (pixels).        Defaults to 256.</p></li>
+<li><p><strong>clean_gain</strong> – Clean loop gain. Defaults to 0.1.</p></li>
+<li><p><strong>clean_threshold</strong> – Clean stopping threshold (Jy/beam). Defaults to 1e-4.</p></li>
+<li><p><strong>clean_component_threshold</strong> – Sources with absolute flux         &gt; this level (Jy) are fit or extracted using skycomponents.        Defaults to None.</p></li>
+<li><p><strong>clean_component_method</strong> – Method to convert sources         in image to skycomponents: “fit” in frequency or “extract” actual values.         Defaults to “fit”.</p></li>
+<li><p><strong>clean_fractional_threshold</strong> – Fractional stopping threshold for major         cycle. Defaults to 0.3.</p></li>
+<li><p><strong>clean_facets</strong> – Number of overlapping facets in faceted clean along each        axis. Defaults to 1.</p></li>
+<li><p><strong>clean_overlap</strong> – Overlap of facets in clean (pixels). Defaults to 32.</p></li>
+<li><p><strong>clean_taper</strong> – Type of interpolation between facets in         deconvolution: none or linear or tukey. Defaults to “tukey”.</p></li>
+<li><p><strong>clean_restore_facets</strong> – Number of overlapping facets in restore step         along each axis. Defaults to 1.</p></li>
+<li><p><strong>clean_restore_overlap</strong> – Overlap of facets in restore step (pixels).         Defaults to 32.</p></li>
+<li><p><strong>clean_restore_taper</strong> – Type of interpolation between facets in         restore step (none, linear or tukey). Defaults to “tukey”.</p></li>
+<li><p><strong>clean_restored_output</strong> – Type of restored image output:        taylor, list, or integrated. Defaults to “list”.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilImageCleanerConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">imaging_npixel:</span> <span class="pre">int,</span> <span class="pre">imaging_cellsize:</span> <span class="pre">float,</span> <span class="pre">ingest_dd:</span> <span class="pre">~typing.List[int]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">ingest_vis_nchan:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">ingest_chan_per_vis:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">imaging_nchan:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">imaging_w_stacking:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">imaging_flat_sky:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">override_cellsize:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">imaging_uvmax:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">imaging_uvmin:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">imaging_dft_kernel:</span> <span class="pre">~typing.Literal['cpu_looped',</span> <span class="pre">'gpu_raw']</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">client:</span> <span class="pre">~distributed.client.Client</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">use_dask:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">n_threads:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">use_cuda:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">img_context:</span> <span class="pre">~typing.Literal['awprojection',</span> <span class="pre">'2d',</span> <span class="pre">'ng',</span> <span class="pre">'wg']</span> <span class="pre">=</span> <span class="pre">'ng',</span> <span class="pre">clean_algorithm:</span> <span class="pre">~typing.Literal['hogbom',</span> <span class="pre">'msclean',</span> <span class="pre">'mmclean']</span> <span class="pre">=</span> <span class="pre">'hogbom',</span> <span class="pre">clean_beam:</span> <span class="pre">~typing.Dict[~typing.Literal['bmaj',</span> <span class="pre">'bmin',</span> <span class="pre">'bpa'],</span> <span class="pre">float]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">clean_scales:</span> <span class="pre">~typing.List[int]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">clean_nmoment:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">4,</span> <span class="pre">clean_nmajor:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">5,</span> <span class="pre">clean_niter:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1000,</span> <span class="pre">clean_psf_support:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">256,</span> <span class="pre">clean_gain:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.1,</span> <span class="pre">clean_threshold:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0001,</span> <span class="pre">clean_component_threshold:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">clean_component_method:</span> <span class="pre">~typing.Literal['fit',</span> <span class="pre">'extract']</span> <span class="pre">=</span> <span class="pre">'fit',</span> <span class="pre">clean_fractional_threshold:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.3,</span> <span class="pre">clean_facets:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">clean_overlap:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">32,</span> <span class="pre">clean_taper:</span> <span class="pre">~typing.Literal['none',</span> <span class="pre">'linear',</span> <span class="pre">'tukey']</span> <span class="pre">=</span> <span class="pre">'tukey',</span> <span class="pre">clean_restore_facets:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">clean_restore_overlap:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">32,</span> <span class="pre">clean_restore_taper:</span> <span class="pre">~typing.Literal['none',</span> <span class="pre">'linear',</span> <span class="pre">'tukey']</span> <span class="pre">=</span> <span class="pre">'tukey',</span> <span class="pre">clean_restored_output:</span> <span class="pre">~typing.Literal['taylor',</span> <span class="pre">'list',</span> <span class="pre">'integrated']</span> <span class="pre">=</span> <span class="pre">'list'</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilImageCleanerConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilImageCleaner">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilImageCleaner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleanerConfig" title="karabo.imaging.imager_rascil.RascilImageCleanerConfig"><span class="pre">RascilImageCleanerConfig</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilImageCleaner" title="Link to this definition"></a></dt>
+<dd><p>Image cleaner based on the RASCIL library.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><dl class="simple">
+<dt>config (RascilImageCleanerConfig): Config containing parameters for</dt><dd><p>RASCIL image cleaning.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilImageCleaner.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.imager_rascil.RascilImageCleanerConfig" title="karabo.imaging.imager_rascil.RascilImageCleanerConfig"><span class="pre">RascilImageCleanerConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilImageCleaner.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initializes the instance with a config.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>config (RascilImageCleanerConfig): see config attribute</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilImageCleaner.create_cleaned_image">
+<span class="sig-name descname"><span class="pre">create_cleaned_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">visibility</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dirty_fits_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_fits_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilImageCleaner.create_cleaned_image" title="Link to this definition"></a></dt>
+<dd><p>Creates a clean image from a dirty image or from visibilities.</p>
+<dl>
+<dt>Arguments:</dt><dd><p>visibility: Visibility from which a clean image should be created.
+dirty_fits_path: Path to dirty image FITS file that</p>
+<blockquote>
+<div><p>should be reused to create a clean image. If None, dirty image will be
+created first from the visibilities. Defaults to None.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>output_fits_path: Path to write the clean image to.</dt><dd><p>Example: /tmp/restored.fits.
+If None, will be set to a temporary directory and a default file name.
+Defaults to None.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>Image: Clean image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.imager_rascil.RascilImageCleaner.create_cleaned_image_variants">
+<span class="sig-name descname"><span class="pre">create_cleaned_image_variants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">visibility</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deconvolved_fits_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restored_fits_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_fits_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.imaging.imager_rascil.RascilImageCleaner.create_cleaned_image_variants" title="Link to this definition"></a></dt>
+<dd><p>Creates a clean image from visibilities.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>visibility: Visibility from which a clean image should be created.</dt><dd><p>Please note: only MS visibilities supported.</p>
+</dd>
+<dt>deconvolved_fits_path: Path to write the deconvolved image to.</dt><dd><p>Example: /tmp/deconvolved.fits.
+If None, will be set to a temporary directory and a default file name.</p>
+</dd>
+<dt>restored_fits_path: Path to write the restored image to.</dt><dd><p>Example: /tmp/restored.fits.
+If None, will be set to a temporary directory and a default file name.</p>
+</dd>
+<dt>residual_fits_path: Path to write the residual image to.</dt><dd><p>Example: /tmp/residual.fits.
+If None, will be set to a temporary directory and a default file name.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>A tuple (deconvolved, restored, residual) of images</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="oskar_imaging.html" class="btn btn-neutral float-left" title="karabo.imaging.imager_oskar" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sourcedetection.html" class="btn btn-neutral float-right" title="karabo.sourcedetection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Dec 20, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
