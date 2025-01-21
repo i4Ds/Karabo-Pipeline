@@ -141,18 +141,18 @@ class SourceDetectionEvaluation:
                     KDTree. A small value could lead to imperfect results.
 
             Returns:
-            np.ndarray:  An nx3 array where each row represents an assignment.
+                np.ndarray: An nx3 array where each row represents an assignment.
 
-            - first column represents the ground truth index \
-            (return is sorted by this column). A negative index means a ground-truth \
-            source with no allocated prediction
+                - first column represents the ground truth index \
+                (return is sorted by this column). A negative index means a \
+                ground-truth source with no allocated prediction.
 
-            - second column represents the predicted index. A negative index means \
-            a predicted source with no allocated ground-truth.
+                - second column represents the predicted index. A negative index means \
+                a predicted source with no allocated ground-truth.
 
-            - third column represents the euclidean distance between the \
-            assignment. A "inf" means no allocation between ground-truth and \
-            prediction of that source
+                - third column represents the euclidean distance between the \
+                assignment. A "inf" means no allocation between ground-truth and \
+                prediction of that source.
         """
         # Check if there are duplicate sources and if yes, remove them
         # Do it via index because otherwise the order is changed
