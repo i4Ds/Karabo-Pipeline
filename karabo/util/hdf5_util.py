@@ -1,3 +1,4 @@
+""" Collection of functions to work with HDF5 files. """
 from typing import Any, Dict, Generator, Tuple, Union
 
 import h5py as h5
@@ -27,7 +28,12 @@ def h5_diter(
 def print_hd5_object_and_keys(hdffile: Any) -> Tuple[h5.File, KeysViewHDF5]:
     """
     Read HDF5 file
-    Returns: HDF Object, relavent keys
+
+    Args:
+        hdffile: Path to HDF5 file.
+
+    Returns:
+        Tuple[h5.File, KeysViewHDF5]: relevant keys
     """
     with h5.File(hdffile, "r") as f:
         for path, dset in h5_diter(f):
@@ -38,6 +44,9 @@ def print_hd5_object_and_keys(hdffile: Any) -> Tuple[h5.File, KeysViewHDF5]:
 def get_healpix_image(hdffile: Any) -> Any:
     """
     Get index maps, maps and frequency from HDF5 file
+
+    Args:
+        hdffile: Path to HDF5 file.
     """
     with h5.File(hdffile, "r") as f:
         for path, dset in h5_diter(f):
@@ -52,6 +61,9 @@ def get_healpix_image(hdffile: Any) -> Any:
 def get_vis_from_hdf5(hdffile: Any) -> Any:
     """
     Get index maps, maps and frequency from HDF5 file
+
+    Args:
+        hdffile: Path to HDF5 file.
     """
     with h5.File(hdffile, "r") as f:
         for path, dset in h5_diter(f):
