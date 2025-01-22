@@ -21,6 +21,32 @@ def poisson_disc_samples(
     k: int = 5,
     ord: Union[None, float, Literal["fro", "nuc"]] = None,
 ) -> List[Tuple[float, float]]:
+    """
+    This function helps to generate a virtual sky. It does this by randomly
+    sampling points using **Poisson-disc sampling**. This produces points
+    that are tightly-packed, but no closer to each other than a specified
+    minimum distance r. This is important when sampling on a sphere.
+    There is more information on https://www.jasondavies.com/maps/random-points/
+
+    Args:
+        width (FloatLike): Width of the sampling area
+        height (FloatLike): Height of the area
+        r (int): Minimal distance to keep between points
+        k (int, optional): How often the algorithm tries to fit a point.
+            Higher value give a more dense pointcloud but the generation takes
+            longer. Defaults to 5.
+        ord (Union[None, float, Literal['fro', 'nuc]], optional): Which norm to use
+            for calulating the distance. Options are
+                - 'fro': Frobenius norm or
+                - 'nuc' for infinity
+
+    Notes:
+        Calculating the norm is based on numpynp.linalg.norm(). See there for more
+        information about the norm.
+
+    Returns:
+        List[Tuple[float, float]]: A list of point coordinates
+    """
     tau = 2 * pi
     cellsize = r / sqrt(2)
     random = np.random.rand
@@ -80,6 +106,23 @@ def get_poisson_disk_sky(
     flux_max: FloatLike,
     r: int = 10,
 ) -> NDArray[np.float_]:
+    """
+    Creates a virtual sky by creating random source with flux between
+    flux_min and flux_max.
+
+    Args:
+        min_size (Tuple[FloatLike, FloatLike]): For sky min RA and Deg in degrees.
+        max_size (Tuple[FloatLike, FloatLike]): Max. RA and Deg of sky.
+        flux_min (FloatLike): The minimal flux of the sources. Although the unit here
+            is arbitrary it is usuall Jy/s.
+        flux_max (FloatLike): The maximal flux.
+        r (int, optional): The minimal distance between points. Higher value gives
+            sparser sky. Defaults to 10.
+
+    Returns:
+        NDArray[np.float_]: Array of sources and flux \
+            [[x1, y1, flux], [x2, y2, flux] ...]
+    """
     assert flux_max >= flux_min
     x = min_size[0]
     y = min_size[1]
@@ -103,6 +146,17 @@ def get_poisson_disk_sky(
 
 #
 def long_lat_to_cartesian(lat: NPFloatLike, lon: NPFloatLike) -> NDArray[np.float_]:
+    """
+    Converts geodesic coordinates (latitude and longitude) into geocentric ones,
+    also called cartesian coordinates.
+
+    Args:
+        lat (NPFloatLike): The latitude in degrees, west is negative.
+        lon (NPFloatLike): The longitude to convert, south is negative.
+
+    Returns:
+        NDArray[np.float_]: An array with the geodesic coordinates [x, y, z]
+    """
     lat_, lon_ = np.deg2rad(lat), np.deg2rad(lon)
     x = R * cos(lat_) * cos(lon_)
     y = R * cos(lat_) * sin(lon_)
@@ -129,6 +183,22 @@ def cartesian_to_ll(
     y: FloatLike,
     z: int = 0,
 ) -> Tuple[float, float]:
+    """
+    Converts cartesian coordinates (geocentric) of a point on Earth to its
+    corresponding geodesic ones (latitude and longitude).
+
+    Notes:
+        The converions does not take z into account. Instead, we set z to
+        be the Earth radius.
+
+    Args:
+        x: cartesian x coordinate
+        y: cartesian y coordinate
+        z (Optional): cartesian z coordinate. Defaults to the Earth radius.
+
+    Retuns:
+        Tuple[float, float]: Geodesic coordinates (latitude, longitude)
+    """
     # does not use `z`
     r = math.sqrt(x**2 + y**2)
     long = 180 * math.atan2(y, x) / math.pi
