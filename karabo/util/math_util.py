@@ -196,7 +196,7 @@ def cartesian_to_ll(
         y: cartesian y coordinate
         z (Optional): cartesian z coordinate. Defaults to the Earth radius.
 
-    Retuns:
+    Returns:
         Tuple[float, float]: Geodesic coordinates (latitude, longitude)
     """
     # does not use `z`
