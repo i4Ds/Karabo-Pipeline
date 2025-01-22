@@ -14,8 +14,13 @@ def h5_diter(
 ) -> Generator[Tuple[str, h5.Dataset], Any, Any]:
     """
     Get the data elements from the hdf5 datasets and groups
-    Input: HDF5 file
-    Output: Items and its path of data elements
+
+    Args:
+        g: A handle to an open HDF5 file
+        prefix: Add this prefix to the groups and datasets
+
+    Returns:
+        Generator: Generator which allows to iterate over the items.
     """
     for key, item in g.items():
         path = "{}/{}".format(prefix, key)
@@ -27,13 +32,13 @@ def h5_diter(
 
 def print_hd5_object_and_keys(hdffile: Any) -> Tuple[h5.File, KeysViewHDF5]:
     """
-    Read HDF5 file
+    Read HDF5 file and lists its structure to the console.
 
     Args:
         hdffile: Path to HDF5 file.
 
     Returns:
-        Tuple[h5.File, KeysViewHDF5]: relevant keys
+        Tuple[h5.File, KeysViewHDF5]: kkeys found in the HDF5 hierarchy.
     """
     with h5.File(hdffile, "r") as f:
         for path, dset in h5_diter(f):
@@ -43,7 +48,7 @@ def print_hd5_object_and_keys(hdffile: Any) -> Tuple[h5.File, KeysViewHDF5]:
 
 def get_healpix_image(hdffile: Any) -> Any:
     """
-    Get index maps, maps and frequency from HDF5 file
+    Get index maps, maps and frequency from HDF5 file.
 
     Args:
         hdffile: Path to HDF5 file.

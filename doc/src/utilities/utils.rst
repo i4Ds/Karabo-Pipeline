@@ -48,3 +48,9 @@ karabo.util.rascil_util
    :members:
    :undoc-members:
    :show-inheritance:
+
+karabo.util.data_util
+------------------------
+.. automodule:: karabo.util.data_util
+   :members:
+   :show-inheritance:
