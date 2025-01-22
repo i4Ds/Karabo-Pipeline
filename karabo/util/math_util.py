@@ -1,3 +1,6 @@
+"""
+A collection of mathematical functions, mainly used for creating virtual skies.
+"""
 import math
 from math import ceil, cos, floor, pi, sin, sqrt
 from typing import List, Literal, Tuple, Union, cast
