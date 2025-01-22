@@ -6,10 +6,10 @@ from typing import Any, Dict, List, Tuple, Union, cast
 import numpy as np
 import xarray as xr
 from numpy.typing import NDArray
-from scipy.special import wofz
 
 import karabo
-from karabo.util._types import NPFloatInpBroadType, NPFloatOutBroadType, NPIntFloat
+from karabo.util._types import NPIntFloat
+from karabo.util.math_util import Voigt
 
 
 def get_module_absolute_path() -> str:
@@ -208,32 +208,6 @@ def full_setter(self: object, state: Dict[str, Any]) -> None:
 def full_getter(self: object) -> Dict[str, Any]:
     state = self.__dict__
     return state
-
-
-def Gauss(
-    x: NPFloatInpBroadType,
-    x0: NPFloatInpBroadType,
-    y0: NPFloatInpBroadType,
-    a: NPFloatInpBroadType,
-    sigma: NPFloatInpBroadType,
-) -> NPFloatOutBroadType:
-    gauss = y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))
-    return cast(NPFloatOutBroadType, gauss)
-
-
-def Voigt(
-    x: NPFloatInpBroadType,
-    x0: NPFloatInpBroadType,
-    y0: NPFloatInpBroadType,
-    a: NPFloatInpBroadType,
-    sigma: NPFloatInpBroadType,
-    gamma: NPFloatInpBroadType,
-) -> NPFloatOutBroadType:
-    # sigma = alpha / np.sqrt(2 * np.log(2))
-    voigt = y0 + a * np.real(
-        wofz((x - x0 + 1j * gamma) / sigma / np.sqrt(2))
-    ) / sigma / np.sqrt(2 * np.pi)
-    return cast(NPFloatOutBroadType, voigt)
 
 
 def get_spectral_sky_data(

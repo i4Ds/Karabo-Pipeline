@@ -4,8 +4,14 @@ from typing import List, Literal, Tuple, Union, cast
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.special import wofz
 
-from karabo.util._types import FloatLike, NPFloatLike
+from karabo.util._types import (
+    FloatLike,
+    NPFloatInpBroadType,
+    NPFloatLike,
+    NPFloatOutBroadType,
+)
 
 
 def poisson_disc_samples(
@@ -128,3 +134,71 @@ def cartesian_to_ll(
     long = 180 * math.atan2(y, x) / math.pi
     lat = 180 * math.acos(r / R) / math.pi
     return lat, long
+
+
+def Gauss(
+    x: NPFloatInpBroadType,
+    x0: NPFloatInpBroadType,
+    y0: NPFloatInpBroadType,
+    a: NPFloatInpBroadType,
+    sigma: NPFloatInpBroadType,
+) -> NPFloatOutBroadType:
+    """
+    Calculates the value of the Gaussian distribution at a single point `x` or
+    for an array of points.
+
+    This function is used in `karabo.util.data_util.get_spectral_sky_data()` but it
+    can be used elsewhere.
+
+    Notes:
+        An argument can be a number or an array. If using arrays all shapes must match.
+
+    Args:
+        x (NPFloatInpBroadType): Where to calculate the value
+        x0 (NPFloatInpBroadType): Center point of distribution
+        y0 (NPFloatInpBroadType): Offset in y direction
+        a (NPFloatInpBroadType): Amplitude (height of distribution function)
+        sigma (NPFloatInpBroadType): standard deviation (width of distribution)
+
+    Returns:
+        NPFloatOutBroadType: A value or an array having the values of the \
+            Gaussian funtion.
+    """
+    gauss = y0 + a * np.exp(-((x - x0) ** 2) / (2 * sigma**2))
+    return cast(NPFloatOutBroadType, gauss)
+
+
+def Voigt(
+    x: NPFloatInpBroadType,
+    x0: NPFloatInpBroadType,
+    y0: NPFloatInpBroadType,
+    a: NPFloatInpBroadType,
+    sigma: NPFloatInpBroadType,
+    gamma: NPFloatInpBroadType,
+) -> NPFloatOutBroadType:
+    """
+    Calculates the value of the Voigt profile at a single point `x` or
+    for an array of points.
+
+    This function is used in `karabo.util.data_util.get_spectral_sky_data()` but it
+    can be used elsewhere.
+
+    Notes:
+        An argument can be a number or an array. If using arrays all shapes must match.
+
+    Args:
+        x (NPFloatInpBroadType): Where to calculate the value
+        x0 (NPFloatInpBroadType): Center point of distribution
+        y0 (NPFloatInpBroadType): Offset in y direction
+        a (NPFloatInpBroadType): Amplitude (height of distribution function)
+        sigma (NPFloatInpBroadType): standard deviation (width of distribution)
+
+    Returns:
+        NPFloatOutBroadType: A value or an array having the values of the \
+            Gaussian funtion.
+    """
+    # sigma = alpha / np.sqrt(2 * np.log(2))
+    voigt = y0 + a * np.real(
+        wofz((x - x0 + 1j * gamma) / sigma / np.sqrt(2))
+    ) / sigma / np.sqrt(2 * np.pi)
+    return cast(NPFloatOutBroadType, voigt)
