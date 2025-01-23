@@ -134,7 +134,7 @@ class SourceDetectionResult(ISourceDetectionResult):
                 Additional keyword arguments to pass to PyBDSF.process_image function.
 
         Returns:
-            Optional[List[SourceDetectionResultType]]: A list of detected sources,
+            Optional[List[_SourceDetectionResultType]]: A list of detected sources,
             or None if all pixels in the image are blanked or on failure.
 
         Raises:
