@@ -154,7 +154,7 @@ class ObservationAbstract(ABC):
         Raises:
         ValueError: If the input lists are not of the same length.
 
-        Notes:
+        Note:
         The 'observation' key in each dictionary in the returned list has a value
         which is itself a dictionary, with keys 'start_frequency_hz',
         'num_channels', and 'frequency_inc_hz'.

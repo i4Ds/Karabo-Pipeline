@@ -43,7 +43,7 @@ def poisson_disc_samples(
                 - 'fro': Frobenius norm or
                 - 'nuc' for infinity
 
-    Notes:
+    Note:
         Calculating the norm is based on numpynp.linalg.norm(). See there for more
         information about the norm.
 
@@ -190,7 +190,7 @@ def cartesian_to_ll(
     Converts cartesian coordinates (geocentric) of a point on Earth to its
     corresponding geodesic ones (latitude and longitude).
 
-    Notes:
+    Note:
         The converions does not take z into account. Instead, we set z to
         be the Earth radius.
 
@@ -223,7 +223,7 @@ def Gauss(
     This function is used in `karabo.util.data_util.get_spectral_sky_data()` but it
     can be used elsewhere.
 
-    Notes:
+    Note:
         An argument can be a number or an array. If using arrays all shapes must match.
 
     Args:
@@ -256,7 +256,7 @@ def Voigt(
     This function is used in `karabo.util.data_util.get_spectral_sky_data()` but it
     can be used elsewhere.
 
-    Notes:
+    Note:
         An argument can be a number or an array. If using arrays all shapes must match.
 
     Args:

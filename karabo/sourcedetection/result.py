@@ -140,7 +140,7 @@ class SourceDetectionResult(ISourceDetectionResult):
         Raises:
             RuntimeError: If an unexpected error occurs during the source detection process.
 
-        Notes:
+        Note:
             The dask client has to be created with the setting `processes=False` to avoid
             issues with PyBDSF multiprocessing. See similar issue here:
             https://stackoverflow.com/questions/51485212/multiprocessing-gives-assertionerror-daemonic-processes-are-not-allowed-to-have # noqa
@@ -410,7 +410,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         bdsf_detection (Optional[List[PyBDSFSourceDetectionResult]):
             A list of PyBDSF source detection results.
 
-    Notes:
+    Note:
         The `detected_sources` property depends on `bdsf_detection` and
         `min_pixel_distance_between_sources`. It calculates the pixel positions
         based on these inputs and filters out sources that are closer than the
@@ -497,7 +497,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
             structure and content depend on the format used by individual
             detection instances.
 
-        Notes:
+        Note:
             This method relies on `self.__get_idx_of_overlapping_sources()` to
             identify indices of overlapping sources and `self.__drop_cast_sources()`
             to remove them.

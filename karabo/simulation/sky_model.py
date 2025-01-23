@@ -1009,7 +1009,7 @@ class SkyModel:
             KaraboSkyModelError: If the `sources` attribute is not
             populated in the SkyModel instance prior to invoking this function.
 
-        Notes:
+        Note:
             Use this function for large sky models where a full spherical geometry
             calculation is not feasible due to memory constraints. It is particularly
             beneficial when working with Xarray and Dask, facilitating scalable data
@@ -1994,7 +1994,7 @@ class SkyModel:
                 - 'Observed Redshift': Additional observed redshift information \
                 of the celestial objects.
 
-        Notes:
+        Note:
             Other properties such as 'stokes_q', 'stokes_u', 'stokes_v',
             'ref_freq', 'spectral_index', 'rm', 'major', 'minor', 'pa', and 'id'
             are not included in the sky model.

@@ -64,7 +64,7 @@ def _get_disk_cache_root(
     Raises:
         RuntimeError: If 'TMPDIR' & 'TMP' are set differently which is ambiguous.
 
-    Notes:
+    Note:
         In a container-setup, this dir is preferably a mounted dir.
         For long-term-memory so that each object doesn't have to be downloaded
         for each run. For short-term-memory so that the created artifacts are

@@ -94,7 +94,7 @@ def parse_size(size_str: str) -> int:
 
     Currently supported are "B", "KB", "MB", "GB", and "TB".
 
-    Notes:
+    Note:
         - The decimal prefix is used, not the binary one, i.e 1 KB = 1000 B and \
         not 1 KB = 1024 B.
         - Capitalization does not matter, i.e. "1 kb" is equal to "1 KB".
@@ -172,7 +172,7 @@ def read_CSV_to_ndarray(file: str) -> NDArray[np.float64]:
     """
     Reads a cvs file into a xarray.
 
-    Notes:
+    Note:
         - The field delimiter is set to ','
         - A quote is surrounded by '|'
         - The first row can be a comment starting with '#'
