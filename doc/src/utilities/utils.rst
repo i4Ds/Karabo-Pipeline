@@ -54,3 +54,9 @@ karabo.util.data_util
 .. automodule:: karabo.util.data_util
    :members:
    :show-inheritance:
+
+karabo.util.survey
+------------------------
+.. automodule:: karabo.util.survey
+   :members:
+   :show-inheritance:
