@@ -265,6 +265,7 @@ def Voigt(
         y0 (NPFloatInpBroadType): Offset in y direction
         a (NPFloatInpBroadType): Amplitude (height of distribution function)
         sigma (NPFloatInpBroadType): standard deviation (width of distribution)
+        gamma (NPFloatInpBroadType): FWHM of Lorentz component
 
     Returns:
         NPFloatOutBroadType: A value or an array having the values of the \

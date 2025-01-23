@@ -220,11 +220,36 @@ def get_spectral_sky_data(
     freq0: NDArray[np.float_],
     nfreq: int,
 ) -> NDArray[np.float_]:
+    """
+    Used to add the properties flux and frequency to a sample of
+    point sources. The data is then returned as a structure that can be
+    used to define a SkyModel.
+
+    See :obj:`karabo.simulation.sky_model.SkyModel.add_point_sources`
+
+    Args:
+        ra (NDArray[np.float_]): A list of RA (right ascension) of the sources.
+        dec (NDArray[np.float_]): Their declinations
+        freq0 (NDArray[np.float_]): The main frequency of each source
+        nfreq (int): Number of frequencies to sample. Must have the same length
+            as the other arrays.
+
+    Returns:
+        NDArray[np.float_]: A sky model (n x 12 array) which has the following \
+        entries set for each source:
+            - [0]: right ascension
+            - [1]: declination
+            - [2]: stokes I flux
+            - [6]: reference frequency
+            - [7]: spectral index set to -200
+    """
     dfreq_arr = np.linspace(-0.1, 0.1, 100)
     y_voigt = cast(NDArray[NPIntFloat], Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01))
     # y_gauss = Gauss(dfreq_arr, 0, 0, 1, 0.01)
     dfreq_sample = dfreq_arr[::nfreq]
     flux_sample = y_voigt[::nfreq]
+
+    # Why do we add a frequency?
     freq_sample = freq0 + dfreq_sample * freq0
     sky_data = np.zeros((nfreq, 12))
     sky_data[:, 0] = ra
@@ -240,6 +265,19 @@ def resample_spectral_lines(
     dfreq: NDArray[np.float_],
     spec_line: NDArray[np.float_],
 ) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+    """
+    Downsamples a spectral line. The new line will have npoints.
+
+    Args:
+        npoints (int): Desired number of points after resampling. Must be samller
+            than in the original sample.
+        dfreq (NDArray[np.float_]): The frequencies samples fo the original line.
+        spec_line (NDArray[np.float_]): The intensities of the original line.
+
+    Returns:
+        Tuple[NDArray[np.float_], NDArray[np.float_]]: A tuple of arrays where \
+        [new_frequency_samples[], new_intensitiy_samples[]].
+    """
     m = int(len(dfreq) / npoints)
     dfreq_sampled = dfreq[::m]
     line_sampled = spec_line[::m]
