@@ -255,7 +255,8 @@ class ObservationLong(ObservationAbstract):
     `length` is little different, which describes the duration of ONE observation,
     whose maximum duration for `ObservationLong` is 24h.
 
-    :ivar number_of_days: Number of successive days to observe
+    Args:
+        number_of_days: Number of successive days to observe
     """
 
     def __init__(
@@ -312,7 +313,8 @@ class ObservationParallelized(ObservationAbstract):
     `length` is little different, which describes the duration of ONE observation,
     whose maximum duration for `ObservationLong` is 24h.
 
-    :ivar number_of_days: Number of successive days to observe
+    Args:
+        number_of_days: Number of successive days to observe
     """
 
     def __init__(
