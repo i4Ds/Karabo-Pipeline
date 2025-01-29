@@ -524,9 +524,9 @@ class SkyModel:
             - [11] position angle (deg): defaults to 0
             - [12] true redshift: defaults to 0
             - [13] observed redshift: defaults to 0
-            - [14] object-id: just for `np.ndarray`
-                it is removed in the `xr.DataArray`
-                and exists then in `xr.DataArray.coords` as index.
+            - [14] object-id: just for `np.ndarray` \
+            it is removed in the `xr.DataArray`
+            and exists then in `xr.DataArray.coords` as index.
         wcs: World Coordinate System (WCS) object representing the coordinate
             transformation between pixel coordinates and celestial coordinates
             (e.g., right ascension and declination).
