@@ -1183,7 +1183,8 @@ class SkyModel:
             title: plot title
             xlabel: x-axis label
             ylabel: y-axis label
-            cfun: flux scale transformation function for scatter-coloring
+            cfun: flux scale transformation function for scatter-coloring.
+                Defaults to np.log10
             cmap: matplotlib color map
             cbar_label: color bar label
             with_labels: Plots object ID's if set?
