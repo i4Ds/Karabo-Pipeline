@@ -41,4 +41,15 @@ Classes
 .. autoclass:: karabo.simulation.east_north_coordinate.EastNorthCoordinate
    :members:
    :special-members: __init__
-   :exclude-members: 
+   :exclude-members:
+
+Line emission package
+------------------------
+.. automodule:: karabo.simulation.line_emission
+   :members:
+   :show-inheritance:
+
+.. automodule:: karabo.simulation.line_emission_helpers
+   :members:
+   :show-inheritance:
+
