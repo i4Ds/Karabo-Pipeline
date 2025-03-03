@@ -23,4 +23,4 @@ abstract: >-
   validation and benchmarking of radio telescopes and
   algorithms.
 license: MIT
-version: 0.31.0
+version: 0.32.0
