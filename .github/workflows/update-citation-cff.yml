@@ -4,7 +4,8 @@ on:
     types: released
     branches:
       - main 
-
+  workflow_dispatch:
+  
 jobs:
   update-citation-cff:
     runs-on: ubuntu-latest
