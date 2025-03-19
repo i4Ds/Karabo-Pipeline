@@ -96,6 +96,7 @@ class Environment:
             Parsed env-var.
         """
         env = os.environ.get(name)
+        assert not (required and default is not MISSING)  # signature violation
         if env is None:
             if required:
                 if default is MISSING:
@@ -106,7 +107,10 @@ class Environment:
                 else:
                     err_msg = "Setting a default only makes sense if `required=False`."
                     raise RuntimeError(err_msg)  # overload violation here
-            return default  # type: ignore[return-value]
+            if default is MISSING:
+                return None  # type: ignore[return-value]
+            else:
+                return default  # type: ignore[return-value]
         env_lower = env.lower()
         if allow_none_input and env_lower == "none":
             return None

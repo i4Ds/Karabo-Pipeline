@@ -9,6 +9,7 @@ import karabo
 import karabo.util.rascil_util
 from karabo.test.conftest import RUN_GPU_TESTS
 from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
+from karabo.util.helpers import Environment
 
 
 def test_is_cuda_available():
@@ -68,3 +69,58 @@ def test_suppress_rascil_warning(caplog: pytest.LogCaptureFixture):
         # Load rascil, warning should not be logged
         importlib.reload(rascil)
     assert not any(warning_message in record.message for record in caplog.records)
+
+
+def test_environment():
+    envs = {
+        "STRING": "String",
+        "NONE": "None",
+        "TRUE": "True",
+        "FALSE": "False",
+        "ZERO": "0",
+        "POS_INT": "42",
+        "NEG_INT": "-13",
+        "POS_FLOAT": "3.1415926535",
+        "NEG_FLOAT": "-2.7182818",
+        "SCI_FLOAT": "-2.5e-3",
+        "EMPTY": "",
+    }
+    for k, v in envs.items():
+        os.environ[k] = v
+
+    assert isinstance(Environment.get("STRING", str), str)
+    assert isinstance(Environment.get("EMPTY", str), str)
+    assert isinstance(Environment.get("TRUE", str), str)
+    assert isinstance(Environment.get("ZERO", str), str)
+    assert isinstance(Environment.get("POS_INT", str), str)
+    assert isinstance(Environment.get("SCI_FLOAT", str), str)
+    assert Environment.get("TRUE", bool) is True
+    assert Environment.get("FALSE", bool) is False
+    assert isinstance(Environment.get("ZERO", float), float)
+    assert isinstance(Environment.get("ZERO", int), int)
+    assert isinstance(Environment.get("POS_INT", int), int)
+    assert isinstance(Environment.get("NEG_INT", int), int)
+    assert isinstance(Environment.get("POS_FLOAT", float), float)
+    assert isinstance(Environment.get("NEG_FLOAT", float), float)
+    assert isinstance(Environment.get("SCI_FLOAT", float), float)
+    assert Environment.get("NONE", str, allow_none_input=True) is None
+    assert Environment.get("NONE", bool, allow_none_input=True) is None
+    assert Environment.get("NONE", float, allow_none_input=True) is None
+    with pytest.raises(AssertionError):
+        Environment.get(
+            "POS_FLOAT", float, default=0.3
+        )  # assumes `required=True` default
+        Environment.get("SCI_FLOAT", float, default=-2e4, required=True)
+    assert Environment.get("DOES_NOT_EXIST", float, default=0.3, required=False) == 0.3
+    assert Environment.get("DOES_NOT_EXIST", bool, required=False) is None
+    assert (
+        Environment.get("DOES_NOT_EXIST", float, default=None, required=False) is None
+    )
+    with pytest.raises(ValueError):
+        Environment.get("STRING", bool)
+        Environment.get("NONE", float)
+        Environment.get("TRUE", float)
+        Environment.get("FALSE", int)
+        Environment.get("ZERO", bool)
+        Environment.get("POS_FLOAT", int)
+        Environment.get("SCI_FLOAT", int)
