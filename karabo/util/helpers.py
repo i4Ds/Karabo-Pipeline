@@ -63,11 +63,24 @@ class Environment:
         cls,
         name: str,
         type_: type[_EnvType],
-        default: Optional[Union[_EnvType, MissingType]] = ...,
+        default: Optional[MissingType] = MISSING,
         *,
         required: Literal[False],
         allow_none_input: bool = False,
     ) -> Optional[_EnvType]:
+        ...
+
+    @overload
+    @classmethod
+    def get(
+        cls,
+        name: str,
+        type_: type[_EnvType],
+        default: _EnvType,
+        *,
+        required: Literal[False],
+        allow_none_input: bool = False,
+    ) -> _EnvType:
         ...
 
     @classmethod
