@@ -103,9 +103,9 @@ def test_environment():
     assert isinstance(Environment.get("POS_FLOAT", float), float)
     assert isinstance(Environment.get("NEG_FLOAT", float), float)
     assert isinstance(Environment.get("SCI_FLOAT", float), float)
-    assert Environment.get("NONE", str, allow_none_input=True) is None
-    assert Environment.get("NONE", bool, allow_none_input=True) is None
-    assert Environment.get("NONE", float, allow_none_input=True) is None
+    assert Environment.get("NONE", str, allow_none_parsing=True) is None
+    assert Environment.get("NONE", bool, allow_none_parsing=True) is None
+    assert Environment.get("NONE", float, allow_none_parsing=True) is None
     with pytest.raises(AssertionError):
         Environment.get(
             "POS_FLOAT", float, default=0.3

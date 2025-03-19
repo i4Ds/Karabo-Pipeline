@@ -9,7 +9,7 @@ from typing import Literal, Optional, TypeVar, Union, overload
 
 from karabo.util._types import MISSING, MissingType
 
-_EnvType = TypeVar("_EnvType", bound=Union[str, int, float, bool])
+_TEnv = TypeVar("_TEnv", bound=Union[str, int, float, bool])
 
 
 def get_rnd_str(k: int, seed: Optional[Union[str, int, float, bytes]] = None) -> str:
@@ -36,12 +36,12 @@ class Environment:
     def get(
         cls,
         name: str,
-        type_: type[_EnvType],
+        type_: type[_TEnv],
         default: MissingType = MISSING,
         *,
         required: Literal[True] = True,
-        allow_none_input: Literal[False] = False,
-    ) -> _EnvType:
+        allow_none_parsing: Literal[False] = False,
+    ) -> _TEnv:
         ...
 
     @overload
@@ -49,12 +49,12 @@ class Environment:
     def get(
         cls,
         name: str,
-        type_: type[_EnvType],
-        default: MissingType = MISSING,
+        type_: type[_TEnv],
+        default: _TEnv,
         *,
-        required: Literal[True] = True,
-        allow_none_input: Literal[True],
-    ) -> Optional[_EnvType]:
+        required: Literal[False],
+        allow_none_parsing: Literal[False] = False,
+    ) -> _TEnv:
         ...
 
     @overload
@@ -62,37 +62,37 @@ class Environment:
     def get(
         cls,
         name: str,
-        type_: type[_EnvType],
+        type_: type[_TEnv],
+        default: Optional[Union[_TEnv, MissingType]] = MISSING,
+        *,
+        required: bool = ...,
+        allow_none_parsing: Literal[True],
+    ) -> Optional[_TEnv]:
+        ...
+
+    @overload
+    @classmethod
+    def get(
+        cls,
+        name: str,
+        type_: type[_TEnv],
         default: Optional[MissingType] = MISSING,
         *,
         required: Literal[False],
-        allow_none_input: bool = False,
-    ) -> Optional[_EnvType]:
-        ...
-
-    @overload
-    @classmethod
-    def get(
-        cls,
-        name: str,
-        type_: type[_EnvType],
-        default: _EnvType,
-        *,
-        required: Literal[False],
-        allow_none_input: bool = False,
-    ) -> _EnvType:
+        allow_none_parsing: bool = False,
+    ) -> Optional[_TEnv]:
         ...
 
     @classmethod
     def get(
         cls,
         name: str,
-        type_: type[_EnvType],
-        default: Optional[Union[_EnvType, MissingType]] = MISSING,
+        type_: type[_TEnv],
+        default: Optional[Union[_TEnv, MissingType]] = MISSING,
         *,
         required: bool = True,
-        allow_none_input: bool = False,
-    ) -> Optional[_EnvType]:  # generics & unions not supported atm
+        allow_none_parsing: bool = False,
+    ) -> Optional[_TEnv]:  # generics & unions not supported atm
         """Env-var parsing & handling.
 
         Args:
@@ -103,7 +103,7 @@ class Environment:
             required: Specification if env-var must be set. If it's not available,
                 a default value will be returned. If `default` is not specified, `None`
                 is the return value.
-            allow_none_input: Allow None value parsing.
+            allow_none_parsing: Allow None-type parsing?
 
         Returns:
             Parsed env-var.
@@ -125,7 +125,7 @@ class Environment:
             else:
                 return default  # type: ignore[return-value]
         env_lower = env.lower()
-        if allow_none_input and env_lower == "none":
+        if allow_none_parsing and env_lower == "none":
             return None
         if type_ is bool:
             if env_lower == "true":
