@@ -37,9 +37,8 @@ class Environment:
         cls,
         name: str,
         type_: type[_TEnv],
-        default: MissingType = MISSING,
+        default: Union[MissingType, _TEnv] = MISSING,
         *,
-        required: Literal[True] = True,
         allow_none_parsing: Literal[False] = False,
     ) -> _TEnv:
         ...
@@ -50,22 +49,8 @@ class Environment:
         cls,
         name: str,
         type_: type[_TEnv],
-        default: _TEnv,
+        default: Optional[Union[_TEnv, MissingType]] = ...,
         *,
-        required: Literal[False],
-        allow_none_parsing: Literal[False] = False,
-    ) -> _TEnv:
-        ...
-
-    @overload
-    @classmethod
-    def get(
-        cls,
-        name: str,
-        type_: type[_TEnv],
-        default: Optional[Union[_TEnv, MissingType]] = MISSING,
-        *,
-        required: bool = ...,
         allow_none_parsing: Literal[True],
     ) -> Optional[_TEnv]:
         ...
@@ -76,10 +61,9 @@ class Environment:
         cls,
         name: str,
         type_: type[_TEnv],
-        default: Optional[MissingType] = MISSING,
+        default: Literal[None],
         *,
-        required: Literal[False],
-        allow_none_parsing: bool = False,
+        allow_none_parsing: bool = ...,
     ) -> Optional[_TEnv]:
         ...
 
@@ -90,7 +74,6 @@ class Environment:
         type_: type[_TEnv],
         default: Optional[Union[_TEnv, MissingType]] = MISSING,
         *,
-        required: bool = True,
         allow_none_parsing: bool = False,
     ) -> Optional[_TEnv]:  # generics & unions not supported atm
         """Env-var parsing & handling.
@@ -109,19 +92,10 @@ class Environment:
             Parsed env-var.
         """
         env = os.environ.get(name)
-        assert not (required and default is not MISSING)  # signature violation
         if env is None:
-            if required:
-                if default is MISSING:
-                    err_msg = (
-                        f"Environment variable {name} is required but not defined."
-                    )
-                    raise KeyError(err_msg)
-                else:
-                    err_msg = "Setting a default only makes sense if `required=False`."
-                    raise RuntimeError(err_msg)  # overload violation here
             if default is MISSING:
-                return None  # type: ignore[return-value]
+                err_msg = f"Environment variable '{name}' not found!"
+                raise KeyError(err_msg)
             else:
                 return default  # type: ignore[return-value]
         env_lower = env.lower()

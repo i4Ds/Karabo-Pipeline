@@ -106,21 +106,22 @@ def test_environment():
     assert Environment.get("NONE", str, allow_none_parsing=True) is None
     assert Environment.get("NONE", bool, allow_none_parsing=True) is None
     assert Environment.get("NONE", float, allow_none_parsing=True) is None
-    with pytest.raises(AssertionError):
-        Environment.get(
-            "POS_FLOAT", float, default=0.3
-        )  # assumes `required=True` default
-        Environment.get("SCI_FLOAT", float, default=-2e4, required=True)
-    assert Environment.get("DOES_NOT_EXIST", float, default=0.3, required=False) == 0.3
-    assert Environment.get("DOES_NOT_EXIST", bool, required=False) is None
-    assert (
-        Environment.get("DOES_NOT_EXIST", float, default=None, required=False) is None
-    )
+    assert Environment.get("DOES_NOT_EXIST", float, 0.3) == 0.3
+    assert Environment.get("NEG_FLOAT", float, 0.3) == -2.7182818
+    assert Environment.get("DOES_NOT_EXIST", bool, None) is None
+    with pytest.raises(KeyError):
+        Environment.get("DOES_NOT_EXIST", bool)
     with pytest.raises(ValueError):
         Environment.get("STRING", bool)
+    with pytest.raises(ValueError):
         Environment.get("NONE", float)
+    with pytest.raises(ValueError):
         Environment.get("TRUE", float)
+    with pytest.raises(ValueError):
         Environment.get("FALSE", int)
+    with pytest.raises(ValueError):
         Environment.get("ZERO", bool)
+    with pytest.raises(ValueError):
         Environment.get("POS_FLOAT", int)
+    with pytest.raises(ValueError):
         Environment.get("SCI_FLOAT", int)
