@@ -81,11 +81,8 @@ class Environment:
         Args:
             name: Name of env-var.
             type_: Type to parse into.
-            default: Default value in case env-var is not set. This makes only sense
-                if `required=False`. None default values are supported.
-            required: Specification if env-var must be set. If it's not available,
-                a default value will be returned. If `default` is not specified, `None`
-                is the return value.
+            default: Default value in case env-var is not set
+                (NoneType allowed as default).
             allow_none_parsing: Allow None-type parsing?
 
         Returns:
