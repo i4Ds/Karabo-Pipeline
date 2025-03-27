@@ -2188,9 +2188,9 @@ class SkyModel:
         Args:
             backend: Determines how to return the SkyModel source catalog.
 
-                    - OSKAR: return the current SkyModel instance, since methods \
+                - OSKAR: return the current SkyModel instance, since methods \
                     in Karabo support OSKAR-formatted source np.array values.
-                    - RASCIL: convert the current source array into a \
+                - RASCIL: convert the current source array into a \
                     list of RASCIL SkyComponent instances.
             desired_frequencies_hz: List of frequencies corresponding to start
                 of desired frequency channels. This field is required
@@ -2198,7 +2198,7 @@ class SkyModel:
                 The array contains starting frequencies for the desired channels.
                 E.g. [100e6, 110e6] corresponds to 2 frequency channels,
                 which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
-                channel_bandwidth_hz: Used if desired_frequencies_hz has
+            channel_bandwidth_hz: Used if desired_frequencies_hz has
                 only one element. Otherwise, bandwidth is determined as
                 the delta between the first two entries in desired_frequencies_hz.
             verbose: Determines whether to display additional print statements.
