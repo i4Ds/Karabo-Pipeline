@@ -12,6 +12,7 @@
 import math
 import os
 from datetime import datetime, timedelta
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -57,13 +58,26 @@ START_DATE_AND_TIME = Environment.get(  # UTC
     "START_DATE_AND_TIME", str, "04.26.2020T16:36"
 )
 
+# Wavelength at e.g. 1340 MHz = 0.22372571 m
+# MeerKAT dish diameter = 13.5 m
+# SKA-Mid dish diameter = 15 m
+# AA*: 64*13.5 m + 80*15 m
+# 1.25 factor according to SKAO's yitl_observatory_data_rates.ipynb
+# fov-deg = Beam Width (FWHM) = 1.25 * 0.22372571 m / 15 m * 180/pi
+ref_freq_hz = (START_FREQ_HZ + END_FREQ_HZ) / 2
+wavelength_m = cast(float, constants.c.value / ref_freq_hz)
+fov_rad = 1.25 * wavelength_m / 15
+
 # Imaging
 # Image size in degrees should be smaller than FOV
 # Bigger baseline -> higher resolution
 # Image resolution from SKAO's generate_visibilities.ipynb
 IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int, 20000)
-# -> Cellsize < FOV / 20000 -> 9.32190458333e-7
-IMAGING_CELLSIZE = Environment.get("IMAGING_CELLSIZE", float, 9.3e-7)
+# None calculates cellsize automatically
+IMAGING_CELLSIZE = Environment.get("IMAGING_CELLSIZE", float, None)
+if IMAGING_CELLSIZE is None:
+    IMAGING_CELLSIZE = fov_rad / IMAGING_NPIXEL
+    print(f"Calculated {IMAGING_CELLSIZE=}")
 
 # Rucio metadata
 RUCIO_NAMESPACE = Environment.get("RUCIO_NAMESPACE", str, "testing")
@@ -115,21 +129,11 @@ def generate_visibilities() -> Visibility:
     # Original survey: 32768 channels over the full frequency range
     # of 856 MHz to 1712 MHz
     number_of_channels = math.floor((END_FREQ_HZ - START_FREQ_HZ) / FREQ_INC_HZ)
-
-    # Wavelength at e.g. 1340 MHz = 0.22372571 m
-    # MeerKAT dish diameter = 13.5 m
-    # SKA-Mid dish diameter = 15 m
-    # AA*: 64*13.5 m + 80*15 m
-    # 1.25 factor according to SKAO's yitl_observatory_data_rates.ipynb
-    # fov-deg = Beam Width (FWHM) = 1.25 * 0.22372571 m / 15 m * 180/pi
-    ref_freq_hz = (START_FREQ_HZ + END_FREQ_HZ) / 2
-    wavelength_m = constants.c.value / ref_freq_hz
-    fov_deg = np.rad2deg(1.25 * wavelength_m / 15)
     use_gpus = is_cuda_available()
     simulation = InterferometerSimulation(
         channel_bandwidth_hz=FREQ_INC_HZ,
         station_type="Gaussian beam",
-        gauss_beam_fwhm_deg=fov_deg,
+        gauss_beam_fwhm_deg=np.rad2deg(fov_rad),
         gauss_ref_freq_hz=ref_freq_hz,
         use_gpus=use_gpus,
     )
@@ -192,7 +196,7 @@ def create_dirty_image(visibility: Visibility) -> Image:
     dirty_imager = WscleanDirtyImager(
         DirtyImagerConfig(
             imaging_npixel=IMAGING_NPIXEL,
-            imaging_cellsize=IMAGING_CELLSIZE,
+            imaging_cellsize=IMAGING_CELLSIZE,  # type: ignore[arg-type]
             combine_across_frequencies=True,
         )
     )
@@ -210,7 +214,7 @@ def create_cleaned_image(visibility: Visibility, dirty_image: Image) -> Image:
     image_cleaner = WscleanImageCleaner(
         WscleanImageCleanerConfig(
             imaging_npixel=IMAGING_NPIXEL,
-            imaging_cellsize=IMAGING_CELLSIZE,
+            imaging_cellsize=IMAGING_CELLSIZE,  # type: ignore[arg-type]
         )
     )
 
