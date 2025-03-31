@@ -65,7 +65,7 @@ jobs:
             if [[ ${KARABO_TAG:0:1} == "v" ]]; then
               KARABO_VERSION="${KARABO_TAG:1}"
             else
-              echo "invalid karabo-tag: has no leading v"
+              echo "Karabo-tag: `$KARABO_TAG` has no leading v"
               exit 1
             fi
             BUILD_DOCKER=true
