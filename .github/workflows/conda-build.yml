@@ -52,9 +52,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Get Previous tag
-        uses: actions-ecosystem/action-get-latest-tag@v1
-        id: get-latest-tag
       - name: Build Conda
         id: bcs
         shell: bash -l {0}
@@ -62,8 +59,9 @@ jobs:
           if [[ ${{ github.event_name }} == 'release' ]]
           then
             echo "Conda build from release"
+            apt-get update && apt-get install -y git
+            KARABO_TAG=$(git describe --tags --abbrev=0)
             build="0"
-            KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
             if [[ ${KARABO_TAG:0:1} == "v" ]]; then
               KARABO_VERSION="${KARABO_TAG:1}"
             else
