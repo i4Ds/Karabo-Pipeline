@@ -60,6 +60,7 @@ jobs:
           then
             echo "Conda build from release"
             apt-get update && apt-get install -y git
+            git config --global safe.directory '*'
             KARABO_TAG=$(git describe --tags --abbrev=0)
             build="0"
             if [[ ${KARABO_TAG:0:1} == "v" ]]; then
