@@ -65,6 +65,9 @@ requirements:
     - conda-forge::fftw       =*=mpi_mpich*
     # exclude buggy versions of other tools
     - setuptools              !=71.0.0, !=71.0.1, !=71.0.2  # buggy with `importlib_metadata`
+    # for MWA measurement set, uvfits, hdf5, mir support (choc-234)
+    # pinnned to 2.4.1 because later versions use an astropy that needs numpy 2
+    - pyuvdata[casa]          <=2.4.1
 
 test:
   imports:

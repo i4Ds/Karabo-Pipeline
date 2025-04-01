@@ -12,12 +12,14 @@ from karabo.util.file_handler import FileHandler
 
 # If you add a new format, a corresponding path validator function needs to be added
 # to _VISIBILITY_FORMAT_VALIDATORS.
-VisibilityFormat = Literal["MS", "OSKAR_VIS"]
+VisibilityFormat = Literal["MS", "OSKAR_VIS", "UVFITS"]
 _VISIBILITY_FORMAT_VALIDATORS: Final[
     Dict[VisibilityFormat, Callable[[Union[DirPathType, FilePathType]], bool]]
 ] = {
     "MS": lambda path: str(path).lower().endswith(".ms"),
     "OSKAR_VIS": lambda path: str(path).lower().endswith(".vis"),
+    "UVFITS": lambda path: (lower := str(path).lower()).endswith(".uvfits")
+    or lower.endswith(".uvf"),
 }
 assert len(get_args(VisibilityFormat)) == len(_VISIBILITY_FORMAT_VALIDATORS)
 assert all(f in _VISIBILITY_FORMAT_VALIDATORS for f in get_args(VisibilityFormat))

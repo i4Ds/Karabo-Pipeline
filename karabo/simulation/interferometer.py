@@ -317,6 +317,8 @@ class InterferometerSimulation:
                 visibility_path = os.path.join(tmp_dir, "measurements.MS")
             elif visibility_format == "OSKAR_VIS":
                 visibility_path = os.path.join(tmp_dir, "visibility.vis")
+            elif visibility_format == "UVFITS":
+                raise KaraboInterferometerSimulationError("unexpected uvfits")
             else:
                 assert_never(visibility_format)
         else:
@@ -346,6 +348,8 @@ class InterferometerSimulation:
                 visibilities_root_dir = os.path.join(tmp_dir, "measurements")
             elif visibility_format == "OSKAR_VIS":
                 visibilities_root_dir = os.path.join(tmp_dir, "visibilities")
+            elif visibility_format == "UVFITS":
+                raise KaraboInterferometerSimulationError("unexpected uvfits")
             else:
                 assert_never(visibility_format)
         os.makedirs(visibilities_root_dir, exist_ok=True)
@@ -639,6 +643,8 @@ class InterferometerSimulation:
         elif visibility_format == "OSKAR_VIS":
             ending = "vis"
             filename_key = "oskar_vis_filename"
+        elif visibility_format == "UVFITS":
+            raise KaraboInterferometerSimulationError("unexpected uvfits")
         else:
             assert_never(visibility_format)
 
@@ -697,6 +703,8 @@ class InterferometerSimulation:
             filename_key = "ms_filename"
         elif visibility_format == "OSKAR_VIS":
             filename_key = "oskar_vis_filename"
+        elif visibility_format == "UVFITS":
+            raise KaraboInterferometerSimulationError("unexpected uvfits")
         else:
             assert_never(visibility_format)
         interferometer_params = self.__get_OSKAR_settings_tree(
