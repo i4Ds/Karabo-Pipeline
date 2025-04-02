@@ -495,10 +495,6 @@ class ObsCoreMeta:
 
         Returns:
             `ObsCoreMeta` instance.
-
-        Updated 2025-04-01:
-            - em_min is now less than em_max
-            - t_xel is now the number of unique time-steps, not the number of rows
         """
         ocm = cls(dataproduct_type="visibility")
         vis_inode = vis.path
