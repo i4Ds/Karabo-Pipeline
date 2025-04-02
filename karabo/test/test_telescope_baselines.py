@@ -132,7 +132,7 @@ def test_telescope_max_baseline_length(
 
     freq_Hz = 100e6
     angular_res: float = Telescope.ang_res(freq_Hz, max_length_oskar)
-    assert math.isclose(angular_res, 1.44, rel_tol=1e-2)
+    assert math.isclose(angular_res, 82.44, rel_tol=1e-2)
 
 
 def test_telescope_stations(oskar_telescope: Telescope, rascil_telescope: Telescope):

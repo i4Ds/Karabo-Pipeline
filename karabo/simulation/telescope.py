@@ -937,6 +937,6 @@ but was not provided. Please provide a value for the version field."
         Returns:
             Angular resolution in arcsec.
         """
-        ang_res = (const.c.value / freq) / b * u.deg
+        ang_res = (const.c.value / freq) / b * u.rad
         ang_res_arcsec: float = ang_res.to(u.arcsec).value
         return ang_res_arcsec
