@@ -153,13 +153,8 @@ class TestObsCoreMeta:
         assert ocm.em_min is not None and ocm.em_min > 0.0
         assert ocm.em_max is not None and ocm.em_max > 0.0
         assert ocm.em_max > ocm.em_min
-        if visibility.format == "OSKAR_VIS":
-            # there's an issue with minimal_casa_ms
-            # > tb.open('test_minimal_casa.ms/SPECTRAL_WINDOW')
-            # > tb.getcol('CHAN_FREQ')
-            # array([[7.600e+07],[1.760e+08],...[1.476e+09],[1.576e+09]])
-            assert ocm.em_min == exp_em_min
-            assert ocm.em_max == exp_em_max
+        assert ocm.em_min == exp_em_min
+        assert ocm.em_max == exp_em_max
         assert ocm.em_xel is not None and ocm.em_xel == exp_nfreqs
         assert ocm.access_estsize is not None and ocm.access_estsize > 0.0
         assert ocm.em_ucd is not None
