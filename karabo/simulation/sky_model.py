@@ -2155,6 +2155,31 @@ class SkyModel:
 
         return sky
 
+    @classmethod
+    def sky_test_LE(cls: Type[_TSkyModel]) -> _TSkyModel:
+        """
+        Construction of a sky model which can be used for testing and visualizing the
+        line emission simulation with equal distributed point sources around the phase
+        center ra=20, deg=-30. With redshift values randomly distributed between 0.8
+        and 1.0.
+
+        Returns:
+             SkyModel: The test sky model for a line emission simulation.
+        """
+        sky = cls()
+        sky_data = np.zeros((81, cls.SOURCES_COLS))
+        a = np.arange(-32, -27.5, 0.5)
+        b = np.arange(18, 22.5, 0.5)
+        dec_arr, ra_arr = np.meshgrid(a, b)
+        sky_data[:, 0] = ra_arr.flatten()
+        sky_data[:, 1] = dec_arr.flatten()
+        sky_data[:, 2] = 1
+        sky_data[:, 13] = np.random.uniform(low=0.8, high=1.0, size=(81,))
+
+        sky.add_point_sources(sky_data)
+
+        return sky
+
     @overload
     def convert_to_backend(
         self,
