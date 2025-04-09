@@ -47,15 +47,24 @@ spec:
               value: "/~"
             - name: OBS_COLLECTION
               value: "SKAO/SKAMID"
-            - name: OBS_ID # observation-id must be unique
+            - name: OBS_ID # observation-id MUST BE UNIQUE
               value: "001_SKAMID_Karabo"
-            - name: FILE_PREFIX # to name output-data-product(s) differently for each run
+            - name: FILE_PREFIX # name output-data-product(s) differently for each run
               value: "001-SKAMID-Karabo"
             - name: OUT_DIR # ingestor-dir
               value: "/tmp/ingest/staging/testing" # /tmp/ingest/staging/<namespace>
           volumeMounts:
             - name: ingest-area
               mountPath: /tmp/ingest
+          resources: # should be specified accordingly for data-products not needed (see README)
+            requests:
+              cpu: "4"
+              memory: "32Gi"
+              ephemeral-storage: "2Ti"
+            limits:
+              cpu: "8"
+              memory: "64Gi"
+              ephemeral-storage: "4Ti"
       volumes:
         - name: ingest-area
           persistentVolumeClaim:
