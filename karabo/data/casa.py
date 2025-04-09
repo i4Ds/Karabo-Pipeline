@@ -260,6 +260,7 @@ class MSMainTable(_CasaTableABC):
         or directly from casacore to avoid eager loading.
 
     Args:
+        data: Complex visibilities (nRows, nChannels, nPolarizations).
         time: Mid-point (not centroid) of data interval [s].
         antenna1: First antenna (index to sub-table).
         antenna2: Second antenna (index to sub-table).
@@ -289,6 +290,7 @@ class MSMainTable(_CasaTableABC):
             the recorded data.
     """
 
+    data: NDArray[np.complex64]
     time: NDArray[np.float64]
     antenna1: NDArray[np.int32]
     antenna2: NDArray[np.int32]
@@ -317,6 +319,10 @@ class MSMainTable(_CasaTableABC):
     ) -> MS_VERSION:
         """Gets the CASA MS version of `ms_path`.
 
+        Supported versions:
+            - MSv2
+            - MSv4 (to be tested)
+
         Args:
             ms_path: Measurement set path.
 
@@ -327,7 +333,7 @@ class MSMainTable(_CasaTableABC):
         ct = cls._get_casa_table_instance(ms_path=ms_path)
         version: MS_VERSION = str(  # type: ignore[assignment]
             ct.getkeyword("MS_VERSION")
-        )  # noqa: E501
+        )
         return version
 
 
@@ -388,13 +394,11 @@ class MSPolarizationTable(_CasaTableABC):
 
     @overload
     @classmethod
-    def get_stokes_type(cls, corr_type: List[int]) -> List[str]:
-        ...
+    def get_stokes_type(cls, corr_type: List[int]) -> List[str]: ...
 
     @overload
     @classmethod
-    def get_stokes_type(cls, corr_type: int) -> str:
-        ...
+    def get_stokes_type(cls, corr_type: int) -> str: ...
 
     @classmethod
     def get_stokes_type(cls, corr_type: Union[int, List[int]]) -> Union[str, List[str]]:
