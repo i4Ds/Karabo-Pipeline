@@ -4,15 +4,13 @@
 # Images: dirty image and cleaned image using WSClean.
 # These are MFS images (frequency channels aggregated into one channel),
 # not full image cubes.
-#
-# Size of generated data with default settings should be around 3 TB:
-# - 1.5 TB visibilities (before image cleaning)
-# - 3 TB visibilities (after image cleaning)
-# - 12 GB images
+
 import math
 import os
+from argparse import ArgumentParser
 from datetime import datetime, timedelta
-from typing import cast
+from tempfile import TemporaryDirectory
+from typing import Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -39,31 +37,27 @@ from karabo.util.helpers import Environment
 
 # Simulation
 # Phase center: Must be inside coverage region of selected sky
-SKY_MODEL = Environment.get("SKY_MODEL", str, "MIGHTEE_L1")
-PHASE_CENTER_RA_DEG = Environment.get("PHASE_CENTER_RA_DEG", float, 150.12)
-PHASE_CENTER_DEC_DEG = Environment.get("PHASE_CENTER_DEC_DEG", float, 2.21)
-START_FREQ_HZ = Environment.get("START_FREQ_HZ", float, 1.304e9)
-END_FREQ_HZ = Environment.get("END_FREQ_HZ", float, 1.375e9)
-FREQ_INC_HZ = Environment.get("FREQ_INC_HZ", float, 26123.0)
-OBS_LENGTH_HOURS = Environment.get("OBS_LENGTH_HOURS", float, 4.0)
-# Original survey: 3593 dumps => Size: 6668.534 GB
-# Observation time: 8 h
+SKY_MODEL = Environment.get("SKY_MODEL", str)  # "MIGHTEE_L1"
+PHASE_CENTER_RA_DEG = Environment.get("PHASE_CENTER_RA_DEG", float)  # 150.12
+PHASE_CENTER_DEC_DEG = Environment.get("PHASE_CENTER_DEC_DEG", float)  # 2.21
+START_FREQ_HZ = Environment.get("START_FREQ_HZ", float)  # 1.304e9
+END_FREQ_HZ = Environment.get("END_FREQ_HZ", float)  # 1.375e9
+FREQ_INC_HZ = Environment.get("FREQ_INC_HZ", float)  # 26123.0
+OBS_LENGTH_HOURS = Environment.get("OBS_LENGTH_HOURS", float)  # 4.0
+# Original MIGHTEE_L1 survey: 3593 dumps => Size: 6668.534 GB
 # SKA operations: 4 h blocks of cleaned data from SDP to SRCNet
-NUM_TIME_STAMPS = Environment.get("NUM_TIME_STAMPS", int, 1800)
+NUM_TIME_STAMPS = Environment.get("NUM_TIME_STAMPS", int)  # 1800
 # During the chosen time range [start, start + length]
 # sources shouldn't be behind horizon for obs-duration for
 #   chosen sky, telescope & phase-center
 # E.g. MIGHTEE-survey: 2020-04-26 14:36:50.820 UTC to 2020-04-26 22:35:42.665 UTC
-START_DATE_AND_TIME = Environment.get(  # UTC
-    "START_DATE_AND_TIME", str, "04.26.2020T16:36"
-)
+START_DATE_AND_TIME = Environment.get(
+    "START_DATE_AND_TIME", str
+)  # UTC "04.26.2020T16:36"
 
-# Wavelength at e.g. 1340 MHz = 0.22372571 m
 # MeerKAT dish diameter = 13.5 m
 # SKA-Mid dish diameter = 15 m
 # AA*: 64*13.5 m + 80*15 m
-# 1.25 factor according to SKAO's yitl_observatory_data_rates.ipynb
-# fov-deg = Beam Width (FWHM) = 1.25 * 0.22372571 m / 15 m * 180/pi
 ref_freq_hz = (START_FREQ_HZ + END_FREQ_HZ) / 2
 wavelength_m = cast(float, constants.c.value / ref_freq_hz)
 fov_rad = 1.25 * wavelength_m / 15
@@ -71,8 +65,7 @@ fov_rad = 1.25 * wavelength_m / 15
 # Imaging
 # Image size in degrees should be smaller than FOV
 # Bigger baseline -> higher resolution
-# Image resolution from SKAO's generate_visibilities.ipynb
-IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int, 20000)
+IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int)  # 20000
 # None calculates cellsize automatically
 IMAGING_CELLSIZE = Environment.get("IMAGING_CELLSIZE", float, None)
 if IMAGING_CELLSIZE is None:
@@ -80,26 +73,26 @@ if IMAGING_CELLSIZE is None:
     print(f"Calculated {IMAGING_CELLSIZE=}")
 
 # Rucio metadata
-RUCIO_NAMESPACE = Environment.get("RUCIO_NAMESPACE", str, "testing")
-RUCIO_LIFETIME = Environment.get("RUCIO_LIFETIME", int, 31536000)  # [s]
+RUCIO_NAMESPACE = Environment.get("RUCIO_NAMESPACE", str)  # "testing"
+RUCIO_LIFETIME = Environment.get("RUCIO_LIFETIME", int)  # 31536000 [s]
 
 # ObsCore metadata
-IVOID_AUTHORITY = Environment.get("IVOID_AUTHORITY", str, "test.skao")
+IVOID_AUTHORITY = Environment.get("IVOID_AUTHORITY", str)  # "test.skao"
 IVOID_PATH = Environment.get("IVOID_PATH", str, "/~")
 OBS_COLLECTION = Environment.get("OBS_COLLECTION", str, "SKAO/SKAMID")
 OBS_ID = Environment.get("OBS_ID", str)  # provider unique observation-id
 
 # files & dirs
 FILE_PREFIX = Environment.get("FILE_PREFIX", str, "")  # for each file
-OUT_DIR = Environment.get("OUT_DIR", str, OBS_ID)
-if OUT_DIR == OBS_ID and "/" in OBS_ID:
-    err_msg = f"{OBS_ID=} is used as `OUT_DIR` (default), but `OBS_ID` contains `/`."
-    raise ValueError(err_msg)
-os.makedirs(OUT_DIR, exist_ok=False)
-print(f"Write output in {os.path.abspath(OUT_DIR)} ...")
+OUT_DIR = Environment.get(
+    "OUT_DIR", str
+)  # ingestion-dir (don't create because it's persistent mounted volume)
+if not os.path.exists(OUT_DIR):
+    err_msg = f"f{OUT_DIR=} (ingestor-dir) doesn't exist!"
+    raise FileNotFoundError(err_msg)
 
 
-def generate_visibilities() -> Visibility:
+def generate_visibilities(outdir: str) -> Visibility:
     simulator_backend = SimulatorBackend.OSKAR
 
     if SKY_MODEL == "MIGHTEE_L1":
@@ -156,8 +149,8 @@ def generate_visibilities() -> Visibility:
         observation,
         backend=simulator_backend,
         visibility_path=os.path.join(
-            OUT_DIR,
-            f"{FILE_PREFIX}measurements.MS",
+            outdir,
+            f"{FILE_PREFIX}measurements.ms",
         ),
     )  # type: ignore[call-overload]
 
@@ -192,7 +185,7 @@ def create_visibilities_metadata(visibility: Visibility) -> None:
     print(f"Created {path_meta=}")
 
 
-def create_dirty_image(visibility: Visibility) -> Image:
+def create_dirty_image(visibility: Visibility, outdir: str) -> Image:
     dirty_imager = WscleanDirtyImager(
         DirtyImagerConfig(
             imaging_npixel=IMAGING_NPIXEL,
@@ -204,7 +197,7 @@ def create_dirty_image(visibility: Visibility) -> Image:
     return dirty_imager.create_dirty_image(
         visibility,
         output_fits_path=os.path.join(
-            OUT_DIR,
+            outdir,
             f"{FILE_PREFIX}dirty.fits",
         ),
     )
@@ -257,32 +250,61 @@ def create_image_metadata(image: Image) -> None:
 
     path_meta = RucioMeta.get_meta_fname(fname=image.path)
     _ = rm.to_dict(fpath=path_meta)
-    print(f"Created {path_meta=}")
 
 
 def create_access_url(namespace: str, name: str) -> str:
     return f"https://datalink.ivoa.srcdev.skao.int/rucio/links?id={namespace}:{name}"
 
 
+def parse_input() -> Tuple[bool, bool, bool]:
+    parser = ArgumentParser(
+        prog="SRCNet AAStar simulation",
+        description="Produces visibility and images from simulation.",
+    )
+    parser.add_argument("--vis", "--visibility", "--visibilities", action="store_true")
+    parser.add_argument("--clean", "--cleaned", action="store_true")
+    parser.add_argument("--dirty", action="store_true")
+    args = parser.parse_args()
+    vis = args.vis
+    clean = args.clean
+    dirty = args.dirty
+    return vis, dirty, clean
+
+
+def main() -> None:
+    vis, dirty, clean = parse_input()
+    if not vis and not dirty and not clean:
+        err_msg = "No data-product to create selected!"
+        raise RuntimeError(err_msg)
+    print(f"Producing: visibilities={vis}, dirty-img={dirty}, cleaned-img={clean}")
+
+    with TemporaryDirectory() as tmpdir:
+        print(f"{datetime.now()} Starting simulation")
+        vis_out_dir = OUT_DIR if vis else tmpdir
+        visibility = generate_visibilities(outdir=vis_out_dir)
+
+        if vis:
+            print(f"{datetime.now()} Creating visibility metadata")
+            create_visibilities_metadata(visibility)
+
+        if dirty or clean:
+            print(f"{datetime.now()} Creating dirty image")
+            dirty_out_dir = OUT_DIR if dirty else tmpdir
+            dirty_image = create_dirty_image(visibility, outdir=dirty_out_dir)
+
+            if dirty:
+                print(f"{datetime.now()} Creating dirty image metadata")
+                create_image_metadata(dirty_image)
+
+            if clean:
+                print(f"{datetime.now()} Creating cleaned image")
+                cleaned_image = create_cleaned_image(visibility, dirty_image)
+
+                print(f"{datetime.now()} Creating cleaned image metadata")
+                create_image_metadata(cleaned_image)
+
+        print(f"{datetime.now()} Simulation workflow finished")
+
+
 if __name__ == "__main__":
-    print(f"{datetime.now()} Script started")
-
-    print(f"{datetime.now()} Starting simulation")
-    visibility = generate_visibilities()
-
-    print(f"{datetime.now()} Creating visibility metadata")
-    create_visibilities_metadata(visibility)
-
-    print(f"{datetime.now()} Creating dirty image")
-    dirty_image = create_dirty_image(visibility)
-
-    print(f"{datetime.now()} Creating dirty image metadata")
-    create_image_metadata(dirty_image)
-
-    print(f"{datetime.now()} Creating cleaned image")
-    cleaned_image = create_cleaned_image(visibility, dirty_image)
-
-    print(f"{datetime.now()} Creating cleaned image metadata")
-    create_image_metadata(cleaned_image)
-
-    print(f"{datetime.now()} Script finished")
+    main()

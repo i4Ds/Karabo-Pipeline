@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: karabo-simulation
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: karabo-job
+          image: ghcr.io/i4ds/karabo-pipeline:latest # requires karabo >= 0.33.2
+          command: [
+              "python",
+              "-m",
+              "karabo.workflows.SRCNet_AAstar --dirty --cleaned", # specify which data-products to put into `OUT_DIR`
+            ]
+          env:
+            - name: SKY_MODEL
+              value: "MIGHTEE_L1"
+            - name: PHASE_CENTER_RA_DEG
+              value: "150.12"
+            - name: PHASE_CENTER_DEC_DEG
+              value: "2.21"
+            - name: START_FREQ_HZ
+              value: "1.304e9"
+            - name: END_FREQ_HZ
+              value: "1.375e9"
+            - name: FREQ_INC_HZ
+              value: "26123.0"
+            - name: OBS_LENGTH_HOURS
+              value: "4.0"
+            - name: NUM_TIME_STAMPS
+              value: "1800"
+            - name: START_DATE_AND_TIME
+              value: "04.26.2020T16:36"
+            - name: IMAGING_NPIXEL
+              value: "20000"
+            - name: IMAGING_CELLSIZE # None does automatically calculate cellsize from FOV
+              value: "None"
+            - name: RUCIO_NAMESPACE # has to match `OUT_DIR` namespace
+              value: "testing"
+            - name: RUCIO_LIFETIME # [s]
+              value: "31536000"
+            - name: IVOID_AUTHORITY
+              value: "test.skao"
+            - name: IVOID_PATH
+              value: "/~"
+            - name: OBS_COLLECTION
+              value: "SKAO/SKAMID"
+            - name: OBS_ID # observation-id must be unique
+              value: "001_SKAMID_Karabo"
+            - name: FILE_PREFIX # to name output-data-product(s) differently for each run
+              value: "001-SKAMID-Karabo"
+            - name: OUT_DIR # ingestor-dir
+              value: "/tmp/ingest/staging/testing" # /tmp/ingest/staging/<namespace>
+          volumeMounts:
+            - name: ingest-area
+              mountPath: /tmp/ingest
+      volumes:
+        - name: ingest-area
+          persistentVolumeClaim:
+            claimName: ingest-area # see ingestor helm-chart `core-deployment.yaml`
+      affinity: # nodeAffinity if needed
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: "hpc"
+                    operator: "In"
+                    values:
+                      - "true"
+      tolerations: # tolerations for taint if needed
+        - key: "hpc"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+        - key: "hpc"
+          operator: "Equal"
+          value: "true"
+          effect: "NoExecute"

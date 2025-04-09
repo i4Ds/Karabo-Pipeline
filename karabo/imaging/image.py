@@ -52,8 +52,7 @@ class Image:
         data: Literal[None] = None,
         header: Literal[None] = None,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -63,8 +62,7 @@ class Image:
         data: NDArray[np.float_],
         header: Header,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -271,8 +269,9 @@ class Image:
             for j, pixels in enumerate(frequency_image):
                 self.data[i][j] = circle_pixels(pixels)
 
-    @staticmethod
+    @classmethod
     def update_header_from_image_header(
+        cls,
         new_header: Header,
         old_header: Header,
         keys_to_copy: Optional[List[str]] = None,
