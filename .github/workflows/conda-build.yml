@@ -13,6 +13,10 @@ on:
         type: string
         required: true
         description: "version: PEP440 package-version (DON'T trigger build if you don't know what PEP440 is)"
+      python-version:
+        type: string
+        required: true
+        description: "Python version to test"
       buildDocker:
         type: boolean
         required: false
@@ -116,10 +120,21 @@ jobs:
           conda activate base
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
   
-  test-build:
+  test-build-39:
     needs: conda-build
     uses: ./.github/workflows/test-user-package.yml
     with:
+      python-version: "3.9" 
       version: ${{ needs.conda-build.outputs.karabo-version }}
       buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
       latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
+
+  test-build-310:
+    needs: conda-build
+    uses: ./.github/workflows/test-user-package.yml
+    with:
+      python-version: "3.10" 
+      version: ${{ needs.conda-build.outputs.karabo-version }}
+      buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
+      latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
+

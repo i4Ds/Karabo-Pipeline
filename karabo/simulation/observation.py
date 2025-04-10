@@ -243,7 +243,7 @@ class ObservationAbstract(ABC):
         if self.number_of_time_steps == 1:
             # If both times are the same, we create one observation
             # at hour angle = 0 that lasts integration_time seconds
-            hour_angles = np.array([0])
+            hour_angles = np.array([0]) # hour_angles = np.array([0], dtype=np.float64)
         else:
             hour_angles = np.arange(
                 int(-0.5 * total_observation_length.total_seconds()),

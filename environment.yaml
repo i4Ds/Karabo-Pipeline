@@ -9,7 +9,7 @@ dependencies:
 # Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
 # 
 # IMPORTANT: If you add or remove dependencies, make sure to adjust conda/meta.yaml as well.
-  - python                  =3.9
+  - python                  >=3.9,<3.11
   - aratmospy               =1.0.0
   - astropy
   - bdsf                    =1.10.2
@@ -31,7 +31,7 @@ dependencies:
   - nbformat
   - nbconvert
   - numpy                   >=1.21, !=1.24.0, <2.0  # upper-bounded because see issue #584
-  - oskarpy                 =2.8.3
+  #- oskarpy                 =2.8.3
   - pandas
   - psutil
   - rascil                  =1.0.0

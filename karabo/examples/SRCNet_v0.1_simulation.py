@@ -92,3 +92,4 @@ if __name__ == "__main__":
         )
     )
     dirty = dirty_imager.create_dirty_image(visibility)
+
