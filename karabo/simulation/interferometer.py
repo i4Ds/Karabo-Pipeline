@@ -553,13 +553,14 @@ class InterferometerSimulation:
         frequency_bandwidths = np.full(
             frequency_channel_starts.shape, observation.frequency_increment_hz
         )
-        frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
+        # frequency_channel_centers =
+        # frequency_channel_starts + frequency_bandwidths / 2
 
         # Initialize empty visibilities based on observation details
         vis = create_visibility(
             telescope.RASCIL_configuration,  # Configuration of the interferometer array
             times=observation_hour_angles,  # Hour angles
-            frequency=frequency_channel_centers,  # Center channel frequencies in Hz
+            frequency=frequency_channel_starts,  # Center channel frequencies in Hz
             channel_bandwidth=frequency_bandwidths,
             phasecentre=SkyCoord(
                 observation.phase_centre_ra_deg,
