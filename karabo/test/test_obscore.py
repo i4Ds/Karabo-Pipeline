@@ -7,9 +7,9 @@ from typing import Any
 
 import numpy as np
 import pytest
+from astropy import constants as const
 from astropy import units as u
 from astropy.time import Time
-from astropy import constants as const
 from pytest import FixtureRequest
 from rfc3986.exceptions import InvalidComponentsError
 
@@ -162,11 +162,23 @@ class TestObsCoreMeta:
         assert ocm.calib_level == 1  # because `calibrated` flag set to False
         assert ocm.instrument_name is not None
         assert ocm.s_resolution is not None and ocm.s_resolution > 0.0
-        assert ocm.em_res_power is not None and ocm.em_res_power > 1.0 # λ/δλ>1
+        assert ocm.em_res_power is not None and ocm.em_res_power > 1.0  # λ/δλ>1
 
         allowed_pols = [
-            "I", "Q", "U", "V", "RR", "LL", "RL", "LR", "XX", "YY", "XY", "YX",
-            "POLI", "POLA"
+            "I",
+            "Q",
+            "U",
+            "V",
+            "RR",
+            "LL",
+            "RL",
+            "LR",
+            "XX",
+            "YY",
+            "XY",
+            "YX",
+            "POLI",
+            "POLA",
         ]
         if visibility.format != "OSKAR_VIS":
             assert ocm.pol_xel is not None and ocm.pol_xel > 0

@@ -3,11 +3,10 @@ import pathlib as pl
 import tempfile
 from unittest import mock
 
-
-import pytest
-from ska_sdp_datamodels.configuration.config_model import Configuration
-from astropy import constants as const
 import numpy as np
+import pytest
+from astropy import constants as const
+from ska_sdp_datamodels.configuration.config_model import Configuration
 
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.telescope_versions import (
@@ -243,14 +242,17 @@ def test_plot_invalid_backend(mock_logging_warning):
     tel.plot_telescope()
     assert mock_logging_warning.call_count == 1
 
+
 def test_ang_res():
     """
     At 1m wavelength, a 1km baseline resolves 1/1000rad => 206asec
     """
-    wavelength = 1 # 1m
-    freq = (const.c.value / wavelength)
-    b = 1000 # 1km
+    wavelength = 1  # 1m
+    freq = const.c.value / wavelength
+    b = 1000  # 1km
     exp_ang_res_radians = wavelength / b
     exp_ang_res_arcsec = (exp_ang_res_radians * 180 * 3600) / np.pi
     ang_res_arcsec = Telescope.ang_res(freq, b)
-    assert np.isclose(ang_res_arcsec, exp_ang_res_arcsec, rtol=1e-5), f"Expected {exp_ang_res_arcsec}, got {ang_res_arcsec}"
+    assert np.isclose(
+        ang_res_arcsec, exp_ang_res_arcsec, rtol=1e-5
+    ), f"Expected {exp_ang_res_arcsec}, got {ang_res_arcsec}"

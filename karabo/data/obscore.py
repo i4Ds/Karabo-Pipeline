@@ -542,11 +542,11 @@ class ObsCoreMeta:
                     nrow=300000000,  # to avoid memory & time issues, should be repres
                 )
             )
-            ocm.t_xel = len(np.unique(MSMainTable.get_col(
-                ms_path=vis_inode,
-                col="TIME",
-                nrow=300000000
-            )))
+            ocm.t_xel = len(
+                np.unique(
+                    MSMainTable.get_col(ms_path=vis_inode, col="TIME", nrow=300000000)
+                )
+            )
             spectral_window = ms_meta.spectral_window
             # wavelength = c/f, min is the highest frequency, max is the lowest
             ocm.em_max = c / np.min(
