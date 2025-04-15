@@ -15,13 +15,16 @@ A large simulation can take several hours or days (also depending if GPU is avai
 
 ## Setup
 
+Setup oidc-client-secret via `data-ingestor/secrets.yaml` before doing helm installation. This may require according vault-setup first. Then check if it exists `kubectl get secret -n datalake-ingestion`.
+
 ### Install Ingestor via Helm
+
 ```bash
 helm repo add ska-src-dm-di-ingestor https://gitlab.com/api/v4/projects/51600992/packages/helm/stable
 helm repo update
 helm install ingestor ska-src-dm-di-ingestor/ska-src-dm-di-ingestor \
   --version 0.1.1 \
   --namespace datalake-ingestion \
-  --create-namespace \
+  --create-namespace \  # skip in case your namespace should already exist with a specific configuration
   -f <path/to/your/values.yaml>  # update path to values.yaml
 ```

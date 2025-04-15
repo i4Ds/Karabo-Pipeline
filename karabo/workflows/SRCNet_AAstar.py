@@ -1,9 +1,13 @@
-# This script generates simulated visibilities and images resembling SKAO data.
-# It also outputs corresponding ObsCore metadata ready to be ingested to Rucio.
-#
-# Images: dirty image and cleaned image using WSClean.
-# These are MFS images (frequency channels aggregated into one channel),
-# not full image cubes.
+"""
+This script generates simulated visibilities and images resembling SKAO data.
+It also outputs corresponding ObsCore metadata ready to be ingested to Rucio.
+
+Images: dirty image and cleaned image using WSClean.
+These are MFS images (frequency channels aggregated into one channel),
+not full image cubes.
+"""
+# DON'T DO ANY API BREAKING CHANGES WITHOUT A GOOD REASON! There my be some folks
+# relying on the stability of argparse and environment variable interface.
 
 import math
 import os
@@ -88,8 +92,9 @@ OUT_DIR = Environment.get(
     "OUT_DIR", str
 )  # ingestion-dir (don't create because it's persistent mounted volume)
 if not os.path.exists(OUT_DIR):
-    err_msg = f"f{OUT_DIR=} (ingestor-dir) doesn't exist!"
+    err_msg = f"f{OUT_DIR=} (ingestion-dir) doesn't exist!"
     raise FileNotFoundError(err_msg)
+ingestion_dir = os.path.join(OUT_DIR, RUCIO_NAMESPACE)
 
 
 def generate_visibilities(outdir: str) -> Visibility:
@@ -203,7 +208,9 @@ def create_dirty_image(visibility: Visibility, outdir: str) -> Image:
     )
 
 
-def create_cleaned_image(visibility: Visibility, dirty_image: Image) -> Image:
+def create_cleaned_image(
+    visibility: Visibility, dirty_image: Image, outdir: str
+) -> Image:
     image_cleaner = WscleanImageCleaner(
         WscleanImageCleanerConfig(
             imaging_npixel=IMAGING_NPIXEL,
@@ -215,7 +222,7 @@ def create_cleaned_image(visibility: Visibility, dirty_image: Image) -> Image:
         visibility,
         dirty_fits_path=dirty_image.path,
         output_fits_path=os.path.join(
-            OUT_DIR,
+            outdir,
             f"{FILE_PREFIX}cleaned.fits",
         ),
     )
@@ -280,7 +287,10 @@ def main() -> None:
 
     with TemporaryDirectory() as tmpdir:
         print(f"{datetime.now()} Starting simulation")
-        vis_out_dir = OUT_DIR if vis else tmpdir
+        os.makedirs(
+            ingestion_dir, exist_ok=True
+        )  # should be same UID in case of mounted dir (like ingestor-volume)
+        vis_out_dir = ingestion_dir if vis else tmpdir
         visibility = generate_visibilities(outdir=vis_out_dir)
 
         if vis:
@@ -289,7 +299,7 @@ def main() -> None:
 
         if dirty or clean:
             print(f"{datetime.now()} Creating dirty image")
-            dirty_out_dir = OUT_DIR if dirty else tmpdir
+            dirty_out_dir = ingestion_dir if dirty else tmpdir
             dirty_image = create_dirty_image(visibility, outdir=dirty_out_dir)
 
             if dirty:
@@ -298,7 +308,9 @@ def main() -> None:
 
             if clean:
                 print(f"{datetime.now()} Creating cleaned image")
-                cleaned_image = create_cleaned_image(visibility, dirty_image)
+                cleaned_image = create_cleaned_image(
+                    visibility, dirty_image, outdir=ingestion_dir
+                )
 
                 print(f"{datetime.now()} Creating cleaned image metadata")
                 create_image_metadata(cleaned_image)

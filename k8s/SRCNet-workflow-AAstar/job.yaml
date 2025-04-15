@@ -2,19 +2,20 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: karabo-simulation
+  namespace: datalake-ingestion
 spec:
   template:
     spec:
       restartPolicy: Never
       containers:
         - name: karabo-job
-          image: ghcr.io/i4ds/karabo-pipeline:latest # requires karabo >= 0.33.2
+          image: ghcr.io/i4ds/karabo-pipeline:latest # requires karabo >= 0.34.0
           command: [
               "python",
               "-m",
               "karabo.workflows.SRCNet_AAstar --dirty --cleaned", # specify which data-products to put into `OUT_DIR`
             ]
-          env:
+          env: # new simulation-values probably have a large influence on other values as well
             - name: SKY_MODEL
               value: "MIGHTEE_L1"
             - name: PHASE_CENTER_RA_DEG
@@ -37,7 +38,7 @@ spec:
               value: "20000"
             - name: IMAGING_CELLSIZE # None does automatically calculate cellsize from FOV
               value: "None"
-            - name: RUCIO_NAMESPACE # has to match `OUT_DIR` namespace
+            - name: RUCIO_NAMESPACE # has to exist in rucio
               value: "testing"
             - name: RUCIO_LIFETIME # [s]
               value: "31536000"
@@ -51,8 +52,8 @@ spec:
               value: "001_SKAMID_Karabo"
             - name: FILE_PREFIX # name output-data-product(s) differently for each run
               value: "001-SKAMID-Karabo"
-            - name: OUT_DIR # ingestor-dir
-              value: "/tmp/ingest/staging/testing" # /tmp/ingest/staging/<namespace>
+            - name: OUT_DIR # ingestion-dir
+              value: "/tmp/ingest/staging" # don't add <RUCIO_NAMESPACE> because it will get appended
           volumeMounts:
             - name: ingest-area
               mountPath: /tmp/ingest
