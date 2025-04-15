@@ -7,7 +7,9 @@ from typing import Any
 
 import numpy as np
 import pytest
+from astropy import constants as const
 from astropy import units as u
+from astropy.time import Time
 from pytest import FixtureRequest
 from rfc3986.exceptions import InvalidComponentsError
 
@@ -111,16 +113,22 @@ class TestObsCoreMeta:
         request: FixtureRequest,
     ) -> None:
         visibility: Visibility = request.getfixturevalue(vis_fixture_name)
+        exp_time_start, exp_ntimes = datetime(2024, 3, 15, 10, 46, 0), 24
+        exp_time_res = 600.0
+        exp_freq_start, exp_freq_res, exp_nfreqs = 100e6, 1e6, 16
+        exp_em_max = const.c.value / 99.5e6
+        exp_em_min = const.c.value / 115.5e6
+        exp_ra, exp_dec = 250.0, -80.0
         if visibility.format == "OSKAR_VIS":
             telescope = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
             observation = Observation(  # original settings for `minimal_oskar_vis`
-                start_frequency_hz=100e6,
-                start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-                phase_centre_ra_deg=250.0,
-                phase_centre_dec_deg=-80.0,
-                number_of_channels=16,
-                frequency_increment_hz=1e6,
-                number_of_time_steps=24,
+                start_frequency_hz=exp_freq_start,
+                start_date_and_time=exp_time_start,
+                phase_centre_ra_deg=exp_ra,
+                phase_centre_dec_deg=exp_dec,
+                number_of_channels=exp_nfreqs,
+                frequency_increment_hz=exp_freq_res,
+                number_of_time_steps=exp_ntimes,
             )
         else:
             telescope = None
@@ -132,29 +140,57 @@ class TestObsCoreMeta:
             obs=observation,
         )
         assert ocm.dataproduct_type == "visibility"
-        assert ocm.s_ra is not None and np.allclose(ocm.s_ra, 250.0)
-        assert ocm.s_dec is not None and np.allclose(ocm.s_dec, -80.0)
-        assert ocm.t_min is not None
+        assert ocm.s_ra is not None and np.allclose(ocm.s_ra, exp_ra)
+        assert ocm.s_dec is not None and np.allclose(ocm.s_dec, exp_dec)
+        assert ocm.t_min is not None and np.isclose(ocm.t_min, Time(exp_time_start).mjd)
         assert ocm.t_max is not None and ocm.t_max > ocm.t_min
         assert ocm.t_exptime is not None and ocm.t_exptime > 0.0
         assert ocm.t_resolution is not None and ocm.t_resolution > 0.0
-        assert ocm.t_xel is not None
+        assert ocm.t_exptime >= ocm.t_resolution
+        assert np.isclose(ocm.t_resolution, exp_time_res)
+        assert np.isclose(ocm.t_exptime, exp_ntimes * exp_time_res)
+        assert ocm.t_xel is not None and ocm.t_xel == exp_ntimes
         assert ocm.em_min is not None and ocm.em_min > 0.0
-        assert (
-            ocm.em_max is not None and ocm.em_max > 0.0 and ocm.em_max <= ocm.em_min
-        )  # <= because max-freq = min-wavelength
-        assert ocm.em_xel is not None and ocm.em_xel >= 1
+        assert ocm.em_max is not None and ocm.em_max > 0.0
+        assert ocm.em_max > ocm.em_min
+        assert ocm.em_min == exp_em_min
+        assert ocm.em_max == exp_em_max
+        assert ocm.em_xel is not None and ocm.em_xel == exp_nfreqs
         assert ocm.access_estsize is not None and ocm.access_estsize > 0.0
         assert ocm.em_ucd is not None
         assert ocm.o_ucd is not None
         assert ocm.calib_level == 1  # because `calibrated` flag set to False
         assert ocm.instrument_name is not None
         assert ocm.s_resolution is not None and ocm.s_resolution > 0.0
+        assert ocm.em_res_power is not None and ocm.em_res_power > 1.0  # λ/δλ>1
 
-        if visibility.format == "MS":
+        allowed_pols = [
+            "I",
+            "Q",
+            "U",
+            "V",
+            "RR",
+            "LL",
+            "RL",
+            "LR",
+            "XX",
+            "YY",
+            "XY",
+            "YX",
+            "POLI",
+            "POLA",
+        ]
+        if visibility.format != "OSKAR_VIS":
             assert ocm.pol_xel is not None and ocm.pol_xel > 0
             assert ocm.pol_states is not None and len(ocm.pol_states) > 0
+            assert ocm.pol_states.startswith("/")
+            assert ocm.pol_states.endswith("/")
+            pols = [*filter(None, ocm.pol_states.split("/"))]
+            assert len(pols) == ocm.pol_xel
+            for pol in pols:
+                assert pol in allowed_pols
 
+        # test serialization
         with tempfile.TemporaryDirectory() as tmpdir:
             meta_path = os.path.join(tmpdir, "obscore-vis.json")
             with pytest.warns(UserWarning):  # mandatory fields not set
