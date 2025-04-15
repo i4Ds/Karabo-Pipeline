@@ -542,12 +542,17 @@ class ObsCoreMeta:
                     nrow=300000000,  # to avoid memory & time issues, should be repres
                 )
             )
-            ocm.t_xel = MSMainTable.nrows(ms_path=vis_inode)
+            ocm.t_xel = len(
+                np.unique(
+                    MSMainTable.get_col(ms_path=vis_inode, col="TIME", nrow=300000000)
+                )
+            )
             spectral_window = ms_meta.spectral_window
-            ocm.em_min = c / np.min(
+            # wavelength = c/f, min is the highest frequency, max is the lowest
+            ocm.em_max = c / np.min(
                 spectral_window.chan_freq - spectral_window.chan_width / 2
             )
-            ocm.em_max = c / np.max(
+            ocm.em_min = c / np.max(
                 spectral_window.chan_freq + spectral_window.chan_width / 2
             )
             ocm.em_res_power = np.median(
@@ -590,22 +595,17 @@ class ObsCoreMeta:
             min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
             n_channels = header.num_channels_total
             max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
-            min_wavelength_m = c / min_freq_hz
-            ocm.em_min = min_wavelength_m
-            max_wavelength_m = c / max_freq_hz
+            # wavelength = c/f, min is the highest frequency, max is the lowest
+            max_wavelength_m = c / min_freq_hz
             ocm.em_max = max_wavelength_m
+            min_wavelength_m = c / max_freq_hz
+            ocm.em_min = min_wavelength_m
             if freq_inc_hz != 0:
                 midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
                 ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
             ocm.em_xel = n_channels
             if tel is not None and (tel_name := tel.name) is not None:
                 ocm.instrument_name = tel_name
-            if tel is not None and obs is not None:
-                freq_inc_hz = obs.frequency_increment_hz
-                min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
-                end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
-                b = float(tel.max_baseline())
-                ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
         else:
             assert_never(vis.format)
         ocm.access_estsize = int(getsize(inode=vis_inode) / 1e3)  # B -> KB
