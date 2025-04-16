@@ -1270,7 +1270,7 @@ class SkyModel:
         ax.grid()
         plt.axis("equal")
         if cbar_label is None:
-            cbar_label = ""
+            cbar_label = "flux log(Jy)"
         plt.colorbar(sc, label=cbar_label)
         if title is not None:
             plt.title(title)
