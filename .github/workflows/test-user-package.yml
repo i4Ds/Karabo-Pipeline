@@ -78,6 +78,7 @@ jobs:
     with:
       verstag: ${{ inputs.version }}
       latest: ${{ inputs.latestDocker }}
+      python-version: ${{ inputs.python-version }}
 
 
   

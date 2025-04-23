@@ -10,7 +10,9 @@ on:
         type: boolean
         required: false
         default: false
-
+      python-version:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       gitrev:
@@ -104,6 +106,7 @@ jobs:
             --build-arg GIT_REV=${{ env.gitrev }} \
             --build-arg BUILD=${{ env.build }} \
             --build-arg KARABO_VERSION=${{ env.version }} \
+            --build-arg PYTHON_VERSION=${{ inputs.python-version }} \
             -f Dockerfile \
             -t ${{ env.IMG_ADDR }}:${{ env.version }} \
             .
