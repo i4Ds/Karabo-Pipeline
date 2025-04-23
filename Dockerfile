@@ -1,18 +1,26 @@
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
-ARG GIT_REV="main" BUILD="user" KARABO_VERSION=""
+ARG GIT_REV="main"
+ARG BUILD="user"
+ARG KARABO_VERSION=""
+ARG PYTHON_VERSION="3.10"
+
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
+
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
+
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
+
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -y -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
-    conda create -y -n karabo
+    conda create -y -n karabo python=${PYTHON_VERSION}
+    
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN mkdir Karabo-Pipeline && \
