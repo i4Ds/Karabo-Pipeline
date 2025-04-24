@@ -112,7 +112,7 @@ jobs:
           echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
 
           conda config --append channels i4ds
-          conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels nvidia/label/cuda-12.8.1
           conda config --append channels conda-forge
 
           cd conda
