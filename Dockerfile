@@ -32,7 +32,9 @@ RUN mkdir Karabo-Pipeline && \
     if [ "$BUILD" = "user" ] ; then \
     conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
-    conda env update -f="environment.yaml"; \
+    #conda env update -f="environment.yaml"; \
+    conda install -y -n karabo mamba && \
+    mamba env update -n karabo -f="environment.yaml"; \
     pip install --no-deps "."; \
     else \
     exit 1; \
