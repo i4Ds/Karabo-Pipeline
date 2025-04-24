@@ -17,7 +17,9 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.0-3-L
     rm ~/miniconda.sh
 
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN conda install -y -n base conda-libmamba-solver mamba && \
+RUN conda config --add channels conda-forge && \
+    conda config --set channel_priority strict && \
+    conda install -y -n base conda-libmamba-solver mamba && \
     conda config --set solver libmamba && \
     conda create -y -n karabo python=${PYTHON_VERSION}
     
