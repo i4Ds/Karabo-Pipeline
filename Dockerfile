@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.8.1-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.3.2-cudnn8-devel-ubuntu22.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
 ARG GIT_REV="main"
 ARG BUILD="user"
@@ -11,7 +11,7 @@ ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
 
-    RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py${PYTHON_VERSION//./}_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
@@ -21,7 +21,7 @@ RUN conda config --add channels conda-forge && \
     conda config --set channel_priority strict && \
     conda install -y -n base conda-libmamba-solver mamba && \
     conda config --set solver libmamba && \
-    conda create -y -n karabo
+    conda create -y -n karabo python=${PYTHON_VERSION}
     
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
@@ -32,7 +32,7 @@ RUN mkdir Karabo-Pipeline && \
     git fetch && \
     git checkout ${GIT_REV} && \
     if [ "$BUILD" = "user" ] ; then \
-    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-12.8.1" karabo-pipeline="$KARABO_VERSION"; \
+    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-12.3.2" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     #conda env update -f="environment.yaml"; \
     mamba env update -n karabo -f environment.yaml; \
