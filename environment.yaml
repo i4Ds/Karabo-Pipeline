@@ -1,6 +1,6 @@
 channels:
   - i4ds
-  - nvidia/label/cuda-11.7.0
+  - nvidia/label/cuda-12.8.1
   - conda-forge
 dependencies:
 # Set dependencies and it's constraints in the package they belong. Otherwise you just cause chaos for future builds.
