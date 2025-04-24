@@ -29,6 +29,10 @@ on:
         required: false
         default: false
         description: "tag image as 'latest'?"
+      python-version:
+        type: string
+        required: true
+        description: "Python version to test"
       test:
         type: boolean
         required: false
