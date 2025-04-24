@@ -17,7 +17,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.0-3-L
     rm ~/miniconda.sh
 
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN conda install -y -n base conda-libmamba-solver && \
+RUN conda install -y -n base conda-libmamba-solver mamba && \
     conda config --set solver libmamba && \
     conda create -y -n karabo python=${PYTHON_VERSION}
     
@@ -33,7 +33,6 @@ RUN mkdir Karabo-Pipeline && \
     conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     #conda env update -f="environment.yaml"; \
-    conda install -y -n karabo mamba && \
     mamba env update -n karabo -f="environment.yaml"; \
     pip install --no-deps "."; \
     else \
