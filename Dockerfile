@@ -3,7 +3,7 @@ FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 ARG GIT_REV="main"
 ARG BUILD="user"
 ARG KARABO_VERSION=""
-ARG PYTHON_VERSION="3.10"
+#ARG PYTHON_VERSION="3.10"
 
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
 
@@ -21,7 +21,7 @@ RUN conda config --add channels conda-forge && \
     conda config --set channel_priority strict && \
     conda install -y -n base conda-libmamba-solver mamba && \
     conda config --set solver libmamba && \
-    conda create -y -n karabo python=${PYTHON_VERSION}
+    conda create -y -n karabo python=3.10
     
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
@@ -35,7 +35,7 @@ RUN mkdir Karabo-Pipeline && \
     conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     #conda env update -f="environment.yaml"; \
-    mamba env update -n karabo -f="environment.yaml"; \
+    mamba env update -n karabo -f environment.yaml; \
     pip install --no-deps "."; \
     else \
     exit 1; \
