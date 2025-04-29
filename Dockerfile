@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
 ARG GIT_REV="main"
 ARG BUILD="user"
@@ -32,7 +32,7 @@ RUN mkdir Karabo-Pipeline && \
     git fetch && \
     git checkout ${GIT_REV} && \
     if [ "$BUILD" = "user" ] ; then \
-    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-12.8.1" karabo-pipeline="$KARABO_VERSION"; \
+    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     #conda env update -f="environment.yaml"; \
     mamba env update -n karabo -f environment.yaml; \
