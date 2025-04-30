@@ -32,7 +32,7 @@ RUN mkdir Karabo-Pipeline && \
     conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     #conda env update -f="environment.yaml"; \
-    conda env update -f="environment.yaml" -c i4ds -c i4ds/label/dev -c conda-forge -c "nvidia/label/cuda-11.7.1"; \
+    conda env update -n karabo -f="environment.yaml" -c i4ds -c i4ds/label/dev -c conda-forge -c "nvidia/label/cuda-11.7.1"; \
     pip install --no-deps "."; \
     else \
     exit 1; \
