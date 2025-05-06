@@ -516,7 +516,26 @@ class ObsCoreMeta:
                 )
             elif pyuvdata_version <= "3.2.0":
                 read_kwargs["use_future_array_shapes"] = True
-            uvd.read(vis_inode, **read_kwargs)
+            try:
+                uvd.read(vis_inode, **read_kwargs)
+            except IndexError as e:
+                # there's an issue with the way pyuvdata 2.4.1 reads measurement
+                # set history. can't upgrade to a later version of pyuvdata that
+                # fixes this without a newer version of python, currently 3.9
+                warn(
+                    (
+                        f"Error reading {vis_inode} with pyuvdata version"
+                        f" {pyuvdata_version}: {e} - patching broken pyuvdata"
+                        " history check"
+                    ),
+                    category=UserWarning,
+                    stacklevel=2,
+                )
+                from pyuvdata.uvdata import ms
+
+                ms.MS._ms_hist_to_string = lambda *_: (pyuvdata_version, False)
+                uvd.read(vis_inode, **read_kwargs)
+
             if tel is not None or obs is not None:
                 wmsg = (
                     "Providing `tel` or `obs` in `ObsCoreMeta.from_visibility` for "
