@@ -14,12 +14,11 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Li
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -y -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
-    conda create -y -n karabo python=${PYTHON_VERSION} && \
-    conda install -n karabo -y -c conda-forge python=${PYTHON_VERSION} && \
-    conda env update -n karabo -f environment.yaml
+    conda create -y -n karabo python=${PYTHON_VERSION}
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
-RUN mkdir Karabo-Pipeline && \
+RUN conda install -n karabo -y -c conda-forge python=${PYTHON_VERSION} && \
+    mkdir Karabo-Pipeline && \
     cd Karabo-Pipeline && \
     git init && \
     git remote add origin https://github.com/i4Ds/Karabo-Pipeline.git && \
@@ -28,6 +27,7 @@ RUN mkdir Karabo-Pipeline && \
     if [ "$BUILD" = "user" ] ; then \
     conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
+    conda env update -n karabo -f environment.yaml && \
     pip install --no-deps "."; \
     else \
     exit 1; \
