@@ -1,6 +1,8 @@
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
-ARG GIT_REV="main" BUILD="user" KARABO_VERSION="" PYTHON_VERSION="3.10"
+ARG GIT_REV="main" BUILD="user" KARABO_VERSION=""
+ARG PYTHON_VERSION="3.10"
+ENV PYTHON_VERSION=${PYTHON_VERSION}
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
