@@ -66,8 +66,13 @@ requirements:
     # exclude buggy versions of other tools
     - setuptools              !=71.0.0, !=71.0.1, !=71.0.2  # buggy with `importlib_metadata`
     # for MWA measurement set, uvfits, hdf5, mir support (choc-234)
-    # pinnned to 2.4.1 because later versions use an astropy that needs numpy 2
-    - pyuvdata[casa]          <=2.4.1
+    # pinnned to 2.4.1 because:
+    # - 2.4.2 has a corrupt file in conda-forge
+    # - later versions use an astropy that needs numpy 2
+    - pyuvdata                <=2.4.1
+    # the following enables casacore in python. specifying the above dep as pyuvdata[casa] works in
+    # conda but mamba doesn't understand optional dep syntax
+    - python-casacore         <=3.7.1
 
 test:
   imports:
