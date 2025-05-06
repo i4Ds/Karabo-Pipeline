@@ -52,4 +52,3 @@ dependencies:
   # exclude buggy versions of other tools
   - setuptools              !=71.0.0, !=71.0.1, !=71.0.2  # buggy with `importlib_metadata
   - nest_asyncio
-`
