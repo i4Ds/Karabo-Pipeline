@@ -12,7 +12,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Li
     /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN conda install -y -n base conda-libmamba-solver mamba && \
+RUN conda install -y -n base -c conda-forge conda-libmamba-solver mamba && \
     conda config --set solver libmamba && \
     mamba  create -y -n karabo python=${PYTHON_VERSION}
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
