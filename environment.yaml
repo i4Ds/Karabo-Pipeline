@@ -39,7 +39,7 @@ dependencies:
   - reproject               >=0.9,<=10.0 # check here the python version compatibility
   - requests
   - rfc3986                 >=2.0.0
-  - scipy                   >=1.10.1,<1.14.0  # pin due to deprecated `integrate.trapz`; use `integrate.trapezoid` in >=1.14.0 
+  - scipy                   >=1.10.1  # pin due to deprecated `integrate.trapz`; use `integrate.trapezoid` in >=1.14.0 
   - ska-gridder-nifty-cuda  =0.3.dev0
   - ska-sdp-datamodels      =0.1.dev3
   - ska-sdp-func-python     =0.1.dev4
@@ -51,4 +51,4 @@ dependencies:
   - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel-prio & not take our legacy fftw-wheel
   # exclude buggy versions of other tools
   - setuptools              !=71.0.0, !=71.0.1, !=71.0.2  # buggy with `importlib_metadata
-  - nest_asyncio
+  - nest_asyncio >=1.5
