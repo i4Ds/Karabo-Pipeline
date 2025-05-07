@@ -230,6 +230,28 @@ def minimal_casa_ms() -> Visibility:
 
 
 @pytest.fixture(scope="session")
+def mwa_uvfits() -> Visibility:
+    vis_path = SingleFileDownloadObject(
+        remote_file_path="birli_1061312152_ants0-2_ch154_2s.uvfits",
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    ).get()
+    return Visibility(vis_path)
+
+
+@pytest.fixture(scope="session")
+def mwa_ms() -> Visibility:
+    vis_zip_path = SingleFileDownloadObject(
+        remote_file_path="birli_1061312152_ants0-2_ch154_2s.ms.zip",
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    ).get()
+    vis_path = vis_zip_path.strip(".zip")
+    if not os.path.exists(vis_path):
+        with zipfile.ZipFile(vis_zip_path, "r") as zip_ref:
+            zip_ref.extractall(os.path.dirname(vis_path))
+    return Visibility(vis_path)
+
+
+@pytest.fixture(scope="session")
 def minimal_fits_restored() -> Image:
     restored_path = SingleFileDownloadObject(
         remote_file_path="test_minimal_clean_restored.fits",
