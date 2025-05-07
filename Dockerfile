@@ -17,8 +17,7 @@ RUN conda install -y -n base conda-libmamba-solver && \
     conda create -y -n karabo python=${PYTHON_VERSION}
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
-RUN conda install -n karabo -y -c conda-forge python=${PYTHON_VERSION} && \
-    mkdir Karabo-Pipeline && \
+RUN mkdir Karabo-Pipeline && \
     cd Karabo-Pipeline && \
     git init && \
     git remote add origin https://github.com/i4Ds/Karabo-Pipeline.git && \
