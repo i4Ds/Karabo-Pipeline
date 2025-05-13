@@ -65,13 +65,17 @@ START_DATE_AND_TIME = Environment.get(
 ref_freq_hz = (START_FREQ_HZ + END_FREQ_HZ) / 2
 wavelength_m = cast(float, constants.c.value / ref_freq_hz)
 fov_rad = 1.25 * wavelength_m / 15
+fov_deg = np.rad2deg(fov_rad)
+filter_radius_deg = fov_deg * 3  # 3x primary beam
 
 # Imaging
 # Image size in degrees should be smaller than FOV
 # Bigger baseline -> higher resolution
 IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int)  # 20000
 # None calculates cellsize automatically
-IMAGING_CELLSIZE = Environment.get("IMAGING_CELLSIZE", float, None)
+IMAGING_CELLSIZE = Environment.get(
+    "IMAGING_CELLSIZE", float, None, allow_none_parsing=True
+)
 if IMAGING_CELLSIZE is None:
     IMAGING_CELLSIZE = fov_rad / IMAGING_NPIXEL
     print(f"Calculated {IMAGING_CELLSIZE=}")
@@ -117,6 +121,18 @@ def generate_visibilities(outdir: str) -> Visibility:
             + "`MIGHTEE_L1`, `GLEAM` or `MALS_DR1V3`."
         )
         raise ValueError(err_msg)
+    print(
+        f"{datetime.now()}: Infos in degree: RA={PHASE_CENTER_RA_DEG}, DEC={PHASE_CENTER_DEC_DEG}, FOV={fov_deg}"
+    )
+    print(
+        f"{datetime.now()}: Filter sources outside of primary beam's sensitivity: {filter_radius_deg=}"
+    )
+    sky_model = sky_model.filter_by_radius(
+        inner_radius_deg=0.0,
+        outer_radius_deg=filter_radius_deg,
+        ra0_deg=PHASE_CENTER_RA_DEG,
+        dec0_deg=PHASE_CENTER_DEC_DEG,
+    )
 
     telescope = Telescope.constructor(  # type: ignore[call-overload]
         name="SKA-MID-AAstar",
@@ -131,7 +147,7 @@ def generate_visibilities(outdir: str) -> Visibility:
     simulation = InterferometerSimulation(
         channel_bandwidth_hz=FREQ_INC_HZ,
         station_type="Gaussian beam",
-        gauss_beam_fwhm_deg=np.rad2deg(fov_rad),
+        gauss_beam_fwhm_deg=fov_deg,
         gauss_ref_freq_hz=ref_freq_hz,
         use_gpus=use_gpus,
     )
@@ -148,6 +164,7 @@ def generate_visibilities(outdir: str) -> Visibility:
         frequency_increment_hz=FREQ_INC_HZ,
     )
 
+    os.makedirs(outdir, exist_ok=True)
     return simulation.run_simulation(  # type: ignore[no-any-return]
         telescope,
         sky_model,
@@ -199,6 +216,7 @@ def create_dirty_image(visibility: Visibility, outdir: str) -> Image:
         )
     )
 
+    os.makedirs(outdir, exist_ok=True)
     return dirty_imager.create_dirty_image(
         visibility,
         output_fits_path=os.path.join(
@@ -218,6 +236,7 @@ def create_cleaned_image(
         )
     )
 
+    os.makedirs(outdir, exist_ok=True)
     return image_cleaner.create_cleaned_image(
         visibility,
         dirty_fits_path=dirty_image.path,
@@ -287,9 +306,6 @@ def main() -> None:
 
     with TemporaryDirectory() as tmpdir:
         print(f"{datetime.now()} Starting simulation")
-        os.makedirs(
-            ingestion_dir, exist_ok=True
-        )  # should be same UID in case of mounted dir (like ingestor-volume)
         vis_out_dir = ingestion_dir if vis else tmpdir
         visibility = generate_visibilities(outdir=vis_out_dir)
 

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: temporal-scratch
+  namespace: datalake-ingestion
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: "4Ti"
+  storageClassName: ceph-corbo-cephfs # pref sc with `reclaimPolicy: Delete`

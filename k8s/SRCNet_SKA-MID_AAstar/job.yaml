@@ -4,16 +4,17 @@ metadata:
   name: karabo-simulation
   namespace: datalake-ingestion
 spec:
+  backoffLimit: 0 # don't repeat if job failed
   template:
     spec:
       restartPolicy: Never
       containers:
         - name: karabo-job
           image: ghcr.io/i4ds/karabo-pipeline:latest # requires karabo >= 0.34.0
-          command: [
-              "python",
-              "-m",
-              "karabo.workflows.SRCNet_AAstar --dirty --cleaned", # specify which data-products to put into `OUT_DIR`
+          command: ["/bin/bash", "-c"]
+          args:
+            [
+              "python -m karabo.workflows.SRCNet_SKA-MID_AAstar --dirty --cleaned",
             ]
           env: # new simulation-values probably have a large influence on other values as well
             - name: SKY_MODEL
@@ -52,39 +53,42 @@ spec:
               value: "001_SKAMID_Karabo"
             - name: FILE_PREFIX # name output-data-product(s) differently for each run
               value: "001-SKAMID-Karabo"
-            - name: OUT_DIR # ingestion-dir
-              value: "/tmp/ingest/staging" # don't add <RUCIO_NAMESPACE> because it will get appended
+            - name: OUT_DIR # ingestion-dir (must exist)
+              value: "/ingest/staging" # don't add <RUCIO_NAMESPACE> because it will get appended
           volumeMounts:
             - name: ingest-area
-              mountPath: /tmp/ingest
-          resources: # should be specified accordingly for data-products not needed (see README)
+              mountPath: /ingest
+            - name: temporal-scratch
+              mountPath: /tmp # should be `/tmp` because workflow works with `tempfile.TemporaryDirectory`
+          resources: # set resources according to expected needs
             requests:
-              cpu: "4"
-              memory: "32Gi"
-              ephemeral-storage: "2Ti"
-            limits:
-              cpu: "8"
+              cpu: "16"
               memory: "64Gi"
-              ephemeral-storage: "4Ti"
+            limits: # setting limits may/is important to not letting cpu-load "killing" your node for "large" simulations
+              cpu: "32"
+              memory: "128Gi"
       volumes:
         - name: ingest-area
           persistentVolumeClaim:
             claimName: ingest-area # see ingestor helm-chart `core-deployment.yaml`
-      affinity: # nodeAffinity if needed
+        - name: temporal-scratch
+          persistentVolumeClaim: # avoid ephemeral storage size-restriction of a node (see README.md)
+            claimName: temporal-scratch
+      affinity: # nodeAffinity to run job on compute-nodes is strongly recommended!!!
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: "hpc"
+                  - key: "hpc" # site-specific key
                     operator: "In"
                     values:
-                      - "true"
+                      - "true" # site-specific value
       tolerations: # tolerations for taint if needed
-        - key: "hpc"
+        - key: "hpc" # site-specific key
           operator: "Equal"
-          value: "true"
+          value: "true" # site-specific value
           effect: "NoSchedule"
-        - key: "hpc"
+        - key: "hpc" # site-specific key
           operator: "Equal"
-          value: "true"
+          value: "true" # site-specific value
           effect: "NoExecute"

@@ -40,8 +40,7 @@ class Environment:
         default: Union[MissingType, _TEnv] = MISSING,
         *,
         allow_none_parsing: Literal[False] = False,
-    ) -> _TEnv:
-        ...
+    ) -> _TEnv: ...
 
     @overload
     @classmethod
@@ -52,8 +51,7 @@ class Environment:
         default: Optional[Union[_TEnv, MissingType]] = ...,
         *,
         allow_none_parsing: Literal[True],
-    ) -> Optional[_TEnv]:
-        ...
+    ) -> Optional[_TEnv]: ...
 
     @overload
     @classmethod
@@ -64,8 +62,7 @@ class Environment:
         default: Literal[None],
         *,
         allow_none_parsing: bool = ...,
-    ) -> Optional[_TEnv]:
-        ...
+    ) -> Optional[_TEnv]: ...
 
     @classmethod
     def get(
@@ -82,7 +79,7 @@ class Environment:
             name: Name of env-var.
             type_: Type to parse into.
             default: Default value in case env-var is not set
-                (NoneType allowed as default).
+                (setting NoneType as default is allowed).
             allow_none_parsing: Allow None-type parsing?
 
         Returns:
@@ -96,8 +93,13 @@ class Environment:
             else:
                 return default  # type: ignore[return-value]
         env_lower = env.lower()
-        if allow_none_parsing and env_lower == "none":
-            return None
+        if env_lower == "none":
+            if allow_none_parsing:
+                return None
+            else:
+                raise ValueError(
+                    f"Passed value of {name}={env}, but {allow_none_parsing=}"
+                )
         if type_ is bool:
             if env_lower == "true":
                 return True  # type: ignore[return-value]
