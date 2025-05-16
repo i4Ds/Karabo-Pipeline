@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
+import xarray as xr
 from distributed import Client
 from rascil.processing_components import create_visibility_from_ms
 from rascil.workflows import (
@@ -102,6 +103,22 @@ class RascilDirtyImager(DirtyImager):
                 "This imager currently doesn't support more than one visibility."
             )
         visibility = block_visibilities[0]
+
+        # We ignore autocorrelations in the imaging process
+        # Create a boolean mask where antenna1 == antenna2 (autocorrelations)
+        autocorr_mask = visibility.antenna1 == visibility.antenna2
+
+        # First, create a DataArray from the autocorr_mask with the 'baselines'
+        # dimension
+        autocorr_mask_da = xr.DataArray(autocorr_mask, dims=["baselines"])
+
+        # Now, broadcast the mask to match the dimensions of 'flags'
+        # This will create a mask with dimensions:
+        # (time, baselines, frequency, polarisation)
+        expanded_mask = autocorr_mask_da.broadcast_like(visibility.flags)
+
+        # Set the flags to 1 where the expanded_mask is True
+        visibility["flags"] = visibility.flags.where(~expanded_mask, other=1)
 
         # Compute dirty image from visibilities
         model = create_image_from_visibility(
