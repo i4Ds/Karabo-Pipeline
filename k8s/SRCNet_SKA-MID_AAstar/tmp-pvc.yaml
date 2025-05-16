@@ -8,5 +8,5 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: "4Ti"
+      storage: "2Ti"
   storageClassName: ceph-corbo-cephfs # pref sc with `reclaimPolicy: Delete`

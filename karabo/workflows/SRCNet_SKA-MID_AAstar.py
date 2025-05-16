@@ -41,16 +41,16 @@ from karabo.util.helpers import Environment
 
 # Simulation
 # Phase center: Must be inside coverage region of selected sky
-SKY_MODEL = Environment.get("SKY_MODEL", str)  # "MIGHTEE_L1"
-PHASE_CENTER_RA_DEG = Environment.get("PHASE_CENTER_RA_DEG", float)  # 150.12
-PHASE_CENTER_DEC_DEG = Environment.get("PHASE_CENTER_DEC_DEG", float)  # 2.21
-START_FREQ_HZ = Environment.get("START_FREQ_HZ", float)  # 1.304e9
-END_FREQ_HZ = Environment.get("END_FREQ_HZ", float)  # 1.375e9
-FREQ_INC_HZ = Environment.get("FREQ_INC_HZ", float)  # 26123.0
-OBS_LENGTH_HOURS = Environment.get("OBS_LENGTH_HOURS", float)  # 4.0
+SKY_MODEL = Environment.get("SKY_MODEL", str)
+PHASE_CENTER_RA_DEG = Environment.get("PHASE_CENTER_RA_DEG", float)
+PHASE_CENTER_DEC_DEG = Environment.get("PHASE_CENTER_DEC_DEG", float)
+START_FREQ_HZ = Environment.get("START_FREQ_HZ", float)
+END_FREQ_HZ = Environment.get("END_FREQ_HZ", float)
+FREQ_INC_HZ = Environment.get("FREQ_INC_HZ", float)
+OBS_LENGTH_HOURS = Environment.get("OBS_LENGTH_HOURS", float)
 # Original MIGHTEE_L1 survey: 3593 dumps => Size: 6668.534 GB
 # SKA operations: 4 h blocks of cleaned data from SDP to SRCNet
-NUM_TIME_STAMPS = Environment.get("NUM_TIME_STAMPS", int)  # 1800
+NUM_TIME_STAMPS = Environment.get("NUM_TIME_STAMPS", int)
 # During the chosen time range [start, start + length]
 # sources shouldn't be behind horizon for obs-duration for
 #   chosen sky, telescope & phase-center
@@ -71,7 +71,7 @@ filter_radius_deg = fov_deg * 3  # 3x primary beam
 # Imaging
 # Image size in degrees should be smaller than FOV
 # Bigger baseline -> higher resolution
-IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int)  # 20000
+IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int)
 # None calculates cellsize automatically
 IMAGING_CELLSIZE = Environment.get(
     "IMAGING_CELLSIZE", float, None, allow_none_parsing=True
@@ -81,8 +81,8 @@ if IMAGING_CELLSIZE is None:
     print(f"Calculated {IMAGING_CELLSIZE=}")
 
 # Rucio metadata
-RUCIO_NAMESPACE = Environment.get("RUCIO_NAMESPACE", str)  # "testing"
-RUCIO_LIFETIME = Environment.get("RUCIO_LIFETIME", int)  # 31536000 [s]
+RUCIO_NAMESPACE = Environment.get("RUCIO_NAMESPACE", str)
+RUCIO_LIFETIME = Environment.get("RUCIO_LIFETIME", int)
 
 # ObsCore metadata
 IVOID_AUTHORITY = Environment.get("IVOID_AUTHORITY", str)  # "test.skao"
@@ -109,16 +109,10 @@ def generate_visibilities(outdir: str) -> Visibility:
         sky_model = SkyModel.get_MIGHTEE_Sky(
             min_freq=START_FREQ_HZ, max_freq=END_FREQ_HZ
         )
-    elif SKY_MODEL == "GLEAM":
-        sky_model = SkyModel.get_GLEAM_Sky(min_freq=START_FREQ_HZ, max_freq=END_FREQ_HZ)
-    elif SKY_MODEL == "MALS_DR1V3":
-        sky_model = SkyModel.get_MALS_DR1V3_Sky(
-            min_freq=START_FREQ_HZ, max_freq=END_FREQ_HZ
-        )
     else:
         err_msg = (
             f"Env-var {SKY_MODEL=} is not a valid value. Allowed values are: "
-            + "`MIGHTEE_L1`, `GLEAM` or `MALS_DR1V3`."
+            + "`MIGHTEE_L1`."
         )
         raise ValueError(err_msg)
     print(
@@ -140,8 +134,6 @@ def generate_visibilities(outdir: str) -> Visibility:
         backend=simulator_backend,
     )
 
-    # Original survey: 32768 channels over the full frequency range
-    # of 856 MHz to 1712 MHz
     number_of_channels = math.floor((END_FREQ_HZ - START_FREQ_HZ) / FREQ_INC_HZ)
     use_gpus = is_cuda_available()
     simulation = InterferometerSimulation(
