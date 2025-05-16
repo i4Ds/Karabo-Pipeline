@@ -121,7 +121,6 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
-    should_perform_primary_beam_correction: bool = False,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
@@ -276,19 +275,6 @@ def line_emission_pipeline(
                 ),
             )
 
-            # Perform beam correction here, if requested
-            # NOTE we are correcting each pointing before returning the dirty images,
-            # i.e. before creating any mosaics of pointings
-            if should_perform_primary_beam_correction is True:
-                # Verify that, if primary beam correction is requested,
-                # the corresponding primary beams are provided
-                assert (
-                    primary_beams is not None
-                ), "Primary beam correction was requested, but no beams provided."
-
-                primary_beam = primary_beams[index_freq]
-                dirty.data[0][0] /= primary_beam  # TODO handle full stokes
-
             dirty_images[-1].append(dirty)
 
             # dirty.data.shape meaning:
@@ -327,8 +313,6 @@ if __name__ == "__main__":
     # Configuration parameters
     # Whether to include primary beam into vis and dirty images
     should_apply_primary_beam = True
-    # Whether to correct for the primary beam in the dirty images before returning them
-    should_perform_primary_beam_correction = True
 
     output_base_directory = Path(
         FileHandler().get_tmp_dir(
@@ -453,7 +437,6 @@ if __name__ == "__main__":
         simulator_backend=simulator_backend,
         dirty_imager_config=dirty_imager_config,
         primary_beams=primary_beams,
-        should_perform_primary_beam_correction=should_perform_primary_beam_correction,
     )
 
     dirty_images[0][0].plot(
