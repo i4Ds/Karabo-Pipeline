@@ -23,6 +23,8 @@ Setup oidc-client-secret using `data-ingestor/secrets.yaml` before doing helm in
 
 Assumes that data-ingestor secret exists.
 
+The current `values.yaml` of the ingestor is based on helm release `0.1.1`. In case you want to look at the helm deployment, please look at the last commit of the according helm version before it got bumped to `0.1.2`. It's because during `0.1.1` a lot of breaking changes were introduced which makes the initial values.yaml of `0.1.1` git revision invalid.
+
 ```bash
 helm repo add ska-src-dm-di-ingestor https://gitlab.com/api/v4/projects/51600992/packages/helm/stable
 helm repo update
@@ -34,7 +36,7 @@ helm install ingestor ska-src-dm-di-ingestor/ska-src-dm-di-ingestor \
 
 ### Workflow Setup
 
-Apply tmpdir
+Apply tmpdir for disk caching:
 
 ```bash
 kubectl apply -f tmp-pvc.yaml
@@ -42,6 +44,26 @@ kubectl apply -f tmp-pvc.yaml
 
 ## Launch Job
 
+Launch job with according parameters as environment variables.
+
+To have unique data-products in rucio, you may want to set some variables differently for each run:
+- `OBS_ID`: obscore observation id
+- `FILE_PREFIX`: file prefix to have different file-names for all resulting data products.
+
+The resulting data-products are specified as flags in the command args of the job manifest. Valid options are: `--dirty`, `--cleaned` and `--visibility`. But be aware that a datalake might not support ingestion of hierarchical data-products like casa MSv2 visibilities.
+
 ```bash
 kubectl apply -f job.yaml
+```
+
+In case of running multiple or consecutive jobs, deleting completed jobs or rename job-name may be required.
+
+## Verify Job
+
+To look if a job run successful, look at job pod logs (e.g. using `k9s` or `kubectl logs <pod-name> -n datalake-ingestion`).
+
+To verify whether according data-products with it's according `.meta` metadata got ingested into the datalake, look into according ingestor directories. Failed ingestions are found in `/tmp/ingest/failed_processing/` where successful ingestions are in `/tmp/ingest/processed`. Just exec into the pod to look up the status:
+
+```bash
+kubectl exec -it core-<xxxxxxxxxx>-<xxxxx> -n datalake-ingestion -- bash
 ```
