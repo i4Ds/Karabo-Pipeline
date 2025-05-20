@@ -519,7 +519,7 @@ class SkyModel:
             - [10] minor axis FWHM (arcsec): defaults to 0
             - [11] position angle (deg): defaults to 0
             - [12] true redshift: defaults to 0
-            - [13] observed redshift: defaults to 0
+            - [13] observed redshift: defaults to 0 (only necessary for line emission)
             - [14] object-id: just for `np.ndarray` \
             it is removed in the `xr.DataArray`
             and exists then in `xr.DataArray.coords` as index.
