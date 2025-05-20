@@ -1,5 +1,6 @@
 from typing import cast
 import subprocess
+from scipy.special import j1
 
 import numpy as np
 from astropy.convolution import Gaussian2DKernel
