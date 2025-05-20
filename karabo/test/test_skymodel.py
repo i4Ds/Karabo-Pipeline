@@ -177,6 +177,10 @@ def test_explore_sky(gleam: SkyModel):
     gleam.explore_sky([250, -80], s=0.1)
 
 
+def test_test_sky_model_LE():
+    _ = SkyModel.sky_test_LE()
+
+
 def test_convert_sky_to_backends():
     # Create test sky with all sources at redshift 1,
     # which corresponds to 21cm frequency of ~713 MHz.
