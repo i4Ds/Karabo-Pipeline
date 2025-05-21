@@ -197,7 +197,6 @@ def test_simulation_meerkat(
         outpath = Path(tmpdir)
         continuous_fits_path = outpath / "test_continuous_emission.fits"
         dirty.write_to_file(str(continuous_fits_path), overwrite=True)
-        dirty.write_to_file("./test_continuous_emission.fits", overwrite=True)
 
         # Verify mosaic fits
         continuous_fits_data, continuous_fits_header = fits.getdata(
