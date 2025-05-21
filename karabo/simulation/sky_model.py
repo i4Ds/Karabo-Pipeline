@@ -2288,13 +2288,9 @@ class SkyModel:
                 flux_array = np.zeros((len(frequency_channel_centers), 1))
 
                 # for continuum emission: distribute flux evenly over all channels
-                # flux_array[:,0] = flux / len(frequency_channel_centers)
-                flux_array[0, 0] = flux
-
-                # Access [0] since this is the stokesI flux,
-                # and [index] to place the source's flux onto
-                # the correct frequency channel (since this works for line emission)
-                # flux_array[index][0] = flux
+                flux_array[:, 0] = flux
+                # flux_array[index,0] : Access [0] since this is the stokesI flux,
+                # and [index] to place the source's flux onto each channel
 
                 skycomponents.append(
                     SkyComponent(
