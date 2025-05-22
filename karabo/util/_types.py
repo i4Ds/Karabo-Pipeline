@@ -77,6 +77,13 @@ FilePathType: TypeAlias = Union[Path, str]
 TFilePathType = TypeVar("TFilePathType", bound=FilePathType)
 
 
+class MissingType:
+    ...
+
+
+MISSING = MissingType()
+
+
 class BeamType(TypedDict):
     bmaj: float  # major-axis in arcsec
     bmin: float  # minor-axis in arcsec
