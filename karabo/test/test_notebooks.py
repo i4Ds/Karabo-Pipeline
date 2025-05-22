@@ -76,7 +76,7 @@ def test_ImageMosaicker_notebook() -> None:
 
 
 @pytest.mark.skipif(
-    not RUN_NOTEBOOK_TESTS,
+    IS_GITHUB_RUNNER or not RUN_NOTEBOOK_TESTS,
     reason="'Error: The operation was canceled' when running this test on the package",
 )
 def test_imaging_notebook() -> None:
