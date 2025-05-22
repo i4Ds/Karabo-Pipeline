@@ -30,13 +30,17 @@ import rfc3986
 import rfc3986.validators
 from astropy import constants as const
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 from astropy.io.fits.header import Header
+from astropy.time import Time
 from astropy.units.core import UnitBase
 from astropy.units.quantity import Quantity
 from oskar import VisHeader
+from pyuvdata import UVData
+from pyuvdata import __version__ as pyuvdata_version
 from typing_extensions import Self, TypeGuard, assert_never
 
-from karabo.data.casa import MSMainTable, MSMeta, MSPolarizationTable
+from karabo.data.casa import MSPolarizationTable
 from karabo.imaging.image import Image
 from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
@@ -479,9 +483,8 @@ class ObsCoreMeta:
         is no possibility to fill all mandatory fields because there is just no
         information available. Thus, you have to take care of some fields by yourself.
 
-        Supported formats: CASA Measurement Sets & OSKAR-vis binary. CASA MS format
-            is preferred since it provides more metadata information compared to
-            OSKAR binaries.
+        Supported formats: CASA Measurement Sets, OSKAR-vis binary, UVFITS.
+        OSKAR binaries provide less metadata, so other formats are preferred.
 
         Args:
             vis: `Visibility` instance.
@@ -502,67 +505,102 @@ class ObsCoreMeta:
             err_msg = f"{vis_inode} doesn't exist!"
             raise FileNotFoundError(err_msg)
         c = const.c.value
-        if vis.format == "MS":
+        if vis.format == "UVFITS" or vis.format == "MS":
+            uvd = UVData()
+            read_kwargs = {}
+            # future array shapes is deprecated after 3.2.0
+            if pyuvdata_version <= "2.2.10":
+                raise NotImplementedError(
+                    "pyuvdata version >= 2.2.10 is required"
+                    " for reading with future array shapes"
+                )
+            elif pyuvdata_version <= "3.2.0":
+                read_kwargs["use_future_array_shapes"] = True
+            try:
+                uvd.read(vis_inode, **read_kwargs)
+            except IndexError as e:
+                # there's an issue with the way pyuvdata 2.4.1 reads measurement
+                # set history. can't upgrade to a later version of pyuvdata that
+                # fixes this without a newer version of python, currently 3.9
+                warn(
+                    (
+                        f"Error reading {vis_inode} with pyuvdata version"
+                        f" {pyuvdata_version}: {e} - patching broken pyuvdata"
+                        " history check"
+                    ),
+                    category=UserWarning,
+                    stacklevel=2,
+                )
+                from pyuvdata.uvdata import ms
+
+                ms.MS._ms_hist_to_string = lambda *_: (pyuvdata_version, False)
+                uvd.read(vis_inode, **read_kwargs)
+
             if tel is not None or obs is not None:
                 wmsg = (
                     "Providing `tel` or `obs` in `ObsCoreMeta.from_visibility` for "
-                    + "underlying CASA Measurement Set visibility has no effect!"
+                    + f"{vis.format} visibility file has no effect!"
                 )
                 warn(wmsg, category=UserWarning, stacklevel=2)
-            ms_meta = MSMeta.from_ms(ms_path=vis_inode)
-            field_table = ms_meta.field
-            if not np.all(field_table.num_poly == 0):
+
+            # phase center
+            phase_center_ids = np.unique(uvd.phase_center_id_array)
+            if len(phase_center_ids) > 1:
                 err_msg = (
-                    "Phase-center(s) depicted as polynomials in time is not supported."
+                    f"Multiple phase-centers found in {vis_inode}: {phase_center_ids=}"
                 )
                 raise NotImplementedError(err_msg)
-            if (n_phase_center := field_table.phase_dir.shape[0]) > 1:
-                wmsg = (
-                    f"Found {n_phase_center=} in `ObsCoreMeta.from_visibility` for "
-                    + f"{vis_inode=}. Computing mean/central phase-center!"
-                )
-                warn(wmsg, category=RuntimeWarning, stacklevel=2)
-            phase_dir_deg = np.rad2deg(field_table.phase_dir)
-            phase_dir_deg[:, :, 0] = phase_dir_deg[:, :, 0] % 360  # ensures positive RA
-            phase_center_deg = phase_dir_deg.mean(axis=(0, 1))
-            ocm.s_ra = phase_center_deg[0]
-            ocm.s_dec = phase_center_deg[1]
-            observation = ms_meta.observation
-            time_start_mjd_utc = observation.time_range[:, 0].min() / 86400
-            ocm.t_min = time_start_mjd_utc
-            time_end_mjd_utc = observation.time_range[:, 1].max() / 86400
-            ocm.t_max = time_end_mjd_utc
-            ocm.t_exptime = np.abs(  # abs is just to be sure
-                observation.time_range[:, 1] - observation.time_range[:, 0]
-            ).mean()  # in s, not mjd-utc
-            ocm.t_resolution = np.median(  # chosen repres value over min-interval
-                MSMainTable.get_col(
-                    ms_path=vis_inode,
-                    col="INTERVAL",  # according to MS v2.0
-                    nrow=300000000,  # to avoid memory & time issues, should be repres
-                )
+            phase_center = uvd.phase_center_catalog[phase_center_ids[0]]
+            phase_center = SkyCoord(
+                phase_center["cat_lon"],
+                phase_center["cat_lat"],
+                frame=phase_center["cat_frame"],
+                unit="rad",
             )
-            ocm.t_xel = MSMainTable.nrows(ms_path=vis_inode)
-            spectral_window = ms_meta.spectral_window
-            ocm.em_min = c / np.min(
-                spectral_window.chan_freq - spectral_window.chan_width / 2
-            )
-            ocm.em_max = c / np.max(
-                spectral_window.chan_freq + spectral_window.chan_width / 2
-            )
-            ocm.em_res_power = np.median(
-                spectral_window.chan_freq / spectral_window.chan_width
-            )
-            ocm.em_xel = spectral_window.chan_freq.ravel().shape[0]
+            ocm.s_ra = phase_center.ra.deg
+            ocm.s_dec = phase_center.dec.deg
+
+            # times
+            times = Time(np.sort(np.unique(uvd.time_array)), format="jd")
+            ocm.t_min = times[0].mjd
+            ocm.t_max = times[-1].mjd
+            ocm.t_resolution = float(np.median(np.diff(times.gps)))
+            ocm.t_xel = len(times)
+            ocm.t_exptime = ocm.t_xel * ocm.t_resolution
+
+            # frequencies
+            freqs = np.unique(uvd.freq_array)
+            half_width = uvd.channel_width / 2
+            ocm.em_min = c / np.max(freqs + half_width)  # em sorted by frequency
+            ocm.em_max = c / np.min(freqs - half_width)
+            ocm.em_res_power = np.median(freqs / uvd.channel_width)
+            ocm.em_xel = len(freqs)
+            # delimited truthy and unique values for instrument name
             ocm.instrument_name = ",".join(
-                np.unique(ms_meta.observation.telescope_name)
+                filter(
+                    None,
+                    np.unique(
+                        [
+                            uvd.instrument,
+                            uvd.telescope_name,
+                        ]
+                    ),
+                )
             )
-            b = float(np.max(ms_meta.antenna.baseline_dists()))
+
+            # spatial resolution
+            b_max = np.max(np.linalg.norm(uvd.uvw_array, axis=1))
             ocm.s_resolution = Telescope.ang_res(
-                freq=float(np.max(spectral_window.ref_frequency)),
-                b=b,
+                freq=float(np.max(freqs)),
+                b=b_max,
             )
-            corr_types = np.unique(ms_meta.polarization.corr_type.ravel()).tolist()
+
+            # polarizations
+            def _validate_pol_str(pol_str: str) -> _PolStatesType:
+                return cast(_PolStatesType, pol_str.upper())
+
+            corr_types = [*map(_validate_pol_str, uvd.get_pols())]
+            # convert string to pol index
             ocm.set_pol_states(pol_states=corr_types)
             pol_states = ocm.get_pol_states()
             if pol_states is not None:
@@ -590,22 +628,17 @@ class ObsCoreMeta:
             min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
             n_channels = header.num_channels_total
             max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
-            min_wavelength_m = c / min_freq_hz
-            ocm.em_min = min_wavelength_m
-            max_wavelength_m = c / max_freq_hz
+            # wavelength = c/f, min is the highest frequency, max is the lowest
+            max_wavelength_m = c / min_freq_hz
             ocm.em_max = max_wavelength_m
+            min_wavelength_m = c / max_freq_hz
+            ocm.em_min = min_wavelength_m
             if freq_inc_hz != 0:
                 midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
                 ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
             ocm.em_xel = n_channels
             if tel is not None and (tel_name := tel.name) is not None:
                 ocm.instrument_name = tel_name
-            if tel is not None and obs is not None:
-                freq_inc_hz = obs.frequency_increment_hz
-                min_freq_hz = obs.start_frequency_hz - freq_inc_hz / 2
-                end_freq_hz = min_freq_hz + freq_inc_hz * obs.number_of_channels
-                b = float(tel.max_baseline())
-                ocm.s_resolution = tel.ang_res(freq=end_freq_hz, b=b)
         else:
             assert_never(vis.format)
         ocm.access_estsize = int(getsize(inode=vis_inode) / 1e3)  # B -> KB
