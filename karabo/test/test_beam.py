@@ -7,8 +7,13 @@ import numpy as np
 import pytest
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
 from ska_sdp_datamodels.image import create_image
 
+from karabo.data.external_data import (
+    SingleFileDownloadObject,
+    cscs_karabo_public_testing_base_url,
+)
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.beam import generate_gaussian_beam_data
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -17,11 +22,40 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
 
-# def test_eidosbeam():
-#     npix = 500
-#     img_size_deg = 0.5
-#     freq = np.array([10e9])
-#     generate_eidos_beam(npix, img_size_deg, freq)
+
+# DownloadObject instances used to download different golden files:
+# - FITS file of a test continuous emission simulation including a gaussian beam of
+# SKA-Mid using OSKAR.
+# - FITS file of a test continuous emission simulation including a gaussian beam of
+# SKA-Mid using RASCIL.
+@pytest.fixture
+def beam_gauss_O_fits_filename() -> str:
+    return "test_beam_Gauss_OSKAR_v1.fits"
+
+
+@pytest.fixture
+def beam_gauss_R_fits_filename() -> str:
+    return "test_beam_Gauss_RASCIL_v1.fits"
+
+
+@pytest.fixture
+def beam_gauss_O_fits_downloader(
+    beam_gauss_O_fits_filename: str,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=beam_gauss_O_fits_filename,
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    )
+
+
+@pytest.fixture
+def beam_gauss_R_fits_downloader(
+    beam_gauss_R_fits_filename: str,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=beam_gauss_R_fits_filename,
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    )
 
 
 @pytest.mark.parametrize(
@@ -31,12 +65,26 @@ from karabo.simulator_backend import SimulatorBackend
         (SimulatorBackend.RASCIL, "MID"),
     ],
 )
-def test_gaussian_beam(backend: SimulatorBackend, telescope_name: str):
+def test_gaussian_beam(
+    beam_gauss_O_fits_filename: str,
+    beam_gauss_O_fits_downloader: SingleFileDownloadObject,
+    beam_gauss_R_fits_filename: str,
+    beam_gauss_R_fits_downloader: SingleFileDownloadObject,
+    backend: SimulatorBackend,
+    telescope_name: str,
+) -> None:
     """
-    We test that image reconstruction works also with a Gaussian beam and
+    We test that image reconstruction works with a Gaussian beam and
     test both visibility simulators: Oskar and Rascil.
     """
     # --------------------------
+    # Download golden files for comparison
+    if backend == SimulatorBackend.OSKAR:
+        golden_beam_Gauss_path = beam_gauss_O_fits_downloader.get()
+    else:
+        golden_beam_Gauss_path = beam_gauss_R_fits_downloader.get()
+
+    # Simulation parameters
     freq = 1.5e9
     freq_bin = 1e7
     npixels = 512
@@ -68,10 +116,11 @@ def test_gaussian_beam(backend: SimulatorBackend, telescope_name: str):
     for i in range(nchannels):
         primary_beam["pixels"][i][:] = beam
 
+    # Load the test sky and the telescope
     sky = SkyModel.sky_test()
-
     telescope = Telescope.constructor(telescope_name, backend=backend)
-    # Remove beam if already present
+
+    # Remove beam data if already present
     test = os.listdir(telescope.path)
     for item in test:
         if item.endswith(".bin"):
@@ -121,6 +170,17 @@ def test_gaussian_beam(backend: SimulatorBackend, telescope_name: str):
         outpath = Path(tmpdir)
         beam_fits_path = outpath / "test_beam.fits"
         dirty.write_to_file(str(beam_fits_path), overwrite=True)
-        dirty.write_to_file("./test_beam.fits", overwrite=True)
 
         # Verify fits
+        beam_fits_data, beam_fits_header = fits.getdata(
+            beam_fits_path, ext=0, header=True
+        )
+        golden_beam_fits_data, golden_beam_fits_header = fits.getdata(
+            golden_beam_Gauss_path, ext=0, header=True
+        )
+
+        # Check FITS data is close to goldenfile
+        assert np.allclose(golden_beam_fits_data, beam_fits_data, equal_nan=True)
+
+        # Check FITS header contain the same keys
+        assert set(golden_beam_fits_header.keys()) == set(beam_fits_header.keys())

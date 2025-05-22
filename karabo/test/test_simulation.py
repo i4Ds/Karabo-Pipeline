@@ -27,8 +27,10 @@ from karabo.test.util import get_compatible_dirty_imager
 
 
 # DownloadObject instances used to download different golden files:
-# - FITS file of the test continuous emission simulation of MeerKAT.
-# - FITS files of the test continuous emission simulation with noise of MeerKAT.
+# - FITS file of the test continuous emission simulation of MeerKAT using OSKAR.
+# - FITS files of the test continuous emission simulation with noise of MeerKAT using
+# OSKAR.
+# - FITS file of the test continuous emission simulation of MeerKAT using RASCIL.
 @pytest.fixture
 def continuous_fits_filename() -> str:
     return "test_continuous_emission.fits"
@@ -285,7 +287,7 @@ def test_simulation_noise_meerkat(
         continuous_noise_fits_path = outpath / "test_continuous_emission_noise.fits"
         dirty.write_to_file(str(continuous_noise_fits_path), overwrite=True)
 
-        # Verify mosaic fits
+        # Verify fits
         continuous_noise_fits_data, continuous_noise_fits_header = fits.getdata(
             continuous_noise_fits_path, ext=0, header=True
         )
