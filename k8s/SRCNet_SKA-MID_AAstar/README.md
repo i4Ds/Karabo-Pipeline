@@ -58,6 +58,13 @@ kubectl apply -f job.yaml
 
 In case of running multiple or consecutive jobs, deleting completed jobs or rename job-name may be required.
 
+Alternatively, there is a CronJob version of this job that will trigger once every hour on the hour. It uses timestamps to disambiguate the fields that need to be unique otherwise.
+
+```bash
+kubectl apply -f cronjob.yaml
+```
+
+
 ## Verify Job
 
 To look if a job run successful, look at job pod logs (e.g. using `k9s` or `kubectl logs <pod-name> -n datalake-ingestion`).
