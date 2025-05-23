@@ -2273,12 +2273,15 @@ class SkyModel:
 
             frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
-            if self.sources:
-                ras = self.sources[:, 0]  # Degrees
-                decs = self.sources[:, 1]  # Degrees
-                fluxes = self.sources[:, 2]  # Jy * MHz
-
             skycomponents: List[SkyComponent] = []
+
+            if self.sources is None:
+                return skycomponents
+
+            ras = self.sources[:, 0]  # Degrees
+            decs = self.sources[:, 1]  # Degrees
+            fluxes = self.sources[:, 2]  # Jy * MHz
+
             for ra, dec, flux in zip(
                 ras,
                 decs,
