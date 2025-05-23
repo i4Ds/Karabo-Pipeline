@@ -54,21 +54,6 @@ def line_emission_pipeline(
     ...
 
 
-@overload
-def line_emission_pipeline(
-    output_base_directory: Union[Path, str],
-    pointings: List[CircleSkyRegion],
-    sky_model: SkyModel,
-    observation_details: Observation,
-    telescope: Telescope,
-    interferometer: InterferometerSimulation,
-    simulator_backend: SimulatorBackend,
-    dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
-    ...
-
-
 def line_emission_pipeline(
     output_base_directory: Union[Path, str],
     pointings: List[CircleSkyRegion],
