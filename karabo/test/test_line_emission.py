@@ -9,15 +9,14 @@ from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
-from karabo.simulation.line_emission import (
+from karabo.simulation.beam import (
     REFERENCE_FREQUENCY_HZ,
     REFERENCE_FWHM_DEGREES,
-    CircleSkyRegion,
     gaussian_beam_fwhm_for_frequency,
     generate_gaussian_beam_data,
-    line_emission_pipeline,
 )
+from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
+from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
@@ -338,7 +337,7 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
 
         # Verify that we apply the correct primary beam corrections
         # for each frequency channels
-        _, dirty_images_corrected_primary_beam = line_emission_pipeline(
+        _, dirty_images_with_primary_beam = line_emission_pipeline(
             output_base_directory=output_base_directory,
             pointings=pointings,
             sky_model=sky,
@@ -348,7 +347,6 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
             simulator_backend=simulator_backend,
             dirty_imager_config=dirty_imager_config,
             primary_beams=primary_beams,
-            should_perform_primary_beam_correction=True,
         )
 
         _, dirty_images_without_primary_beam = line_emission_pipeline(
@@ -365,36 +363,4 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
         )
 
         assert len(dirty_images_without_primary_beam) == observation.number_of_channels
-        assert (
-            len(dirty_images_corrected_primary_beam) == observation.number_of_channels
-        )
-
-        # Verify that images without beam effects are mostly close
-        # to images corrected for primary beam effects
-        for index_freq in range(observation.number_of_channels):
-            for index_p, _ in enumerate(pointings):
-                dirty_without_primary_beam = dirty_images_without_primary_beam[
-                    index_freq
-                ][index_p].data
-                dirty_corrected_primary_beam = dirty_images_corrected_primary_beam[
-                    index_freq
-                ][index_p].data
-
-                # Compute relative difference between images
-                # at each pointing and channel
-                relative_difference = np.abs(
-                    dirty_corrected_primary_beam / dirty_without_primary_beam - 1
-                )
-
-                # Set maximum accepted percentage of pixels
-                # that can be more different than desired threshold
-                threshold_relative_difference = 1
-                maximum_accepted_pixel_fraction_over_threshold_difference = 0.25
-                fraction_of_very_different_pixels = (
-                    relative_difference > threshold_relative_difference
-                ).sum() / np.prod(relative_difference.shape)
-
-                assert (
-                    fraction_of_very_different_pixels
-                    < maximum_accepted_pixel_fraction_over_threshold_difference
-                )
+        assert len(dirty_images_with_primary_beam) == observation.number_of_channels

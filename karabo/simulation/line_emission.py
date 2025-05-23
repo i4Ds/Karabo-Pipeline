@@ -1,24 +1,19 @@
 import os
 from collections import namedtuple
 from copy import deepcopy
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union, cast, overload
+from typing import List, Optional, Tuple, Union, overload
 
 import astropy.units as u
-import matplotlib
 import numpy as np
-from astropy.convolution import Gaussian2DKernel
-from astropy.coordinates import SkyCoord
 from numpy.typing import NDArray
 from ska_sdp_datamodels.image import create_image
-from ska_sdp_datamodels.image.image_model import Image as RASCILImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
-from karabo.imaging.image import Image, ImageMosaicker
+from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
-from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
+from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -27,40 +22,6 @@ from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
 
 CircleSkyRegion = namedtuple("CircleSkyRegion", ["center", "radius"])
-
-
-def generate_gaussian_beam_data(
-    fwhm_pixels: float,
-    x_size: int,
-    y_size: int,
-) -> NDArray[np.float_]:
-    """Given a FWHM in pixel units, and a size in x and y coordinates,
-    return a 2D array of shape (x_size, y_size) containing normalized Gaussian values
-    (such that the central value of the 2D array is 1.0).
-    """
-    sigma = fwhm_pixels / (2 * np.sqrt(2 * np.log(2)))
-    gauss_kernel = Gaussian2DKernel(
-        sigma,
-        x_size=x_size,
-        y_size=y_size,
-    )
-    beam = cast(NDArray[np.float_], gauss_kernel.array)
-    beam = beam / np.max(beam)
-
-    return beam
-
-
-# Reference values below were obtained for a MeerKAT-like beam
-REFERENCE_FWHM_DEGREES = 1.8
-REFERENCE_FREQUENCY_HZ = 8e8
-
-
-def gaussian_beam_fwhm_for_frequency(
-    desired_frequency: float,
-    reference_fwhm_degrees: float = REFERENCE_FWHM_DEGREES,
-    reference_frequency_Hz: float = REFERENCE_FREQUENCY_HZ,
-) -> float:
-    return reference_fwhm_degrees * reference_frequency_Hz / desired_frequency
 
 
 @overload
@@ -74,7 +35,6 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: List[NDArray[np.float_]],
-    should_perform_primary_beam_correction: Literal[True] = ...,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -90,7 +50,6 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-    should_perform_primary_beam_correction: Literal[False] = ...,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -106,7 +65,7 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-    should_perform_primary_beam_correction: bool = ...,
+    should_perform_primary_beam_correction: Optional[bool] = True,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -121,21 +80,19 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
-    should_perform_primary_beam_correction: bool = False,
+    should_perform_primary_beam_correction: Optional[bool] = True,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
     only emits within one frequency channel.
 
     If requested, include primary beam effects into the visibilities and dirty images.
-    And again, if desired, perform a primary beam correction on the final dirty images.
 
-    For OSKAR, the provided primary beams will only be used for correction.
     For the actual primary beam effect in OSKAR,
     set the relevant parameter in the InterferometerSimulation constructor.
 
     For RASCIL, the provided primary beams are used
-    for both the primary beam effect and its correction.
+    for the primary beam effect.
     """
     print(f"Selected backend: {simulator_backend}")
 
@@ -276,19 +233,6 @@ def line_emission_pipeline(
                 ),
             )
 
-            # Perform beam correction here, if requested
-            # NOTE we are correcting each pointing before returning the dirty images,
-            # i.e. before creating any mosaics of pointings
-            if should_perform_primary_beam_correction is True:
-                # Verify that, if primary beam correction is requested,
-                # the corresponding primary beams are provided
-                assert (
-                    primary_beams is not None
-                ), "Primary beam correction was requested, but no beams provided."
-
-                primary_beam = primary_beams[index_freq]
-                dirty.data[0][0] /= primary_beam  # TODO handle full stokes
-
             dirty_images[-1].append(dirty)
 
             # dirty.data.shape meaning:
@@ -304,217 +248,3 @@ def line_emission_pipeline(
     ), f"{len(dirty_images[0])}, {len(pointings)}"
 
     return visibilities, dirty_images
-
-
-if __name__ == "__main__":
-    # This executes an example line emission pipeline
-    # with a sample sky and example simulation parameters
-    from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
-    from karabo.util.file_handler import FileHandler
-
-    try:
-        matplotlib.use("tkagg")
-    except Exception as e:
-        print(e)
-
-    simulator_backend = SimulatorBackend.RASCIL
-
-    if simulator_backend == SimulatorBackend.OSKAR:
-        telescope = Telescope.constructor("SKA1MID", backend=simulator_backend)
-    elif simulator_backend == SimulatorBackend.RASCIL:
-        telescope = Telescope.constructor("MID", backend=simulator_backend)
-
-    # Configuration parameters
-    # Whether to include primary beam into vis and dirty images
-    should_apply_primary_beam = True
-    # Whether to correct for the primary beam in the dirty images before returning them
-    should_perform_primary_beam_correction = True
-
-    output_base_directory = Path(
-        FileHandler().get_tmp_dir(
-            prefix="line-emission-",
-            purpose="Example line emission simulation",
-        )
-    )
-
-    pointings = [
-        CircleSkyRegion(
-            radius=2 * u.deg, center=SkyCoord(ra=20, dec=-30, unit="deg", frame="icrs")
-        ),
-        CircleSkyRegion(
-            radius=2 * u.deg,
-            center=SkyCoord(ra=20, dec=-31.4, unit="deg", frame="icrs"),
-        ),
-        CircleSkyRegion(
-            radius=2 * u.deg,
-            center=SkyCoord(ra=21.4, dec=-30, unit="deg", frame="icrs"),
-        ),
-        CircleSkyRegion(
-            radius=2 * u.deg,
-            center=SkyCoord(ra=21.4, dec=-31.4, unit="deg", frame="icrs"),
-        ),
-    ]
-
-    # The number of time steps is then determined as total_length / integration_time.
-    observation_length = timedelta(seconds=10000)  # 14400 = 4hours
-    integration_time = timedelta(seconds=1000)
-
-    # Load catalog of sources
-    catalog_path = HISourcesSmallCatalogDownloadObject().get()
-    sky = SkyModel.get_sky_model_from_h5_to_xarray(
-        path=catalog_path,
-    )
-
-    # Define observation channels and duration
-    observation = Observation(
-        start_date_and_time=datetime(2000, 3, 20, 12, 6, 39),
-        length=observation_length,
-        number_of_time_steps=int(
-            observation_length.total_seconds() / integration_time.total_seconds()
-        ),
-        start_frequency_hz=7e8,
-        frequency_increment_hz=8e7,
-        number_of_channels=2,
-    )
-
-    # Imaging details
-    npixels = 4096
-    image_width_degrees = 2
-    cellsize_radians = np.radians(image_width_degrees) / npixels
-    dirty_imager_config = DirtyImagerConfig(
-        imaging_npixel=npixels,
-        imaging_cellsize=cellsize_radians,
-    )
-
-    # Create interferometer simulation
-    beam_type: Literal["Gaussian beam", "Isotropic beam"]
-    primary_beams: Optional[List[RASCILImage]] = None
-
-    # Compute frequency channels
-    frequency_channel_starts = np.linspace(
-        observation.start_frequency_hz,
-        observation.start_frequency_hz
-        + observation.frequency_increment_hz * observation.number_of_channels,
-        num=observation.number_of_channels,
-        endpoint=False,
-    )
-
-    if should_apply_primary_beam:
-        # Options accepted by OSKAR:
-        # "Aperture array", "Isotropic beam", "Gaussian beam", "VLA (PBCOR)"
-        # This parameter is not used by RASCIL
-        beam_type = "Gaussian beam"
-        gaussian_fwhm = REFERENCE_FWHM_DEGREES
-        gaussian_ref_freq = REFERENCE_FREQUENCY_HZ
-
-        primary_beams = []
-        # RASCIL supports custom primary beams
-        # Here we create a sample beam (Gaussian)
-        # as a 2D np.array of shape (npixels, npixels)
-        for frequency in frequency_channel_starts:
-            fwhm_degrees = gaussian_beam_fwhm_for_frequency(frequency)
-            fwhm_pixels = fwhm_degrees / np.degrees(
-                dirty_imager_config.imaging_cellsize
-            )
-
-            primary_beam = generate_gaussian_beam_data(
-                fwhm_pixels=fwhm_pixels,
-                x_size=dirty_imager_config.imaging_npixel,
-                y_size=dirty_imager_config.imaging_npixel,
-            )
-            primary_beams.append(primary_beam)
-    else:
-        beam_type = "Isotropic beam"
-        gaussian_fwhm = 0
-        gaussian_ref_freq = 0
-
-    # Instantiate interferometer
-    # Leave time_average_sec as 10, since OSKAR examples use 10.
-    # Not sure of the meaning of this parameter.
-    interferometer = InterferometerSimulation(
-        time_average_sec=10,
-        ignore_w_components=True,
-        uv_filter_max=10000,
-        uv_filter_units=FilterUnits.Metres,
-        use_gpus=True,
-        station_type=beam_type,
-        gauss_beam_fwhm_deg=gaussian_fwhm,
-        gauss_ref_freq_hz=gaussian_ref_freq,
-        use_dask=False,
-    )
-
-    visibilities, dirty_images = line_emission_pipeline(
-        output_base_directory=output_base_directory,
-        pointings=pointings,
-        sky_model=sky,
-        observation_details=observation,
-        telescope=telescope,
-        interferometer=interferometer,
-        simulator_backend=simulator_backend,
-        dirty_imager_config=dirty_imager_config,
-        primary_beams=primary_beams,
-        should_perform_primary_beam_correction=should_perform_primary_beam_correction,
-    )
-
-    dirty_images[0][0].plot(
-        block=True,
-        vmin=0,
-        vmax=2e-7,
-        title="Dirty image for pointing 0 and channel 0",
-    )
-
-    # Overlay SkyModel onto dirty image
-    dirty_images[0][0].plot_side_by_side_with_skymodel(
-        sky=sky,
-        block=True,
-        vmin_sky=0,
-        vmax_sky=2e-6,
-        vmin_image=0,
-        vmax_image=2e-7,
-    )
-
-    dirty_images[0][0].overplot_with_skymodel(
-        sky=sky,
-        block=True,
-        vmin_image=0,
-        vmax_image=2e-7,
-    )
-
-    # Create mosaics of pointings for each frequency channel
-    print("Creating mosaic of images for each frequency channel")
-    mosaicker = ImageMosaicker()
-
-    mosaics = []
-    for i in range(observation.number_of_channels):
-        mosaic, footprint = mosaicker.mosaic(dirty_images[i])
-        mosaics.append(mosaic)
-
-        mosaic.plot(
-            filename=str(output_base_directory / f"mosaic_{i}.png"),
-            block=True,
-            vmin=0,
-            vmax=2e-7,
-            title=f"Mosaic for channel {i}",
-        )
-
-    # Add all mosaics across frequency channels to create one final mosaic image
-    summed_mosaic = Image(
-        data=np.sum([m.data for m in mosaics]),
-        header=mosaics[0].header,
-    )
-    summed_mosaic.plot(
-        filename=str(output_base_directory / "summed_mosaic.png"),
-        block=True,
-        vmin=0,
-        vmax=2e-7,
-        title="Summed mosaic across channels",
-    )
-
-    # Overlay SkyModel onto dirty image
-    summed_mosaic.overplot_with_skymodel(
-        sky=sky,
-        filename=str(output_base_directory / "summed_mosaic_sources_overlay.png"),
-        block=True,
-        vmin_image=0,
-        vmax_image=2e-7,
-    )

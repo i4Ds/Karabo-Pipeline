@@ -1,6 +1,5 @@
 import enum
 import os
-from copy import deepcopy
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 from typing import get_args as typing_get_args
 from typing import overload
@@ -23,7 +22,6 @@ from ska_sdp_func_python.sky_component import apply_beam_to_skycomponent
 from typing_extensions import assert_never
 
 from karabo.error import KaraboInterferometerSimulationError
-from karabo.simulation.beam import BeamPattern
 from karabo.simulation.observation import (
     Observation,
     ObservationAbstract,
@@ -155,8 +153,6 @@ class InterferometerSimulation:
         enable_numerical_beam: If true, make use of any available numerical element
             pattern files. If numerical pattern data are missing,
             the functional type will be used instead.
-        beam_polX: currently only considered for 'ObservationLong'
-        beam_polX: currently only considered for 'ObservationLong'
         use_gpus: Set to true if you want to use gpus for the simulation
         client: The dask client to use for the simulation
         split_idxs_per_group: The indices of the sky model to split for each group
@@ -208,10 +204,6 @@ class InterferometerSimulation:
         noise_freq: NoiseFreqType = "Range",
         enable_array_beam: bool = False,
         enable_numerical_beam: bool = False,
-        beam_polX: Optional[BeamPattern] = None,  # currently only considered
-        # for `ObservationLong`
-        beam_polY: Optional[BeamPattern] = None,  # currently only considered
-        # for `ObservationLong`
         use_gpus: Optional[bool] = None,
         use_dask: Optional[bool] = None,
         split_observation_by_channels: bool = False,
@@ -248,8 +240,6 @@ class InterferometerSimulation:
         self.noise_freq = noise_freq
         self.enable_array_beam = enable_array_beam
         self.enable_numerical_beam = enable_numerical_beam
-        self.beam_polX = beam_polX
-        self.beam_polY = beam_polY
         # set use_gpu
         if use_gpus is None:
             use_gpus = is_cuda_available()
@@ -577,6 +567,7 @@ class InterferometerSimulation:
             ),  # TODO handle full stokes as well
             integration_time=observation_integration_time_seconds,
             zerow=self.ignore_w_components,
+            # utc_time=observation.start_date_and_time,
         )
 
         # Obtain list of SkyComponent instances
@@ -596,7 +587,6 @@ class InterferometerSimulation:
 
         # Save visibilities to disk
         export_visibility_to_ms(visibility_path, [vis])
-
         return Visibility(visibility_path)
 
     def __run_simulation_parallelized_observation(
@@ -768,12 +758,6 @@ class InterferometerSimulation:
         input_telpath = telescope.path
         runs = []
 
-        if self.beam_polX is None or self.beam_polY is None:
-            raise KaraboInterferometerSimulationError(
-                "`InterferometerSimulation.beam_polX` and "
-                + "`InterferometerSimulation.beam_polY` must be set "
-                + "to run a long observation."
-            )
         if input_telpath is None:
             raise KaraboInterferometerSimulationError(
                 "`telescope.path` must be set but is None."
@@ -797,18 +781,6 @@ class InterferometerSimulation:
             # Convert to date
             current_date = current_date.date()
             print(f"Observing Day: {i}. Date: {current_date}")
-
-            if self.enable_array_beam:
-                # ------------ X-coordinate
-                pb = deepcopy(self.beam_polX)
-                beam = pb.sim_beam()
-                pb.save_cst_file(beam[3], telescope=telescope)
-                pb.fit_elements(telescope)
-
-                # ------------ Y-coordinate
-                pb = deepcopy(self.beam_polY)
-                pb.save_cst_file(beam[4], telescope=telescope)
-                pb.fit_elements(telescope)
 
             # Creating VIS files, not MS, because combine_vis needs VIS as input.
             vis_path = os.path.join(ms_dir, f"{current_date}.vis")
