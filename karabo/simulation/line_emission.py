@@ -54,6 +54,22 @@ def line_emission_pipeline(
     ...
 
 
+@overload
+def line_emission_pipeline(
+    output_base_directory: Union[Path, str],
+    pointings: List[CircleSkyRegion],
+    sky_model: SkyModel,
+    observation_details: Observation,
+    telescope: Telescope,
+    interferometer: InterferometerSimulation,
+    simulator_backend: SimulatorBackend,
+    dirty_imager_config: DirtyImagerConfig,
+    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
+    should_perform_primary_beam_correction: Optional[bool] = True,
+) -> Tuple[List[List[Visibility]], List[List[Image]]]:
+    ...
+
+
 def line_emission_pipeline(
     output_base_directory: Union[Path, str],
     pointings: List[CircleSkyRegion],
@@ -64,6 +80,7 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
+    should_perform_primary_beam_correction: Optional[bool] = True,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
