@@ -9,15 +9,14 @@ from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
-from karabo.simulation.line_emission import (
+from karabo.simulation.beam import (
     REFERENCE_FREQUENCY_HZ,
     REFERENCE_FWHM_DEGREES,
-    CircleSkyRegion,
     gaussian_beam_fwhm_for_frequency,
     generate_gaussian_beam_data,
-    line_emission_pipeline,
 )
+from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
+from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
