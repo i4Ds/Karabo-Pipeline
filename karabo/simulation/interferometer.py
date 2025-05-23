@@ -567,6 +567,7 @@ class InterferometerSimulation:
             ),  # TODO handle full stokes as well
             integration_time=observation_integration_time_seconds,
             zerow=self.ignore_w_components,
+            # utc_time=observation.start_date_and_time,
         )
 
         # Obtain list of SkyComponent instances
@@ -586,7 +587,6 @@ class InterferometerSimulation:
 
         # Save visibilities to disk
         export_visibility_to_ms(visibility_path, [vis])
-
         return Visibility(visibility_path)
 
     def __run_simulation_parallelized_observation(
