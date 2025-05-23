@@ -103,7 +103,7 @@ def generate_airy_beam_data(
     # Normalize peak to 1
     airy_pattern /= np.max(airy_pattern)
 
-    return airy_pattern
+    return cast(NDArray[np.float_], airy_pattern)
 
 
 def airy_beam_fwhm_for_frequency(frequency_hz: float, dish_diameter_m: float) -> float:
@@ -126,5 +126,5 @@ def airy_beam_fwhm_for_frequency(frequency_hz: float, dish_diameter_m: float) ->
     c = 299792458.0  # Speed of light in m/s
     wavelength_m = c / frequency_hz
     fwhm_radians = 0.61 * wavelength_m / dish_diameter_m
-    fwhm_degrees = np.degrees(fwhm_radians)
+    fwhm_degrees: float = np.degrees(fwhm_radians)
     return fwhm_degrees
