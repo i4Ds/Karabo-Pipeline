@@ -22,7 +22,6 @@ dependencies:
   - eidos                   =1.1.0
   - healpy
   - h5py                    =*=mpi_mpich*
-  - importlib-metadata      =8.6
   - ipython
   - katbeam                 =0.1.0
   - libcufft
