@@ -16,7 +16,7 @@ on:
       python-version:
         type: string
         required: true
-        description: "Python version to test"
+        description: "Python version to test (e.g. 3.9 or 3.10)"
       buildDocker:
         type: boolean
         required: false
@@ -44,7 +44,6 @@ on:
         required: false
         default: false
 
-
 jobs:
   conda-build:
     runs-on: ubuntu-latest
@@ -60,12 +59,17 @@ jobs:
       - name: Get Previous tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
+      - name: Install Micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          init-shell: bash
+          environment-name: buildenv
+          create-args: python=3.9 versioneer  # default, overwritten below if needed
       - name: Build Conda
         id: bcs
         shell: bash -l {0}
         run: |
-          if [[ ${{ github.event_name }} == 'release' ]]
-          then
+          if [[ ${{ github.event_name }} == 'release' ]]; then
             echo "Conda build from release"
             build="0"
             KARABO_TAG=${{ steps.get-latest-tag.outputs.tag }}
@@ -77,6 +81,7 @@ jobs:
             fi
             BUILD_DOCKER=true
             LATEST_DOCKER=true
+            PYTHON_VERSION="3.9"
           elif [[ ${{ github.event_name }} == 'workflow_dispatch' ]] || [[ ${{ github.event_name }} == 'workflow_call' ]]; then
             echo "Conda build from dispatch | call"
             build=${{ inputs.buildNumber }}
@@ -87,14 +92,15 @@ jobs:
             if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
               KARABO_VERSION="${KARABO_VERSION:1}"
             fi
-            conda install -c conda-forge python versioneer
+            micromamba install -n buildenv -c conda-forge python=${PYTHON_VERSION} versioneer -y
+            micromamba activate buildenv
             VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
             if [[ "$VERSIONEER_VERSION" != *"$KARABO_VERSION"* ]] && [[ "$KARABO_VERSION" != *"dev"* ]]; then
               echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
               exit 1
             fi
           else
-            echo "Unexpected github-event occured"
+            echo "Unexpected github-event occurred"
             exit 1
           fi
           if [[ "$KARABO_VERSION" == *"dev"* ]]; then
@@ -102,7 +108,7 @@ jobs:
               echo "Dev build docker image can not be tagged as latest!"
               exit 1
             fi
-            build="$(($build + 1000))"
+            build="$((build + 1000))"
           fi
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
@@ -111,6 +117,7 @@ jobs:
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
           echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
 
+          micromamba activate buildenv
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-12.8.1
           conda config --append channels conda-forge
@@ -120,14 +127,14 @@ jobs:
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
-          conda activate base
+          micromamba activate buildenv
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
-  
+
   test-build-39:
     needs: conda-build
     uses: ./.github/workflows/test-user-package.yml
     with:
-      python-version: "3.9" 
+      python-version: "3.9"
       version: ${{ needs.conda-build.outputs.karabo-version }}
       buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
       latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
@@ -136,8 +143,7 @@ jobs:
     needs: conda-build
     uses: ./.github/workflows/test-user-package.yml
     with:
-      python-version: "3.10" 
+      python-version: "3.10"
       version: ${{ needs.conda-build.outputs.karabo-version }}
       buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
       latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
-
