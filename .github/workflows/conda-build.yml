@@ -131,15 +131,12 @@ jobs:
 
           cd conda
           conda mambabuild .
-      - name: Install anaconda-client
-        run: |
-          micromamba activate buildenv
-           micromamba install -n buildenv -c conda-forge anaconda-client -y
+          
       - name: Publish to Conda
-        shell: bash -l {0}
+        shell: bash
         run: |
-          micromamba activate buildenv
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
+          micromamba install -n buildenv -c conda-forge anaconda-client -y
+          micromamba run -n buildenv anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
 
   test-build-39:
     needs: conda-build
