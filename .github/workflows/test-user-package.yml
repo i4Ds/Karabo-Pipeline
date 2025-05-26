@@ -42,8 +42,13 @@ jobs:
   test-conda-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Install Micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: karabo-env
+          create-args: python=${{ inputs.python-version }}
+          init-shell: bash
+
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
@@ -54,21 +59,19 @@ jobs:
             echo "Invalid configuration of workflow-inputs!"
             exit 1
           fi
+
           export IS_GITHUB_RUNNER=true
           export RUN_NOTEBOOK_TESTS=false
-          conda install -y -n base conda-libmamba-solver
-          conda config --set solver libmamba
-          conda config --env --set channel_priority true
-          conda create -y -n karabo-env python=$PYTHON_VERSION
-          conda activate karabo-env
-          conda install -y -c nvidia/label/cuda-12.8.1 -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
+
+          micromamba activate karabo-env
+          micromamba install -y -c nvidia/label/cuda-12.8.1 -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
           pip install ipykernel
           python -m ipykernel install --user --name python$PYTHON_VERSION
 
       - name: Test Package
         shell: bash -l {0}
         run: |
-          conda activate karabo-env
+          micromamba activate karabo-env
           pytest --pyargs karabo.test
 
   build-docker:
@@ -79,6 +82,3 @@ jobs:
       verstag: ${{ inputs.version }}
       latest: ${{ inputs.latestDocker }}
       python-version: ${{ inputs.python-version }}
-
-
-  
