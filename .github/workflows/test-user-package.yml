@@ -75,7 +75,6 @@ jobs:
           micromamba run -n karabo-env python -m ipykernel install --user --name python$PYTHON_VERSION
 
       - name: Test Package
-        shell: bash -l {0}
         run: |
           micromamba run -n karabo-env pytest --pyargs karabo.test
 
