@@ -170,7 +170,20 @@ def test_read_healpix_map():
 
 
 def test_get_poisson_sky():
-    _ = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 0.1, 0.8, 2)
+    min_ra_deg = 220
+    max_ra_deg = 260
+    min_dec = -60
+    max_dec = -80
+    min_flux = 0.1
+    max_flux = 0.8
+    sky = SkyModel.get_random_poisson_disk_sky(
+        (min_ra_deg, min_dec), (max_ra_deg, max_dec), min_flux, max_flux, 2
+    )
+
+    for source in sky:
+        assert min_ra_deg <= source[0] <= max_ra_deg
+        assert max_dec <= source[1] <= min_dec
+        assert min_flux <= source[2] <= max_flux
 
 
 def test_explore_sky(gleam: SkyModel):
@@ -178,7 +191,12 @@ def test_explore_sky(gleam: SkyModel):
 
 
 def test_test_sky_model_LE():
-    _ = SkyModel.sky_test_LE()
+    sky = SkyModel.sky_test_LE()
+    assert sky.num_sources == 81
+
+    for source in sky:
+        assert source[2] == 1
+        assert 0.8 <= source[13] <= 1.0
 
 
 def test_convert_sky_to_backends():
