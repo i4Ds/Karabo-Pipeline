@@ -100,8 +100,7 @@ jobs:
               KARABO_VERSION="${KARABO_VERSION:1}"
             fi
             micromamba install -n buildenv -c conda-forge python=${PYTHON_VERSION} versioneer -y
-            micromamba activate buildenv
-            VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
+            VERSIONEER_VERSION=$(micromamba run -n buildenv python -c 'import versioneer; print(versioneer.get_version())')
             if [[ "$VERSIONEER_VERSION" != *"$KARABO_VERSION"* ]] && [[ "$KARABO_VERSION" != *"dev"* ]]; then
               echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
               exit 1
@@ -124,13 +123,12 @@ jobs:
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
           echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
 
-          micromamba activate buildenv
-          conda config --append channels i4ds
-          conda config --append channels nvidia/label/cuda-12.8.1
-          conda config --append channels conda-forge
+          micromamba run -n buildenv conda config --append channels i4ds
+          micromamba run -n buildenv conda config --append channels nvidia/label/cuda-12.8.1
+          micromamba run -n buildenv conda config --append channels conda-forge
 
           cd conda
-          conda mambabuild .
+          micromamba run -n buildenv conda mambabuild .
           
       - name: Publish to Conda
         shell: bash
