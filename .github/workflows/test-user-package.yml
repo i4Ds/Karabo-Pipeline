@@ -49,6 +49,13 @@ jobs:
           create-args: python=${{ inputs.python-version }}
           init-shell: bash
 
+      - name: Configure micromamba channels
+        run: |
+          micromamba config append channels i4ds/label/dev
+          micromamba config append channels i4ds
+          micromamba config append channels nvidia/label/cuda-11.7.1
+          micromamba config append channels conda-forge
+
       - name: Set variables, Install Package & Dependencies
         shell: bash -l {0}
         run: |
