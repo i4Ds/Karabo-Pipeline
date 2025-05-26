@@ -71,7 +71,7 @@ jobs:
           micromamba config append channels i4ds
           micromamba config append channels nvidia/label/cuda-11.7.1
           micromamba config append channels conda-forge
-          
+
       - name: Build Conda
         id: bcs
         shell: bash -l {0}
@@ -131,6 +131,10 @@ jobs:
 
           cd conda
           conda mambabuild .
+      - name: Install anaconda-client
+        run: |
+          micromamba activate buildenv
+           micromamba install -n buildenv -c conda-forge anaconda-client -y
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
