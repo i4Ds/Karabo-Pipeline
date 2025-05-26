@@ -182,24 +182,15 @@ def test_test_sky_model_LE():
 
 
 def test_convert_sky_to_backends():
-    # Create test sky with all sources at redshift 1,
-    # which corresponds to 21cm frequency of ~713 MHz.
-    # Then, request RASCIL list of SkyComponents for these sources,
-    # and verify the following:
-    # 1. RA and Dec positions are maintained
-    # 2. Frequency and fluxes are correctly assigned based on redshift
-    # 3. Other info (polarisation, shape) are correct
-    FLUX = 20
-
+    """
+    The sky model used in Karabo is based on the OSKAR data structure. RASCIL
+    uses a slightly different model. The function SykModel.connvert_to_backend()
+    is supposed to convert an OSKAR sky model into a RASCIL one.
+    For RASCIL we need to set the flux for each frequency channel. This is what
+    we test here.
+    """
     sky = SkyModel.sky_test()
-    sky.sources[:, 2] = FLUX  # Manually override fluxes
-    sky.sources[:, 13] = 1  # Manually set all redshifts to 1
-
-    # Sources have redshift 1, i.e. frequency ~ 713 MHz, and thus
-    # all sources should fall on bin index 1 in the array below
-    # (i.e. within the channel starting at 710 MHz)
     desired_frequencies_hz = 1e6 * np.array([700, 710, 720, 730, 740])
-    expected_channel_index = 1
 
     frequency_bandwidth = desired_frequencies_hz[1] - desired_frequencies_hz[0]
     frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
@@ -227,13 +218,9 @@ def test_convert_sky_to_backends():
         assert len(rascil_component.frequency) == len(desired_frequencies_hz)
         assert np.allclose(rascil_component.frequency, frequency_channel_centers)
 
-        # Assert only one flux entry is non-zero
-        assert (
-            sum(~np.isclose(0, rascil_component.flux)) == 1
-        )  # Only one entry is non-zero
-
-        # Assert that non-zero flux entry is in the expected frequency channel
-        assert np.isclose(FLUX, rascil_component.flux[expected_channel_index])
+        # For continuous sources, all channels are set to the same flux.
+        # Here we set it to 1. And there are 5 frequency channels
+        assert np.sum(rascil_component.flux) == 5
 
 
 def test_SkySourcesColName_assumption():
