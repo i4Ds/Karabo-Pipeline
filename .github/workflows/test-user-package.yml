@@ -75,10 +75,13 @@ jobs:
           pip install ipykernel
           python -m ipykernel install --user --name python$PYTHON_VERSION
 
+      - name: Install pytest and ipykernel
+        run: |
+          micromamba install -n karabo-env -c conda-forge pytest ipykernel -y
+          
       - name: Test Package
         shell: bash -l {0}
         run: |
-          micromamba install -n karabo-env -c conda-forge pytest -y
           micromamba run -n karabo-env pytest --pyargs karabo.test
 
   build-docker:
