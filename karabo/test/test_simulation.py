@@ -27,8 +27,10 @@ from karabo.test.util import get_compatible_dirty_imager
 
 
 # DownloadObject instances used to download different golden files:
-# - FITS file of the test continuous emission simulation of MeerKAT.
-# - FITS files of the test continuous emission simulation with noise of MeerKAT.
+# - FITS file of the test continuous emission simulation of MeerKAT using OSKAR.
+# - FITS files of the test continuous emission simulation with noise of MeerKAT using
+# OSKAR.
+# - FITS file of the test continuous emission simulation of MeerKAT using RASCIL.
 @pytest.fixture
 def continuous_fits_filename() -> str:
     return "test_continuous_emission.fits"
@@ -37,6 +39,11 @@ def continuous_fits_filename() -> str:
 @pytest.fixture
 def continuous_noise_fits_filename() -> str:
     return "test_continuous_emission_noise.fits"
+
+
+@pytest.fixture
+def continuous_Rascil_fits_filename() -> str:
+    return "test_continuous_emission_RASCIL_v1.fits"
 
 
 @pytest.fixture
@@ -55,6 +62,16 @@ def continuous_noise_fits_downloader(
 ) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
         remote_file_path=continuous_noise_fits_filename,
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    )
+
+
+@pytest.fixture
+def continuous_Rascil_fits_downloader(
+    continuous_Rascil_fits_filename: str,
+) -> SingleFileDownloadObject:
+    return SingleFileDownloadObject(
+        remote_file_path=continuous_Rascil_fits_filename,
         remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
@@ -105,18 +122,34 @@ def test_backend_simulations(
     assert len(dirty.data.shape) == 4
 
 
+@pytest.mark.parametrize(
+    "backend,telescope_name",
+    [
+        (SimulatorBackend.OSKAR, "MeerKAT"),
+        (SimulatorBackend.RASCIL, "MEERKAT+"),
+    ],
+)
 def test_simulation_meerkat(
-    continuous_fits_filename: str, continuous_fits_downloader: SingleFileDownloadObject
+    continuous_fits_filename: str,
+    continuous_fits_downloader: SingleFileDownloadObject,
+    continuous_Rascil_fits_filename: str,
+    continuous_Rascil_fits_downloader: SingleFileDownloadObject,
+    backend: SimulatorBackend,
+    telescope_name: str,
 ) -> None:
     """
-    Executes a simulation of continuous emission and validates the output files.
+    Executes a simulation of continuous emission and validates the output files. Testing
+    the OSKAR and the RASCIL backends.
 
     Args:
         continuous_fits_filename:
             Name of FITS file containing the simulated dirty image.
     """
     # Download golden files for comparison
-    golden_continuous_fits_path = continuous_fits_downloader.get()
+    if backend == SimulatorBackend.OSKAR:
+        golden_continuous_fits_path = continuous_fits_downloader.get()
+    else:
+        golden_continuous_fits_path = continuous_Rascil_fits_downloader.get()
 
     # Parameter definition
     ra_deg = 20
@@ -128,7 +161,7 @@ def test_simulation_meerkat(
 
     # Load test sky and MeerKAT telescope
     sky = SkyModel.sky_test()
-    telescope = Telescope.constructor("MeerKAT")
+    telescope = Telescope.constructor(telescope_name, backend=backend)
 
     # Simulating visibilities
     simulation = InterferometerSimulation(
@@ -150,7 +183,7 @@ def test_simulation_meerkat(
         frequency_increment_hz=freq_bin,
         number_of_channels=3,
     )
-    visibility = simulation.run_simulation(telescope, sky, observation)
+    visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
 
     # We use the Imager to check the simulation
     dirty_imager = RascilDirtyImager(
@@ -167,7 +200,7 @@ def test_simulation_meerkat(
         continuous_fits_path = outpath / "test_continuous_emission.fits"
         dirty.write_to_file(str(continuous_fits_path), overwrite=True)
 
-        # Verify mosaic fits
+        # Verify fits
         continuous_fits_data, continuous_fits_header = fits.getdata(
             continuous_fits_path, ext=0, header=True
         )
@@ -254,7 +287,7 @@ def test_simulation_noise_meerkat(
         continuous_noise_fits_path = outpath / "test_continuous_emission_noise.fits"
         dirty.write_to_file(str(continuous_noise_fits_path), overwrite=True)
 
-        # Verify mosaic fits
+        # Verify fits
         continuous_noise_fits_data, continuous_noise_fits_header = fits.getdata(
             continuous_noise_fits_path, ext=0, header=True
         )

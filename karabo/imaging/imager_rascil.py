@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
+import xarray as xr
 from distributed import Client
 from rascil.processing_components import create_visibility_from_ms
 from rascil.workflows import (
@@ -102,6 +103,31 @@ class RascilDirtyImager(DirtyImager):
                 "This imager currently doesn't support more than one visibility."
             )
         visibility = block_visibilities[0]
+
+        # We ignore autocorrelations in the imaging process
+        # Create a boolean mask where antenna1 == antenna2 (autocorrelations)
+        # Remark why I (Andreas Wassmer) put type ignore here:
+        # visibility: Visibility has the 2 attributes. But they are not defined
+        # in the class Visibility from karabo.simulation.visibility but in
+        # the one from ska_sdp_datamodels.visibility.vis_model. To be honest
+        # I didn't know how to solve this problem otherwise.
+        autocorr_mask = (
+            visibility.antenna1 == visibility.antenna2  # type: ignore  [attr-defined]
+        )
+
+        # First, create a DataArray from the autocorr_mask with the 'baselines'
+        # dimension
+        autocorr_mask_da = xr.DataArray(autocorr_mask, dims=["baselines"])
+
+        # Now, broadcast the mask to match the dimensions of 'flags'
+        # This will create a mask with dimensions:
+        # (time, baselines, frequency, polarisation)
+        expanded_mask = autocorr_mask_da.broadcast_like(visibility.flags)  # type: ignore [attr-defined] # noqa: E501
+
+        # Set the flags to 1 where the expanded_mask is True
+        visibility["flags"] = visibility.flags.where(  # type: ignore [index, attr-defined] # noqa: E501
+            ~expanded_mask, other=1
+        )
 
         # Compute dirty image from visibilities
         model = create_image_from_visibility(

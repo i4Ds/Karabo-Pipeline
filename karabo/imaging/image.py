@@ -442,6 +442,9 @@ class Image:
 
         im = ax.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
         ax.grid()
+
+        if colorbar_label is None:
+            colorbar_label = "flux (Jy)"
         fig.colorbar(im, label=colorbar_label)
 
         if title is not None:

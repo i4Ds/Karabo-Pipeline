@@ -52,10 +52,6 @@ from karabo.data.external_data import (
     MIGHTEESurveyDownloadObject,
 )
 from karabo.error import KaraboSkyModelError
-from karabo.simulation.line_emission_helpers import (
-    convert_frequency_to_z,
-    convert_z_to_frequency,
-)
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     FilePathType,
@@ -523,7 +519,7 @@ class SkyModel:
             - [10] minor axis FWHM (arcsec): defaults to 0
             - [11] position angle (deg): defaults to 0
             - [12] true redshift: defaults to 0
-            - [13] observed redshift: defaults to 0
+            - [13] observed redshift: defaults to 0 (only necessary for line emission)
             - [14] object-id: just for `np.ndarray` \
             it is removed in the `xr.DataArray`
             and exists then in `xr.DataArray.coords` as index.
@@ -1274,7 +1270,7 @@ class SkyModel:
         ax.grid()
         plt.axis("equal")
         if cbar_label is None:
-            cbar_label = ""
+            cbar_label = "flux log(Jy)"
         plt.colorbar(sc, label=cbar_label)
         if title is not None:
             plt.title(title)
@@ -2159,6 +2155,31 @@ class SkyModel:
 
         return sky
 
+    @classmethod
+    def sky_test_LE(cls: Type[_TSkyModel]) -> _TSkyModel:
+        """
+        Construction of a sky model which can be used for testing and visualizing the
+        line emission simulation with equal distributed point sources around the phase
+        center ra=20, deg=-30. With redshift values randomly distributed between 0.8
+        and 1.0.
+
+        Returns:
+             SkyModel: The test sky model for a line emission simulation.
+        """
+        sky = cls()
+        sky_data = np.zeros((81, cls.SOURCES_COLS))
+        a = np.arange(-32, -27.5, 0.5)
+        b = np.arange(18, 22.5, 0.5)
+        dec_arr, ra_arr = np.meshgrid(a, b)
+        sky_data[:, 0] = ra_arr.flatten()
+        sky_data[:, 1] = dec_arr.flatten()
+        sky_data[:, 2] = 1
+        sky_data[:, 13] = np.random.uniform(low=0.8, high=1.0, size=(81,))
+
+        sky.add_point_sources(sky_data)
+
+        return sky
+
     @overload
     def convert_to_backend(
         self,
@@ -2192,9 +2213,9 @@ class SkyModel:
         Args:
             backend: Determines how to return the SkyModel source catalog.
 
-                    - OSKAR: return the current SkyModel instance, since methods \
+                - OSKAR: return the current SkyModel instance, since methods \
                     in Karabo support OSKAR-formatted source np.array values.
-                    - RASCIL: convert the current source array into a \
+                - RASCIL: convert the current source array into a \
                     list of RASCIL SkyComponent instances.
             desired_frequencies_hz: List of frequencies corresponding to start
                 of desired frequency channels. This field is required
@@ -2202,7 +2223,7 @@ class SkyModel:
                 The array contains starting frequencies for the desired channels.
                 E.g. [100e6, 110e6] corresponds to 2 frequency channels,
                 which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
-                channel_bandwidth_hz: Used if desired_frequencies_hz has
+            channel_bandwidth_hz: Used if desired_frequencies_hz has
                 only one element. Otherwise, bandwidth is determined as
                 the delta between the first two entries in desired_frequencies_hz.
             verbose: Determines whether to display additional print statements.
@@ -2252,81 +2273,28 @@ class SkyModel:
 
             frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
-            # Set endpoints, i.e. all channel starts + the final channel's end
-            frequency_channel_endpoints = np.append(
-                desired_frequencies_hz, desired_frequencies_hz[-1] + frequency_bandwidth
-            )
-
-            # 1. Remove sources that fall outside all desired frequency channels
-            # 2. Assign each source to the frequency channel closest
-            # to its corresponding redshift (using np.digitize)
-            # 3. For each source, create a SkyComponent,
-            # with flux array equal to 0 on all channels,
-            # except for its closest channel, where all its flux will belong
-            # This is equivalent to having the source's SED equal to a delta function
-            # at the frequency corresponding to its redshift,
-            # which is true for line emission catalogues.
-            redshift_limits = convert_frequency_to_z(
-                np.array(
-                    [
-                        np.max(frequency_channel_endpoints),
-                        np.min(frequency_channel_endpoints),
-                    ]
-                )
-            )
-            min_redshift, max_redshift = cast(
-                Tuple[np.float_, np.float_], redshift_limits
-            )
+            skycomponents: List[SkyComponent] = []
 
             if self.sources is None:
-                return []
+                return skycomponents
 
-            assert self.sources is not None
+            ras = self.sources[:, 0]  # Degrees
+            decs = self.sources[:, 1]  # Degrees
+            fluxes = self.sources[:, 2]  # Jy * MHz
 
-            redshift_mask = (self.sources[:, 13] <= max_redshift) & (
-                self.sources[:, 13] >= min_redshift
-            )
-            if verbose is True:
-                print(min_redshift, max_redshift)
-                print(self.sources)
-            ras = self.sources[:, 0][redshift_mask]  # Degrees
-            decs = self.sources[:, 1][redshift_mask]  # Degrees
-            fluxes = self.sources[:, 2][redshift_mask]  # Jy * MHz
-            redshifts = self.sources[:, 13][redshift_mask]
-            if verbose is True:
-                print(
-                    f"""Reduced size of source catalog, after removing sources
-                    outside of desired frequency range: {redshifts.shape}"""
-                )
-
-            # For each source, find the channel to which it belongs
-            source_channel_indices = np.digitize(
-                convert_z_to_frequency(redshifts),
-                frequency_channel_endpoints,
-                right=False,
-            )
-
-            # E.g. if channel starts are [1e8, 2e8],
-            # then a source at frequency 1.5e8 should fall into the 0th channel.
-            # However, digitize returns index 1 for such a source.
-            # Therefore, we subtract 1 from the return value of np.digitize
-            source_channel_indices -= 1
-
-            skycomponents: List[SkyComponent] = []
-            for ra, dec, flux, index in zip(
+            for ra, dec, flux in zip(
                 ras,
                 decs,
                 fluxes,
-                source_channel_indices,
             ):
                 # 1 == npolarisations, fixed as 1 (stokesI) for now
                 # TODO eventually handle full stokes source catalogs
-                flux_array = np.zeros((len(frequency_channel_endpoints) - 1, 1))
+                flux_array = np.zeros((len(frequency_channel_centers), 1))
 
-                # Access [0] since this is the stokesI flux,
-                # and [index] to place the source's flux onto
-                # the correct frequency channel (since this works for line emission)
-                flux_array[index][0] = flux
+                # for continuum emission: distribute flux evenly over all channels
+                flux_array[:, 0] = flux
+                # flux_array[index,0] : Access [0] since this is the stokesI flux,
+                # and [index] to place the source's flux onto each channel
 
                 skycomponents.append(
                     SkyComponent(
