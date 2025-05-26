@@ -78,8 +78,8 @@ jobs:
       - name: Test Package
         shell: bash -l {0}
         run: |
-          micromamba activate karabo-env
-          pytest --pyargs karabo.test
+          micromamba install -n karabo-env -c conda-forge pytest -y
+          micromamba run -n karabo-env pytest --pyargs karabo.test
 
   build-docker:
     needs: test-conda-build
