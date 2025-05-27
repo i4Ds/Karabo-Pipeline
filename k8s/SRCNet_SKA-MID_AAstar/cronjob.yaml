@@ -4,7 +4,7 @@ metadata:
   name: karabo-simulation-hourly
   namespace: datalake-ingestion
 spec:
-  schedule: "0 * * * *"  # every hour on the hour
+  schedule: "0 * * * *" # every hour on the hour
   jobTemplate:
     spec:
       backoffLimit: 0
@@ -13,7 +13,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: karabo-job
-              image: ghcr.io/i4ds/karabo-pipeline:latest
+              image: ghcr.io/i4ds/karabo-pipeline:latest # fix tag in case breaking changes will occur
               command: ["/bin/bash", "-c"]
               args:
                 - |
@@ -99,4 +99,3 @@ spec:
               operator: "Equal"
               value: "true" # site-specific value
               effect: "NoExecute"
-              

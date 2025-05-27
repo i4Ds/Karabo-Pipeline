@@ -10,7 +10,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: karabo-job
-          image: ghcr.io/i4ds/karabo-pipeline:latest # requires karabo >= 0.34.0
+          image: ghcr.io/i4ds/karabo-pipeline:latest # fix tag in case breaking changes will occur
           command: ["/bin/bash", "-c"]
           args:
             [

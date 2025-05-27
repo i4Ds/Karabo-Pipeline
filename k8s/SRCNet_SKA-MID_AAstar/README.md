@@ -13,6 +13,8 @@ Min-size for a single image can be estimated by: `imaging_npixel^2 * num_channel
 
 A larger simulation can easily take several hours or days (also depending if GPU is available). Therefore it is advised to start with a smaller simulation to estimate durations for a longer run on your device. Check pod-logs for current status.
 
+**Note:** In case your node is not setup to have reserved resources for kubelet, the according node might get in a unhealthy state if the jobs or namespace resources are not limited, because a node then can't talk with the master nodes anymore.
+
 ## Setup
 
 ### OIDC Secret
