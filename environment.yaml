@@ -39,7 +39,7 @@ dependencies:
   - reproject               >=0.9,<=10.0 # check here the python version compatibility
   - requests
   - rfc3986                 >=2.0.0
-  - scipy                   >=1.10.1  # pin due to deprecated `integrate.trapz`; use `integrate.trapezoid` in >=1.14.0 
+  - scipy                   >=1.10.1, <1.14.0  # pin due to deprecated `integrate.trapz`; `trapz` removed in >=1.14
   - ska-gridder-nifty-cuda  =0.3.dev0
   - ska-sdp-datamodels      =0.1.dev3
   - ska-sdp-func-python     =0.1.dev4
