@@ -1,20 +1,18 @@
 FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
-ARG GIT_REV="main" BUILD="user" KARABO_VERSION=""
-ARG PYTHON_VERSION="3.10"
-ENV PYTHON_VERSION=${PYTHON_VERSION}
+ARG GIT_REV="upgrade_python" BUILD="user" KARABO_VERSION=""
 RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN conda install -y -n base -c conda-forge conda-libmamba-solver mamba && \
+RUN conda install -y -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
-    mamba create -y -n karabo python=${PYTHON_VERSION}
+    conda create -y -n karabo python=3.10
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`
 SHELL ["conda", "run", "-n", "karabo", "/bin/bash", "-c"]
 RUN mkdir Karabo-Pipeline && \
@@ -24,13 +22,12 @@ RUN mkdir Karabo-Pipeline && \
     git fetch && \
     git checkout ${GIT_REV} && \
     if [ "$BUILD" = "user" ] ; then \
-        mamba install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
+    conda install -y -c i4ds -c i4ds/label/dev -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
-        mamba install -y -c conda-forge nest_asyncio && \
-        conda env update -n karabo -f environment.yaml && \
-        pip install --no-deps "."; \
+    conda env update -f="environment.yaml"; \
+    pip install --no-deps "."; \
     else \
-        exit 1; \
+    exit 1; \
     fi && \
     mkdir /workspace && \
     mkdir /workspace/karabo-examples && \
