@@ -82,7 +82,7 @@ class Environment:
             name: Name of env-var.
             type_: Type to parse into.
             default: Default value in case env-var is not set
-                (NoneType allowed as default).
+                (setting NoneType as default is allowed).
             allow_none_parsing: Allow None-type parsing?
 
         Returns:
@@ -96,8 +96,13 @@ class Environment:
             else:
                 return default  # type: ignore[return-value]
         env_lower = env.lower()
-        if allow_none_parsing and env_lower == "none":
-            return None
+        if env_lower == "none":
+            if allow_none_parsing:
+                return None
+            else:
+                raise ValueError(
+                    f"Passed value of {name}={env}, but {allow_none_parsing=}"
+                )
         if type_ is bool:
             if env_lower == "true":
                 return True  # type: ignore[return-value]

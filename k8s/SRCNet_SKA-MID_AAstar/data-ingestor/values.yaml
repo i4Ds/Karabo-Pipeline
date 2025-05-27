@@ -1,0 +1,33 @@
+image:
+  repository: registry.gitlab.com/ska-telescope/src/src-dm/ska-src-dm-di-ingestor
+  tag: 0.1.30
+config:
+  frequency: 5
+  batch_size: 50
+  metadata_suffix: meta
+  n_processes: 4
+  ingestion_backend_name: rucio
+  rucio_ingest_rse_name: "CHSRC_XRD_DEV" # customize
+  debug: "false"
+  auto_start: "true"
+  rucio_cfg_client_host: https://rucio.srcnet.skao.int
+  rucio_cfg_client_auth_type: oidc
+  rucio_cfg_client_oidc_scope: openid profile rucio wlcg.groups
+  rucio_cfg_client_oidc_audience: rucio https://wlcg.cern.ch/jwt/v1/any
+  rucio_cfg_client_account: service_chsrc_ingestion # customize
+  oidc_token_endpoint: https://ska-iam.stfc.ac.uk/token
+
+persistence:
+  storageClass: ceph-corbo-cephfs
+  existingClaim: ""
+  enabled: true
+  accessMode: ReadWriteMany
+  size: 100Gi # outputs of karabo-workflow has to fit! Can get full because ingestor doesn't empty directories just by itself.
+
+secrets:
+  - name: OIDC_CLIENT_ID
+    fromSecretName: datalake-ingestion
+    fromSecretKey: oidc-client-id
+  - name: OIDC_CLIENT_SECRET
+    fromSecretName: datalake-ingestion
+    fromSecretKey: oidc-client-secret

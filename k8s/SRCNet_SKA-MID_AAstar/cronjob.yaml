@@ -1,0 +1,101 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: karabo-simulation-hourly
+  namespace: datalake-ingestion
+spec:
+  schedule: "0 * * * *" # every hour on the hour
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: karabo-job
+              image: ghcr.io/i4ds/karabo-pipeline:latest # fix tag in case breaking changes will occur
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  export OBS_ID="$(date +%Y%m%dT%H%M%S)_SKAMID_Karabo_test_hourly";
+                  export FILE_PREFIX="$(date +%Y%m%dT%H%M%S)_SKAMID-Karabo-test-hourly";
+                  python /scripts/SRCNet_AAstar.py --dirty --cleaned
+              env: # new simulation-values probably have a large influence on other values as well
+                - name: SKY_MODEL
+                  value: "MIGHTEE_L1"
+                - name: PHASE_CENTER_RA_DEG
+                  value: "150.12"
+                - name: PHASE_CENTER_DEC_DEG
+                  value: "2.21"
+                - name: START_FREQ_HZ
+                  value: "1.304e9"
+                - name: END_FREQ_HZ
+                  value: "1.375e9"
+                - name: FREQ_INC_HZ
+                  value: "17750000"
+                - name: OBS_LENGTH_HOURS
+                  value: "4.0"
+                - name: NUM_TIME_STAMPS
+                  value: "24"
+                - name: START_DATE_AND_TIME
+                  value: "2020-04-26T16:36"
+                - name: IMAGING_NPIXEL
+                  value: "2024"
+                - name: IMAGING_CELLSIZE # None does automatically calculate cellsize from FOV
+                  value: "None"
+                - name: RUCIO_NAMESPACE # has to exist in rucio
+                  value: "testing"
+                - name: RUCIO_LIFETIME # [s]
+                  value: "31536000"
+                - name: IVOID_AUTHORITY
+                  value: "test.skao"
+                - name: IVOID_PATH
+                  value: "/~"
+                - name: OBS_COLLECTION
+                  value: "SKAO/SKAMID"
+                - name: FILE_PREFIX
+                  value: "SKAMID-Karabo-test-hourly"
+                - name: OUT_DIR # ingestion-dir (must exist)
+                  value: "/ingest/staging" # don't add <RUCIO_NAMESPACE> because it will get appended
+              volumeMounts:
+                - name: script-vol
+                  mountPath: /scripts
+                - name: ingest-area
+                  mountPath: /ingest
+                - name: temporal-scratch
+                  mountPath: /tmp
+              resources: # set resources according to expected needs
+                requests:
+                  cpu: "8"
+                  memory: "64Gi"
+                limits: # setting limits may/is important to not letting cpu-load "killing" your node for "large" simulations
+                  cpu: "16"
+                  memory: "128Gi"
+          volumes:
+            - name: script-vol
+              configMap:
+                name: aastar-workflow
+            - name: ingest-area
+              persistentVolumeClaim:
+                claimName: "ingest-area" # see ingestor helm-chart `core-deployment.yaml`
+            - name: temporal-scratch
+              persistentVolumeClaim: # avoid ephemeral storage size-restriction of a node (see README.md)
+                claimName: "temporal-scratch"
+          affinity:
+            nodeAffinity: # nodeAffinity to run job on compute-nodes is strongly recommended!!!
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: "hpc" # site-specific key
+                        operator: "In"
+                        values:
+                          - "true" # site-specific value
+          tolerations: # tolerations for taint if needed
+            - key: "hpc" # site-specific key
+              operator: "Equal"
+              value: "true" # site-specific value
+              effect: "NoSchedule"
+            - key: "hpc" # site-specific key
+              operator: "Equal"
+              value: "true" # site-specific value
+              effect: "NoExecute"

@@ -191,3 +191,38 @@ class Visibility:
                 )
 
         return combined_ms_filepath
+
+    @classmethod
+    def num_measurements(
+        cls,
+        *,
+        start_freq_hz: float,
+        end_freq_hz: float,  # would num_channels be a better arg?
+        freq_inc_hz: float,
+        num_time_stamps: int,
+        num_stations: int,
+        num_polarizations: int,  # e.g. OSKAR goes with 4
+    ) -> int:
+        """Calculates the total number of measurements in visibilities.
+
+        This may help estimating the size of a simulated casa measurement set.
+        E.g. you can just multiply the resulting number by `bytes_dtype` to get
+            the size of a table like "DATA" (complex64=8bytes). Then you just have to
+            account for other tables which could have a significant influence on the
+            inode size to get a good estimate of the resulting disk requirement.
+
+        Args:
+            start_freq_hz: Start freq of simulation.
+            end_freq_hz: End freq of simulation.
+            freq_inc_hz: Freq increment of simulation.
+            num_time_stamps: Number of dumps for whole simulation.
+            num_stations: Number of telescope stations.
+            num_polarizations: Number of polarizations.
+
+        Returns:
+            Total number of visibility measurements.
+        """
+        num_channels = int((end_freq_hz - start_freq_hz) / freq_inc_hz)
+        num_baselines = int((num_stations**2 - num_stations) / 2)
+        num_dumps = num_channels * num_time_stamps * num_baselines
+        return num_dumps * num_polarizations
