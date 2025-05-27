@@ -116,10 +116,10 @@ def generate_visibilities(outdir: str) -> Visibility:
         )
         raise ValueError(err_msg)
     print(
-        f"{datetime.now()}: Infos in degree: RA={PHASE_CENTER_RA_DEG}, DEC={PHASE_CENTER_DEC_DEG}, FOV={fov_deg}"
+        f"{datetime.now()}: Infos in degree: RA={PHASE_CENTER_RA_DEG}, DEC={PHASE_CENTER_DEC_DEG}, FOV={fov_deg}"  # noqa: E501
     )
     print(
-        f"{datetime.now()}: Filter sources outside of primary beam's sensitivity: {filter_radius_deg=}"
+        f"{datetime.now()}: Filter sources outside of primary beam's sensitivity: {filter_radius_deg=}"  # noqa: E501
     )
     sky_model = sky_model.filter_by_radius(
         inner_radius_deg=0.0,

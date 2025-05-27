@@ -394,11 +394,13 @@ class MSPolarizationTable(_CasaTableABC):
 
     @overload
     @classmethod
-    def get_stokes_type(cls, corr_type: List[int]) -> List[str]: ...
+    def get_stokes_type(cls, corr_type: List[int]) -> List[str]:
+        ...
 
     @overload
     @classmethod
-    def get_stokes_type(cls, corr_type: int) -> str: ...
+    def get_stokes_type(cls, corr_type: int) -> str:
+        ...
 
     @classmethod
     def get_stokes_type(cls, corr_type: Union[int, List[int]]) -> Union[str, List[str]]:

@@ -52,7 +52,8 @@ class Image:
         data: Literal[None] = None,
         header: Literal[None] = None,
         **kwargs: Any,
-    ) -> None: ...
+    ) -> None:
+        ...
 
     @overload
     def __init__(
@@ -62,7 +63,8 @@ class Image:
         data: NDArray[np.float_],
         header: Header,
         **kwargs: Any,
-    ) -> None: ...
+    ) -> None:
+        ...
 
     def __init__(
         self,

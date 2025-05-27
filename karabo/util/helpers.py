@@ -40,7 +40,8 @@ class Environment:
         default: Union[MissingType, _TEnv] = MISSING,
         *,
         allow_none_parsing: Literal[False] = False,
-    ) -> _TEnv: ...
+    ) -> _TEnv:
+        ...
 
     @overload
     @classmethod
@@ -51,7 +52,8 @@ class Environment:
         default: Optional[Union[_TEnv, MissingType]] = ...,
         *,
         allow_none_parsing: Literal[True],
-    ) -> Optional[_TEnv]: ...
+    ) -> Optional[_TEnv]:
+        ...
 
     @overload
     @classmethod
@@ -62,7 +64,8 @@ class Environment:
         default: Literal[None],
         *,
         allow_none_parsing: bool = ...,
-    ) -> Optional[_TEnv]: ...
+    ) -> Optional[_TEnv]:
+        ...
 
     @classmethod
     def get(
