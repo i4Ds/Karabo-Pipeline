@@ -57,7 +57,7 @@ NUM_TIME_STAMPS = Environment.get("NUM_TIME_STAMPS", int)
 # E.g. MIGHTEE-survey: 2020-04-26 14:36:50.820 UTC to 2020-04-26 22:35:42.665 UTC
 START_DATE_AND_TIME = Environment.get(
     "START_DATE_AND_TIME", str
-)  # UTC "04.26.2020T16:36"
+)  # UTC "2020-04-26T16:36"
 
 # MeerKAT dish diameter = 13.5 m
 # SKA-Mid dish diameter = 15 m

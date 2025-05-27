@@ -34,7 +34,7 @@ spec:
             - name: NUM_TIME_STAMPS
               value: "24"
             - name: START_DATE_AND_TIME
-              value: "04.26.2020T16:36"
+              value: "2020-04-26T16:36"
             - name: IMAGING_NPIXEL
               value: "2024"
             - name: IMAGING_CELLSIZE # None does automatically calculate cellsize from FOV
