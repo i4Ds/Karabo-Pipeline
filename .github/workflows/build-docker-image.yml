@@ -114,6 +114,18 @@ jobs:
             docker tag ${{ env.IMG_ADDR }}:${{ env.version }} ${{ env.IMG_ADDR }}:latest
           fi
 
+      - name: Test image - check scipy version
+        run: |
+          echo "Checking installed scipy version before running tests:"
+          docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash -c \
+            'conda run -n karabo python -c "import scipy; print(\"Installed scipy version:\", scipy.__version__)"'
+      
+      - name: (Optional) Force reinstall of scipy==1.13.1
+        run: |
+           echo "Forcing scipy==1.13.1 to avoid 1.14+ breaking changes"
+           docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash -c \
+            'conda run -n karabo pip install scipy==1.13.1 --force-reinstall'
+
       - name: Test image
         run: |  # karabo-sitepackage-location used for mpirun instead of --pyargs because --only-mpi is a custom-flag of karabo which lives in the site-packages
           docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash -c \
