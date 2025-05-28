@@ -45,7 +45,9 @@ RUN mkdir Karabo-Pipeline && \
 RUN sed -i 's/from scipy.integrate import trapz/import numpy as np\ntrapz = np.trapz/' \
     /opt/conda/envs/karabo/lib/python3.10/site-packages/healpy/sphtfunc.py && \
     sed -i 's/from scipy.integrate import quadrature/import warnings\nwarnings.warn("quadrature removed in scipy>=1.14; replace or downgrade scipy", DeprecationWarning)\nquadrature = None/' \
-    /opt/conda/envs/karabo/lib/python3.10/site-packages/tools21cm/cosmology.py
+    /opt/conda/envs/karabo/lib/python3.10/site-packages/tools21cm/cosmology.py && \
+    sed -i 's/from scipy.integrate import quadrature/import warnings\nwarnings.warn("quadrature removed in scipy>=1.14; replace or downgrade scipy", DeprecationWarning)\nquadrature = None/' \
+    /opt/conda/envs/karabo/lib/python3.10/site-packages/tools21cm/foreground_model.py
 
 # Clean up conda cache to reduce image size
 RUN conda clean -a -y
