@@ -42,6 +42,10 @@ RUN mkdir Karabo-Pipeline && \
     python -m ipykernel install --user --name=karabo
 
 # PATCH healpy and tools21cm after install to fix scipy>=1.14 incompat
+# NOTE: healpy and tools21cm still import deprecated APIs (trapz/quadrature) from scipy.integrate
+# scipy >=1.14 removed these functions → leads to ImportError
+# Temporary fix: monkey-patch healpy/tools21cm post-install
+# Long-term: remove patch and pin healpy once it properly restricts scipy
 RUN sed -i 's/from scipy.integrate import trapz/import numpy as np\ntrapz = np.trapz/' \
     /opt/conda/envs/karabo/lib/python3.10/site-packages/healpy/sphtfunc.py && \
     sed -i 's/from scipy.integrate import quadrature/import warnings\nwarnings.warn("quadrature removed in scipy>=1.14; replace or downgrade scipy", DeprecationWarning)\nquadrature = None/' \
