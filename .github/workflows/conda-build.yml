@@ -120,7 +120,7 @@ jobs:
           echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
 
           micromamba run -n buildenv conda config --append channels i4ds
-          micromamba run -n buildenv conda config --append channels nvidia/label/cuda-12.8.1
+          micromamba run -n buildenv conda config --append channels nvidia/label/cuda-11.7.1
           micromamba run -n buildenv conda config --append channels conda-forge
 
           cd conda
