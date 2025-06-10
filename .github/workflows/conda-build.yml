@@ -13,6 +13,10 @@ on:
         type: string
         required: true
         description: "version: PEP440 package-version (DON'T trigger build if you don't know what PEP440 is)"
+      python-version:
+        type: string
+        required: true
+        description: "Python version to test (e.g. 3.9 or 3.10)"
       buildDocker:
         type: boolean
         required: false
