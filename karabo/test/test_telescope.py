@@ -3,7 +3,9 @@ import pathlib as pl
 import tempfile
 from unittest import mock
 
+import numpy as np
 import pytest
+from astropy import constants as const
 from ska_sdp_datamodels.configuration.config_model import Configuration
 
 from karabo.simulation.telescope import Telescope
@@ -66,7 +68,11 @@ def test_OSKAR_telescope_plot_file_created():
         tel = Telescope.constructor("MeerKAT")
         tel.plot_telescope(temp_plot_file_name)
         assert os.path.exists(temp_plot_file_name)
-        assert os.path.getsize(temp_plot_file_name) == 28171
+        # It is tedious to check a specific file size. Even
+        # small changes to the code creating the image will make
+        # this test fail. Thus, I check only if the file size
+        # is > 0.
+        assert os.path.getsize(temp_plot_file_name) > 0
 
 
 def test_create_alma_telescope():
@@ -202,7 +208,11 @@ def test_RASCIL_telescope_plot_file_created():
         tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
         tel.plot_telescope(temp_plot_file_name)
         assert os.path.exists(temp_plot_file_name)
-        assert os.path.getsize(temp_plot_file_name) == 20583
+        # It is tedious to check a specific file size. Even
+        # small changes to the code creating the image will make
+        # this test fail. Thus, I check only if the file size
+        # is > 0.
+        assert os.path.getsize(temp_plot_file_name) > 0
 
 
 # There is an if statement in Telescope::plot_telescope for the
@@ -231,3 +241,18 @@ def test_plot_invalid_backend(mock_logging_warning):
     # Attempt plotting, which triggers logging but no plot
     tel.plot_telescope()
     assert mock_logging_warning.call_count == 1
+
+
+def test_ang_res():
+    """
+    At 1m wavelength, a 1km baseline resolves 1/1000rad => 206asec
+    """
+    wavelength = 1  # 1m
+    freq = const.c.value / wavelength
+    b = 1000  # 1km
+    exp_ang_res_radians = wavelength / b
+    exp_ang_res_arcsec = (exp_ang_res_radians * 180 * 3600) / np.pi
+    ang_res_arcsec = Telescope.ang_res(freq, b)
+    assert np.isclose(
+        ang_res_arcsec, exp_ang_res_arcsec, rtol=1e-5
+    ), f"Expected {exp_ang_res_arcsec}, got {ang_res_arcsec}"
