@@ -6,57 +6,12 @@ import numpy as np
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
-from karabo.simulation.beam import BeamPattern
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test.conftest import TFiles
-
-
-# Test cases
-def test_fit_element(tobject: TFiles):
-    tel = Telescope.constructor("MeerKAT")
-    beam = BeamPattern(tobject.run5_cst)
-    beam.fit_elements(tel, freq_hz=1.0e08, avg_frac_error=0.5)
-
-
-def test_katbeam():
-    beampixels = BeamPattern.get_meerkat_uhfbeam(
-        f=800, pol="I", beamextentx=40, beamextenty=40
-    )
-    with tempfile.TemporaryDirectory() as tmpdir:
-        BeamPattern.show_kat_beam(
-            beampixels[0],
-            40,
-            800,
-            "I",
-            path=os.path.join(tmpdir, "katbeam_beam.png"),
-        )
-
-
-def test_eidosbeam():
-    npix = 500
-    dia = 10
-    thres = 0
-    ch = 0
-    B_ah = BeamPattern.get_eidos_holographic_beam(
-        npix=npix, ch=ch, dia=dia, thres=thres, mode="AH"
-    )
-    with tempfile.TemporaryDirectory() as tmpdir:
-        BeamPattern.show_eidos_beam(
-            B_ah, path=os.path.join(tmpdir, "eidos_AH_beam.png")
-        )
-        B_em = BeamPattern.get_eidos_holographic_beam(
-            npix=npix, ch=ch, dia=dia, thres=thres, mode="EM"
-        )
-        BeamPattern.show_eidos_beam(
-            B_em, path=os.path.join(tmpdir, "eidos_EM_beam.png")
-        )
-        BeamPattern.eidos_lineplot(
-            B_ah, B_em, npix, path=os.path.join(tmpdir, "eidos_residual_beam.png")
-        )
+from karabo.test.util import get_compatible_dirty_imager
 
 
 def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
@@ -82,24 +37,7 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
             number_of_channels=3,
             number_of_days=number_of_days,
         )
-        beam_polX = BeamPattern(
-            cst_file_path=tobject.cst_like_beam_port_1_txt,
-            telescope=telescope,
-            freq_hz=observation_long.start_frequency_hz,
-            pol="X",
-            avg_frac_error=0.001,
-            beam_method="Gaussian Beam",
-        )
-        beam_polY = BeamPattern(
-            cst_file_path=tobject.cst_like_beam_port_2_txt,
-            telescope=telescope,
-            freq_hz=observation_long.start_frequency_hz,
-            pol="Y",
-            avg_frac_error=0.001,
-            beam_method="Gaussian Beam",
-        )
         simulation = InterferometerSimulation(
-            ms_file_path=combined_ms_filepath,
             channel_bandwidth_hz=2e7,
             time_average_sec=7,
             noise_enable=False,
@@ -113,25 +51,17 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
             noise_rms_end=1,
             enable_numerical_beam=enable_array_beam,
             enable_array_beam=enable_array_beam,
-            beam_polX=beam_polX,
-            beam_polY=beam_polY,
         )
         # -------- Iterate over days
         visibility = simulation.run_simulation(
             telescope=telescope,
             sky=sky,
             observation=observation_long,
+            visibility_format="MS",
+            visibility_path=combined_ms_filepath,
         )
 
-        # visibility.write_to_file("/home/rohit/karabo/karabo-pipeline/karabo/test/result/beam/beam_vis.ms")
-        # ---------- Combine the Visibilties --------------
-        # visibility_files= [
-        #     './karabo/test/data/beam_vis_1.vis',
-        #     './karabo/test/data/beam_vis_2.vis',
-        #     './karabo/test/data/beam_vis_3.vis',
-        # ]
-
-        dirty_imager = auto_choose_dirty_imager_from_vis(
+        dirty_imager = get_compatible_dirty_imager(
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=4096,

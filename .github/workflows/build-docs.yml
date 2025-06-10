@@ -10,11 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: "true"
+          conda-remove-defaults: "true"
       - name: Create Environment
         shell: bash -l {0}
         run: |
@@ -30,7 +33,7 @@ jobs:
           sphinx-apidoc . -o _build
           make html
       - name: Archive doc build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docs_built
           path: _deploy

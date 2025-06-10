@@ -82,6 +82,34 @@ class ALMAVersions(enum.Enum):
     CYCLE_8_8 = "cycle8.8"
     CYCLE_8_9 = "cycle8.9"
     CYCLE_8_10 = "cycle8.10"
+    CYCLE_9_1 = "cycle9.1"
+    CYCLE_9_2 = "cycle9.2"
+    CYCLE_9_3 = "cycle9.3"
+    CYCLE_9_4 = "cycle9.4"
+    CYCLE_9_5 = "cycle9.5"
+    CYCLE_9_6 = "cycle9.6"
+    CYCLE_9_7 = "cycle9.7"
+    CYCLE_9_8 = "cycle9.8"
+    CYCLE_9_9 = "cycle9.9"
+    CYCLE_9_10 = "cycle9.10"
+    CYCLE_10_1 = "cycle10.1"
+    CYCLE_10_2 = "cycle10.2"
+    CYCLE_10_3 = "cycle10.3"
+    CYCLE_10_4 = "cycle10.4"
+    CYCLE_10_5 = "cycle10.5"
+    CYCLE_10_6 = "cycle10.6"
+    CYCLE_10_7 = "cycle10.7"
+    CYCLE_10_8 = "cycle10.8"
+    CYCLE_11_1 = "cycle11.1"
+    CYCLE_11_2 = "cycle11.2"
+    CYCLE_11_3 = "cycle11.3"
+    CYCLE_11_4 = "cycle11.4"
+    CYCLE_11_5 = "cycle11.5"
+    CYCLE_11_6 = "cycle11.6"
+    CYCLE_11_7 = "cycle11.7"
+    CYCLE_11_8 = "cycle11.8"
+    CYCLE_11_9 = "cycle11.9"
+    CYCLE_11_10 = "cycle11.10"
     OUT_01 = "out01"
     OUT_02 = "out02"
     OUT_03 = "out03"
@@ -125,6 +153,10 @@ class ACAVersions(enum.Enum):
     CYCLE_7_named = "cycle7.named"
     CYCLE_8 = "cycle8"
     CYCLE_8_named = "cycle8.named"
+    CYCLE_9 = "cycle9"
+    CYCLE_9_named = "cycle9.named"
+    CYCLE_10 = "cycle10"
+    CYCLE_10_named = "cycle10.named"
     i = "i"
     ns = "ns"
     tp = "tp"
@@ -191,6 +223,46 @@ class PDBIVersions(enum.Enum):
     B = "b"
     C = "c"
     D = "d"
+
+
+class SKAMidAA0Point5Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKAMidAA1Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKAMidAA2Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKAMidAAStarVersions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKAMidAA4Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA0Point5Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA1Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA2Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAAStarVersions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
+
+
+class SKALowAA4Versions(enum.Enum):
+    SKA_OST_ARRAY_CONFIG_2_3_1 = "ska-ost-array-config-2.3.1"
 
 
 class SMAVersions(enum.Enum):

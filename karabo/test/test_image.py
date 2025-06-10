@@ -11,19 +11,19 @@ from karabo.imaging.imager_rascil import (
     RascilImageCleaner,
     RascilImageCleanerConfig,
 )
-from karabo.imaging.util import auto_choose_dirty_imager_from_vis
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
+from karabo.test.util import get_compatible_dirty_imager
 
 
 def test_image_circle(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
@@ -46,9 +46,9 @@ def test_image_circle(tobject: TFiles):
 
 
 def test_dirty_image(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
@@ -63,10 +63,10 @@ def test_dirty_image(tobject: TFiles):
 
 
 def test_dirty_image_resample(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
     SHAPE = 2048
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=SHAPE,
@@ -98,7 +98,7 @@ def test_dirty_image_resample(tobject: TFiles):
 
 
 def test_dirty_image_cutout(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = RascilDirtyImager(
         RascilDirtyImagerConfig(
@@ -125,9 +125,9 @@ def test_dirty_image_cutout(tobject: TFiles):
 
 
 def test_dirty_image_N_cutout(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = auto_choose_dirty_imager_from_vis(
+    dirty_imager = get_compatible_dirty_imager(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
@@ -156,7 +156,7 @@ def test_dirty_image_N_cutout(tobject: TFiles):
 
 
 def test_cellsize_overwrite(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
@@ -186,7 +186,7 @@ def test_cellsize_overwrite(tobject: TFiles):
 
 
 def test_cellsize_overwrite_false(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
     dirty = RascilDirtyImager(
         RascilDirtyImagerConfig(
             imaging_npixel=2048,
@@ -253,9 +253,7 @@ def test_imaging():
             clean_restored_output="integrated",
             use_dask=True,
         )
-    ).create_cleaned_image_variants(
-        ms_file_path=visibility_askap.ms_file_path,
-    )
+    ).create_cleaned_image_variants(visibility_askap)
 
     assert os.path.exists(deconvolved.path)
     assert os.path.exists(restored.path)

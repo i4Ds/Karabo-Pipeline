@@ -9,7 +9,6 @@ from astropy.coordinates import SkyCoord
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
 from karabo.imaging.image import ImageMosaicker
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.util import auto_choose_dirty_imager_from_sim
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
 from karabo.simulation.observation import Observation
@@ -99,9 +98,6 @@ if __name__ == "__main__":
         imaging_npixel=npixels,
         imaging_cellsize=cellsize_radians,
     )
-    dirty_imager = auto_choose_dirty_imager_from_sim(
-        simulator_backend, dirty_imager_config
-    )
 
     visibilities, dirty_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
@@ -111,7 +107,7 @@ if __name__ == "__main__":
         telescope=telescope,
         interferometer=interferometer,
         simulator_backend=simulator_backend,
-        dirty_imager=dirty_imager,
+        dirty_imager_config=dirty_imager_config,
     )
 
     # Create mosaics of pointings for each frequency channel

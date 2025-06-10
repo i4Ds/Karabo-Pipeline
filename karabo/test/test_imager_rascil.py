@@ -16,7 +16,7 @@ from karabo.test.conftest import TFiles
 
 
 def test_dirty_image(tobject: TFiles):
-    vis = Visibility.read_from_file(tobject.visibilities_gleam_ms)
+    vis = Visibility(tobject.visibilities_gleam_ms)
 
     dirty_imager = RascilDirtyImager(
         RascilDirtyImagerConfig(
@@ -69,8 +69,6 @@ def test_create_cleaned_image():
             # TODO DASK_TEST_ISSUE Commented out to avoid test failure on GitHub
             # use_dask=True,
         )
-    ).create_cleaned_image(
-        ms_file_path=visibility_askap.ms_file_path,
-    )
+    ).create_cleaned_image(visibility_askap)
 
     assert os.path.exists(restored.path)

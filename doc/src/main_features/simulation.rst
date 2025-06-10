@@ -1,5 +1,12 @@
 karabo.simulation
-============
+=================
+
+Overview
+------------
+This module contains the functionality required for an interferometer simulation. This includes defining a sky model and selecting a telescope. 
+
+Classes
+-------
 
 .. autoclass:: karabo.simulation.sky_model.SkyModel
    :members:
@@ -30,3 +37,19 @@ karabo.simulation
    :members:
    :special-members: __init__
    :exclude-members: __strfdelta, __run_simulation_oskar, __run_simulation_long, __get_OSKAR_settings_tree
+
+.. autoclass:: karabo.simulation.east_north_coordinate.EastNorthCoordinate
+   :members:
+   :special-members: __init__
+   :exclude-members:
+
+Line emission package
+------------------------
+.. automodule:: karabo.simulation.line_emission
+   :members:
+   :show-inheritance:
+
+.. automodule:: karabo.simulation.line_emission_helpers
+   :members:
+   :show-inheritance:
+

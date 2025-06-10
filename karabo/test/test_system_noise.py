@@ -18,11 +18,7 @@ def test_basic(sky_data: NDArray[np.float64]):
     telescope = Telescope.constructor("SKA1MID")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        ms_path = os.path.join(tmpdir, "noise_vis.ms")
-        vis_path = os.path.join(tmpdir, "noise_vis.vis")
         simulation = InterferometerSimulation(
-            ms_file_path=ms_path,
-            vis_path=vis_path,
             channel_bandwidth_hz=1e6,
             time_average_sec=1,
             noise_enable=True,
@@ -46,7 +42,13 @@ def test_basic(sky_data: NDArray[np.float64]):
             number_of_channels=1,
         )
 
-        visibility = simulation.run_simulation(telescope, sky, observation)
+        visibility = simulation.run_simulation(
+            telescope,
+            sky,
+            observation,
+            visibility_format="MS",
+            visibility_path=os.path.join(tmpdir, "noise_vis.ms"),
+        )
 
         dirty_imager = RascilDirtyImager(
             RascilDirtyImagerConfig(

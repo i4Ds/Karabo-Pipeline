@@ -73,3 +73,11 @@ def test_LineEmission_notebook() -> None:
 )
 def test_ImageMosaicker_notebook() -> None:
     _run_notebook(notebook="ImageMosaicker.ipynb")
+
+
+@pytest.mark.skipif(
+    IS_GITHUB_RUNNER or not RUN_NOTEBOOK_TESTS,
+    reason="'Error: The operation was canceled' when running this test on the package",
+)
+def test_imaging_notebook() -> None:
+    _run_notebook(notebook="imaging.ipynb")

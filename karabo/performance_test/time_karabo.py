@@ -121,9 +121,7 @@ def main(n_random_sources: int) -> None:
             clean_restored_output="integrated",
             use_dask=False,
         )
-    ).create_cleaned_image_variants(
-        ms_file_path=visibility_askap.ms_file_path,
-    )
+    ).create_cleaned_image_variants(visibility_askap)
 
     # Source detection
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)

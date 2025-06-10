@@ -1,6 +1,7 @@
 """Pytest global fixtures needs to be here!"""
 
 import os
+import zipfile
 from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 
@@ -10,6 +11,13 @@ import pytest
 from numpy.typing import NDArray
 from pytest import Config, Item, Parser
 
+from karabo.data.external_data import (
+    SingleFileDownloadObject,
+    cscs_karabo_public_testing_base_url,
+)
+from karabo.imaging.image import Image
+from karabo.simulation.sample_simulation import run_sample_simulation
+from karabo.simulation.visibility import Visibility
 from karabo.test import data_path
 from karabo.util.file_handler import FileHandler
 
@@ -123,9 +131,9 @@ def tobject() -> TFiles:
     return TFiles()
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 def clean_disk() -> Generator[None, None, None]:
-    """Automatically clears FileHandler's short-term-memory after each test.
+    """Automatically clears FileHandler's short-term-memory after each test file.
 
     Needed in some cases where the underlying functions do use FileHandler
      which could lead to IOError because of disk-space limitations.
@@ -197,3 +205,62 @@ def normalized_norm_diff() -> NNImageDiffCallable:
         return float(np.linalg.norm(img1 - img2) / (img1.shape[0] * img1.shape[1]))
 
     return _normalized_norm_diff
+
+
+@pytest.fixture(scope="session")
+def minimal_oskar_vis() -> Visibility:
+    vis_path = SingleFileDownloadObject(
+        remote_file_path="test_minimal_visibility.vis",
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    ).get()
+    return Visibility(vis_path)
+
+
+@pytest.fixture(scope="session")
+def minimal_casa_ms() -> Visibility:
+    vis_zip_path = SingleFileDownloadObject(
+        remote_file_path="test_minimal_casa.ms.zip",
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    ).get()
+    vis_path = vis_zip_path.strip(".zip")
+    if not os.path.exists(vis_path):
+        with zipfile.ZipFile(vis_zip_path, "r") as zip_ref:
+            zip_ref.extractall(os.path.dirname(vis_path))
+    return Visibility(vis_path)
+
+
+@pytest.fixture(scope="session")
+def mwa_uvfits() -> Visibility:
+    vis_path = SingleFileDownloadObject(
+        remote_file_path="birli_1061312152_ants0-2_ch154_2s.uvfits",
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    ).get()
+    return Visibility(vis_path)
+
+
+@pytest.fixture(scope="session")
+def mwa_ms() -> Visibility:
+    vis_zip_path = SingleFileDownloadObject(
+        remote_file_path="birli_1061312152_ants0-2_ch154_2s.ms.zip",
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    ).get()
+    vis_path = vis_zip_path.strip(".zip")
+    if not os.path.exists(vis_path):
+        with zipfile.ZipFile(vis_zip_path, "r") as zip_ref:
+            zip_ref.extractall(os.path.dirname(vis_path))
+    return Visibility(vis_path)
+
+
+@pytest.fixture(scope="session")
+def minimal_fits_restored() -> Image:
+    restored_path = SingleFileDownloadObject(
+        remote_file_path="test_minimal_clean_restored.fits",
+        remote_base_url=cscs_karabo_public_testing_base_url,
+    ).get()
+    return Image(path=restored_path)
+
+
+@pytest.fixture(scope="module")
+def default_sample_simulation_visibility() -> Visibility:
+    visibility, *_ = run_sample_simulation()
+    return visibility

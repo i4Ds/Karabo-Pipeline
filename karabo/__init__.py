@@ -7,6 +7,8 @@ import os
 import platform
 import sys
 
+from karabo.util.rascil_util import filter_data_dir_warning_message
+
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -39,8 +41,4 @@ if "SLURM_JOB_ID" in os.environ:
 
     DaskHandlerSlurm._prepare_slurm_nodes_for_dask()
 
-# set rascil data directory environment variable
-# see https://ska-telescope.gitlab.io/external/rascil/RASCIL_install.html
-from karabo.util.setup_pkg import set_rascil_data_directory_env  # noqa: E402
-
-set_rascil_data_directory_env()
+filter_data_dir_warning_message()

@@ -20,6 +20,7 @@ from typing import (
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.coordinates.sky_coordinate import SkyCoord
 from astropy.io import fits
 from astropy.io.fits.header import Header
 from astropy.nddata import Cutout2D, NDData
@@ -144,7 +145,13 @@ class Image:
         path: FilePathType,
         overwrite: bool = False,
     ) -> None:
-        """Write an `Image` to `path`  as .fits"""
+        """Write an `Image` to `path`  as .fits
+
+        Args:
+            path: Full path of the file
+            overwrite: Overwrite the file if it already exists? Defaults to False
+
+        """
         assert_valid_ending(path=path, ending=".fits")
         dir_name = os.path.abspath(os.path.dirname(path))
         os.makedirs(dir_name, exist_ok=True)
@@ -177,8 +184,9 @@ class Image:
         for bilinear interpolation. See:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RegularGridInterpolator.html
 
-        :param shape: The desired shape of the image
-        :param kwargs: Keyword arguments for the interpolation function
+        Args:
+            shape: The desired shape of the image
+            kwargs: Keyword arguments for the interpolation function
 
         """
         new_data = np.empty(
@@ -220,9 +228,13 @@ class Image:
         """
         Cutout the image to the given size and center.
 
-        :param center_xy: Center of the cutout in pixel coordinates
-        :param size_xy: Size of the cutout in pixel coordinates
-        :return: Cutout of the image
+        Args:
+            center_xy: Center of the cutout in pixel coordinates
+            size_xy: Size of the cutout in pixel coordinates
+
+        Returns:
+            Image: Cutout of the image
+
         """
         cut = Cutout2D(
             self.data[0, 0, :, :],
@@ -240,7 +252,9 @@ class Image:
         at the center of the image.
         This is an in-place transformation of the data.
 
-        :return: None (data of current Image instance is transformed in-place)
+        Returns:
+            None (data of current Image instance is transformed in-place)
+
         """
 
         def circle_pixels(pixels: NDArray[np.float_]) -> NDArray[np.float_]:
@@ -288,48 +302,45 @@ class Image:
         """
         Split the image into N x N equal-sized sections with optional overlap.
 
-        Parameters
-        ----------
-        N : int
-            The number of sections to split the image into along one axis. The
-            total number of image sections will be N^2.
-            It is assumed that the image can be divided into N equal parts along
-            both axes. If this is not the case (e.g., image size is not a
-            multiple of N), the sections on the edges will have fewer pixels.
+        Args:
+            N (int): The number of sections to split the image into along
+                one axis. The total number of image sections will be N^2.
+                It is assumed that the image can be divided into N equal parts
+                along both axes. If this is not the case (e.g., image size is
+                not a multiple of N), the sections on the edges will have
+                fewer pixels.
 
-        overlap : int, optional
-            The number of pixels by which adjacent image sections will overlap.
-            Default is 0, meaning no overlap. Negative overlap means that there
-            will be empty sections between the cutouts.
+            overlap (int, optional): The number of pixels by which adjacent
+                image sections will overlap. Default is 0, meaning no overlap.
+                Negative overlap means that there will be empty sections between
+                the cutouts.
 
-        Returns
-        -------
-        cutouts : list
-            A list of cutout sections of the image. Each element in the list is
-            a 2D array representing a section of the image.
+        Returns:
+            List[Image]: A list of cutout sections of the image. Each element in\
+                the list is a 2D array representing a section of the image.
 
-        Notes
-        -----
-        The function calculates the step size for both the x and y dimensions
-        by dividing the dimension size by N. It then iterates over N steps
-        in both dimensions to generate starting and ending indices for each
-        cutout section, taking the overlap into account.
+        Notes:
+            The function calculates the step size for both the x and y dimensions
+            by dividing the dimension size by N. It then iterates over N steps
+            in both dimensions to generate starting and ending indices for each
+            cutout section, taking the overlap into account.
 
-        The `cutout` function (not shown) is assumed to take the center
-        (x, y) coordinates and the (width, height) of the desired cutout
-        section and return the corresponding 2D array from the image.
+            The `cutout` function (not shown) is assumed to take the center
+            (x, y) coordinates and the (width, height) of the desired cutout
+            section and return the corresponding 2D array from the image.
 
-        The edge sections will be equal to or smaller than the sections in
-        the center of the image if the image size is not an exact multiple of N.
+            The edge sections will be equal to or smaller than the sections in
+            the center of the image if the image size is not an exact multiple of N.
 
-        Examples
-        --------
-        >>> # Assuming `self.data` is a 4D array with shape (C, Z, X, Y)
-        >>> # and `self.cutout` method is defined
-        >>> image = Image()
-        >>> cutouts = image.split_image(4, overlap=10)
-        >>> len(cutouts)
-        16  # because 4x4 grid
+        Examples:
+
+            >>> # Assuming `self.data` is a 4D array with shape (C, Z, X, Y)
+            >>> # and `self.cutout` method is defined
+            >>> image = Image()
+            >>> cutouts = image.split_image(4, overlap=10)
+            >>> len(cutouts)
+            16  # because 4x4 grid
+
         """
         if N < 1:
             raise ValueError("N must be >= 1")
@@ -381,23 +392,25 @@ class Image:
     ) -> None:
         """Plots the image
 
-        :param title: the title of the colormap
-        :param xlim: RA-limit of plot
-        :param ylim: DEC-limit of plot
-        :param figsize: figsize as tuple
-        :param title: plot title
-        :param xlabel: xlabel
-        :param ylabel: ylabel
-        :param cmap: matplotlib color map
-        :param origin: place the [0, 0] index of the array in
-        the upper left or lower left corner of the Axes
-        :param wcs_enabled: Use wcs transformation?
-        :param invert_xaxis: Do you want to invert the xaxis?
-        :param filename: Set to path/fname to save figure
-        (set extension to fname to overwrite .png default)
-        :param block: Whether plotting should block the remaining of the script
-        :param kwargs: matplotlib kwargs for scatter & Collections,
-        e.g. customize `s`, `vmin` or `vmax`
+        Args:
+            title: the title of the colormap
+            xlim: RA-limit of plot
+            ylim: DEC-limit of plot
+            figsize: figsize as tuple
+            title: plot title
+            xlabel: xlabel
+            ylabel: ylabel
+            cmap: matplotlib color map
+            origin: place the [0, 0] index of the array in
+                the upper left or lower left corner of the Axes
+            wcs_enabled: Use wcs transformation? Default is True
+            invert_xaxis: Do you want to invert the xaxis? Default is False
+            filename: Set to path/fname to save figure
+                (set extension to fname to overwrite .png default)
+            block: Whether plotting should block the remaining of the script
+            **kwargs: matplotlib kwargs for scatter & Collections,
+                e.g. customize `s`, `vmin` or `vmax`
+
         """
 
         if wcs_enabled:
@@ -429,6 +442,9 @@ class Image:
 
         im = ax.imshow(self.data[0][0], cmap=cmap, origin=origin, **kwargs)
         ax.grid()
+
+        if colorbar_label is None:
+            colorbar_label = "flux (Jy)"
         fig.colorbar(im, label=colorbar_label)
 
         if title is not None:
@@ -461,15 +477,17 @@ class Image:
         """Create a plot with the current image data,
         as well as an overlay of sources from a given SkyModel instance.
 
-        :param sky: a SkyModel instance, with sources to be plotted.
-        :param filename: path to the file where the final plot will be saved.
-            If None, the plot is not saved.
-        :param block: whether plotting should block the remaining of the script.
-        :param channel_index: Which frequency channel to show in the plot.
-            Defaults to 0.
-        :param stokes_index: Which polarisation to show in the plot.
-            Defaults to 0 (stokesI).
-        :param vmin_image, vmax_image: Limits for colorbar of Image plot.
+        Args:
+            sky: a SkyModel instance, with sources to be plotted.
+            filename: path to the file where the final plot will be saved.
+                If None, the plot is not saved.
+            block: whether plotting should block the remaining of the script.
+            channel_index: Which frequency channel to show in the plot.
+                Defaults to 0.
+            stokes_index: Which polarisation to show in the plot.
+                Defaults to 0 (stokesI).
+            vmin_image, vmax_image: Limits for colorbar of Image plot.
+
         """
         # wcs.wcs_world2pix expects a FITS header with only 2 coordinates (x, y).
         # For this plot, we temporarily remove the 3rd and 4th axes from the image
@@ -523,19 +541,23 @@ class Image:
         vmax_image: float = np.inf,
     ) -> None:
         """Create a plot with two panels:
+
         1. the current image data, and
+
         2. a scatter plot of sources from a given SkyModel instance.
 
-        :param sky: a SkyModel instance, with sources to be plotted.
-        :param filename: path to the file where the final plot will be saved.
-            If None, the plot is not saved.
-        :param block: whether plotting should block the remaining of the script.
-        :param channel_index: Which frequency channel to show in the plot.
-            Defaults to 0.
-        :param stokes_index: Which polarisation to show in the plot.
-            Defaults to 0 (stokesI).
-        :param vmin_sky, vmax_sky: Limits for colorbar of SkyModel scatter plot.
-        :param vmin_image, vmax_image: Limits for colorbar of Image plot.
+        Args:
+            sky: a SkyModel instance, with sources to be plotted.
+            filename: path to the file where the final plot will be saved.
+                If None, the plot is not saved.
+            block: whether plotting should block the remaining of the script.
+            channel_index: Which frequency channel to show in the plot.
+                Defaults to 0.
+            stokes_index: Which polarisation to show in the plot.
+                Defaults to 0 (stokesI).
+            vmin_sky, vmax_sky: Limits for colorbar of SkyModel scatter plot.
+            vmin_image, vmax_image: Limits for colorbar of Image plot.
+
         """
         wcs = WCS(self.header)
         slices = get_slices(wcs)
@@ -586,8 +608,11 @@ class Image:
 
     def get_dimensions_of_image(self) -> List[int]:
         """
-        Get the sizes of the dimensions of this Image in an array.
-        :return: list with the dimensions.
+        Get the dimensions of this Image as an array.
+
+        Returns:
+            List[int]: List with the dimensions.
+
         """
         result = []
         dimensions = self.header["NAXIS"]
@@ -601,8 +626,13 @@ class Image:
     def has_beam_parameters(self) -> bool:
         """
         Check if the image has the beam parameters in the header.
-        :param image: Image to check
-        :return: True if the image has the beam parameters in the header
+
+        Args:
+            image: Image to check
+
+        Returns:
+            True if the image has the beam parameters in the header
+
         """
         return self.header_has_parameters(
             ["BMAJ", "BMIN", "BPA"],
@@ -618,6 +648,7 @@ class Image:
 
         Returns:
            "bmaj" (arcsec), "bmin" (arcsec), "bpa" (deg)
+
         """
         try:
             bmaj = float(self.header["BMAJ"])
@@ -651,7 +682,9 @@ class Image:
         - Median --> 'median'
         - Mean --> 'mean'
 
-        :return: Dictionary holding all image statistics
+        Returns:
+            Dictionary holding all image statistics
+
         """
         # same implementation as RASCIL
         image_stats = {
@@ -679,12 +712,16 @@ class Image:
         """
         Calculate the power spectrum of this image.
 
-        :param resolution: Resolution in radians needed for conversion from Jy to Kelvin
-        :param signal_channel: channel containing both signal and noise
-        (arr of same shape as nchan of Image), optional
-        :return (profile, theta_axis)
-            profile: Brightness temperature for each angular scale in Kelvin
-            theta_axis: Angular scale data in degrees
+        Args:
+            resolution: Resolution in radians needed for conversion from Jy to Kelvin
+            signal_channel: channel containing both signal and noise
+                (arr of same shape as nchan of Image), optional
+
+        Returns:
+            (profile, theta_axis):
+                - profile: Brightness temperature for each angular scale in Kelvin
+                - theta_axis: Angular scale data in degrees
+
         """
         profile, theta = power_spectrum(self.path, resolution, signal_channel)
         return profile, theta
@@ -699,11 +736,13 @@ class Image:
         """
         Plot the power spectrum of this image.
 
-        :param resolution: Resolution in radians needed for conversion from Jy to Kelvin
-        :param signal_channel: channel containing both signal and noise
-        (arr of same shape as nchan of Image), optional
-        :param save_png: True if result should be saved, default = False
-        :param block: Whether plotting should block the remaining of the script
+        Args:
+            resolution: Resolution in radians needed for conversion from Jy to Kelvin
+            signal_channel: channel containing both signal and noise
+                (arr of same shape as nchan of Image), optional
+            save_png: True if result should be saved, default = False
+            block: Whether plotting should block the remaining of the script
+
         """
         profile, theta = self.get_power_spectrum(resolution, signal_channel)
         plt.clf()
@@ -747,37 +786,70 @@ class Image:
         wcs_2d = wcs.sub(ra_dec_axis)
         return wcs_2d
 
+    @classmethod
+    def get_corners_in_world(cls, header: Header) -> NDArray[np.float64]:
+        """Get the image corners RA,DEC of bl, br, tr & tl from `header` in deg.
+
+        Assumes that `header` has at least two axis RA & DEC.
+
+        Args:
+            header: Header to extract image-infos.
+
+        Returns:
+            Corners in world coordinates [deg] with shape 4x2.
+
+        """
+        wcs = WCS(header)
+        if wcs.naxis < 2:
+            err_msg = (
+                f"Header must have at least to axis (RA,DEC), but has {wcs.naxis=}"
+            )
+            raise RuntimeError(err_msg)
+        naxis1 = header["NAXIS1"]
+        naxis2 = header["NAXIS2"]
+        corners = np.zeros(
+            shape=(4, wcs.naxis),
+            dtype=np.int64,
+        )
+        corners[1, 0] = naxis1  # bottom-right
+        corners[2, 0] = naxis1  # top-right
+        corners[2, 1] = naxis2  # # top-right
+        corners[3, 1] = naxis2  # top-left
+
+        world = wcs.pixel_to_world(*[corners[:, i] for i in range(corners.shape[1])])
+        if not isinstance(world, list):  # typeguard would be safer, but was lazy
+            err_msg = (
+                f"Expected list[{SkyCoord.__name__}], "
+                + f"but got {type(world)=} of {world=}"
+            )
+            raise TypeError(err_msg)
+        sky_coords: SkyCoord = world[0]
+        world_coords: NDArray[np.float64] = (
+            sky_coords.transform_to("icrs").to_table().to_pandas().to_numpy()
+        )
+        return world_coords
+
 
 class ImageMosaicker:
     """
     A class to handle the combination of multiple images into a single mosaicked image.
     See: https://reproject.readthedocs.io/en/stable/mosaicking.html
 
-    Parameters
     More information on the parameters can be found in the documentation:
-    https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.reproject_and_coadd.html # noqa: E501
+    https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.reproject_and_coadd.html
     However, here the most common to tune are explained.
-    ----------
-    reproject_function : callable, optional
-        The function to use for the reprojection.
-    combine_function : {'mean', 'sum'}
-        The type of function to use for combining the values into the final image.
-    match_background : bool, optional
-        Whether to match the backgrounds of the images.
-    background_reference : None or int, optional
-        If None, the background matching will make it so that the average of the
-        corrections for all images is zero.
-        If an integer, this specifies the index of the image to use as a reference.
 
-    Methods
-    -------
-    get_optimal_wcs(images, projection='SIN', **kwargs)
-        Get the optimal WCS for the given images. See:
-        https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.find_optimal_celestial_wcs.html # noqa: E501
-    process(
-        images
-        )
-        Combine the provided images into a single mosaicked image.
+    Args:
+        reproject_function (callable, optional): The function to use for the
+            reprojection.
+        combine_function ({'mean', 'sum'}): The type of function to use for
+            combining the values into the final image.
+        match_background (bool, optional): Whether to match the backgrounds
+            of the images.
+        background_reference (None or int, optional): If None, the background
+            matching will make it so that the average of the corrections for
+            all images is zero. If an integer, this specifies the index of the image
+            to use as a reference.
 
     """
 
@@ -803,21 +875,16 @@ class ImageMosaicker:
         Set the optimal WCS for the given images.
         See: https://reproject.readthedocs.io/en/stable/api/reproject.mosaicking.find_optimal_celestial_wcs.html # noqa: E501
 
-        Parameters
-        ----------
-        images : list
-            A list of images to combine.
-        projection : str, optional
-            Three-letter code for the WCS projection, such as 'SIN' or 'TAN'.
-        **kwargs : dict, optional
-            Additional keyword arguments to be passed to the reprojection function.
+        Args:
+            images (list): A list of images to combine.
+            projection (str, optional): Three-letter code for
+                the WCS projection, such as 'SIN' or 'TAN'.
+            **kwargs (dict, optional): Additional keyword arguments to be passed
+                to the reprojection function.
 
-        Returns
-        -------
-        WCS
-            The optimal WCS for the given images.
-        tuple
-            The shape of the optimal WCS.
+        Returns:
+            Tuple[WCS, tuple[int, int]]: The optimal WCS for the given images and\
+                the size of this WCS
 
         """
         optimal_wcs = find_optimal_celestial_wcs(
@@ -846,41 +913,30 @@ class ImageMosaicker:
         """
         Combine the provided images into a single mosaicked image.
 
-        Parameters
-        ----------
-        images : list
-            A list of images to combine.
-        wcs : tuple, optional
-            The WCS to use for the mosaicking. Will be calculated with `get_optimal_wcs`
-            if not passed.
-        input_weights : list, optional
-            If specified, an iterable with the same length as images, containing weights
-            for each image.
-        shape_out : tuple, optional
-            The shape of the output data. If None, it will be computed from the images.
-        hdu_in : int or str, optional
-            If one or more items in input_data is a FITS file or an HDUList instance,
-            specifies the HDU to use.
-        hdu_weights : int or str, optional
-            If one or more items in input_weights is a FITS file or an HDUList instance,
-            specifies the HDU to use.
-        image_for_header : Image, optional
-            From which image the header should be used to readd the lost information
-            by the mosaicking because some information is not propagated.
-        **kwargs : dict, optional
-            Additional keyword arguments to be passed to the reprojection function.
+        Args:
+            images (list): A list of images to combine.
+            wcs (tuple, optional): The WCS to use for the mosaicking.
+                Will be calculated with `get_optimal_wcs` if not passed.
+            input_weights (list, optional): If specified, an iterable with the
+                same length as images, containing weights for each image.
+            shape_out (tuple, optional): The shape of the output data. If None,
+                it will be computed from the images.
+            hdu_in (int or str, optional): If one or more items in input_data is
+                a FITS file or an HDUList instance, specifies the HDU to use.
+            hdu_weights (int or str, optional): If one or more items in input_weights
+                is a FITS file or an HDUList instance, specifies the HDU to use.
+            image_for_header (Image, optional): From which image the header should
+                be used to readd the lost information by the mosaicking because some
+                information is not propagated.
+            **kwargs (dict, optional): Additional keyword arguments to be passed
+                to the reprojection function.
 
-        Returns
-        -------
-        fits.PrimaryHDU
-            The final mosaicked image as a FITS HDU.
-        np.ndarray
-            The footprint of the final mosaicked image.
+        Returns:
+            Tuple[Image, NDArray[np.float64]]: The final mosaicked image as a FITS HDU \
+                and the footprint of the final mosaicked image.
 
-        Raises
-        ------
-        ValueError
-            If less than two images are provided.
+        Raises:
+            ValueError: If less than two images are provided.
 
         """
 

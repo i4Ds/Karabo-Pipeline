@@ -28,6 +28,17 @@ for the full installation instructions.
 
 We also offer [Docker](https://i4ds.github.io/Karabo-Pipeline/container.html) images.
 
+
+Quick Look with no Installation
+-------------------------------
+
+If you are curious to see whether Karabo is for you or if you want to try it out before you install something, then this is for you: we offer a demo installation on Renkulab. This demo was created for a workshop at Swiss SKA Days in September 2024. It has been kept up to date ever since.
+
+The demo installation can be found as [SwissSKADays-Karabo-Workshop](https://renkulab.io/projects/menkalinan56/swissskadays-karabo-workshop). You can start a server (free of cost) and start using the Karabo pipeline without an account. However, if you want to save your work, you need to log in using your GitHub account, your ORCID id, or your edu-ID. You then fork the project. Changes you make will be saved to your GitLab repository linked to your Renkulab accout.
+
+A good starting point may be the slide deck of the workshop. You can find it in the folder `documents`. The code in the slides is available as Jupyter notebooks in the folder `notebooks`. Those help you get started.
+
+
 Contribute to Karabo
 ---------------------
 We are very happy to accept contributions, either as code or even just bug reports! When writing code,

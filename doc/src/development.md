@@ -73,7 +73,7 @@ If you run mypy several times for the same file(s) and it takes a while, you can
 
 ### pydocstyle
 
-[pydocstyle](http://www.pydocstyle.org/en/stable/) supports docstring checking out of the box. The check can be used via CLI `pydocstyle {source_file_or_directory}. Further options can be found in the [documentation](http://www.pydocstyle.org/en/stable/usage.html) or via `pydocstyle --help`.
+[pydocstyle](http://www.pydocstyle.org/en/stable/) supports docstring checking out of the box. The check can be used via CLI `pydocstyle {source_file_or_directory}`. Further options can be found in the [documentation](http://www.pydocstyle.org/en/stable/usage.html) or via `pydocstyle --help`.
 
 In our project we use the [google convention](http://www.pydocstyle.org/en/stable/error_codes.html?highlight=google#default-conventions). Python files, classes as well as functions need corresponding docstrings. There are autocompletion tools for IDE's that create docstrings in the correct format (e.g. VSCode [autoDocstring](https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring)). Below is an example of a dummy function with the corresponding docstring template:
 
@@ -119,6 +119,41 @@ Upload a single file with `swift upload karabo_public <file>`
 #### Upload Multiple files
 1. Create a new folder inside the container with `swift post karabo_public <folder_name>`
 2. Upload all files inside the folder with `swift upload karabo_public <folder_name>`
+
+## Add SKA layouts as OSKAR telescopes
+
+In karabo.data._add_oskar_ska_layouts, there is the script array_config_to_oskar_tm.py to convert an ska-ost-array-config array layout to an OSKAR telescope model (.tm directory), which can then be added to Karabo by copying it to karabo/data/ and adding the telescope and telescope version to karabo/simulation/telescope.py and karabo/simulation/telescope_versions.py, respectively. I decided to add each layout as a telescope, e.g. SKA-LOW-AA0.5, and use ska-ost-array-config-\[SKA_OST_ARRAY_CONFIG_PACKAGE_VERSION\] as the version, e.g. ska-ost-array-config-2.3.1.
+
+Code to be adjusted:
+- telescope.py: add telescope to OSKARTelescopesWithVersionType
+- telescope.py: add telescope to directory name mapping to OSKAR_TELESCOPE_TO_FILENAMES
+- telescope_versions.py: add versions enum, see existing enums for inspiration
+- telescope.py: add telescope to versions class mapping to OSKAR_TELESCOPE_TO_VERSIONS
+
+Setup info to run the script can be found in the README in karabo.data._add_oskar_ska_layouts.
+
+## Add ALMA layouts as OSKAR telescopes
+
+The dishes of the ALMA telescope (Atacama Large Microwave Array) can operate in different configurations. These 'cycles' are set up at different points in time (see link [1]). For the next year (2025) three new cycles are added to the configuration: cycle 9, 10 and 11. There is a script that helps to import new cycle configurations to Karabo. It fetches the latest config files from the ALMA server (see link [2]) and converts them to an OSKAR telescope model (.tm directory). This can then be added to Karabo by copying it to `karabo/data/`. 
+
+The script and a README file can be found in `karabo.data._add_oskar_alma_layouts`.
+
+The files are fetched directly from the ALMA server. The url is not under our control. Therefore, the url may change which breaks the code. In this case have a look at link [2] and update the variable `CONFIG_FILE_URL` in the code.
+
+###  Setup
+1. Create and activate a Python virtual env / conda env or similar
+2. `pip install requests` should be enough
+3. Adjust code line `ALMA_CYCLE = 10` according to the desired version of the ALMA cycle.
+
+### Convert the configurations
+1. Run the script. The OSKAR .tm-foders are written to the current working directory
+2. Copy the directories to  `karabo/data/`
+3. Add the cycle name and version to `karabo/simulation/telescope.py` and `karabo/simulation/telescope_versions.py`, respectively.
+
+### Important links
+1. The ALMA configuration schedule: https://almascience.eso.org/news/the-alma-configuration-schedule-for-cycles-9-10-and-11
+2. The configuration files: https://almascience.eso.org/tools/casa-simulator
+
 
 ## Update Documentation
 

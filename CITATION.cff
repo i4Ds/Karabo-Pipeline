@@ -1,0 +1,26 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Karabo-Pipeline
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - alias: FHNW
+    name: >-
+      University of Applied Sciences Northwestern
+      Switzerland
+    address: Bahnhofstrasse 6
+    city: Windisch
+    country: CH
+    post-code: "5210"
+    website: "https://www.fhnw.ch/en/startseite"
+repository-code: "https://github.com/i4Ds/Karabo-Pipeline"
+abstract: >-
+  Karabo is a radio astronomy software distribution for
+  validation and benchmarking of radio telescopes and
+  algorithms.
+license: MIT
+version: v0.33.0

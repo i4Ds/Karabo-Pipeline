@@ -8,20 +8,41 @@ The following example showcases a simple telescope simulation using the main pip
 <example_interfe_simu.py>
 ```
 
+## Show telescope config
+
+```python
+<example_tel_set.py>
+```
+
+## Imaging
+
+The notebook [imaging.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/imaging.ipynb), shows how to use different dirty imaging and image cleaning algorithms.
+
+## Source detection
+
+In the example notebook [source_detection.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/source_detection.ipynb), we simulate data, perform dirty imaging, clean the image, and then run and evaluate a source detection algorithm.
+
 ## SRCNet
 
 Karabo is used in the SRCNet to generate simulated test data resembling SKAO data.
 
-The script [SRCNet_v0.1_simulation.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_v0.1_simulation.py) generates simulated visibilities and a dirty image for the SRCNet v0.1 release.  
-Data volume generated: 85 GB.  
-Required hardware: 32 GB RAM, 100 GB storage.  
-Approximate runtime with 16 cores: 1 day.  
-Suggested command due to the runtime and due to Karabo currently logging to STDOUT: `nohup python SRCNet_v0.1_simulation.py > karabo_log.txt &`  
+The script [SRCNet_v0.1_simulation_1_MeerKAT.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_v0.1_simulation_1_MeerKAT.py) generates simulated visibilities and a dirty image for the SRCNet v0.1 release using the MeerKAT SKA-MID precursor telescope.  
+Data volume generated: 43 GB.  
+Required hardware: 32 GB RAM, 64 GB storage.  
+Approximate runtime with 16 cores, no GPU: 1 day.  
+Suggested command due to the runtime and due to Karabo currently logging to STDOUT: `nohup python SRCNet_v0.1_simulation_1_MeerKAT.py > karabo_log.txt &`  
 By default, Karabo will use /tmp as the root dir for output and the data is written to a directory created by Karabo below this root dir. If the SCRATCH env var is set, Karabo will use the directory defined there as the root dir instead. If the TMPDIR or TMP env var is set, Karabo will use the directory defined there as the root dir instead. The precedence is TMPDIR = TMP > SCRATCH > /tmp.
 
-The notebook [SRCNet_simulation_walkthrough.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_simulation_walkthrough.ipynb) contains a small example based on `SRCNet_v0.1_simulation.py` that can be run on a laptop in a couple of minutes. It walks you through the whole process, from loading the survey / sky model and configuring the telescope, to configuring observation parameters and setting up and running the simulation, to creating a dirty image from the generated visibilities.
+The script [SRCNet_v0.1_simulation_2_AAstar.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_v0.1_simulation_2_AAstar.py) generates simulated visibilities, a dirty image and a cleaned image for the SRCNet v0.1 release using the SKA-MID AA\* layout.  
+Data volume generated: 3 TB.  
+Required hardware: 64 GB RAM, > 3 TB storage.  
+Approximate runtime with 12 cores, NVIDIA Tesla P100 16 GB GPU: 31 h (visibilities 14 h, dirty imaging 3.5 h, image cleaning 13.5 h).  
+Running on GPU currently only speeds up the simulation part, not the imaging part. For the simulation part, we observed a massive speed-up (factor 18) when using the GPU (InterferometerSimulation parameter use_gpus).  
+See paragraph above for log capture and output directory suggestions.  
 
-In addition, we provide utility to create SRCNet Rucio metadata for the ingestion daemon for `images` and `visibilities` data products. The example script [SRCNet_rucio_meta.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_rucio_meta.py) provides a template, which may need some customization according to your needs (e.g. include the script into a full simulation pipeline).
+The notebook [SRCNet_simulation_walkthrough.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_simulation_walkthrough.ipynb) contains a small example based on `SRCNet_v0.1_simulation_1_MeerKAT.py` that can be run on a laptop in a couple of minutes. It walks you through the whole process, from loading the survey / sky model and configuring the telescope, to configuring observation parameters and setting up and running the simulation, to creating a dirty image from the generated visibilities.
+
+In addition, we provide utility to create SRCNet Rucio metadata for the ingestion daemon for `images` and `visibilities` data products. The script [SRCNet_rucio_meta.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_rucio_meta.py) provides an example of how to generate metadata for a small simulation and imaging pipeline.
 
 ## Performing a line emission simulation, using both OSKAR and RASCIL
 
@@ -29,15 +50,7 @@ See the script [line_emission.py](https://github.com/i4Ds/Karabo-Pipeline/blob/m
 
 This simulation begins with a `SkyModel` instance, and with the definition of the desired `Observation` and `Telescope` details. Then, the `InterferometerSimulation` instance uses the requested backend (OSKAR and RASCIL are currently supported) to compute the corresponding visibilities, and the desired `DirtyImager` instance is used to convert the visibilities into dirty images. Optionally, we can include primary beam effects and correct for such effects in the final dirty images. Finally, we can mosaic different dirty images into one larger image using the `ImageMosaicker` class.
 
-## Source detection
 
-In the example notebook [source_detection.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/source_detection.ipynb), we simulate data, perform dirty imaging, clean the image, and then run and evaluate a source detection algorithm.
-
-## Show telescope config
-
-```python
-<example_tel_set.py>
-```
 
 ![Image](../images/telescope.png)
 
@@ -49,3 +62,13 @@ The name of the directory is given the name of the telescope followed by configu
 
 More details can be find in the OSKAR documentation and source code: https://ska-telescope.gitlab.io/sim/oskar/telescope_model/telescope_model.html
 
+## Using our Demo Installation
+We offer an always up-to-date demo installation for Karabo on Renkulab. This demo was created for a workshop at Swiss SKA Days in September 2024. It can be found here:
+
+[SwissSKADays-Karabo-Workshop](https://renkulab.io/projects/menkalinan56/swissskadays-karabo-workshop)
+
+You do not need an account to use the demo. Just hit the green 'Start' button in the top right corner. However, if you want to save your work you need to log in using your GitHub account, your ORCID id, or your edu-ID. Then fork the project. Now changes you make will be saved to your GitLab repository linked to your Renkulab accout.
+
+The free server on Renkulab has limited resources. You will not be able to run much larger simulations than those provided in the demo notebooks. 
+
+A good starting point may be the slide deck of the workshop. You can find it in the folder documents. The code in the slides is available as Jupyter notebooks in the folder notebooks. Those help you get started.

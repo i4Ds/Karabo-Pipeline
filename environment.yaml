@@ -8,13 +8,14 @@ dependencies:
 # Just Karabo's direct dependencies and Karabo constraints (from our code) should be handled here.
 # Dependencies with unstable APIs (this usually includes Karabo-Feedstock) should be fixed.
 # Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
-# 
+#
 # IMPORTANT: If you add or remove dependencies, make sure to adjust conda/meta.yaml as well.
   - python                  =3.10*
   - aratmospy               =1.0.dev0
   - astropy
   - bdsf                    =1.10.dev2
   - bluebild                =0.1.0
+  - casacore
   - cuda-cudart
   - dask                    =2022.12.1
   - dask-mpi
@@ -33,6 +34,7 @@ dependencies:
   - nbconvert
   - numpy                   >=1.21, !=1.24.0, <2.0  # upper-bounded because see issue #584
   - oskarpy                 =2.8.3
+  - packaging
   - pandas
   - psutil
   - rascil                  =1.0.dev0
