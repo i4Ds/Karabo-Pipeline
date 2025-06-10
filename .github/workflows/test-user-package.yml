@@ -70,7 +70,7 @@ jobs:
           export IS_GITHUB_RUNNER=true
           export RUN_NOTEBOOK_TESTS=false
 
-          micromamba install -n karabo-env -y -c nvidia/label/cuda-12.8.1 -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
+          micromamba install -n karabo-env -y -c nvidia/label/cuda-12.8.1 -c i4ds/label/dev -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
           micromamba install -n karabo-env -c conda-forge pytest ipykernel -y
           micromamba run -n karabo-env python -m ipykernel install --user --name python$PYTHON_VERSION
 
