@@ -12,7 +12,7 @@ digraph {
     "Sky model"
 
     node[fillcolor=3, style=dashed]
-    "RFI Simulations"
+    "RFI Simulations"[label="RFI Simulation\n(in preparation)"]
 
     node[fillcolor=1, style=filled]
     "Beam pattern"
