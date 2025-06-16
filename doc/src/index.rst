@@ -5,7 +5,16 @@
 
 Welcome to Karabo-Pipeline's documentation!
 ===========================================
-Karabo is a starting point for the `Square Kilometer Array <https://www.skatelescope.org/the-ska-project/>`_ Digital Twin Pipeline, which is written in Python and set up in an interactive Jupyter Notebook environment.
+Karabo is a starting point for the `Square Kilometer Array <https://www.skatelescope.org/the-ska-project/>`_ Digital Twin Pipeline,
+which is written in Python and set up in an interactive Jupyter Notebook environment.
+
+Karabo includes and relies on OSKAR, RASCIL, WSClean, PyBDSF, MIGHTEE, GLEAM, Aratmospy, Bluebild, Eidos, Dask, Tools21cm, katbeam 
+plus configuration of 20 well-known telescopes. Karabo can simulate instrument behavior and atmospheric effects, run imaging algorithms, and evaluate results.
+
+.. image:: /_static/karabo_workflow.png
+   :alt: Karabo Logo
+   :align: center
+   :width: 75%
 
 .. toctree::
    :maxdepth: 2
@@ -24,6 +33,7 @@ Modules
    :caption: Simulation
 
    main_features/simulation.rst
+   main_features/simulation_signal.rst
 
 .. toctree::
    :maxdepth: 2
