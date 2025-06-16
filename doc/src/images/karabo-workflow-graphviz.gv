@@ -1,0 +1,50 @@
+digraph {
+    rankdir=LR
+
+    node[colorscheme=pastel27, shape=record, style=rounded]
+    "Surveys"[label="{Surveys|{GLEAM|MIGHTEE|SDC3 Mock}}"]
+    "Simulations"[label="{Simulation|{HI Simulation}}"]
+    "Sources"[label="{Sources|{CSV|HDF5|FITS|Numpy|Dask}}"]
+    "Ionosphere"
+    "Configuration"[label="{Configuration|OSKAR TM Files}"]
+
+    node[fillcolor=2, shape=box, style=filled]
+    "Sky model"
+
+    node[fillcolor=3, style=dashed]
+    "RFI Simulations"
+
+    node[fillcolor=1, style=filled]
+    "Beam pattern"
+    "Telescope"
+    
+    node[fillcolor=3]
+    "Observation"
+
+    node[fillcolor=4]
+    "Interferometer simulation"[shape=record, label="{Interferometer simulation|{ArAtmospy|OSKAR|Rascil}}"]
+
+    node[fillcolor=5]
+    "Imager"[shape=record, label="{Imager|{RASCIL|OSKAR|WSClean}}"]
+
+    node[fillcolor=6]
+    "Source detection"[shape=record, label="{Source detection|{PyBDSF}}"]
+
+    "Surveys" -> "Sky model"
+    "Simulations" -> "Sky model"
+    "Sources" -> "Sky model"
+
+    "Configuration" -> "Telescope"
+    "Beam pattern" -> "Telescope"
+    
+    "Sky model" -> "Interferometer simulation"
+    "Telescope" -> "Interferometer simulation"
+    "Observation" -> "Interferometer simulation"
+    "RFI Simulations" -> "Interferometer simulation" [style=dotted]
+    "Ionosphere" -> "Interferometer simulation"
+
+    "Interferometer simulation" -> "Imager"
+
+    "Imager" -> "Source detection"
+}
+ 

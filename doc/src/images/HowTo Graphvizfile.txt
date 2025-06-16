@@ -1,0 +1,5 @@
+The Karabo workflow was created with Graphviz. The code is in karabo-workflow-graphviz.gv.
+Use Edotor (https://edotor.net/) to recreate the image or edit it. 
+Go to the web site and paste the code from the file 'karabo-workflow-graphviz.gv'.
+
+03.02.2025 / Andreas Wassmer
