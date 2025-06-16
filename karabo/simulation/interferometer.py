@@ -10,6 +10,7 @@ import oskar
 import pandas as pd
 import xarray as xr
 from astropy.coordinates import SkyCoord
+from astropy.time import Time
 from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
@@ -567,7 +568,9 @@ class InterferometerSimulation:
             ),  # TODO handle full stokes as well
             integration_time=observation_integration_time_seconds,
             zerow=self.ignore_w_components,
-            # utc_time=observation.start_date_and_time,
+            utc_time=Time(
+                observation.start_date_and_time, format="datetime", scale="utc"
+            ),
         )
 
         # Obtain list of SkyComponent instances
