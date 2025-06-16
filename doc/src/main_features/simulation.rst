@@ -13,11 +13,6 @@ Classes
    :special-members: __init__
    :exclude-members: __update_sky_model, __convert_ra_dec_to_cartesian
 
-.. autoclass:: karabo.simulation.beam.BeamPattern
-   :members:
-   :special-members: __init__
-   :exclude-members: __strfdelta
-
 .. autoclass:: karabo.simulation.observation.Observation
    :members:
    :special-members: __init__
@@ -42,6 +37,12 @@ Classes
    :members:
    :special-members: __init__
    :exclude-members:
+
+Beam simulation package
+-----------------------
+.. automodule:: karabo.simulation.beam
+   :members:
+   :show-inheritance:
 
 Line emission package
 ------------------------
