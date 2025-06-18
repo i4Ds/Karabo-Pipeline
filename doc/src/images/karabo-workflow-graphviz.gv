@@ -5,14 +5,12 @@ digraph {
     "Surveys"[label="{Surveys|{GLEAM|MIGHTEE|SDC3 Mock}}"]
     "Simulations"[label="{Simulation|{HI Simulation}}"]
     "Sources"[label="{Sources|{CSV|HDF5|FITS|Numpy|Dask}}"]
-    "Ionosphere"
+    "Ionosphere"[label="{Ionoshere|{FITS}}"]
     "Configuration"[label="{Configuration|OSKAR TM Files}"]
 
     node[fillcolor=2, shape=box, style=filled]
     "Sky model"
-
-    node[fillcolor=3, style=dashed]
-    "RFI Simulations"[label="RFI Simulation\n(in preparation)"]
+    "RFI model"[label="RFI model\n(in preparation)"]
 
     node[fillcolor=1, style=filled]
     "Beam pattern"
@@ -22,7 +20,8 @@ digraph {
     "Observation"
 
     node[fillcolor=4]
-    "Interferometer simulation"[shape=record, label="{Interferometer simulation|{ArAtmospy|OSKAR|Rascil}}"]
+    "Interferometer simulation"[shape=record, label="{Interferometer simulation|{ArAtmospy|OSKAR|RASCIL|tab-sim}}"]
+
 
     node[fillcolor=5]
     "Imager"[shape=record, label="{Imager|{RASCIL|OSKAR|WSClean}}"]
@@ -40,7 +39,7 @@ digraph {
     "Sky model" -> "Interferometer simulation"
     "Telescope" -> "Interferometer simulation"
     "Observation" -> "Interferometer simulation"
-    "RFI Simulations" -> "Interferometer simulation" [style=dotted]
+    "RFI model" -> "Interferometer simulation" [style=dotted]
     "Ionosphere" -> "Interferometer simulation"
 
     "Interferometer simulation" -> "Imager"
