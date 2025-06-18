@@ -1,13 +1,13 @@
 """ Radio Frequency Interference (RFI) signal simulation """
 
-from karabo.simulation.observation import Observation
+from karabo.simulation.observation import ObservationAbstract
 from karabo.simulation.telescope import Telescope
 
 
 class RFISignal:
     """Base type for RFI simulations"""
 
-    def __init__(self, observation: Observation, site: Telescope) -> None:
+    def __init__(self) -> None:
         """
         Initializes the RFISignal class.
 
@@ -37,8 +37,11 @@ class RFISignal:
         self.random_seed: int = 999
         """Random seed. Set it it to a predefined value to get reproducible results."""
 
-        self.observation = observation
-        self.site = site
+    def run_simulation(self, observation: ObservationAbstract, site: Telescope) -> None:
+        """Simulate the RFI signal."""
+        raise NotImplementedError(
+            "simulate method is not yet implemented in RFISignal base class."
+        )
 
     def plot_uv_coverage(self) -> None:
         """Plot the UV coverage of the observation."""

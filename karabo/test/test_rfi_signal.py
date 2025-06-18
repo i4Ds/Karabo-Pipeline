@@ -41,8 +41,8 @@ def sky_model():
     return SkyModel.sky_test()
 
 
-def test_no_args_constructor(setup_observation, sky_model):
-    rfi_signal = RFISignal(setup_observation, sky_model)
+def test_no_args_constructor():
+    rfi_signal = RFISignal()
     # Check that the RFISignal object is created with default values
     assert rfi_signal is not None
     rfi_signal.G0_mean = 1.0
@@ -54,8 +54,8 @@ def test_no_args_constructor(setup_observation, sky_model):
     rfi_signal.random_seed = 999
 
 
-def test_class_has_attribs(setup_observation, sky_model):
-    rfi_signal = RFISignal(setup_observation, sky_model)
+def test_class_has_attribs():
+    rfi_signal = RFISignal()
 
     assert hasattr(rfi_signal, "G0_mean")
     assert hasattr(rfi_signal, "G0_std")
@@ -66,8 +66,8 @@ def test_class_has_attribs(setup_observation, sky_model):
     assert hasattr(rfi_signal, "random_seed")
 
 
-def test_can_set_all_attribs(setup_observation, sky_model):
-    rfi_signal = RFISignal(setup_observation, sky_model)
+def test_can_set_all_attribs():
+    rfi_signal = RFISignal()
 
     rfi_signal.G0_mean = 1.0
     rfi_signal.G0_std = 0.1
@@ -87,7 +87,7 @@ def test_can_set_all_attribs(setup_observation, sky_model):
 
 
 def test_plot_methods_not_implemented(setup_observation, sky_model):
-    rfi_signal = RFISignal(setup_observation, sky_model)
+    rfi_signal = RFISignal()
 
     # Check that the plot methods raise NotImplementedError
     try:
@@ -104,3 +104,8 @@ def test_plot_methods_not_implemented(setup_observation, sky_model):
         rfi_signal.plot_source_altitude()
     except NotImplementedError as e:
         assert str(e).startswith("plot_source_altitude")
+
+    try:
+        rfi_signal.run_simulation(setup_observation, sky_model)
+    except NotImplementedError as e:
+        assert str(e).startswith("simulate method")
