@@ -1,3 +1,5 @@
+import os
+import subprocess
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -5,14 +7,16 @@ import pytest
 
 from karabo.simulation.observation import Observation
 from karabo.simulation.signal.rfi_signal import RFISignal
-from karabo.simulation.sky_model import SkyModel
+from karabo.simulation.telescope import SimulatorBackend, Telescope
 
 
 @pytest.fixture
-def setup_observation():
-    """Fixture to create a mock Observation object."""
+def setup_observation() -> Observation:
     """
-        Returns a default observation that can be used in different modules
+    Fixture to create a mock Observation object.
+
+    Returns:
+        A default observation that can be used in different modules
     """
     observation_length = timedelta(hours=4)  # 14400 = 4hours
     integration_time = timedelta(hours=0.5)
@@ -36,22 +40,28 @@ def setup_observation():
 
 
 @pytest.fixture
-def sky_model():
-    """Fixture to create a mock SkyModel object."""
-    return SkyModel.sky_test()
+def setup_telescope() -> Telescope:
+    """
+    Fixture to create a mock Telescope object.
+    We use the SKA-Mid telescope and the OSKAR backend as a default.
+    Returns:
+        A default telescope that can be used in different modules
+    """
+
+    return Telescope.constructor("SKA1MID", backend=SimulatorBackend.OSKAR)
 
 
 def test_no_args_constructor():
     rfi_signal = RFISignal()
     # Check that the RFISignal object is created with default values
     assert rfi_signal is not None
-    rfi_signal.G0_mean = 1.0
-    rfi_signal.G0_std = 0.0
-    rfi_signal.Gt_std_amp = 0.0
-    rfi_signal.Gt_std_phase = 0.0
-    rfi_signal.Gt_corr_amp = 0.0
-    rfi_signal.Gt_corr_phase = 0.0
-    rfi_signal.random_seed = 999
+    assert rfi_signal.G0_mean == 1.0
+    assert rfi_signal.G0_std == 0.0
+    assert rfi_signal.Gt_std_amp == 0.0
+    assert rfi_signal.Gt_std_phase == 0.0
+    assert rfi_signal.Gt_corr_amp == 0.0
+    assert rfi_signal.Gt_corr_phase == 0.0
+    assert rfi_signal.random_seed == 999
 
 
 def test_class_has_attribs():
@@ -86,26 +96,55 @@ def test_can_set_all_attribs():
     assert rfi_signal.random_seed == 42
 
 
-def test_plot_methods_not_implemented(setup_observation, sky_model):
+def test_cannot_open_credentials_file_(mocker, setup_observation, setup_telescope):
     rfi_signal = RFISignal()
 
-    # Check that the plot methods raise NotImplementedError
-    try:
-        rfi_signal.plot_uv_coverage()
-    except NotImplementedError as e:
-        assert str(e).startswith("plot_uv_coverage")
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["sim_vis"], returncode=0, stdout="OK", stderr=""
+    )
 
-    try:
-        rfi_signal.plot_rfi_separation()
-    except NotImplementedError as e:
-        assert str(e).startswith("plot_rfi_separation")
+    with pytest.raises(FileNotFoundError):
+        rfi_signal.run_simulation(
+            setup_observation,
+            setup_telescope,
+            credentials_filename="non_existent_file.yaml",
+        )
 
-    try:
-        rfi_signal.plot_source_altitude()
-    except NotImplementedError as e:
-        assert str(e).startswith("plot_source_altitude")
 
-    try:
-        rfi_signal.run_simulation(setup_observation, sky_model)
-    except NotImplementedError as e:
-        assert str(e).startswith("simulate method")
+def test_property_filename_given_(mocker, setup_observation, setup_telescope):
+    """
+    If we give a property filename, the RFISignal class should write the
+    simulation properties to that file.
+    """
+    rfi_signal = RFISignal()
+
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["sim_vis"], returncode=0, stdout="OK", stderr=""
+    )
+
+    # we need a credentials file to run the simulation.
+    # Its content is not important for this test.
+    credentials_filename = "test_credentials.yaml"
+    propertys_filename = "test_properties.yaml"
+
+    f = open(credentials_filename, "w")
+    f.write("credentials: test_credentials")
+    f.close()
+
+    rfi_signal.run_simulation(
+        setup_observation,
+        setup_telescope,
+        credentials_filename=credentials_filename,
+        property_filename=propertys_filename,
+    )
+    # Check that the properties file is created
+    assert os.path.isfile(propertys_filename)
+
+    # Check that the properties file contains the expected content
+    with open(propertys_filename) as testfile:
+        assert "gains" in testfile.read()
+
+    os.remove(propertys_filename)
+    os.remove(credentials_filename)
