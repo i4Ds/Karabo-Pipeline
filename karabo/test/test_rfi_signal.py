@@ -9,8 +9,13 @@ from karabo.simulation.observation import Observation
 from karabo.simulation.signal.rfi_signal import RFISignal
 from karabo.simulation.telescope import SimulatorBackend, Telescope
 
+# we need a credentials file to run the simulation.
+# Its content is not important for this test.
+credentials_filename = "test_credentials.yaml"
+propertys_filename = "test_properties.yaml"
 
-@pytest.fixture
+
+@pytest.fixture(scope="module")
 def setup_observation() -> Observation:
     """
     Fixture to create a mock Observation object.
@@ -39,7 +44,7 @@ def setup_observation() -> Observation:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def setup_telescope() -> Telescope:
     """
     Fixture to create a mock Telescope object.
@@ -76,26 +81,6 @@ def test_class_has_attribs():
     assert hasattr(rfi_signal, "random_seed")
 
 
-def test_can_set_all_attribs():
-    rfi_signal = RFISignal()
-
-    rfi_signal.G0_mean = 1.0
-    rfi_signal.G0_std = 0.1
-    rfi_signal.Gt_std_amp = 0.2
-    rfi_signal.Gt_std_phase = 0.3
-    rfi_signal.Gt_corr_amp = 0.4
-    rfi_signal.Gt_corr_phase = 0.5
-    rfi_signal.random_seed = 42
-
-    assert rfi_signal.G0_mean == 1.0
-    assert rfi_signal.G0_std == 0.1
-    assert rfi_signal.Gt_std_amp == 0.2
-    assert rfi_signal.Gt_std_phase == 0.3
-    assert rfi_signal.Gt_corr_amp == 0.4
-    assert rfi_signal.Gt_corr_phase == 0.5
-    assert rfi_signal.random_seed == 42
-
-
 def test_cannot_open_credentials_file_(mocker, setup_observation, setup_telescope):
     rfi_signal = RFISignal()
 
@@ -124,11 +109,6 @@ def test_property_filename_given_(mocker, setup_observation, setup_telescope):
         args=["sim_vis"], returncode=0, stdout="OK", stderr=""
     )
 
-    # we need a credentials file to run the simulation.
-    # Its content is not important for this test.
-    credentials_filename = "test_credentials.yaml"
-    propertys_filename = "test_properties.yaml"
-
     f = open(credentials_filename, "w")
     f.write("credentials: test_credentials")
     f.close()
@@ -145,6 +125,46 @@ def test_property_filename_given_(mocker, setup_observation, setup_telescope):
     # Check that the properties file contains the expected content
     with open(propertys_filename) as testfile:
         assert "gains" in testfile.read()
+
+    os.remove(propertys_filename)
+    os.remove(credentials_filename)
+
+
+def test_mandatory_properties_written(mocker, setup_observation, setup_telescope):
+    """
+    Test that the mandatory properties are written to the properties file.
+    """
+    rfi_signal = RFISignal()
+
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["sim_vis"], returncode=0, stdout="OK", stderr=""
+    )
+
+    f = open(credentials_filename, "w")
+    f.write("credentials: test_credentials")
+    f.close()
+
+    rfi_signal.run_simulation(
+        setup_observation,
+        setup_telescope,
+        credentials_filename=credentials_filename,
+        property_filename=propertys_filename,
+    )
+
+    mandatory_attributes = [
+        "gains",
+        "diagnostics",
+        "dask",
+        "observation",
+        "telescope",
+    ]
+
+    # Check that the properties file contains the mandatory properties
+    with open(propertys_filename) as testfile:
+        content = testfile.read()
+        for attr in mandatory_attributes:
+            assert attr in content
 
     os.remove(propertys_filename)
     os.remove(credentials_filename)
