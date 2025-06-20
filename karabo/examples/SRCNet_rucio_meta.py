@@ -43,7 +43,7 @@ def main() -> None:
     tel = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
     start_freq_hz = 76e6
     num_chan = 16
-    freq_inc_hz = 1e8
+    freq_inc_hz = 8e6
 
     obs = Observation(
         start_frequency_hz=start_freq_hz,
@@ -54,6 +54,7 @@ def main() -> None:
         frequency_increment_hz=freq_inc_hz,
         number_of_time_steps=24,
     )
+
     # define any unique (required for ingestion) output-file-path
     ms_path = os.path.join(FileHandler.stm(), "my-unique-ms.ms")
     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=freq_inc_hz)
