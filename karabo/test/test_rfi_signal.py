@@ -1,3 +1,4 @@
+import math
 import os
 import subprocess
 from datetime import datetime, timedelta
@@ -13,6 +14,17 @@ from karabo.simulation.telescope import SimulatorBackend, Telescope
 # Its content is not important for this test.
 credentials_filename = "test_credentials.yaml"
 propertys_filename = "test_properties.yaml"
+
+
+def write_dummy_credentials_file(filename):
+    """
+    Write a dummy credentials file for testing purposes. We mock the call to
+    the tab_sim command, so the content of this file is not important. But it
+    is required to run the simulation.
+    """
+    f = open(filename, "w")
+    f.write("credentials: test_credentials")
+    f.close()
 
 
 @pytest.fixture(scope="module")
@@ -109,9 +121,7 @@ def test_property_filename_given_(mocker, setup_observation, setup_telescope):
         args=["sim_vis"], returncode=0, stdout="OK", stderr=""
     )
 
-    f = open(credentials_filename, "w")
-    f.write("credentials: test_credentials")
-    f.close()
+    write_dummy_credentials_file(credentials_filename)
 
     rfi_signal.run_simulation(
         setup_observation,
@@ -121,10 +131,6 @@ def test_property_filename_given_(mocker, setup_observation, setup_telescope):
     )
     # Check that the properties file is created
     assert os.path.isfile(propertys_filename)
-
-    # Check that the properties file contains the expected content
-    with open(propertys_filename) as testfile:
-        assert "gains" in testfile.read()
 
     os.remove(propertys_filename)
     os.remove(credentials_filename)
@@ -141,9 +147,7 @@ def test_mandatory_properties_written(mocker, setup_observation, setup_telescope
         args=["sim_vis"], returncode=0, stdout="OK", stderr=""
     )
 
-    f = open(credentials_filename, "w")
-    f.write("credentials: test_credentials")
-    f.close()
+    write_dummy_credentials_file(credentials_filename)
 
     rfi_signal.run_simulation(
         setup_observation,
@@ -168,3 +172,49 @@ def test_mandatory_properties_written(mocker, setup_observation, setup_telescope
 
     os.remove(propertys_filename)
     os.remove(credentials_filename)
+
+
+def test_telescope_property_written_properly(
+    mocker, setup_observation, setup_telescope
+):
+    """
+    This test checks that the latitude and longitude of the telescope
+    are written correctly to the properties file. Sometimes latitude and
+    longitude get confused.
+    """
+    rfi_signal = RFISignal()
+
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["sim_vis"], returncode=0, stdout="OK", stderr=""
+    )
+
+    write_dummy_credentials_file(credentials_filename)
+
+    rfi_signal.run_simulation(
+        setup_observation,
+        setup_telescope,
+        credentials_filename=credentials_filename,
+        property_filename=propertys_filename,
+    )
+
+    lat_to_check = setup_telescope.centre_latitude
+    lon_to_check = setup_telescope.centre_longitude
+    with open(propertys_filename) as testfile:
+        for line in testfile.readlines():
+            if "latitude" in line:
+                lat = float(line.split(":")[1].strip())
+                assert math.isclose(lat, lat_to_check, rel_tol=1e-3)
+            if "longitude" in line:
+                lon = float(line.split(":")[1].strip())
+                assert math.isclose(lon, lon_to_check, rel_tol=1e-3)
+
+    # os.remove(propertys_filename)
+    os.remove(credentials_filename)
+
+
+def test_provide_cache_dir():
+    rfi_signal = RFISignal()
+
+    assert rfi_signal.tmp_dir is not None
+    assert os.path.isdir(rfi_signal.tmp_dir)

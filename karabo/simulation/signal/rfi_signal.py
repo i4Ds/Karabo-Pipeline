@@ -1,16 +1,20 @@
 """ Radio Frequency Interference (RFI) signal simulation """
 import os
 import subprocess
-from typing import Optional
+from shutil import copyfile
+from typing import Dict, Optional, Union
 
 import yaml
 
 from karabo.simulation.observation import ObservationAbstract
 from karabo.simulation.telescope import Telescope
-from karabo.util._types import FilePathType
+from karabo.util._types import FilePathType, IntFloat
+from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import FileHandler
 
 _TABSIM_BINARY = "sim-vis"
+TABSIM_DATA_DIR = os.path.join("data", "tabsim")
+TLE_FILE_CACHE = os.path.join(os.path.expanduser("~"), ".tabsim")
 
 
 class RFISignal:
@@ -19,10 +23,6 @@ class RFISignal:
     def __init__(self) -> None:
         """
         Initializes the RFISignal class.
-
-        Args:
-            observation: The observation object containing the observation details.
-            site: The telescope object containing the telescope details.
         """
 
         self.G0_mean: float = 1.0
@@ -58,14 +58,121 @@ class RFISignal:
         self.src_alt: bool = False
         self.uv_cov: bool = False
 
-    # write properties to disk as yaml file
+        self._observation: ObservationAbstract
+        self._telescope: Telescope
 
-    def _write_property_file(self, filename: FilePathType) -> None:
+        self.tmp_dir = FileHandler().get_tmp_dir(
+            prefix="sim-vis-files-",
+            purpose="cache for temporary files used by sim-vis",
+            mkdir=True,
+        )
+
+        if not os.path.exists(TLE_FILE_CACHE):
+            os.makedirs(TLE_FILE_CACHE, exist_ok=True)
+
+    def __set_observation_properties(
+        self,
+    ) -> Dict[str, Dict[str, Union[str, IntFloat, bool]]]:
+        """Get the properties of the observation.
+
+        Returns:
+            dict: A dictionary containing the properties of the observation.
+        """
+        return {
+            "observation": {
+                "target_name": f"pointing_{self._observation.phase_centre_ra_deg:.2f}_{self._observation.phase_centre_dec_deg:.2f}",  # noqa: E501
+                "ra": self._observation.phase_centre_ra_deg,
+                "dec": self._observation.phase_centre_dec_deg,
+                "start_time_isot": self._observation.start_date_and_time.isoformat(),
+                "int_time": self._observation.length.total_seconds()
+                / self._observation.number_of_time_steps,
+                "n_time": self._observation.number_of_time_steps,
+                "n_int": 1024,  # default for tab_sim
+                "start_freq": float(self._observation.start_frequency_hz),
+                "chan_width": float(self._observation.frequency_increment_hz),
+                "n_freq": self._observation.number_of_channels,
+                "SEFD": 420,
+                "auto_corrs": False,
+                "no_w": False,
+                "random_seed": 12345,
+            },
+        }
+
+    def __set_telescope_properties(
+        self,
+    ) -> Dict[str, Dict[str, Union[str, IntFloat, bool]]]:
+        """
+        Get the properties of the telescope.
+        The properties are used by the tab_sim command to run the simulation.
+        In the .tm files used by Karabo the coordinates of the stations are
+        given in ENU (east-north) coordinates. Thus, we create a file in
+        this format.
+
+        Returns:
+            dict: A dictionary containing the properties of the observation.
+        """
+        stations = self._telescope.stations
+        enu_file_path = os.path.join(self.tmp_dir, "stations.enu.txt")
+        with open(enu_file_path, "w") as enu_file:
+            for station in stations:
+                # Write the station name and its ENU coordinates to the file.
+                enu_file.write(
+                    f"{station.position.x:.4f} "
+                    f"{station.position.y:.4f} "
+                    f"{station.position.z:.4f}\n"
+                )
+
+        copyfile(enu_file_path, "stations.enu.txt")
+        # need to do this because name is Optional[str] in Telescope
+        telescope_name = self._telescope.name
+        if telescope_name is None:
+            telescope_name = "unknown_telescope"
+
+        return {
+            "telescope": {
+                "name": telescope_name,  # self._telescope.name,
+                "latitude": self._telescope.centre_latitude,
+                "longitude": self._telescope.centre_longitude,
+                "elevation": self._telescope.centre_altitude,
+                "dish_d": 13.5,
+                "enu_path": enu_file_path,
+                # "itrf_path": "", # not used with Karabo .tm files.
+                "n_ant": len(self._telescope.stations),
+            }
+        }
+
+    def __set_satellite_properties(self, credentials_file: FilePathType) -> Dict:
+        path_to_data_dir = os.path.join(get_module_absolute_path(), TABSIM_DATA_DIR)
+        return {
+            "rfi_sources": {
+                "tle_satellite": {
+                    "spacetrack_path": credentials_file,
+                    "tle_dir": TLE_FILE_CACHE,
+                    "norad_spec_model": os.path.join(
+                        path_to_data_dir, "norad_spec_model.txt"
+                    ),
+                    "power_scale": 1e-2,
+                    "max_ang_sep": 30,  # degrees
+                    "min_alt": 0,  # degrees
+                    "vis_step": 1,  # minutes
+                }
+            }
+        }
+
+    def _write_property_file(
+        self, filename: FilePathType, credentials_file: FilePathType
+    ) -> None:
         """Write the properties of the RFISignal to a YAML file.
 
         Args:
-            filename (str): The name of the file to write the properties to.
+            filename (FilePathType): The name of the file to write the properties to.
+            credentials_file (FilePathType): The name of the file containing the
+                credentials for the spacetrack service. This file is mandatory.
         """
+        obs_properties = self.__set_observation_properties()
+        tel_properties = self.__set_telescope_properties()
+        sat_properties = self.__set_satellite_properties(credentials_file)
+
         with open(filename, "w") as file:
             file.write("# RFI Signal Properties\n\n")
 
@@ -86,6 +193,10 @@ class RFISignal:
             },
             "dask": {"max_chunk_MB": 100},
         }
+
+        properties.update(obs_properties)
+        properties.update(tel_properties)
+        properties.update(sat_properties)
 
         with open(filename, "a") as file:
             yaml.dump(properties, file)
@@ -114,28 +225,32 @@ class RFISignal:
                 the credentials for the spacetrack service. This file is mandatory.
             property_filename (Optional[FilePathType]): `sim-vis` reads the
                 simulation proerties from a .yaml file. Set the file name here if
-                you want to keep this file. Otherwise Karabo creates a temporay file.
+                you want to keep this file. Otherwise Karabo creates a temporary file.
         """
 
         if not os.path.isfile(credentials_filename):
             raise FileNotFoundError(
                 f"Credentials file '{credentials_filename}' does not exist."
             )
-        if property_filename is None:
-            tmp_dir = FileHandler().get_tmp_dir(
-                prefix="sim-vis-files-",
-                purpose="temporary file with tab-sim properties",
-            )
-            property_filename = os.path.join(tmp_dir, "sim_target_properties.yaml")
-            os.makedirs(tmp_dir, exist_ok=True)
 
-        print(property_filename)
-        self._write_property_file(property_filename)
+        tmp_property_filename = os.path.join(self.tmp_dir, "sim_target_properties.yaml")
+
+        self._observation = observation
+        self._telescope = telescope
+
+        self._write_property_file(tmp_property_filename, credentials_filename)
+
+        # user requested to keep the file
+        if property_filename is not None:
+            copyfile(
+                tmp_property_filename,
+                property_filename,
+            )
 
         command = [
             _TABSIM_BINARY,
             "-c",
-            property_filename,
+            tmp_property_filename,
             "-st",
             credentials_filename,
         ]
@@ -148,4 +263,4 @@ class RFISignal:
             # Raises exception on return code != 0
             check=True,
         )
-        print(f"WSClean output:\n[{completed_process.stdout}]")
+        print(f"sim-vis output:\n[{completed_process.stdout}]")
