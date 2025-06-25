@@ -53,7 +53,7 @@ from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (  # type: ignor
 )
 
 
-def format_timedelta(td):
+def format_timedelta(td: timedelta) -> str:
     """
     Formats a datetime.timedelta object as a readable time difference string.
 
