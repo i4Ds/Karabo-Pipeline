@@ -43,6 +43,7 @@ nosetests.xml
 coverage.xml
 *,cover
 karabo/examples/results/
+test_properties.yaml
 
 # Translations
 *.mo

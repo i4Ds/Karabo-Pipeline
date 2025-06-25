@@ -1,4 +1,4 @@
 karabo/_version.py export-subst
-
 # Ignore examples in the language bar on GitHub
 karabo/examples/** linguist-vendored
+karabo/data/tabsim/norad_satellite.rfimodel filter=lfs diff=lfs merge=lfs -text
