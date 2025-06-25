@@ -17,7 +17,7 @@ from karabo.data.external_data import (
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
-from karabo.simulation.interferometer import InterferometerSimulation
+from karabo.simulation.interferometer import InterferometerSimulation, format_timedelta
 from karabo.simulation.observation import Observation, ObservationParallelized
 from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.sky_model import SkyModel
@@ -380,3 +380,24 @@ def test_run_sample_simulation() -> None:
 
     # Ensure the visibilities file path is valid
     assert os.path.exists(visibility.path)
+
+
+@pytest.mark.parametrize(
+    "td, expected",
+    [
+        (timedelta(hours=1, minutes=2, seconds=3.456), "01 h 02 m 03.456 s"),
+        (timedelta(hours=0, minutes=0, seconds=0), "00 h 00 m 00.000 s"),
+        (
+            timedelta(hours=-2, minutes=-5, seconds=-30.5),
+            "−02 h 05 m 30.500 s".replace("−", "-"),
+        ),
+        (timedelta(seconds=59.999), "00 h 00 m 59.999 s"),
+        (timedelta(days=0, seconds=-0.001), "-00 h 00 m 00.001 s"),
+    ],
+)
+def test_format_timedelta(td, expected):
+    """
+    Tests the function that formats a datetime.timedelta object as a
+    readable time difference string.
+    """
+    assert format_timedelta(td) == expected
