@@ -1,5 +1,6 @@
 import enum
 import os
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 from typing import get_args as typing_get_args
 from typing import overload
@@ -10,6 +11,7 @@ import oskar
 import pandas as pd
 import xarray as xr
 from astropy.coordinates import SkyCoord
+from astropy.time import Time
 from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
@@ -49,6 +51,36 @@ from karabo.util.gpu_util import is_cuda_available
 from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (  # type: ignore[attr-defined] # noqa: E501
     export_visibility_to_ms,
 )
+
+
+def format_timedelta(td: timedelta) -> str:
+    """
+    Formats a datetime.timedelta object as a readable time difference string.
+
+    The output format is "[-]HH:MM:SS.sss", where the minus sign is included only
+    if the timedelta is negative. Hours, minutes, and seconds are zero-padded to two
+    digits, and seconds include three decimal places for milliseconds.
+
+    Parameters:
+        td (datetime.timedelta): The time difference to format.
+
+    Returns:
+        str: The formatted time difference as a string.
+
+    Example:
+        format_timedelta(datetime.timedelta(hours=-2, minutes=-5, seconds=-30.5))
+        '-02 h 05 m 30.500 s'
+    """
+    total_seconds = td.total_seconds()
+    negative = total_seconds < 0
+    total_seconds = abs(total_seconds)
+
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    seconds = total_seconds % 60
+
+    sign = "-" if negative else ""
+    return f"{sign}{hours:02} h {minutes:02} m {seconds:06.3f} s"
 
 
 class CorrelationType(enum.Enum):
@@ -567,10 +599,31 @@ class InterferometerSimulation:
             ),  # TODO handle full stokes as well
             integration_time=observation_integration_time_seconds,
             zerow=self.ignore_w_components,
-            # utc_time=observation.start_date_and_time,
+            utc_time=Time(
+                observation.start_date_and_time, format="datetime", scale="utc"
+            ),
         )
 
-        # Obtain list of SkyComponent instances
+        # this part is to inform the user if RASCIl did not match the
+        # observation time. This happens if the pointing is not right
+        # above the instrument at the time of observation.
+        rascil_obs_times = vis["datetime"]
+        rascil_obs_start_time = rascil_obs_times[0]
+
+        timestamp_ns = rascil_obs_start_time.values.astype("int64")
+        dt = datetime.fromtimestamp(timestamp_ns / 1e9)
+
+        diff_time = dt - observation.start_date_and_time
+        # I think a difference of less than 1 min is ok
+        tolerance = timedelta(minutes=1)
+        if abs(diff_time) > tolerance:
+            print(
+                "INFO: RASCIL could not match your observation time.",
+                "This not a bug but how RASCIL works.",
+                f"There is a time difference of {format_timedelta(diff_time)}",
+                sep=os.linesep,
+            )
+
         skycomponents = sky.convert_to_backend(
             backend=SimulatorBackend.RASCIL,
             desired_frequencies_hz=frequency_channel_starts,
