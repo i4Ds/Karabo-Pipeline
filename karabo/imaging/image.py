@@ -271,8 +271,9 @@ class Image:
             for j, pixels in enumerate(frequency_image):
                 self.data[i][j] = circle_pixels(pixels)
 
-    @staticmethod
+    @classmethod
     def update_header_from_image_header(
+        cls,
         new_header: Header,
         old_header: Header,
         keys_to_copy: Optional[List[str]] = None,
