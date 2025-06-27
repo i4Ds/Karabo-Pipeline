@@ -102,7 +102,8 @@ jobs:
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
           echo "build_docker=$BUILD_DOCKER" >> $GITHUB_OUTPUT
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
-
+          
+          conda config --remove channels defaults
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
