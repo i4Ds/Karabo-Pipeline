@@ -17,6 +17,14 @@ TABSIM_DATA_DIR = os.path.join("data", "tabsim")
 TLE_FILE_CACHE = os.path.join(os.path.expanduser("~"), ".tabsim")
 
 
+class FlowStyleList(list):
+    pass
+
+
+def represent_flow_style_list(dumper, data):
+    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
+
+
 class RFISignal:
     """Base type for RFI simulations"""
 
