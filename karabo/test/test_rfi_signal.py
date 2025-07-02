@@ -13,7 +13,7 @@ from karabo.simulation.telescope import SimulatorBackend, Telescope
 # we need a credentials file to run the simulation.
 # Its content is not important for this test.
 credentials_filename = "test_credentials.yaml"
-propertys_filename = "test_properties.yaml"
+properties_filename = "test_properties.yaml"
 
 
 def write_dummy_credentials_file(filename):
@@ -35,8 +35,8 @@ def setup_observation() -> Observation:
     Returns:
         A default observation that can be used in different modules
     """
-    observation_length = timedelta(hours=4)  # 14400 = 4hours
-    integration_time = timedelta(hours=0.5)
+    observation_length = timedelta(minutes=10)  # 14400 = 4hours
+    integration_time = timedelta(seconds=8)
 
     freqs = np.arange(800e6, 1500e6, 10e6)
     freq = freqs[0]
@@ -93,7 +93,7 @@ def test_class_has_attribs():
     assert hasattr(rfi_signal, "random_seed")
 
 
-def test_cannot_open_credentials_file_(mocker, setup_observation, setup_telescope):
+def test_cannot_open_credentials_file(mocker, setup_observation, setup_telescope):
     rfi_signal = RFISignal()
 
     mock_run = mocker.patch("subprocess.run")
@@ -109,7 +109,7 @@ def test_cannot_open_credentials_file_(mocker, setup_observation, setup_telescop
         )
 
 
-def test_property_filename_given_(mocker, setup_observation, setup_telescope):
+def test_property_filename_given(mocker, setup_observation, setup_telescope):
     """
     If we give a property filename, the RFISignal class should write the
     simulation properties to that file.
@@ -127,12 +127,12 @@ def test_property_filename_given_(mocker, setup_observation, setup_telescope):
         setup_observation,
         setup_telescope,
         credentials_filename=credentials_filename,
-        property_filename=propertys_filename,
+        property_filename=properties_filename,
     )
     # Check that the properties file is created
-    assert os.path.isfile(propertys_filename)
+    assert os.path.isfile(properties_filename)
 
-    os.remove(propertys_filename)
+    # os.remove(properties_filename)
     os.remove(credentials_filename)
 
 
@@ -153,7 +153,7 @@ def test_mandatory_properties_written(mocker, setup_observation, setup_telescope
         setup_observation,
         setup_telescope,
         credentials_filename=credentials_filename,
-        property_filename=propertys_filename,
+        property_filename=properties_filename,
     )
 
     mandatory_attributes = [
@@ -165,12 +165,12 @@ def test_mandatory_properties_written(mocker, setup_observation, setup_telescope
     ]
 
     # Check that the properties file contains the mandatory properties
-    with open(propertys_filename) as testfile:
+    with open(properties_filename) as testfile:
         content = testfile.read()
         for attr in mandatory_attributes:
             assert attr in content
 
-    os.remove(propertys_filename)
+    os.remove(properties_filename)
     os.remove(credentials_filename)
 
 
@@ -195,12 +195,12 @@ def test_telescope_property_written_properly(
         setup_observation,
         setup_telescope,
         credentials_filename=credentials_filename,
-        property_filename=propertys_filename,
+        property_filename=properties_filename,
     )
 
     lat_to_check = setup_telescope.centre_latitude
     lon_to_check = setup_telescope.centre_longitude
-    with open(propertys_filename) as testfile:
+    with open(properties_filename) as testfile:
         for line in testfile.readlines():
             if "latitude" in line:
                 lat = float(line.split(":")[1].strip())
@@ -209,7 +209,7 @@ def test_telescope_property_written_properly(
                 lon = float(line.split(":")[1].strip())
                 assert math.isclose(lon, lon_to_check, rel_tol=1e-3)
 
-    # os.remove(propertys_filename)
+    # os.remove(properties_filename)
     os.remove(credentials_filename)
 
 
