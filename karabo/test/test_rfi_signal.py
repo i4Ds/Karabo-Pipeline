@@ -218,3 +218,27 @@ def test_provide_cache_dir():
 
     assert rfi_signal.tmp_dir is not None
     assert os.path.isdir(rfi_signal.tmp_dir)
+
+    assert rfi_signal.cache_dir is not None
+    assert os.path.isdir(rfi_signal.cache_dir)
+
+
+def test_run_simulation(mocker, setup_observation, setup_telescope):
+    """
+    This test checks that the latitude and longitude of the telescope
+    are written correctly to the properties file. Sometimes latitude and
+    longitude get confused.
+    """
+    rfi_signal = RFISignal()
+
+    write_dummy_credentials_file(credentials_filename)
+
+    rfi_signal.run_simulation(
+        setup_observation,
+        setup_telescope,
+        credentials_filename=credentials_filename,
+        property_filename=properties_filename,
+    )
+
+    os.remove(properties_filename)
+    os.remove(credentials_filename)

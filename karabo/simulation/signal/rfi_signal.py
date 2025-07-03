@@ -280,7 +280,7 @@ class RFISignal:
     ) -> None:
         """
         Simulates the RFI signal. We call `tab_sim` to run the simulation.
-        `tab-sim` relies in information from the 'Space-Track' service to get the
+        `tab-sim` relies on information from the 'Space-Track' service to get the
         TLEs of the satellites. You need a login to use this service. The login
         is free, but you need to register at https://www.space-track.org/auth/login.
         You need to provide the username and password in a YAML file, which must
@@ -293,7 +293,7 @@ class RFISignal:
             credentials_filename (FilePathType): The name of the file containing
                 the credentials for the spacetrack service. This file is mandatory.
             property_filename (Optional[FilePathType]): `sim-vis` reads the
-                simulation proerties from a .yaml file. Set the file name here if
+                simulation properties from a .yaml file. Set the file name here if
                 you want to keep this file. Otherwise Karabo creates a temporary file.
         """
 
@@ -325,6 +325,9 @@ class RFISignal:
             "-st",
             credentials_filename,
         ]
+
+        if self.overwrite_output:
+            command.append("-o")
 
         completed_process = subprocess.run(
             command,
