@@ -9,7 +9,7 @@ dependencies:
 # Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
 #
 # IMPORTANT: If you add or remove dependencies, make sure to adjust conda/meta.yaml as well.
-  - python                  =3.9
+  - python                  >=3.9,<3.11
   - aratmospy               =1.0.0
   - astropy
   - bdsf                    =1.10.2
@@ -44,7 +44,7 @@ dependencies:
   - ska-gridder-nifty-cuda  =0.3.0
   - ska-sdp-datamodels      =0.1.3
   - ska-sdp-func-python     =0.1.4
-  - tools21cm               =2.0.2
+  - tools21cm               =2.0.3
   - wsclean
   - xarray                  >=2022.11
   # transversal dependencies which we need to reference to get mpi-wheels
