@@ -119,6 +119,7 @@ jobs:
           conda config --append channels conda-forge
 
           cd conda
+          conda install "conda-build>=25"
           conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}
