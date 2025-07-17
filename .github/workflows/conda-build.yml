@@ -119,7 +119,8 @@ jobs:
           conda config --append channels conda-forge
 
           cd conda
-          conda install "conda-build>=25"
+          # prevent build from timing out after 6 hours: https://stackoverflow.com/a/69671602/565019
+          conda config --set unsatisfiable_hints false
           conda mambabuild .
       - name: Publish to Conda
         shell: bash -l {0}
