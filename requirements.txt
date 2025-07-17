@@ -1,0 +1,18 @@
+# Core dependencies
+numpy>=1.23.5,<1.24
+scipy>=1.9.3,<1.10
+matplotlib>=3.6.3,<3.7
+pandas>=1.5.3,<1.6
+astropy<5.2,>=5.1
+h5py>=3.7.0,<3.8
+pyuvdata<=2.4.1
+
+# Domain-specific packages
+rascil==1.0.0
+numexpr==2.10.2
+healpy
+dask_mpi
+requests
+tqdm
+
+# Optional dependencies will be installed as needed
