@@ -6,6 +6,8 @@ pandas>=1.5.3,<1.6
 astropy<5.2,>=5.1
 h5py>=3.7.0,<3.8
 pyuvdata<=2.4.1
+mpi4py
+tools21cm==2.1
 
 # Domain-specific packages
 rascil==1.0.0

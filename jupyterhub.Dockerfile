@@ -154,7 +154,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     'nbconvert' \
     'nbformat' \
     'nest_asyncio' \
-    # 'tools21cm' \
+    'mpi4py' \
+    'tools21cm==2.1' \
     'extension_helpers' \
     'astropy<5.2,>=5.1' \
     'cython>=3.0.0,<3.1.0' \
@@ -237,6 +238,7 @@ COPY --from=builder /opt/view /opt/view
 COPY --from=builder /opt/spack_env /opt/spack_env
 COPY --from=builder /opt/spack /opt/spack
 COPY --from=builder /opt/ska-sdp-spack /opt/ska-sdp-spack
+RUN chown -R jovyan:users /opt/software /opt/view /opt/spack_env /opt/spack /opt/ska-sdp-spack
 
 # Setup Spack environment
 ENV SPACK_ROOT=/opt/spack \
@@ -255,6 +257,8 @@ COPY requirements.txt /app/
 COPY setup.cfg /app/
 COPY pyproject.toml /app/
 COPY .git /app/.git
+COPY README.md /app/.git
+RUN chown -R jovyan:users /app
 WORKDIR /app
 
 # Install versioneer and other build dependencies before installing the package
