@@ -135,4 +135,4 @@ jobs:
       version: ${{ needs.conda-build.outputs.karabo-version }}
       buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
       latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
-      python-version: ${{ needs.conda-build.outputs.python-version }}
+      python-version: ${{ inputs.python-version }}
