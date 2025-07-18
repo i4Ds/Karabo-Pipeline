@@ -220,6 +220,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Final Stage: Create a lean runtime image
 # ---------------------------
 FROM quay.io/jupyter/minimal-notebook:notebook-7.2.2 AS runtime
+# Linux 9c9fca71f3a4 5.15.0-131-generic #141-Ubuntu SMP Fri Jan 10 21:18:28 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
 USER root
 
 # Install minimal dependencies needed to bootstrap spack env
@@ -238,7 +239,7 @@ COPY --from=builder /opt/view /opt/view
 COPY --from=builder /opt/spack_env /opt/spack_env
 COPY --from=builder /opt/spack /opt/spack
 COPY --from=builder /opt/ska-sdp-spack /opt/ska-sdp-spack
-RUN chown -R jovyan:users /opt/software /opt/view /opt/spack_env /opt/spack /opt/ska-sdp-spack
+RUN fix-permissions /opt/software /opt/view /opt/spack_env /opt/spack /opt/ska-sdp-spack
 
 # Setup Spack environment
 ENV SPACK_ROOT=/opt/spack \
@@ -258,18 +259,21 @@ COPY setup.cfg /app/
 COPY pyproject.toml /app/
 COPY .git /app/.git
 COPY README.md /app/.git
-RUN chown -R jovyan:users /app
+RUN fix-permissions /app
 WORKDIR /app
 
 # Install versioneer and other build dependencies before installing the package
-RUN . /etc/profile.d/spack.sh && \
-    python -m pip install versioneer setuptools wheel pytest && \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    . /etc/profile.d/spack.sh && \
+    python -m pip install notebook ipykernel jupyterlab versioneer setuptools wheel pytest && \
     python -m pip install -r requirements.txt && \
-    python -m pip install --no-deps /app
+    python -m pip install '/app[dev]' && \
+    fix-permissions /app
 
-# Install jupyter and friends
-RUN . /etc/profile.d/spack.sh && \
-    python -m pip install notebook ipykernel jupyterlab
+# test karabo
+RUN --mount=type=cache,target=/root/.cache/pip \
+    . /etc/profile.d/spack.sh && \
+    python -m pytest /app && \
 
 # Create a startup script that activates the environment
 RUN echo '#!/bin/bash' > /usr/local/bin/entrypoint.sh && \
