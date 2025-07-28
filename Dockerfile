@@ -5,8 +5,7 @@ RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
-RUN export PY_VERSION_SHORT=$(echo ${PYTHON_VERSION} | sed 's/\.//g') && \
-    wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py${PY_VERSION_SHORT}_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.0-3-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
