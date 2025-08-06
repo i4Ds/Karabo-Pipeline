@@ -116,7 +116,7 @@ jobs:
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
           echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
 
-          conda install -y -n base conda-libmamba-solver anaconda
+          conda install -y -n base conda-libmamba-solver anaconda anaconda-client
           conda config --set solver libmamba
           conda install "conda-build>=25"
 
@@ -130,7 +130,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
 
   test-build:
     needs: conda-build
