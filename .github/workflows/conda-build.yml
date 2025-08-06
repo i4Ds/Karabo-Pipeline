@@ -52,7 +52,6 @@ on:
 jobs:
   conda-build:
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/mambabuild-docker:latest
     outputs:
       karabo-version: ${{ steps.bcs.outputs.karabo_version }}
       build-docker: ${{ steps.bcs.outputs.build_docker == 'true' }}
@@ -61,6 +60,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
       - name: Build Conda
         id: bcs
         shell: bash -l {0}
