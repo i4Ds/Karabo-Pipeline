@@ -116,7 +116,7 @@ jobs:
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
           echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
 
-          conda install -y -n base conda-libmamba-solver anaconda anaconda-client
+          conda install -y -n base conda-libmamba-solver anaconda-client
           conda config --set solver libmamba
           conda install "conda-build>=25"
 
