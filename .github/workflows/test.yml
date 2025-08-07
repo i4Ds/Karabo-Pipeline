@@ -27,11 +27,11 @@ jobs:
       - name: Install Deps
         shell: bash -el {0}
         run: |
-          conda create -y -n test_karabo python=3.9
+          conda create -y -n test_karabo python=3.10
           conda activate test_karabo
           conda env update -f environment.yaml
           pip install -e ".[dev]"
-          python -m ipykernel install --user --name python3
+          python -m ipykernel install --user --name python3.10
       - name: Test Dev-Tools
         shell: bash -l {0}
         run: |

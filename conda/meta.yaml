@@ -54,11 +54,11 @@ requirements:
     - reproject               >=0.9,<=10.0
     - requests
     - rfc3986                 >=2.0.0
-    - scipy                   >=1.10.1
+    - scipy                   >=1.10.1,<1.14 # see comment in environment.yaml
     - ska-gridder-nifty-cuda  =0.3.0
     - ska-sdp-datamodels      =0.1.3
     - ska-sdp-func-python     =0.1.4
-    - tools21cm               =2.0.2
+    - tools21cm               =2.0.3
     - wsclean
     - xarray                  >=2022.11
     # transversal dependencies which we need to reference to get mpi-wheels

@@ -9,7 +9,7 @@ dependencies:
 # Don't fix anything regarding build-string (except mpi) here. There's a lot you could do wrong.
 #
 # IMPORTANT: If you add or remove dependencies, make sure to adjust conda/meta.yaml as well.
-  - python                  =3.9
+  - python                  >=3.9,<3.11
   - aratmospy               =1.0.0
   - astropy
   - bdsf                    =1.10.2
@@ -41,11 +41,14 @@ dependencies:
   - reproject               >=0.9,<=10.0
   - requests
   - rfc3986                 >=2.0.0
-  - scipy                   >=1.10.1
+  # scipy upper bound should not be required, because it is also present in bipp (<1.14) and tools21cm (<1.15).
+  # However, the inner workings of conda are beyond comprehension, and if this bound is removed,
+  # healpy 1.15.0 will try to import scipy.integrate.trapz causing an error
+  - scipy                   >=1.10.1,<1.14
   - ska-gridder-nifty-cuda  =0.3.0
   - ska-sdp-datamodels      =0.1.3
   - ska-sdp-func-python     =0.1.4
-  - tools21cm               =2.0.2
+  - tools21cm               =2.0.3
   - wsclean
   - xarray                  >=2022.11
   # transversal dependencies which we need to reference to get mpi-wheels

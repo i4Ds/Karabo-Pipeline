@@ -520,8 +520,7 @@ class ObsCoreMeta:
                 uvd.read(vis_inode, **read_kwargs)
             except IndexError as e:
                 # there's an issue with the way pyuvdata 2.4.1 reads measurement
-                # set history. can't upgrade to a later version of pyuvdata that
-                # fixes this without a newer version of python, currently 3.9
+                # set history. will require a pyuvdata update to fix this.
                 warn(
                     (
                         f"Error reading {vis_inode} with pyuvdata version"
