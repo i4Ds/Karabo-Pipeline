@@ -15,7 +15,8 @@ dependencies:
   - bdsf                    =1.10.2
   - bluebild                =0.1.0
   - casacore
-  - cuda-cudart
+  - cuda-cudart             =11.7
+  - cuda-version            =11.7
   - dask                    =2022.12.1
   - dask-mpi
   - distributed
