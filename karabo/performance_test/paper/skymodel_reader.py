@@ -4,12 +4,16 @@ it from Euler. Thus, we need to transfer the files to Euler and read them in.
 This module handles this for GLEAM and MIGHTEE sky surveys.
 """
 
+from typing import Optional
+
 import astropy.units as u
 
 from karabo.simulation.sky_model import SkyModel, SkyPrefixMapping, SkySourcesUnits
 
 
-def read_gleam_sky_from_fits(survey_file: str, min_freq=None, max_freq=None):
+def read_gleam_sky_from_fits(
+    survey_file: str, min_freq=None, max_freq=None
+) -> SkyModel:
     encoded_freq = u.MHz
     unit_mapping = {
         "Jy": u.Jy,
@@ -43,7 +47,9 @@ def read_gleam_sky_from_fits(survey_file: str, min_freq=None, max_freq=None):
     )
 
 
-def read_mightee_sky_from_fits(survey_file, min_freq=None, max_freq=None):
+def read_mightee_sky_from_fits(
+    survey_file, min_freq: Optional[float] = None, max_freq: Optional[float] = None
+):
     unit_mapping = {
         "DEG": u.deg,
         "JY": u.Jy,
