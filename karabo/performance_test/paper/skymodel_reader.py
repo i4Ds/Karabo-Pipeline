@@ -9,7 +9,7 @@ import astropy.units as u
 from karabo.simulation.sky_model import SkyModel, SkyPrefixMapping, SkySourcesUnits
 
 
-def read_gleam_sky_from_fits(survey_file, min_freq=None, max_freq=None):
+def read_gleam_sky_from_fits(survey_file: str, min_freq=None, max_freq=None):
     encoded_freq = u.MHz
     unit_mapping = {
         "Jy": u.Jy,

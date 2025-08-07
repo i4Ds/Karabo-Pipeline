@@ -115,19 +115,20 @@ layout = np.loadtxt(telescope_path + "/layout.txt")
 nant = len(layout)
 nb = int(nant * (nant - 1) * 0.5)
 logger.info(f"Number of Baselines: {nb}")
-base_length = [0] * nb
+bl = [0] * nb
 k = 0
 for i in range(nant):
     for j in range(i, nant):
         if i != j:
-            base_length[k] = np.sqrt(
+            bl[k] = np.sqrt(
                 (layout[i][0] - layout[j][0]) ** 2 + (layout[i][1] - layout[j][1]) ** 2
             )
             k = k + 1
 
-base_length = np.array(base_length)
-beam_size_arcsec = 3.0e8 / f_obs / base_length.max() * 180 / np.pi * 3600
-logger.info(f"Maximum Baseline (m): {base_length.max()}")
+base_length = np.array(bl)
+max_baseline = base_length.max()
+beam_size_arcsec = 3.0e8 / f_obs / max_baseline * 180 / np.pi * 3600
+logger.info(f"Maximum Baseline (m): {max_baseline}")
 logger.info(f"Beam Size (arcsec): {beam_size_arcsec}")
 
 start_time = datetime.now()

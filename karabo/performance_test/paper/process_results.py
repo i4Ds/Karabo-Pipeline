@@ -31,13 +31,13 @@ def efficency(logfile: LogfileInfo) -> float:
     return logfile.freq_channels / logfile.duration
 
 
-def extract_log_data(logfile_path) -> Tuple[int, float]:
+def extract_log_data(logfile_path: Path) -> Tuple[int, float]:
     """
     Extracts the number of frequency channels and the calculation time
     from a log file. The function expects a log file from 'karabo_benchmark.py'
     """
     frequency_channels = 0
-    duration_minutes = 0
+    duration_minutes = 0.0
 
     with open(logfile_path, "r") as file:
         for line in file:
