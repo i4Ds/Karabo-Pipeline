@@ -48,8 +48,8 @@ def read_gleam_sky_from_fits(
 
 
 def read_mightee_sky_from_fits(
-    survey_file, min_freq: Optional[float] = None, max_freq: Optional[float] = None
-):
+    survey_file: str, min_freq: Optional[float] = None, max_freq: Optional[float] = None
+) -> SkyModel:
     unit_mapping = {
         "DEG": u.deg,
         "JY": u.Jy,
