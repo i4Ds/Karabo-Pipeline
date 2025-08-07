@@ -12,7 +12,7 @@ from karabo.simulation.sky_model import SkyModel, SkyPrefixMapping, SkySourcesUn
 
 
 def read_gleam_sky_from_fits(
-    survey_file: str, min_freq=None, max_freq=None
+    survey_file: str, min_freq: Optional[float] = None, max_freq: Optional[float] = None
 ) -> SkyModel:
     encoded_freq = u.MHz
     unit_mapping = {
