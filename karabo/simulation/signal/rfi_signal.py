@@ -1,4 +1,5 @@
 """ Radio Frequency Interference (RFI) signal simulation """
+import logging
 import os
 import subprocess
 from shutil import copyfile
@@ -12,7 +13,7 @@ from karabo.util._types import FilePathType, IntFloat
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import FileHandler
 
-_TABSIM_BINARY = "sim-vis"
+_TABSIM_BINARY = "/home/andreas/miniconda3/envs/tabsim/bin/sim-vis"
 TABSIM_DATA_DIR = os.path.join("data", "tabsim")
 
 
@@ -32,6 +33,18 @@ class FlowStyleList(list):
 
 
 def represent_flow_style_list(dumper, data):
+    """
+    Converts lists to compact flow style format [item1, item2, item3] instead of
+    the default block style format with line breaks and dashes. This is required
+    by tab-sim which expects satellite names and NORAD IDs in flow style format.
+
+    Args:
+        dumper: The YAML dumper object
+        data: The list data to be represented
+
+    Returns:
+        A YAML sequence representation with flow_style=True
+    """
     return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
 
 
@@ -42,6 +55,8 @@ class RFISignal:
         """
         Initializes the RFISignal class.
         """
+        self.logger = logging.getLogger("karabo.simulation.signal.rfi_signal")
+        self.logger.info("Initializing RFISignal class")
 
         self.G0_mean: float = 1.0
         """Mean of the Gaussian distribution for the starting gain amplitude."""
@@ -101,16 +116,39 @@ class RFISignal:
             term="long",
             mkdir=True,
         )
+        self.logger.debug(f"Cache directory created: {self.cache_dir}")
 
         # temporary work directory for sim-vis. We put intermediate scripts and
         # output files here. On Linux, the location is probably
         # /tmp/karabo-STM-<username>-<unique_id>/tabsim-files-<unique_id>
         self.tmp_dir = FileHandler().get_tmp_dir(
             prefix="tabsim-files-",
-            purpose="working directoryfor sim-vis",
+            purpose="working directory for sim-vis",
             term="short",
             mkdir=True,
         )
+        self.logger.debug(f"Temporary directory created: {self.tmp_dir}")
+
+    def set_satellite_names(self, sat_names: list[str]) -> None:
+        """
+        Set the satellite names for RFI simulation.
+
+        Args:
+            sat_names (list[str]): List of satellite names
+            (e.g., ["navstar", "galileo"])
+        """
+        self._sat_names = FlowStyleList(sat_names)
+        self.logger.debug(f"Satellite names set to: {sat_names}")
+
+    def set_norad_ids(self, norad_ids: list[int]) -> None:
+        """
+        Set the NORAD IDs for RFI simulation.
+
+        Args:
+            norad_ids (list[int]): List of NORAD catalog numbers (e.g., [12345, 67890])
+        """
+        self._norad_ids = FlowStyleList(norad_ids)
+        self.logger.debug(f"NORAD IDs set to: {norad_ids}")
 
     def __set_basic_properties(
         self,
@@ -127,6 +165,12 @@ class RFISignal:
         Returns:
             dict: A dictionary containing the basic properties.
         """
+        self.logger.debug(f"Output path: {self.tmp_dir}")
+        self.logger.debug(
+            f"Output settings - zarr: {self.zarr_output}, "
+            f"ms: {self.ms_output}, "
+            f"overwrite: {self.overwrite_output}"
+        )
         return {
             "output": {
                 "path": self.tmp_dir,
@@ -194,6 +238,7 @@ class RFISignal:
             dict: A dictionary containing the properties of the observation.
         """
         stations = self._telescope.stations
+        stations = self._telescope.stations
         enu_file_path = os.path.join(self.cache_dir, "stations.enu.txt")
         with open(enu_file_path, "w") as enu_file:
             for station in stations:
@@ -205,6 +250,7 @@ class RFISignal:
                 )
 
         copyfile(enu_file_path, "stations.enu.txt")
+        self.logger.debug(f"ENU stations file created: {enu_file_path}")
         # need to do this because name is Optional[str] in Telescope
         telescope_name = self._telescope.name
         if telescope_name is None:
@@ -226,6 +272,8 @@ class RFISignal:
     def __set_satellite_properties(self, credentials_file: FilePathType) -> Dict:
         path_to_data_dir = os.path.join(get_module_absolute_path(), TABSIM_DATA_DIR)
         tle_file_cache = os.path.join(self.cache_dir, "tles")
+        self.logger.debug(f"TLE cache directory: {tle_file_cache}")
+        self.logger.debug(f"Using credentials file: {credentials_file}")
         return {
             "rfi_sources": {
                 "tle_satellite": {
@@ -255,8 +303,12 @@ class RFISignal:
                 credentials for the spacetrack service. This file is mandatory.
         """
 
-        with open(filename, "w") as file:
-            file.write("# RFI Signal Properties\n\n")
+        try:
+            with open(filename, "w") as file:
+                file.write("# RFI Signal Properties\n\n")
+        except IOError as e:
+            self.logger.error(f"Failed to write property file header: {str(e)}")
+            raise
 
         properties = {}
         properties.update(self.__set_telescope_properties())
@@ -267,8 +319,16 @@ class RFISignal:
         # configure yaml to write lists in flow style
         yaml.add_representer(FlowStyleList, represent_flow_style_list)
 
-        with open(filename, "a") as file:
-            yaml.dump(properties, file)
+        try:
+            with open(filename, "a") as file:
+                yaml.dump(properties, file)
+            self.logger.debug(f"Property file written successfully: {filename}")
+        except IOError as e:
+            self.logger.error(f"Failed to write property file content: {str(e)}")
+            raise
+        except yaml.YAMLError as e:
+            self.logger.error(f"YAML serialization error: {str(e)}")
+            raise
 
     def run_simulation(
         self,
@@ -296,8 +356,13 @@ class RFISignal:
                 simulation properties from a .yaml file. Set the file name here if
                 you want to keep this file. Otherwise Karabo creates a temporary file.
         """
+        self.logger.info("Starting RFI signal simulation")
+        self.logger.info(f"Using credentials file: {credentials_filename}")
 
         if not os.path.isfile(credentials_filename):
+            self.logger.error(
+                f"Credentials file '{credentials_filename}' does not exist"
+            )
             raise FileNotFoundError(
                 f"Credentials file '{credentials_filename}' does not exist."
             )
@@ -309,10 +374,13 @@ class RFISignal:
         self._observation = observation
         self._telescope = telescope
 
+        self.logger.debug(f"Creating temporary property file: {tmp_property_filename}")
         self._write_property_file(tmp_property_filename, credentials_filename)
+        self.logger.debug("Property file created successfully")
 
         # user requested to keep the file
         if property_filename is not None:
+            self.logger.info(f"Copying property file to: {property_filename}")
             copyfile(
                 tmp_property_filename,
                 property_filename,
@@ -329,12 +397,40 @@ class RFISignal:
         if self.overwrite_output:
             command.append("-o")
 
-        completed_process = subprocess.run(
-            command,
-            shell=False,
-            capture_output=True,
-            text=True,
-            # Raises exception on return code != 0
-            check=True,
-        )
-        print(f"sim-vis output:\n[{completed_process.stdout}]")
+        self.logger.info(f"Executing sim-vis command: {' '.join(command)}")
+
+        try:
+            completed_process = subprocess.run(
+                command,
+                shell=False,
+                # capture_output=True,
+                text=True,
+                # sim-vis retuns 1 on success. Don't need an excception here
+                check=False,
+            )
+
+            self.logger.info(
+                f"sim-vis completed with return code: {completed_process.returncode}"
+            )
+
+            if completed_process.stdout:
+                self.logger.debug(f"sim-vis stdout: {completed_process.stdout}")
+                print(f"sim-vis output:\n[{completed_process.stdout}]")
+
+            if completed_process.stderr:
+                self.logger.debug(f"sim-vis stderr: {completed_process.stderr}")
+                print(f"sim-vis error:\n[{completed_process.stderr}]")
+
+            print(f"sim-vis return code:\n[{completed_process.returncode}]")
+
+            if completed_process.returncode == 0:
+                self.logger.info("RFI simulation completed successfully")
+            else:
+                self.logger.warning(
+                    "sim-vis completed with non-zero return code: "
+                    f"{completed_process.returncode}"
+                )
+
+        except Exception as e:
+            self.logger.error(f"Error running sim-vis: {str(e)}")
+            raise

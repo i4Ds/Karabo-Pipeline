@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from karabo.simulation.observation import Observation
-from karabo.simulation.signal.rfi_signal import RFISignal
+from karabo.simulation.signal.rfi_signal import FlowStyleList, RFISignal
 from karabo.simulation.telescope import SimulatorBackend, Telescope
 
 # we need a credentials file to run the simulation.
@@ -223,28 +223,73 @@ def test_provide_cache_dir():
     assert os.path.isdir(rfi_signal.cache_dir)
 
 
-# def test_run_simulation(setup_observation, setup_telescope):
-#     """
-#     This test performs an integration test.
-#     """
-#     rfi_signal = RFISignal()
+def test_run_simulation(setup_observation, setup_telescope):
+    """
+    This test performs an integration test.
+    """
+    rfi_signal = RFISignal()
 
-#     write_dummy_credentials_file(credentials_filename)
-#     f = open(credentials_filename, "w")
-#     f.write("username: andreas.wassmer@fhnw.ch\n")
-#     f.write("password: 4TxIgUzpmr2eodrayFed\n")
-#     f.close()
+    write_dummy_credentials_file(credentials_filename)
+    f = open(credentials_filename, "w")
+    f.write("username: andreas.wassmer@fhnw.ch\n")
+    f.write("password: 4TxIgUzpmr2eodrayFed\n")
+    f.close()
 
-#     try:
-#         rfi_signal.run_simulation(
-#             setup_observation,
-#             setup_telescope,
-#             credentials_filename=credentials_filename,
-#             property_filename=properties_filename,
-#         )
-#     except subprocess.CalledProcessError as e:
-#         if e.returncode == 1:
-#             pass
+    try:
+        rfi_signal.run_simulation(
+            setup_observation,
+            setup_telescope,
+            credentials_filename=credentials_filename,
+            property_filename=properties_filename,
+        )
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 1:
+            pass
 
-#     os.remove(properties_filename)
-#     os.remove(credentials_filename)
+    os.remove(properties_filename)
+    os.remove(credentials_filename)
+
+
+def test_set_satellite_names():
+    rfi_signal = RFISignal()
+
+    # Test default satellite names
+    assert rfi_signal._sat_names == ["navstar"]
+    assert isinstance(rfi_signal._sat_names, FlowStyleList)
+
+    # Test setting new satellite names
+    new_names = ["galileo", "glonass", "beidou"]
+    rfi_signal.set_satellite_names(new_names)
+
+    assert rfi_signal._sat_names == new_names
+    assert isinstance(rfi_signal._sat_names, FlowStyleList)
+
+    # Test empty list
+    rfi_signal.set_satellite_names([])
+    assert rfi_signal._sat_names == []
+    assert isinstance(rfi_signal._sat_names, FlowStyleList)
+
+
+def test_set_norad_ids():
+    rfi_signal = RFISignal()
+
+    # Test default NORAD IDs
+    assert rfi_signal._norad_ids == []
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
+
+    # Test setting new NORAD IDs
+    new_ids = [12345, 67890, 11111]
+    rfi_signal.set_norad_ids(new_ids)
+
+    assert rfi_signal._norad_ids == new_ids
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
+
+    # Test single ID
+    rfi_signal.set_norad_ids([99999])
+    assert rfi_signal._norad_ids == [99999]
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
+
+    # Test empty list
+    rfi_signal.set_norad_ids([])
+    assert rfi_signal._norad_ids == []
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
