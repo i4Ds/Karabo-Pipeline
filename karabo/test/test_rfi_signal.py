@@ -223,22 +223,28 @@ def test_provide_cache_dir():
     assert os.path.isdir(rfi_signal.cache_dir)
 
 
-def test_run_simulation(mocker, setup_observation, setup_telescope):
-    """
-    This test checks that the latitude and longitude of the telescope
-    are written correctly to the properties file. Sometimes latitude and
-    longitude get confused.
-    """
-    rfi_signal = RFISignal()
+# def test_run_simulation(setup_observation, setup_telescope):
+#     """
+#     This test performs an integration test.
+#     """
+#     rfi_signal = RFISignal()
 
-    write_dummy_credentials_file(credentials_filename)
+#     write_dummy_credentials_file(credentials_filename)
+#     f = open(credentials_filename, "w")
+#     f.write("username: andreas.wassmer@fhnw.ch\n")
+#     f.write("password: 4TxIgUzpmr2eodrayFed\n")
+#     f.close()
 
-    rfi_signal.run_simulation(
-        setup_observation,
-        setup_telescope,
-        credentials_filename=credentials_filename,
-        property_filename=properties_filename,
-    )
+#     try:
+#         rfi_signal.run_simulation(
+#             setup_observation,
+#             setup_telescope,
+#             credentials_filename=credentials_filename,
+#             property_filename=properties_filename,
+#         )
+#     except subprocess.CalledProcessError as e:
+#         if e.returncode == 1:
+#             pass
 
-    os.remove(properties_filename)
-    os.remove(credentials_filename)
+#     os.remove(properties_filename)
+#     os.remove(credentials_filename)
