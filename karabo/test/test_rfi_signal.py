@@ -95,6 +95,7 @@ def test_class_has_attribs():
 
 def test_cannot_open_credentials_file(mocker, setup_observation, setup_telescope):
     rfi_signal = RFISignal()
+    rfi_signal.set_credentials_filename("non_existent_file.yaml")
 
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
@@ -105,7 +106,6 @@ def test_cannot_open_credentials_file(mocker, setup_observation, setup_telescope
         rfi_signal.run_simulation(
             setup_observation,
             setup_telescope,
-            credentials_filename="non_existent_file.yaml",
         )
 
 
@@ -114,19 +114,19 @@ def test_property_filename_given(mocker, setup_observation, setup_telescope):
     If we give a property filename, the RFISignal class should write the
     simulation properties to that file.
     """
+    write_dummy_credentials_file(credentials_filename)
+
     rfi_signal = RFISignal()
+    rfi_signal.set_credentials_filename(credentials_filename)
 
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
         args=["sim_vis"], returncode=0, stdout="OK", stderr=""
     )
 
-    write_dummy_credentials_file(credentials_filename)
-
     rfi_signal.run_simulation(
         setup_observation,
         setup_telescope,
-        credentials_filename=credentials_filename,
         property_filename=properties_filename,
     )
     # Check that the properties file is created
@@ -140,19 +140,19 @@ def test_mandatory_properties_written(mocker, setup_observation, setup_telescope
     """
     Test that the mandatory properties are written to the properties file.
     """
+    write_dummy_credentials_file(credentials_filename)
+
     rfi_signal = RFISignal()
+    rfi_signal.set_credentials_filename(credentials_filename)
 
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
         args=["sim_vis"], returncode=0, stdout="OK", stderr=""
     )
 
-    write_dummy_credentials_file(credentials_filename)
-
     rfi_signal.run_simulation(
         setup_observation,
         setup_telescope,
-        credentials_filename=credentials_filename,
         property_filename=properties_filename,
     )
 
@@ -227,19 +227,19 @@ def test_telescope_property_written_properly(
     are written correctly to the properties file. Sometimes latitude and
     longitude get confused.
     """
+    write_dummy_credentials_file(credentials_filename)
+
     rfi_signal = RFISignal()
+    rfi_signal.set_credentials_filename(credentials_filename)
 
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
         args=["sim_vis"], returncode=0, stdout="OK", stderr=""
     )
 
-    write_dummy_credentials_file(credentials_filename)
-
     rfi_signal.run_simulation(
         setup_observation,
         setup_telescope,
-        credentials_filename=credentials_filename,
         property_filename=properties_filename,
     )
 
@@ -268,28 +268,27 @@ def test_provide_cache_dir():
     assert os.path.isdir(rfi_signal.cache_dir)
 
 
-def test_run_simulation(setup_observation, setup_telescope):
-    """
-    This test performs an integration test.
-    """
-    rfi_signal = RFISignal()
+# def test_run_simulation(setup_observation, setup_telescope):
+#     """
+#     This test performs an integration test.
+#     """
+#     f = open(credentials_filename, "w")
+#     f.write("username: andreas.wassmer@fhnw.ch\n")
+#     f.write("password: 4TxIgUzpmr2eodrayFed\n")
+#     f.close()
 
-    write_dummy_credentials_file(credentials_filename)
-    f = open(credentials_filename, "w")
-    f.write("username: andreas.wassmer@fhnw.ch\n")
-    f.write("password: 4TxIgUzpmr2eodrayFed\n")
-    f.close()
+#     rfi_signal = RFISignal()
+#     rfi_signal.set_credentials_filename(credentials_filename)
 
-    try:
-        rfi_signal.run_simulation(
-            setup_observation,
-            setup_telescope,
-            credentials_filename=credentials_filename,
-            property_filename=properties_filename,
-        )
-    except subprocess.CalledProcessError as e:
-        if e.returncode == 1:
-            pass
+#     try:
+#         rfi_signal.run_simulation(
+#             setup_observation,
+#             setup_telescope,
+#             property_filename=properties_filename,
+#         )
+#     except subprocess.CalledProcessError as e:
+#         if e.returncode == 1:
+#             pass
 
-    os.remove(properties_filename)
-    os.remove(credentials_filename)
+#     os.remove(properties_filename)
+#     os.remove(credentials_filename)

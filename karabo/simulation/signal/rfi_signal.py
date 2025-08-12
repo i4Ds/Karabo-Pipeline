@@ -106,6 +106,7 @@ class RFISignal:
         self._telescope: Telescope
         self._sat_names: list = FlowStyleList(["navstar"])  # adding 1 default satellite
         self._norad_ids: list = FlowStyleList([])
+        self._credentials_filename: Optional[FilePathType] = None
 
         # sim-vis downloads satellite data from space-tracks service. These file
         # will be cached here. On Linux, they can be found in
@@ -149,6 +150,16 @@ class RFISignal:
         """
         self._norad_ids = FlowStyleList(norad_ids)
         self.logger.debug(f"NORAD IDs set to: {norad_ids}")
+
+    def set_credentials_filename(self, credentials_filename: FilePathType) -> None:
+        """
+        Set the credentials filename for space-track service authentication.
+
+        Args:
+            credentials_filename (FilePathType): Path to the YAML file containing
+                space-track.org credentials (username and password)
+        """
+        self._credentials_filename = credentials_filename
 
     def __set_basic_properties(
         self,
@@ -335,7 +346,6 @@ class RFISignal:
         observation: ObservationAbstract,
         telescope: Telescope,
         *,
-        credentials_filename: FilePathType,
         property_filename: Optional[FilePathType] = None,
     ) -> None:
         """
@@ -344,27 +354,32 @@ class RFISignal:
         TLEs of the satellites. You need a login to use this service. The login
         is free, but you need to register at https://www.space-track.org/auth/login.
         You need to provide the username and password in a YAML file, which must
-        be passed as `credentials_filename` to this method.
+        be set using the set_credentials_filename() method before calling this method.
 
         Args:
             observation (ObservationAbstract): The observation object containing
             the observation details.
             site (Telescope): The telescope object containing the telescope details.
-            credentials_filename (FilePathType): The name of the file containing
-                the credentials for the spacetrack service. This file is mandatory.
             property_filename (Optional[FilePathType]): `sim-vis` reads the
                 simulation properties from a .yaml file. Set the file name here if
                 you want to keep this file. Otherwise Karabo creates a temporary file.
         """
         self.logger.info("Starting RFI signal simulation")
-        self.logger.info(f"Using credentials file: {credentials_filename}")
 
-        if not os.path.isfile(credentials_filename):
+        if self._credentials_filename is None:
             self.logger.error(
-                f"Credentials file '{credentials_filename}' does not exist"
+                "Credentials filename not set. Use set_credentials_filename() method."
+            )
+            raise ValueError(
+                "Credentials filename not set. Use set_credentials_filename() method."
+            )
+
+        if not os.path.isfile(self._credentials_filename):
+            self.logger.error(
+                f"Credentials file '{self._credentials_filename}' does not exist"
             )
             raise FileNotFoundError(
-                f"Credentials file '{credentials_filename}' does not exist."
+                f"Credentials file '{self._credentials_filename}' does not exist."
             )
 
         tmp_property_filename = os.path.join(
@@ -375,7 +390,7 @@ class RFISignal:
         self._telescope = telescope
 
         self.logger.debug(f"Creating temporary property file: {tmp_property_filename}")
-        self._write_property_file(tmp_property_filename, credentials_filename)
+        self._write_property_file(tmp_property_filename, self._credentials_filename)
         self.logger.debug("Property file created successfully")
 
         # user requested to keep the file
@@ -391,7 +406,7 @@ class RFISignal:
             "-c",
             tmp_property_filename,
             "-st",
-            credentials_filename,
+            self._credentials_filename,
         ]
 
         if self.overwrite_output:
