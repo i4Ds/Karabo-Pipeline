@@ -26,6 +26,15 @@ plus configuration of 20 well-known telescopes. Karabo can simulate instrument b
    parallel_processing
 
 
+Development
+===========
+.. toctree::
+   :maxdepth: 2
+   :caption: Developers
+
+   development.md
+
+
 Modules
 ===============
 .. toctree::
@@ -56,12 +65,3 @@ Modules
    :caption: Utilities
 
    utilities/utils.rst
-
-
-Development
-===========
-.. toctree::
-   :maxdepth: 2
-   :caption: Developers
-
-   development.md
