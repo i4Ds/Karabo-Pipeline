@@ -174,6 +174,51 @@ def test_mandatory_properties_written(mocker, setup_observation, setup_telescope
     os.remove(credentials_filename)
 
 
+def test_set_satellite_names():
+    rfi_signal = RFISignal()
+
+    # Test default satellite names
+    assert rfi_signal._sat_names == ["navstar"]
+    assert isinstance(rfi_signal._sat_names, FlowStyleList)
+
+    # Test setting new satellite names
+    new_names = ["galileo", "glonass", "beidou"]
+    rfi_signal.set_satellite_names(new_names)
+
+    assert rfi_signal._sat_names == new_names
+    assert isinstance(rfi_signal._sat_names, FlowStyleList)
+
+    # Test empty list
+    rfi_signal.set_satellite_names([])
+    assert rfi_signal._sat_names == []
+    assert isinstance(rfi_signal._sat_names, FlowStyleList)
+
+
+def test_set_norad_ids():
+    rfi_signal = RFISignal()
+
+    # Test default NORAD IDs
+    assert rfi_signal._norad_ids == []
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
+
+    # Test setting new NORAD IDs
+    new_ids = [12345, 67890, 11111]
+    rfi_signal.set_norad_ids(new_ids)
+
+    assert rfi_signal._norad_ids == new_ids
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
+
+    # Test single ID
+    rfi_signal.set_norad_ids([99999])
+    assert rfi_signal._norad_ids == [99999]
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
+
+    # Test empty list
+    rfi_signal.set_norad_ids([])
+    assert rfi_signal._norad_ids == []
+    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
+
+
 def test_telescope_property_written_properly(
     mocker, setup_observation, setup_telescope
 ):
@@ -248,48 +293,3 @@ def test_run_simulation(setup_observation, setup_telescope):
 
     os.remove(properties_filename)
     os.remove(credentials_filename)
-
-
-def test_set_satellite_names():
-    rfi_signal = RFISignal()
-
-    # Test default satellite names
-    assert rfi_signal._sat_names == ["navstar"]
-    assert isinstance(rfi_signal._sat_names, FlowStyleList)
-
-    # Test setting new satellite names
-    new_names = ["galileo", "glonass", "beidou"]
-    rfi_signal.set_satellite_names(new_names)
-
-    assert rfi_signal._sat_names == new_names
-    assert isinstance(rfi_signal._sat_names, FlowStyleList)
-
-    # Test empty list
-    rfi_signal.set_satellite_names([])
-    assert rfi_signal._sat_names == []
-    assert isinstance(rfi_signal._sat_names, FlowStyleList)
-
-
-def test_set_norad_ids():
-    rfi_signal = RFISignal()
-
-    # Test default NORAD IDs
-    assert rfi_signal._norad_ids == []
-    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
-
-    # Test setting new NORAD IDs
-    new_ids = [12345, 67890, 11111]
-    rfi_signal.set_norad_ids(new_ids)
-
-    assert rfi_signal._norad_ids == new_ids
-    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
-
-    # Test single ID
-    rfi_signal.set_norad_ids([99999])
-    assert rfi_signal._norad_ids == [99999]
-    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
-
-    # Test empty list
-    rfi_signal.set_norad_ids([])
-    assert rfi_signal._norad_ids == []
-    assert isinstance(rfi_signal._norad_ids, FlowStyleList)
