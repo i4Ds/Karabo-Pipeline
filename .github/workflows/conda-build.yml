@@ -13,6 +13,10 @@ on:
         type: string
         required: true
         description: "version: PEP440 package-version (DON'T trigger build if you don't know what PEP440 is)"
+      python-version:
+        type: string
+        required: true
+        description: "Python version to test"
       buildDocker:
         type: boolean
         required: false
@@ -31,6 +35,10 @@ on:
       version:
         type: string
         required: true
+      python-version:
+        type: string
+        required: true
+        description: "Python version to test"
       buildDocker:
         type: boolean
         required: false
@@ -44,14 +52,18 @@ on:
 jobs:
   conda-build:
     runs-on: ubuntu-latest
-    container: ghcr.io/i4ds/mambabuild-docker:latest
     outputs:
       karabo-version: ${{ steps.bcs.outputs.karabo_version }}
       build-docker: ${{ steps.bcs.outputs.build_docker == 'true' }}
       latest-docker: ${{ steps.bcs.outputs.latest_docker == 'true' }}
+      python-version: ${{ steps.bcs.outputs.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
       - name: Build Conda
         id: bcs
         shell: bash -l {0}
@@ -102,19 +114,24 @@ jobs:
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
           echo "build_docker=$BUILD_DOCKER" >> $GITHUB_OUTPUT
           echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
+          echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
 
+          conda install -y -n base conda-libmamba-solver anaconda-client
+          conda config --set solver libmamba
+          conda install "conda-build>=25"
+
+          conda config --remove channels defaults
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
 
-          cd conda
-          conda mambabuild .
+          conda build conda
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.tar.bz2 --force
-  
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
+
   test-build:
     needs: conda-build
     uses: ./.github/workflows/test-user-package.yml
@@ -122,3 +139,4 @@ jobs:
       version: ${{ needs.conda-build.outputs.karabo-version }}
       buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
       latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
+      python-version: ${{ inputs.python-version }}

@@ -10,7 +10,9 @@ on:
         type: boolean
         required: false
         default: false
-
+      python-version:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       gitrev:
@@ -22,6 +24,10 @@ on:
         type: string
         required: true
         description: "version: PEP440 version-tag of Karabo. DON't trigger build if you don't know what PEP440 is!"
+      python-version:
+        type: string
+        required: true
+        description: "Python version to test"
       latest:
         type: boolean
         required: false
@@ -104,6 +110,7 @@ jobs:
             --build-arg GIT_REV=${{ env.gitrev }} \
             --build-arg BUILD=${{ env.build }} \
             --build-arg KARABO_VERSION=${{ env.version }} \
+            --build-arg PYTHON_VERSION=${{ inputs.python-version }} \
             -f Dockerfile \
             -t ${{ env.IMG_ADDR }}:${{ env.version }} \
             .
