@@ -266,29 +266,3 @@ def test_provide_cache_dir():
 
     assert rfi_signal.cache_dir is not None
     assert os.path.isdir(rfi_signal.cache_dir)
-
-
-# def test_run_simulation(setup_observation, setup_telescope):
-#     """
-#     This test performs an integration test.
-#     """
-#     f = open(credentials_filename, "w")
-#     f.write("username: andreas.wassmer@fhnw.ch\n")
-#     f.write("password: 4TxIgUzpmr2eodrayFed\n")
-#     f.close()
-
-#     rfi_signal = RFISignal()
-#     rfi_signal.set_credentials_filename(credentials_filename)
-
-#     try:
-#         rfi_signal.run_simulation(
-#             setup_observation,
-#             setup_telescope,
-#             property_filename=properties_filename,
-#         )
-#     except subprocess.CalledProcessError as e:
-#         if e.returncode == 1:
-#             pass
-
-#     os.remove(properties_filename)
-#     os.remove(credentials_filename)
