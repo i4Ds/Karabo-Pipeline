@@ -1,4 +1,4 @@
-name: Test User Package
+name: Test Conda Package
 
 on:
   workflow_dispatch:
