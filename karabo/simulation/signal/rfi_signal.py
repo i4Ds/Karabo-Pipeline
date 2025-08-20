@@ -5,6 +5,7 @@ import subprocess
 from shutil import copyfile
 from typing import Dict, Optional, Union
 
+import numpy as np
 import yaml
 
 from karabo.simulation.observation import ObservationAbstract
@@ -87,7 +88,7 @@ class RFISignal:
             uv_cov: Plots the UV coverage of the observation. Set to False because
                 this can be obtained from the visibilities.
         """
-        self.rfi_seps: bool = True
+        self.rfi_seps: bool = False
         self.src_alt: bool = False
         self.uv_cov: bool = False
 
@@ -107,6 +108,14 @@ class RFISignal:
         self._sat_names: list = FlowStyleList(["navstar"])  # adding 1 default satellite
         self._norad_ids: list = FlowStyleList([])
         self._credentials_filename: Optional[FilePathType] = None
+
+        # specifies if the tabsim files are kept or deleted after.
+        # The files can be quite big. If you do not plan to process
+        # them further (outside of Karabo) it's save to delete it.
+        self.keep_sim = True
+
+        # takes the file path to an MS file and then adds the RFI visibilities to it
+        self.accumulate_ms: Optional[FilePathType] = None
 
         # sim-vis downloads satellite data from space-tracks service. These file
         # will be cached here. On Linux, they can be found in
@@ -189,6 +198,8 @@ class RFISignal:
                 "overwrite": self.overwrite_output,
                 "zarr": self.zarr_output,
                 "ms": self.ms_output,
+                "keep_sim": self.keep_sim,
+                "accumulate_ms": self.accumulate_ms,
             },
             "gains": {
                 "G0_mean": self.G0_mean,
@@ -220,11 +231,14 @@ class RFISignal:
                 "target_name": f"pointing_{self._observation.phase_centre_ra_deg:.2f}_{self._observation.phase_centre_dec_deg:.2f}",  # noqa: E501
                 "ra": self._observation.phase_centre_ra_deg,
                 "dec": self._observation.phase_centre_dec_deg,
-                "start_time_isot": self._observation.start_date_and_time.isoformat(),
+                # "start_time_isot": self._observation.start_date_and_time.isoformat(),
+                "start_time_lha": float(
+                    self._observation.compute_hour_angles_of_observation()[0]
+                ),
                 "int_time": self._observation.length.total_seconds()
                 / self._observation.number_of_time_steps,
                 "n_time": self._observation.number_of_time_steps,
-                "n_int": 1024,  # default for tab_sim
+                "n_int": 10,  # default for tab_sim
                 "start_freq": float(self._observation.start_frequency_hz),
                 "chan_width": float(self._observation.frequency_increment_hz),
                 "n_freq": self._observation.number_of_channels,
@@ -270,9 +284,9 @@ class RFISignal:
         return {
             "telescope": {
                 "name": telescope_name,  # self._telescope.name,
-                "latitude": self._telescope.centre_latitude,
-                "longitude": self._telescope.centre_longitude,
-                "elevation": self._telescope.centre_altitude,
+                "latitude": float(np.float64(self._telescope.centre_latitude)),
+                "longitude": float(self._telescope.centre_longitude),
+                "elevation": float(self._telescope.centre_altitude),
                 "dish_d": 13.5,
                 "enu_path": enu_file_path,
                 # "itrf_path": "", # not used with Karabo .tm files.
@@ -414,38 +428,28 @@ class RFISignal:
 
         self.logger.info(f"Executing sim-vis command: {' '.join(command)}")
 
+        # bash_path = which("bash")
         try:
             completed_process = subprocess.run(
                 command,
-                shell=False,
-                # capture_output=True,
+                # shell=True,
+                # executable=bash_path,
+                capture_output=True,
                 text=True,
                 # sim-vis retuns 1 on success. Don't need an excception here
                 check=False,
             )
 
-            self.logger.info(
-                f"sim-vis completed with return code: {completed_process.returncode}"
-            )
-
-            if completed_process.stdout:
-                self.logger.debug(f"sim-vis stdout: {completed_process.stdout}")
-                print(f"sim-vis output:\n[{completed_process.stdout}]")
-
-            if completed_process.stderr:
-                self.logger.debug(f"sim-vis stderr: {completed_process.stderr}")
-                print(f"sim-vis error:\n[{completed_process.stderr}]")
-
-            print(f"sim-vis return code:\n[{completed_process.returncode}]")
-
-            if completed_process.returncode == 0:
-                self.logger.info("RFI simulation completed successfully")
-            else:
-                self.logger.warning(
-                    "sim-vis completed with non-zero return code: "
-                    f"{completed_process.returncode}"
-                )
-
+            stdout = completed_process.stdout.split(os.linesep)
+            stderr = completed_process.stderr
+            print(f"stdout: {stdout}")
+            print(f"stderr: {stderr}")
+            for line in stdout:
+                if "Writing data to :" in line:
+                    sim_dir = line.split(" : ")[-1]
+                    sim_name = os.path.split(sim_dir)[-1]
+                    zarr_path = os.path.join(sim_dir, sim_name + ".zarr")
+                    print(zarr_path)
         except Exception as e:
             self.logger.error(f"Error running sim-vis: {str(e)}")
             raise

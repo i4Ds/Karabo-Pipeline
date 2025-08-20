@@ -252,7 +252,6 @@ class InterferometerSimulation:
         ionosphere_screen_height_km: Optional[float] = 300,
         ionosphere_screen_pixel_size_m: Optional[float] = 0,
         ionosphere_isoplanatic_screen: Optional[bool] = False,
-        rfi_signals: Optional[RFISignal] = None,
     ) -> None:
         self.channel_bandwidth_hz: IntFloat = channel_bandwidth_hz
         self.time_average_sec: IntFloat = time_average_sec
@@ -325,7 +324,6 @@ class InterferometerSimulation:
         self.ionosphere_screen_height_km = ionosphere_screen_height_km
         self.ionosphere_screen_pixel_size_m = ionosphere_screen_pixel_size_m
         self.ionosphere_isoplanatic_screen = ionosphere_isoplanatic_screen
-        self.rfi_signals_simulator = rfi_signals
 
     def _create_or_validate_visibility_path(
         self,
@@ -389,6 +387,7 @@ class InterferometerSimulation:
         observation: Union[Observation, ObservationLong],
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
+        rfi_signals: Optional[RFISignal] = None,
         visibility_format: VisibilityFormat = ...,
         visibility_path: Optional[Union[DirPathType, FilePathType]] = ...,
     ) -> Visibility:
@@ -402,6 +401,7 @@ class InterferometerSimulation:
         observation: ObservationParallelized,
         backend: Literal[SimulatorBackend.OSKAR] = ...,
         primary_beam: None = ...,
+        rfi_signals: Optional[RFISignal] = None,
         visibility_format: VisibilityFormat = ...,
         visibility_path: Optional[DirPathType] = ...,
     ) -> List[Visibility]:
@@ -415,6 +415,7 @@ class InterferometerSimulation:
         observation: Observation,
         backend: Literal[SimulatorBackend.RASCIL],
         primary_beam: Optional[RASCILImage],
+        rfi_signals: Optional[RFISignal] = None,
         visibility_format: Literal["MS"] = ...,
         visibility_path: Optional[DirPathType] = ...,
     ) -> Visibility:
@@ -427,6 +428,7 @@ class InterferometerSimulation:
         observation: ObservationAbstract,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
         primary_beam: Optional[RASCILImage] = None,
+        rfi_signals: Optional[RFISignal] = None,
         visibility_format: VisibilityFormat = "MS",
         visibility_path: Optional[Union[DirPathType, FilePathType]] = None,
     ) -> Union[Visibility, List[Visibility]]:
@@ -454,9 +456,10 @@ class InterferometerSimulation:
             for ObservationParallelized observations.
         """
 
-        instrument_visibility: Union[
-            Optional[Visibility], Optional[List[Visibility]]
-        ] = None
+        # the visibilities from either RASCIL or OSKAR.
+        # instrument_visibility: Union[
+        #     Optional[Visibility], Optional[List[Visibility]]
+        # ] = None
 
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
@@ -471,7 +474,7 @@ class InterferometerSimulation:
                 )
 
             if isinstance(observation, ObservationLong):
-                instrument_visibility = self.__run_simulation_long(
+                self.__run_simulation_long(
                     telescope=telescope,
                     sky=sky,
                     observation=observation,
@@ -496,7 +499,7 @@ class InterferometerSimulation:
                             "visibilities file though. "
                             "Are you sure you're passing the right value?"
                         )
-                instrument_visibility = self.__run_simulation_parallelized_observation(
+                self.__run_simulation_parallelized_observation(
                     telescope=telescope,
                     sky=sky,
                     observation=observation,
@@ -507,7 +510,7 @@ class InterferometerSimulation:
                     ),
                 )
             else:
-                instrument_visibility = self.__setup_run_simulation_oskar(
+                self.__setup_run_simulation_oskar(
                     telescope=telescope,
                     sky=sky,
                     observation=observation,
@@ -518,7 +521,7 @@ class InterferometerSimulation:
                     ),
                 )
         elif backend is SimulatorBackend.RASCIL:
-            instrument_visibility = self.__run_simulation_rascil(
+            self.__run_simulation_rascil(
                 telescope=telescope,
                 sky=sky,
                 observation=observation,
@@ -530,13 +533,14 @@ class InterferometerSimulation:
                 primary_beam=primary_beam,
             )
 
-        if self.rfi_signals_simulator is not None:
-            self.rfi_signals_simulator.run_simulation(
+        if rfi_signals is not None:
+            rfi_signals.accumulate_ms = visibility_path
+            rfi_signals.run_simulation(
                 telescope=telescope,
                 observation=observation,
             )
         # assert_never(backend)
-        return instrument_visibility
+        return Visibility(visibility_path)
 
     def set_ionosphere(self, file_path: str) -> None:
         """
