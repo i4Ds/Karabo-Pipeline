@@ -455,11 +455,10 @@ class InterferometerSimulation:
             Visibility object of the generated data or list of Visibility objects
             for ObservationParallelized observations.
         """
-
-        # the visibilities from either RASCIL or OSKAR.
-        # instrument_visibility: Union[
-        #     Optional[Visibility], Optional[List[Visibility]]
-        # ] = None
+        visibility_output_path: DirPathType = self._create_or_validate_visibility_path(
+            visibility_format,
+            visibility_path,
+        )
 
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
@@ -479,10 +478,7 @@ class InterferometerSimulation:
                     sky=sky,
                     observation=observation,
                     visibility_format=visibility_format,
-                    visibility_path=self._create_or_validate_visibility_path(
-                        visibility_format,
-                        visibility_path,
-                    ),
+                    visibility_path=visibility_output_path,
                 )
             elif isinstance(observation, ObservationParallelized):
                 if visibility_path is not None:
@@ -515,10 +511,7 @@ class InterferometerSimulation:
                     sky=sky,
                     observation=observation,
                     visibility_format=visibility_format,
-                    visibility_path=self._create_or_validate_visibility_path(
-                        visibility_format,
-                        visibility_path,
-                    ),
+                    visibility_path=visibility_output_path,
                 )
         elif backend is SimulatorBackend.RASCIL:
             self.__run_simulation_rascil(
@@ -526,21 +519,18 @@ class InterferometerSimulation:
                 sky=sky,
                 observation=observation,
                 visibility_format=visibility_format,
-                visibility_path=self._create_or_validate_visibility_path(
-                    visibility_format,
-                    visibility_path,
-                ),
+                visibility_path=visibility_output_path,
                 primary_beam=primary_beam,
             )
 
         if rfi_signals is not None:
-            rfi_signals.accumulate_ms = visibility_path
+            rfi_signals.accumulate_ms = visibility_output_path
             rfi_signals.run_simulation(
                 telescope=telescope,
                 observation=observation,
             )
-        # assert_never(backend)
-        return Visibility(visibility_path)
+
+        return Visibility(visibility_output_path)
 
     def set_ionosphere(self, file_path: str) -> None:
         """
