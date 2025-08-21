@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime
 
 import numpy as np
+from matplotlib.figure import Figure
 
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_rascil import (
@@ -18,6 +19,22 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 from karabo.test.util import get_compatible_dirty_imager
+
+
+def test_plot_should_return_matplot_figure(tobject: TFiles):
+    vis = Visibility(tobject.visibilities_gleam_ms)
+
+    dirty_imager = get_compatible_dirty_imager(
+        vis,
+        DirtyImagerConfig(
+            imaging_npixel=2048,
+            imaging_cellsize=3.878509448876288e-05,
+        ),
+    )
+    dirty = dirty_imager.create_dirty_image(vis)
+
+    image = dirty.plot(title="Dirty Image")
+    assert isinstance(image, Figure)
 
 
 def test_image_circle(tobject: TFiles):
@@ -59,7 +76,7 @@ def test_dirty_image(tobject: TFiles):
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dirty.write_to_file(os.path.join(tmpdir, "dirty.fits"), overwrite=True)
-    dirty.plot(title="Dirty Image")
+    _ = dirty.plot(title="Dirty Image")
 
 
 def test_dirty_image_resample(tobject: TFiles):
@@ -80,7 +97,7 @@ def test_dirty_image_resample(tobject: TFiles):
     dirty.resample((NEW_SHAPE, NEW_SHAPE))
     with tempfile.TemporaryDirectory() as tmpdir:
         dirty.write_to_file(os.path.join(tmpdir, "dirty_resample.fits"), overwrite=True)
-    dirty.plot(title="Dirty Image")
+    _ = dirty.plot(title="Dirty Image")
 
     assert dirty.data.shape[2] == NEW_SHAPE
     assert dirty.data.shape[3] == NEW_SHAPE

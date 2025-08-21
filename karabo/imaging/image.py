@@ -25,6 +25,7 @@ from astropy.io import fits
 from astropy.io.fits.header import Header
 from astropy.nddata import Cutout2D, NDData
 from astropy.wcs import WCS
+from matplotlib.figure import Figure
 from numpy.typing import NDArray
 from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
 from reproject import reproject_interp
@@ -390,7 +391,7 @@ class Image:
         filename: Optional[str] = None,
         block: bool = False,
         **kwargs: Any,
-    ) -> None:
+    ) -> Figure:
         """Plots the image
 
         Args:
@@ -412,6 +413,9 @@ class Image:
             **kwargs: matplotlib kwargs for scatter & Collections,
                 e.g. customize `s`, `vmin` or `vmax`
 
+            Returns:
+                An instance of matplotlib.figure.Figure. The user can then
+                    use it to do some more drawing on it.
         """
 
         if wcs_enabled:
@@ -464,6 +468,7 @@ class Image:
             fig.savefig(filename)
         plt.show(block=block)
         plt.pause(1)
+        return fig
 
     def overplot_with_skymodel(
         self,
@@ -474,7 +479,7 @@ class Image:
         stokes_index: int = 0,
         vmin_image: Optional[float] = None,
         vmax_image: Optional[float] = None,
-    ) -> None:
+    ) -> Figure:
         """Create a plot with the current image data,
         as well as an overlay of sources from a given SkyModel instance.
 
@@ -489,6 +494,9 @@ class Image:
                 Defaults to 0 (stokesI).
             vmin_image, vmax_image: Limits for colorbar of Image plot.
 
+        Returns:
+            An instance of matplotlib.figure.Figure. The user can then
+                use it to do some more drawing on it.
         """
         # wcs.wcs_world2pix expects a FITS header with only 2 coordinates (x, y).
         # For this plot, we temporarily remove the 3rd and 4th axes from the image
@@ -512,7 +520,7 @@ class Image:
 
         # Create the figure and axes
         plt.figure(figsize=(20, 10))
-        ax = plt.subplot(111, projection=wcs, slices=slices)
+        fig, ax = plt.subplots(111, projection=wcs, slices=slices)
         img = ax.imshow(
             temporary_data,
             cmap="YlGnBu",
@@ -528,6 +536,7 @@ class Image:
         if filename is not None:
             plt.savefig(filename)
         plt.show(block=block)
+        return fig
 
     def plot_side_by_side_with_skymodel(
         self,
@@ -540,7 +549,7 @@ class Image:
         vmax_sky: float = np.inf,
         vmin_image: float = 0,
         vmax_image: float = np.inf,
-    ) -> None:
+    ) -> Figure:
         """Create a plot with two panels:
 
         1. the current image data, and
@@ -606,6 +615,7 @@ class Image:
         if filename is not None:
             plt.savefig(filename)
         plt.show(block=block)
+        return fig
 
     def get_dimensions_of_image(self) -> List[int]:
         """
