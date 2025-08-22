@@ -19,6 +19,7 @@ from typing import (
 
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 from astropy.coordinates.sky_coordinate import SkyCoord
 from astropy.io import fits
@@ -53,8 +54,7 @@ class Image:
         data: Literal[None] = None,
         header: Literal[None] = None,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -64,8 +64,7 @@ class Image:
         data: NDArray[np.float_],
         header: Header,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -899,9 +898,11 @@ class ImageMosaicker:
 
         """
         optimal_wcs = find_optimal_celestial_wcs(
-            [image.to_2dNNData() for image in images]
-            if isinstance(images[0], Image)
-            else images,
+            (
+                [image.to_2dNNData() for image in images]
+                if isinstance(images[0], Image)
+                else images
+            ),
             projection=projection,
             **kwargs,
         )
