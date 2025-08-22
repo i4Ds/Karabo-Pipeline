@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import glob
 import math
 import os
 import shutil
@@ -37,6 +38,24 @@ def _get_command_prefix(tmp_dir: str) -> str:
     )
 
 
+@dataclass
+class WscleanDirtyImagerConfig(DirtyImagerConfig):
+    """Config / parameters of an WSCleanDirtyImager.
+
+    Adds parameters specific to WSCleanDirtyImager.
+
+    Attributes:
+        imaging_npixel (int): see DirtyImagerConfig
+        imaging_cellsize (float): see DirtyImagerConfig
+        combine_across_frequencies (bool): see DirtyImagerConfig
+        intervals_out (Optional[int]): split the measurement set in the given number
+            of intervals, and image each interval separately
+
+    """
+
+    intervals_out: Optional[int] = None
+
+
 class WscleanDirtyImager(DirtyImager):
     """Dirty imager based on the WSClean library.
 
@@ -56,7 +75,7 @@ class WscleanDirtyImager(DirtyImager):
 
     OUTPUT_FITS_DIRTY = "wsclean-dirty.fits"
 
-    def __init__(self, config: DirtyImagerConfig) -> None:
+    def __init__(self, config: WscleanDirtyImagerConfig) -> None:
         """Initializes the instance with a config.
 
         Args:
@@ -64,7 +83,7 @@ class WscleanDirtyImager(DirtyImager):
 
         """
         super().__init__()
-        self.config = config
+        self.config: WscleanDirtyImagerConfig = config
 
     @override
     def create_dirty_image(
@@ -87,17 +106,26 @@ class WscleanDirtyImager(DirtyImager):
                 "for the WSClean imager."
             )
 
+        if self.config.intervals_out:
+            raise NotImplementedError(
+                "The parameter '-intervals-out' cannot be used with this function. "
+                "If you want to split the visibilities into single time frames use "
+                "the function 'create_dirty_image_series' instead."
+            )
+
         tmp_dir = FileHandler().get_tmp_dir(
             prefix=self.TMP_PREFIX_DIRTY,
             purpose=self.TMP_PURPOSE_DIRTY,
         )
+
         command = _get_command_prefix(tmp_dir) + (
             f"{_WSCLEAN_BINARY} "
-            f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
-            f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
-            f"{visibility.path}"
+            + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
+            + f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
+            + f"{visibility.path}"
         )
-        print(f"WSClean command: [{command}]")
+
+        print(f"WSClean command: {command}")
         completed_process = subprocess.run(
             command,
             shell=True,
@@ -115,6 +143,80 @@ class WscleanDirtyImager(DirtyImager):
             shutil.copyfile(default_output_fits_path, output_fits_path)
 
         return Image(path=output_fits_path)
+
+    def create_dirty_image_series(
+        self,
+        visibility: Visibility,
+        /,
+        *,
+        output_fits_path: Optional[FilePathType] = None,
+    ) -> List[FilePathType]:
+        """
+        This function splits a measurement set into the given number of
+        (time) intervals. Each interval is then imaged seperately.
+        The file name of all the image products of an interval will have
+        the interval number preceded by a 't', e.g. wsclean-t0069-dirty.fits
+
+        Returns:
+            A list of absolute paths to the single .fits files created.
+        """
+        if visibility.format != "MS":
+            raise NotImplementedError(
+                f"Visibility format {visibility.format} is not supported, "
+                "currently only MS is supported for WSClean imaging"
+            )
+        # TODO combine_across_frequencies
+        # -channels-out <count>?
+        if self.config.combine_across_frequencies is False:
+            raise NotImplementedError(
+                "combine_across_frequencies=False is currently not supported "
+                "for the WSClean imager."
+            )
+
+        if self.config.intervals_out is None:
+            raise ValueError(
+                "You must set the parameter '-intervals-out' to call this "
+                "function. If you want to create a single dirty image then "
+                "call the function 'create_dirty_image()'."
+            )
+
+        if self.config.intervals_out <= 0:
+            raise ValueError(
+                "The parameter '-intervals-out' must be set to a value > 0."
+            )
+
+        tmp_dir = FileHandler().get_tmp_dir(
+            prefix=self.TMP_PREFIX_DIRTY,
+            purpose=self.TMP_PURPOSE_DIRTY,
+        )
+
+        command = _get_command_prefix(tmp_dir) + (
+            f"{_WSCLEAN_BINARY} "
+            + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
+            + f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
+        )
+        if self.config.intervals_out:
+            command = command + f"-intervals-out {self.config.intervals_out} "
+
+        command = command + f"{visibility.path}"
+
+        print(f"WSClean command: {command}")
+        completed_process = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            # Raises exception on return code != 0
+            check=True,
+        )
+        print(f"WSClean output:\n[{completed_process.stdout}]")
+
+        fits_files: List[FilePathType] = []
+
+        for file in glob.iglob(os.path.join(tmp_dir, "*-dirty.fits")):
+            fits_files.append(file)
+
+        return sorted(fits_files)
 
 
 # TODO Set kw_only=True after update to Python 3.10
