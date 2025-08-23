@@ -501,6 +501,12 @@ class RFISignal:
                 simulation properties from a .yaml file. Set the file name here if
                 you want to keep this file. Otherwise Karabo creates a temporary file.
         """
+
+        if len(self._norad_ids) == 0 and len(self._sat_names) == 0:
+            return Visibility(self.accumulate_ms)
+        elif self._max_n_sats == 0:
+            return Visibility(self.accumulate_ms)
+
         self.logger.info("Starting RFI signal simulation")
 
         if self._credentials_filename is None:
@@ -579,7 +585,7 @@ class RFISignal:
                     return Visibility(self.ms_path)
 
             # If tabsim deletes its data then return the original MS path with RFI added
-            return Visibility(self.properties["output"]["accumulate_ms"])
+            return Visibility(self.accumulate_ms)
 
         except Exception as e:
             self.logger.error(f"Error running sim-vis: {str(e)}")
