@@ -20,6 +20,8 @@ from karabo.simulation.visibility import Visibility
 
 import xarray as xr
 
+from astropy.coordinates import SkyCoord
+
 _TABSIM_BINARY = "/home/karabo/miniconda3/envs/tabsim/bin/sim-vis"
 _TABSIM_CONFIG_WRITE_BINARY = "/home/karabo/miniconda3/envs/tabsim/bin/write-config"
 TABSIM_DATA_DIR = os.path.join("data", "tabsim")
@@ -467,7 +469,7 @@ class RFISignal:
 
         return np.rad2deg(radec)
 
-    def get_satellite_radec(self) -> np.ndarray:
+    def get_satellite_radec(self) -> SkyCoord:
 
         xyz = (
             self.xds.rfi_tle_sat_xyz.data[:, :: self.xds.n_int_samples]
@@ -476,7 +478,7 @@ class RFISignal:
 
         radec = self._xyz_to_radec(xyz.compute())
 
-        return radec
+        return SkyCoord(radec[:, :, 0], radec[:, :, 1], unit="deg", frame="icrs").T
 
     def run_simulation(
         self,
