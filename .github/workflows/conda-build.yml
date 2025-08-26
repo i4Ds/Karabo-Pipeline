@@ -1,8 +1,6 @@
 name: Conda Build
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       buildNumber:
@@ -54,9 +52,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       karabo-version: ${{ steps.bcs.outputs.karabo_version }}
-      build-docker: ${{ steps.bcs.outputs.build_docker == 'true' }}
-      latest-docker: ${{ steps.bcs.outputs.latest_docker == 'true' }}
-      python-version: ${{ steps.bcs.outputs.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -68,38 +63,16 @@ jobs:
         id: bcs
         shell: bash -l {0}
         run: |
-          if [[ ${{ github.event_name }} == 'release' ]]
-          then
-            echo "Conda build from release"
-            apt-get update && apt-get install -y git
-            git config --global safe.directory '*'
-            KARABO_TAG=$(git describe --tags --abbrev=0)
-            build="0"
-            if [[ ${KARABO_TAG:0:1} == "v" ]]; then
-              KARABO_VERSION="${KARABO_TAG:1}"
-            else
-              echo "Karabo-tag: `$KARABO_TAG` has no leading v"
-              exit 1
-            fi
-            BUILD_DOCKER=true
-            LATEST_DOCKER=true
-          elif [[ ${{ github.event_name }} == 'workflow_dispatch' ]] || [[ ${{ github.event_name }} == 'workflow_call' ]]; then
-            echo "Conda build from dispatch | call"
-            build=${{ inputs.buildNumber }}
-            BUILD_DOCKER=${{ inputs.buildDocker }}
-            LATEST_DOCKER=${{ inputs.latestDocker }}
-            KARABO_VERSION=${{ inputs.version }}
-            if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
-              KARABO_VERSION="${KARABO_VERSION:1}"
-            fi
-            conda install -c conda-forge python versioneer
-            VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
-            if [[ "$VERSIONEER_VERSION" != *"$KARABO_VERSION"* ]] && [[ "$KARABO_VERSION" != *"dev"* ]]; then
-              echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
-              exit 1
-            fi
-          else
-            echo "Unexpected github-event occured"
+          build=${{ inputs.buildNumber }}
+          LATEST_DOCKER=${{ inputs.latestDocker }}
+          KARABO_VERSION=${{ inputs.version }}
+          if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
+            KARABO_VERSION="${KARABO_VERSION:1}"
+          fi
+          conda install -c conda-forge python versioneer
+          VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
+          if [[ "$VERSIONEER_VERSION" != *"$KARABO_VERSION"* ]] && [[ "$KARABO_VERSION" != *"dev"* ]]; then
+            echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
             exit 1
           fi
           if [[ "$KARABO_VERSION" == *"dev"* ]]; then
@@ -110,12 +83,6 @@ jobs:
             build="$(($build + 1000))"
           fi
 
-          export KARABO_VERSION=$KARABO_VERSION build=$build
-          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
-          echo "build_docker=$BUILD_DOCKER" >> $GITHUB_OUTPUT
-          echo "latest_docker=$LATEST_DOCKER" >> $GITHUB_OUTPUT
-          echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
-
           conda install -y -n base conda-libmamba-solver anaconda-client
           conda config --set solver libmamba
           conda install "conda-build>=25"
@@ -125,18 +92,21 @@ jobs:
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
 
+          export KARABO_VERSION=$KARABO_VERSION build=$build
           conda build conda
+
+          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
           conda activate base
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
 
-  test-build:
+  test-conda-wheel:
     needs: conda-build
-    uses: ./.github/workflows/test-user-package.yml
+    uses: ./.github/workflows/test-conda-wheel.yml
     with:
       version: ${{ needs.conda-build.outputs.karabo-version }}
-      buildDocker: ${{ needs.conda-build.outputs.build-docker == 'true' }}
-      latestDocker: ${{ needs.conda-build.outputs.latest-docker == 'true' }}
+      buildDocker: ${{ inputs.buildDocker }}
+      latestDocker: ${{ inputs.latestDocker }}
       python-version: ${{ inputs.python-version }}
