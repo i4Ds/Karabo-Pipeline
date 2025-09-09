@@ -210,6 +210,7 @@ We use the ` pytest` python package ([pytest docs](https://docs.pytest.org/)), w
 Add tests for when you write some sort of new code that you feel like might break. Be aware that tests utilize the functionality of the testing-framework and therefore might not behave exactly the same as you would execute the code just as a function. The most important file to consider is `conftest.py`, which could impact the other tests.
 
 ## Create a Release
+
 When everything is merged which should be merged, a new Release can be deployed as following:
 - [Karabo-Pipeline | Releases](https://github.com/i4Ds/Karabo-Pipeline/releases)
 - Click on `Draft a new release`
@@ -221,3 +222,25 @@ When everything is merged which should be merged, a new Release can be deployed 
 - Check that the new version is on [Anaconda.org | Packages](https://anaconda.org/i4ds/karabo-pipeline)
 - Check on [Karabo-Pipeline | Docker Images](https://github.com/i4ds/Karabo-Pipeline/pkgs/container/karabo-pipeline) that the released image is live.
 
+## External Resources
+
+Karabo is utilizing some external resources to not have to package large files into the repository. This includes mainly test files and sky catalogs, which are hosted at an S3 object storage (https://rgw.cscs.ch/ska) provided by CSCS. The bucket `karabo-public` is public world readable, which enables unauthenticated GET access for everyone. The class `karabo.data.external_data.DownloadObject` is managing the access of these resources.
+
+To avoid unnecessary download traffic of these resources, they're cached locally at `XDG_CACHE_HOME` per default. When an according resource already exists, it won't be downloaded. Because we just check the existence of a local file-name to assess whether a resource shall be downloaded or not, developers are inclined to version each resource, and put them into an according directory to allow resource updates. This means for example, the first up a resource `some-file.fits` should be put inside a directory called `some-file`, be named `some-file-v0.fits, and referenced accordingly in the GET-address. However, most likely there are "older" resources not following this structure because of historical reasons.
+
+To manage resources, it is recommended to use [AWS-CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and/or a compatible UI-interface like [Fileon-S3-Browser](https://chromewebstore.google.com/detail/fileon-s3-browser/dkckgdiclklkmiaimnpdlccihdkfbjdd?hl=en) (Chrome-extension) or comparable. The current S3 setup allows up to 100 GiB quota. For new credentials, open ticket at [CSCS-Service-Desk](https://jira.cscs.ch/plugins/servlet/desk) asking for a new user under the `ska` tenant. The following infos might be helpful to configure your client:
+
+Object-Detail:
+- Protocol: S3
+- Host: rgw.cscs.ch (endpoint-url: https://rgw.cscs.ch)
+- Port: 443 (TLS enabled)
+- Region: us-east-1
+- Bucket-path-style: Path Style
+- Access-key-id: {SECRET}
+- Secret-access-key: {SECRET}
+
+Bucket-Detail:
+- Name: karabo-public
+- Owner: karabo
+- Region: cscs-zonegroup
+- Policy: public
