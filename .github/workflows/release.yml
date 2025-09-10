@@ -10,14 +10,19 @@ jobs:
     outputs:
       karabo-version: ${{ steps.skrm.outputs.karabo_version }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
       - name: Setup Karabo release metadata
         id: skrm
         shell: bash -l {0}
         run: |
           echo "Setup Karabo release metadata"
           apt-get update && apt-get install -y git
-          git config --global safe.directory '*'
-          KARABO_TAG=$(git describe --tags --abbrev=0)
+          git fetch --tags
+          KARABO_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "The latest published version is $KARABO_TAG"
           echo "karabo_version=$KARABO_TAG" >> $GITHUB_OUTPUT
           build="0"
   conda-build:
