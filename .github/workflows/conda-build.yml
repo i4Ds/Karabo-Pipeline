@@ -83,7 +83,7 @@ jobs:
             build="$(($build + 1000))"
           fi
 
-          conda install -y -n base conda-libmamba-solver anaconda-client
+          conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
           conda install "conda-build>=25"
 
@@ -100,7 +100,8 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /opt/conda/conda-bld/linux-64/karabo-pipeline-*.conda --force
+          conda install anaconda-client
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda --force
 
   test-conda-wheel:
     needs: conda-build
