@@ -96,7 +96,17 @@ ENV PATH="/opt/view/bin:${PATH}" \
     LD_LIBRARY_PATH="/opt/view/lib:/opt/view/lib64:${LD_LIBRARY_PATH}" \
     BASH_ENV=/opt/etc/spack_env \
     PYTHONNOUSERSITE=1 \
-    SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
+    CMAKE_PREFIX_PATH="/opt/view:${CMAKE_PREFIX_PATH}" \
+    PKG_CONFIG_PATH="/opt/view/lib/pkgconfig:/opt/view/lib64/pkgconfig:${PKG_CONFIG_PATH}"
+
+# ska-sdp-datamodels 0.1.0 - 3 depends on astroplan<0.9 and >=0.8
+# Pre-install astroplan 0.8 with setuptools_scm pretend version to avoid 0.0.0 metadata issue
+ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ASTROPLAN=0.8
+RUN --mount=type=cache,target=/root/.cache/pip \
+    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack env activate /opt/spack_env && \
+    SETUPTOOLS_SCM_PRETEND_VERSION=0.8 python -m pip install --no-build-isolation \
+      'git+https://github.com/astropy/astroplan.git@v0.8'
 
 # Pre-install build-time requirements needed without build isolation
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -111,16 +121,25 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     spack env activate /opt/spack_env && \
     python -m pip install --no-build-isolation \
         'ipykernel' \
-        'pytest' \
         'ducc0<0.28.0,>=0.27.0' \
         'numexpr==2.10.2' \
-        'xarray' \
+        'numpy==1.23.5' \
+        'xarray==2022.12.0' \
+        'dask==2022.12.1' \
+        'distributed==2022.12.1' \
+        'dask_memusage==1.1' \
+        'tabulate==0.9.0' \
+        'bokeh==2.4.3' \
+        'reproject==0.9.1' \
+        'seqfile==0.2.0' \
         'requests' \
         'tqdm' \
         'healpy' \
+        'pyuvdata==2.4.2' \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
         'dask_mpi' \
+        'mpi4py' \
         'rfc3986>=2.0.0' \
         'git+https://github.com/i4Ds/ARatmospy.git@67c302a136beb40a1cc88b054d7b62ccd927d64f' \
         'nbconvert' \
@@ -131,27 +150,48 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'versioneer' \
         'astropy<5.2,>=5.1' \
         'setuptools_scm>=6.2' \
-        'setuptools>=61.2'
+        'setuptools>=61.2' && \
+    python -m pip uninstall -y argparse || true
 
+# above installs aratmospy-1.0.0 argparse-1.4.0 astropy-5.1.1 astropy-healpix-1.0.3 asttokens-3.0.0 attrs-25.3.0 beautifulsoup4-4.13.5 bleach-6.2.0 bokeh-2.4.3 certifi-2025.8.3 charset_normalizer-3.4.3 click-8.2.1 cloudpickle-3.1.1 comm-0.2.3 dask-2022.12.1 dask_memusage-1.1 dask_mpi-2022.4.0 debugpy-1.8.16 decorator-5.2.1 defusedxml-0.7.1 distributed-2022.12.1 docstring-parser-0.17.0 ducc0-0.27.0 eidos-1.1.0 et-xmlfile-2.0.0 executing-2.2.1 extension_helpers-1.4.0 fastjsonschema-2.21.2 fsspec-2025.9.0 future-1.0.0 healpy-1.18.1 idna-3.10 imageio-2.37.0 ipykernel-6.30.1 ipython-8.37.0 jedi-0.19.2 jinja2-3.1.6 joblib-1.5.2 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 jupyter-client-8.6.3 jupyter-core-5.8.1 jupyterlab-pygments-0.3.0 katbeam-0.2.dev36+head.5ce6fcc lazy-loader-0.4 locket-1.0.0 markupsafe-3.0.2 matplotlib-inline-0.1.7 mistune-3.1.4 mpi4py-4.1.0 msgpack-1.1.1 natsort-8.4.0 nbclient-0.10.2 nbconvert-7.16.6 nbformat-5.10.4 nest_asyncio-1.6.0 networkx-3.4.2 numexpr-2.10.2 numpy-1.23.5 openpyxl-3.1.5 pandocfilters-1.5.1 parso-0.8.5 partd-1.4.2 pexpect-4.9.0 platformdirs-4.4.0 prompt_toolkit-3.0.52 psutil-7.0.0 ptyprocess-0.7.0 pure-eval-0.2.3 pyerfa-2.0.1.5 pyfftw-0.15.0 pygments-2.19.2 pyuvdata-2.4.2 pyyaml-6.0.2 pyzmq-27.1.0 referencing-0.36.2 reproject-0.9.1 requests-2.32.5 rfc3986-2.0.0 rpds-py-0.27.1 scikit-image-0.24.0 scikit-learn-1.7.2 seqfile-0.2.0 setuptools-80.9.0 setuptools_scm-9.2.0 sortedcontainers-2.4.0 soupsieve-2.8 stack_data-0.6.3 tabulate-0.9.0 tblib-3.1.0 threadpoolctl-3.6.0 tifffile-2025.5.10 tinycss2-1.4.0 tools21cm-2.3.8 toolz-1.0.0 tornado-6.5.2 tqdm-4.67.1 traitlets-5.14.3 typing-extensions-4.15.0 urllib3-2.5.0 versioneer-0.29 wcwidth-0.2.13 webencodings-0.5.1 xarray-2022.12.0 zict-3.0.0
+# issues:
+# - spack installs casacore 3.5.0, pip installs casacore 3.5.2
+# - spack installs numpy 1.25.2, pip installs numpy 1.23.5
+# - spack installs astropy 4.0.1.post1, pip installs astropy 5.1.1
+# - why does argparse get uninstalled?
+# - python-casacore 3.5.2 is available from sdp spack: py-casacore@=3.5.2
+# - only py-astroplan 0.10.1 is available from sdp spack, but this needs 'py-astropy@6:' and we need 0.8 for ska-sdp-datamodels and ska-sdp-func-python for rascil
+# - only ducc0 0.34 is available from sdp spack, but we need 0.27 for ska-sdp-func-python
+# - only xarray 2024.10.0 is available from sdp spack, but we need 2022.12.0 for ska-sdp-datamodels
 
-# installs: PyYAML-6.0.2 aratmospy-1.0.0 astropy-5.1.1 asttokens-3.0.0 attrs-25.3.0 beautifulsoup4-4.13.5 bleach-6.2.0 certifi-2025.8.3 charset_normalizer-3.4.3 comm-0.2.3 dask_mpi-2022.4.0 debugpy-1.8.16 decorator-5.2.1 defusedxml-0.7.1 ducc0-0.27.0 eidos-1.1.0 et-xmlfile-2.0.0 executing-2.2.1 extension_helpers-1.4.0 fastjsonschema-2.21.2 future-1.0.0 healpy-1.18.1 idna-3.10 imageio-2.37.0 ipykernel-6.30.1 ipython-8.37.0 jedi-0.19.2 jinja2-3.1.6 joblib-1.5.2 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 jupyter-client-8.6.3 jupyter-core-5.8.1 jupyterlab-pygments-0.3.0 katbeam-0.2.dev36+head.5ce6fcc lazy-loader-0.4 markupsafe-3.0.2 matplotlib-inline-0.1.7 mistune-3.1.4 nbclient-0.10.2 nbconvert-7.16.6 nbformat-5.10.4 nest_asyncio-1.6.0 networkx-3.4.2 numexpr-2.10.2 openpyxl-3.1.5 pandas-2.3.2 pandocfilters-1.5.1 parso-0.8.5 pexpect-4.9.0 platformdirs-4.4.0 prompt_toolkit-3.0.52 psutil-7.0.0 ptyprocess-0.7.0 pure-eval-0.2.3 pyerfa-2.0.1.5 pyfftw-0.15.0 pygments-2.19.2 pyzmq-27.1.0 referencing-0.36.2 requests-2.32.5 rfc3986-2.0.0 rpds-py-0.27.1 scikit-image-0.25.2 scikit-learn-1.7.2 scipy-1.15.3 setuptools-80.9.0 setuptools_scm-9.2.0 soupsieve-2.8 stack_data-0.6.3 threadpoolctl-3.6.0 tifffile-2025.5.10 tinycss2-1.4.0 tools21cm-2.3.8 tornado-6.5.2 tqdm-4.67.1 traitlets-5.14.3 typing_extensions-4.15.0 tzdata-2025.2 urllib3-2.5.0 versioneer-0.29 wcwidth-0.2.13 webencodings-0.5.1 xarray-2025.6.1
-# replaces:
-#   SciPy 1.9.3 -> 1.15.3
-#   setuptools 59.4.0 -> 80.9.0
-#   astropy 4.0.1.post1 -> 5.1.1
-# xarray reinstalls:
-#   pandas 1.5.3 -> 2.3.2
-#
+# Build python-casacore from source against Spack casacore
+RUN --mount=type=cache,target=/root/.cache/pip \
+    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack env activate /opt/spack_env && \
+    python -m pip install --no-build-isolation --no-binary=python-casacore \
+      'python-casacore==3.5.2'
+# Install SKA packages from artefact index (not on PyPI)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack env activate /opt/spack_env && \
+    python -m pip install --no-build-isolation \
+      --index-url=https://artefact.skao.int/repository/pypi-all/simple \
+      --extra-index-url=https://pypi.org/simple \
+      'ska-sdp-datamodels==0.1.3' \
+      'ska-sdp-func-python==0.1.5'
 
-
-# ska-sdp-datamodels 0.1.0 - 3 depends on astroplan<0.9 and >=0.8
-
+# Preinstall ska-sdp-func from the same commit resolved during earlier builds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack env activate /opt/spack_env && \
+    python -m pip install --no-build-isolation \
+      'git+https://gitlab.com/ska-telescope/sdp/ska-sdp-func.git@08eb17cf9f4d63320dd0618032ddabc6760188c9'
 # astropy-photutils
 ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_PHOTUTILS=1.11.0
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
-    python -m pip install --no-build-isolation \
+    SETUPTOOLS_SCM_PRETEND_VERSION=1.11.0 python -m pip install --no-build-isolation \
     'git+https://github.com/astropy/photutils.git@1.11.0'
 # rascil (optional; disabled by default due to dependency conflicts)
 # https://artefact.skao.int/service/rest/repository/browse/pypi-all/rascil/
@@ -165,7 +205,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
       echo "Skipping rascil install"; \
     else \
       python -m pip install --upgrade pip wheel setuptools && \
-      python -m pip install --no-build-isolation \
+      python -m pip install --no-build-isolation --no-deps \
         --index-url=https://artefact.skao.int/repository/pypi-all/simple \
         --extra-index-url=https://pypi.org/simple \
         'rascil==1.0.0' || exit 1; \
@@ -183,8 +223,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     else \
         git clone 'https://github.com/OxfordSKA/OSKAR.git' /opt/oskar && \
         cd /opt/oskar/ && \
-        # karabo uses 2.8.3 but 2.10.0 works on arm64
-        git checkout '2.10.0' && \
+        # karabo uses 2.8.3. 2.10.0 works on arm64 but gives code -115 when reading vis files
+        git checkout '2.8.3' && \
         mkdir build && \
         cd build && \
         cmake -DCMAKE_INSTALL_PREFIX=/opt/software -DCMAKE_BUILD_TYPE=Release .. && \
@@ -203,12 +243,12 @@ ARG NB_GID=100
 COPY --chown=${NB_UID}:${NB_GID} . /home/${NB_USER}/Karabo-Pipeline
 
 RUN fix-permissions /home/${NB_USER} && \
-    fix-permissions /home/${NB_USER}/Karabo-Pipeline
+    fix-permissions /home/${NB_USER}/Karabo-Pipeline && \
+    fix-permissions /opt/view/lib/python3.10/
 USER ${NB_UID}
 # Set explicit version for Karabo-Pipeline when building without VCS metadata
 ARG KARABO_VERSION=0.34.0
 ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KARABO_PIPELINE=${KARABO_VERSION} \
-    SETUPTOOLS_SCM_PRETEND_VERSION=${KARABO_VERSION} \
     VERSIONEER_OVERRIDE=${KARABO_VERSION}
 
 RUN --mount=type=cache,target=/home/${NB_USER}/.cache/pip \
@@ -216,7 +256,6 @@ RUN --mount=type=cache,target=/home/${NB_USER}/.cache/pip \
     spack env activate /opt/spack_env && \
     printf 'version = "%s"\n\n' "${KARABO_VERSION}" > /home/${NB_USER}/Karabo-Pipeline/karabo/_version.py && \
     printf 'def get_versions():\n    return {"version": "%s", "full-revisionid": None, "dirty": None, "error": None, "date": None}\n' "${KARABO_VERSION}" >> /home/${NB_USER}/Karabo-Pipeline/karabo/_version.py && \
-    export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KARABO_PIPELINE=${KARABO_VERSION} SETUPTOOLS_SCM_PRETEND_VERSION=${KARABO_VERSION} VERSIONEER_OVERRIDE=${KARABO_VERSION} && \
     python -m pip install --no-build-isolation -e /home/jovyan/Karabo-Pipeline
 
 # Register kernel for jovyan user using the Spack Python
