@@ -94,7 +94,7 @@ jobs:
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
           conda build conda
-
+          conda build conda --output
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash -l {0}
