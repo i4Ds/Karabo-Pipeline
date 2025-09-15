@@ -101,6 +101,7 @@ jobs:
         run: |
           conda activate base
           conda install anaconda-client
+          anaconda --version
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload "/usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda"
 
   test-conda-wheel:
