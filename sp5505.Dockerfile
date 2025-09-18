@@ -492,6 +492,11 @@ RUN python -m ipykernel install --user --name=karabo --display-name="Karabo (Spa
 # Run tests during build to validate environment
 ARG SKIP_TESTS=0
 ENV SKIP_TESTS=${SKIP_TESTS}
-RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; pytest -q -x --tb=short -k "not test_suppress_rascil_warning" /home/${NB_USER}/Karabo-Pipeline
+RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
+    pytest -q -x --tb=short -k "test_suppress_rascil_warning" /home/${NB_USER}/Karabo-Pipeline; \
+    rm -rf /home/${NB_USER}/.astropy/cache \
+           /home/${NB_USER}/.cache/astropy \
+           /home/${NB_USER}/.cache/pyuvdata \
+           /home/${NB_USER}/.cache/rascil || true
 
 WORKDIR "/home/${NB_USER}"
