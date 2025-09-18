@@ -48,7 +48,7 @@ ARG XARRAY_VERSION=2022.12.0
 # only 2025.4.0 2024.10.0 available in sdp spack (but only the main branch, not the 2025.07.3 branch)
 ARG H5PY_VERSION=3.7
 # h5py needed by pyuvdata tensorflow-base ska-sdp-datamodels keras
-ARG HDF5_VERSION=1.12
+ARG HDF5_VERSION=1.12.3
 # distributed needed by rascil, dask
 ARG DISTRIBUTED_VERSION=2022.12
 
@@ -115,8 +115,8 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'casacore@='$CASACORE_VERSION' +python' \
         'mpich' \
         'openblas@:0.3.27' \
-        # 'py-h5py@'$H5PY_VERSION \
-        # 'hdf5@'$HDF5_VERSION \
+        'py-h5py@'$H5PY_VERSION \
+        'hdf5@'$HDF5_VERSION \
         # 'py-distributed@'$DISTRIBUTED_VERSION \
         # 'py-astropy@'$ASTROPY_VERSION \
         # 'py-healpy' \
@@ -126,7 +126,6 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-nbconvert' \
         'py-requests' \
         'py-scipy@'$SCIPY_VERSION \
-        'py-setuptools@:59' \
         'py-tabulate' \
         'py-tqdm' \
         'wsclean@=3.4' \
@@ -270,7 +269,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && \
     for pkg_ver in \
         astroplan:$ASTROPLAN_VERSION astropy:5.1 \
-        h5py:3.7.0 numpy:1.23.4 pandas:1.5 xarray:2022.10.0 h5py:3.7.0 \
+        h5py:3.7.0 numpy:1.23.4 pandas:1.5 xarray:2022.10.0 \
         packaging:21.3 numexpr:2.10.2; \
     do \
         python -c "pkg=__import__('${pkg_ver%:*}'); target='${pkg_ver#*:}'; print(f'{pkg.__name__} installed {pkg.__version__}, target {target}'); assert tuple([*pkg.__version__.split('.')]) >= tuple([*target.split('.')])" || exit 1 ; \
@@ -364,7 +363,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'dask_mpi' \
         'dask=='${DASK_VERSION} \
         'distributed=='${DISTRIBUTED_VERSION} \
-        'h5py=='${H5PY_VERSION} \
         'seqfile>=0.2.0' \
         'tabulate>=0.9' \
     || exit 1
