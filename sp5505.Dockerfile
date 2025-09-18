@@ -49,8 +49,17 @@ ARG XARRAY_VERSION=2022.12.0
 ARG H5PY_VERSION=3.7
 # h5py needed by pyuvdata tensorflow-base ska-sdp-datamodels keras
 ARG HDF5_VERSION=1.12.3
-# distributed needed by rascil, dask
 ARG DISTRIBUTED_VERSION=2022.12
+# distributed needed by rascil, dask
+ARG SCIPY_VERSION=1.9.3
+# scipy needed by pyuvdata bluebild rascil scikit-image astroml ska-sdp-func-python aratmospy bdsf reproject tools21cm gwcs photutils healpy scikit-learn eidos
+# scipy 1.13.1 installed by conda
+ARG MATPLOTLIB_VERSION=3.6
+# matplotlib needed by bluebild rascil aratmospy tools21cm
+ARG ASTROPY_VERSION=5.1
+# astropy needed by rascil pyuvdata ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels healpy eidos bluebild
+ARG CASACORE_VERSION=3.5.0
+# casacore needed by everybeam wsclean oskar rascil
 
 # first install xarray 2022.12.0
 # requires:
@@ -82,53 +91,29 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack mirror add --autopush --unsigned mycache file:///opt/buildcache; \
     spack buildcache keys --install --trust || true; \
     spack add \
-        'py-numpy@'$NUMPY_VERSION \
-        'py-pandas@'$PANDAS_VERSION \
-        'py-pip@:25.2' \
-        'py-xarray@'$XARRAY_VERSION \
-        'python@3.10' \
-    && \
-    spack concretize --force && \
-    # ac_cv_lib_curl_curl_easy_init=no for cfitsio
-    spack install --no-check-signature --no-checksum --fail-fast && \
-    spack env view regenerate
-
-ARG SCIPY_VERSION=1.9.3
-# scipy needed by pyuvdata bluebild rascil scikit-image astroml ska-sdp-func-python aratmospy bdsf reproject tools21cm gwcs photutils healpy scikit-learn eidos
-# scipy 1.13.1 installed by conda
-ARG MATPLOTLIB_VERSION=3.6
-# matplotlib needed by bluebild rascil aratmospy tools21cm
-ARG ASTROPY_VERSION=5.1
-# astropy needed by rascil pyuvdata ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels healpy eidos bluebild
-ARG CASACORE_VERSION=3.5.0
-# casacore needed by everybeam wsclean oskar rascil
-
-# Create Spack environment, enable view at /opt/view, add packages, install
-# ac_cv_lib_curl_curl_easy_init=no is needed for cfitsio
-RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=locked \
-    --mount=type=cache,target=/opt/spack-source-cache,id=spack-source-cache,sharing=locked \
-    --mount=type=cache,target=/opt/spack-misc-cache,id=spack-misc-cache,sharing=locked \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh; \
-    spack env activate /opt/spack_env; \
-    spack add \
         'boost+python+numpy' \
         'casacore@='$CASACORE_VERSION' +python' \
+        'hdf5@'$HDF5_VERSION \
         'mpich' \
         'openblas@:0.3.27' \
         'py-h5py@'$H5PY_VERSION \
-        'hdf5@'$HDF5_VERSION \
-        # 'py-distributed@'$DISTRIBUTED_VERSION \
-        # 'py-astropy@'$ASTROPY_VERSION \
-        # 'py-healpy' \
         'py-ipykernel' \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-mpi4py' \
         'py-nbconvert' \
+        'py-numpy@'$NUMPY_VERSION \
+        'py-pandas@'$PANDAS_VERSION \
+        'py-pip@:25.2' \
         'py-requests' \
         'py-scipy@'$SCIPY_VERSION \
         'py-tabulate' \
         'py-tqdm' \
+        'py-xarray@'$XARRAY_VERSION \
+        'python@3.10' \
         'wsclean@=3.4' \
+        # 'py-astropy@'$ASTROPY_VERSION \
+        # 'py-distributed@'$DISTRIBUTED_VERSION \
+        # 'py-healpy' \
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
