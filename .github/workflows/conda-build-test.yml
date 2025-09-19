@@ -1,0 +1,45 @@
+name: Test Conda Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  conda-build:
+    runs-on: ubuntu-latest
+    outputs:
+      karabo-version: ${{ steps.bcs.outputs.karabo_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+      - name: Build Conda
+        id: bcs
+        shell: bash -l {0}
+        run: |
+          build="1010"
+          KARABO_VERSION=v0.34.0
+          if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
+            KARABO_VERSION="${KARABO_VERSION:1}"
+          fi
+          conda install -c conda-forge python versioneer
+
+          conda install -y -n base conda-libmamba-solver
+          conda config --set solver libmamba
+          conda install "conda-build>=25"
+
+          conda config --remove channels defaults
+          conda config --append channels i4ds
+          conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels conda-forge
+
+          export KARABO_VERSION=$KARABO_VERSION build=$build
+          conda build conda
+          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
+      - name: Publish to Conda
+        shell: bash -l {0}
+        run: |
+          conda activate base
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda
