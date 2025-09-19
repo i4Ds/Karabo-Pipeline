@@ -43,4 +43,4 @@ jobs:
         run: |
           conda activate base
           conda install anaconda-client
-          anaconda -t "${{ secrets.ANACONDA_SECRET }}" upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda
