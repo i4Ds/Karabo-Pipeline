@@ -83,7 +83,7 @@ jobs:
             build="$(($build + 1000))"
           fi
 
-          conda install -y -n base conda-libmamba-solver anaconda-client
+          conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
           conda install "conda-build>=25"
 
@@ -94,13 +94,15 @@ jobs:
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
           conda build conda
-
+          conda build conda --output
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
           conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
+          conda install anaconda-client
+          anaconda --version
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload "/usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda"
 
   test-conda-wheel:
     needs: conda-build
