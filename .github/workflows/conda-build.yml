@@ -94,15 +94,12 @@ jobs:
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
           conda build conda
-          conda build conda --output
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
-          conda install anaconda-client
-          anaconda --version
-          echo "Test token" ${{ secrets.TEST_SECRET }}
-          anaconda -t "${{ secrets.ANACONDA_SECRET }}" upload "/usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda"
+          conda activate base
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda
 
   test-conda-wheel:
     needs: conda-build
