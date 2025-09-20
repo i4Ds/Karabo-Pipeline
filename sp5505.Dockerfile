@@ -76,12 +76,18 @@ ARG SCIPY_VERSION=1.9.3
 ARG MATPLOTLIB_VERSION=3.6
 # matplotlib needed by bluebild rascil aratmospy tools21cm
 # ARG ASTROPY_VERSION=5.2.2
-ARG ASTROPY_VERSION=5.1.1
+ARG ASTROPY_VERSION=5.3
 # astropy needed by rascil pyuvdata ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels healpy eidos bluebild
 ARG CASACORE_VERSION=3.5.0
 # casacore needed by everybeam wsclean oskar rascil
 ARG HEALPY_VERSION=1.16.2
 # healpy needed by rascil ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels eidos bluebild
+
+ARG PEYERFA_VERSION=2.0.0.1
+# up to 2.0.1.5
+
+# copy early sanity test to run immediately after Spack deps
+COPY karabo/test/test_000_astropy_env.py /opt/early-tests/test_000_astropy_env.py
 
 # first install xarray 2022.12.0
 # requires:
@@ -121,15 +127,18 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'mpich' \
         'openblas@:0.3.27' \
         'zlib' \
-        'py-astropy@'$ASTROPY_VERSION \
+        # 'py-astropy@'$ASTROPY_VERSION \
         'py-h5py@'$H5PY_VERSION \
-        'py-healpy@'$HEALPY_VERSION \
+        # 'py-healpy@'$HEALPY_VERSION \
+        # 'py-pyerfa@'$PEYERFA_VERSION \
+        # 'erfa' \
         'py-ipykernel' \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-mpi4py' \
         'py-nbconvert' \
         'py-numpy@'$NUMPY_VERSION \
         'py-pandas@'$PANDAS_VERSION \
+        'py-pyyaml' \
         'py-pip@:25.2' \
         'py-requests' \
         'py-scipy@'$SCIPY_VERSION \
@@ -138,10 +147,18 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-xarray@'$XARRAY_VERSION \
         'python@3.10' \
         'wsclean@=3.4' \
+        'py-pytest' \
     && \
     spack concretize --force && \
-    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
-    spack env view regenerate
+    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast python@3.10 py-pip py-numpy && \
+    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --test=all && \
+    spack env view regenerate && \
+    # Build pyerfa from source against the view's NumPy
+    /opt/view/bin/python -m pip install --no-build-isolation -U 'pip<25.3' setuptools setuptools-scm wheel build && \
+    /opt/view/bin/python -m pip install --no-build-isolation --no-binary=pyerfa 'pyerfa=='$PEYERFA_VERSION && \
+    /opt/view/bin/python -m pip install --no-build-isolation --no-deps 'astropy=='$ASTROPY_VERSION && \
+    # Run early sanity tests to catch environment issues fast (use Spack view python)
+    /opt/view/bin/python -m pytest -q -k astropy_earthlocation_basic /opt/early-tests || exit 1
 
 # possible additional specs:
 # 'py-cython@0.29:3.0' \
@@ -458,11 +475,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'pyuvdata==2.4.2' \
         'rfc3986>=2.0.0' \
         'tools21cm' \
-        'scipy=='${SCIPY_VERSION} \
-        'numpy=='${NUMPY_VERSION} \
         'astropy-healpix==1.0.0' \
     && \
-    # Force-install healpy wheel explicitly to avoid mixed Spack/pip state
+    # Ensure NumPy/SciPy remain pinned to Spack-compatible versions (avoid accidental NumPy 2.x upgrades)
+    python -m pip install --no-build-isolation --no-deps "numpy==${NUMPY_VERSION}" "scipy==${SCIPY_VERSION}" && \
+    \
+    # Force-install healpy wheel explicitly to avoid mixed Spack/pip state (keep it, but no numpy/scipy from pip)
     python -m pip install --no-build-isolation --force-reinstall --no-deps --only-binary=:all: "healpy==${HEALPY_VERSION}" && \
     python - <<'PY'
 import importlib, sys
