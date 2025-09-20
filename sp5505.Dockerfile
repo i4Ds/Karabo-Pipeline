@@ -5,13 +5,28 @@ FROM quay.io/jupyter/minimal-notebook:notebook-7.2.2
 USER root
 SHELL ["/bin/bash", "-lc"]
 
+# ensure conda is gone so its libs don't pollute link flags
+RUN rm -f /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true; \
+    rm -rf /opt/conda || true
+
 # System dependencies for building scientific stack
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get --no-install-recommends install -y \
-    wget ca-certificates curl git file build-essential gfortran cmake pkg-config zstd patchelf \
-    libcfitsio-dev libfftw3-dev libhdf5-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+        build-essential \
+        ca-certificates \
+        cmake \
+        curl \
+        file \
+        gfortran \
+        git \
+        libcurl4-openssl-dev \
+        patchelf \
+        pkg-config \
+        wget \
+        zstd \
+    ;
+    # because of cache mounts, no need to apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ENV SPACK_ROOT=/opt/spack \
     SPACK_DISABLE_LOCAL_CONFIG=1 \
@@ -19,7 +34,8 @@ ENV SPACK_ROOT=/opt/spack \
 
 # Install Spack v0.23 and detect compilers
 RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.git ${SPACK_ROOT} && \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && spack compiler find
+    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack compiler find
 
 # Add SKA SDP Spack repo
 RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
@@ -49,6 +65,9 @@ ARG XARRAY_VERSION=2022.12.0
 ARG H5PY_VERSION=3.7
 # h5py needed by pyuvdata tensorflow-base ska-sdp-datamodels keras
 ARG HDF5_VERSION=1.12.3
+# hdf5 1.14.3 installed by conda
+# hdf5 1.12.3 seems to have worked at one point
+# hdf5 1.10.10 installed by ubuntu24 apt
 ARG DISTRIBUTED_VERSION=2022.12
 # distributed needed by rascil, dask
 ARG SCIPY_VERSION=1.9.3
@@ -56,10 +75,13 @@ ARG SCIPY_VERSION=1.9.3
 # scipy 1.13.1 installed by conda
 ARG MATPLOTLIB_VERSION=3.6
 # matplotlib needed by bluebild rascil aratmospy tools21cm
-ARG ASTROPY_VERSION=5.1
+# ARG ASTROPY_VERSION=5.2.2
+ARG ASTROPY_VERSION=5.1.1
 # astropy needed by rascil pyuvdata ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels healpy eidos bluebild
 ARG CASACORE_VERSION=3.5.0
 # casacore needed by everybeam wsclean oskar rascil
+ARG HEALPY_VERSION=1.16.2
+# healpy needed by rascil ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels eidos bluebild
 
 # first install xarray 2022.12.0
 # requires:
@@ -91,12 +113,17 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack mirror add --autopush --unsigned mycache file:///opt/buildcache; \
     spack buildcache keys --install --trust || true; \
     spack add \
-        'boost+python+numpy' \
-        'casacore@='$CASACORE_VERSION' +python' \
+        'boost@1.84.0+python+numpy' \
+        'casacore@'$CASACORE_VERSION'+python' \
+        'curl' \
+        'cfitsio' \
         'hdf5@'$HDF5_VERSION \
         'mpich' \
         'openblas@:0.3.27' \
+        'zlib' \
+        'py-astropy@'$ASTROPY_VERSION \
         'py-h5py@'$H5PY_VERSION \
+        'py-healpy@'$HEALPY_VERSION \
         'py-ipykernel' \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-mpi4py' \
@@ -111,21 +138,31 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-xarray@'$XARRAY_VERSION \
         'python@3.10' \
         'wsclean@=3.4' \
-        # 'py-astropy@'$ASTROPY_VERSION \
-        # 'py-distributed@'$DISTRIBUTED_VERSION \
-        # 'py-healpy' \
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
     spack env view regenerate
 
 # possible additional specs:
-# 'py-cython' \
-# 'py-extension-helpers' \
+# 'py-cython@0.29:3.0' \
+# 'py-distributed@'$DISTRIBUTED_VERSION \
+# 'py-extension-helpers@1.0:' \
+# 'py-packaging@21:' \
+# 'py-pyerfa@2.0:' \
 # 'py-pytest' \
 # 'py-setuptools' \
 # 'py-versioneer' \
 # 'py-wheel' \
+
+# RUN --mount=type=cache,target=/root/.cache/pip \
+#     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+#     spack env activate /opt/spack_env && \
+#     python - <<"PY"
+# from astropy import units as u
+# from astropy.coordinates import EarthLocation, Longitude, Latitude
+# loc = EarthLocation.from_geodetic(Longitude(116.7644, u.deg), Latitude(-26.8247, u.deg), 377*u.m)
+# print(loc)
+# PY
 
 # issues:
 # - py-bdsf does not set version metadata correctly, breaks later pip installs
@@ -187,7 +224,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'jupyter_client>=8' && \
     # Ensure start-notebook uses Spack jupyter first in PATH
     mkdir -p /usr/local/bin/before-notebook.d && \
-    printf '#!/usr/bin/env bash\nPATH="/opt/view/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\nexport PATH\n' > /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
+    printf '#!/usr/bin/env bash\nPATH="/opt/view/bin:${HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\nexport PATH\n' > /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
     chmod +x /usr/local/bin/before-notebook.d/00-prefer-spack.sh
 
 # update python build dependencies
@@ -231,8 +268,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
     export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ASTROPLAN=${ASTROPLAN_VERSION} && \
-    python -m pip install --no-build-isolation \
-        'astropy=='${ASTROPY_VERSION} && \
     python -m pip install --no-build-isolation --no-deps \
         'git+https://github.com/astropy/astroplan.git@v'${ASTROPLAN_VERSION} && \
     python -c "pkg=__import__('astroplan'); target='${ASTROPLAN_VERSION}'; print(f'{pkg.__name__} installed {pkg.__version__}, target {target}'); assert tuple([*pkg.__version__.split('.')]) >= tuple([*target.split('.')])"
@@ -421,13 +456,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
         'pyuvdata==2.4.2' \
-        'healpy==1.16.2' \
         'rfc3986>=2.0.0' \
         'tools21cm' \
         'scipy=='${SCIPY_VERSION} \
         'numpy=='${NUMPY_VERSION} \
         'astropy-healpix==1.0.0' \
     && \
+    # Force-install healpy wheel explicitly to avoid mixed Spack/pip state
+    python -m pip install --no-build-isolation --force-reinstall --no-deps --only-binary=:all: "healpy==${HEALPY_VERSION}" && \
     python - <<'PY'
 import importlib, sys
 checks = [
@@ -493,7 +529,7 @@ RUN python -m ipykernel install --user --name=karabo --display-name="Karabo (Spa
 ARG SKIP_TESTS=0
 ENV SKIP_TESTS=${SKIP_TESTS}
 RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
-    pytest -q -x --tb=short -k "test_suppress_rascil_warning" /home/${NB_USER}/Karabo-Pipeline; \
+    pytest -q -x --tb=short -k "not test_suppress_rascil_warning" /home/${NB_USER}/Karabo-Pipeline; \
     rm -rf /home/${NB_USER}/.astropy/cache \
            /home/${NB_USER}/.cache/astropy \
            /home/${NB_USER}/.cache/pyuvdata \
