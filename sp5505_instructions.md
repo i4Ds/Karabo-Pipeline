@@ -132,6 +132,8 @@ keep track of the size of the container
 - OSKAR: run `cmake/make` with `LD_LIBRARY_PATH` preferring system libs to avoid `libcurl.so.4: no version information available` noise.
 - Import names matter in probes: use `astropy_healpix` (underscore) and try both `aratmospy` and `ARatmospy` to validate installs without triggering resolver changes.
 
+please don't remove my tests for target software versions
+
 ### scm versioning:
 
 Some packages (astroplan, photutils) use setuptools_scm to manage versioning

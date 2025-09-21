@@ -127,11 +127,10 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'mpich' \
         'openblas@:0.3.27' \
         'zlib' \
-        # 'py-astropy@'$ASTROPY_VERSION \
+        'py-astropy@'$ASTROPY_VERSION \
         'py-h5py@'$H5PY_VERSION \
-        # 'py-healpy@'$HEALPY_VERSION \
-        # 'py-pyerfa@'$PEYERFA_VERSION \
-        # 'erfa' \
+        'py-healpy@'$HEALPY_VERSION \
+        'py-pyerfa@2.0:' \
         'py-ipykernel' \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-mpi4py' \
@@ -143,15 +142,18 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-requests' \
         'py-scipy@'$SCIPY_VERSION \
         'py-tabulate' \
-        'py-tqdm' \
         'py-xarray@'$XARRAY_VERSION \
         'python@3.10' \
         'wsclean@=3.4' \
         'py-pytest' \
+        'py-dask@2022.10.2' \
+        'py-distributed@2022.10.2' \
+        'py-tornado@6.1' \
+        'py-scikit-learn@1.5' \
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast python@3.10 py-pip py-numpy && \
-    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --test=all && \
+    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
     spack env view regenerate && \
     # Build pyerfa from source against the view's NumPy
     /opt/view/bin/python -m pip install --no-build-isolation --no-deps -U 'pip<25.3' setuptools setuptools-scm wheel build 'extension-helpers>=1.0,<2' && \
@@ -403,10 +405,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --no-build-isolation --no-deps \
         'dask_memusage>=1.1' \
         'dask_mpi' \
-        'dask=='${DASK_VERSION} \
-        'distributed=='${DISTRIBUTED_VERSION} \
         'seqfile>=0.2.0' \
-        'tabulate>=0.9' \
     || exit 1
 # Build python-casacore from source against Spack casacore to avoid ABI issues
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -466,8 +465,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
          'natsort' \
     && \
     for pkg_ver in \
-        numpy:$NUMPY_VERSION scipy:$SCIPY_VERSION pandas:$PANDAS_VERSION xarray:$XARRAY_VERSION \
-        dask:$DASK_VERSION distributed:$DISTRIBUTED_VERSION astropy:$ASTROPY_VERSION matplotlib:$MATPLOTLIB_VERSION \
+        numpy:$NUMPY_VERSION scipy:$SCIPY_VERSION pandas:$PANDAS_VERSION xarray:2022.0 \
+        dask:2022.0 distributed:2022.0 astropy:$ASTROPY_VERSION matplotlib:$MATPLOTLIB_VERSION \
         h5py:$H5PY_VERSION reproject:0.9 casacore:$CASACORE_VERSION cloudpickle:0.0 toolz:0.0 click:0.0 tblib:0.0 msgpack:0.0 \
         seqfile:0.2 tabulate:0.9 dask_memusage:1.1 locket:0.0 zict:0.0 partd:0.0 sortedcontainers:0.0 fsspec:0.0 natsort:0.0; \
     do \
@@ -483,6 +482,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Install remaining karabo-pipeline dependencies into Spack Python (as root) from pypi
 # - https://artefact.skao.int/repository/pypi-all/simple does not correctly set python versions
+ENV NUMPY_VERSION=${NUMPY_VERSION}
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
@@ -496,12 +496,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'lazy_loader' \
         'scikit-image' \
         'tools21cm' \
+        'tqdm' \
         'astropy-healpix==1.0.0' \
-    && \
-    # Install scikit-learn with its dependencies (excluding Spack-managed ones)
-    python -m pip install --no-build-isolation \
-        --no-binary=numpy,scipy \
-        'scikit-learn' \
     && \
     # Install pyuvdata with dependencies but skip Spack-managed ones
     python -m pip install --no-build-isolation \
@@ -520,32 +516,25 @@ checks = [
     ('healpy','1.16'),
     ('rfc3986','2.0'),
     ('tools21cm','0.0'),
+    ('tqdm','4.0'),
     ('astropy_healpix','1.0'),
-    ('numpy','"${NUMPY_VERSION}"'),
+    ('numpy','${NUMPY_VERSION}'),
     ('toolz','0.0'),
     ('pyfftw','0.0'),
     ('joblib','0.0'),
     ('lazy_loader','0.0'),
-    ('sklearn','0.0'),
-    ('skimage','0.0'),
+    ('sklearn','1.5'),
+    ('dask','2022.10'),
+    ('distributed','2022.10'),
+    ('skimage','0.24'),
 ]
 for (name, target) in checks:
     mod = None
     if name == 'aratmospy':
-        for candidate in ('aratmospy', 'ARatmospy'):
-            try:
-                mod = importlib.import_module(candidate)
-                break
-            except Exception:
-                mod = None
-        if mod is None:
-            print('aratmospy not importable (skipping check)')
-            continue
-    elif name == 'tools21cm':
         try:
-            mod = importlib.import_module(name)
+            mod = importlib.import_module('name')
         except Exception:
-            print('tools21cm not importable (skipping check)')
+            print('aratmospy not importable (skipping check)')
             continue
     else:
         try:
@@ -563,7 +552,8 @@ for (name, target) in checks:
 sys.exit(0)
 PY
 
-# ^ Successfully installed aratmospy-1.0.0 docstring-parser-0.17.0 eidos-1.1.0 et-xmlfile-2.0.0 future-1.0.0 healpy-1.16.2 imageio-2.37.0 iniconfig-2.1.0 joblib-1.5.2 katbeam-0.2.dev36+head.5ce6fcc lazy-loader-0.4 networkx-3.4.2 openpyxl-3.1.5 pluggy-1.6.0 pyfftw-0.15.0 pytest-8.4.2 pyuvdata-2.4.2 rfc3986-2.0.0 scikit-image-0.24.0 scikit-learn-1.7.2 threadpoolctl-3.6.0 tifffile-2025.5.10 tools21cm-2.3.8 tqdm-4.67.1
+# ^ Successfully installed aratmospy-1.0.0 docstring-parser-0.17.0 eidos-1.1.0 et-xmlfile-2.0.0 future-1.0.0 healpy-1.16.2 imageio-2.37.0 iniconfig-2.1.0 joblib-1.5.2 katbeam-0.2.dev36+head.5ce6fcc lazy-loader-0.4 networkx-3.4.2 openpyxl-3.1.5 pluggy-1.6.0 pyfftw-0.15.0 pytest-8.4.2 pyuvdata-2.4.2 rfc3986-2.0.0 threadpoolctl-3.6.0 tifffile-2025.5.10 tools21cm-2.3.8 tqdm-4.67.1
+# Note: dask@2022.10.2, distributed@2022.10.2, scikit-learn@1.5 now installed via Spack (scikit-image kept as pip due to ffmpeg dependency issues)
 
 # Copy repository for editable install and testing
 ARG NB_USER=jovyan
