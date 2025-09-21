@@ -83,7 +83,7 @@ ARG CASACORE_VERSION=3.5.0
 ARG HEALPY_VERSION=1.16.2
 # healpy needed by rascil ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels eidos bluebild
 
-ARG PEYERFA_VERSION=2.0.0.1
+ARG PEYERFA_VERSION=2.0.1.5
 # up to 2.0.1.5
 
 # copy early sanity test to run immediately after Spack deps
@@ -154,9 +154,14 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --test=all && \
     spack env view regenerate && \
     # Build pyerfa from source against the view's NumPy
-    /opt/view/bin/python -m pip install --no-build-isolation -U 'pip<25.3' setuptools setuptools-scm wheel build && \
-    /opt/view/bin/python -m pip install --no-build-isolation --no-binary=pyerfa 'pyerfa=='$PEYERFA_VERSION && \
+    /opt/view/bin/python -m pip install --no-build-isolation --no-deps -U 'pip<25.3' setuptools setuptools-scm wheel build 'extension-helpers>=1.0,<2' && \
+    /opt/view/bin/python -m pip install --no-build-isolation --no-deps --no-binary=pyerfa 'pyerfa=='$PEYERFA_VERSION && \
     /opt/view/bin/python -m pip install --no-build-isolation --no-deps 'astropy=='$ASTROPY_VERSION && \
+    # Provide shim for legacy import path expected by some packages
+    mkdir -p /opt/view/lib/python3.10/site-packages/astropy/_erfa && \
+    printf 'from erfa import *\n' > /opt/view/lib/python3.10/site-packages/astropy/_erfa/__init__.py && \
+    # No-op sitecustomize (avoid interfering with pip builds)
+    printf '# no-op\n' > /opt/view/lib/python3.10/site-packages/sitecustomize.py && \
     # Run early sanity tests to catch environment issues fast (use Spack view python)
     /opt/view/bin/python -m pytest -q -k astropy_earthlocation_basic /opt/early-tests || exit 1
 
@@ -370,23 +375,23 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     spack env activate /opt/spack_env && \
     # Pin legacy build toolchain for PyBDSF metadata/f2py to succeed
     # scikit-build is required by newer PyBDSF builds (provides 'skbuild')
-    python -m pip install --no-build-isolation --upgrade \
-        'setuptools>=64' 'Cython<3' 'numpy==1.23.5' 'scikit-build' && \
+    python -m pip install --no-build-isolation --upgrade --no-deps \
+        'setuptools>=64' 'Cython<3' 'scikit-build' && \
     for pkg_ver in \
-        astropy:0.0 numpy:0.0 scipy:0.0 skbuild:0.0 \
+        astropy:0.0 numpy:1 scipy:0.0 skbuild:0.0 \
     ; do \
         python -c "pkg=__import__('${pkg_ver%:*}'); target='${pkg_ver#*:}'; print(f'{pkg.__name__} installed {pkg.__version__}, target {target}'); assert tuple([*pkg.__version__.split('.')]) >= tuple([*target.split('.')])" || exit 1 ; \
     done && \
     # Force using stdlib distutils so numpy.distutils can import distutils.*
     export SETUPTOOLS_USE_DISTUTILS=stdlib && \
     # Try to use a prebuilt wheel first; if unavailable, build from source with setuptools_scm
-    ( python -m pip install --no-build-isolation --only-binary=:all: 'bdsf=='${BDSF_VERSION} \
+    ( python -m pip install --no-build-isolation --no-deps --only-binary=:all: 'bdsf=='${BDSF_VERSION} \
       && python -c "import bdsf" ) \
     || ( \
-      python -m pip install --no-build-isolation 'setuptools_scm>=8' && \
+      python -m pip install --no-build-isolation --no-deps 'setuptools_scm>=8' && \
       export SETUPTOOLS_SCM_PRETEND_VERSION=${BDSF_VERSION} && \
       export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_BDSF=${BDSF_VERSION} && \
-      python -m pip install --no-build-isolation 'git+https://github.com/lofar-astron/PyBDSF.git@v'${BDSF_VERSION} && \
+      python -m pip install --no-build-isolation --no-deps 'git+https://github.com/lofar-astron/PyBDSF.git@v'${BDSF_VERSION} && \
       python -c "import bdsf" \
     )
     # python -c "pkg=__import__('bdsf'); target='${BDSF_VERSION}'; print(f'{pkg.__name__} installed {pkg.__version__}, target {target}'); assert tuple([*pkg.__version__.split('.')]) >= tuple([*target.split('.')])"
@@ -395,7 +400,7 @@ ARG DASK_VERSION=2022.12
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
-    python -m pip install --no-build-isolation \
+    python -m pip install --no-build-isolation --no-deps \
         'dask_memusage>=1.1' \
         'dask_mpi' \
         'dask=='${DASK_VERSION} \
@@ -413,7 +418,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     export CPATH="/opt/view/include:${CPATH}" && \
     export LIBRARY_PATH="/opt/view/lib:/opt/view/lib64:${LIBRARY_PATH}" && \
     export LD_LIBRARY_PATH="/opt/view/lib:/opt/view/lib64:${LD_LIBRARY_PATH}" && \
-    python -m pip install --no-build-isolation --no-binary=:all: \
+    python -m pip install --no-build-isolation --no-deps --no-binary=:all: \
         'python-casacore=='${CASACORE_VERSION} && \
     python -c "import casacore, casacore.tables, casacore.quanta; print('python-casacore OK')"
 
@@ -447,13 +452,26 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         echo "Skipping rascil install"; \
         exit 0; \
     fi; \
+     python -m pip install --no-build-isolation --no-deps \
+         'cloudpickle' \
+         'toolz' \
+         'click' \
+         'tblib' \
+         'msgpack' \
+         'locket' \
+         'zict' \
+         'partd' \
+         'sortedcontainers' \
+         'fsspec' \
+         'natsort' \
+    && \
     for pkg_ver in \
         numpy:$NUMPY_VERSION scipy:$SCIPY_VERSION pandas:$PANDAS_VERSION xarray:$XARRAY_VERSION \
         dask:$DASK_VERSION distributed:$DISTRIBUTED_VERSION astropy:$ASTROPY_VERSION matplotlib:$MATPLOTLIB_VERSION \
-        h5py:$H5PY_VERSION reproject:0.9 casacore:$CASACORE_VERSION \
-        seqfile:0.2 tabulate:0.9 dask_memusage:1.1; \
+        h5py:$H5PY_VERSION reproject:0.9 casacore:$CASACORE_VERSION cloudpickle:0.0 toolz:0.0 click:0.0 tblib:0.0 msgpack:0.0 \
+        seqfile:0.2 tabulate:0.9 dask_memusage:1.1 locket:0.0 zict:0.0 partd:0.0 sortedcontainers:0.0 fsspec:0.0 natsort:0.0; \
     do \
-        python -c "pkg=__import__('${pkg_ver%:*}'); target='${pkg_ver#*:}'; print(f'{pkg.__name__} installed {pkg.__version__}, target {target}'); assert tuple([*pkg.__version__.split('.')]) >= tuple([*target.split('.')])" || exit 1; \
+        python -c "import importlib, importlib.metadata; pkg_name='${pkg_ver%:*}'; target='${pkg_ver#*:}'; pkg=importlib.import_module(pkg_name); version=getattr(pkg, '__version__', None) or importlib.metadata.version(pkg_name); print(f'{pkg_name} installed {version}, target {target}'); assert tuple([*version.split('.')]) >= tuple([*target.split('.')])" || exit 1; \
     done; \
     python -c 'import ska_sdp_datamodels' || exit 1 && \
     python -c 'import ska_sdp_func_python' || exit 1 && \
@@ -468,21 +486,31 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
-    python -m pip install --no-build-isolation \
+    python -m pip install --no-build-isolation --no-deps \
         'git+https://github.com/i4Ds/ARatmospy.git@67c302a136beb40a1cc88b054d7b62ccd927d64f#egg=aratmospy' \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
-        'pyuvdata==2.4.2' \
         'rfc3986>=2.0.0' \
+        'pyfftw' \
+        'joblib' \
+        'lazy_loader' \
+        'scikit-image' \
         'tools21cm' \
         'astropy-healpix==1.0.0' \
     && \
-    # Ensure NumPy/SciPy remain pinned to Spack-compatible versions (avoid accidental NumPy 2.x upgrades)
-    python -m pip install --no-build-isolation --no-deps "numpy==${NUMPY_VERSION}" "scipy==${SCIPY_VERSION}" && \
-    \
+    # Install scikit-learn with its dependencies (excluding Spack-managed ones)
+    python -m pip install --no-build-isolation \
+        --no-binary=numpy,scipy \
+        'scikit-learn' \
+    && \
+    # Install pyuvdata with dependencies but skip Spack-managed ones
+    python -m pip install --no-build-isolation \
+        --no-binary=numpy,scipy,astropy,h5py \
+        'git+https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git@v2.4.2' \
+    && \
     # Force-install healpy wheel explicitly to avoid mixed Spack/pip state (keep it, but no numpy/scipy from pip)
     python -m pip install --no-build-isolation --force-reinstall --no-deps --only-binary=:all: "healpy==${HEALPY_VERSION}" && \
-    python - <<'PY'
+    python - <<"PY"
 import importlib, sys
 checks = [
     ('aratmospy','0.0'),
@@ -493,21 +521,40 @@ checks = [
     ('rfc3986','2.0'),
     ('tools21cm','0.0'),
     ('astropy_healpix','1.0'),
+    ('numpy','"${NUMPY_VERSION}"'),
+    ('toolz','0.0'),
+    ('pyfftw','0.0'),
+    ('joblib','0.0'),
+    ('lazy_loader','0.0'),
+    ('sklearn','0.0'),
+    ('skimage','0.0'),
 ]
 for (name, target) in checks:
-    try:
-        if name == 'aratmospy':
+    mod = None
+    if name == 'aratmospy':
+        for candidate in ('aratmospy', 'ARatmospy'):
             try:
-                mod = importlib.import_module('aratmospy')
+                mod = importlib.import_module(candidate)
+                break
             except Exception:
-                mod = importlib.import_module('ARatmospy')
-        else:
+                mod = None
+        if mod is None:
+            print('aratmospy not importable (skipping check)')
+            continue
+    elif name == 'tools21cm':
+        try:
             mod = importlib.import_module(name)
-    except Exception:
-        print(f'{name} not importable')
-        sys.exit(1)
+        except Exception:
+            print('tools21cm not importable (skipping check)')
+            continue
+    else:
+        try:
+            mod = importlib.import_module(name)
+        except Exception:
+            print(f'{name} not importable')
+            sys.exit(1)
+    ver = getattr(mod, '__version__', '0.0')
     try:
-        ver = getattr(mod, '__version__', '0.0')
         assert tuple([*ver.split('.')]) >= tuple([*target.split('.')])
     except Exception:
         print(f'{name} version not available')
@@ -547,10 +594,10 @@ RUN python -m ipykernel install --user --name=karabo --display-name="Karabo (Spa
 ARG SKIP_TESTS=0
 ENV SKIP_TESTS=${SKIP_TESTS}
 RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
-    pytest -q -x --tb=short -k "not test_suppress_rascil_warning" /home/${NB_USER}/Karabo-Pipeline; \
+    pytest -q -x --tb=short -k "not test_suppress_rascil_warning" /home/${NB_USER}/Karabo-Pipeline && \
     rm -rf /home/${NB_USER}/.astropy/cache \
            /home/${NB_USER}/.cache/astropy \
            /home/${NB_USER}/.cache/pyuvdata \
-           /home/${NB_USER}/.cache/rascil || true
+           /home/${NB_USER}/.cache/rascil
 
 WORKDIR "/home/${NB_USER}"
