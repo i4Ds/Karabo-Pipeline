@@ -142,6 +142,8 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-requests' \
         'py-scipy@'$SCIPY_VERSION \
         'py-tabulate' \
+        # 'py-tqdm' \
+        # 'py-versioneer' \
         'py-xarray@'$XARRAY_VERSION \
         'python@3.10' \
         'wsclean@=3.4' \
@@ -157,8 +159,8 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env view regenerate && \
     # Build pyerfa from source against the view's NumPy
     /opt/view/bin/python -m pip install --no-build-isolation --no-deps -U 'pip<25.3' setuptools setuptools-scm wheel build 'extension-helpers>=1.0,<2' && \
-    /opt/view/bin/python -m pip install --no-build-isolation --no-deps --no-binary=pyerfa 'pyerfa=='$PEYERFA_VERSION && \
-    /opt/view/bin/python -m pip install --no-build-isolation --no-deps 'astropy=='$ASTROPY_VERSION && \
+    # /opt/view/bin/python -m pip install --no-build-isolation --no-deps --no-binary=pyerfa 'pyerfa=='$PEYERFA_VERSION && \
+    # /opt/view/bin/python -m pip install --no-build-isolation --no-deps 'astropy=='$ASTROPY_VERSION && \
     # Provide shim for legacy import path expected by some packages
     mkdir -p /opt/view/lib/python3.10/site-packages/astropy/_erfa && \
     printf 'from erfa import *\n' > /opt/view/lib/python3.10/site-packages/astropy/_erfa/__init__.py && \
@@ -175,7 +177,6 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
 # 'py-pyerfa@2.0:' \
 # 'py-pytest' \
 # 'py-setuptools' \
-# 'py-versioneer' \
 # 'py-wheel' \
 
 # RUN --mount=type=cache,target=/root/.cache/pip \

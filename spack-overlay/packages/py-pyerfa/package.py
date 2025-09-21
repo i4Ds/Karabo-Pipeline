@@ -21,6 +21,7 @@ class PyPyerfa(PythonPackage):
     # Pin to numpy 1.23.5 to match our environment and avoid ABI issues
     depends_on("py-numpy@1.23.5", type=("build", "run"))
     depends_on("py-setuptools@42:", type="build")
+    depends_on("py-setuptools-scm@6.2:", type="build")
     depends_on("py-packaging", type="build")
     depends_on("py-jinja2@2.10.3:", type="build")
     depends_on("erfa", type=("build", "link", "run"))
