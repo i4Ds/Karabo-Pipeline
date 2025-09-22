@@ -1,3 +1,5 @@
+# Workflow for debugging package upload
+# 22.9.25 AW
 name: Test Conda Build
 
 on:
@@ -42,5 +44,4 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate base
-          conda install anaconda-client
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda
