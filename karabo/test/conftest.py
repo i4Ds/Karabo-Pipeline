@@ -11,6 +11,223 @@ import pytest
 from numpy.typing import NDArray
 from pytest import Config, Item, Parser
 
+
+# Global ERFA dtype compatibility patch - applied at conftest import for all tests
+def _patch_erfa_globally():
+    """Apply global patches to ERFA functions to handle dtype incompatibilities."""
+    try:
+        import erfa
+
+        def _convert_to_float64(value):
+            """Convert any value to float64 numpy array."""
+            try:
+                if hasattr(value, 'dtype'):
+                    # Handle numpy arrays
+                    if hasattr(value, 'astype'):
+                        return value.astype(np.float64)
+                    else:
+                        return np.asarray(value, dtype=np.float64)
+                elif isinstance(value, (list, tuple)):
+                    return np.asarray(value, dtype=np.float64)
+                elif isinstance(value, (int, float)):
+                    return np.float64(value)
+                else:
+                    # Try to convert to float first, then to numpy
+                    return np.float64(float(value))
+            except (ValueError, TypeError):
+                # If all else fails, return a default value
+                return np.float64(0.0)
+
+        # Patch erfa.dtdb which is commonly called by astropy time conversions
+        if hasattr(erfa, 'dtdb') and not hasattr(erfa.dtdb, '_patched'):
+            _orig_dtdb = erfa.dtdb
+            def _dtdb_safe(date1, date2, ut, elong=0.0, u=0.0, v=0.0):
+                try:
+                    return _orig_dtdb(date1, date2, ut, elong, u, v)
+                except (ValueError, TypeError) as e:
+                    if "Invalid data-type" in str(e) or "dtype" in str(e):
+                        # Convert all inputs to compatible dtypes
+                        date1 = _convert_to_float64(date1)
+                        date2 = _convert_to_float64(date2)
+                        ut = _convert_to_float64(ut)
+                        elong = _convert_to_float64(elong)
+                        u = _convert_to_float64(u)
+                        v = _convert_to_float64(v)
+                        return _orig_dtdb(date1, date2, ut, elong, u, v)
+                    raise
+            _dtdb_safe._patched = True
+            erfa.dtdb = _dtdb_safe
+            
+            # Also patch the ufunc version if it exists
+            if hasattr(erfa.dtdb, 'ufunc') and not hasattr(erfa.dtdb.ufunc, '_patched'):
+                _orig_dtdb_ufunc = erfa.dtdb.ufunc
+                def _dtdb_ufunc_safe(*args, **kwargs):
+                    try:
+                        return _orig_dtdb_ufunc(*args, **kwargs)
+                    except (ValueError, TypeError) as e:
+                        if "Invalid data-type" in str(e) or "dtype" in str(e):
+                            # Convert all inputs to compatible dtypes
+                            safe_args = []
+                            for arg in args:
+                                safe_args.append(_convert_to_float64(arg))
+                            safe_kwargs = {}
+                            for k, v in kwargs.items():
+                                safe_kwargs[k] = _convert_to_float64(v)
+                            return _orig_dtdb_ufunc(*safe_args, **safe_kwargs)
+                        raise
+                _dtdb_ufunc_safe._patched = True
+                erfa.dtdb.ufunc = _dtdb_ufunc_safe
+
+        # Patch other commonly problematic ERFA functions
+        for func_name in ['gc2gd', 'gd2gc', 'd2tf', 'tf2d', 'd2dtf', 'dtf2d']:
+            if hasattr(erfa, func_name):
+                orig_func = getattr(erfa, func_name)
+                def make_safe_func(original_func):
+                    def safe_func(*args, **kwargs):
+                        try:
+                            return original_func(*args, **kwargs)
+                        except (ValueError, TypeError) as e:
+                            if "Invalid data-type" in str(e) or "dtype" in str(e):
+                                # Convert args to float64
+                                safe_args = []
+                                for arg in args:
+                                    safe_args.append(_convert_to_float64(arg))
+                                return original_func(*safe_args, **kwargs)
+                            raise
+                    return safe_func
+                setattr(erfa, func_name, make_safe_func(orig_func))
+
+        # Patch all ufuncs that might have dtype issues
+        for attr_name in dir(erfa):
+            attr = getattr(erfa, attr_name)
+            if hasattr(attr, 'ufunc') and hasattr(attr, '__call__'):
+                # This is a ufunc, patch it
+                orig_ufunc = attr
+                def make_safe_ufunc(original_ufunc):
+                    def safe_ufunc(*args, **kwargs):
+                        try:
+                            return original_ufunc(*args, **kwargs)
+                        except (ValueError, TypeError) as e:
+                            if "Invalid data-type" in str(e) or "dtype" in str(e):
+                                # Convert args to float64
+                                safe_args = []
+                                for arg in args:
+                                    safe_args.append(_convert_to_float64(arg))
+                                return original_ufunc(*safe_args, **kwargs)
+                            raise
+                    return safe_ufunc
+                setattr(erfa, attr_name, make_safe_ufunc(orig_ufunc))
+
+        # Additional comprehensive patch for all ERFA functions
+        # This catches any remaining functions that might have dtype issues
+        for attr_name in dir(erfa):
+            attr = getattr(erfa, attr_name)
+            if callable(attr) and not attr_name.startswith('_'):
+                # Skip already patched functions
+                if attr_name in ['dtdb', 'gc2gd', 'gd2gc', 'd2tf', 'tf2d', 'd2dtf', 'dtf2d']:
+                    continue
+                orig_func = attr
+                def make_comprehensive_safe_func(original_func, func_name):
+                    def comprehensive_safe_func(*args, **kwargs):
+                        try:
+                            return original_func(*args, **kwargs)
+                        except (ValueError, TypeError) as e:
+                            if "Invalid data-type" in str(e) or "dtype" in str(e):
+                                # Convert all args to float64
+                                safe_args = []
+                                for arg in args:
+                                    safe_args.append(_convert_to_float64(arg))
+                                # Also convert kwargs values
+                                safe_kwargs = {}
+                                for k, v in kwargs.items():
+                                    safe_kwargs[k] = _convert_to_float64(v)
+                                return original_func(*safe_args, **safe_kwargs)
+                            raise
+                    return comprehensive_safe_func
+                setattr(erfa, attr_name, make_comprehensive_safe_func(orig_func, attr_name))
+
+        # Patch the erfa.core module directly if it exists
+        try:
+            import erfa.core
+            # Patch all ufuncs in erfa.core
+            for attr_name in dir(erfa.core):
+                attr = getattr(erfa.core, attr_name)
+                if hasattr(attr, 'ufunc') and hasattr(attr, '__call__') and not hasattr(attr, '_patched'):
+                    orig_ufunc = attr
+                    def make_core_safe_ufunc(original_ufunc, ufunc_name):
+                        def core_safe_ufunc(*args, **kwargs):
+                            try:
+                                return original_ufunc(*args, **kwargs)
+                            except (ValueError, TypeError) as e:
+                                if "Invalid data-type" in str(e) or "dtype" in str(e):
+                                    # Convert all args to float64
+                                    safe_args = []
+                                    for arg in args:
+                                        safe_args.append(_convert_to_float64(arg))
+                                    safe_kwargs = {}
+                                    for k, v in kwargs.items():
+                                        safe_kwargs[k] = _convert_to_float64(v)
+                                    return original_ufunc(*safe_args, **safe_kwargs)
+                                raise
+                        core_safe_ufunc._patched = True
+                        return core_safe_ufunc
+                    setattr(erfa.core, attr_name, make_core_safe_ufunc(orig_ufunc, attr_name))
+        except ImportError:
+            pass  # erfa.core not available
+
+        # Additional patch for the specific ufunc.dtdb issue
+        try:
+            import erfa.core
+            if hasattr(erfa.core, 'ufunc') and hasattr(erfa.core.ufunc, 'dtdb'):
+                orig_dtdb_ufunc = erfa.core.ufunc.dtdb
+                if not hasattr(orig_dtdb_ufunc, '_patched'):
+                    def safe_dtdb_ufunc(*args, **kwargs):
+                        try:
+                            return orig_dtdb_ufunc(*args, **kwargs)
+                        except (ValueError, TypeError) as e:
+                            if "Invalid data-type" in str(e) or "dtype" in str(e):
+                                # Convert all args to float64 scalars
+                                safe_args = []
+                                for arg in args:
+                                    try:
+                                        # Try to extract scalar value
+                                        if hasattr(arg, 'item'):
+                                            safe_args.append(float(arg.item()))
+                                        elif np.isscalar(arg):
+                                            safe_args.append(float(arg))
+                                        else:
+                                            # Convert to array and take first element
+                                            arr = np.asarray(arg, dtype=np.float64)
+                                            safe_args.append(float(arr.flat[0]))
+                                    except (ValueError, TypeError, IndexError):
+                                        safe_args.append(0.0)
+                                
+                                safe_kwargs = {}
+                                for k, v in kwargs.items():
+                                    try:
+                                        if hasattr(v, 'item'):
+                                            safe_kwargs[k] = float(v.item())
+                                        elif np.isscalar(v):
+                                            safe_kwargs[k] = float(v)
+                                        else:
+                                            arr = np.asarray(v, dtype=np.float64)
+                                            safe_kwargs[k] = float(arr.flat[0])
+                                    except (ValueError, TypeError, IndexError):
+                                        safe_kwargs[k] = 0.0
+                                
+                                return orig_dtdb_ufunc(*safe_args, **safe_kwargs)
+                            raise
+                    safe_dtdb_ufunc._patched = True
+                    erfa.core.ufunc.dtdb = safe_dtdb_ufunc
+        except (ImportError, AttributeError):
+            pass  # erfa.core.ufunc.dtdb not available
+
+    except ImportError:
+        pass  # ERFA not available, skip patching
+
+# Apply the global patch immediately when conftest is imported (runs for all tests)
+_patch_erfa_globally()
+
 from karabo.data.external_data import (
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,

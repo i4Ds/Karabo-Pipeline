@@ -22,7 +22,7 @@ class PyAstropy(PythonPackage):
     depends_on("py-packaging@21:", type=("build", "run"))
     depends_on("py-numpy@1.18:", type=("build", "run"))
     depends_on("py-numpy@1.22:", type=("build", "run"), when="@5.3:")
-    depends_on("py-pyerfa@2.0:", type=("build", "run"), when="@5.1:")
+    depends_on("py-pyerfa@2.0.0:2.0.1", type=("build", "run"), when="@5.1:")
     depends_on("pkgconfig", type="build")
 
     # Disable default import tests to avoid heavy test imports during install
