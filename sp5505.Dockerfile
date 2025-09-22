@@ -626,8 +626,8 @@ RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
     export OPENBLAS_NUM_THREADS=1 && \
     export MKL_NUM_THREADS=1 && \
     export NUMEXPR_NUM_THREADS=1 && \
-    # Run tests excluding OSKAR (segfaults) and RASCIL (ERFA dtype issue)
-    pytest -q -x --tb=short -k "not test_suppress_rascil_warning and not (oskar or OSKAR or rascil or RASCIL)" /home/${NB_USER}/Karabo-Pipeline && \
+    # Run tests - OSKAR tests re-enabled after ERFA dtype fix, keeping RASCIL excluded for now
+    pytest -q -x --tb=short -k "not test_suppress_rascil_warning and not (rascil or RASCIL)" /home/${NB_USER}/Karabo-Pipeline && \
     rm -rf /home/${NB_USER}/.astropy/cache \
            /home/${NB_USER}/.cache/astropy \
            /home/${NB_USER}/.cache/pyuvdata \
