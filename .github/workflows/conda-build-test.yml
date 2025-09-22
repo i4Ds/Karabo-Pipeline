@@ -42,6 +42,10 @@ jobs:
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash -l {0}
-        run: |
-          conda activate base
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda
+        run:
+          conda install anaconda-client
+          echo
+          echo ">>>>>>>>> Anaconda version " `anaconda --version`
+          echo ">>>>>>>>> Package location " $(conda build conda --output)
+          echo
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda --force
