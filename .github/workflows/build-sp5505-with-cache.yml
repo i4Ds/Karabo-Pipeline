@@ -22,6 +22,8 @@ on:
       - 'sp5505.Dockerfile'
       - 'spack-overlay/**'
       - 'karabo/**'
+      - '.github/workflows/build-sp5505-with-cache.yml'
+      - 'docs/ci-caching-strategy.md'
   push:
     branches:
       - main
@@ -29,6 +31,8 @@ on:
       - 'sp5505.Dockerfile'
       - 'spack-overlay/**'
       - 'karabo/**'
+      - '.github/workflows/build-sp5505-with-cache.yml'
+      - 'docs/ci-caching-strategy.md'
 
 env:
   REGISTRY: ghcr.io
