@@ -1,0 +1,188 @@
+---
+name: Build SP5505 Container with Caching
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip-tests:
+        description: 'Skip tests during build (0=run tests, 1=skip tests)'
+        required: false
+        default: '0'
+        type: choice
+        options:
+          - '0'
+          - '1'
+      push-image:
+        description: 'Push image to registry'
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+    paths:
+      - 'sp5505.Dockerfile'
+      - 'spack-overlay/**'
+      - 'karabo/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'sp5505.Dockerfile'
+      - 'spack-overlay/**'
+      - 'karabo/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: sp5505-karabo-pipeline
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # Enable advanced caching features
+          driver-opts: |
+            image=moby/buildkit:v0.12.0
+            network=host
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: >-
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=SP5505 Karabo Pipeline
+            org.opencontainers.image.description=Karabo Pipeline with Spack-based scientific computing environment
+
+      - name: Build and test container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./sp5505.Dockerfile
+          platforms: linux/amd64
+          push: >-
+            ${{ github.event_name != 'pull_request' && (github.event.inputs.push-image == 'true' || github.ref == 'refs/heads/main') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+          # Multi-layer caching strategy
+          cache-from: |
+            type=gha,scope=${{ github.workflow }}-${{ github.job }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: |
+            type=gha,mode=max,scope=${{ github.workflow }}-${{ github.job }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+          # Build arguments
+          build-args: |
+            SKIP_TESTS=${{ github.event.inputs.skip-tests || '0' }}
+
+          # Build contexts for enhanced caching
+          build-contexts: |
+            spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
+
+      - name: Test built image
+        if: github.event.inputs.skip-tests != '1'
+        run: |
+          # Get the image reference from the metadata
+          IMAGE_REF="${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
+
+          # Basic smoke tests
+          echo "🧪 Running basic smoke tests..."
+          docker run --rm "${IMAGE_REF}" python --version
+          docker run --rm "${IMAGE_REF}" python -c \
+            "import karabo; print('Karabo import successful')"
+
+          # Test that OSKAR tests can run (our fix verification)
+          echo "🧪 Testing OSKAR/RASCIL functionality..."
+          docker run --rm "${IMAGE_REF}" python -c "
+          import numpy as np
+          import erfa
+          import erfa.core
+          # Test the specific ERFA function that was failing
+          try:
+              result = erfa.core.ufunc.dtdb(2451545.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+              print(f'✅ ERFA dtdb test passed: {result}')
+          except Exception as e:
+              print(f'❌ ERFA dtdb test failed: {e}')
+              raise
+          "
+
+          # Test coordinate transformations that were failing
+          docker run --rm "${IMAGE_REF}" python -c "
+          from astropy import units as u
+          from astropy.coordinates import EarthLocation, SkyCoord
+          from astropy.time import Time
+          from astropy.coordinates import AltAz
+
+          try:
+              # Reproduce the scenario that was failing
+              location = EarthLocation.from_geodetic(
+                  lon=21.443*u.deg, lat=-30.712*u.deg, height=1000*u.m)
+              target = SkyCoord(ra=20*u.deg, dec=-30*u.deg)
+              time = Time('2000-03-20T12:06:39', scale='utc')
+              altaz_frame = AltAz(obstime=time, location=location)
+              target_altaz = target.transform_to(altaz_frame)
+              print(f'✅ Coordinate transformation test passed: Alt={target_altaz.alt:.2f}, Az={target_altaz.az:.2f}')
+          except Exception as e:
+              print(f'❌ Coordinate transformation test failed: {e}')
+              raise
+          "
+
+      - name: Generate build report
+        if: always()
+        run: |
+          echo "## 🔨 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`${{ fromJSON(steps.meta.outputs.json).tags[0] || 'Not built' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skip Tests | \`${{ github.event.inputs.skip-tests || '0' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Push Image | \`${{ github.event_name != 'pull_request' && (github.event.inputs.push-image == 'true' || github.ref == 'refs/heads/main') }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Key Features" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Multi-layer Docker BuildKit caching (GitHub Actions + Registry)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Spack binary cache persistence across builds" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Pip cache mounting for faster package installs" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ APT cache sharing for system dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ OSKAR/RASCIL ERFA dtype compatibility tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Automatic image tagging and metadata" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cache size report
+        if: always()
+        run: |
+          echo "## 💾 Cache Utilization" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This build leverages multiple cache layers:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. **GitHub Actions Cache**: Build context and intermediate layers" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Registry Cache**: Shared cache images for faster subsequent builds" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Spack Binary Cache**: Pre-built scientific packages (\`/opt/buildcache\`)" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Spack Source Cache**: Downloaded source tarballs (\`/opt/spack-source-cache\`)" >> $GITHUB_STEP_SUMMARY
+          echo "5. **Pip Cache**: Python package wheels (\`/root/.cache/pip\`, \`/home/jovyan/.cache/pip\`)" >> $GITHUB_STEP_SUMMARY
+          echo "6. **APT Cache**: System package cache (\`/var/cache/apt\`, \`/var/lib/apt\`)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "These caches significantly reduce build times for scientific computing dependencies." >> $GITHUB_STEP_SUMMARY

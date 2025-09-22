@@ -3,6 +3,7 @@
 | | |
 | --- | --- |
 | Testing | [![CI - Test](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml/badge.svg)](https://github.com/i4Ds/Karabo-Pipeline/actions/workflows/test.yml) [![codecov](https://codecov.io/gh/i4Ds/Karabo-Pipeline/graph/badge.svg?token=WU4IC2MOXV)](https://codecov.io/gh/i4Ds/Karabo-Pipeline) |
+| Container | [![SP5505 Build](https://github.com/d3v-null/Karabo-Pipeline/actions/workflows/build-sp5505-with-cache.yml/badge.svg)](https://github.com/d3v-null/Karabo-Pipeline/actions/workflows/build-sp5505-with-cache.yml) |
 | Package | [![Conda Latest Release](https://anaconda.org/i4ds/karabo-pipeline/badges/version.svg)](https://anaconda.org/i4ds/karabo-pipeline) [![Conda Downloads](https://anaconda.org/i4ds/karabo-pipeline/badges/downloads.svg)](https://anaconda.org/i4ds/karabo-pipeline) |
 | Meta | [![License - BSD 3-Clause](https://anaconda.org/i4ds/karabo-pipeline/badges/license.svg)](https://github.com/i4Ds/Karabo-Pipeline/blob/main/LICENSE) |
 
