@@ -45,7 +45,7 @@ jobs:
         run:
           conda install anaconda-client
           echo
-          echo ">>>>>>>>> Anaconda version " `anaconda --version`
-          echo ">>>>>>>>> Package location " $(conda build conda --output)
+          echo "Anaconda version " `anaconda --version`
+          echo "Package location " $(conda build conda --output)
           echo
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda --force
