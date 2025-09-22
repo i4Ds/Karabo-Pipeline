@@ -81,6 +81,8 @@ jobs:
             org.opencontainers.image.description=Karabo Pipeline with Spack-based scientific computing environment
 
       - name: Build and test container
+        id: build-with-cache
+        continue-on-error: true
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -91,12 +93,35 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-          # Multi-layer caching strategy
+          # Multi-layer caching strategy (resilient to service outages)
           cache-from: |
-            type=gha,scope=${{ github.workflow }}-${{ github.job }}
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache
+            type=gha,scope=${{ github.workflow }}-${{ github.job }}
           cache-to: |
-            type=gha,mode=max,scope=${{ github.workflow }}-${{ github.job }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+          # Build arguments
+          build-args: |
+            SKIP_TESTS=${{ github.event.inputs.skip-tests || '0' }}
+
+          # Build contexts for enhanced caching
+          build-contexts: |
+            spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
+
+      - name: Build without cache (fallback)
+        if: steps.build-with-cache.outcome == 'failure'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./sp5505.Dockerfile
+          platforms: linux/amd64
+          push: >-
+            ${{ github.event_name != 'pull_request' && (github.event.inputs.push-image == 'true' || github.ref == 'refs/heads/main') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+          # No external cache - only use local build cache
+          cache-to: |
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
           # Build arguments
@@ -108,7 +133,7 @@ jobs:
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
 
       - name: Test built image
-        if: github.event.inputs.skip-tests != '1'
+        if: github.event.inputs.skip-tests != '1' && (steps.build-with-cache.outcome == 'success' || steps.build-with-cache.outcome == 'failure')
         run: |
           # Get the image reference from the metadata
           IMAGE_REF="${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
@@ -166,27 +191,31 @@ jobs:
           echo "| Skip Tests | \`${{ github.event.inputs.skip-tests || '0' }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Push Image | \`${{ github.event_name != 'pull_request' && (github.event.inputs.push-image == 'true' || github.ref == 'refs/heads/main') }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cache Build | \`${{ steps.build-with-cache.outcome }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Key Features" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Multi-layer Docker BuildKit caching (GitHub Actions + Registry)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Multi-layer Docker BuildKit caching with fallback resilience" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Spack binary cache persistence across builds" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Pip cache mounting for faster package installs" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ APT cache sharing for system dependencies" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ OSKAR/RASCIL ERFA dtype compatibility tests" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Automatic image tagging and metadata" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Cache service outage resilience with fallback build" >> $GITHUB_STEP_SUMMARY
 
       - name: Cache size report
         if: always()
         run: |
           echo "## 💾 Cache Utilization" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "This build leverages multiple cache layers:" >> $GITHUB_STEP_SUMMARY
+          echo "This build leverages multiple cache layers with fallback resilience:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. **GitHub Actions Cache**: Build context and intermediate layers" >> $GITHUB_STEP_SUMMARY
-          echo "2. **Registry Cache**: Shared cache images for faster subsequent builds" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Registry Cache**: Shared cache images (primary, most reliable)" >> $GITHUB_STEP_SUMMARY
+          echo "2. **GitHub Actions Cache**: Build context and intermediate layers (secondary)" >> $GITHUB_STEP_SUMMARY
           echo "3. **Spack Binary Cache**: Pre-built scientific packages (\`/opt/buildcache\`)" >> $GITHUB_STEP_SUMMARY
           echo "4. **Spack Source Cache**: Downloaded source tarballs (\`/opt/spack-source-cache\`)" >> $GITHUB_STEP_SUMMARY
           echo "5. **Pip Cache**: Python package wheels (\`/root/.cache/pip\`, \`/home/jovyan/.cache/pip\`)" >> $GITHUB_STEP_SUMMARY
           echo "6. **APT Cache**: System package cache (\`/var/cache/apt\`, \`/var/lib/apt\`)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "These caches significantly reduce build times for scientific computing dependencies." >> $GITHUB_STEP_SUMMARY
+          echo "**Fallback Strategy**: If external cache services are unavailable, the workflow automatically" >> $GITHUB_STEP_SUMMARY
+          echo "falls back to a no-cache build to ensure CI reliability. The Dockerfile's internal cache" >> $GITHUB_STEP_SUMMARY
+          echo "mounts (Spack, pip, APT) continue to work regardless of external service availability." >> $GITHUB_STEP_SUMMARY
