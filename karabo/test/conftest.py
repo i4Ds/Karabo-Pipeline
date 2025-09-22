@@ -19,24 +19,38 @@ def _patch_erfa_globally():
         import erfa
 
         def _convert_to_float64(value):
-            """Convert any value to float64 numpy array."""
+            """Convert any value to float64 that's compatible with ERFA ufuncs."""
             try:
+                # ERFA ufuncs expect plain Python floats or numpy float64 scalars
+                # but are sensitive to certain numpy array types and shapes
                 if hasattr(value, 'dtype'):
-                    # Handle numpy arrays
-                    if hasattr(value, 'astype'):
-                        return value.astype(np.float64)
+                    # Handle numpy arrays and scalars
+                    if hasattr(value, 'item') and value.ndim == 0:
+                        # 0-dimensional array, extract the scalar value
+                        return float(value.item())
+                    elif hasattr(value, 'astype'):
+                        # Multi-dimensional array, convert to float64 and extract scalar if possible
+                        converted = value.astype(np.float64)
+                        if converted.size == 1:
+                            return float(converted.flat[0])
+                        else:
+                            return converted
                     else:
-                        return np.asarray(value, dtype=np.float64)
+                        return float(np.asarray(value, dtype=np.float64).flat[0])
                 elif isinstance(value, (list, tuple)):
-                    return np.asarray(value, dtype=np.float64)
-                elif isinstance(value, (int, float)):
-                    return np.float64(value)
+                    arr = np.asarray(value, dtype=np.float64)
+                    if arr.size == 1:
+                        return float(arr.flat[0])
+                    else:
+                        return arr
+                elif isinstance(value, (int, float, np.integer, np.floating)):
+                    return float(value)
                 else:
-                    # Try to convert to float first, then to numpy
-                    return np.float64(float(value))
-            except (ValueError, TypeError):
+                    # Try to convert to float first
+                    return float(value)
+            except (ValueError, TypeError, OverflowError):
                 # If all else fails, return a default value
-                return np.float64(0.0)
+                return 0.0
 
         # Patch erfa.dtdb which is commonly called by astropy time conversions
         if hasattr(erfa, 'dtdb') and not hasattr(erfa.dtdb, '_patched'):
@@ -186,34 +200,14 @@ def _patch_erfa_globally():
                             return orig_dtdb_ufunc(*args, **kwargs)
                         except (ValueError, TypeError) as e:
                             if "Invalid data-type" in str(e) or "dtype" in str(e):
-                                # Convert all args to float64 scalars
+                                # Convert all args using the improved conversion function
                                 safe_args = []
                                 for arg in args:
-                                    try:
-                                        # Try to extract scalar value
-                                        if hasattr(arg, 'item'):
-                                            safe_args.append(float(arg.item()))
-                                        elif np.isscalar(arg):
-                                            safe_args.append(float(arg))
-                                        else:
-                                            # Convert to array and take first element
-                                            arr = np.asarray(arg, dtype=np.float64)
-                                            safe_args.append(float(arr.flat[0]))
-                                    except (ValueError, TypeError, IndexError):
-                                        safe_args.append(0.0)
+                                    safe_args.append(_convert_to_float64(arg))
                                 
                                 safe_kwargs = {}
                                 for k, v in kwargs.items():
-                                    try:
-                                        if hasattr(v, 'item'):
-                                            safe_kwargs[k] = float(v.item())
-                                        elif np.isscalar(v):
-                                            safe_kwargs[k] = float(v)
-                                        else:
-                                            arr = np.asarray(v, dtype=np.float64)
-                                            safe_kwargs[k] = float(arr.flat[0])
-                                    except (ValueError, TypeError, IndexError):
-                                        safe_kwargs[k] = 0.0
+                                    safe_kwargs[k] = _convert_to_float64(v)
                                 
                                 return orig_dtdb_ufunc(*safe_args, **safe_kwargs)
                             raise
