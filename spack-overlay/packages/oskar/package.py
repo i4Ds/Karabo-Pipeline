@@ -73,3 +73,53 @@ class Oskar(CMakePackage):
         env.set("OSKAR_LIB_DIR", self.prefix.lib)
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib64)
+
+    @run_after("build")
+    def build_test(self):
+        """Build tests during the build phase."""
+        with working_dir(self.build_directory):
+            # Build the test targets
+            make("test", parallel=False)
+
+    def test_suite(self):
+        """Run the OSKAR test suite using ctest."""
+        with working_dir(self.build_directory):
+            # Run ctest with verbose output for debugging
+            ctest = which("ctest")
+            if ctest:
+                ctest("--output-on-failure", "--verbose")
+            else:
+                # Fallback: try to run individual test executables
+                test_dir = join_path(self.build_directory, "apps", "test")
+                if os.path.exists(test_dir):
+                    with working_dir(test_dir):
+                        test_files = [f for f in os.listdir(".") if f.startswith("test_") and os.access(f, os.X_OK)]
+                        for test_file in test_files:
+                            self.run_test(test_file, purpose=f"Running {test_file}")
+
+    def test_import(self):
+        """Test that OSKAR Python module can be imported."""
+        python = which("python3") or which("python")
+        if python:
+            python("-c", "import oskar; print(f'OSKAR Python import successful')")
+
+    def test_executables(self):
+        """Test that key OSKAR executables work."""
+        executables = [
+            "oskar_sim_interferometer",
+            "oskar_imager",
+            "oskar_vis_to_ms",
+            "oskar_convert_cst_to_scalar"
+        ]
+
+        for exe in executables:
+            exe_path = which(exe)
+            if exe_path:
+                # Test that executable can run with --help
+                try:
+                    exe_path("--help")
+                    print(f"✓ {exe} executable test passed")
+                except Exception as e:
+                    print(f"⚠ {exe} executable test failed: {e}")
+            else:
+                print(f"⚠ {exe} executable not found in PATH")

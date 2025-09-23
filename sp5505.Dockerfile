@@ -193,7 +193,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'oskar@'$OSKAR_VERSION \
     && \
     spack concretize --force && \
-    spack install --no-check-signature --no-checksum --fail-fast
+    spack install --no-check-signature --no-checksum --fail-fast --test=root
 
 # possible additional specs:
 # 'py-cython@0.29:3.0' \
