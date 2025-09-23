@@ -22,7 +22,7 @@ jobs:
         shell: bash -l {0}
         run: |
           build="1010"
-          KARABO_VERSION=v0.34.0
+          KARABO_VERSION="v0.34.0"
           if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
             KARABO_VERSION="${KARABO_VERSION:1}"
           fi
