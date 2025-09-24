@@ -28,7 +28,7 @@ class Oskar(CMakePackage):
     depends_on("py-cython", type="build")
 
     # Optional dependencies for enhanced functionality
-    depends_on("hdf5+hl", type=("build", "run"))
+    depends_on("hdf5+hl~mpi", type=("build", "run"))
     depends_on("cfitsio", type=("build", "run"))
     # OSKAR requires single-precision FFTW. Use precision variant in this Spack.
     # Avoid pulling MPI into the build to reduce complexity; OSKAR tests

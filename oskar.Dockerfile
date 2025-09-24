@@ -1,4 +1,7 @@
 # syntax=docker/dockerfile:1.6
+# run me:
+# docker build -t d3vnull0/oskar:latest -f oskar.Dockerfile .
+# docker run --rm -it d3vnull0/oskar:latest bash -lc ". /opt/spack/share/spack/setup-env.sh && spack env activate /opt/spack_env && oskar_sim_interferometer --help && python -c 'import oskar; print(oskar.__version__)'"
 FROM quay.io/jupyter/minimal-notebook:notebook-7.2.2
 
 # Minimal OSKAR-only build for testing OSKAR installation and test suite

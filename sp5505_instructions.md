@@ -6,7 +6,9 @@ your task is to create a docker image `sp5505.Dockerfile` that:
 5. python 3.10 would be nice, 3.9 is fine too
 6. install most dependencies via spack instead of pip or conda
 
-# some info about the current conda environment that should be replaced by spack, for details, see conda_list.txt
+some info about the current conda environment that should be replaced by spack, for details, see conda_list.txt
+
+```txt
 # astropy                   5.1.1           py310hde88566_3    conda-forge
 # astropy-base              5.1.1                hd2eee37_0    conda-forge
 # astropy-healpix           1.1.2           py310hf462985_0    conda-forge
@@ -75,89 +77,7 @@ your task is to create a docker image `sp5505.Dockerfile` that:
 # cuda-version
 # oskarpy
 # cuda-cudart
-
-# current main issue:
-
-```bash
-docker build -f sp5505.Dockerfile --progress=plain . 2>&1 | tee sp5505.log
-
-# RUN if [ "0" = "1" ]; then exit 0; fi;     export OMP_NUM_THREADS=1 &&     export OPENBLAS_NUM_THREADS=1 &&     export MKL_NUM_THREADS=1 &&     export NUMEXPR_NUM_THREADS=1 &&     pytest -q -x --tb=short -k "not test_suppress_rascil_warning and not (oskar or OSKAR)" /home/jovyan/Karabo-Pipeline &&     rm -rf /home/jovyan/.astropy/cache            /home/jovyan/.cache/astropy            /home/jovyan/.cache/pyuvdata            /home/jovyan/.cache/rascil
-# ..F
-# =================================== FAILURES ===================================
-# _______________ test_gaussian_beam[SimulatorBackend.RASCIL-MID] ________________
-# Karabo-Pipeline/karabo/test/conftest.py:26: in _dtdb_safe
-#     return _orig_dtdb(date1, date2, ut, elong, u, v)
-# /opt/view/lib/python3.10/site-packages/erfa/core.py:16572: in dtdb
-#     c_retval = ufunc.dtdb(date1, date2, ut, elong, u, v)
-# E   ValueError: Invalid data-type for array
-#
-# During handling of the above exception, another exception occurred:
-# Karabo-Pipeline/karabo/test/test_000_astropy_env.py:22: in _dtdb_safe
-#     return _orig_dtdb(date1, date2, ut, elong, u, v)
-# Karabo-Pipeline/karabo/test/conftest.py:36: in _dtdb_safe
-#     return _orig_dtdb(date1, date2, ut, elong, u, v)
-# /opt/view/lib/python3.10/site-packages/erfa/core.py:16572: in dtdb
-#     c_retval = ufunc.dtdb(date1, date2, ut, elong, u, v)
-# E   ValueError: Invalid data-type for array
-#
-# During handling of the above exception, another exception occurred:
-# Karabo-Pipeline/karabo/test/conftest.py:26: in _dtdb_safe
-#     return _orig_dtdb(date1, date2, ut, elong, u, v)
-# /opt/view/lib/python3.10/site-packages/erfa/core.py:16572: in dtdb
-#     c_retval = ufunc.dtdb(date1, date2, ut, elong, u, v)
-# E   ValueError: Invalid data-type for array
-#
-# During handling of the above exception, another exception occurred:
-# Karabo-Pipeline/karabo/test/test_beam.py:150: in test_gaussian_beam
-#     visibility = simulation.run_simulation(
-# Karabo-Pipeline/karabo/simulation/interferometer.py:514: in run_simulation
-#     return self.__run_simulation_rascil(
-# Karabo-Pipeline/karabo/simulation/interferometer.py:585: in __run_simulation_rascil
-#     vis = create_visibility(
-# /opt/view/lib/python3.10/site-packages/ska_sdp_datamodels/visibility/vis_create.py:148: in create_visibility
-#     stime = calculate_transit_time(
-# /opt/view/lib/python3.10/site-packages/ska_sdp_datamodels/visibility/vis_utils.py:33: in calculate_transit_time
-#     return site.target_meridian_transit_time(
-# /opt/view/lib/python3.10/site-packages/astroplan/observer.py:1132: in target_meridian_transit_time
-#     return self._determine_which_event(self._calc_transit,
-# /opt/view/lib/python3.10/site-packages/astroplan/observer.py:917: in _determine_which_event
-#     next_event = event_function('next')
-# /opt/view/lib/python3.10/site-packages/astroplan/observer.py:906: in event_function
-#     return function(time, target, w, antitransit=antitransit,
-# /opt/view/lib/python3.10/site-packages/astroplan/observer.py:866: in _calc_transit
-#     altaz = self.altaz(times, target, grid_times_targets=grid_times_targets)
-# /opt/view/lib/python3.10/site-packages/astroplan/observer.py:497: in altaz
-#     return target.transform_to(altaz_frame)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/sky_coordinate.py:692: in transform_to
-#     new_coord = trans(self.frame, generic_frame)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/transformations.py:1588: in __call__
-#     curr_coord = t(curr_coord, curr_toframe)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/transformations.py:1154: in __call__
-#     return supcall(fromcoord, toframe)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/builtin_frames/icrs_observed_transforms.py:33: in icrs_to_observed
-#     astrom = erfa_astrom.get().apco(observed_frame)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/erfa_astrom.py:57: in apco
-#     earth_pv, earth_heliocentric = prepare_earth_position_vel(obstime)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/builtin_frames/utils.py:364: in prepare_earth_position_vel
-#     jd1, jd2 = get_jd12(time, "tdb")
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/builtin_frames/utils.py:115: in get_jd12
-#     newtime = getattr(time, scale)
-# /opt/view/lib/python3.10/site-packages/astropy/time/core.py:1647: in __getattr__
-#     tm._set_scale(attr)
-# /opt/view/lib/python3.10/site-packages/astropy/time/core.py:769: in _set_scale
-#     args.append(get_dt(jd1, jd2))
-# /opt/view/lib/python3.10/site-packages/astropy/time/core.py:2490: in _get_delta_tdb_tt
-#     self._delta_tdb_tt = erfa.dtdb(jd1, jd2, ut, 0.0, 0.0, 0.0)
-# Karabo-Pipeline/karabo/test/test_000_astropy_env.py:32: in _dtdb_safe
-#     return _orig_dtdb(date1, date2, ut, elong, u, v)
-# Karabo-Pipeline/karabo/test/conftest.py:36: in _dtdb_safe
-#     return _orig_dtdb(date1, date2, ut, elong, u, v)
-# /opt/view/lib/python3.10/site-packages/erfa/core.py:16572: in dtdb
-#     c_retval = ufunc.dtdb(date1, date2, ut, elong, u, v)
-# E   ValueError: Invalid data-type for array
 ```
-
-also
 
 ```txt
 distributed 2022.10.2 requires tornado<6.2,>=6.0.3, but you have tornado 6.5.2 which is incompatible.
@@ -165,7 +85,7 @@ distributed 2022.10.2 requires tornado<6.2,>=6.0.3, but you have tornado 6.5.2 w
 
 bonus:
 7. make it possible to pip install --user as the jovyan user
-8. it would be nice to not need two versions of cuda, you could investigate if oskar really needs to use cuda 10.
+8. add cuda variants. it would be nice to not need multiple versions of cuda, you could investigate if oskar really needs to use cuda 10.
 9. use build cache to speed up spack, requires the apt package called file
 
 ```dockerfile
@@ -194,14 +114,37 @@ but don't use `https://binaries.spack.io/develop`, because spack v0.23 is out of
 
 ## Verification
 
-  • Build:
-    • docker build -f sp5505.Dockerfile -t d3vnull0/sp5505:latest --progress=plain --push .
-  • Confirm env activation and package import:
-    • docker run --rm -it d3vnull0/sp5505:latest bash -lc "which python && python -c 'import karabo, sys; print(\"ok\", sys.version)'"
-  • Run tests (again; they run at build too):
-    • docker run --rm --gpus all d3vnull0/sp5505:latest bash -c 'pytest -x /home/jovyan/Karabo-Pipeline'
+Build:
 
-keep track of the size of the container
+```bash
+docker build -f sp5505.Dockerfile --progress=plain -t d3vnull0/sp5505:latest . 2>&1 | tee sp5505.log
+# --push
+```
+
+Confirm env activation and package import:
+
+```bash
+docker run --rm -it d3vnull0/sp5505:latest bash -lc "which python && python -c 'import karabo, sys; print(\"ok\", sys.version)'"
+```
+
+Run tests (again; they run at build too):
+
+```bash
+docker run --rm d3vnull0/sp5505:latest bash -c 'pytest -x /home/jovyan/Karabo-Pipeline -k "not test_suppress_rascil_warning"'
+# --gpus all
+```
+
+keep track of the size of the container:
+
+```bash
+docker image ls d3vnull0/sp5505 --format '{{.Size}}'
+```
+
+(interactive) Serve notebook:
+
+```bash
+docker run --rm -p 8888:8888 d3vnull0/sp5505:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --allow-root --port=8888'
+```
 
 ## gotchas / things to watch out for:
 
@@ -254,3 +197,25 @@ the only xarray release that meets the requirements is @https://github.com/pydat
 or failing that, create new entries in a new folder that can be mounted into the docker container and loaded as a spack repo under /opt/karabo-spack
 ```
 
+## Resolved issues
+
+### ERFA Invalid data-type for array
+
+Resolved here: <https://github.com/d3v-null/Karabo-Pipeline/pull/1>
+
+- fix `_convert_to_float64()` in ERFA dtype conversion function in `conftest.py`
+- patch `erfa.core.ufunc.dtdb`
+
+```bash
+docker build -f sp5505.Dockerfile --progress=plain . 2>&1 | tee sp5505.log
+
+# RUN if [ "0" = "1" ]; then exit 0; fi;     export OMP_NUM_THREADS=1 &&     export OPENBLAS_NUM_THREADS=1 &&     export MKL_NUM_THREADS=1 &&     export NUMEXPR_NUM_THREADS=1 &&     pytest -q -x --tb=short -k "not test_suppress_rascil_warning and not (oskar or OSKAR)" /home/jovyan/Karabo-Pipeline &&     rm -rf /home/jovyan/.astropy/cache            /home/jovyan/.cache/astropy            /home/jovyan/.cache/pyuvdata            /home/jovyan/.cache/rascil
+# ..F
+# =================================== FAILURES ===================================
+# _______________ test_gaussian_beam[SimulatorBackend.RASCIL-MID] ________________
+# Karabo-Pipeline/karabo/test/conftest.py:26: in _dtdb_safe
+#     return _orig_dtdb(date1, date2, ut, elong, u, v)
+# /opt/view/lib/python3.10/site-packages/erfa/core.py:16572: in dtdb
+#     c_retval = ufunc.dtdb(date1, date2, ut, elong, u, v)
+# E   ValueError: Invalid data-type for array
+```

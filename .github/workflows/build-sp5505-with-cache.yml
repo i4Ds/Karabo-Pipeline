@@ -27,6 +27,7 @@ on:
   push:
     branches:
       - main
+      - karabo-jupyter-docker
     paths:
       - 'sp5505.Dockerfile'
       - 'spack-overlay/**'
