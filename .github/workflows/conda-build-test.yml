@@ -43,6 +43,6 @@ jobs:
 
       - name: Publish to Conda
         shell: bash -l {0}
-        run:
+        run: |
           conda activate base
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda --force
