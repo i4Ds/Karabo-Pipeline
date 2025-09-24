@@ -1,3 +1,5 @@
+# Workflow for debugging package upload
+# 22.9.25 AW
 name: Test Conda Build
 
 on:
@@ -20,13 +22,13 @@ jobs:
         shell: bash -l {0}
         run: |
           build="1010"
-          KARABO_VERSION=v0.34.0
+          KARABO_VERSION="v0.34.0"
           if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
             KARABO_VERSION="${KARABO_VERSION:1}"
           fi
           conda install -c conda-forge python versioneer
 
-          conda install -y -n base conda-libmamba-solver
+          conda install -y -n base conda-libmamba-solver anaconda-client
           conda config --set solver libmamba
           conda install "conda-build>=25"
 
@@ -36,11 +38,11 @@ jobs:
           conda config --append channels conda-forge
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
-          conda build conda
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
+          conda build conda
+
       - name: Publish to Conda
         shell: bash -l {0}
-        run: |
+        run:
           conda activate base
-          conda install anaconda-client
-          anaconda -t "${{ secrets.ANACONDA_SECRET }}" upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda --force
