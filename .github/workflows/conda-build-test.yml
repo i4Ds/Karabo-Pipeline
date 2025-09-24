@@ -9,6 +9,10 @@ on:
         type: string
         required: true
         description: "build-nr: anaconda.org build number"
+      version:
+        type: string
+        required: true
+        description: "version: PEP440 package-version"
 
 jobs:
   conda-build:
@@ -27,7 +31,7 @@ jobs:
         shell: bash -l {0}
         run: |
           build=${{ inputs.buildNumber }}
-          KARABO_VERSION="v0.34.0"
+          KARABO_VERSION=${{ inputs.version }}
           if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
             KARABO_VERSION="${KARABO_VERSION:1}"
           fi
