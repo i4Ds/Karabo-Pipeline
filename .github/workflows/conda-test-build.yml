@@ -41,8 +41,8 @@ jobs:
           conda config --append channels conda-forge
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
-          conda build conda
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
+          conda build conda
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
