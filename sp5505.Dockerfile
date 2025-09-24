@@ -85,6 +85,7 @@ ARG HEALPY_VERSION=1.16.2
 
 ARG PEYERFA_VERSION=2.0.1.5
 # up to 2.0.1.5
+ARG OSKAR_VERSION=2.8.3
 
 # copy early sanity test to run immediately after Spack deps
 COPY karabo/test/test_000_astropy_env.py /opt/early-tests/test_000_astropy_env.py
@@ -123,7 +124,8 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'casacore@'$CASACORE_VERSION'+python' \
         'cfitsio' \
         'curl' \
-        'hdf5@'$HDF5_VERSION \
+        'fftw~mpi~openmp' \
+        'hdf5@'$HDF5_VERSION'+hl~mpi' \
         'mpich' \
         'openblas@:0.3.27' \
         'py-astropy@'$ASTROPY_VERSION \
@@ -148,12 +150,14 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-tornado@6.1' \
         'py-xarray@'$XARRAY_VERSION \
         'python@3.10' \
+        'oskar@'$OSKAR_VERSION'+python~openmp' \
         'wsclean@=3.4' \
         'zlib' \
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast python@3.10 py-pip py-numpy && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
+    spack test run oskar@${OSKAR_VERSION} && \
     spack env view regenerate && \
     # Build pyerfa from source against the view's NumPy
     /opt/view/bin/python -m pip install --no-build-isolation --no-deps -U 'pip<25.3' setuptools setuptools-scm wheel build 'extension-helpers>=1.0,<2' && \
@@ -262,27 +266,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     # and installs build-1.3.0 cython-3.0.12 extension_helpers-1.4.0 packaging-25.0 pip-25.2 pyproject_hooks-1.2.0 setuptools-80.9.0 setuptools-scm-9.2.0 tomli-2.2.1 versioneer-0.29 wheel-0.45.1
 
 ARG OSKAR_VERSION=2.8.3
-# karabo uses 2.8.3.
-# 2.10.0 works on arm64 but gives code -115 when reading vis files
-# oskarpy not available on pip
-# 'git+https://github.com/OxfordSKA/OSKAR.git@2.8.3#egg=oskarpy&subdirectory=python'
-ENV OSKAR_INC_DIR=/opt/software/include \
-    OSKAR_LIB_DIR=/opt/software/lib
-RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+# OSKAR is now installed via Spack with +python; verify availability
+RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
-    git clone 'https://github.com/OxfordSKA/OSKAR.git' /opt/oskar && \
-    cd /opt/oskar/ && \
-    git checkout $OSKAR_VERSION && \
-    mkdir build && \
-    cd build && \
-    LD_SYS="/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/lib:/usr/lib" && \
-    env LD_LIBRARY_PATH="${LD_SYS}:/opt/view/lib:/opt/view/lib64" cmake -DCMAKE_INSTALL_PREFIX=/opt/software -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/opt/view .. && \
-    # too many threads crashes arm64
-    env LD_LIBRARY_PATH="${LD_SYS}:/opt/view/lib:/opt/view/lib64" make -j && \
-    env LD_LIBRARY_PATH="${LD_SYS}:/opt/view/lib:/opt/view/lib64" make install && \
-    python -m pip install --no-build-isolation '/opt/oskar/python'
-    # python -c "pkg=__import__('oskar'); target='$OSKAR_VERSION'; print(f'{pkg.__name__} installed {pkg.__version__}, target {target}'); assert tuple([*pkg.__version__.split('.')]) >= tuple([*target.split('.')])"
+    which oskar_sim_interferometer && \
+    python -c "import oskar; import sys; print(getattr(oskar,'__version__','unknown'))"
 
 ARG ASTROPLAN_VERSION=0.8
 # astroplan needed by ska-sdp-datamodels (and ska-sdp-func-python)
