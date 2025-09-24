@@ -15,7 +15,7 @@ on:
       push-image:
         description: 'Push image to registry'
         required: false
-        default: false
+        default: true
         type: boolean
   pull_request:
     paths:
