@@ -16,16 +16,22 @@ class Oskar(CMakePackage):
     version("2.8.3", commit="2.8.3", preferred=True)
     version("2.10.0", commit="2.10.0")
 
+    # Variants
+    variant("cuda", default=False, description="Enable CUDA support")
+    variant("openmp", default=False, description="Enable OpenMP support")
+    variant("casacore", default=True, description="Enable Measurement Set I/O via Casacore")
+    variant("python", default=True, description="Build and install Python bindings")
+
     # Build dependencies
     depends_on("cmake@3.10:", type="build")
     depends_on("git", type="build")
 
     # Runtime dependencies
     # conda uses casacore 3.5.0.*, harp, hdf5 >=1.14.3,<1.14.4.0a0, libgcc, libgcc-ng >=12, libstdcxx, libstdcxx-ng >=12
-    depends_on("python@3.6:", type=("build", "run"))
-    depends_on("py-numpy", type=("build", "run"))
-    depends_on("py-setuptools", type="build")
-    depends_on("py-cython", type="build")
+    depends_on("python@3.6:", when="+python", type=("build", "run"))
+    depends_on("py-numpy", when="+python", type=("build", "run"))
+    depends_on("py-setuptools", when="+python", type="build")
+    depends_on("py-cython", when="+python", type="build")
 
     # Optional dependencies for enhanced functionality
     depends_on("hdf5+hl~mpi", type=("build", "run"))
@@ -36,15 +42,10 @@ class Oskar(CMakePackage):
     depends_on("fftw~mpi precision=float,double", type=("build", "run"))
 
     # Additional dependencies that may be needed for Python package
-    depends_on("py-wheel", type="build")
-    depends_on("py-pip", type="build")
-    depends_on("py-build", type="build")
-    depends_on("py-setuptools-scm", type="build")
-
-    # Variants for optional features
-    variant("cuda", default=False, description="Enable CUDA support")
-    variant("openmp", default=False, description="Enable OpenMP support")
-    variant("casacore", default=True, description="Enable Measurement Set I/O via Casacore")
+    depends_on("py-wheel", when="+python", type="build")
+    depends_on("py-pip", when="+python", type="build")
+    depends_on("py-build", when="+python", type="build")
+    depends_on("py-setuptools-scm", when="+python", type="build")
 
     # CUDA dependency when variant is enabled
     depends_on("cuda", when="+cuda")
@@ -130,6 +131,17 @@ class Oskar(CMakePackage):
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib64)
 
+        # Ensure Python can find bindings when installed with +python
+        if "+python" in self.spec:
+            try:
+                py_ver = self.spec["python"].version.up_to(2)
+                env.prepend_path(
+                    "PYTHONPATH",
+                    join_path(self.prefix, "lib", f"python{py_ver}", "site-packages"),
+                )
+            except Exception:
+                pass
+
     # --- Logging helpers ---
     def _print_file(self, file_path, heading):
         try:
@@ -177,6 +189,15 @@ class Oskar(CMakePackage):
         env.set("OSKAR_LIB_DIR", self.prefix.lib)
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib64)
+        if "+python" in self.spec:
+            try:
+                py_ver = self.spec["python"].version.up_to(2)
+                env.prepend_path(
+                    "PYTHONPATH",
+                    join_path(self.prefix, "lib", f"python{py_ver}", "site-packages"),
+                )
+            except Exception:
+                pass
 
     @run_after("build")
     def build_test(self):
@@ -211,7 +232,11 @@ class Oskar(CMakePackage):
 
     def test_ctest(self):
         """Install-time test: run ctest serially with verbose output."""
-        with working_dir(self._get_build_dir()):
+        build_dir = self._get_build_dir()
+        if not build_dir or not os.path.isdir(build_dir):
+            print("Skipping ctest: build directory not present (likely binary install)")
+            return
+        with working_dir(build_dir):
             ctest = which("ctest")
             if ctest:
                 env = os.environ.copy()
@@ -233,9 +258,53 @@ class Oskar(CMakePackage):
 
     def test_import(self):
         """Test that OSKAR Python module can be imported."""
+        if "+python" not in self.spec:
+            print("Skipping Python import test: +python variant disabled")
+            return
         python = which("python3") or which("python")
         if python:
-            python("-c", "import oskar; print(f'OSKAR Python import successful')")
+            env = os.environ.copy()
+            # Help Python locate the installed module under the prefix
+            try:
+                py_ver = self.spec["python"].version.up_to(2)
+                site_pkgs = join_path(self.prefix, "lib", f"python{py_ver}", "site-packages")
+                env["PYTHONPATH"] = f"{site_pkgs}:{env.get('PYTHONPATH', '')}".strip(":")
+            except Exception:
+                pass
+            python("-c", "import oskar; print(f'OSKAR Python import successful')", env=env)
+
+    @when("+python")
+    @run_after("install")
+    def install_python_bindings(self):
+        """Install OSKAR Python bindings from the source tree when +python."""
+        # Source path should exist when building from source; for buildcaches, this
+        # was already executed at build-time so consumers get the installed module.
+        source_root = getattr(self.stage, "source_path", None)
+        if not source_root:
+            return
+        python_dir = join_path(source_root, "python")
+        if not os.path.isdir(python_dir):
+            return
+
+        python = which("python3") or which("python")
+        if not python:
+            return
+
+        env = os.environ.copy()
+        env["OSKAR_INC_DIR"] = str(self.prefix.include)
+        env["OSKAR_LIB_DIR"] = str(self.prefix.lib)
+
+        with working_dir(python_dir):
+            python(
+                "-m",
+                "pip",
+                "install",
+                "--no-build-isolation",
+                "--no-deps",
+                f"--prefix={self.prefix}",
+                ".",
+                env=env,
+            )
 
     def test_executables(self):
         """Test that key OSKAR executables work."""

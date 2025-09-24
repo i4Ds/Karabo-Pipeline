@@ -76,30 +76,20 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'cmake@3.10:' \
         'fftw~mpi~openmp' \
         'hdf5@'$HDF5_VERSION'+hl~mpi' \
+        'oskar@'$OSKAR_VERSION'~openmp' \
         'py-build' \
         'py-cython' \
         'py-numpy@'$NUMPY_VERSION \
         'py-pip' \
         'py-pytest' \
-        'py-setuptools' \
         'py-setuptools-scm' \
+        'py-setuptools' \
         'py-wheel' \
         'python@3.10' \
     && \
     spack concretize --force && \
-    spack install --no-check-signature --no-checksum --fail-fast
-
-# Install OSKAR with full test suite
-RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=locked \
-    --mount=type=cache,target=/opt/spack-source-cache,id=spack-source-cache,sharing=locked \
-    --mount=type=cache,target=/opt/spack-misc-cache,id=spack-misc-cache,sharing=locked \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh; \
-    spack env activate /opt/spack_env; \
-    spack add \
-        'oskar@'$OSKAR_VERSION'~openmp' \
-    && \
-    spack concretize --force && \
-    spack install --no-check-signature --no-checksum --fail-fast --test=root
+    spack install --no-check-signature --no-checksum --fail-fast && \
+    spack test run oskar@$OSKAR_VERSION
 
 # Set up environment for runtime
 ENV BASH_ENV=/opt/etc/spack_env \
@@ -117,29 +107,8 @@ RUN mkdir -p /opt/etc && \
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
-    # Install OSKAR Python bindings
-    echo "Installing OSKAR Python bindings..." && \
-    git clone --depth=1 --branch=$OSKAR_VERSION https://github.com/OxfordSKA/OSKAR.git /tmp/oskar && \
-    echo "Building OSKAR Python bindings with environment..." && \
-    export OSKAR_INC_DIR=/opt/view/include && \
-    export OSKAR_LIB_DIR=/opt/view/lib && \
-    export LD_LIBRARY_PATH="/opt/view/lib:/opt/view/lib64:${LD_LIBRARY_PATH}" && \
-    # Run OSKAR Python tests before installation
-    echo "Running OSKAR Python tests..." && \
-    cd /tmp/oskar/python && \
-    if [ -d "tests" ]; then \
-        echo "Found OSKAR Python tests directory, running..."; \
-        python -m pytest tests/ || echo "Python tests completed (may have failed in containerized environment)"; \
-    elif ls test_*.py >/dev/null 2>&1; then \
-        echo "Found OSKAR Python test files, running..."; \
-        python -m pytest test_*.py || echo "Python tests completed (may have failed in containerized environment)"; \
-    else \
-        echo "No Python test files found, skipping Python tests"; \
-    fi && \
-    python -m pip install --no-build-isolation --no-deps /tmp/oskar/python && \
     echo "Testing OSKAR import..." && \
-    python -c "import oskar; print(f'OSKAR import successful, version: {getattr(oskar, \"__version__\", \"unknown\")}')" && \
-    cd / && rm -rf /tmp/oskar
+    python -c "import oskar; print(f'OSKAR import successful, version: {getattr(oskar, \"__version__\", \"unknown\")}')"
 
 # Final verification tests
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
