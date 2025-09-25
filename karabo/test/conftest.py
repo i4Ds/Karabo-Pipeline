@@ -19,37 +19,41 @@ def _patch_erfa_globally():
         import erfa
 
         def _convert_to_float64(value):
-            """Convert any value to float64 that's compatible with ERFA ufuncs."""
+            """Convert any value to a contiguous float64 array or Python float.
+
+            Ensures ERFA ufuncs receive dtype-compatible inputs. Falls back to 0.0
+            on any conversion failure or for non-numeric/callable inputs.
+            """
             try:
-                # ERFA ufuncs expect plain Python floats or numpy float64 scalars
-                # but are sensitive to certain numpy array types and shapes
+                # Handle callables and obvious non-numerics early
+                if callable(value):
+                    return 0.0
+
+                # Numpy array or scalar
                 if hasattr(value, 'dtype'):
-                    # Handle numpy arrays and scalars
-                    if hasattr(value, 'item') and value.ndim == 0:
-                        # 0-dimensional array, extract the scalar value
-                        return float(value.item())
-                    elif hasattr(value, 'astype'):
-                        # Multi-dimensional array, convert to float64 and extract scalar if possible
-                        converted = value.astype(np.float64)
-                        if converted.size == 1:
-                            return float(converted.flat[0])
-                        else:
-                            return converted
-                    else:
-                        return float(np.asarray(value, dtype=np.float64).flat[0])
-                elif isinstance(value, (list, tuple)):
+                    try:
+                        arr = np.asarray(value, dtype=np.float64)
+                        if arr.ndim == 0:
+                            return float(arr)
+                        # Ensure contiguous float64 buffer
+                        return np.ascontiguousarray(arr, dtype=np.float64)
+                    except Exception:
+                        return 0.0
+
+                # Python sequence
+                if isinstance(value, (list, tuple)):
                     arr = np.asarray(value, dtype=np.float64)
-                    if arr.size == 1:
-                        return float(arr.flat[0])
-                    else:
-                        return arr
-                elif isinstance(value, (int, float, np.integer, np.floating)):
+                    if arr.ndim == 0 or arr.size == 1:
+                        return float(arr)
+                    return np.ascontiguousarray(arr, dtype=np.float64)
+
+                # Plain numbers
+                if isinstance(value, (int, float, np.integer, np.floating)):
                     return float(value)
-                else:
-                    # Try to convert to float first
-                    return float(value)
+
+                # Fallback attempt
+                return float(value)
             except (ValueError, TypeError, OverflowError):
-                # If all else fails, return a default value
                 return 0.0
 
         # Patch erfa.dtdb which is commonly called by astropy time conversions
@@ -71,7 +75,7 @@ def _patch_erfa_globally():
                     raise
             _dtdb_safe._patched = True
             erfa.dtdb = _dtdb_safe
-            
+
             # Also patch the ufunc version if it exists
             if hasattr(erfa.dtdb, 'ufunc') and not hasattr(erfa.dtdb.ufunc, '_patched'):
                 _orig_dtdb_ufunc = erfa.dtdb.ufunc
@@ -81,9 +85,7 @@ def _patch_erfa_globally():
                     except (ValueError, TypeError) as e:
                         if "Invalid data-type" in str(e) or "dtype" in str(e):
                             # Convert all inputs to compatible dtypes
-                            safe_args = []
-                            for arg in args:
-                                safe_args.append(_convert_to_float64(arg))
+                            safe_args = [_convert_to_float64(arg) for arg in args]
                             safe_kwargs = {}
                             for k, v in kwargs.items():
                                 safe_kwargs[k] = _convert_to_float64(v)
@@ -204,11 +206,11 @@ def _patch_erfa_globally():
                                 safe_args = []
                                 for arg in args:
                                     safe_args.append(_convert_to_float64(arg))
-                                
+
                                 safe_kwargs = {}
                                 for k, v in kwargs.items():
                                     safe_kwargs[k] = _convert_to_float64(v)
-                                
+
                                 return orig_dtdb_ufunc(*safe_args, **safe_kwargs)
                             raise
                     safe_dtdb_ufunc._patched = True

@@ -35,28 +35,8 @@ RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.g
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack compiler find
 
-# Version pins aligned with sp5505
-ARG ASTROPLAN_VERSION=0.8
-ARG ASTROPY_HEALPIX_VERSION=1.0.0
-ARG ASTROPY_VERSION=5.1
-ARG BDSF_VERSION=1.12.0
-ARG CASACORE_VERSION=3.5.0
-ARG DASK_VERSION=2022.10.2
-ARG DISTRIBUTED_VERSION=2022.10.2
-ARG DUCC_VERSION=0.27
-ARG H5PY_VERSION=3.7
-ARG HDF5_VERSION=1.12.3
-ARG HEALPY_VERSION=1.16.2
-ARG MATPLOTLIB_VERSION=3.6
 ARG NUMPY_VERSION=1.23.5
-ARG PANDAS_VERSION=1.5.3
-ARG PEYERFA_VERSION=2.0.0
-ARG PHOTUTILS_VERSION=1.11.0
-ARG REPROJECT_VERSION=0.9.1
-ARG SCIPY_VERSION=1.9.3
-ARG SDP_DATAMODELS_VERSION=0.1.3
-ARG SDP_FUNC_VERSION=0.1.5
-ARG XARRAY_VERSION=2022.12.0
+ARG PYTHON_VERSION=3.10
 
 # install base dependencies before adding extra spack overlays, this avoids extra build time
 # Create Spack environment and install deps (no RASCIL)
@@ -77,12 +57,35 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack add \
         'py-numpy@'$NUMPY_VERSION \
         'py-pip@:25.2' \
-        'python@3.10' \
+        'python@'$PYTHON_VERSION \
         # DO NOT ADD ANYTHING HERE
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
     spack env view regenerate
+
+# Version pins aligned with sp5505
+ARG ASTROPLAN_VERSION=0.8
+ARG ASTROPY_HEALPIX_VERSION=1.0.0
+ARG ASTROPY_VERSION=5.1
+ARG BDSF_VERSION=1.12.0
+ARG CASACORE_VERSION=3.5.0
+ARG DASK_VERSION=2022.10.2
+ARG DISTRIBUTED_VERSION=2022.10.2
+ARG DUCC_VERSION=0.27
+ARG H5PY_VERSION=3.7
+ARG HDF5_VERSION=1.12.3
+ARG HEALPY_VERSION=1.16.2
+ARG MATPLOTLIB_VERSION=3.6
+ARG PANDAS_VERSION=1.5.3
+ARG PEYERFA_VERSION=2.0.0
+ARG PHOTUTILS_VERSION=1.11.0
+ARG REPROJECT_VERSION=0.9.1
+ARG SCIPY_VERSION=1.9.3
+ARG SDP_DATAMODELS_VERSION=0.1.3
+ARG SDP_FUNC_VERSION=0.1.5
+ARG XARRAY_VERSION=2022.12.0
+ARG RASCIL_VERSION=1.0.0
 
 # Add SKA SDP Spack repo and overlay
 RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
@@ -99,7 +102,6 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'boost+python+numpy' \
         'casacore@'$CASACORE_VERSION'+python' \
         'cfitsio' \
-        'curl' \
         'fftw~mpi~openmp' \
         'hdf5@'$HDF5_VERSION'+hl~mpi' \
         'openblas@:0.3.27' \
@@ -108,44 +110,24 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-astropy@'$ASTROPY_VERSION \
         'py-bdsf@'$BDSF_VERSION \
         'py-casacore@'$CASACORE_VERSION \
-        'py-click' \
-        'py-cloudpickle' \
-        'py-dask-memusage@1.1' \
-        'py-dask-mpi' \
         'py-dask@'$DASK_VERSION \
         'py-distributed@'$DISTRIBUTED_VERSION \
         'py-ducc@'$DUCC_VERSION \
-        'py-fsspec' \
         'py-h5py@'$H5PY_VERSION \
         'py-healpy@'$HEALPY_VERSION \
-        'py-ipykernel' \
-        'py-locket' \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
-        'py-mpi4py' \
-        'py-msgpack' \
-        'py-natsort' \
-        'py-nbconvert' \
+        'py-numpy@'$NUMPY_VERSION \
         'py-pandas@'$PANDAS_VERSION \
-        'py-partd' \
         'py-photutils@'$PHOTUTILS_VERSION \
         'py-pyerfa@'$PEYERFA_VERSION \
-        'py-pytest' \
-        'py-pyyaml' \
         'py-reproject@'$REPROJECT_VERSION \
-        'py-requests' \
         'py-scipy@'$SCIPY_VERSION \
         'py-seqfile@0.2.0' \
         'py-ska-sdp-datamodels@'$SDP_DATAMODELS_VERSION \
         'py-ska-sdp-func-python@'$SDP_FUNC_VERSION \
         'py-ska-sdp-func@0.1.0' \
-        'py-sortedcontainers' \
         'py-tabulate' \
-        'py-tblib' \
-        'py-toolz' \
-        'py-tornado@6.1' \
         'py-xarray@'$XARRAY_VERSION \
-        'py-zict' \
-        'zlib' \
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
@@ -155,9 +137,9 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack test run 'py-astropy' && \
     spack test run 'py-bdsf' && \
     spack test run 'py-casacore' && \
-    spack test run 'py-dask-memusage' && \
     spack test run 'py-ducc' && \
     spack test run 'py-h5py' && \
+    spack test run 'py-rascil' && \
     spack test run 'py-numpy' && \
     spack test run 'py-pandas' && \
     spack test run 'py-photutils' && \
@@ -169,6 +151,22 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack test run 'py-ska-sdp-func-python' && \
     spack test run 'py-ska-sdp-func' && \
     spack test run 'py-xarray'
+
+# Install dask-memusage without using buildcache/mirrors and then RASCIL
+RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=locked \
+    --mount=type=cache,target=/opt/spack-source-cache,id=spack-source-cache,sharing=locked \
+    --mount=type=cache,target=/opt/spack-misc-cache,id=spack-misc-cache,sharing=locked \
+    . ${SPACK_ROOT}/share/spack/setup-env.sh; \
+    spack env activate /opt/spack_env; \
+    (spack mirror remove mycache || true); \
+    spack add 'py-dask-memusage@1.1' && \
+    spack concretize --force && \
+    spack install --no-cache --no-check-signature --no-checksum; \
+    spack add 'py-rascil@'$RASCIL_VERSION && \
+    spack concretize --force && \
+    spack install --no-check-signature --no-checksum 'py-rascil@'$RASCIL_VERSION && \
+    spack env view regenerate && \
+    spack test run 'py-rascil'
 
 # Make Spack view default in PATH and shells
 RUN printf "/opt/view/lib\n/opt/view/lib64\n" > /etc/ld.so.conf.d/spack-view.conf && ldconfig && \
@@ -196,7 +194,6 @@ pkgs = [
     ('casacore','3.5'),
     ('click','0.0'),
     ('cloudpickle','0.0'),
-    ('dask_memusage','1.1'),
     ('dask','2022.0'),
     ('distributed','2022.0'),
     ('ducc0','0.27'),
@@ -250,22 +247,6 @@ for name, target in pkgs:
         print(f'OK {name} installed=???')
 print('ALL_DEPS_OK')
 PY
-
-# rascil
-# https://artefact.skao.int/service/rest/repository/browse/pypi-all/rascil/
-ARG RASCIL_VERSION=1.0.0
-RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    if [ "${RASCIL_VERSION:-0}" = "0" ]; then \
-        echo "Skipping rascil install"; \
-        exit 0; \
-    fi; \
-    python -m pip install --no-build-isolation --no-deps \
-        --index-url=https://artefact.skao.int/repository/pypi-all/simple \
-        --extra-index-url=https://pypi.org/simple \
-        'rascil=='$RASCIL_VERSION && \
-    python -c "import rascil" || exit 1;
 
 # Default user back to jovyan
 USER ${NB_UID}
