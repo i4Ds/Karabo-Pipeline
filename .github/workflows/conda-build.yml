@@ -100,7 +100,6 @@ jobs:
         run: |
           conda activate base
           anaconda --version
-          # anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
 
   test-conda-wheel:
     needs: conda-build
