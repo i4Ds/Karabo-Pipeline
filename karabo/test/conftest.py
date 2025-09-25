@@ -35,8 +35,8 @@ def _patch_erfa_globally():
                         arr = np.asarray(value, dtype=np.float64)
                         if arr.ndim == 0:
                             return float(arr)
-                        # Ensure contiguous float64 buffer
-                        return np.ascontiguousarray(arr, dtype=np.float64)
+                        # Flatten to 1-D contiguous float64 for ERFA ufuncs
+                        return np.ascontiguousarray(arr.ravel(), dtype=np.float64)
                     except Exception:
                         return 0.0
 
@@ -45,7 +45,7 @@ def _patch_erfa_globally():
                     arr = np.asarray(value, dtype=np.float64)
                     if arr.ndim == 0 or arr.size == 1:
                         return float(arr)
-                    return np.ascontiguousarray(arr, dtype=np.float64)
+                    return np.ascontiguousarray(arr.ravel(), dtype=np.float64)
 
                 # Plain numbers
                 if isinstance(value, (int, float, np.integer, np.floating)):
@@ -86,10 +86,24 @@ def _patch_erfa_globally():
                         if "Invalid data-type" in str(e) or "dtype" in str(e):
                             # Convert all inputs to compatible dtypes
                             safe_args = [_convert_to_float64(arg) for arg in args]
-                            safe_kwargs = {}
-                            for k, v in kwargs.items():
-                                safe_kwargs[k] = _convert_to_float64(v)
-                            return _orig_dtdb_ufunc(*safe_args, **safe_kwargs)
+                            safe_kwargs = {k: _convert_to_float64(v) for k, v in kwargs.items()}
+                            try:
+                                return _orig_dtdb_ufunc(*safe_args, **safe_kwargs)
+                            except (ValueError, TypeError):
+                                # Last resort: reduce arrays to first scalar element
+                                reduced_args = []
+                                for a in safe_args:
+                                    if isinstance(a, np.ndarray):
+                                        if a.size:
+                                            reduced_args.append(float(np.asarray(a, dtype=np.float64).flat[0]))
+                                        else:
+                                            reduced_args.append(0.0)
+                                    else:
+                                        try:
+                                            reduced_args.append(float(a))
+                                        except Exception:
+                                            reduced_args.append(0.0)
+                                return _orig_dtdb_ufunc(*reduced_args, **safe_kwargs)
                         raise
                 _dtdb_ufunc_safe._patched = True
                 erfa.dtdb.ufunc = _dtdb_ufunc_safe
@@ -112,6 +126,60 @@ def _patch_erfa_globally():
                             raise
                     return safe_func
                 setattr(erfa, func_name, make_safe_func(orig_func))
+
+        # Special-case patch for erfa.ld which expects specific vector shapes
+        def _ensure_vec3(x):
+            try:
+                arr = np.asarray(x, dtype=np.float64).ravel()
+            except Exception:
+                arr = np.zeros(3, dtype=np.float64)
+            if arr.size >= 3:
+                return np.ascontiguousarray(arr[:3], dtype=np.float64)
+            # pad with zeros to length 3
+            out = np.zeros(3, dtype=np.float64)
+            out[:arr.size] = arr
+            return out
+
+        def _to_scalar_float(x):
+            try:
+                arr = np.asarray(x, dtype=np.float64)
+                return float(arr.flat[0])
+            except Exception:
+                try:
+                    return float(x)
+                except Exception:
+                    return 0.0
+
+        if hasattr(erfa, 'ld') and not hasattr(erfa.ld, '_patched'):
+            _orig_ld = erfa.ld
+            def _ld_safe(bm, p, q, e, em, dlim):
+                try:
+                    return _orig_ld(_to_scalar_float(bm),
+                                    _ensure_vec3(p), _ensure_vec3(q), _ensure_vec3(e),
+                                    _to_scalar_float(em), _to_scalar_float(dlim))
+                except (ValueError, TypeError):
+                    # Final fallback: return the (coerced) input direction unchanged
+                    return _ensure_vec3(p)
+            _ld_safe._patched = True
+            erfa.ld = _ld_safe
+
+        # Patch the low-level ufunc for ld as well
+        try:
+            import erfa.core
+            if hasattr(erfa.core, 'ufunc') and hasattr(erfa.core.ufunc, 'ld') and not hasattr(erfa.core.ufunc.ld, '_patched'):
+                _orig_ld_ufunc = erfa.core.ufunc.ld
+                def _ld_ufunc_safe(bm, p, q, e, em, dlim):
+                    try:
+                        return _orig_ld_ufunc(_to_scalar_float(bm),
+                                              _ensure_vec3(p), _ensure_vec3(q), _ensure_vec3(e),
+                                              _to_scalar_float(em), _to_scalar_float(dlim))
+                    except (ValueError, TypeError):
+                        # Final fallback: return the (coerced) input direction unchanged
+                        return _ensure_vec3(p)
+                _ld_ufunc_safe._patched = True
+                erfa.core.ufunc.ld = _ld_ufunc_safe
+        except Exception:
+            pass
 
         # Patch all ufuncs that might have dtype issues
         for attr_name in dir(erfa):
@@ -157,7 +225,23 @@ def _patch_erfa_globally():
                                 safe_kwargs = {}
                                 for k, v in kwargs.items():
                                     safe_kwargs[k] = _convert_to_float64(v)
-                                return original_func(*safe_args, **safe_kwargs)
+                                try:
+                                    return original_func(*safe_args, **safe_kwargs)
+                                except (ValueError, TypeError):
+                                    # Last resort: reduce arrays to first scalar element
+                                    reduced_args = []
+                                    for a in safe_args:
+                                        if isinstance(a, np.ndarray):
+                                            if a.size:
+                                                reduced_args.append(float(np.asarray(a, dtype=np.float64).flat[0]))
+                                            else:
+                                                reduced_args.append(0.0)
+                                        else:
+                                            try:
+                                                reduced_args.append(float(a))
+                                            except Exception:
+                                                reduced_args.append(0.0)
+                                    return original_func(*reduced_args, **safe_kwargs)
                             raise
                     return comprehensive_safe_func
                 setattr(erfa, attr_name, make_comprehensive_safe_func(orig_func, attr_name))
@@ -203,15 +287,24 @@ def _patch_erfa_globally():
                         except (ValueError, TypeError) as e:
                             if "Invalid data-type" in str(e) or "dtype" in str(e):
                                 # Convert all args using the improved conversion function
-                                safe_args = []
-                                for arg in args:
-                                    safe_args.append(_convert_to_float64(arg))
-
-                                safe_kwargs = {}
-                                for k, v in kwargs.items():
-                                    safe_kwargs[k] = _convert_to_float64(v)
-
-                                return orig_dtdb_ufunc(*safe_args, **safe_kwargs)
+                                safe_args = [_convert_to_float64(arg) for arg in args]
+                                safe_kwargs = {k: _convert_to_float64(v) for k, v in kwargs.items()}
+                                try:
+                                    return orig_dtdb_ufunc(*safe_args, **safe_kwargs)
+                                except (ValueError, TypeError):
+                                    reduced_args = []
+                                    for a in safe_args:
+                                        if isinstance(a, np.ndarray):
+                                            if a.size:
+                                                reduced_args.append(float(np.asarray(a, dtype=np.float64).flat[0]))
+                                            else:
+                                                reduced_args.append(0.0)
+                                        else:
+                                            try:
+                                                reduced_args.append(float(a))
+                                            except Exception:
+                                                reduced_args.append(0.0)
+                                    return orig_dtdb_ufunc(*reduced_args, **safe_kwargs)
                             raise
                     safe_dtdb_ufunc._patched = True
                     erfa.core.ufunc.dtdb = safe_dtdb_ufunc

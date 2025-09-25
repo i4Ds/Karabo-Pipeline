@@ -430,11 +430,14 @@ PY
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 ARG NB_GID=100
-COPY --chown=${NB_UID}:${NB_GID} . /home/${NB_USER}/Karabo-Pipeline
 
 RUN fix-permissions /home/${NB_USER} && \
-    fix-permissions /home/${NB_USER}/Karabo-Pipeline && \
     fix-permissions /opt/view/lib/python3.10/
+
+COPY --chown=${NB_UID}:${NB_GID} . /home/${NB_USER}/Karabo-Pipeline
+
+RUN fix-permissions /home/${NB_USER}/Karabo-Pipeline
+
 USER ${NB_UID}
 # Set explicit version for Karabo-Pipeline when building without VCS metadata
 ARG KARABO_VERSION=0.34.0
