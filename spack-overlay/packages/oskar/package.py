@@ -19,8 +19,10 @@ class Oskar(CMakePackage):
     # Variants
     variant("cuda", default=False, description="Enable CUDA support")
     variant("openmp", default=False, description="Enable OpenMP support")
+    variant("mpi", default=False, description="Enable MPI support")
     variant("casacore", default=True, description="Enable Measurement Set I/O via Casacore")
     variant("python", default=True, description="Build and install Python bindings")
+    variant("hdf5", default=True, description="Build HDF5 support")
 
     # Build dependencies
     depends_on("cmake@3.10:", type="build")
@@ -29,17 +31,20 @@ class Oskar(CMakePackage):
     # Runtime dependencies
     # conda uses casacore 3.5.0.*, harp, hdf5 >=1.14.3,<1.14.4.0a0, libgcc, libgcc-ng >=12, libstdcxx, libstdcxx-ng >=12
     depends_on("python@3.6:", when="+python", type=("build", "run"))
-    depends_on("py-numpy", when="+python", type=("build", "run"))
+    depends_on("py-numpy@1", when="+python", type=("build", "run"))
     depends_on("py-setuptools", when="+python", type="build")
     depends_on("py-cython", when="+python", type="build")
 
     # Optional dependencies for enhanced functionality
-    depends_on("hdf5+hl~mpi", type=("build", "run"))
+    depends_on("hdf5+hl", when="+hdf5", type=("build", "run"))
+    depends_on("hdf5+hl~mpi", when="+hdf5~mpi", type=("build", "run"))
     depends_on("cfitsio", type=("build", "run"))
     # OSKAR requires single-precision FFTW. Use precision variant in this Spack.
     # Avoid pulling MPI into the build to reduce complexity; OSKAR tests
     # are serial and don't require MPI-enabled FFTW.
-    depends_on("fftw~mpi precision=float,double", type=("build", "run"))
+    depends_on("fftw precision=float,double", type=("build", "run"))
+    depends_on("fftw~mpi", when="~mpi", type=("build", "run"))
+    depends_on("fftw~openmp", when="~openmp", type=("build", "run"))
 
     # Additional dependencies that may be needed for Python package
     depends_on("py-wheel", when="+python", type="build")

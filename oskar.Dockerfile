@@ -65,31 +65,25 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack config add "view:/opt/view"; \
     # Avoid over-optimizing for specific Intel CPUs (e.g. icelake) which can
     # cause illegal instructions/segfaults on other hosts. Target generic x86_64.
-    spack config add "packages:all:target:[x86_64]"; \
+    # spack config add "packages:all:target:[x86_64]"; \
     spack config add "config:source_cache:/opt/spack-source-cache"; \
     spack config add "config:misc_cache:/opt/spack-misc-cache"; \
     spack mirror add --autopush --unsigned mycache file:///opt/buildcache; \
     spack buildcache keys --install --trust || true; \
     # Install minimal dependencies for OSKAR
     spack add \
-        'cfitsio' \
-        'cmake@3.10:' \
-        'fftw~mpi~openmp' \
         'hdf5@'$HDF5_VERSION'+hl~mpi' \
-        'oskar@'$OSKAR_VERSION'~openmp' \
-        'py-build' \
-        'py-cython' \
+        'oskar@'$OSKAR_VERSION'~cuda~openmp~mpi+casacore+python+hdf5' \
         'py-numpy@'$NUMPY_VERSION \
-        'py-pip' \
-        'py-pytest' \
-        'py-setuptools-scm' \
-        'py-setuptools' \
-        'py-wheel' \
         'python@3.10' \
     && \
     spack concretize --force && \
     spack install --no-check-signature --no-checksum --fail-fast && \
-    spack test run oskar@$OSKAR_VERSION
+    spack test run oskar && \
+    spack test run casacore && \
+    spack test run hdf5 && \
+    spack test run py-numpy && \
+    spack test run fftw
 
 # Set up environment for runtime
 ENV BASH_ENV=/opt/etc/spack_env \
