@@ -112,30 +112,6 @@ jobs:
           build-contexts: |
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
 
-      - name: Build without cache (fallback)
-        if: steps.build-with-cache.outcome == 'failure'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./sp5505.Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: >-
-            ${{ github.event_name != 'pull_request' && (github.event_name == 'push' || github.event.inputs.push-image == 'true') }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-          # No external cache - only use local build cache
-          cache-to: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
-          # Build arguments
-          build-args: |
-            SKIP_TESTS=${{ github.event.inputs.skip-tests || '0' }}
-
-          # Build contexts for enhanced caching
-          build-contexts: |
-            spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
-
       - name: Test built image
         if: github.event.inputs.skip-tests != '1' && (steps.build-with-cache.outcome == 'success' || steps.build-with-cache.outcome == 'failure')
         run: |
