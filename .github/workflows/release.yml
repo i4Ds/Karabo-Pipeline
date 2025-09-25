@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
       - name: Setup Karabo release metadata
         id: skrm
-        shell: bash -l {0}
+        shell: bash
         run: |
           echo "Setup Karabo release metadata"
           apt-get update && apt-get install -y git
@@ -37,3 +37,5 @@ jobs:
         python-version: ${{ matrix.python }}
         buildDocker: true
         latestDocker: true
+    secrets:
+        ANACONDA_SECRET: ${{ secrets.ANACONDA_SECRET }}
