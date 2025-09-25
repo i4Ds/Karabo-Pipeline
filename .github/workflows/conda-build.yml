@@ -61,7 +61,7 @@ jobs:
           auto-update-conda: true
       - name: Build Conda
         id: bcs
-        shell: bash -l {0}
+        shell: bash
         run: |
           build=${{ inputs.buildNumber }}
           LATEST_DOCKER=${{ inputs.latestDocker }}
@@ -83,7 +83,7 @@ jobs:
             build="$(($build + 1000))"
           fi
 
-          conda install -y -n base conda-libmamba-solver
+          conda install -y -n base conda-libmamba-solver anaconda-client
           conda config --set solver libmamba
           conda install "conda-build>=25"
 
@@ -93,15 +93,14 @@ jobs:
           conda config --append channels conda-forge
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
+          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
           conda build conda
 
-          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
-        shell: bash -l {0}
+        shell: bash
         run: |
           conda activate base
-          conda install anaconda-client
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload "/usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda"
+          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
 
   test-conda-wheel:
     needs: conda-build
