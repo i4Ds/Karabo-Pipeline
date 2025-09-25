@@ -45,6 +45,9 @@ on:
         type: boolean
         required: false
         default: false
+    secrets:
+      ANACONDA_SECRET:
+        required: true
 
 
 jobs:
@@ -83,7 +86,7 @@ jobs:
             build="$(($build + 1000))"
           fi
 
-          conda install -y -n base conda-libmamba-solver anaconda-client
+          conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
           conda install "conda-build>=25"
 
@@ -93,9 +96,8 @@ jobs:
           conda config --append channels conda-forge
 
           export KARABO_VERSION=$KARABO_VERSION build=$build
-          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
           conda build conda
-
+          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash
         run: |
