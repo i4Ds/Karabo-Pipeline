@@ -56,7 +56,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env create --dir /opt/spack_env; \
     spack env activate /opt/spack_env; \
     spack config add "config:install_tree:root:/opt/software"; \
-    spack config add "concretizer:unify:true"; \
+    spack config add "concretizer:unify:when_possible"; \
     spack config add "view:/opt/view"; \
     spack config add "config:source_cache:/opt/spack-source-cache"; \
     spack config add "config:misc_cache:/opt/spack-misc-cache"; \
@@ -197,25 +197,32 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     --mount=type=cache,target=/opt/spack-misc-cache,id=spack-misc-cache,sharing=locked \
     . ${SPACK_ROOT}/share/spack/setup-env.sh; \
     spack env activate /opt/spack_env; \
-    # dask memusage needed by rascil, buildcache issues
-    spack add 'py-dask-memusage@1.1' && \
-    spack concretize --force && \
-    spack install --no-check-signature --no-checksum --fail-fast --no-cache && \
+    # dask-memusage is pure Python; install via pip to avoid slow Spack solve/build
+    python -m pip install --no-build-isolation --no-deps 'dask_memusage==1.1' && \
     spack add \
-        # todo: py-aratmospy py-eidos py-katbeam py-pyuvdata py-rfc3986 py-tools21cm py-tqdm py-toolz py-pyfftw py-joblib py-lazy_loader
+        # todo: py-aratmospy py-eidos py-katbeam py-pyuvdata py-tools21cm py-toolz
         'oskar@'$OSKAR_VERSION'+python~openmp' \
         'py-dask-mpi' \
         'py-ipykernel' \
+        'py-joblib' \
+        'py-lazy-loader' \
         'py-mpi4py' \
         'py-nbconvert' \
+        'py-pyfftw' \
         'py-pytest' \
         'py-rascil' \
+        'py-rfc3986@2:' \
         'py-scikit-image' \
         'py-tqdm' \
         'python@3.10' \
         'wsclean@=3.4' \
+        'py-jupyterlab@4' \
+        'py-jupyter-server@2' \
+        'py-jupyterlab-server@2' \
+        'py-notebook@7' \
+        'py-jupyter-core@5:' \
+        'py-jupyter-client@8:' \
         # cfitsio?
-        # fftw?
         # harp?
         # hdf5?
         # montagepy?
@@ -228,7 +235,6 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         # py-nbformat
         # py-packaging?
         # py-requests?
-        # py-rfc3986?
         # py-setuptools?
         # py-ska-gridder-nifty-cuda?
         # py-tabulate?
@@ -243,42 +249,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack test run 'py-astropy' && \
     spack test run 'py-mpi4py' && \
     spack test run 'py-dask-mpi' && \
-    # # Build pyerfa from source against the view's NumPy
-    # /opt/view/bin/python -m pip install --no-build-isolation --no-deps -U 'pip<25.3' setuptools setuptools-scm wheel build 'extension-helpers>=1.0,<2' && \
-    # /opt/view/bin/python -m pip install --no-build-isolation --no-deps --no-binary=pyerfa 'pyerfa=='$PYERFA_VERSION && \
-    # /opt/view/bin/python -m pip install --no-build-isolation --no-deps 'astropy=='$ASTROPY_VERSION && \
-    # # Provide shim for legacy import path expected by some packages
-    # mkdir -p /opt/view/lib/python3.10/site-packages/astropy/_erfa && \
-    # printf 'from erfa import *\n' > /opt/view/lib/python3.10/site-packages/astropy/_erfa/__init__.py && \
-    # # No-op sitecustomize (avoid interfering with pip builds)
-    # printf '# no-op\n' > /opt/view/lib/python3.10/site-packages/sitecustomize.py && \
-    # # Run early sanity tests to catch environment issues fast (use Spack view python)
     /opt/view/bin/python -m pytest -q -k astropy_earthlocation_basic /opt/early-tests || exit 1
-
-# possible additional specs:
-# 'py-cython@0.29:3.0' \
-# 'py-distributed@'$DISTRIBUTED_VERSION \
-# 'py-extension-helpers@1.0:' \
-
-# RUN --mount=type=cache,target=/root/.cache/pip \
-#     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-#     spack env activate /opt/spack_env && \
-#     python - <<"PY"
-# from astropy import units as u
-# from astropy.coordinates import EarthLocation, Longitude, Latitude
-# loc = EarthLocation.from_geodetic(Longitude(116.7644, u.deg), Latitude(-26.8247, u.deg), 377*u.m)
-# print(loc)
-# PY
-
-# possible root specs to drop because they're already pulled in by others (or are build tools auto-added by Spack):
-# - cfitsio: via wcslib -> casacore, and also via wsclean
-# - mpich: via wsclean (+mpi)
-# - openblas: via BLAS/LAPACK requirements of py-numpy/py-scipy (Spack will choose a provider)
-# - py-cython: via build deps of several py-* (e.g., scipy stack)
-# - py-pip, py-setuptools, py-wheel: generic Python build tooling; auto-pulled where needed
-# watch out for:
-# - pip 25.3 will break legacy setup.py used by aratmospy, eidos, katbeam, seqfile
-# - openblas 0.3.28 breaks arm64
 
 # Make Spack view default in system paths and shells
 RUN printf "/opt/view/lib\n/opt/view/lib64\n" > /etc/ld.so.conf.d/spack-view.conf && ldconfig && \
@@ -287,26 +258,12 @@ RUN printf "/opt/view/lib\n/opt/view/lib64\n" > /etc/ld.so.conf.d/spack-view.con
     mkdir -p /opt/etc && \
     echo ". /etc/profile.d/spack.sh" > /opt/etc/spack_env && \
     chmod 644 /opt/etc/spack_env && \
-    # Remove conda activation hook; we run Jupyter inside Spack Python
-    rm -f /usr/local/bin/before-notebook.d/10activate-conda-env.sh && \
-    # Optionally remove conda to avoid stray references and save space
-    rm -rf /opt/conda || true
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    # Install Jupyter stack into Spack Python so server runs inside Spack env
-    python -m pip install --no-build-isolation \
-        'jupyterlab==4.*' \
-        'jupyter_server==2.*' \
-        'jupyterlab_server==2.*' \
-        'notebook==7.*' \
-        'jupyter_core>=5' \
-        'jupyter_client>=8' && \
     # Ensure start-notebook uses Spack jupyter first in PATH
     mkdir -p /usr/local/bin/before-notebook.d && \
     printf '#!/usr/bin/env bash\nPATH="/opt/view/bin:${HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\nexport PATH\n' > /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
-    chmod +x /usr/local/bin/before-notebook.d/00-prefer-spack.sh
+    chmod +x /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
+    # Remove conda and activation hook; we run Jupyter inside Spack Python
+    rm -f /opt/conda /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true
 
 # update python build dependencies
 # mostly for photutils
@@ -314,62 +271,28 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
     # then update setuptools and friends to latest versions
-    python -m pip install --no-build-isolation -U 'pip<25.3' 'cython>=3.0,<3.1' 'extension_helpers>=1.0,<2' 'packaging>=24.2' setuptools setuptools-scm wheel build versioneer extension_helpers
+    python -m pip install --no-build-isolation -U 'pip<25.3' 'cython>=3.0,<3.1' 'extension_helpers>=1.0,<2' 'packaging>=24.2' setuptools setuptools-scm wheel build versioneer extension_helpers && \
     # this updates pip-23.1.2 -> 25.2, setuptools 63.4.3 -> 80.9.0, packaging 24.1 -> 25.0
     # installs build-1.3.0 cython-3.0.12 extension_helpers-1.4.0 packaging-25.0 pip-25.2 pyproject_hooks-1.2.0 setuptools-80.9.0 setuptools-scm-9.2.0 versioneer-0.29 wheel-0.45.1
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    python -c "import ska_sdp_func_python" || exit 1 && \
-    python -c "import ska_sdp_func" || exit 1
-# ska-sdp-func-python 0.1.5 requires numpy<1.24,>=1.23
-
-# Build python-casacore from source against Spack casacore to avoid ABI issues
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip uninstall -y argparse || true && \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    python -c "import casacore, casacore.tables, casacore.quanta; print('python-casacore OK')"
-
-# this installs argparse-1.4.0 click-8.2.1 cloudpickle-3.1.1 dask-2022.12.0 dask_memusage-1.1 dask_mpi-2022.4.0 distributed-2022.12.0 fsspec-2025.9.0 locket-1.0.0 msgpack-1.1.1 natsort-8.4.0 partd-1.4.2 python-casacore-3.5.0 seqfile-0.2.0 sortedcontainers-2.4.0 tblib-3.1.0 toolz-1.0.0 zict-3.0.0
-
-# Install remaining karabo-pipeline dependencies into Spack Python (as root) from pypi
-# - https://artefact.skao.int/repository/pypi-all/simple does not correctly set python versions
-RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
     python -m pip install --no-build-isolation --no-deps \
         'git+https://github.com/i4Ds/ARatmospy.git@67c302a136beb40a1cc88b054d7b62ccd927d64f#egg=aratmospy' \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
-        'rfc3986>=2.0.0' \
-        'pyfftw' \
-        'joblib' \
-        'lazy_loader' \
-        # 'scikit-image' \
-        # 'tqdm' \
     && \
     # Install pyuvdata with dependencies but skip Spack-managed ones
     python -m pip install --no-build-isolation \
         --no-binary=numpy,scipy,astropy,h5py \
-        'git+https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git@v2.4.2'
-
-# Install deps explicitly, then tools21cm without deps to keep Spack numpy
-RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
+        'git+https://github.com/RadioAstronomySoftwareGroup/pyuvdata.git@v2.4.2' && \
     python -m pip install --no-build-isolation \
         --no-binary=numpy,scipy,astropy,h5py \
         'numpy=='${NUMPY_VERSION} \
-        'tools21cm==2.3.8' \
-    && \
-    # Ensure dask_mpi present without altering Spack-managed dask/distributed
-    python -m pip install --no-build-isolation --no-deps \
-        'dask_mpi==2022.4.0' \
+        'tools21cm==2.0.3' \
     && \
     # Force-install healpy wheel explicitly to avoid mixed Spack/pip state (keep it, but no numpy/scipy from pip)
     python -m pip install --no-build-isolation --force-reinstall --no-deps --only-binary=:all: "healpy==${HEALPY_VERSION}" && \
+    python -c "import ska_sdp_func_python" || exit 1 && \
+    python -c "import ska_sdp_func" || exit 1 && \
+    python -c "import casacore, casacore.tables, casacore.quanta; print('python-casacore OK')" && \
     python - <<"PY"
 import importlib, sys
 checks = [
