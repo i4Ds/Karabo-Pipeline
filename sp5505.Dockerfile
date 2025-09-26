@@ -19,7 +19,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         file \
         gfortran \
         git \
-        libcurl4-openssl-dev \
         patchelf \
         pkg-config \
         wget \
