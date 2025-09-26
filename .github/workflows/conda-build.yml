@@ -64,7 +64,7 @@ jobs:
           auto-update-conda: true
       - name: Build Conda
         id: bcs
-        shell: bash
+        shell: bash -l {0}
         run: |
           build=${{ inputs.buildNumber }}
           LATEST_DOCKER=${{ inputs.latestDocker }}
@@ -99,7 +99,7 @@ jobs:
           conda build conda
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
-        shell: bash
+        shell: bash -l {0}
         run: |
           conda activate base
           anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
