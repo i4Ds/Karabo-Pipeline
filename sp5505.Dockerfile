@@ -25,6 +25,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         zstd \
     ;
 
+# Install Rust before any Spack setup, because Spack rust is unbelievably slow.
+ARG RUST_VERSION=1.81.0
+ENV CARGO_HOME=/opt/cargo \
+    RUSTUP_HOME=/opt/rustup
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain $RUST_VERSION --no-modify-path && \
+    ln -sf /opt/cargo/bin/* /usr/local/bin/ && \
+    rustc --version | grep -Fq "$RUST_VERSION"
+
 ENV SPACK_ROOT=/opt/spack \
     SPACK_DISABLE_LOCAL_CONFIG=1 \
     DEBIAN_FRONTEND=noninteractive
@@ -32,7 +40,8 @@ ENV SPACK_ROOT=/opt/spack \
 # Install Spack v0.23 and detect compilers
 RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.git ${SPACK_ROOT} && \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack compiler find
+    spack compiler find && \
+    spack external find rust
 
 ARG NUMPY_VERSION=1.23.5
 ARG PYTHON_VERSION=3.10
