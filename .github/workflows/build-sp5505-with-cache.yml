@@ -40,18 +40,28 @@ env:
   IMAGE_NAME: sp5505-karabo-pipeline
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux/amd64
+          - os: ubuntu-22.04-arm
+            platform: linux/arm64
 
     steps:
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -84,118 +94,139 @@ jobs:
             org.opencontainers.image.title=SP5505 Karabo Pipeline
             org.opencontainers.image.description=Karabo Pipeline with Spack-based scientific computing environment
 
-      - name: Build and test container
-        id: build-with-cache
-        continue-on-error: true
+      - name: Build (PR/local) - load image
+        id: build-load
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.push-image != 'true')
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./sp5505.Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: >-
-            ${{ github.event_name != 'pull_request' && (github.event_name == 'push' || github.event.inputs.push-image == 'true') }}
+          platforms: ${{ matrix.platform }}
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
           # Multi-layer caching strategy (resilient to service outages)
           cache-from: |
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache
-            type=gha,scope=${{ github.workflow }}-${{ github.job }}
+            type=gha,scope=${{ github.workflow }}-${{ matrix.platform }}
           cache-to: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
+            type=gha,scope=${{ github.workflow }}-${{ matrix.platform }},mode=max
           # Build arguments
           build-args: |
             SKIP_TESTS=${{ github.event.inputs.skip-tests || '0' }}
-
           # Build contexts for enhanced caching
           build-contexts: |
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
 
-      - name: Test built image
-        if: github.event.inputs.skip-tests != '1' && (steps.build-with-cache.outcome == 'success' || steps.build-with-cache.outcome == 'failure')
+      - name: Build (push) - by digest
+        id: build-push
+        if: github.event_name != 'pull_request' && (github.event_name == 'push' || github.event.inputs.push-image == 'true')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./sp5505.Dockerfile
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          # Multi-layer caching strategy (resilient to service outages)
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache
+            type=gha,scope=${{ github.workflow }}-${{ matrix.platform }}
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          # Build arguments
+          build-args: |
+            SKIP_TESTS=${{ github.event.inputs.skip-tests || '0' }}
+          # Build contexts for enhanced caching
+          build-contexts: |
+            spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
+
+      - name: Export digest
+        if: steps.build-push.outcome == 'success'
         run: |
-          # Get the image reference from the metadata
+          mkdir -p /tmp/digests
+          digest="${{ steps.build-push.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: steps.build-push.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Run tests (loaded image)
+        if: github.event.inputs.skip-tests != '1' && steps.build-load.outcome == 'success'
+        run: |
           IMAGE_REF="${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
-
-          # Basic smoke tests
-          echo "🧪 Running basic smoke tests..."
           docker run --rm "${IMAGE_REF}" python --version
-          docker run --rm "${IMAGE_REF}" python -c \
-            "import karabo; print('Karabo import successful')"
+          docker run --rm "${IMAGE_REF}" python -c "import karabo; print('Karabo import successful')"
+          docker run --rm "${IMAGE_REF}" python -c "import numpy as np; import erfa, erfa.core; result = erfa.core.ufunc.dtdb(2451545.0,0.0,0.0,0.0,0.0,0.0); print(f'ERFA dtdb: {result}')"
+          docker run --rm "${IMAGE_REF}" python -c "from astropy import units as u; from astropy.coordinates import EarthLocation, SkyCoord, AltAz; from astropy.time import Time; location = EarthLocation.from_geodetic(lon=21.443*u.deg, lat=-30.712*u.deg, height=1000*u.m); target = SkyCoord(ra=20*u.deg, dec=-30*u.deg); time = Time('2000-03-20T12:06:39', scale='utc'); target_altaz = target.transform_to(AltAz(obstime=time, location=location)); print(f'Alt={target_altaz.alt:.2f}, Az={target_altaz.az:.2f}')"
 
-          # Test that OSKAR tests can run (our fix verification)
-          echo "🧪 Testing OSKAR/RASCIL functionality..."
-          docker run --rm "${IMAGE_REF}" python -c "
-          import numpy as np
-          import erfa
-          import erfa.core
-          # Test the specific ERFA function that was failing
-          try:
-              result = erfa.core.ufunc.dtdb(2451545.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-              print(f'✅ ERFA dtdb test passed: {result}')
-          except Exception as e:
-              print(f'❌ ERFA dtdb test failed: {e}')
-              raise
-          "
-
-          # Test coordinate transformations that were failing
-          docker run --rm "${IMAGE_REF}" python -c "
-          from astropy import units as u
-          from astropy.coordinates import EarthLocation, SkyCoord
-          from astropy.time import Time
-          from astropy.coordinates import AltAz
-
-          try:
-              # Reproduce the scenario that was failing
-              location = EarthLocation.from_geodetic(
-                  lon=21.443*u.deg, lat=-30.712*u.deg, height=1000*u.m)
-              target = SkyCoord(ra=20*u.deg, dec=-30*u.deg)
-              time = Time('2000-03-20T12:06:39', scale='utc')
-              altaz_frame = AltAz(obstime=time, location=location)
-              target_altaz = target.transform_to(altaz_frame)
-              print(f'✅ Coordinate transformation test passed: Alt={target_altaz.alt:.2f}, Az={target_altaz.az:.2f}')
-          except Exception as e:
-              print(f'❌ Coordinate transformation test failed: {e}')
-              raise
-          "
+      - name: Run tests (pushed digest)
+        if: github.event.inputs.skip-tests != '1' && steps.build-push.outcome == 'success'
+        run: |
+          IMAGE_REF="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}"
+          docker run --rm "${IMAGE_REF}" python --version
+          docker run --rm "${IMAGE_REF}" python -c "import karabo; print('Karabo import successful')"
+          docker run --rm "${IMAGE_REF}" python -c "import numpy as np; import erfa, erfa.core; result = erfa.core.ufunc.dtdb(2451545.0,0.0,0.0,0.0,0.0,0.0); print(f'ERFA dtdb: {result}')"
+          docker run --rm "${IMAGE_REF}" python -c "from astropy import units as u; from astropy.coordinates import EarthLocation, SkyCoord, AltAz; from astropy.time import Time; location = EarthLocation.from_geodetic(lon=21.443*u.deg, lat=-30.712*u.deg, height=1000*u.m); target = SkyCoord(ra=20*u.deg, dec=-30*u.deg); time = Time('2000-03-20T12:06:39', scale='utc'); target_altaz = target.transform_to(AltAz(obstime=time, location=location)); print(f'Alt={target_altaz.alt:.2f}, Az={target_altaz.az:.2f}')"
 
       - name: Generate build report
         if: always()
         run: |
-          echo "## 🔨 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔨 Build Summary (${{ matrix.platform }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Image | \`${{ fromJSON(steps.meta.outputs.json).tags[0] || 'Not built' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image base | \`${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | \`${{ matrix.platform }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Skip Tests | \`${{ github.event.inputs.skip-tests || '0' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Push Image | \`${{ github.event_name != 'pull_request' && (github.event.inputs.push-image == 'true' || github.ref == 'refs/heads/main') }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Cache Build | \`${{ steps.build-with-cache.outcome }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🚀 Key Features" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Multi-layer Docker BuildKit caching with fallback resilience" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Spack binary cache persistence across builds" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Pip cache mounting for faster package installs" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ APT cache sharing for system dependencies" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ OSKAR/RASCIL ERFA dtype compatibility tests" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Automatic image tagging and metadata" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Cache service outage resilience with fallback build" >> $GITHUB_STEP_SUMMARY
 
-      - name: Cache size report
-        if: always()
+  merge:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' && (github.event_name == 'push' || github.event.inputs.push-image == 'true')
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: >-
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
         run: |
-          echo "## 💾 Cache Utilization" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "This build leverages multiple cache layers with fallback resilience:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Registry Cache**: Shared cache images (primary, most reliable)" >> $GITHUB_STEP_SUMMARY
-          echo "2. **GitHub Actions Cache**: Build context and intermediate layers (secondary)" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Spack Binary Cache**: Pre-built scientific packages (\`/opt/buildcache\`)" >> $GITHUB_STEP_SUMMARY
-          echo "4. **Spack Source Cache**: Downloaded source tarballs (\`/opt/spack-source-cache\`)" >> $GITHUB_STEP_SUMMARY
-          echo "5. **Pip Cache**: Python package wheels (\`/root/.cache/pip\`, \`/home/jovyan/.cache/pip\`)" >> $GITHUB_STEP_SUMMARY
-          echo "6. **APT Cache**: System package cache (\`/var/cache/apt\`, \`/var/lib/apt\`)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Fallback Strategy**: If external cache services are unavailable, the workflow automatically" >> $GITHUB_STEP_SUMMARY
-          echo "falls back to a no-cache build to ensure CI reliability. The Dockerfile's internal cache" >> $GITHUB_STEP_SUMMARY
-          echo "mounts (Spack, pip, APT) continue to work regardless of external service availability." >> $GITHUB_STEP_SUMMARY
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
