@@ -124,7 +124,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env create --dir /opt/spack_env; \
     spack env activate /opt/spack_env; \
     spack config add "config:install_tree:root:/opt/software"; \
-    spack config add "concretizer:unify:true"; \
+    spack config add "concretizer:unify:when_possible"; \
     spack config add "view:/opt/view"; \
     # Match OSKAR working config: avoid arch-specific tuning (e.g., icelake)
     spack config add "packages:all:target:[x86_64]"; \

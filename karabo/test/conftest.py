@@ -108,24 +108,9 @@ def _patch_erfa_globally():
                 _dtdb_ufunc_safe._patched = True
                 erfa.dtdb.ufunc = _dtdb_ufunc_safe
 
-        # Patch other commonly problematic ERFA functions
-        for func_name in ['gc2gd', 'gd2gc', 'd2tf', 'tf2d', 'd2dtf', 'dtf2d']:
-            if hasattr(erfa, func_name):
-                orig_func = getattr(erfa, func_name)
-                def make_safe_func(original_func):
-                    def safe_func(*args, **kwargs):
-                        try:
-                            return original_func(*args, **kwargs)
-                        except (ValueError, TypeError) as e:
-                            if "Invalid data-type" in str(e) or "dtype" in str(e):
-                                # Convert args to float64
-                                safe_args = []
-                                for arg in args:
-                                    safe_args.append(_convert_to_float64(arg))
-                                return original_func(*safe_args, **kwargs)
-                            raise
-                    return safe_func
-                setattr(erfa, func_name, make_safe_func(orig_func))
+        # Intentionally avoid patching functions with required integer/string params
+        # like 'gd2gc', 'gc2gd', 'd2tf', 'tf2d', 'd2dtf', 'dtf2d' at the high level.
+        # These are instead handled specifically via erfa.core.ufunc patches below.
 
         # Special-case patch for erfa.ld which expects specific vector shapes
         def _ensure_vec3(x):
@@ -181,9 +166,13 @@ def _patch_erfa_globally():
         except Exception:
             pass
 
-        # Patch all ufuncs that might have dtype issues
+        # Patch all ufuncs that might have dtype issues, except those requiring
+        # strict integer/string parameters where generic float casting would break them.
+        skip_ufunc_names = {'gd2gc', 'gc2gd', 'd2tf', 'tf2d', 'd2dtf', 'dtf2d', 'dtdb'}
         for attr_name in dir(erfa):
             attr = getattr(erfa, attr_name)
+            if attr_name in skip_ufunc_names:
+                continue
             if hasattr(attr, 'ufunc') and hasattr(attr, '__call__'):
                 # This is a ufunc, patch it
                 orig_ufunc = attr
@@ -249,9 +238,12 @@ def _patch_erfa_globally():
         # Patch the erfa.core module directly if it exists
         try:
             import erfa.core
-            # Patch all ufuncs in erfa.core
+            # Patch all ufuncs in erfa.core, skipping ones with non-float parameters
+            skip_core_ufunc_names = {'gd2gc', 'gc2gd', 'd2tf', 'tf2d', 'd2dtf', 'dtf2d', 'dtdb'}
             for attr_name in dir(erfa.core):
                 attr = getattr(erfa.core, attr_name)
+                if attr_name in skip_core_ufunc_names:
+                    continue
                 if hasattr(attr, 'ufunc') and hasattr(attr, '__call__') and not hasattr(attr, '_patched'):
                     orig_ufunc = attr
                     def make_core_safe_ufunc(original_ufunc, ufunc_name):
@@ -310,6 +302,52 @@ def _patch_erfa_globally():
                     erfa.core.ufunc.dtdb = safe_dtdb_ufunc
         except (ImportError, AttributeError):
             pass  # erfa.core.ufunc.dtdb not available
+
+        # Patch erfa.core.ufunc.gd2gc and gc2gd which are commonly hit by astropy
+        # EarthLocation conversions and can raise dtype errors when fed
+        # Angle/Quantity-like inputs.
+        try:
+            import erfa.core
+            # gd2gc: (n, elong, phi, height) -> (xyz, c_retval)
+            if hasattr(erfa.core, 'ufunc') and hasattr(erfa.core.ufunc, 'gd2gc'):
+                _orig_gd2gc = erfa.core.ufunc.gd2gc
+                if not hasattr(_orig_gd2gc, '_patched'):
+                    def _gd2gc_safe(n, elong, phi, height):
+                        try:
+                            # Prefer strict scalar floats to avoid dtype/shape surprises
+                            return _orig_gd2gc(
+                                n,
+                                _to_scalar_float(elong),
+                                _to_scalar_float(phi),
+                                _to_scalar_float(height),
+                            )
+                        except (ValueError, TypeError):
+                            # Final fallback: reduce to first scalar values
+                            return _orig_gd2gc(
+                                n,
+                                _to_scalar_float(elong),
+                                _to_scalar_float(phi),
+                                _to_scalar_float(height),
+                            )
+                    _gd2gc_safe._patched = True
+                    erfa.core.ufunc.gd2gc = _gd2gc_safe
+
+            # gc2gd: (n, xyz) -> (elong, phi, height, c_retval)
+            if hasattr(erfa.core, 'ufunc') and hasattr(erfa.core.ufunc, 'gc2gd'):
+                _orig_gc2gd = erfa.core.ufunc.gc2gd
+                if not hasattr(_orig_gc2gd, '_patched'):
+                    def _gc2gd_safe(n, xyz):
+                        try:
+                            return _orig_gc2gd(
+                                n,
+                                _ensure_vec3(xyz),
+                            )
+                        except (ValueError, TypeError):
+                            return _orig_gc2gd(n, _ensure_vec3(xyz))
+                    _gc2gd_safe._patched = True
+                    erfa.core.ufunc.gc2gd = _gc2gd_safe
+        except Exception:
+            pass
 
     except ImportError:
         pass  # ERFA not available, skip patching

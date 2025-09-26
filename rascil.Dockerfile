@@ -48,7 +48,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env create --dir /opt/spack_env; \
     spack env activate /opt/spack_env; \
     spack config add "config:install_tree:root:/opt/software"; \
-    spack config add "concretizer:unify:true"; \
+    spack config add "concretizer:unify:when_possible"; \
     spack config add "view:/opt/view"; \
     spack config add "config:source_cache:/opt/spack-source-cache"; \
     spack config add "config:misc_cache:/opt/spack-misc-cache"; \

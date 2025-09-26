@@ -61,7 +61,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env create --dir /opt/spack_env; \
     spack env activate /opt/spack_env; \
     spack config add "config:install_tree:root:/opt/software"; \
-    spack config add "concretizer:unify:true"; \
+    spack config add "concretizer:unify:when_possible"; \
     spack config add "view:/opt/view"; \
     # Avoid over-optimizing for specific Intel CPUs (e.g. icelake) which can
     # cause illegal instructions/segfaults on other hosts. Target generic x86_64.
