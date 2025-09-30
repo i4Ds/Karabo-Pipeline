@@ -7,7 +7,6 @@ class PyCasacore(PythonPackage):
     homepage = "https://github.com/casacore/python-casacore"
     git = "https://github.com/casacore/python-casacore.git"
 
-    maintainers("karabo")
     license("GPL-2.0-or-later")
 
     version("3.5.0", tag="v3.5.0")
@@ -21,7 +20,11 @@ class PyCasacore(PythonPackage):
     depends_on("py-six", type=("build", "run", "test"))
 
     # Link against casacore with Python enabled
-    depends_on("casacore@3.5.0:+python")
+    depends_on("casacore@3.5.0+python", when="@3.5.0")
+    depends_on("casacore@3.6.1+python", when="@3.6.1")
+    depends_on("casacore@3.7.0+python", when="@3.7.0")
+    depends_on("casacore@3.7.1+python", when="@3.7.1")
+    depends_on("casacore@3.8.0:+python", when="@3.8.0:")
     # Require Boost with Python and NumPy components for bindings
     depends_on("boost+python+numpy")
 
@@ -47,7 +50,7 @@ class PyCasacore(PythonPackage):
         env.set("BOOST_PYTHON_LIB", f"boost_python{majmin}")
         env.set("BOOST_NUMPY_LIB", f"boost_numpy{majmin}")
 
-    import_modules = ["casacore"]
+    import_modules = ["casacore", "casacore.tables", "casacore.quanta"]
 
     def test_import(self):
         python = which("python3") or which("python")

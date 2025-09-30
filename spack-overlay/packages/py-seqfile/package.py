@@ -10,8 +10,6 @@ class PySeqfile(PythonPackage):
     homepage = "https://pypi.org/project/seqfile/"
     pypi = "seqfile/seqfile-0.2.0.tar.gz"
 
-    maintainers("karabo")
-
     version("0.2.0", sha256="3e688d2777f6a8c8d1515b93a6c0f10b68a02653d52497a21f4345c3e74cda48")
 
     # Spack 0.23-compatible backends

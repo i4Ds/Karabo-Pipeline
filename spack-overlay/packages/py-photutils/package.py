@@ -10,10 +10,10 @@ class PyPhotutils(PythonPackage):
     homepage = "https://github.com/astropy/photutils"
     git = "https://github.com/astropy/photutils.git"
 
-    maintainers("karabo")
     license("BSD-3-Clause")
 
     version("1.11.0", tag="1.11.0")
+    version("1.8.0", tag="1.8.0")
 
     # Default backend selection for this Spack
 
@@ -32,6 +32,9 @@ class PyPhotutils(PythonPackage):
     depends_on("py-pyyaml", type=("build", "run", "test"))
 
     import_modules = ["photutils"]
+
+    def setup_build_environment(self, env):
+        env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_PHOTUTILS", self.spec.version.string)
 
     def test_import(self):
         python = which("python3") or which("python")

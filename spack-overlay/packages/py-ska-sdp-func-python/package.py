@@ -7,10 +7,10 @@ class PySkaSdpFuncPython(PythonPackage):
     homepage = "https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python"
     git = "https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python.git"
 
-    maintainers("karabo")
     license("BSD-3-Clause")
 
     version("0.1.5", tag="0.1.5")
+    version("0.1.4", tag="0.1.4") # <- conda
 
     build_system("python_pip", "python_setuptools")
 
@@ -37,8 +37,7 @@ class PySkaSdpFuncPython(PythonPackage):
     import_modules = ["ska_sdp_func_python"]
 
     def setup_build_environment(self, env):
-        env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SKA_SDP_FUNC_PYTHON", "0.1.5")
-        env.set("SETUPTOOLS_SCM_PRETEND_VERSION", "0.1.5")
+        env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SKA_SDP_FUNC_PYTHON", self.spec.version.string)
 
     def test_import(self):
         python = which("python3") or which("python")

@@ -5,11 +5,10 @@ class PyDaskMemusage(PythonPackage):
     """Low-impact, task-level memory profiling for Dask."""
 
     homepage = "https://pypi.org/project/dask-memusage/"
-    # PyPI provides a wheel (no sdist). Fetch the wheel directly.
+    git = "https://github.com/itamarst/dask-memusage.git"
+    pypi = "dask_memusage/dask_memusage-1.1.tar.gz"
 
-    maintainers("karabo")
-
-    version("1.1")
+    version("1.1", sha256="29d9f25074fecd7ca249e972cb3ec0b909a1dcefaf037c8d5fca24fadbf66757")
 
     def url_for_version(self, version):
         ver = str(version)
@@ -33,10 +32,19 @@ class PyDaskMemusage(PythonPackage):
     def install(self, spec, prefix):
         # Install the fetched wheel using pip
         python = spec["python"].command
+        python_args = [
+            "-m",
+            "pip",
+            "install",
+            "--no-build-isolation",
+            "--no-deps",
+            f"--prefix={prefix}",
+        ]
         archive = getattr(self.stage, "archive_file", None)
         if archive:
-            python("-m", "pip", "install", "--no-build-isolation", "--no-deps", f"--prefix={prefix}", archive)
+            python_args.append(archive)
         else:
-            python("-m", "pip", "install", "--no-build-isolation", "--no-deps", f"--prefix={prefix}", f"dask_memusage=={self.version}")
+            python_args.append(f"dask_memusage=={self.version}")
+        python(*python_args)
 
 

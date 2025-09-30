@@ -353,7 +353,7 @@ def _patch_erfa_globally():
         pass  # ERFA not available, skip patching
 
 # Apply the global patch immediately when conftest is imported (runs for all tests)
-_patch_erfa_globally()
+# _patch_erfa_globally()
 
 from karabo.data.external_data import (
     SingleFileDownloadObject,

@@ -7,8 +7,6 @@ class PyRascil(PythonPackage):
     homepage = "https://gitlab.com/ska-telescope/sdp/rascil"
     # Avoid git (private); install from SKA artefact wheel via pip
 
-    maintainers("karabo")
-
     # Prefer fetching a prebuilt wheel from SKA artefact to avoid git auth
     base_url = "https://artefact.skao.int/repository/pypi-all/packages/rascil/{ver}/rascil-{ver}-py3-none-any.whl"
     version("1.0.0")
@@ -31,9 +29,9 @@ class PyRascil(PythonPackage):
     depends_on("py-bdsf@1.12.0", type=("build", "run"))
     depends_on("py-casacore@3.5.0", type=("build", "run"))
     depends_on("py-dask-memusage", type=("build", "run"))
-    depends_on("py-dask@2022.10.2", type=("build", "run"))
+    depends_on("py-dask@2022.10.2:", type=("build", "run"))
     depends_on("py-dask-memusage@1.1:", type=("build", "run"))
-    depends_on("py-distributed@2022.10.2", type=("build", "run"))
+    depends_on("py-distributed@2022.10.2:", type=("build", "run"))
     depends_on("py-matplotlib@3.6:", type=("build", "run"))
     depends_on("py-numpy@1.23:", type=("build", "run"))
     depends_on("py-pandas@1.5:", type=("build", "run"))
@@ -42,7 +40,7 @@ class PyRascil(PythonPackage):
     depends_on("py-seqfile", type=("build", "run"))
     depends_on("py-ska-sdp-datamodels@0.1.3", type=("build", "run"))
     depends_on("py-ska-sdp-func-python@0.1.5", type=("build", "run"))
-    depends_on("py-ska-sdp-func@0.1.0", type=("build", "run"))
+    depends_on("py-ska-sdp-func@0.1.0:", type=("build", "run"))
     depends_on("py-tabulate", type=("build", "run"))
     depends_on("py-xarray@2022.12:", type=("build", "run"))
 

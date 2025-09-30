@@ -11,9 +11,8 @@ class PyAstroplan(PythonPackage):
     homepage = "https://astroplan.readthedocs.io/"
     git = "https://github.com/astropy/astroplan.git"
 
-    maintainers("karabo")
-
     version("0.8", tag="v0.8")
+    version("0.10.1", tag="v0.10.1")
 
     # Allow pip/setuptools backends (Spack 0.23 compatible)
     build_system("python_pip", "python_setuptools")
@@ -34,6 +33,9 @@ class PyAstroplan(PythonPackage):
     depends_on("py-pytz", type=("build", "run", "test"))
 
     import_modules = ["astroplan"]
+
+    def setup_build_environment(self, env):
+        env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ASTROPLAN", self.spec.version.string)
 
     def test_import(self):
         python = which("python3") or which("python")

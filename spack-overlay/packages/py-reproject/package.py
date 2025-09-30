@@ -7,11 +7,11 @@ class PyReproject(PythonPackage):
     homepage = "https://github.com/astropy/reproject"
     git = "https://github.com/astropy/reproject.git"
 
-    maintainers("karabo")
     license("BSD-3-Clause")
 
     # Pin to 0.9.1 to satisfy RASCIL constraints
     version("0.9.1", tag="v0.9.1")
+    version("0.14.1", tag="v0.14.1")
 
     # Use default PythonPackage build backend selection in this Spack version
 
@@ -30,6 +30,9 @@ class PyReproject(PythonPackage):
     depends_on("py-astropy-healpix@1:", type=("build", "run"))
 
     import_modules = ["reproject"]
+
+    def setup_build_environment(self, env):
+        env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_REPROJECT", self.spec.version.string)
 
     def test_import(self):
         python = which("python3") or which("python")

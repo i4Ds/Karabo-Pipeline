@@ -9,7 +9,6 @@ class Oskar(CMakePackage):
     git = "https://github.com/OxfordSKA/OSKAR.git"
 
     license("BSD-3-Clause")
-    maintainers("karabo")
 
     # Karabo uses 2.8.3 specifically
     # 2.10.0 works on arm64 but gives code -115 when reading vis files
