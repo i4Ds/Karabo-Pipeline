@@ -25,7 +25,7 @@ class PyHealpy(PythonPackage):
     depends_on("py-build", type="build")
     depends_on("py-pyproject-hooks", type="build")
     depends_on("py-wheel", type="build")
-    depends_on("py-cython@0.29:", type="build")
+    depends_on("py-cython@0.29:0.29", type="build")
     depends_on("py-setuptools-scm@6:", type="build")
     depends_on("py-pkgconfig", type="build")
     depends_on("pkgconfig", type="build")
@@ -40,7 +40,7 @@ class PyHealpy(PythonPackage):
     depends_on("py-matplotlib", type=("build", "run"), when="+plot")
     depends_on("py-six", type=("build", "run"))
     depends_on("cfitsio", type=("build", "run"))
-    depends_on("healpix-cxx", type=("build", "run"))
+    depends_on("healpix-cxx", type=("build", "run", "test"))
     depends_on("zlib", type=("build", "link"))
     depends_on("bzip2", type=("build", "link"))
 

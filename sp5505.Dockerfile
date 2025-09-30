@@ -83,7 +83,7 @@ ARG SDP_FUNC_VERSION=1.2.2
 # earliest 1.1.7 in sdp-spack
 # 1.2.2 works with the current stack
 ARG SDP_FUNC_PYTHON_VERSION=0.1.5
-# conda uses 0.1.4
+# TODO: conda uses 0.1.4
 # 0.1.5 works with the current stack
 ARG RASCIL_VERSION=1.0.0
 # conda uses 1.0.0
@@ -371,11 +371,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'notebook==7.*' \
         'jupyter_core>=5' \
         'jupyter_client>=8'
-# uninstalled tornado-6.1 jupyter-client-7.1.2  jsonschema-4.17.3
+# uninstalled tornado-6.1 jupyter_client-7.1.2
 # ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+# rascil 1.0.0 requires matplotlib<3.7,>=3.6, but you have matplotlib 3.9.2 which is incompatible.
+# rascil 1.0.0 requires numpy<1.24,>=1.23, but you have numpy 1.26.4 which is incompatible.
+# rascil 1.0.0 requires scipy<1.10,>=1.9, but you have scipy 1.10.1 which is incompatible.
 # rascil 1.0.0 requires tabulate<0.10,>=0.9, but you have tabulate 0.0.0 which is incompatible.
 # rascil 1.0.0 requires xarray<2022.13,>=2022.12, but you have xarray 2023.2.0 which is incompatible.
-# Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.3.0 async-lru-2.0.5 babel-2.17.0 certifi-2025.8.3 charset_normalizer-3.4.3 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.10 isoduration-20.11.0 json5-0.12.1 jsonpointer-3.0.0 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_server-2.17.0 jupyterlab-4.4.9 jupyterlab_server-2.27.3 lark-1.3.0 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 prometheus-client-0.23.1 python-json-logger-3.3.0 referencing-0.36.2 requests-2.32.5 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 rfc3987-syntax-1.1.0 rpds-py-0.27.1 send2trash-1.8.3 sniffio-1.3.1 terminado-0.18.1 tornado-6.5.2 types-python-dateutil-2.9.0.20250822 uri-template-1.3.0 webcolors-24.11.1 websocket-client-1.8.0
+# Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.3.0 async-lru-2.0.5 babel-2.17.0 certifi-2025.8.3 charset_normalizer-3.4.3 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.10 isoduration-20.11.0 json5-0.12.1 jsonpointer-3.0.0 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_server-2.17.0 jupyterlab-4.4.9 jupyterlab_server-2.27.3 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 prometheus-client-0.23.1 python-json-logger-3.3.0 requests-2.32.5 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 send2trash-1.8.3 sniffio-1.3.1 terminado-0.18.1 tornado-6.5.2 types-python-dateutil-2.9.0.20250822 uri-template-1.3.0 webcolors-24.11.1 websocket-client-1.8.0
 
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
@@ -403,11 +406,20 @@ for (name, target) in checks:
 sys.exit(0)
 PY
 
+# TODO:
+# ARG ARATMOSPY_VERSION=1.0.0
+# ARG EIDOS_VERSION=1.1.0
+# ARG KATBEAM_VERSION=0.1.0
+
 # Install aratmospy, eidos, katbeam, tools21cm with pinned toolchain via pip
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
     pip install --no-build-isolation -U 'pip<25.3' 'cython>=3.0,<3.1' 'extension_helpers>=1.0,<2' 'packaging>=24.2' setuptools setuptools-scm wheel build versioneer && \
+    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ARATMOSPY=$ARATMOSPY_VERSION && \
+    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_EIDOS=$EIDOS_VERSION && \
+    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KATBEAM=$KATBEAM_VERSION && \
+    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_TOOLS21CM=$TOOLS21CM_VERSION && \
     pip install --no-build-isolation --no-deps --no-build-isolation \
         'git+https://github.com/i4Ds/ARatmospy.git@67c302a136beb40a1cc88b054d7b62ccd927d64f#egg=aratmospy' \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
@@ -495,13 +507,17 @@ PY
 # bdsf 1.12.0 requires backports.shutil-get-terminal-size, which is not installed.
 # eidos 1.1.0 requires future, which is not installed.
 # tools21cm 2.3.8 requires openpyxl, which is not installed.
-# astropy-healpix 1.1.2 requires numpy>=1.25, but you have numpy 1.23.5 which is incompatible.
+# rascil 1.0.0 requires matplotlib<3.7,>=3.6, but you have matplotlib 3.9.2 which is incompatible.
+# rascil 1.0.0 requires numpy<1.24,>=1.23, but you have numpy 1.26.4 which is incompatible.
+# rascil 1.0.0 requires scipy<1.10,>=1.9, but you have scipy 1.10.1 which is incompatible.
 # rascil 1.0.0 requires tabulate<0.10,>=0.9, but you have tabulate 0.0.0 which is incompatible.
 # rascil 1.0.0 requires xarray<2022.13,>=2022.12, but you have xarray 2023.2.0 which is incompatible.
 # ska-sdp-datamodels 0.1.3 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
 # ska-sdp-datamodels 0.1.3 requires xarray<2023.0.0,>=2022.10.0, but you have xarray 2023.2.0 which is incompatible.
 # ska-sdp-func-python 0.1.5 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
+# ska-sdp-func-python 0.1.5 requires numpy<1.24,>=1.23, but you have numpy 1.26.4 which is incompatible.
 # ska-sdp-func-python 0.1.5 requires xarray<2023.0.0,>=2022.11.0, but you have xarray 2023.2.0 which is incompatible.
+# WARNING: AstropyDeprecationWarning: The private astropy._erfa module has been made into its own package, pyerfa, which is a dependency of astropy and can be imported directly using "import erfa" [astropy._erfa]
 
 # Copy repository for editable install and testing
 ARG NB_USER=jovyan
@@ -590,69 +606,33 @@ RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
     pip install -q --no-build-isolation --no-deps 'dask_memusage==1.1' && \
     pip install -q -t "/home/${NB_USER}/.local/pytest" 'pytest>=8,<9' && \
     # Exclude heavy imaging test (disk space) and known OSKAR flakiness in CI build context
-    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "not test_suppress_rascil_warning and not test_imaging and not (oskar or OSKAR)" /home/${NB_USER}/Karabo-Pipeline && \
+    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "test_source_detection_plot" /home/${NB_USER}/Karabo-Pipeline && \
+    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "not test_suppress_rascil_warning and not test_imaging" /home/${NB_USER}/Karabo-Pipeline && \
     rm -rf /home/${NB_USER}/.astropy/cache \
            /home/${NB_USER}/.cache/astropy \
            /home/${NB_USER}/.cache/pyuvdata \
            /home/${NB_USER}/.cache/rascil
 
 
-# ...s..........................................................ssssssssss [ 20%]
-# s................F
+# ss.s..........................................................ssssssssss [ 20%]
+# s...................................s.................................F
 # =================================== FAILURES ===================================
-# ____________ TestObsCoreMeta.test_from_visibility[minimal_casa_ms] _____________
-# Karabo-Pipeline/karabo/data/obscore.py:520: in from_visibility
-#     uvd.read(vis_inode, **read_kwargs)
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/uvdata.py:12640: in read
-#     self.read_ms(
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/uvdata.py:10983: in read_ms
-#     ms_obj.read_ms(filepath, **kwargs)
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/ms.py:1993: in read_ms
-#     self.history, pyuvdata_written = self._ms_hist_to_string(
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/ms.py:920: in _ms_hist_to_string
-#     newline = ";".join([str(col[tbrow]) for col in cols]) + "\n"
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/ms.py:920: in <listcomp>
-#     newline = ";".join([str(col[tbrow]) for col in cols]) + "\n"
-# E   IndexError: list index out of range
-#
-# During handling of the above exception, another exception occurred:
-# Karabo-Pipeline/karabo/test/conftest.py:318: in _gd2gc_safe
-#     return _orig_gd2gc(
-# E   ValueError: Invalid data-type for array
-#
-# During handling of the above exception, another exception occurred:
-# /home/ubuntu/Karabo-Pipeline/karabo/test/test_obscore.py:141: in test_from_visibility
-#     ???
-# Karabo-Pipeline/karabo/data/obscore.py:536: in from_visibility
-#     uvd.read(vis_inode, **read_kwargs)
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/uvdata.py:12640: in read
-#     self.read_ms(
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/uvdata.py:10983: in read_ms
-#     ms_obj.read_ms(filepath, **kwargs)
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/ms.py:2139: in read_ms
-#     and self.telescope_name in self.known_telescopes()
-# /opt/view/lib/python3.10/site-packages/pyuvdata/uvdata/uvdata.py:2350: in known_telescopes
-#     return uvtel.known_telescopes()
-# /opt/view/lib/python3.10/site-packages/pyuvdata/telescopes.py:179: in known_telescopes
-#     astropy_sites = [site for site in EarthLocation.get_site_names() if site != ""]
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/earth.py:505: in get_site_names
-#     return cls._get_site_registry().names
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/earth.py:543: in _get_site_registry
-#     reg = get_downloaded_sites()
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/sites.py:143: in get_downloaded_sites
-#     return SiteRegistry.from_json(jsondb)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/sites.py:105: in from_json
-#     location = EarthLocation.from_geodetic(site_info.pop('longitude') * u.Unit(site_info.pop('longitude_unit')),
-# Karabo-Pipeline/karabo/test/test_000_astropy_env.py:76: in _from_geodetic_wgs84
-#     return _orig_from_geodetic(*args, **kwargs)
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/earth.py:304: in from_geodetic
-#     xyz = geodetic.to_cartesian().get_xyz(xyz_axis=-1) << height.unit
-# /opt/view/lib/python3.10/site-packages/astropy/coordinates/earth.py:898: in to_cartesian
-#     xyz = erfa.gd2gc(getattr(erfa, self._ellipsoid),
-# /opt/view/lib/python3.10/site-packages/erfa/core.py:16026: in gd2gc
-#     xyz, c_retval = ufunc.gd2gc(n, elong, phi, height)
-# Karabo-Pipeline/karabo/test/conftest.py:326: in _gd2gc_safe
-#     return _orig_gd2gc(
-# E   ValueError: Invalid data-type for array
+# __________________________ test_source_detection_plot __________________________
+# Karabo-Pipeline/karabo/test/test_source_detection.py:73: in test_source_detection_plot
+#     np.testing.assert_array_equal(
+# /opt/software/linux-ubuntu24.04-icelake/gcc-13.3.0/python-3.10.14-uxbm3oqvyzmduqqgdgab7log6e7rsidv/lib/python3.10/contextlib.py:79: in inner
+#     return func(*args, **kwds)
+# E   AssertionError:
+# E   Arrays are not equal
+# E   The assignment has changed!
+# E   Mismatched elements: 33 / 111 (29.7%)
+# E   Max absolute difference: 23.
+# E   Max relative difference: 4.4
+# E    x: array([[-1.      ,  7.      ,       inf],
+# E          [-1.      ,  5.      ,       inf],
+# E          [-1.      , 13.      ,       inf],...
+# E    y: array([[-1.      , 18.      ,       inf],
+# E          [-1.      , 20.      ,       inf],
+# E          [-1.      , 21.      ,       inf],...
 
 WORKDIR "/home/${NB_USER}"
