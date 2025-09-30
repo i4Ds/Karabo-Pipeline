@@ -39,7 +39,7 @@ class PyRascil(PythonPackage):
     depends_on("py-scipy@1.9:", type=("build", "run"))
     depends_on("py-seqfile", type=("build", "run"))
     depends_on("py-ska-sdp-datamodels@0.1.3", type=("build", "run"))
-    depends_on("py-ska-sdp-func-python@0.1.5", type=("build", "run"))
+    depends_on("py-ska-sdp-func-python@0.1.4:", type=("build", "run"))
     depends_on("py-ska-sdp-func@0.1.0:", type=("build", "run"))
     depends_on("py-tabulate", type=("build", "run"))
     depends_on("py-xarray@2022.12:", type=("build", "run"))
@@ -70,5 +70,31 @@ class PyRascil(PythonPackage):
         python = which("python3") or which("python")
         if python:
             python("-c", "import rascil; print('py-rascil OK') ")
+
+    def test_env_assignment_signature(self):
+        # Minimal diagnostic to capture environment modules and KDTree behavior
+        python = which("python3") or which("python")
+        if not python:
+            return
+        code = r'''import importlib, numpy as np
+from scipy.spatial import KDTree
+mods=['numpy','scipy','pandas','astropy','astropy_healpix','healpy','erfa']
+vers={}
+for m in mods:
+    try:
+        mod=importlib.import_module(m)
+        vers[m]=getattr(mod,'__version__','unknown')
+    except Exception as e:
+        vers[m]=f'<not-importable: {e}>'
+print('PY_RASCIL_ENV_DEBUG_VERS',vers)
+np.random.seed(0)
+g=np.random.randn(20,2)
+d=np.random.randn(25,2)+np.array([10.0,10.0])
+tree=KDTree(g)
+dist,idx=tree.query(d,k=1,distance_upper_bound=1.5)
+idx[dist==np.inf]=-1
+print('PY_RASCIL_ENV_KD_NEG_COUNT',int((idx==-1).sum() if idx.ndim==1 else (idx[:,0]==-1).sum()))
+'''
+        python("-c", code)
 
 

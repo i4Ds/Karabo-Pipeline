@@ -44,4 +44,32 @@ class PySkaSdpFuncPython(PythonPackage):
         if python:
             python("-c", "import ska_sdp_func_python as s; print('ok') ")
 
+    def test_kdtree_assignment_debug(self):
+        python = which("python3") or which("python")
+        if not python:
+            return
+        code = r'''import numpy as np
+from scipy.spatial import KDTree
+import importlib
+mods = ['numpy','scipy','astropy','astropy_healpix','erfa']
+vers = {}
+for m in mods:
+    try:
+        mod = importlib.import_module(m)
+        vers[m] = getattr(mod,'__version__','unknown')
+    except Exception as e:
+        vers[m] = f'<not-importable: {e}>'
+print('SPACK_ENV_DEBUG_VERS', vers)
+# Deterministic KDTree debug
+np.random.seed(42)
+gtruth = np.random.randn(50,2)*5.0
+det = np.random.randn(60,2)*5.0 + np.array([20.0, 20.0])  # mostly far
+tree = KDTree(gtruth)
+dist, idx = tree.query(det, k=1, distance_upper_bound=2.5)
+idx[dist==np.inf] = -1
+neg_pred = np.where(idx[:,0] if idx.ndim==2 else idx==-1)[0] if idx.ndim==2 else np.where(idx==-1)[0]
+print('SPACK_ENV_DEBUG_KD_NEG_HEAD', neg_pred[:20].tolist())
+'''
+        python("-c", code)
+
 

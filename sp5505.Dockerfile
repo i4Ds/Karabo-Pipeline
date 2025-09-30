@@ -51,7 +51,7 @@ RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/
 COPY spack-overlay /opt/karabo-spack
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/karabo-spack
 
-ARG NUMPY_VERSION=1.26.4
+ARG NUMPY_VERSION=1.23.5
 # 1.23.5 worked at some point
 ARG PYTHON_VERSION=3.10
 
@@ -66,24 +66,26 @@ ARG BDSF_VERSION=1.12.0
 # 1.12.0 is easier to install because of setuptools nonsense
 # conda uses 1.10.2
 ARG DASK_VERSION=2022.12.1
+# conda uses 2022.12.1
 ARG DUCC_VERSION=0.27
+# conda uses 0.27
 ARG PYERFA_VERSION=2.0.1.5
 # conda installs 2.0.1.5
 # 2.0.0.1 needed patches to work with astropy 5.1
 ARG PHOTUTILS_VERSION=1.11.0
 # 1.11.0 worked at some point
-# conda uses 1.8.0
+# TODO: conda uses 1.8.0
 ARG REPROJECT_VERSION=0.9.1
 # 0.9.1 worked at some point
-# conda uses 0.14.1
+# TODO: conda uses 0.14.1
 ARG SDP_DATAMODELS_VERSION=0.1.3
 ARG SDP_FUNC_VERSION=1.2.2
 # 0.1.5 worked at some point
-# conda uses 0.0.6
+# TODO: conda uses 0.0.6
 # earliest 1.1.7 in sdp-spack
 # 1.2.2 works with the current stack
-ARG SDP_FUNC_PYTHON_VERSION=0.1.5
-# TODO: conda uses 0.1.4
+ARG SDP_FUNC_PYTHON_VERSION=0.1.4
+# TODO: conda uses 0.1.4 !
 # 0.1.5 works with the current stack
 ARG RASCIL_VERSION=1.0.0
 # conda uses 1.0.0
@@ -115,9 +117,7 @@ ARG DISTRIBUTED_VERSION=2022.12.1
 # conda has 2022.12.1
 # rascil 1.0.0 requires distributed<2022.13,>=2022.12
 # issues installing 2022.12.1 directly with spack
-ARG SCIPY_VERSION=1.10.1
-# scipy needed by pyuvdata bluebild rascil scikit-image astroml ska-sdp-func-python aratmospy bdsf reproject tools21cm gwcs photutils healpy scikit-learn eidos
-# conda uses scipy 1.13.1 but this requires cupy and torch
+ARG SCIPY_VERSION=1.9.3
 # 1.9.3 worked with numpy 1.23.5
 ARG MATPLOTLIB_VERSION=3.9.2
 # matplotlib needed by bluebild rascil aratmospy tools21cm
@@ -253,14 +253,8 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         # psutil
     && \
     time -p spack concretize --force && \
-    spack install -v --source 'py-healpy@'$HEALPY_VERSION && \
-    spack test run 'py-healpy' || ( \
-        cat /home/jovyan/.spack/test/*/py-healpy-1.16.2-*-test-out.txt; \
-        exit 1 \
-    ) && \
     ac_cv_lib_curl_curl_easy_init=no spack install -j$(nproc) --no-check-signature --no-checksum --fail-fast --reuse --show-log-on-error && \
-    spack install -v --source 'py-healpy@'$HEALPY_VERSION && \
-        spack test run 'py-healpy' || ( \
+    spack test run 'py-healpy' || ( \
         cat /home/jovyan/.spack/test/*/py-healpy-1.16.2-*-test-out.txt; \
         exit 1 \
     ) && \
@@ -601,13 +595,22 @@ RUN python -m ipykernel install --user --name=karabo --display-name="Karabo (Spa
 # Run tests during build to validate environment
 ARG SKIP_TESTS=0
 ENV SKIP_TESTS=${SKIP_TESTS}
+# Debug expected assignment ordering for unassigned rows (-1) before tests
+RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
+    PYTHONPATH="/opt/view/lib/python3.10/site-packages" python - <<'PY'
+import numpy as np
+a=np.load('/home/jovyan/Karabo-Pipeline/karabo/test/data/sdp/gt_assignment.npy')
+neg=a[a[:,0]<0]
+print('EXPECTED_NEG_HEAD', neg[:20,1].astype(int).tolist())
+print('EXPECTED_NEG_SORTED_BY_PRED', bool(np.all(neg[:,1]==np.sort(neg[:,1]))))
+PY
 RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
     export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1; \
     pip install -q --no-build-isolation --no-deps 'dask_memusage==1.1' && \
     pip install -q -t "/home/${NB_USER}/.local/pytest" 'pytest>=8,<9' && \
-    # Exclude heavy imaging test (disk space) and known OSKAR flakiness in CI build context
-    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "test_source_detection_plot" /home/${NB_USER}/Karabo-Pipeline && \
-    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "not test_suppress_rascil_warning and not test_imaging" /home/${NB_USER}/Karabo-Pipeline && \
+    # heavy imaging test was failing (disk space): test_imaging
+    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/${NB_USER}/Karabo-Pipeline && \
+    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/${NB_USER}/Karabo-Pipeline && \
     rm -rf /home/${NB_USER}/.astropy/cache \
            /home/${NB_USER}/.cache/astropy \
            /home/${NB_USER}/.cache/pyuvdata \

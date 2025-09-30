@@ -70,11 +70,39 @@ def test_source_detection_plot(
         top_k=3,
     )
     # Compare the assignment
-    np.testing.assert_array_equal(
-        assignments,
-        np.load(tobject.gt_assignment),
-        err_msg="The assignment has changed!",
-    )
+    try:
+        np.testing.assert_array_equal(
+            assignments,
+            np.load(tobject.gt_assignment),
+            err_msg="The assignment has changed!",
+        )
+    except AssertionError:
+        import importlib, sys, traceback
+        import numpy as _np
+        names = [
+            'numpy','scipy','astropy','astropy_healpix','healpy','erfa',
+            'pandas','rascil','ska_sdp_datamodels','ska_sdp_func_python'
+        ]
+        versions = {}
+        for n in names:
+            try:
+                m = importlib.import_module(n)
+                versions[n] = getattr(m, '__version__', 'unknown')
+            except Exception as exc:
+                versions[n] = f'<not-importable: {exc}>'
+        root_pkgs = {
+            'numpy','scipy','astropy','astropy_healpix','healpy','erfa',
+            'pandas','rascil','ska','ska_sdp_datamodels','ska_sdp_func_python'
+        }
+        involved = [k for k in sys.modules.keys() if k.split('.')[0] in root_pkgs]
+        gt_arr = _np.load(tobject.gt_assignment)
+        print('DBG_VERSIONS', versions)
+        print('DBG_MODULES_COUNT', len(involved))
+        print('DBG_MODULES_SAMPLE', sorted(involved)[:40])
+        print('DBG_ASSIGNMENTS_HEAD', assignments[:10].tolist())
+        print('DBG_GT_HEAD', gt_arr[:10].tolist())
+        traceback.print_stack(limit=25)
+        raise
     mapping = SourceDetectionEvaluation(
         sky=sky,
         ground_truth=ground_truth,

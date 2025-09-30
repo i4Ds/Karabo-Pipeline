@@ -155,23 +155,24 @@ class SourceDetectionEvaluation:
                 prediction of that source.
         """
         # Check if there are duplicate sources and if yes, remove them
-        # Do it via index because otherwise the order is changed
-        # by np.unique.
+        # Do it via index because otherwise the order is changed by np.unique.
         _, gidx = np.unique(ground_truth, axis=0, return_index=True)
         _, didx = np.unique(detected, axis=0, return_index=True)
 
         ground_truth = ground_truth[np.sort(gidx)]
         detected = detected[np.sort(didx)]
 
-        # With scipy.spatial.KDTree get the closest detection point
-        # for each ground truth point
+        # With scipy.spatial.KDTree get the closest detection point for each predicted point
         tree = KDTree(ground_truth)
         distance, idx_assignment_pred = tree.query(
             detected, k=top_k, distance_upper_bound=max_dist
         )
+        if top_k == 1:
+            distance = distance.reshape(-1, 1)
+            idx_assignment_pred = idx_assignment_pred.reshape(-1, 1)
         # Replace unassigned points with -1
         idx_assignment_pred[distance == np.inf] = -1
-        # Check if a ground truth point is assigned to more than one predicted point
+        # Resolve multiple assignments of the same ground-truth to different predictions
         pred_multiple_assignments = (
             SourceDetectionEvaluation.__return_multiple_assigned_detected_points(
                 idx_assignment_pred
@@ -189,20 +190,16 @@ class SourceDetectionEvaluation:
                 idx_max_distance_multiple_assignment = idx_pred_multiple_assignment[0][
                     idx_max_distance_multiple_assignment
                 ]
-                # Switch the assignment to the next closest point by
-                # rolling the row with the highest distance one to the left
+                # Switch the assignment to the next closest point by rolling
                 distance[idx_max_distance_multiple_assignment, :] = np.roll(
                     distance[idx_max_distance_multiple_assignment, :], -1
                 )
-                # To avoid infinite loops, we set the last element to np.inf.
+                # To avoid infinite loops, set the last element to np.inf and -1
                 distance[idx_max_distance_multiple_assignment, -1] = np.inf
                 idx_assignment_pred[idx_max_distance_multiple_assignment, :] = np.roll(
                     idx_assignment_pred[idx_max_distance_multiple_assignment, :], -1
                 )
-                # Update points with no assignment with -1
                 idx_assignment_pred[distance == np.inf] = -1
-                # Check if a ground truth point is assigned to more
-                # than one predicted point
                 pred_multiple_assignments = SourceDetectionEvaluation.__return_multiple_assigned_detected_points(  # noqa: E501
                     idx_assignment_pred
                 )
@@ -211,7 +208,7 @@ class SourceDetectionEvaluation:
             [idx_assignment_pred[:, 0], np.arange(detected.shape[0]), distance[:, 0]]
         ).T
 
-        # If there are more predictions than GTs, we need to add the missing GTs.
+        # If there are more ground-truths than predictions, add missing GTs as [-1]
         missing_gts = np.setdiff1d(np.arange(ground_truth.shape[0]), assignments[:, 0])
         missing_gts = missing_gts[missing_gts != -1]
         if len(missing_gts) > 0:
@@ -223,6 +220,7 @@ class SourceDetectionEvaluation:
                 ]
             )
             assignments = np.vstack([assignments, missing_gts.T])
+
         return cast(NDArray[np.float_], assignments[assignments[:, 0].argsort()])
 
     @staticmethod
