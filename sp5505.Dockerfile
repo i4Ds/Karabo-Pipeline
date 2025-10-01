@@ -258,8 +258,9 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         cat /home/jovyan/.spack/test/*/py-healpy-1.16.2-*-test-out.txt; \
         exit 1 \
     ) && \
-    # TODO: spack gc && \
-    spack env view regenerate
+    spack gc -y && \
+    spack env view regenerate && \
+    fix-permissions /opt/view /opt/spack_env /opt/software /opt/view
 
 # Make Spack view default in system paths and shells
 RUN printf "/opt/view/lib\n/opt/view/lib64\n" > /etc/ld.so.conf.d/spack-view.conf && ldconfig && \
