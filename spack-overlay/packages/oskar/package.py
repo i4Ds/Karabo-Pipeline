@@ -97,10 +97,19 @@ class Oskar(CMakePackage):
         env.set("OMP_DYNAMIC", "false")
         # Pin CPU features to baseline to avoid illegal instructions at runtime
         env.prepend_path("CPATH", self.spec['hdf5'].prefix.include)
-        # The following flags avoid architecture-specific optimizations
-        env.append_flags("CFLAGS", "-march=x86-64 -mtune=generic")
-        env.append_flags("CXXFLAGS", "-march=x86-64 -mtune=generic")
-        env.append_flags("FFLAGS", "-march=x86-64 -mtune=generic")
+        # Avoid injecting x86-specific flags on non-x86 platforms
+        try:
+            arch_family = str(self.spec.target.family)
+        except Exception:
+            arch_family = ""
+        if arch_family in ("x86_64", "x86"):
+            # The following flags avoid host-specific optimizations on x86
+            env.append_flags("CFLAGS", "-march=x86-64 -mtune=generic")
+            env.append_flags("CXXFLAGS", "-march=x86-64 -mtune=generic")
+            env.append_flags("FFLAGS", "-march=x86-64 -mtune=generic")
+        else:
+            # On ARM/AArch64 and others, rely on toolchain defaults
+            pass
 
     # Resolve build directory across Spack versions
     def _get_build_dir(self):
