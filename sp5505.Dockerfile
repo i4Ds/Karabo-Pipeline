@@ -252,8 +252,8 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         # mpich?
         # psutil
     && \
-    time -p spack concretize --force && \
-    ac_cv_lib_curl_curl_easy_init=no spack install -j$(nproc) --no-check-signature --no-checksum --fail-fast --reuse --show-log-on-error && \
+    spack concretize --force && \
+    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --reuse --show-log-on-error && \
     spack test run 'py-healpy' || ( \
         cat /home/jovyan/.spack/test/*/py-healpy-1.16.2-*-test-out.txt; \
         exit 1 \
@@ -610,7 +610,7 @@ RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
     pip install -q -t "/home/${NB_USER}/.local/pytest" 'pytest>=8,<9' && \
     # heavy imaging test was failing (disk space): test_imaging
     PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/${NB_USER}/Karabo-Pipeline && \
-    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/${NB_USER}/Karabo-Pipeline && \
+    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/${NB_USER}/Karabo-Pipeline; \
     rm -rf /home/${NB_USER}/.astropy/cache \
            /home/${NB_USER}/.cache/astropy \
            /home/${NB_USER}/.cache/pyuvdata \
