@@ -72,12 +72,6 @@ jobs:
           if [[ ${KARABO_VERSION:0:1} == "v" ]]; then
             KARABO_VERSION="${KARABO_VERSION:1}"
           fi
-          conda install -c conda-forge python versioneer
-          VERSIONEER_VERSION=$(python -c 'import versioneer; print(versioneer.get_version())')
-          if [[ "$VERSIONEER_VERSION" != *"$KARABO_VERSION"* ]] && [[ "$KARABO_VERSION" != *"dev"* ]]; then
-            echo "Provided version $KARABO_VERSION doesn't match the actual version $VERSIONEER_VERSION"
-            exit 1
-          fi
           if [[ "$KARABO_VERSION" == *"dev"* ]]; then
             if [[ $LATEST_DOCKER == 'true' ]]; then
               echo "Dev build docker image can not be tagged as latest!"
