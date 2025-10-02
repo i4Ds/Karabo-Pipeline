@@ -82,7 +82,7 @@ jobs:
 
           conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
-          conda install "conda-build>=25"
+          conda install anaconda-client "conda-build>=25"
 
           conda config --remove channels defaults
           conda config --append channels i4ds
