@@ -205,7 +205,7 @@ jobs:
 
       - name: Inspect -pretest image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pretest.outputs.version }}-pretest
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pretest.outputs.version }}
 
   test:
     name: Run tests in image
@@ -323,4 +323,4 @@ jobs:
 
       - name: Inspect -pass image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pass.outputs.version }}-pass
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pass.outputs.version }}
