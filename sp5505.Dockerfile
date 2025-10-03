@@ -162,6 +162,8 @@ ARG PYUVDATA_VERSION=2.4.2
 
 # install base dependencies before adding extra spack overlays, this avoids extra build time
 # Create Spack environment and install deps (no RASCIL)
+ARG SPACK_TARGET=""
+
 RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=locked \
     --mount=type=cache,target=/opt/spack-source-cache,id=spack-source-cache,sharing=locked \
     --mount=type=cache,target=/opt/spack-misc-cache,id=spack-misc-cache,sharing=locked \
@@ -169,12 +171,22 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     mkdir -p /opt/{software,view,buildcache,spack-source-cache,spack-misc-cache}; \
     spack env create --dir /opt/spack_env; \
     spack env activate /opt/spack_env; \
+    arch=$(uname -m); \
+    if [ -z "${SPACK_TARGET}" ]; then \
+      case "$arch" in \
+        x86_64) SPACK_TARGET=x86_64 ;; \
+        aarch64) SPACK_TARGET=aarch64 ;; \
+        *) SPACK_TARGET="$arch" ;; \
+      esac; \
+    fi; \
+    echo "SPACK_TARGET=${SPACK_TARGET} <- (uname -m)=$arch"; \
     spack config add "config:install_tree:root:/opt/software"; \
     spack config add "concretizer:unify:when_possible"; \
     spack config add "concretizer:reuse:true"; \
     spack config add "view:/opt/view"; \
     spack config add "config:source_cache:/opt/spack-source-cache"; \
     spack config add "config:misc_cache:/opt/spack-misc-cache"; \
+    spack config add "packages:all:target:[${SPACK_TARGET}]"; \
     spack mirror add --autopush --unsigned mycache file:///opt/buildcache; \
     spack buildcache keys --install --trust || true; \
     # TODO: spack mirror add v0.23.1 https://binaries.spack.io/v0.23.1; \
