@@ -72,6 +72,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack buildcache keys --install --trust || true; \
     # Install minimal dependencies for OSKAR
     spack add \
+        'cfitsio@3' \
         'hdf5@'$HDF5_VERSION'+hl~mpi' \
         'oskar@'$OSKAR_VERSION'~cuda~openmp~mpi+casacore+python+hdf5' \
         'py-numpy@'$NUMPY_VERSION \
