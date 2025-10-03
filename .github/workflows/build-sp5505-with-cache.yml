@@ -4,43 +4,36 @@ name: Build SP5505 Container with Caching
 on:
   workflow_dispatch:
     inputs:
-      skip-tests:
-        description: 'Skip tests during build (0=run tests, 1=skip tests)'
-        required: false
-        default: '0'
-        type: choice
-        options:
-          - '0'
-          - '1'
       push-image:
-        description: 'Push image to registry'
+        description: "Push image to registry"
         required: false
         default: true
         type: boolean
   pull_request:
     paths:
-      - 'sp5505.Dockerfile'
-      - 'spack-overlay/**'
-      - 'karabo/**'
-      - '.github/workflows/build-sp5505-with-cache.yml'
-      - 'docs/ci-caching-strategy.md'
+      - "sp5505.Dockerfile"
+      - "spack-overlay/**"
+      - "karabo/**"
+      - ".github/workflows/build-sp5505-with-cache.yml"
+      - "docs/ci-caching-strategy.md"
   push:
     branches:
       - main
       - karabo-jupyter-docker
     paths:
-      - 'sp5505.Dockerfile'
-      - 'spack-overlay/**'
-      - 'karabo/**'
-      - '.github/workflows/build-sp5505-with-cache.yml'
-      - 'docs/ci-caching-strategy.md'
+      - "sp5505.Dockerfile"
+      - "spack-overlay/**"
+      - "karabo/**"
+      - ".github/workflows/build-sp5505-with-cache.yml"
+      - "docs/ci-caching-strategy.md"
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: sp5505-karabo-pipeline
 
 jobs:
-  build:
+  build-pretest:
+    name: Build and publish -pretest by digest
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -53,7 +46,6 @@ jobs:
             platform: linux/amd64
           - os: ubuntu-22.04-arm
             platform: linux/arm64
-
     steps:
       - name: Prepare
         run: |
@@ -66,7 +58,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          # Enable advanced caching features
           driver-opts: |
             image=moby/buildkit:v0.12.0
             network=host
@@ -79,8 +70,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
+      - name: Extract metadata (-pretest)
+        id: meta-pretest
         uses: docker/metadata-action@v5
         with:
           images: >-
@@ -90,11 +81,13 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            suffix=-pretest
           labels: |
             org.opencontainers.image.title=SP5505 Karabo Pipeline
             org.opencontainers.image.description=Karabo Pipeline with Spack-based scientific computing environment
 
-      - name: Build (PR/local) - load image
+      - name: Build (PR/local) - load image with -pretest tag
         id: build-load
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.push-image != 'true')
         uses: docker/build-push-action@v5
@@ -103,20 +96,32 @@ jobs:
           file: ./sp5505.Dockerfile
           platforms: ${{ matrix.platform }}
           load: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          # Multi-layer caching strategy (resilient to service outages)
+          tags: ${{ steps.meta-pretest.outputs.tags }}
+          labels: ${{ steps.meta-pretest.outputs.labels }}
           cache-from: |
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache
             type=gha,scope=${{ github.workflow }}-${{ matrix.platform }}
           cache-to: |
             type=gha,scope=${{ github.workflow }}-${{ matrix.platform }},mode=max
-          # Build arguments
           build-args: |
-            SKIP_TESTS=${{ github.event.inputs.skip-tests || '0' }}
-          # Build contexts for enhanced caching
+            SKIP_TESTS=0
+            SPACK_TARGET=${{ matrix.platform == 'linux/amd64' && 'x86_64' || 'aarch64' }}
           build-contexts: |
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
+
+      - name: Save -pretest image as tar (PR/local)
+        if: steps.build-load.outcome == 'success'
+        run: |
+          IMAGE_REF="${{ fromJSON(steps.meta-pretest.outputs.json).tags[0] }}"
+          docker save "${IMAGE_REF}" | zstd -T0 -o image-${{ env.PLATFORM_PAIR }}.tar.zst
+
+      - name: Upload -pretest image tar (PR/local)
+        if: steps.build-load.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pretest-image-${{ env.PLATFORM_PAIR }}
+          path: image-${{ env.PLATFORM_PAIR }}.tar.zst
+          retention-days: 1
 
       - name: Build (push) - by digest
         id: build-push
@@ -126,29 +131,27 @@ jobs:
           context: .
           file: ./sp5505.Dockerfile
           platforms: ${{ matrix.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: ${{ steps.meta-pretest.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-          # Multi-layer caching strategy (resilient to service outages)
           cache-from: |
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache
             type=gha,scope=${{ github.workflow }}-${{ matrix.platform }}
           cache-to: |
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-          # Build arguments
           build-args: |
-            SKIP_TESTS=${{ github.event.inputs.skip-tests || '0' }}
-          # Build contexts for enhanced caching
+            SKIP_TESTS=0
+            SPACK_TARGET=${{ matrix.platform == 'linux/amd64' && 'x86_64' || 'aarch64' }}
           build-contexts: |
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
 
-      - name: Export digest
+      - name: Export digest (push)
         if: steps.build-push.outcome == 'success'
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build-push.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
-      - name: Upload digest
+      - name: Upload digest (push)
         if: steps.build-push.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
@@ -157,39 +160,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Run tests (loaded image)
-        if: github.event.inputs.skip-tests != '1' && steps.build-load.outcome == 'success'
-        run: |
-          IMAGE_REF="${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
-          docker run --rm "${IMAGE_REF}" python --version
-          docker run --rm "${IMAGE_REF}" python -c "import karabo; print('Karabo import successful')"
-          docker run --rm "${IMAGE_REF}" python -c "import numpy as np; import erfa, erfa.core; result = erfa.core.ufunc.dtdb(2451545.0,0.0,0.0,0.0,0.0,0.0); print(f'ERFA dtdb: {result}')"
-          docker run --rm "${IMAGE_REF}" python -c "from astropy import units as u; from astropy.coordinates import EarthLocation, SkyCoord, AltAz; from astropy.time import Time; location = EarthLocation.from_geodetic(lon=21.443*u.deg, lat=-30.712*u.deg, height=1000*u.m); target = SkyCoord(ra=20*u.deg, dec=-30*u.deg); time = Time('2000-03-20T12:06:39', scale='utc'); target_altaz = target.transform_to(AltAz(obstime=time, location=location)); print(f'Alt={target_altaz.alt:.2f}, Az={target_altaz.az:.2f}')"
-
-      - name: Run tests (pushed digest)
-        if: github.event.inputs.skip-tests != '1' && steps.build-push.outcome == 'success'
-        run: |
-          IMAGE_REF="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}"
-          docker run --rm "${IMAGE_REF}" python --version
-          docker run --rm "${IMAGE_REF}" python -c "import karabo; print('Karabo import successful')"
-          docker run --rm "${IMAGE_REF}" python -c "import numpy as np; import erfa, erfa.core; result = erfa.core.ufunc.dtdb(2451545.0,0.0,0.0,0.0,0.0,0.0); print(f'ERFA dtdb: {result}')"
-          docker run --rm "${IMAGE_REF}" python -c "from astropy import units as u; from astropy.coordinates import EarthLocation, SkyCoord, AltAz; from astropy.time import Time; location = EarthLocation.from_geodetic(lon=21.443*u.deg, lat=-30.712*u.deg, height=1000*u.m); target = SkyCoord(ra=20*u.deg, dec=-30*u.deg); time = Time('2000-03-20T12:06:39', scale='utc'); target_altaz = target.transform_to(AltAz(obstime=time, location=location)); print(f'Alt={target_altaz.alt:.2f}, Az={target_altaz.az:.2f}')"
-
-      - name: Generate build report
-        if: always()
-        run: |
-          echo "## 🔨 Build Summary (${{ matrix.platform }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Image base | \`${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Platform | \`${{ matrix.platform }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Skip Tests | \`${{ github.event.inputs.skip-tests || '0' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
-
-  merge:
+  merge-pretest:
+    name: Publish multi-arch -pretest tag
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-pretest
     if: github.event_name != 'pull_request' && (github.event_name == 'push' || github.event.inputs.push-image == 'true')
     steps:
       - name: Download digests
@@ -202,8 +176,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Docker meta
-        id: meta
+      - name: Docker meta (-pretest)
+        id: meta-pretest
         uses: docker/metadata-action@v5
         with:
           images: >-
@@ -213,6 +187,8 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            suffix=-pretest
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -221,12 +197,130 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create manifest list and push
+      - name: Create manifest list and push (-pretest)
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
-      - name: Inspect image
+      - name: Inspect -pretest image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pretest.outputs.version }}-pretest
+
+  test:
+    name: Run tests in image
+    needs: [build-pretest, merge-pretest]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux/amd64
+          - os: ubuntu-22.04-arm
+            platform: linux/arm64
+    steps:
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
+      - name: Docker meta (-pretest)
+        id: meta-pretest
+        uses: docker/metadata-action@v5
+        with:
+          images: >-
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            suffix=-pretest
+
+      - name: Download -pretest image tar (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: pretest-image-${{ env.PLATFORM_PAIR }}
+          path: /tmp
+
+      - name: Load -pretest image (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          zstd -d -c /tmp/image-${{ env.PLATFORM_PAIR }}.tar.zst | docker load
+
+      - name: Run smoke tests
+        run: |
+          IMAGE_REF="${{ fromJSON(steps.meta-pretest.outputs.json).tags[0] }}"
+          docker run --rm "${IMAGE_REF}" python --version
+          docker run --rm "${IMAGE_REF}" python -c "import karabo; print('Karabo import successful')"
+          docker run --rm "${IMAGE_REF}" python -c "import numpy as np; import erfa, erfa.core; result = erfa.core.ufunc.dtdb(2451545.0,0.0,0.0,0.0,0.0,0.0); print(f'ERFA dtdb: {result}')"
+          docker run --rm "${IMAGE_REF}" python -c "from astropy import units as u; from astropy.coordinates import EarthLocation, SkyCoord, AltAz; from astropy.time import Time; location = EarthLocation.from_geodetic(lon=21.443*u.deg, lat=-30.712*u.deg, height=1000*u.m); target = SkyCoord(ra=20*u.deg, dec=-30*u.deg); time = Time('2000-03-20T12:06:39', scale='utc'); target_altaz = target.transform_to(AltAz(obstime=time, location=location)); print(f'Alt={target_altaz.alt:.2f}, Az={target_altaz.az:.2f}')"
+          # Verify Jupyter server can start and respond
+          CID=$(docker run -d -p 127.0.0.1:8888:8888 --health-cmd='curl -fsS http://127.0.0.1:8888/api/status?token=test || exit 1' --health-interval=10s --health-retries=12 --health-timeout=5s "${IMAGE_REF}" start-notebook.sh --NotebookApp.token='test' --ServerApp.token='test' --ServerApp.ip='0.0.0.0' --ServerApp.port=8888)
+          for i in $(seq 1 60); do
+            if docker ps --filter "id=$CID" --filter "health=healthy" --format '{{.Status}}' | grep -q healthy; then break; fi; sleep 2; done
+          docker logs "$CID" --since 10s || true
+          curl -fsS "http://127.0.0.1:8888/api/status?token=test" >/dev/null
+          docker rm -f "$CID" >/dev/null
+
+      - name: Run repo tests inside image
+        run: |
+          IMAGE_REF="${{ fromJSON(steps.meta-pretest.outputs.json).tags[0] }}"
+          docker run --rm "${IMAGE_REF}" bash -lc '
+            set -euo pipefail
+            export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+            pip install -q --no-build-isolation --no-deps "dask_memusage==1.1" "pytest>=8,<9"
+            python -c "import numpy as np; a=np.load('/home/jovyan/Karabo-Pipeline/karabo/test/data/sdp/gt_assignment.npy'); neg=a[a[:,0]<0]; print('EXPECTED_NEG_HEAD', neg[:20,1].astype(int).tolist()); print('EXPECTED_NEG_SORTED_BY_PRED', bool(np.all(neg[:,1]==np.sort(neg[:,1]))))"
+            PYTHONPATH="/home/jovyan/.local/pytest:${PYTHONPATH:-}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/jovyan/Karabo-Pipeline
+            PYTHONPATH="/home/jovyan/.local/pytest:${PYTHONPATH:-}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/jovyan/Karabo-Pipeline
+          '
+
+  promote-pass:
+    name: Publish -pass tag after tests pass
+    needs: [build-pretest, test]
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && (github.event_name == 'push' || github.event.inputs.push-image == 'true')
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta (-pass)
+        id: meta-pass
+        uses: docker/metadata-action@v5
+        with:
+          images: >-
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            suffix=-pass
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push (-pass)
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect -pass image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pass.outputs.version }}-pass
