@@ -44,6 +44,7 @@ from karabo.simulation.telescope_versions import (
     CARMAVersions,
     NGVLAVersions,
     PDBIVersions,
+    MWAVersion,
     SKALowAA0Point5Versions,
     SKALowAA1Versions,
     SKALowAA2Versions,
@@ -68,6 +69,7 @@ OSKARTelescopesWithVersionType = Literal[
     "ALMA",
     "ATCA",
     "CARMA",
+    "MWA",
     "NGVLA",
     "PDBI",
     "SKA-LOW-AA0.5",
@@ -124,6 +126,7 @@ OSKAR_TELESCOPE_TO_FILENAMES: Dict[
     "ASKAP": "askap.tm",
     "ATCA": "atca_{0}.tm",
     "CARMA": "carma.{0}.tm",
+    "MWA": "mwa.phase{0}.tm",
     "LOFAR": "lofar.tm",
     "MKATPlus": "mkatplus.tm",
     "NGVLA": "ngvla-{0}.tm",
@@ -150,6 +153,7 @@ OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum
     "ALMA": ALMAVersions,
     "ATCA": ATCAVersions,
     "CARMA": CARMAVersions,
+    "MWA": MWAVersion,
     "NGVLA": NGVLAVersions,
     "PDBI": PDBIVersions,
     "SKA-LOW-AA0.5": SKALowAA0Point5Versions,
@@ -612,8 +616,8 @@ but was not provided. Please provide a value for the version field."
         layout_file = open(layout_path, "a")
         for element in elements:
             layout_file.write(
-                f"{element.x} {element.y} {element.z} {element.x_error} "
-                + f"{element.y_error} {element.z_error}\n"
+                f"{element.x} {element.y} {element.z} {element.x_error} " +
+                f"{element.y_error} {element.z_error}\n"
             )
         layout_file.close()
 
@@ -680,8 +684,8 @@ but was not provided. Please provide a value for the version field."
 
         if telescope is None:
             raise karabo.error.KaraboError(
-                "Could not create Telescope from position.txt file_or_dir. "
-                + "It must contain one line with two or three numbers."
+                "Could not create Telescope from position.txt file_or_dir. " +
+                "It must contain one line with two or three numbers."
             )
 
         position_file.close()
@@ -818,8 +822,8 @@ but was not provided. Please provide a value for the version field."
         """
         if tel.path is None:
             raise KaraboError(
-                "`tel.path` None indicates that there is not telescope.tm file "
-                + "available for `tel`, which is not allowed here."
+                "`tel.path` None indicates that there is not telescope.tm file " +
+                "available for `tel`, which is not allowed here."
             )
         if tm_path is not None and not str(tm_path).endswith(".tm"):
             raise KaraboError(f"{tm_path=} must end with '.tm'.")
