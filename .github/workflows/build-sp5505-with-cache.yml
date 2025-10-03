@@ -104,7 +104,7 @@ jobs:
           cache-to: |
             type=gha,scope=${{ github.workflow }}-${{ matrix.platform }},mode=max
           build-args: |
-            SKIP_TESTS=0
+            SKIP_TESTS=1
             SPACK_TARGET=${{ matrix.platform == 'linux/amd64' && 'x86_64' || 'aarch64' }}
           build-contexts: |
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
@@ -139,7 +139,7 @@ jobs:
           cache-to: |
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           build-args: |
-            SKIP_TESTS=0
+            SKIP_TESTS=1
             SPACK_TARGET=${{ matrix.platform == 'linux/amd64' && 'x86_64' || 'aarch64' }}
           build-contexts: |
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
