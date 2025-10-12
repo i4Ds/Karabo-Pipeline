@@ -273,7 +273,6 @@ jobs:
             set -euo pipefail
             export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
             pip install -q --no-build-isolation --no-deps "dask_memusage==1.1" "pytest>=8,<9"
-            python -c "import numpy as np; a=np.load('/home/jovyan/Karabo-Pipeline/karabo/test/data/sdp/gt_assignment.npy'); neg=a[a[:,0]<0]; print('EXPECTED_NEG_HEAD', neg[:20,1].astype(int).tolist()); print('EXPECTED_NEG_SORTED_BY_PRED', bool(np.all(neg[:,1]==np.sort(neg[:,1]))))"
             PYTHONPATH="/home/jovyan/.local/pytest:${PYTHONPATH:-}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/jovyan/Karabo-Pipeline
             PYTHONPATH="/home/jovyan/.local/pytest:${PYTHONPATH:-}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/jovyan/Karabo-Pipeline
           '
