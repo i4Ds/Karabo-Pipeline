@@ -5,6 +5,30 @@
 This example loads an MWA UVFITS (or MS) file via pyuvdata and produces a
 waterfall plot for a chosen antenna pair and polarisation.
 
+You can run the following examples in a notebook, served on http://127.0.0.1:8888/lab?token=...
+
+    docker run --rm -it -p 8888:8888 \
+        -v $PWD/karabo/examples:/home/jovyan/Karabo-Pipeline/karabo/examples \
+        -w /home/jovyan/Karabo-Pipeline/karabo/examples \
+        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-bccd86b-pretest
+
+or in an interactive terminal:
+
+    docker run --rm -it \
+        -v $PWD/karabo/examples:/home/jovyan/Karabo-Pipeline/karabo/examples \
+        -w /home/jovyan/Karabo-Pipeline/karabo/examples \
+        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-bccd86b-pretest \
+        bash -l
+
+or individually in a non-interactive terminal:
+
+    docker run --rm \
+        -v $PWD/karabo/examples:/home/jovyan/Karabo-Pipeline/karabo/examples \
+        -w /home/jovyan/Karabo-Pipeline/karabo/examples \
+        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-bccd86b-pretest \
+        python mwa_waterfall_baseline.py \
+        ...
+
 Example:
     wget https://projects.pawsey.org.au/high0.uvfits/hyp_1184702048_ionosub_ssins_30l_src8k_300it_8s_80kHz_i1000.uvfits
 

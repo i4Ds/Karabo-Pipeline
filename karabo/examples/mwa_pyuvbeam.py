@@ -10,14 +10,14 @@ You can run the following examples in a notebook, served on http://127.0.0.1:888
     docker run --rm -it -p 8888:8888 \
         -v $PWD/karabo/examples:/home/jovyan/Karabo-Pipeline/karabo/examples \
         -w /home/jovyan/Karabo-Pipeline/karabo/examples \
-        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-0ee53c2-pretest
+        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-bccd86b-pretest
 
 or in an interactive terminal:
 
     docker run --rm -it \
         -v $PWD/karabo/examples:/home/jovyan/Karabo-Pipeline/karabo/examples \
         -w /home/jovyan/Karabo-Pipeline/karabo/examples \
-        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-0ee53c2-pretest \
+        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-bccd86b-pretest \
         bash -l
 
 or individually in a non-interactive terminal:
@@ -25,7 +25,7 @@ or individually in a non-interactive terminal:
     docker run --rm \
         -v $PWD/karabo/examples:/home/jovyan/Karabo-Pipeline/karabo/examples \
         -w /home/jovyan/Karabo-Pipeline/karabo/examples \
-        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-0ee53c2-pretest \
+        ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-bccd86b-pretest \
         python mwa_pyuvbeam.py \
         mwa_full_embedded_element_pattern.h5 \
         --freq-mhz 150 --pol X --projection SIN --debug \
@@ -33,7 +33,8 @@ or individually in a non-interactive terminal:
 
 Example:
     # download beam file
-    wget -O karabo/examples/mwa_full_embedded_element_pattern.h5 http://ws.mwatelescope.org/static/mwa_full_embedded_element_pattern.h5
+    wget -O karabo/examples/mwa_full_embedded_element_pattern.h5 \
+        http://ws.mwatelescope.org/static/mwa_full_embedded_element_pattern.h5
 
     # Plot X feed beam at 150 MHz
     python karabo/examples/mwa_pyuvbeam.py \
@@ -117,6 +118,7 @@ def _select_pol_index(beam: UVBeam, pol: str) -> int:
         Polarization index
     """
     from pyuvdata import utils as uvutils
+
     pol_num = uvutils.polstr2num(pol, x_orientation=beam.x_orientation)
     try:
         return int(np.where(beam.polarization_array == pol_num)[0][0])
@@ -127,7 +129,9 @@ def _select_pol_index(beam: UVBeam, pol: str) -> int:
             for p in beam.polarization_array:
                 try:
                     pstr = uvutils.polnum2str(p, x_orientation=beam.x_orientation)
-                    available_list.append(pstr[0] if isinstance(pstr, (list, tuple)) else pstr)
+                    available_list.append(
+                        pstr[0] if isinstance(pstr, (list, tuple)) else pstr
+                    )
                 except Exception:
                     available_list.append(str(p))
             available = ",".join(available_list)
@@ -182,10 +186,12 @@ def plot_beam(
         print(f"  pixel_coordinate_system: {beam.pixel_coordinate_system}")
         print(f"  data_array shape: {beam.data_array.shape}")
         print(f"  freq_array shape: {beam.freq_array.shape}")
-        print(f"  freq range [MHz]: {beam.freq_array.min() / 1e6:.2f} - {beam.freq_array.max() / 1e6:.2f}")
+        print(
+            f"  freq range [MHz]: {beam.freq_array.min() / 1e6:.2f} - {beam.freq_array.max() / 1e6:.2f}"
+        )
         print(f"  polarization_array: {beam.polarization_array}")
         print(f"  x_orientation: {beam.x_orientation}")
-        if hasattr(beam, 'feed_array') and beam.feed_array is not None:
+        if hasattr(beam, "feed_array") and beam.feed_array is not None:
             print(f"  feed_array: {beam.feed_array}")
         print(f"  axis1_array shape: {beam.axis1_array.shape}")
         print(f"  axis2_array shape: {beam.axis2_array.shape}")
@@ -200,11 +206,14 @@ def plot_beam(
         else:
             # Polarization-based beam
             from pyuvdata import utils as uvutils
+
             pol_strs = []
             for p in beam.polarization_array:
                 try:
                     pstr = uvutils.polnum2str(p, x_orientation=beam.x_orientation)
-                    pol_strs.append(pstr[0] if isinstance(pstr, (list, tuple)) else pstr)
+                    pol_strs.append(
+                        pstr[0] if isinstance(pstr, (list, tuple)) else pstr
+                    )
                 except Exception:
                     pol_strs.append(f"{p}")
             print("  *** Polarization-based beam ***")
@@ -214,7 +223,9 @@ def plot_beam(
     # Find frequency index
     freq_idx, actual_freq_mhz = _find_freq_index(beam, freq_mhz)
     if debug:
-        print(f"  requested freq: {freq_mhz} MHz, using: {actual_freq_mhz} MHz (index {freq_idx})")
+        print(
+            f"  requested freq: {freq_mhz} MHz, using: {actual_freq_mhz} MHz (index {freq_idx})"
+        )
 
     # Select polarization or feed
     # MWA beams may have feeds instead of polarizations
@@ -305,16 +316,16 @@ def plot_beam(
     if projection is not None and beam.pixel_coordinate_system == "az_za":
         # Manual reprojection from polar (za, az) to Cartesian with projection
         if debug:
-            print(f"  Reprojecting from polar to Cartesian {projection} centered on zenith...")
+            print(
+                f"  Reprojecting from polar to Cartesian {projection} centered on zenith..."
+            )
 
         # Input data is on polar grid: z[za_idx, az_idx]
         # where za = x_vals (0-90°), az = y_vals (0-360°)
 
         # Create interpolator for polar data (wrap azimuth for continuity)
         interp = RegularGridInterpolator(
-            (x_vals, y_vals), z,
-            bounds_error=False, fill_value=np.nan,
-            method='linear'
+            (x_vals, y_vals), z, bounds_error=False, fill_value=np.nan, method="linear"
         )
 
         # Output grid: Cartesian with desired projection
@@ -339,9 +350,7 @@ def plot_beam(
             # So: za = arcsin(r_norm)
             # Valid only where r_norm <= 1 (i.e., r_deg <= extent_deg)
             r_norm = r_deg / extent_deg
-            za_cart = np.where(r_norm <= 1.0,
-                              np.degrees(np.arcsin(r_norm)),
-                              np.nan)
+            za_cart = np.where(r_norm <= 1.0, np.degrees(np.arcsin(r_norm)), np.nan)
         elif proj_upper == "TAN":
             # Gnomonic: r_norm = tan(za) where r_norm = r_deg / extent_deg
             # So: za = arctan(r_norm)
@@ -355,9 +364,9 @@ def plot_beam(
             # So: za = 2*arcsin(r_norm/2)
             # Valid where r_norm/2 <= 1 (i.e., r_norm <= 2, r_deg <= 2*extent_deg)
             r_norm = r_deg / extent_deg
-            za_cart = np.where(r_norm <= 2.0,
-                              2.0 * np.degrees(np.arcsin(r_norm / 2.0)),
-                              np.nan)
+            za_cart = np.where(
+                r_norm <= 2.0, 2.0 * np.degrees(np.arcsin(r_norm / 2.0)), np.nan
+            )
         elif proj_upper == "STG":
             # Stereographic: r_norm = 2*tan(za/2)
             # So: za = 2*arctan(r_norm/2)
@@ -383,7 +392,9 @@ def plot_beam(
 
         if debug:
             n_valid = np.sum(np.isfinite(z_proj))
-            print(f"  Valid pixels: {n_valid}/{npix*npix} ({100*n_valid/(npix*npix):.1f}%)")
+            print(
+                f"  Valid pixels: {n_valid}/{npix * npix} ({100 * n_valid / (npix * npix):.1f}%)"
+            )
 
         # Use regular matplotlib (data is already in Cartesian)
         fig, ax = plt.subplots(figsize=(9, 8), dpi=dpi)
@@ -434,9 +445,15 @@ def plot_beam(
     # Add pointing marker if not zenith
     if pointing_za_deg != 0 or pointing_az_deg != 0:
         if beam.pixel_coordinate_system == "az_za":
-            ax.plot(pointing_az_deg, pointing_za_deg, 'w+', markersize=15,
-                    markeredgewidth=2, label="Pointing")
-            ax.legend(loc='upper right')
+            ax.plot(
+                pointing_az_deg,
+                pointing_za_deg,
+                "w+",
+                markersize=15,
+                markeredgewidth=2,
+                label="Pointing",
+            )
+            ax.legend(loc="upper right")
 
     # Set labels and title
     ax.set_xlabel(x_label)
@@ -460,78 +477,46 @@ def main() -> None:
     )
     parser.add_argument("beam_path", help="Path to beam file (HDF5, FITS)")
     parser.add_argument(
-        "--freq-mhz",
-        type=float,
-        required=True,
-        help="Frequency in MHz"
+        "--freq-mhz", type=float, required=True, help="Frequency in MHz"
     )
-    parser.add_argument(
-        "--pol",
-        default="X",
-        help="Feed polarization: X or Y"
-    )
+    parser.add_argument("--pol", default="X", help="Feed polarization: X or Y")
     parser.add_argument(
         "--quantity",
         default="power",
         choices=["power", "power_db", "efield", "phase"],
         help="Quantity to display",
     )
+    parser.add_argument("--out", default=None, help="Output image filename (PNG)")
     parser.add_argument(
-        "--out",
-        default=None,
-        help="Output image filename (PNG)"
+        "--show", action="store_true", help="Show the plot interactively"
     )
-    parser.add_argument(
-        "--show",
-        action="store_true",
-        help="Show the plot interactively"
-    )
-    parser.add_argument(
-        "--vmin",
-        type=float,
-        default=None,
-        help="Color scale minimum"
-    )
-    parser.add_argument(
-        "--vmax",
-        type=float,
-        default=None,
-        help="Color scale maximum"
-    )
-    parser.add_argument(
-        "--dpi",
-        type=int,
-        default=150,
-        help="Figure DPI"
-    )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Print debug information"
-    )
+    parser.add_argument("--vmin", type=float, default=None, help="Color scale minimum")
+    parser.add_argument("--vmax", type=float, default=None, help="Color scale maximum")
+    parser.add_argument("--dpi", type=int, default=150, help="Figure DPI")
+    parser.add_argument("--debug", action="store_true", help="Print debug information")
     parser.add_argument(
         "--pointing-za",
         type=float,
         default=0.0,
-        help="Pointing zenith angle in degrees (for marker)"
+        help="Pointing zenith angle in degrees (for marker)",
     )
     parser.add_argument(
         "--pointing-az",
         type=float,
         default=0.0,
-        help="Pointing azimuth in degrees (for marker)"
+        help="Pointing azimuth in degrees (for marker)",
     )
     parser.add_argument(
         "--projection",
         type=str,
         default=None,
-        help="WCS projection code for reprojection (TAN, SIN, STG, ARC, etc.)"
+        help="WCS projection code for reprojection (TAN, SIN, STG, ARC, etc.)",
     )
     parser.add_argument(
         "--proj-size",
         type=float,
         default=90.0,
-        help="Size of reprojected image in degrees (default: 90)"
+        help="Size of reprojected image in degrees (default: 90)",
     )
 
     args = parser.parse_args()
