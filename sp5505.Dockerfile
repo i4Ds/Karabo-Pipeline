@@ -431,7 +431,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'git+https://github.com/i4Ds/ARatmospy.git@67c302a136beb40a1cc88b054d7b62ccd927d64f#egg=aratmospy' \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
-        'tools21cm=='$TOOLS21CM_VERSION
+        'tools21cm=='$TOOLS21CM_VERSION \
+        'mwa-hyperbeam==0.10.2'
 
 # tests
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
@@ -467,6 +468,7 @@ checks = [
     ('toolz','0.0'),
     ('tqdm','4.0'),
     ('wheel', '0.0'),
+    ('mwa_hyperbeam','0.10.2'),
 ]
 for (name, target) in checks:
     mod = None
@@ -512,18 +514,14 @@ sys.exit(0)
 PY
 
 # bdsf 1.12.0 requires backports.shutil-get-terminal-size, which is not installed.
-# eidos 1.1.0 requires future, which is not installed.
-# tools21cm 2.3.8 requires openpyxl, which is not installed.
+# astropy-healpix 1.1.2 requires numpy>=1.25, but you have numpy 1.23.5 which is incompatible.
 # rascil 1.0.0 requires matplotlib<3.7,>=3.6, but you have matplotlib 3.9.2 which is incompatible.
-# rascil 1.0.0 requires numpy<1.24,>=1.23, but you have numpy 1.26.4 which is incompatible.
-# rascil 1.0.0 requires scipy<1.10,>=1.9, but you have scipy 1.10.1 which is incompatible.
 # rascil 1.0.0 requires tabulate<0.10,>=0.9, but you have tabulate 0.0.0 which is incompatible.
 # rascil 1.0.0 requires xarray<2022.13,>=2022.12, but you have xarray 2023.2.0 which is incompatible.
 # ska-sdp-datamodels 0.1.3 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
 # ska-sdp-datamodels 0.1.3 requires xarray<2023.0.0,>=2022.10.0, but you have xarray 2023.2.0 which is incompatible.
-# ska-sdp-func-python 0.1.5 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
-# ska-sdp-func-python 0.1.5 requires numpy<1.24,>=1.23, but you have numpy 1.26.4 which is incompatible.
-# ska-sdp-func-python 0.1.5 requires xarray<2023.0.0,>=2022.11.0, but you have xarray 2023.2.0 which is incompatible.
+# ska-sdp-func-python 0.1.4 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
+# ska-sdp-func-python 0.1.4 requires xarray<2023.0.0,>=2022.11.0, but you have xarray 2023.2.0 which is incompatible.
 # WARNING: AstropyDeprecationWarning: The private astropy._erfa module has been made into its own package, pyerfa, which is a dependency of astropy and can be imported directly using "import erfa" [astropy._erfa]
 
 # Copy repository for editable install and testing
