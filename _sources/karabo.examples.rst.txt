@@ -1,0 +1,29 @@
+karabo.examples package
+=======================
+
+Submodules
+----------
+
+karabo.examples.SRCNet\_rucio\_meta module
+------------------------------------------
+
+.. automodule:: karabo.examples.SRCNet_rucio_meta
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.examples.SRCNet\_v0 module
+---------------------------------
+
+.. automodule:: karabo.examples.SRCNet_v0
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: karabo.examples
+   :members:
+   :undoc-members:
+   :show-inheritance:
