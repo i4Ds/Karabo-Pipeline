@@ -432,7 +432,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
         'tools21cm=='$TOOLS21CM_VERSION \
-        'mwa-hyperbeam==0.10.2'
+        'mwa-hyperbeam==0.10.2' \
+        'ps_eor==0.32'
 
 # tests
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
