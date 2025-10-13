@@ -28,34 +28,29 @@ or individually in a non-interactive terminal:
         ghcr.io/d3v-null/sp5505-karabo-pipeline:sha-bccd86b-pretest \
         python mwa_pyuvbeam.py \
         mwa_full_embedded_element_pattern.h5 \
-        --freq-mhz 150 --pol X --projection SIN --debug \
-        --out mwa_beam_150mhz_x_sin.png
+        --freq-mhz 181 --pol X --projection SIN \
+        --out mwa_beam_181MHz_x_sin.png
 
 Example:
     # download beam file
     wget -O karabo/examples/mwa_full_embedded_element_pattern.h5 \
         http://ws.mwatelescope.org/static/mwa_full_embedded_element_pattern.h5
 
-    # Plot X feed beam at 150 MHz
+    # Plot X feed beam at 181 MHz
     python karabo/examples/mwa_pyuvbeam.py \
         karabo/examples/mwa_full_embedded_element_pattern.h5 \
-        --freq-mhz 150 --pol X --out mwa_beam_150mhz_x.png
+        --freq-mhz 181 --pol X --out mwa_beam_181MHz_x.png
 
     # Plot Y feed beam at 180 MHz
     python karabo/examples/mwa_pyuvbeam.py \
         karabo/examples/mwa_full_embedded_element_pattern.h5 \
-        --freq-mhz 180 --pol Y --out mwa_beam_180mhz_y.png
+        --freq-mhz 181 --pol Y --out mwa_beam_181MHz_y.png
 
-    # Show interactively with debug info
+    # Reproject to SIN projection
     python karabo/examples/mwa_pyuvbeam.py \
         karabo/examples/mwa_full_embedded_element_pattern.h5 \
-        --freq-mhz 150 --pol X --debug --show
-
-    # Reproject to gnomonic (TAN) projection
-    python karabo/examples/mwa_pyuvbeam.py \
-        karabo/examples/mwa_full_embedded_element_pattern.h5 \
-        --freq-mhz 150 --pol X --projection TAN --proj-size 60 \
-        --out mwa_beam_150mhz_x_tan.png
+        --freq-mhz 181 --pol X --projection SIN \
+        --out mwa_beam_181MHz_x_sin.png
 """
 
 import argparse
@@ -69,7 +64,7 @@ from astropy.wcs import WCS
 from scipy.interpolate import RegularGridInterpolator
 
 
-def _read_beam(path: str) -> UVBeam:
+def read_beam(path: str, run_check: bool = False, **kwargs) -> UVBeam:
     """Read a beam file using pyuvbeam.
 
     Args:
@@ -81,12 +76,12 @@ def _read_beam(path: str) -> UVBeam:
     beam = UVBeam()
     lower = path.lower()
     if lower.endswith(".h5") or lower.endswith(".hdf5"):
-        beam.read_mwa_beam(path, run_check=False)
+        beam.read_mwa_beam(path, run_check=run_check, **kwargs)
     elif lower.endswith(".fits"):
-        beam.read_beamfits(path, run_check=False)
+        beam.read_beamfits(path, run_check=run_check, **kwargs)
     else:
         # Fallback to generic reader
-        beam.read(path, run_check=False)
+        beam.read(path, run_check=run_check, **kwargs)
     return beam
 
 
@@ -143,7 +138,7 @@ def _select_pol_index(beam: UVBeam, pol: str) -> int:
 
 
 def plot_beam(
-    beam_path: str,
+    beam: UVBeam,
     *,
     freq_mhz: float,
     pol: str = "X",
@@ -177,11 +172,8 @@ def plot_beam(
         projection: WCS projection code (TAN, SIN, STG, etc.) for reprojection
         proj_size_deg: Size of reprojected image in degrees (default 90)
     """
-    beam = _read_beam(beam_path)
-
     if debug:
         print("Debug info:")
-        print(f"  beam_path: {beam_path}")
         print(f"  beam_type: {beam.beam_type}")
         print(f"  pixel_coordinate_system: {beam.pixel_coordinate_system}")
         print(f"  data_array shape: {beam.data_array.shape}")
@@ -521,8 +513,15 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    # delays = np.array([
+    #     [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3],
+    #     [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]
+    # ])
+    delays = None
+    beam = read_beam(args.beam_path, delays=delays)
+
     plot_beam(
-        args.beam_path,
+        beam,
         freq_mhz=float(args.freq_mhz),
         pol=str(args.pol),
         out=args.out,
