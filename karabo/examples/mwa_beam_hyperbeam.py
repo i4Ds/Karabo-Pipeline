@@ -157,52 +157,6 @@ def calculate_beam_grid(
         print(f"  First Jones matrix: {jones_array[0]}")
         print(f"  Power at zenith: {np.abs(jones_array[0, 0]) ** 2:.6e}")
 
-    # Fallback: if array is all zeros (known issue with numpy 1.23 + hyperbeam wheel),
-    # try computing with a dedicated venv that has numpy 2.x + hyperbeam wheel.
-    if np.all(np.abs(jones_array) == 0):
-        hb_python = "/opt/hbvenv/bin/python"
-        if os.path.exists(hb_python):
-            with tempfile.TemporaryDirectory() as tdir:
-                az_path = os.path.join(tdir, "az.npy")
-                za_path = os.path.join(tdir, "za.npy")
-                out_path = os.path.join(tdir, "out.npy")
-                np.save(az_path, az_flat)
-                np.save(za_path, za_flat)
-                code = f"""
-import numpy as np
-from mwa_hyperbeam import FEEBeam
-import sys
-import os
-beam = FEEBeam(os.environ.get('MWA_BEAM_FILE', 'mwa_full_embedded_element_pattern.h5'))
-az = np.load({az_path!r})
-za = np.load({za_path!r})
-delays = {list(np.array(delays, dtype=int))}
-amps = {list(np.array(amps, dtype=float))}
-freq = {float(freq_hz)}
-arr = beam.calc_jones_array(az, za, freq, delays, amps, {str(bool(norm_to_zenith))})
-np.save({out_path!r}, arr)
-print('OK')
-"""
-                try:
-                    if debug:
-                        print("  Fallback: invoking hyperbeam in /opt/hbvenv...")
-                    res = subprocess.run(
-                        [hb_python, "-c", code], capture_output=True, text=True
-                    )
-                    if res.returncode == 0 and os.path.exists(out_path):
-                        jones_array = np.load(out_path)
-                        if debug:
-                            print(
-                                "  Fallback succeeded. New jones_array shape:",
-                                jones_array.shape,
-                            )
-                    else:
-                        if debug:
-                            print("  Fallback failed:", res.stdout, res.stderr)
-                except Exception as _e:
-                    if debug:
-                        print("  Fallback exception:", _e)
-
     # Extract XX and YY components and reshape to grid
     # Flattened format: [J_xx, J_xy, J_yx, J_yy]
     jones_xx = jones_array[:, 0].reshape(n_za, n_az)  # XX component (index 0)
@@ -472,10 +426,18 @@ def plot_beam(
                 vmax_plot = zmax + eps
 
     # Plot
+    # Ensure azimuth wraps smoothly at 0/360 to avoid discontinuity
+    if projection is None:
+        # append a 360° column duplicated from 0° to close the seam
+        if az_vals[-1] < 360.0:
+            az_vals = np.append(az_vals, 360.0)
+            z = np.concatenate([z, z[:, :1]], axis=1)
+            extent = [az_vals.min(), az_vals.max(), za_vals.min(), za_vals.max()]
+
     im = ax.imshow(
-        z.T,  # Transpose to match axis convention
+        z,  # no transpose: z[za_idx, az_idx] matches extent=[az_min, az_max, za_min, za_max]
         aspect="auto",
-        origin="lower",
+        origin="upper",  # show za increasing downward (0 at top, 90 at bottom)
         extent=extent,
         cmap=cmap,
         norm=LogNorm(vmin=vmin_plot, vmax=vmax_plot) if use_log else None,
@@ -497,6 +459,7 @@ def plot_beam(
             ax.legend(loc="upper right")
 
     # Set labels and title
+    # Correct axis labels: x=Azimuth, y=Zenith Angle
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_title(f"MWA Beam (hyperbeam) — {freq_mhz:.2f} MHz — {pol} — {quantity}")
