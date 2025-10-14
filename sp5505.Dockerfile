@@ -244,6 +244,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-scikit-learn' \
         'py-tqdm' \
         'py-pyuvdata@'$PYUVDATA_VERSION'+casa' \
+        # TODO: 'hyperbeam+python' \
         # todo: py-aratmospy py-eidos py-katbeam py-tools21cm py-toolz
         # 'py-jupyterlab@4' \
         # 'py-jupyter-server@2' \
@@ -329,7 +330,13 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack test run 'oskar' && \
     spack test run 'py-mpi4py' && \
     spack test run 'py-dask-mpi'
+    # TODO: spack test run 'hyperbeam'
     # spack test run 'py-pyuvdata'
+
+# TODO: Verify hyperbeam (Spack-installed) can be imported
+# RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+#     spack env activate /opt/spack_env && \
+#     python -c "from mwa_hyperbeam import FEEBeam; print('mwa_hyperbeam (Spack) import successful')"
 
 # todo: try spack env activate /opt/spack_env --with-view /opt/view
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
@@ -348,6 +355,7 @@ checks = [
     ('astropy','5.1.1'),
     ('erfa','2.0'),
     ('healpy','1.16'),
+    # TODO: ('mwa_hyperbeam','0.10'),
 ]
 for (name, target) in checks:
     mod = None
@@ -469,7 +477,7 @@ checks = [
     ('toolz','0.0'),
     ('tqdm','4.0'),
     ('wheel', '0.0'),
-    ('mwa_hyperbeam','0.10.2'),
+    ('mwa_hyperbeam','0.10'),
 ]
 for (name, target) in checks:
     mod = None
