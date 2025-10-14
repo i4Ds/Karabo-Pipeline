@@ -3,6 +3,7 @@ import argparse
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 from matplotlib.colors import LogNorm
 from scipy.interpolate import RegularGridInterpolator
 from typing import Tuple
@@ -29,56 +30,12 @@ def compute_hyperbeam(beam_path: str, freq_mhz: float, za_vals: np.ndarray, az_v
     return Pxx, Pyy
 
 
-def compute_pyuvbeam(beam_path: str, freq_mhz: float, za_vals: np.ndarray, az_vals: np.ndarray, delays: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    delays_2 = np.array([delays, delays])
-    beam = UVBeam()
-    f0 = freq_mhz * 1e6
-    beam.read_mwa_beam(beam_path, run_check=False, freq_range=(f0 - 0.64e6, f0 + 0.64e6), delays=delays_2)
-    freq_hz = freq_mhz * 1e6
-    freqs = beam.freq_array[0]
-    fi = int(np.argmin(np.abs(freqs - freq_hz)))
-    # Ensure power beam
-    if beam.beam_type == "efield":
-        beam.efield_to_power(inplace=True, calc_cross_pols=False)
-    # data_array shape: (1, 1, Npols_or_feeds, Nfreqs, Naxis1, Naxis2)
-    # For MWA az_za: axis1=az (0..2pi), axis2=za (0..pi/2)
-    # We'll construct an interpolator-like nearest-neighbor sampler to match our grid
-    # For az_za, axis1 is azimuth, axis2 is zenith angle
-    x_vals = np.rad2deg(beam.axis1_array) if beam.pixel_coordinate_system == "az_za" else beam.axis1_array  # az
-    y_vals = np.rad2deg(beam.axis2_array) if beam.pixel_coordinate_system == "az_za" else beam.axis2_array  # za
-    # Feed indices X=0, Y=1 for MWA
-    px = 0
-    py = 1 if (beam.data_array.shape[2] > 1) else 0
-    data_x = beam.data_array[0, 0, px, fi, :, :]  # (Naxis1, Naxis2)
-    data_y = beam.data_array[0, 0, py, fi, :, :]
-
-    # Determine data orientation relative to (az, za)
-    if data_x.shape == (len(x_vals), len(y_vals)):
-        ordering = "az_za"  # (az, za)
-    elif data_x.shape == (len(y_vals), len(x_vals)):
-        ordering = "za_az"  # (za, az)
-    else:
-        raise RuntimeError(f"Unexpected data shape {data_x.shape} for axis lengths (az={len(x_vals)}, za={len(y_vals)})")
-
-    # Build output arrays via nearest neighbor on uniform axes
-    # Adopt hyperbeam az convention: map pyuvbeam az index from hb az as az_py = (90 - az_hb) mod 360
-    az_step = (x_vals[1] - x_vals[0]) if len(x_vals) > 1 else 1.0
-    za_step = (y_vals[1] - y_vals[0]) if len(y_vals) > 1 else 1.0
-    az_vals_py = (90.0 + az_vals) % 360.0
-    az_idx = np.clip(np.round((az_vals_py - x_vals.min()) / az_step).astype(int), 0, len(x_vals) - 1)
-    za_idx = np.clip(np.round((za_vals - y_vals.min()) / za_step).astype(int), 0, len(y_vals) - 1)
-
-    Pxx = np.empty((len(za_vals), len(az_vals)), dtype=float)
-    Pyy = np.empty_like(Pxx)
-    for i, zi in enumerate(za_idx):
-        if ordering == "za_az":
-            # rows are za, columns are az
-            Pxx[i, :] = data_x[zi, :][az_idx]
-            Pyy[i, :] = data_y[zi, :][az_idx]
-        else:
-            # rows are az, columns are za
-            Pxx[i, :] = data_x[:, zi][az_idx]
-            Pyy[i, :] = data_y[:, zi][az_idx]
+def compute_pyuvbeam(beam_path: str, freq_mhz: float, za_vals: np.ndarray, az_vals: np.ndarray, delays: np.ndarray, *, az_shift_mode: int = -1, basis_mode: int = 0, rot_mode: int = 0) -> Tuple[np.ndarray, np.ndarray]:
+    # Compute power from efield with correct transformations
+    Jxx, Jxy, Jyx, Jyy = compute_py_jones_grid(beam_path, freq_mhz, za_vals, az_vals, delays, az_shift_mode=az_shift_mode, basis_mode=basis_mode, rot_mode=rot_mode)
+    # Power for unpolarized sky: sum over sky pol components
+    Pxx = np.abs(Jxx)**2 + np.abs(Jxy)**2
+    Pyy = np.abs(Jyx)**2 + np.abs(Jyy)**2
     return Pxx, Pyy
 
 
@@ -89,7 +46,7 @@ def read_pyuvbeam(beam_path: str, freq_mhz: float) -> UVBeam:
     return beam
 
 
-def compute_hb_jones_grid(beam_path: str, freq_mhz: float, za_vals: np.ndarray, az_vals: np.ndarray, delays: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def compute_hb_jones_grid(beam_path: str, freq_mhz: float, za_vals: np.ndarray, az_vals: np.ndarray, delays: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     beam = FEEBeam(beam_path)
     freqs = beam.get_fee_beam_freqs()
     freq_hz = float(freqs[np.argmin(np.abs(freqs - freq_mhz * 1e6))])
@@ -98,55 +55,86 @@ def compute_hb_jones_grid(beam_path: str, freq_mhz: float, za_vals: np.ndarray, 
     J = J.reshape(ZA.size, 4)
     Jxx = J[:, 0].reshape(len(za_vals), len(az_vals))
     Jxy = J[:, 1].reshape(len(za_vals), len(az_vals))
+    Jyx = J[:, 2].reshape(len(za_vals), len(az_vals))
     Jyy = J[:, 3].reshape(len(za_vals), len(az_vals))
-    return Jxx, Jxy, Jyy
+    return Jxx, Jxy, Jyx, Jyy
 
 
-def compute_py_jones_grid(beam_path: str, freq_mhz: float, za_vals: np.ndarray, az_vals: np.ndarray, delays: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    delays_2 = np.array([delays, delays])
-    beam = UVBeam()
-    f0 = freq_mhz * 1e6
-    beam.read_mwa_beam(beam_path, run_check=False, freq_range=(f0 - 0.64e6, f0 + 0.64e6), delays=delays_2)
-    # Expect efield
-    assert beam.beam_type == "efield"
-    freqs = beam.freq_array[0]
-    fi = int(np.argmin(np.abs(freqs - f0)))
-    az_src = np.rad2deg(beam.axis1_array) if beam.pixel_coordinate_system == "az_za" else beam.axis1_array
-    za_src = np.rad2deg(beam.axis2_array) if beam.pixel_coordinate_system == "az_za" else beam.axis2_array
-    az_step = (az_src[1] - az_src[0]) if len(az_src) > 1 else 1.0
-    za_step = (za_src[1] - za_src[0]) if len(za_src) > 1 else 1.0
-    az_vals_py = (90.0 - az_vals) % 360.0
-    az_idx = np.clip(np.round((az_vals_py - az_src.min()) / az_step).astype(int), 0, len(az_src) - 1)
-    za_idx = np.clip(np.round((za_vals - za_src.min()) / za_step).astype(int), 0, len(za_src) - 1)
-    # Prepare outputs
-    Jxx = np.empty((len(za_vals), len(az_vals)), dtype=complex)
-    Jxy = np.empty_like(Jxx)
-    Jyx = np.empty_like(Jxx)
-    Jyy = np.empty_like(Jxx)
-    # basis 0 ~ theta, 1 ~ phi; data indices end with (za, az)
-    for i, zi in enumerate(za_idx):
-        # slice at this za over all az
-        Ex_theta_row = beam.data_array[0, 0, 0, fi, zi, :]
-        Ex_phi_row   = beam.data_array[1, 0, 0, fi, zi, :]
-        if beam.data_array.shape[2] > 1:
-            Ey_theta_row = beam.data_array[0, 0, 1, fi, zi, :]
-            Ey_phi_row   = beam.data_array[1, 0, 1, fi, zi, :]
-        else:
-            Ey_theta_row = np.zeros_like(Ex_theta_row)
-            Ey_phi_row   = np.zeros_like(Ex_phi_row)
-        sel = az_idx
-        # Map to XY (hyperbeam sky convention): X ~ +phi, Y ~ -theta
-        Jxx[i, :] = Ex_phi_row[sel]
-        Jxy[i, :] = -Ex_theta_row[sel]
-        Jyx[i, :] = Ey_phi_row[sel]
-        Jyy[i, :] = -Ey_theta_row[sel]
+def compute_py_jones_grid(beam_path: str, freq_mhz: float, za_vals: np.ndarray, az_vals: np.ndarray, delays: np.ndarray, *, az_shift_mode: int = 1, basis_mode: int = 0, rot_mode: int = 0) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+	delays_2 = np.array([delays, delays])
+	beam = UVBeam()
+	f0 = freq_mhz * 1e6
+	beam.read_mwa_beam(beam_path, run_check=False, freq_range=(f0 - 0.64e6, f0 + 0.64e6), delays=delays_2)
+	# Expect efield
+	assert beam.beam_type == "efield"
+	freqs = beam.freq_array[0]
+	fi = int(np.argmin(np.abs(freqs - f0)))
+	az_src = np.rad2deg(beam.axis1_array) if beam.pixel_coordinate_system == "az_za" else beam.axis1_array
+	za_src = np.rad2deg(beam.axis2_array) if beam.pixel_coordinate_system == "az_za" else beam.axis2_array
+	az_step = (az_src[1] - az_src[0]) if len(az_src) > 1 else 1.0
+	za_step = (za_src[1] - za_src[0]) if len(za_src) > 1 else 1.0
+	# Apply az shift per diagnosed mode
+	if az_shift_mode == 1:
+		az_vals_py = (90.0 + az_vals) % 360.0
+	elif az_shift_mode == -1:
+		az_vals_py = (90.0 - az_vals) % 360.0
+	else:
+		az_vals_py = az_vals % 360.0
+	az_idx = np.clip(np.round((az_vals_py - az_src.min()) / az_step).astype(int), 0, len(az_src) - 1)
+	za_idx = np.clip(np.round((za_vals - za_src.min()) / za_step).astype(int), 0, len(za_src) - 1)
+	# Prepare outputs
+	Jxx = np.empty((len(za_vals), len(az_vals)), dtype=complex)
+	Jxy = np.empty_like(Jxx)
+	Jyx = np.empty_like(Jxx)
+	Jyy = np.empty_like(Jxx)
+	# basis 0 ~ theta, 1 ~ phi; data indices end with (za, az)
+	for i, zi in enumerate(za_idx):
+		# slice at this za over all az
+		Ex_theta_row = beam.data_array[0, 0, 0, fi, zi, :]
+		Ex_phi_row   = beam.data_array[1, 0, 0, fi, zi, :]
+		if beam.data_array.shape[2] > 1:
+			Ey_theta_row = beam.data_array[0, 0, 1, fi, zi, :]
+			Ey_phi_row   = beam.data_array[1, 0, 1, fi, zi, :]
+		else:
+			Ey_theta_row = np.zeros_like(Ex_theta_row)
+			Ey_phi_row   = np.zeros_like(Ex_phi_row)
+		sel = az_idx
+		# Map to XY per diagnosed basis mode
+		if basis_mode == 0:
+			# X=+phi, Y=-theta
+			Jxx[i, :] = Ex_phi_row[sel]
+			Jxy[i, :] = -Ex_theta_row[sel]
+			Jyx[i, :] = Ey_phi_row[sel]
+			Jyy[i, :] = -Ey_theta_row[sel]
+		else:
+			# X=+theta, Y=+phi
+			Jxx[i, :] = Ex_theta_row[sel]
+			Jxy[i, :] = Ex_phi_row[sel]
+			Jyx[i, :] = Ey_theta_row[sel]
+			Jyy[i, :] = Ey_phi_row[sel]
 
-    # Rotate pyuvbeam feed basis to match hyperbeam (X<-Y, Y<- -X) => R = [[0,1],[-1,0]]
-    Jxx_rot = Jyx
-    Jxy_rot = Jyy
-    # Jyx_rot = -Jxx  # not used downstream
-    Jyy_rot = -Jxy
-    return Jxx_rot, Jxy_rot, Jyy_rot
+	# Apply feed rotation per diagnosed mode
+	if rot_mode == 0:
+		Jxx_rot, Jxy_rot, Jyx_rot, Jyy_rot = Jxx, Jxy, Jyx, Jyy
+	elif rot_mode == 1:
+		# swap X<->Y: R=[[0,1],[1,0]]
+		Jxx_rot = Jyx
+		Jxy_rot = Jyy
+		Jyx_rot = Jxx
+		Jyy_rot = Jxy
+	elif rot_mode == 2:
+		# rotate X<-Y, Y<- -X: R=[[0,1],[-1,0]]
+		Jxx_rot = Jyx
+		Jxy_rot = Jyy
+		Jyx_rot = -Jxx
+		Jyy_rot = -Jxy
+	else:
+		# rotate X<- -Y, Y<-X: R=[[0,-1],[1,0]]
+		Jxx_rot = -Jyx
+		Jxy_rot = -Jyy
+		Jyx_rot = Jxx
+		Jyy_rot = Jxy
+	return Jxx_rot, Jxy_rot, Jyx_rot, Jyy_rot
 
 
 def sample_hyperbeam_jones(beam_path: str, freq_mhz: float, za_deg: float, az_deg: float, az_offset_deg: float = 0.0) -> np.ndarray:
@@ -247,24 +235,46 @@ def main() -> None:
     p.add_argument("--za-step", type=float, default=1.0)
     p.add_argument("--az-step", type=float, default=1.0)
     p.add_argument("--norm", default="none", choices=["none", "zenith"], help="Normalization: none (raw), zenith (divide by power at zenith)")
+    p.add_argument("--mode", default="power", choices=["power", "efield"], help="Compare in power or efield domain (Jones)")
     p.add_argument("--out", default="compare_mwa_beams.png")
     p.add_argument("--projection", type=str, default=None, help="Projection code: SIN, TAN, ARC, ZEA, STG")
     p.add_argument("--proj-size", type=float, default=90.0, help="Half-size of projected plane in deg (extent is ±proj-size)")
     p.add_argument("--pix", type=float, default=0.5, help="Pixel scale in deg for projection")
     p.add_argument("--no-plot", action="store_true", help="Skip plotting and only print summary/table")
     p.add_argument("--quiet", action="store_true", help="Suppress non-table prints for minimal output")
+    p.add_argument("--delay-ewp", type=int, default=0, help="Delay E-W plane in beamformer units")
     args = p.parse_args()
 
     za_vals = np.arange(0.0, 90.0 + 1e-6, args.za_step)
     az_vals = np.arange(0.0, 360.0, args.az_step)
 
+    # Diagnose best mapping first (using efield beam)
+    beam_py = read_pyuvbeam(args.beam_path, args.freq_mhz)
+    if beam_py.beam_type != "efield":
+        if args.mode == "efield":
+            print("Efield comparison requested but pyuvbeam is power; falling back to power mode.")
+            args.mode = "power"
+    best_err, best_az_mode, best_basis_mode, best_rot_mode = diagnose_py_mapping(args.beam_path, beam_py, args.freq_mhz)
+    if not args.quiet:
+        basis_desc = "X=+phi, Y=-theta" if best_basis_mode == 0 else "X=+theta, Y=+phi"
+        if best_az_mode == -1:
+            az_desc = "az_py = (90 - az_hb)"
+        elif best_az_mode == 1:
+            az_desc = "az_py = (90 + az_hb)"
+        else:
+            az_desc = "az_py = az_hb"
+        rot_desc = {0: "no feed rotation", 1: "swap X↔Y", 2: "rotate X<-Y, Y<- -X", 3: "rotate X<- -Y, Y<-X"}.get(best_rot_mode, str(best_rot_mode))
+        print(f"Mapping: {az_desc}; basis: {basis_desc}; feeds: {rot_desc}; err={best_err:.3e}")
+
     # Timed computations
     start = time.perf_counter()
     delays = np.array([0,0,0,0] * 4)
+    if args.delay_ewp:
+        delays = np.array([0,1*args.delay_ewp,2*args.delay_ewp,3*args.delay_ewp] * 4)
     Hxx, Hyy = compute_hyperbeam(args.beam_path, args.freq_mhz, za_vals, az_vals, delays)
     hb_time = time.perf_counter() - start
     start = time.perf_counter()
-    Pxx, Pyy = compute_pyuvbeam(args.beam_path, args.freq_mhz, za_vals, az_vals, delays)
+    Pxx, Pyy = compute_pyuvbeam(args.beam_path, args.freq_mhz, za_vals, az_vals, delays, az_shift_mode=best_az_mode, basis_mode=best_basis_mode, rot_mode=best_rot_mode)
     py_time = time.perf_counter() - start
 
     H = Hxx if args.pol.upper() == "X" else Hyy
@@ -314,6 +324,16 @@ def main() -> None:
         ratio = hv / pv if (np.isfinite(pv) and pv != 0.0) else float("nan")
         rows.append((label, za_deg, az_deg, hv, pv, ratio))
 
+    # Build 4x4 offset grid from zenith in the tangent plane (E-W, N-S in degrees)
+    # Use symmetric offsets around zenith
+    offsets = [45.0, 15.0, -15.0, -45.0]
+    grid_points = []  # (name, za_deg, az_deg, x_off, y_off)
+    for y_off in offsets:  # N-S (positive north)
+        for x_off in offsets:  # E-W (positive east)
+            r = float(np.hypot(x_off, y_off))
+            az_deg = float((np.degrees(np.arctan2(x_off, y_off)) % 360.0))
+            grid_points.append((f"x={x_off:.0f},y={y_off:.0f}", r, az_deg, x_off, y_off))
+
     # Pretty table using tabulate
     try:
         from tabulate import tabulate  # type: ignore
@@ -329,15 +349,7 @@ def main() -> None:
         for label, za_deg, az_deg, hv, pv, ratio in rows:
             print(f"| {label} | {za_deg:.1f} | {az_deg:.1f} | {hv:.6e} | {pv:.6e} | {ratio:.6e} |")
 
-    # Full Jones matrices comparison at the same 5 points with diagnosed mapping
-    beam_py = read_pyuvbeam(args.beam_path, args.freq_mhz)
-    # Ensure efield for pyuvbeam
-    if beam_py.beam_type != "efield":
-        pass
-    # Diagnose best mapping
-    best_err, best_az_mode, best_basis_mode, best_rot_mode = diagnose_py_mapping(args.beam_path, beam_py, args.freq_mhz)
-    if not args.quiet:
-        print(f"Mapping: az_mode={best_az_mode}, basis_mode={best_basis_mode}, rot_mode={best_rot_mode}, err={best_err:.3e}")
+    # Full Jones matrices (efield) comparison at the same 5 points with diagnosed mapping (already done above)
     # Build Jones table with mag/phase (deg), 1sf scientific notation for mag
     def fmt_mag_phase(x: complex) -> tuple:
         mag = np.abs(x)
@@ -350,19 +362,45 @@ def main() -> None:
         "Point", "za [deg]", "az [deg]",
         "HB |Jxx|", "HB ∠Jxx", "HB |Jxy|", "HB ∠Jxy",
         "HB |Jyy|", "HB ∠Jyy",
-        "PY |Jxx|", "PY ∠Jxx", "PY |Jxy|", "PY ∠Jxy",
-        "PY |Jyy|", "PY ∠Jyy",
+        "PY(m) |Jxx|", "PY(m) ∠Jxx", "PY(m) |Jxy|", "PY(m) ∠Jxy",
+        "PY(m) |Jyy|", "PY(m) ∠Jyy",
     ]
     j_rows = []
     for label, za_deg, az_deg in [("Zenith",0.0,0.0),("North 10deg",10.0,0.0),("East 10deg",10.0,90.0),("South 10deg",10.0,180.0),("West 10deg",10.0,270.0)]:
-        J_hb = sample_hyperbeam_jones(args.beam_path, args.freq_mhz, za_deg, az_deg, az_offset_deg=0.0)
-        J_py = sample_pyuvbeam_jones(beam_py, args.freq_mhz, za_deg, az_deg, az_shift_mode=best_az_mode, basis_mode=best_basis_mode, rot_mode=best_rot_mode)
+        if args.mode == "efield":
+            J_hb = sample_hyperbeam_jones(args.beam_path, args.freq_mhz, za_deg, az_deg, az_offset_deg=0.0)
+            J_py = sample_pyuvbeam_jones(beam_py, args.freq_mhz, za_deg, az_deg, az_shift_mode=best_az_mode, basis_mode=best_basis_mode, rot_mode=best_rot_mode)
+        else:
+            # In power mode, compare autos as |Jxx|^2+|Jxy|^2 etc.
+            J_hb = sample_hyperbeam_jones(args.beam_path, args.freq_mhz, za_deg, az_deg, az_offset_deg=0.0)
+            J_py = sample_pyuvbeam_jones(beam_py, args.freq_mhz, za_deg, az_deg, az_shift_mode=best_az_mode, basis_mode=best_basis_mode, rot_mode=best_rot_mode)
         hxx_mag,hxx_ph = fmt_mag_phase(J_hb[0,0]); hxy_mag,hxy_ph = fmt_mag_phase(J_hb[0,1])
         hyy_mag,hyy_ph = fmt_mag_phase(J_hb[1,1])
         pxx_mag,pxx_ph = fmt_mag_phase(J_py[0,0]); pxy_mag,pxy_ph = fmt_mag_phase(J_py[0,1])
         pyy_mag,pyy_ph = fmt_mag_phase(J_py[1,1])
         j_rows.append([
             label, f"{za_deg:.1f}", f"{az_deg:.1f}",
+            hxx_mag, hxx_ph, hxy_mag, hxy_ph,
+            hyy_mag, hyy_ph,
+            pxx_mag, pxx_ph, pxy_mag, pxy_ph,
+            pyy_mag, pyy_ph,
+        ])
+    # Append 4x4 grid points
+    for label, r_za, az_deg, _x, _y in grid_points:
+        if r_za > 90.0:
+            continue
+        if args.mode == "efield":
+            J_hb = sample_hyperbeam_jones(args.beam_path, args.freq_mhz, r_za, az_deg, az_offset_deg=0.0)
+            J_py = sample_pyuvbeam_jones(beam_py, args.freq_mhz, r_za, az_deg, az_shift_mode=best_az_mode, basis_mode=best_basis_mode, rot_mode=best_rot_mode)
+        else:
+            J_hb = sample_hyperbeam_jones(args.beam_path, args.freq_mhz, r_za, az_deg, az_offset_deg=0.0)
+            J_py = sample_pyuvbeam_jones(beam_py, args.freq_mhz, r_za, az_deg, az_shift_mode=best_az_mode, basis_mode=best_basis_mode, rot_mode=best_rot_mode)
+        hxx_mag,hxx_ph = fmt_mag_phase(J_hb[0,0]); hxy_mag,hxy_ph = fmt_mag_phase(J_hb[0,1])
+        hyy_mag,hyy_ph = fmt_mag_phase(J_hb[1,1])
+        pxx_mag,pxx_ph = fmt_mag_phase(J_py[0,0]); pxy_mag,pxy_ph = fmt_mag_phase(J_py[0,1])
+        pyy_mag,pyy_ph = fmt_mag_phase(J_py[1,1])
+        j_rows.append([
+            f"Grid {label}", f"{r_za:.1f}", f"{az_deg:.1f}",
             hxx_mag, hxx_ph, hxy_mag, hxy_ph,
             hyy_mag, hyy_ph,
             pxx_mag, pxx_ph, pxy_mag, pxy_ph,
@@ -380,9 +418,9 @@ def main() -> None:
     if not args.no_plot:
         plt.style.use("dark_background")
         # Build Jones grids for 6 panels: HB/PY side-by-side per component
-        Jxx_hb, Jxy_hb, Jyy_hb = compute_hb_jones_grid(args.beam_path, args.freq_mhz, za_vals, az_vals, delays)
-        # Use diagnosed mapping for the grid too: emulate by applying az shift and rotation via compute_py_jones_grid then reindex
-        Jxx_py, Jxy_py, Jyy_py = compute_py_jones_grid(args.beam_path, args.freq_mhz, za_vals, az_vals, delays)
+        Jxx_hb, Jxy_hb, Jyx_hb, Jyy_hb = compute_hb_jones_grid(args.beam_path, args.freq_mhz, za_vals, az_vals, delays)
+        # Use diagnosed mapping for the grid too
+        Jxx_py, Jxy_py, Jyx_py, Jyy_py = compute_py_jones_grid(args.beam_path, args.freq_mhz, za_vals, az_vals, delays, az_shift_mode=best_az_mode, basis_mode=best_basis_mode, rot_mode=best_rot_mode)
 
         def mag(z):
             return np.abs(z)
@@ -412,11 +450,14 @@ def main() -> None:
                 Z2 = np.where(np.isfinite(Z2), Z2, np.nan)
                 vmin = max(tiny, np.nanmin([np.nanmin(Z1[Z1>0]) if np.any(Z1>0) else np.nan, np.nanmin(Z2[Z2>0]) if np.any(Z2>0) else np.nan]))
                 vmax = np.nanmax([np.nanmax(Z1), np.nanmax(Z2)])
-                return Z1, Z2, vmin, vmax
+                # diff uses symmetric linear scale
+                vdiff_max = max(np.nanmax(np.abs(Zdiff)), 1e-12)
+                return Z1, Z2, Zdiff, vmin, vmax, -vdiff_max, vdiff_max
             else:
                 # phases in degrees, center to [-180,180]
                 Z1 = (Z1 + 180.0) % 360.0 - 180.0
                 Z2 = (Z2 + 180.0) % 360.0 - 180.0
+                Zdiff = (Zdiff + 180.0) % 360.0 - 180.0
                 vmin, vmax = -180.0, 180.0
                 return Z1, Z2, vmin, vmax
         if args.projection is None:
@@ -425,33 +466,53 @@ def main() -> None:
             if add_seam:
                 az_plot = np.append(az_vals, 360.0)
                 rows_native = [
-                    (np.concatenate([hb, hb[:, :1]], axis=1), np.concatenate([py, py[:, :1]], axis=1), title)
-                    for hb, py, title in rows_orig
+                    (np.concatenate([hb, hb[:, :1]], axis=1), np.concatenate([py, py[:, :1]], axis=1), np.concatenate([diff, diff[:, :1]], axis=1), title)
+                    for hb, py, diff, title in rows_orig
                 ]
             else:
                 az_plot = az_vals
                 rows_native = rows_orig
             extent_native = [az_plot.min(), az_plot.max(), za_vals.min(), za_vals.max()]
-            for i, (hbZ_raw, pyZ_raw, title) in enumerate(rows_native):
+            for i, (hbZ_raw, pyZ_raw, diffZ_raw, title) in enumerate(rows_native):
                 is_mag = ("|" in title)
-                hbZ, pyZ, vmin, vmax = row_norm(hbZ_raw, pyZ_raw, is_mag)
-                for j, (Z, lbl) in enumerate([(hbZ, "HB"), (pyZ, "PY")]):
+                hbZ, pyZ, diffZ, vmin, vmax, vdiff_min, vdiff_max = row_norm(hbZ_raw, pyZ_raw, diffZ_raw, is_mag)
+                for j, (Z, lbl, vm_lo, vm_hi, use_log) in enumerate([
+                    (hbZ, "HB", vmin, vmax, is_mag),
+                    (pyZ, "PY", vmin, vmax, is_mag),
+                    (diffZ, "HB−PY", vdiff_min, vdiff_max, False)
+                ]):
                     ax = axs[i, j]
-                    use_log = is_mag
                     im = ax.imshow(
                         Z,
                         origin="upper",
                         extent=extent_native,
                         aspect="auto",
-                        cmap="rainbow",
-                        norm=LogNorm(vmin=vmin, vmax=vmax) if use_log else None,
-                        vmin=None if use_log else vmin,
-                        vmax=None if use_log else vmax,
+                        cmap="rainbow" if j < 2 else "RdBu_r",
+                        norm=LogNorm(vmin=vm_lo, vmax=vm_hi) if use_log else None,
+                        vmin=None if use_log else vm_lo,
+                        vmax=None if use_log else vm_hi,
                     )
                     ax.set_xlabel("Azimuth [deg]")
                     ax.set_ylabel("Zenith Angle [deg]")
                     ax.set_title(f"{lbl} {title}")
                     fig.colorbar(im, ax=ax)
+            # Overlay test points on native polar plots
+            # 5 named points
+            for (label, za_deg, az_deg) in [("Zenith",0.0,0.0),("North 10deg",10.0,0.0),("East 10deg",10.0,90.0),("South 10deg",10.0,180.0),("West 10deg",10.0,270.0)]:
+                x = az_deg
+                y = za_deg
+                for r in range(6):
+                    for c in range(3):
+                        axs[r, c].plot(x, y, 'w+', markersize=8, markeredgewidth=1.5)
+            # 4x4 grid points
+            for _name, r_za, az_deg, _xoff, _yoff in grid_points:
+                if r_za > 90.0:
+                    continue
+                x = az_deg
+                y = r_za
+                for r in range(6):
+                    for c in range(3):
+                        axs[r, c].plot(x, y, 'wo', markersize=3, markeredgewidth=0.0, alpha=0.8)
         else:
             # Projected plotting
             npix = int(2 * args.proj_size / max(args.pix, 1e-3))
@@ -484,32 +545,51 @@ def main() -> None:
                 Zp[za_cart > 90.0] = np.nan
                 return Zp
 
-            for i, (hbZ_raw, pyZ_raw, title) in enumerate(rows_orig):
+            for i, (hbZ_raw, pyZ_raw, diffZ_raw, title) in enumerate(rows_orig):
                 is_mag = ("|" in title)
                 hbZp = project_field(hbZ_raw)
                 pyZp = project_field(pyZ_raw)
-                hbZ, pyZ, vmin, vmax = row_norm(hbZp, pyZp, is_mag)
-                for j, (Z, lbl) in enumerate([(hbZ, "HB"), (pyZ, "PY")]):
+                diffZp = project_field(diffZ_raw)
+                hbZ, pyZ, diffZ, vmin, vmax, vdiff_min, vdiff_max = row_norm(hbZp, pyZp, diffZp, is_mag)
+                for j, (Z, lbl, vm_lo, vm_hi, use_log) in enumerate([
+                    (hbZ, "HB", vmin, vmax, is_mag),
+                    (pyZ, "PY", vmin, vmax, is_mag),
+                    (diffZ, "HB−PY", vdiff_min, vdiff_max, False)
+                ]):
                     ax = axs[i, j]
-                    use_log = is_mag
                     im = ax.imshow(
                         Z,
                         origin="upper",
                         extent=extent_proj,
                         aspect="equal",
-                        cmap="rainbow",
-                        norm=LogNorm(vmin=vmin, vmax=vmax) if use_log else None,
-                        vmin=None if use_log else vmin,
-                        vmax=None if use_log else vmax,
+                        cmap="rainbow" if j < 2 else "RdBu_r",
+                        norm=LogNorm(vmin=vm_lo, vmax=vm_hi) if use_log else None,
+                        vmin=None if use_log else vm_lo,
+                        vmax=None if use_log else vm_hi,
                     )
                     ax.set_xlabel("E-W offset [deg]")
                     ax.set_ylabel("N-S offset [deg]")
                     ax.set_title(f"{lbl} {title} — {proj}")
                     fig.colorbar(im, ax=ax)
+            # Overlay test points in projection
+            def project_points(points):
+                pts = []
+                for _name, r_za, az_deg, x_off, y_off in points:
+                    if r_za > 90.0:
+                        continue
+                    # Inverse of projection mapping used above
+                    # For small fields, use linear ARC mapping for marker placement
+                    pts.append((x_off, y_off))
+                return pts
+            pts = project_points(grid_points + [("Z",0.0,0.0,0.0,0.0)])
+            for (x, y) in pts:
+                for r in range(6):
+                    for c in range(3):
+                        axs[r, c].plot(x, y, 'wo', markersize=3, markeredgewidth=0.0, alpha=0.8)
         fig.suptitle(f"MWA beams @ {args.freq_mhz:.2f} MHz — pol {args.pol}")
         fig.savefig(args.out, dpi=150)
         if not args.quiet:
-            print(f"Saved {args.out}")
+            print(f"Saved {os.path.realpath(args.out)}")
 
 
 if __name__ == "__main__":
