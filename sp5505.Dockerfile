@@ -160,8 +160,7 @@ ARG BOOST_VERSION=1.82.0
 
 ARG PYUVDATA_VERSION=2.4.2
 
-# install base dependencies before adding extra spack overlays, this avoids extra build time
-# Create Spack environment and install deps (no RASCIL)
+# Create Spack environment and install deps
 ARG SPACK_TARGET=""
 
 RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=locked \
@@ -267,10 +266,6 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --reuse --show-log-on-error && \
-    spack test run 'py-healpy' || ( \
-        cat /home/jovyan/.spack/test/*/py-healpy-1.16.2-*-test-out.txt; \
-        exit 1 \
-    ) && \
     spack gc -y && \
     spack env view regenerate && \
     fix-permissions /opt/view /opt/spack_env /opt/software /opt/view
@@ -307,10 +302,7 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack test run 'py-bdsf' && \
     spack test run 'py-astroplan' && \
     spack test run 'py-casacore' && \
-    spack test run 'py-healpy' || ( \
-        cat /home/jovyan/.spack/test/*/py-healpy-1.16.2-*-test-out.txt; \
-        exit 1 \
-    ) && \
+    spack test run 'py-healpy' && \
     python -c "import dask, distributed; print('OK', dask.__version__, distributed.__version__)" && \
     # hack: can't run tests for py-distributed due to circular dependency on py-dask
     # spack test run 'py-distributed' && \
@@ -329,7 +321,8 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack test run 'py-rascil' && \
     spack test run 'oskar' && \
     spack test run 'py-mpi4py' && \
-    spack test run 'py-dask-mpi'
+    spack test run 'py-dask-mpi' && \
+    spack test run 'py-pyfftw'
     # TODO: spack test run 'hyperbeam'
     # spack test run 'py-pyuvdata'
 
@@ -440,7 +433,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
         'tools21cm=='$TOOLS21CM_VERSION \
-        'mwa-hyperbeam==0.10.2' \
+        'mwa-hyperbeam==0.10.4' \
         'ps_eor==0.32'
 
 # tests
