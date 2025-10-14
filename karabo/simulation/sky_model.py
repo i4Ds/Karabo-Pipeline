@@ -2200,6 +2200,16 @@ class SkyModel:
     ) -> List[SkyComponent]:
         ...
 
+    @overload
+    def convert_to_backend(
+        self,
+        backend: Literal[SimulatorBackend.SDP],
+        desired_frequencies_hz: NDArray[np.float_],
+        channel_bandwidth_hz: Optional[float] = None,
+        verbose: bool = False,
+    ) -> List[SkyComponent]:
+        ...
+
     def convert_to_backend(
         self,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
@@ -2308,6 +2318,61 @@ class SkyModel:
                         frequency=frequency_channel_centers,
                         name=f"pointsource{ra}{dec}",
                         flux=flux_array,  # shape: nchannels, npolarisations
+                        shape="Point",
+                        polarisation_frame=PolarisationFrame("stokesI"),
+                        params=None,
+                    )
+                )
+            return skycomponents
+        elif backend is SimulatorBackend.SDP:
+            if verbose:
+                print(
+                    "Desired backend is SKA-SDP. "
+                    "Converting sources into a list of SKA-SDP SkyComponent instances."
+                )
+
+            desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
+            assert (
+                len(desired_frequencies_hz) > 0
+            ), "Must have at least 1 element in desired_frequencies_hz array"
+
+            desired_frequencies_hz = np.sort(desired_frequencies_hz)
+            if len(desired_frequencies_hz) == 1:
+                if channel_bandwidth_hz is None:
+                    raise ValueError(
+                        "desired_frequencies_hz has one entry and "
+                        "channel_bandwidth_hz is "
+                        "None. Please specify channel_bandwidth_hz or provide multiple "
+                        "entries in desired_frequencies_hz."
+                    )
+                frequency_bandwidth = channel_bandwidth_hz
+            else:
+                frequency_bandwidth = (
+                    desired_frequencies_hz[1] - desired_frequencies_hz[0]
+                )
+
+            frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
+
+            skycomponents: List[SkyComponent] = []
+            if self.sources is None:
+                return skycomponents
+
+            ras = self.sources[:, 0]
+            decs = self.sources[:, 1]
+            fluxes = self.sources[:, 2]
+
+            for ra, dec, flux in zip(ras, decs, fluxes):
+                flux_array = np.zeros((len(frequency_channel_centers), 1))
+                flux_array[:, 0] = flux  # stokesI across all channels (continuum)
+
+                skycomponents.append(
+                    SkyComponent(
+                        direction=SkyCoord(
+                            ra=ra, dec=dec, unit="deg", frame="icrs", equinox="J2000"
+                        ),
+                        frequency=frequency_channel_centers,
+                        name=f"pointsource{ra}{dec}",
+                        flux=flux_array,
                         shape="Point",
                         polarisation_frame=PolarisationFrame("stokesI"),
                         params=None,

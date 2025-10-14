@@ -423,6 +423,18 @@ but was not provided. Please provide a value for the version field."
         Verify the construction of this Telescope instance."""
         )
 
+    @property
+    def SDP_configuration(self) -> Configuration:
+        """
+        Returns the telescope configuration as expected by SKA-SDP.
+        Reuses the existing RASCIL_configuration, which uses the same data model.
+        """
+        if self.RASCIL_configuration is None:
+            raise ValueError(
+                "No RASCIL/SKA-SDP configuration available in this Telescope."
+            )
+        return self.RASCIL_configuration
+
     def add_station(
         self,
         horizontal_x: float,

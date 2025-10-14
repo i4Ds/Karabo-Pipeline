@@ -417,6 +417,19 @@ class InterferometerSimulation:
     ) -> Visibility:
         ...
 
+    @overload
+    def run_simulation(
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: Observation,
+        backend: Literal[SimulatorBackend.SDP],
+        primary_beam: Optional[RASCILImage],
+        visibility_format: Literal["MS"] = ...,
+        visibility_path: Optional[DirPathType] = ...,
+    ) -> Visibility:
+        ...
+
     def run_simulation(
         self,
         telescope: Telescope,
@@ -512,6 +525,18 @@ class InterferometerSimulation:
                 )
         elif backend is SimulatorBackend.RASCIL:
             return self.__run_simulation_rascil(
+                telescope=telescope,
+                sky=sky,
+                observation=observation,
+                visibility_format=visibility_format,
+                visibility_path=self._create_or_validate_visibility_path(
+                    visibility_format,
+                    visibility_path,
+                ),
+                primary_beam=primary_beam,
+            )
+        elif backend is SimulatorBackend.SDP:
+            return self.__run_simulation_sdp(
                 telescope=telescope,
                 sky=sky,
                 observation=observation,
@@ -639,6 +664,102 @@ class InterferometerSimulation:
         )
 
         # Save visibilities to disk
+        export_visibility_to_ms(visibility_path, [vis])
+        return Visibility(visibility_path)
+
+    def __run_simulation_sdp(
+        self,
+        telescope: Telescope,
+        sky: SkyModel,
+        observation: ObservationAbstract,
+        visibility_format: VisibilityFormat,
+        visibility_path: Union[DirPathType, FilePathType],
+        primary_beam: Optional[RASCILImage],
+    ) -> Visibility:
+        # Same flow as RASCIL:
+        # - compute times/channels
+        # - create empty visibility from telescope config
+        # - convert SkyModel -> List[SkyComponent] for SDP
+        # - optional primary beam application
+        # - DFT predict
+        # - write MS
+
+        if visibility_format != "MS":
+            raise NotImplementedError(
+                f"Visibility format {visibility_format} is not supported, "
+                "currently only MS is supported for SKA-SDP simulations"
+            )
+
+        # Times & integration
+        observation_hour_angles = observation.compute_hour_angles_of_observation()
+        observation_integration_time_seconds = (
+            observation.length.total_seconds() / observation.number_of_time_steps
+        )
+
+        # Frequencies
+        frequency_channel_starts = np.linspace(
+            observation.start_frequency_hz,
+            observation.start_frequency_hz
+            + observation.frequency_increment_hz * observation.number_of_channels,
+            num=observation.number_of_channels,
+            endpoint=False,
+        )
+        frequency_bandwidths = np.full(
+            frequency_channel_starts.shape, observation.frequency_increment_hz
+        )
+        frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
+
+        # Visibility grid
+        vis = create_visibility(
+            telescope.SDP_configuration,  # <- key difference vs RASCIL
+            times=observation_hour_angles,
+            frequency=frequency_channel_centers,
+            channel_bandwidth=frequency_bandwidths,
+            phasecentre=SkyCoord(
+                observation.phase_centre_ra_deg,
+                observation.phase_centre_dec_deg,
+                unit="deg",
+                frame="icrs",
+            ),
+            weight=1.0,
+            polarisation_frame=PolarisationFrame("stokesI"),
+            integration_time=observation_integration_time_seconds,
+            zerow=self.ignore_w_components,
+            utc_time=Time(
+                observation.start_date_and_time, format="datetime", scale="utc"
+            ),
+        )
+
+        # Informative time mismatch note (same logic, just update label)
+        sdp_obs_times = vis["datetime"]
+        sdp_obs_start_time = sdp_obs_times[0]
+        timestamp_ns = sdp_obs_start_time.values.astype("int64")
+        dt = datetime.fromtimestamp(timestamp_ns / 1e9)
+        diff_time = dt - observation.start_date_and_time
+        if abs(diff_time) > timedelta(minutes=1):
+            print(
+                "INFO: SKA-SDP could not exactly match your observation start time.",
+                "This is expected behaviour of the underlying time conversion.",
+                f"There is a time difference of {format_timedelta(diff_time)}",
+                sep=os.linesep,
+            )
+
+        # Sky to SDP components (reuses your Step 3)
+        skycomponents = sky.convert_to_backend(
+            backend=SimulatorBackend.SDP,
+            desired_frequencies_hz=frequency_channel_starts,
+            channel_bandwidth_hz=observation.frequency_increment_hz,
+        )
+
+        if primary_beam is not None:
+            skycomponents = apply_beam_to_skycomponent(skycomponents, primary_beam)
+
+        # Predict
+        vis = dft_skycomponent_visibility(
+            vis, skycomponents, dft_compute_kernel="cpu_looped"
+        )
+
+        # Persist
         export_visibility_to_ms(visibility_path, [vis])
         return Visibility(visibility_path)
 
