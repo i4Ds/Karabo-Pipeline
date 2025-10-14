@@ -1,12 +1,43 @@
 your task is to create a docker image `sp5505.Dockerfile` that:
 1. is based on, or has the same functionality as `quay.io/jupyter/minimal-notebook:notebook-7.2.2` (ipykernel etc.)
 2. has a python environment that can be seen by jupyterhub, and is activated by default in the shell of `USER ${NB_UID}`
-3. has `karabo-pipeline` installed in the python environment
+3. has `karabo-pipeline` installed in the python 3.10 environment
 4. passes all karabo-pipeline tests `python -m pytest .`
-5. python 3.10 would be nice, 3.9 is fine too
+
+current failing test:
+
+```txt
+# Karabo-Pipeline/karabo/test/test_source_detection.py:73: in test_source_detection_plot
+# E   AssertionError:
+# E   Arrays are not equal
+# E   The assignment has changed!
+# E   Mismatched elements: 33 / 111 (29.7%)
+# E   Max absolute difference: 23.
+# E   Max relative difference: 4.4
+# E    x: array([[-1.      ,  7.      ,       inf],
+# E          [-1.      ,  5.      ,       inf],
+# E          [-1.      , 13.      ,       inf],...
+# E    y: array([[-1.      , 18.      ,       inf],
+# E          [-1.      , 20.      ,       inf],
+# E          [-1.      , 21.      ,       inf],...
+```
+
+5. minimal notebook server which autolaunches python 3.10 environment
 6. install most dependencies via spack instead of pip or conda
 
-some info about the current conda environment that should be replaced by spack, for details, see conda_list.txt
+some info about the current conda environment that should be replaced by spack.
+
+examples of other spack packages:
+- <https://github.com/spack/spack-packages/blob/develop/repos/spack_repo/builtin/packages/py_astropy_healpix/package.py>
+- <https://github.com/spack/spack-packages/blob/develop/repos/spack_repo/builtin/packages/py_reproject/package.py>
+- <https://github.com/spack/spack-packages/blob/develop/repos/spack_repo/builtin/packages/py_photutils/package.py>
+- <https://gitlab.com/ska-telescope/sdp/ska-sdp-spack/-/blob/main/packages/ducc/package.py>
+- <https://gitlab.com/ska-telescope/sdp/ska-sdp-spack/-/blob/main/packages/py-ducc/package.py>
+- <https://gitlab.com/ska-telescope/sdp/ska-sdp-spack/-/tree/main/packages/py-ska-sdp-datamodels>
+- <https://gitlab.com/ska-telescope/sdp/ska-sdp-spack/-/tree/main/packages/py-ska-sdp-func>
+- <https://gitlab.com/ska-telescope/sdp/ska-sdp-spack/-/tree/main/packages/py-ska-sdp-func-python>
+
+for details of existing conda environment, see conda_list.txt
 
 ```txt
 # astropy                   5.1.1           py310hde88566_3    conda-forge
@@ -143,7 +174,10 @@ docker image ls d3vnull0/sp5505 --format '{{.Size}}'
 (interactive) Serve notebook:
 
 ```bash
-docker run --rm -p 8888:8888 d3vnull0/sp5505:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --allow-root --port=8888'
+docker run --rm -p 8888:8888 d3vnull0/sp5505:latest
+# arbitrary port: export PORT=8889; docker run --rm -p $PORT:$PORT d3vnull0/sp5505:latest bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --allow-root --port='$PORT
+# pytest -x -k "not test_suppress_rascil_warning" Karabo-Pipeline
+# bash -c 'jupyter lab --ip 0.0.0.0 --no-browser --allow-root --port=8888'
 ```
 
 ## gotchas / things to watch out for:
@@ -181,20 +215,6 @@ git fetch --tags --depth=1 origin v${ASTROPLAN_VERSION} && python -m pip install
 I'm pretty sure this didn't work on an earlier setuptools version, but it works now:
 ```bash
 export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ASTROPLAN=${ASTROPLAN_VERSION} &&python -m pip install --no-build-isolation 'git+https://github.com/astropy/astroplan.git@v'${ASTROPLAN_VERSION}
-```
-
-### specific package versions
-
-some packages like rascil require super specific versions of packages not available in spack
-
-```txt
-edit ska-sdp-spack/packages/py-xarray/package.py and others from within the docker image
-
-@package.py
-
-the only xarray release that meets the requirements is @https://github.com/pydata/xarray/releases/tag/v2022.12.0
-
-or failing that, create new entries in a new folder that can be mounted into the docker container and loaded as a spack repo under /opt/karabo-spack
 ```
 
 ## Resolved issues
