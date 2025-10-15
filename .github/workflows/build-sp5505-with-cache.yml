@@ -29,7 +29,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: sp5505-karabo-pipeline
+  IMAGE_NAME: sp5505
 
 jobs:
   build-pretest:
@@ -205,7 +205,8 @@ jobs:
 
       - name: Inspect -pretest image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pretest.outputs.version }}
+          IMAGE_REF="${{ fromJSON(steps.meta-pretest.outputs.json).tags[0] }}"
+          docker buildx imagetools inspect "$IMAGE_REF"
 
   test:
     name: Run tests in image
@@ -274,7 +275,6 @@ jobs:
             export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
             pip install -q --no-build-isolation --no-deps "dask_memusage==1.1" "pytest>=8,<9"
             PYTHONPATH="/home/jovyan/.local/pytest:${PYTHONPATH:-}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/jovyan/Karabo-Pipeline
-            PYTHONPATH="/home/jovyan/.local/pytest:${PYTHONPATH:-}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/jovyan/Karabo-Pipeline
           '
 
   promote-pass:
@@ -322,4 +322,5 @@ jobs:
 
       - name: Inspect -pass image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta-pass.outputs.version }}
+          IMAGE_REF="${{ fromJSON(steps.meta-pass.outputs.json).tags[0] }}"
+          docker buildx imagetools inspect "$IMAGE_REF"
