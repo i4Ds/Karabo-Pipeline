@@ -158,7 +158,10 @@ ARG BOOST_VERSION=1.82.0
 # 1.86.0 worked at some point
 # conda has 1.82.0
 
-ARG PYUVDATA_VERSION=2.4.2
+ARG PYUVDATA_VERSION=3.2.0
+# conda installs 2.4.2 but it has a bug in MWA beams pointed away from zenith
+# 3.2.1 is the last one that works with Python 3.10 but is yanked and unbuildable
+# 3.2.0 has the beam fix
 
 # Create Spack environment and install deps
 ARG SPACK_TARGET=""
@@ -380,12 +383,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'jupyter_core>=5' \
         'jupyter_client>=8'
 # uninstalled tornado-6.1 jupyter_client-7.1.2
-# ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
-# rascil 1.0.0 requires matplotlib<3.7,>=3.6, but you have matplotlib 3.9.2 which is incompatible.
-# rascil 1.0.0 requires numpy<1.24,>=1.23, but you have numpy 1.26.4 which is incompatible.
-# rascil 1.0.0 requires scipy<1.10,>=1.9, but you have scipy 1.10.1 which is incompatible.
-# rascil 1.0.0 requires tabulate<0.10,>=0.9, but you have tabulate 0.0.0 which is incompatible.
-# rascil 1.0.0 requires xarray<2022.13,>=2022.12, but you have xarray 2023.2.0 which is incompatible.
 # Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.3.0 async-lru-2.0.5 babel-2.17.0 certifi-2025.8.3 charset_normalizer-3.4.3 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.10 isoduration-20.11.0 json5-0.12.1 jsonpointer-3.0.0 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_server-2.17.0 jupyterlab-4.4.9 jupyterlab_server-2.27.3 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 prometheus-client-0.23.1 python-json-logger-3.3.0 requests-2.32.5 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 send2trash-1.8.3 sniffio-1.3.1 terminado-0.18.1 tornado-6.5.2 types-python-dateutil-2.9.0.20250822 uri-template-1.3.0 webcolors-24.11.1 websocket-client-1.8.0
 
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
@@ -435,6 +432,18 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'tools21cm=='$TOOLS21CM_VERSION \
         'mwa-hyperbeam==0.10.4' \
         'ps_eor==0.32'
+
+# bdsf 1.12.0 requires backports.shutil-get-terminal-size, which is not installed.
+# astropy-healpix 1.1.2 requires numpy>=1.25, but you have numpy 1.23.5 which is incompatible.
+# pyuvdata 3.2.0 requires astropy>=6.0, but you have astropy 5.1.1 which is incompatible.
+# rascil 1.0.0 requires matplotlib<3.7,>=3.6, but you have matplotlib 3.9.2 which is incompatible.
+# rascil 1.0.0 requires tabulate<0.10,>=0.9, but you have tabulate 0.0.0 which is incompatible.
+# rascil 1.0.0 requires xarray<2022.13,>=2022.12, but you have xarray 2023.2.0 which is incompatible.
+# ska-sdp-datamodels 0.1.3 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
+# ska-sdp-datamodels 0.1.3 requires xarray<2023.0.0,>=2022.10.0, but you have xarray 2023.2.0 which is incompatible.
+# ska-sdp-func-python 0.1.4 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
+# ska-sdp-func-python 0.1.4 requires xarray<2023.0.0,>=2022.11.0, but you have xarray 2023.2.0 which is incompatible.
+# Successfully installed build-1.3.0 cython-3.0.12 extension_helpers-1.4.0 packaging-25.0 pip-25.2 pyproject_hooks-1.2.0 setuptools-80.9.0 setuptools-scm-9.2.1 versioneer-0.29 wheel-0.45.1
 
 # tests
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \

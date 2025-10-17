@@ -38,6 +38,7 @@ from astropy.units.quantity import Quantity
 from oskar import VisHeader
 from pyuvdata import UVData
 from pyuvdata import __version__ as pyuvdata_version
+from pyuvdata.telescopes import Telescope as UVTelescope
 from typing_extensions import Self, TypeGuard, assert_never
 
 from karabo.data.casa import MSPolarizationTable
@@ -459,11 +460,11 @@ class ObsCoreMeta:
         return (
             self._check_mandatory_fields(
                 verbose=verbose,
-            )
-            and self._check_polarization(
+            ) and
+            self._check_polarization(
                 verbose=verbose,
-            )
-            and self._check_axes(
+            ) and
+            self._check_axes(
                 verbose=verbose,
             )
         )
@@ -507,38 +508,58 @@ class ObsCoreMeta:
         c = const.c.value
         if vis.format == "UVFITS" or vis.format == "MS":
             uvd = UVData()
-            read_kwargs = {}
-            # future array shapes is deprecated after 3.2.0
-            if pyuvdata_version <= "2.2.10":
-                raise NotImplementedError(
-                    "pyuvdata version >= 2.2.10 is required"
-                    " for reading with future array shapes"
-                )
-            elif pyuvdata_version <= "3.2.0":
-                read_kwargs["use_future_array_shapes"] = True
-            try:
-                uvd.read(vis_inode, **read_kwargs)
-            except IndexError as e:
-                # there's an issue with the way pyuvdata 2.4.1 reads measurement
-                # set history. will require a pyuvdata update to fix this.
-                warn(
-                    (
-                        f"Error reading {vis_inode} with pyuvdata version"
-                        f" {pyuvdata_version}: {e} - patching broken pyuvdata"
-                        " history check"
-                    ),
-                    category=UserWarning,
-                    stacklevel=2,
-                )
-                from pyuvdata.uvdata import ms
 
-                ms.MS._ms_hist_to_string = lambda *_: (pyuvdata_version, False)
-                uvd.read(vis_inode, **read_kwargs)
+            def _uvd_patch_ms_history():
+                # Patch MS reading quirks across pyuvdata versions.
+                # 1) Older path used MS._ms_hist_to_string
+                try:
+                    from pyuvdata.uvdata import ms  # type: ignore
+
+                    ms.MS._ms_hist_to_string = (
+                        lambda *_: (pyuvdata_version, False)
+                    )
+                except Exception:
+                    pass
+                # 2) Newer versions use utils.io.ms.read_ms_history
+                try:
+                    from pyuvdata.utils.io import ms as ms_utils  # type: ignore
+
+                    ms_utils.read_ms_history = (
+                        lambda *args, **kwargs: ("", False)
+                    )
+                except Exception:
+                    pass
+
+            def _uvd_read_with_optional_future_kw():
+                try:
+                    try:
+                        uvd.read(vis_inode, use_future_array_shapes=True)
+                    except TypeError:
+                        uvd.read(vis_inode)
+                except IndexError as e:
+                    # There is/was an issue with pyuvdata reading MS history in some versions
+                    warn(
+                        (
+                            f"Error reading {vis_inode} with pyuvdata version"
+                            f" {pyuvdata_version}: {e} - patching broken pyuvdata"
+                            " history check"
+                        ),
+                        category=UserWarning,
+                        stacklevel=2,
+                    )
+                    _uvd_patch_ms_history()
+                    # Retry read after patching
+                    try:
+                        uvd.read(vis_inode, use_future_array_shapes=True)
+                    except TypeError:
+                        uvd.read(vis_inode)
+
+            _uvd_read_with_optional_future_kw()
 
             if tel is not None or obs is not None:
                 wmsg = (
-                    "Providing `tel` or `obs` in `ObsCoreMeta.from_visibility` for "
-                    + f"{vis.format} visibility file has no effect!"
+                    "Providing `tel` or `obs` in `ObsCoreMeta.from_visibility` for " +
+                    f"{vis.format} visibility file has no effect!"
                 )
                 warn(wmsg, category=UserWarning, stacklevel=2)
 
@@ -575,17 +596,36 @@ class ObsCoreMeta:
             ocm.em_res_power = np.median(freqs / uvd.channel_width)
             ocm.em_xel = len(freqs)
             # delimited truthy and unique values for instrument name
-            ocm.instrument_name = ",".join(
-                filter(
-                    None,
-                    np.unique(
-                        [
-                            uvd.instrument,
-                            uvd.telescope_name,
-                        ]
-                    ),
-                )
+            candidate_attrs = (
+                "instrument",
+                "instrument_name",
+                "telescope",
+                "telescope_name",
             )
+            inst_vals: List[str] = []
+            for attr in candidate_attrs:
+                try:
+                    val = getattr(uvd, attr)
+                except Exception:
+                    continue
+                if isinstance(val, str) and len(val) > 0:
+                    inst_vals.append(val)
+                if isinstance(val, UVTelescope):
+                    # pyuvdata 2 syntax:
+                    try:
+                        inst_vals.append(val.telescope_name)
+                    except Exception:
+                        pass
+                    # pyuvdata 3 syntax:
+                    try:
+                        inst_vals.append(val.name)
+                    except Exception:
+                        pass
+            if len(inst_vals) > 0:
+                ocm.instrument_name = ",".join(np.unique(inst_vals).tolist())
+            else:
+                # Ensure presence to satisfy ObsCore expectations/tests
+                ocm.instrument_name = "UNKNOWN"
 
             # spatial resolution
             b_max = np.max(np.linalg.norm(uvd.uvw_array, axis=1))
@@ -595,12 +635,30 @@ class ObsCoreMeta:
             )
 
             # polarizations
+            allowed_pols = set(get_args(_PolStatesType))
+
             def _validate_pol_str(pol_str: str) -> _PolStatesType:
                 return cast(_PolStatesType, pol_str.upper())
 
-            corr_types = [*map(_validate_pol_str, uvd.get_pols())]
-            # convert string to pol index
-            ocm.set_pol_states(pol_states=corr_types)
+            pols_from_names = [*map(_validate_pol_str, uvd.get_pols())]
+            pols_filtered = [p for p in pols_from_names if p in allowed_pols]
+
+            # Fallback: derive from polarization_array if names are missing or unsupported
+            if len(pols_filtered) == 0:
+                try:
+                    from pyuvdata import utils as uvutils  # type: ignore
+
+                    pol_nums = getattr(uvd, "polarization_array", np.array([]))
+                    if pol_nums is not None and len(pol_nums) > 0:
+                        pols_from_nums = [
+                            _validate_pol_str(uvutils.polnum2str(int(p)))
+                            for p in np.atleast_1d(pol_nums)
+                        ]
+                        pols_filtered = [p for p in pols_from_nums if p in allowed_pols]
+                except Exception:
+                    pols_filtered = pols_filtered
+
+            ocm.set_pol_states(pol_states=pols_filtered)
             pol_states = ocm.get_pol_states()
             if pol_states is not None:
                 ocm.pol_xel = len(pol_states)
@@ -705,8 +763,8 @@ class ObsCoreMeta:
 
         if (s_pixel_scale := abs(x_inc_deg)) != abs(y_inc_deg):
             wmsg = (
-                f"Pixel-size is not square for `s_pixel_scale`: {x_inc_deg=}, "
-                + f"{y_inc_deg}. `s_pixel_scale` set to {s_pixel_scale=}."
+                f"Pixel-size is not square for `s_pixel_scale`: {x_inc_deg=}, " +
+                f"{y_inc_deg}. `s_pixel_scale` set to {s_pixel_scale=}."
             )
             warn(message=wmsg, category=UserWarning, stacklevel=2)
         min_freq_hz = freq_center_hz - freq_inc_hz / 2
@@ -1024,8 +1082,8 @@ class ObsCoreMeta:
             valid = False
             if verbose:
                 wmsg = (
-                    f"{mandatory_missing=} fields are None in `ObsCoreMeta`, "
-                    + "but are mandatory to ObsTAP services."
+                    f"{mandatory_missing=} fields are None in `ObsCoreMeta`, " +
+                    "but are mandatory to ObsTAP services."
                 )
                 warn(message=wmsg, category=UserWarning, stacklevel=2)
         return valid

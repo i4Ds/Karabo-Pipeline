@@ -78,7 +78,7 @@ ARG PYTHON_VERSION=3.10
 ARG SCIPY_VERSION=1.10.1
 # 1.9.3 worked with numpy 1.23.5
 # conda uses scipy 1.13.1 but this requires cupy and torch
-ARG PYUVDATA_VERSION=2.4.2
+ARG PYUVDATA_VERSION=3.2.0
 
 # install base dependencies before adding extra spack overlays, this avoids extra build time
 # Create Spack environment and install deps (no RASCIL)
@@ -175,10 +175,6 @@ for name, target in pkgs:
         print(f'OK {name} installed=???')
 print('ALL_DEPS_OK')
 PY
-
-# Copy test runner
-COPY pyuvdata_test_variants.sh /usr/local/bin/pyuvdata_test_variants.sh
-RUN chmod +x /usr/local/bin/pyuvdata_test_variants.sh
 
 # Default user back to jovyan for safety
 USER ${NB_UID}

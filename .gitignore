@@ -119,3 +119,4 @@ data_download/*
 karabo/data/meerkat.tm/element_pattern*
 ._**/*
 .spack*/*
+**.DS_Store
