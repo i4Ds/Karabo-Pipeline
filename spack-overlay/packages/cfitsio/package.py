@@ -18,6 +18,7 @@ class Cfitsio(AutotoolsPackage):
     license("custom")
 
     version("4.4.0", sha256="95900cf95ae760839e7cb9678a7b2fad0858d6ac12234f934bd1cb6bfc246ba9")
+    version("4.3.1", sha256="a3b9502090e49aaa3a9fe464654820ea4957cc30e9c9bf0d3def37c50ab5aff7")
     version("4.3.0", sha256="fdadc01d09cf9f54253802c5ec87eb10de51ce4130411415ae88c30940621b8b")
     version("4.2.0", sha256="eba53d1b3f6e345632bb09a7b752ec7ced3d63ec5153a848380f3880c5d61889")
     version("4.1.0", sha256="b367c695d2831958e7166921c3b356d5dfa51b1ecee505b97416ba39d1b6c17a")
@@ -36,6 +37,10 @@ class Cfitsio(AutotoolsPackage):
     variant("bzip2", default=True, description="Enable bzip2 support")
     variant("shared", default=True, description="Build shared libraries")
     variant("curl", default=False, description="Enable curl support")
+
+    # CFITSIO requires zlib for compression support; make it explicit so Spack
+    # wires proper CPPFLAGS/LDFLAGS and configure can locate -lz.
+    depends_on("zlib")
 
     depends_on("curl", when="+curl")
     depends_on("bzip2", when="+bzip2")
@@ -56,6 +61,14 @@ class Cfitsio(AutotoolsPackage):
             extra_args.append("--disable-curl"),
         return extra_args
 
+    def setup_build_environment(self, env):
+        z = self.spec["zlib"].prefix
+        # Help Autoconf find zlib when not in a system path
+        env.append_flags("CPPFLAGS", f"-I{z.include}")
+        # Prefer lib64 if present; fallback to lib
+        libdir = getattr(z, "lib64", None) or z.lib
+        env.append_flags("LDFLAGS", f"-L{libdir}")
+
     @property
     def build_targets(self):
         targets = ["all"]
@@ -65,5 +78,4 @@ class Cfitsio(AutotoolsPackage):
             targets += ["shared"]
 
         return targets
-
 

@@ -55,19 +55,24 @@ class PyAstropy(PythonPackage):
 
     depends_on("py-astropy-iers-data", when="@6:", type=("build", "run"))
     depends_on("py-numpy@2:", when="@6.1:", type=("build", "run"))
-    depends_on("py-numpy@1.18:", when="@5.1:", type=("build", "run"))
+    # https://github.com/astropy/astropy/issues/16200
+    depends_on("py-numpy@:1.23", when="@:6.0")
+    # Astropy 5.1.x supports NumPy up to 1.23.x only
+    depends_on("py-numpy@1.18:", when="@5.1:6.0", type=("build", "run"))
     depends_on("py-numpy@1.16:", when="@4.0:", type=("build", "run"))
     depends_on("py-numpy@1.13:", when="@3.1:", type=("build", "run"))
     depends_on("py-numpy@1.10:", when="@3.0:", type=("build", "run"))
     depends_on("py-numpy@1.9:", when="@2.0:", type=("build", "run"))
     depends_on("py-numpy@1.7:", when="@1.2:", type=("build", "run"))
     depends_on("py-numpy@1.6:", type=("build", "run"))
-    # https://github.com/astropy/astropy/issues/16200
-    depends_on("py-numpy@:1", when="@:6.0")
     depends_on("py-packaging@19.0:", when="@5.1:", type=("build", "run"))
     depends_on("py-pyyaml@3.13:", when="@5.1:", type=("build", "run"))
-    depends_on("py-pyerfa@2.0.0:2.0", when="@5.1:", type=("build", "run", "test"))
+
     depends_on("py-pyerfa@2.0.1.1:2.0.1", when="@6.1.0:", type=("build", "run", "test"))
+    # For 5.1.x require pyerfa 2.0.0.x (avoid 2.0.1+ API changes)
+    depends_on("py-pyerfa@2.0.0.0:2.0.0", when="@5.1:6.0", type=("build", "run", "test"))
+    conflicts("^py-pyerfa@2.0.1:", when="@5.1:5.1", msg="Astropy 5.1.x is incompatible with pyerfa >= 2.0.1")
+
     depends_on("py-setuptools-scm@6.2:6", when="@5.1:", type="build")
     depends_on("py-extension-helpers@1:1", when="@5.1:", type="build")
     depends_on("pkgconfig", type="build")
@@ -127,7 +132,8 @@ class PyAstropy(PythonPackage):
     # System dependencies
     depends_on("erfa")
     depends_on("wcslib")
-    depends_on("cfitsio@:3")
+    depends_on("cfitsio@:3", when="@:4")
+    depends_on("cfitsio@3:", when="@5:")
     depends_on("expat")
 
     def setup_build_environment(self, env):

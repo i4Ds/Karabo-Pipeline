@@ -71,8 +71,10 @@ ARG PYTHON_VERSION=3.10
 ARG SCIPY_VERSION=1.9.3
 # SciPy 1.9.3 pairs with NumPy 1.23.5 for older C-API compatibility
 # conda uses scipy 1.13.1 but this requires cupy and torch
+ARG HEALPY_VERSION=1.16.6
+# conda installs 1.16.6
 
-# Create Spack environment and install py-astropy
+# Create Spack environment and install py-healpy with internal HEALPix C++
 RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=locked \
     --mount=type=cache,target=/opt/spack-source-cache,id=spack-source-cache,sharing=locked \
     --mount=type=cache,target=/opt/spack-misc-cache,id=spack-misc-cache,sharing=locked \
@@ -102,6 +104,8 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-pyerfa@'$PYERFA_VERSION \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-astropy@'$ASTROPY_VERSION \
+        'py-healpy@'$HEALPY_VERSION'+internal-healpix' \
+        'py-astropy-healpix@'$ASTROPY_HEALPIX_VERSION \
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
@@ -123,16 +127,17 @@ ENV PATH="/opt/view/bin:${PATH}" \
     CMAKE_PREFIX_PATH="/opt/view" \
     PKG_CONFIG_PATH="/opt/view/lib/pkgconfig:/opt/view/lib64/pkgconfig"
 
-RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate -p /opt/spack_env && \
     spack test run 'py-numpy' && \
     spack test run 'py-scipy' && \
     spack test run 'py-pyerfa' && \
-    spack test run 'healpix-cxx'
+    spack test run 'py-healpy' && \
+    spack test run 'py-astropy-healpix'
     # todo: spack test run 'py-astropy'
     # The Spack-driven py-astropy test step is still failing because the harness tries to import the Astropy ASDF test packages, which in turn import plain pytest, and the sandbox it runs in doesn't have pytest on PYTHONPATH. Even though py-pytest was installed as a root spec, the test runner launches /opt/software/.../python3 in a clean staging environment and only populates it with the dependencies declared in the package. Astropy's packaging treats most of these test modules as optional; they aren't pulled in automatically, so the runner reports ModuleNotFoundError: No module named 'pytest'.
 
-# Minimal validation of dependencies
+# Minimal import test for healpy
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
     python - <<'PY'
@@ -145,10 +150,12 @@ import importlib
 
 pkgs = [
     ('astropy','5.1'),
+    ('astropy_healpix', '1.1'),
     ('matplotlib','3.6'),
     ('numpy','1.23'),
     ('erfa','2.0'),
     ('scipy','1.9'),
+    ('healpy','1.16'),
 ]
 
 def parse_version(v):
@@ -174,11 +181,3 @@ for name, target in pkgs:
         print(f'OK {name} installed=???')
 print('ALL_DEPS_OK')
 PY
-
-# Default user back to jovyan
-USER ${NB_UID}
-WORKDIR /home/${NB_USER}
-
-CMD ["bash"]
-
-

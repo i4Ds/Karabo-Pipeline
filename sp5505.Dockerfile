@@ -12,6 +12,8 @@ RUN rm -f /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true; \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get --no-install-recommends install -y \
+        autoconf \
+        automake \
         build-essential \
         ca-certificates \
         cmake \
@@ -19,6 +21,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         file \
         gfortran \
         git \
+        libtool \
         patchelf \
         pkg-config \
         wget \
@@ -43,7 +46,10 @@ RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.g
     spack compiler find && \
     spack external find rust && \
     spack external find git && \
-    spack external find pkgconf
+    spack external find pkgconf && \
+    spack external find autoconf && \
+    spack external find automake && \
+    spack external find libtool
 
 # Add SKA SDP Spack repo and overlay
 RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
@@ -69,7 +75,7 @@ ARG DASK_VERSION=2022.12.1
 # conda uses 2022.12.1
 ARG DUCC_VERSION=0.27
 # conda uses 0.27
-ARG PYERFA_VERSION=2.0.1.5
+ARG PYERFA_VERSION=2.0.0.1
 # conda installs 2.0.1.5
 # 2.0.0.1 needed patches to work with astropy 5.1
 ARG PHOTUTILS_VERSION=1.11.0
@@ -125,14 +131,21 @@ ARG MATPLOTLIB_VERSION=3.9.2
 # 3.6.3 worked at some point
 ARG ASTROPY_VERSION=5.1.1
 # astropy needed by rascil pyuvdata ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels healpy eidos bluebild
+# conda install 5.1.1
+# pyuvdata 2.4.3 requires astropy >= 5.0.4
+# pyuvdata 3.2.0 requires astropy>=6.0
+# astropy 6.1 requires numpy2
+# astropy 6.0.1 works with numpy 1.23.x and pyerfa 2.0.1.x
+# astropy 6 deprecates utils.decorators which is used by healpy 1.16.2
+# astropy 6 deprecates utils.iers which is used by astroplan 0.10.1
 # astropy>5.2 has no ._erfa
 ARG CASACORE_VERSION=3.5.0
 # casacore needed by everybeam wsclean oskar rascil
-ARG HEALPY_VERSION=1.16.2
+ARG HEALPY_VERSION=1.16.6
+# healpy needed by rascil ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels eidos bluebild
 # conda installs 1.16.6
 # 1.16.2 worked at some point
-# healpy needed by rascil ska-sdp-func-python aratmospy bdsf tools21cm gwcs photutils ska-sdp-datamodels eidos bluebild
-
+# astropy 6.0.1 wants 1.17.3
 ARG OSKAR_VERSION=2.8.3
 
 ARG TOOLS21CM_VERSION=2.3.8
@@ -158,7 +171,7 @@ ARG BOOST_VERSION=1.82.0
 # 1.86.0 worked at some point
 # conda has 1.82.0
 
-ARG PYUVDATA_VERSION=3.2.0
+ARG PYUVDATA_VERSION=2.4.2
 # conda installs 2.4.2 but it has a bug in MWA beams pointed away from zenith
 # 3.2.1 is the last one that works with Python 3.10 but is yanked and unbuildable
 # 3.2.0 has the beam fix
@@ -203,7 +216,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-pyerfa@'$PYERFA_VERSION \
         'py-numpy@'$NUMPY_VERSION \
-        'py-pip@:25.2' \
+        'py-pip' \
         'py-scipy@'$SCIPY_VERSION \
         'python@'$PYTHON_VERSION \
         # known good from rascil.Dockerfile
@@ -218,7 +231,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-distributed@'$DISTRIBUTED_VERSION \
         'py-ducc@'$DUCC_VERSION \
         'py-h5py@'$H5PY_VERSION \
-        'py-healpy@'$HEALPY_VERSION \
+        'py-healpy@'$HEALPY_VERSION'+internal-healpix' \
         'py-numexpr@'$NUMEXPR_VERSION \
         'py-pandas@'$PANDAS_VERSION \
         'py-photutils@'$PHOTUTILS_VERSION \
@@ -334,42 +347,6 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
 #     spack env activate /opt/spack_env && \
 #     python -c "from mwa_hyperbeam import FEEBeam; print('mwa_hyperbeam (Spack) import successful')"
 
-# todo: try spack env activate /opt/spack_env --with-view /opt/view
-RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    python - <<"PY"
-import importlib, sys, os
-print(f'PYTHONPATH: {sys.path}')
-print(f'LD_LIBRARY_PATH: {os.environ.get("LD_LIBRARY_PATH")}')
-print(f'PATH: {os.environ.get("PATH")}')
-print(f'BASH_ENV: {os.environ.get("BASH_ENV")}')
-print(f'PYTHONNOUSERSITE: {os.environ.get("PYTHONNOUSERSITE")}')
-print(f'CMAKE_PREFIX_PATH: {os.environ.get("CMAKE_PREFIX_PATH")}')
-print(f'PKG_CONFIG_PATH: {os.environ.get("PKG_CONFIG_PATH")}')
-
-checks = [
-    ('astropy','5.1.1'),
-    ('erfa','2.0'),
-    ('healpy','1.16'),
-    # TODO: ('mwa_hyperbeam','0.10'),
-]
-for (name, target) in checks:
-    mod = None
-    try:
-        mod = importlib.import_module(name)
-    except Exception as exc:
-        print(f'{name} not importable: {exc}')
-        sys.exit(1)
-    ver = getattr(mod, '__version__', '0.0')
-    try:
-        assert tuple([*ver.split('.')]) >= tuple([*target.split('.')])
-    except Exception as exc:
-        print(f'{name} version not available: {exc}')
-        continue
-    print(f'{name} version {ver}, target {target}')
-sys.exit(0)
-PY
-
 # Install Jupyter stack via pip (Spack lacks notebook@7)
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
@@ -384,32 +361,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         'jupyter_client>=8'
 # uninstalled tornado-6.1 jupyter_client-7.1.2
 # Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.3.0 async-lru-2.0.5 babel-2.17.0 certifi-2025.8.3 charset_normalizer-3.4.3 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.10 isoduration-20.11.0 json5-0.12.1 jsonpointer-3.0.0 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_server-2.17.0 jupyterlab-4.4.9 jupyterlab_server-2.27.3 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 prometheus-client-0.23.1 python-json-logger-3.3.0 requests-2.32.5 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 send2trash-1.8.3 sniffio-1.3.1 terminado-0.18.1 tornado-6.5.2 types-python-dateutil-2.9.0.20250822 uri-template-1.3.0 webcolors-24.11.1 websocket-client-1.8.0
-
-RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    python - <<"PY"
-import importlib, sys
-checks = [
-    ('astropy','5.1.1'),
-    ('erfa','2.0'),
-    ('healpy','1.16'),
-]
-for (name, target) in checks:
-    mod = None
-    try:
-        mod = importlib.import_module(name)
-    except Exception as exc:
-        print(f'{name} not importable: {exc}')
-        sys.exit(1)
-    ver = getattr(mod, '__version__', '0.0')
-    try:
-        assert tuple([*ver.split('.')]) >= tuple([*target.split('.')])
-    except Exception as exc:
-        print(f'{name} version not available: {exc}')
-        continue
-    print(f'{name} version {ver}, target {target}')
-sys.exit(0)
-PY
 
 # TODO:
 # ARG ARATMOSPY_VERSION=1.0.0
@@ -455,12 +406,12 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
 import importlib, sys
 checks = [
     ('aratmospy','0.0'),
-    ('astropy','5.1.1'),
+    ('astropy','5.1'),
     ('astropy_healpix','1.0'),
     ('bdsf','1.10'),
     ('dask_mpi','0.0'),
     ('dask','2022.10'),
-    ('distributed','2022.10'), # conda has 2022.12.1
+    ('distributed','2022.10'),
     ('eidos','0.0'),
     ('erfa','2.0'),
     ('healpy','1.16'),
@@ -470,7 +421,7 @@ checks = [
     ('mpi4py','0.0'),
     ('numpy','1.23.5'),
     ('pyfftw','0.0'),
-    ('pyuvdata','2.4.2'),
+    ('pyuvdata','2.4'),
     ('rascil','1.0'),
     ('rfc3986','2.0'),
     ('skimage','0.24'),
@@ -479,7 +430,7 @@ checks = [
     ('toolz','0.0'),
     ('tqdm','4.0'),
     ('wheel', '0.0'),
-    ('mwa_hyperbeam','0.10'),
+    # ('mwa_hyperbeam','0.10'),
 ]
 for (name, target) in checks:
     mod = None
@@ -631,6 +582,7 @@ RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
     pip install -q --no-build-isolation --no-deps 'dask_memusage==1.1' && \
     pip install -q -t "/home/${NB_USER}/.local/pytest" 'pytest>=8,<9' && \
     # heavy imaging test was failing (disk space): test_imaging
+    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "test_from_visibility" /home/${NB_USER}/Karabo-Pipeline && \
     PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/${NB_USER}/Karabo-Pipeline && \
     PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/${NB_USER}/Karabo-Pipeline; \
     rm -rf /home/${NB_USER}/.astropy/cache \

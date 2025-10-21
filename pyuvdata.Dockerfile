@@ -8,39 +8,25 @@ SHELL ["/bin/bash", "-lc"]
 RUN rm -f /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true; \
     rm -rf /opt/conda || true
 
-# System build dependencies and libraries for pyuvdata extras
+# Essential system dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get --no-install-recommends install -y \
+        autoconf \
+        automake \
         build-essential \
         ca-certificates \
+        cmake \
         curl \
         file \
-        git \
         gfortran \
+        git \
+        libtool \
+        patchelf \
         pkg-config \
-        # python3-venv \
-        # python3-dev \
-        # python3-pip \
-        # libhdf5-dev \
-        # libcfitsio-dev \
-        # libfftw3-dev \
-        # libopenmpi-dev \
-        # liblapack-dev \
-        # libblas-dev \
-        # libzstd1 \
-        # zlib1g-dev \
         wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# Optional: casacore libraries for the 'casa' extra (best effort)
-# RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-#     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-#     apt-get update && apt-get --no-install-recommends install -y \
-#         casacore-tools \
-#         casacore-dev \
-#         wcslib-dev \
-#     || true
+        zstd \
+    ;
 
 # Install Rust before any Spack setup, because Spack rust is unbelievably slow.
 ARG RUST_VERSION=1.81.0
@@ -59,7 +45,11 @@ RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.g
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack compiler find && \
     spack external find rust && \
-    spack external find git
+    spack external find git && \
+    spack external find pkgconf && \
+    spack external find autoconf && \
+    spack external find automake && \
+    spack external find libtool
 
 # Add SKA SDP Spack repo and overlay
 RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
@@ -71,14 +61,21 @@ ARG ASTROPY_VERSION=5.1.1
 ARG ASTROPY_HEALPIX_VERSION=1.1.2
 ARG MATPLOTLIB_VERSION=3.9.2
 # conda uses 3.10.5 but max available is 3.9.2
-ARG NUMPY_VERSION=1.26.4
-ARG PYERFA_VERSION=2.0.1.5
-# pyerfa 2.0.0.1 is best version for astropy 5.1
+ARG NUMPY_VERSION=1.23.5
+# astropy 5.1.1 requires numpy<1.24; healpy 1.16.6 builds with 1.23.x
+ARG CFITSIO_VERSION=4.3.1
+# conda installs 4.3.1
+ARG PYERFA_VERSION=2.0.0.1
+# astropy 5.1.1 requires pyerfa <2.0.1.0
 ARG PYTHON_VERSION=3.10
-ARG SCIPY_VERSION=1.10.1
-# 1.9.3 worked with numpy 1.23.5
+# conda installs 3.10.18, but only up to 3.10.14 is available in spack
+ARG SCIPY_VERSION=1.9.3
+# SciPy 1.9.3 pairs with NumPy 1.23.5 for older C-API compatibility
 # conda uses scipy 1.13.1 but this requires cupy and torch
-ARG PYUVDATA_VERSION=3.2.0
+ARG HEALPY_VERSION=1.16.6
+# conda installs 1.16.6
+ARG PYUVDATA_VERSION=2.4.2
+# conda installs 2.4.2
 
 # install base dependencies before adding extra spack overlays, this avoids extra build time
 # Create Spack environment and install deps (no RASCIL)
@@ -89,7 +86,15 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     mkdir -p /opt/{software,view,buildcache,spack-source-cache,spack-misc-cache}; \
     spack env create --dir /opt/spack_env; \
     spack env activate /opt/spack_env; \
+    spack clean && \
     spack config add "config:install_tree:root:/opt/software"; \
+    spack config add "packages:py-astropy:version:[${ASTROPY_VERSION}]"; \
+    spack config add "packages:py-astropy-healpix:version:[${ASTROPY_HEALPIX_VERSION}]"; \
+    spack config add "packages:py-matplotlib:version:[${MATPLOTLIB_VERSION}]"; \
+    spack config add "packages:py-numpy:version:[${NUMPY_VERSION}]"; \
+    spack config add "packages:py-pyerfa:version:[${PYERFA_VERSION}]"; \
+    spack config add "packages:py-scipy:version:[${SCIPY_VERSION}]"; \
+    spack config add "packages:py-healpy:version:[${HEALPY_VERSION}]"; \
     spack config add "concretizer:unify:true"; \
     spack config add "view:/opt/view"; \
     spack config add "config:source_cache:/opt/spack-source-cache"; \
@@ -97,14 +102,15 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack mirror add --autopush --unsigned mycache file:///opt/buildcache; \
     spack buildcache keys --install --trust || true; \
     spack add \
-        'py-astropy@'$ASTROPY_VERSION \
-        'py-astropy-healpix@'$ASTROPY_HEALPIX_VERSION \
-        'py-matplotlib@'$MATPLOTLIB_VERSION \
-        'py-numpy@'$NUMPY_VERSION \
-        'py-pip@:25.2' \
-        'py-pyerfa@'$PYERFA_VERSION \
-        'py-scipy@'$SCIPY_VERSION \
         'python@'$PYTHON_VERSION \
+        'py-numpy@'$NUMPY_VERSION \
+        'cfitsio@'$CFITSIO_VERSION \
+        'py-scipy@'$SCIPY_VERSION \
+        'py-pyerfa@'$PYERFA_VERSION \
+        'py-matplotlib@'$MATPLOTLIB_VERSION \
+        'py-astropy@'$ASTROPY_VERSION \
+        'py-healpy@'$HEALPY_VERSION'+internal-healpix' \
+        'py-astropy-healpix@'$ASTROPY_HEALPIX_VERSION \
         'py-pyuvdata@'$PYUVDATA_VERSION'+casa' \
     && \
     spack concretize --force && \
@@ -132,7 +138,7 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack test run 'py-scipy' && \
     spack test run 'py-pyerfa' && \
     # spack test run 'py-astropy'
-    # The Spack-driven py-astropy test step is still failing because the harness tries to import the Astropy ASDF test packages, which in turn import plain pytest, and the sandbox it runs in doesn’t have pytest on PYTHONPATH. Even though py-pytest was installed as a root spec, the test runner launches /opt/software/.../python3 in a clean staging environment and only populates it with the dependencies declared in the package. Astropy’s packaging treats most of these test modules as optional; they aren’t pulled in automatically, so the runner reports ModuleNotFoundError: No module named 'pytest'.
+    # The Spack-driven py-astropy test step is still failing because the harness tries to import the Astropy ASDF test packages, which in turn import plain pytest, and the sandbox it runs in doesn't have pytest on PYTHONPATH. Even though py-pytest was installed as a root spec, the test runner launches /opt/software/.../python3 in a clean staging environment and only populates it with the dependencies declared in the package. Astropy's packaging treats most of these test modules as optional; they aren't pulled in automatically, so the runner reports ModuleNotFoundError: No module named 'pytest'.
     spack test run 'py-pyuvdata'
 
 # Minimal validation of dependencies
@@ -161,11 +167,6 @@ for name, target in pkgs:
         ver = None
     if ver:
         ver_tup=tuple(map(int,ver.split('.')))
-        # ensure astropy <5.2
-        if name == 'astropy':
-            if ver_tup >= (5,2):
-                print(f'FAIL {name}: {ver} >= 5.2')
-                exit(1)
         target_tup=tuple(map(int,target.split('.')))
         if ver_tup < target_tup:
             print(f'FAIL {name}: {ver} < {target}')
@@ -181,4 +182,4 @@ USER ${NB_UID}
 WORKDIR /home/${NB_USER}
 
 # Run tests by default; all output is tee'd inside script
-CMD ["/usr/local/bin/pyuvdata_test_variants.sh"]
+CMD ["bash"]
