@@ -57,49 +57,15 @@ RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/
 COPY spack-overlay /opt/karabo-spack
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/karabo-spack
 
+ARG PYTHON_VERSION=3.10
 ARG NUMPY_VERSION=1.23.5
 # 1.23.5 worked at some point
-ARG PYTHON_VERSION=3.10
-
-# Version pins aligned with sp5505
-ARG ASTROPLAN_VERSION=0.10.1
-# 0.8 may have worked at some point
-# conda uses 0.10.1
-ARG ASTROPY_HEALPIX_VERSION=1.1.2
-# 1.0.0 was installed at some point
-# conda uses 1.1.2
-ARG BDSF_VERSION=1.12.0
-# 1.12.0 is easier to install because of setuptools nonsense
-# conda uses 1.10.2
-ARG DASK_VERSION=2022.12.1
-# conda uses 2022.12.1
-ARG DUCC_VERSION=0.27
-# conda uses 0.27
-ARG PYERFA_VERSION=2.0.0.1
-# conda installs 2.0.1.5
-# 2.0.0.1 needed patches to work with astropy 5.1
-ARG PHOTUTILS_VERSION=1.11.0
-# 1.11.0 worked at some point
-# TODO: conda uses 1.8.0
-ARG REPROJECT_VERSION=0.9.1
-# 0.9.1 worked at some point
-# TODO: conda uses 0.14.1
-ARG SDP_DATAMODELS_VERSION=0.1.3
-ARG SDP_FUNC_VERSION=1.2.2
-# 0.1.5 worked at some point
-# TODO: conda uses 0.0.6
-# earliest 1.1.7 in sdp-spack
-# 1.2.2 works with the current stack
-ARG SDP_FUNC_PYTHON_VERSION=0.1.4
-# TODO: conda uses 0.1.4 !
-# 0.1.5 works with the current stack
-ARG RASCIL_VERSION=1.0.0
-# conda uses 1.0.0
-
 # numpy needed by pyuvdata montagepy numexpr scipy rascil scikit-image pywavelets astroml ducc0 imageio ska-sdp-func-python contourpy aratmospy bokeh astroplan coda harp astropy-healpix katbeam tensorboard h5py dask ml_dtypes ska-gridder-nifty-cuda libboost-python-devel python-casacore tifffile pytest-arraydiff shapely bdsf casacore finufft reproject numcodecs matplotlib-base tools21cm libboost-python numba gwcs tensorflow-base pyfftw boost xarray asdf pyside6 photutils astropy bottleneck pandas oskarpy ska-sdp-datamodels ska-sdp-func healpy keras scikit-learn pyerfa eidos asdf-astropy zarr bluebild
 # numpy 1.26.4 installed by conda
 # numpy>=1.24 required by zarr 2.18.3
 # numpy 1.23 needed by rascil 1.0.0 and ska-sdp-func-python 0.1.5
+ARG CFITSIO_VERSION=4.3.1
+# conda installs 4.3.1
 ARG PANDAS_VERSION=1.5.3
 # pandas needed by rascil dask xarray ska-sdp-datamodels bluebild
 # pandas 1.5.3 is installed by conda
@@ -176,6 +142,42 @@ ARG PYUVDATA_VERSION=2.4.2
 # 3.2.1 is the last one that works with Python 3.10 but is yanked and unbuildable
 # 3.2.0 has the beam fix
 
+
+# Version pins aligned with sp5505
+ARG ASTROPLAN_VERSION=0.10.1
+# 0.8 may have worked at some point
+# conda uses 0.10.1
+ARG ASTROPY_HEALPIX_VERSION=1.1.2
+# 1.0.0 was installed at some point
+# conda uses 1.1.2
+ARG BDSF_VERSION=1.12.0
+# 1.12.0 is easier to install because of setuptools nonsense
+# conda uses 1.10.2
+ARG DASK_VERSION=2022.12.1
+# conda uses 2022.12.1
+ARG DUCC_VERSION=0.27
+# conda uses 0.27
+ARG PYERFA_VERSION=2.0.0.1
+# conda installs 2.0.1.5
+# 2.0.0.1 needed patches to work with astropy 5.1
+ARG PHOTUTILS_VERSION=1.11.0
+# 1.11.0 worked at some point
+# TODO: conda uses 1.8.0
+ARG REPROJECT_VERSION=0.9.1
+# 0.9.1 worked at some point
+# TODO: conda uses 0.14.1
+ARG SDP_DATAMODELS_VERSION=0.1.3
+ARG SDP_FUNC_VERSION=1.2.2
+# 0.1.5 worked at some point
+# TODO: conda uses 0.0.6
+# earliest 1.1.7 in sdp-spack
+# 1.2.2 works with the current stack
+ARG SDP_FUNC_PYTHON_VERSION=0.1.4
+# TODO: conda uses 0.1.4 !
+# 0.1.5 works with the current stack
+ARG RASCIL_VERSION=1.0.0
+# conda uses 1.0.0
+
 # Create Spack environment and install deps
 ARG SPACK_TARGET=""
 
@@ -206,8 +208,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack buildcache keys --install --trust || true; \
     # TODO: spack mirror add v0.23.1 https://binaries.spack.io/v0.23.1; \
     spack add \
-        'cfitsio' \
-        'healpix-cxx' \
+        'cfitsio@'$CFITSIO_VERSION \
         # known good from bdsf.Dockerfile and astropy.Dockerfile
         'boost@'$BOOST_VERSION'+python+numpy' \
         'py-astropy@'$ASTROPY_VERSION \
