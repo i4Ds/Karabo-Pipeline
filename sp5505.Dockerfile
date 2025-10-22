@@ -64,6 +64,7 @@ ARG NUMPY_VERSION=1.23.5
 # numpy 1.26.4 installed by conda
 # numpy>=1.24 required by zarr 2.18.3
 # numpy 1.23 needed by rascil 1.0.0 and ska-sdp-func-python 0.1.5
+# numpy>=1.25 required by astropy-healpix 1.1.2
 ARG CFITSIO_VERSION=4.3.1
 # conda installs 4.3.1
 ARG PANDAS_VERSION=1.5.3
@@ -157,9 +158,10 @@ ARG DASK_VERSION=2022.12.1
 # conda uses 2022.12.1
 ARG DUCC_VERSION=0.27
 # conda uses 0.27
-ARG PYERFA_VERSION=2.0.0.1
+ARG PYERFA_VERSION=2.0.1.5
 # conda installs 2.0.1.5
 # 2.0.0.1 needed patches to work with astropy 5.1
+# pyerfa 2.0.0.1 rejects Quantity inputs used by Astropy 5's EarthLocation geodetic conversion
 ARG PHOTUTILS_VERSION=1.11.0
 # 1.11.0 worked at some point
 # TODO: conda uses 1.8.0
@@ -406,7 +408,7 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     python - <<"PY"
 import importlib, sys
 checks = [
-    ('aratmospy','0.0'),
+    ('ARatmospy','1.0'),
     ('astropy','5.1'),
     ('astropy_healpix','1.0'),
     ('bdsf','1.10'),
@@ -435,7 +437,7 @@ checks = [
 ]
 for (name, target) in checks:
     mod = None
-    if name == 'aratmospy':
+    if name.lower() == 'aratmospy':
         exc = None
         for candidate in ('aratmospy', 'ARatmospy'):
             try:
@@ -519,7 +521,7 @@ RUN --mount=type=cache,target=/home/${NB_USER}/.cache/pip \
         python -c "import sys, importlib.util as iu; print('sys.path[0:5]=', sys.path[:5]); print('versioneer spec:', iu.find_spec('versioneer'))" && \
     PYTHONPATH="${BOOTSTRAP_PYTHONPATH}:/opt/view/lib/python3.10/site-packages:${PYTHONPATH}" \
         PYTHONDONTWRITEBYTECODE=1 \
-        pip -vvv install --use-pep517 --no-build-isolation -e /home/jovyan/Karabo-Pipeline
+        pip -vvv install --use-pep517 --no-build-isolation --no-cache-dir -e /home/jovyan/Karabo-Pipeline
 
 
 #    check.warn(importable)
