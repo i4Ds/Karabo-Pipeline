@@ -35,12 +35,12 @@ class PyReproject(PythonPackage):
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_REPROJECT", self.spec.version.string)
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import reproject; print(reproject.__version__) ")
 
     def test_healpix_api(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             code = (
                 "from reproject.healpix import reproject_from_healpix; print('ok')"

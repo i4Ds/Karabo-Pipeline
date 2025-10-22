@@ -53,6 +53,6 @@ class PyCasacore(PythonPackage):
     import_modules = ["casacore", "casacore.tables", "casacore.quanta"]
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import casacore, casacore.tables, casacore.quanta; print('py-casacore OK') ")

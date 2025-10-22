@@ -52,13 +52,13 @@ class PyAstropyHealpix(PythonPackage):
 
     def test_import(self):
         """Verify the module imports after installation."""
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import astropy_healpix as ah; print(ah.__version__) ")
 
     def test_basic_api(self):
         """Lightweight runtime check of a basic API call."""
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             code = (
                 "from astropy_healpix import HEALPix; from astropy import units as u; "

@@ -25,7 +25,7 @@ class PyDaskMemusage(PythonPackage):
     import_modules = ["dask_memusage"]
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import dask_memusage; print('py-dask-memusage OK') ")
 

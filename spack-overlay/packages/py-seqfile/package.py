@@ -24,7 +24,7 @@ class PySeqfile(PythonPackage):
     import_modules = ["seqfile"]
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import seqfile; print('py-seqfile OK') ")
 

@@ -328,7 +328,7 @@ class Oskar(CMakePackage):
         if "+python" not in self.spec:
             print("Skipping Python import test: +python variant disabled")
             return
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             env = os.environ.copy()
             # Help Python locate the installed module under the prefix
@@ -353,7 +353,7 @@ class Oskar(CMakePackage):
         if not os.path.isdir(python_dir):
             return
 
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if not python:
             return
 

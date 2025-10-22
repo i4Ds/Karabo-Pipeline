@@ -40,12 +40,12 @@ class PySkaSdpFuncPython(PythonPackage):
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SKA_SDP_FUNC_PYTHON", self.spec.version.string)
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import ska_sdp_func_python as s; print('ok') ")
 
     def test_kdtree_assignment_debug(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if not python:
             return
         code = r'''import numpy as np

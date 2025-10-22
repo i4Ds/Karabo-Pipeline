@@ -38,7 +38,7 @@ class PyAstroplan(PythonPackage):
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ASTROPLAN", self.spec.version.string)
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import astroplan as ap; print('ok') ")
 

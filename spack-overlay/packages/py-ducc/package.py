@@ -52,7 +52,7 @@ class PyDucc(PythonPackage):
             f.writelines(new_lines)
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import ducc0, sys; print(ducc0.__version__) ")
 

@@ -298,7 +298,7 @@ class Hyperbeam(Package):
             print("Skipping Python import test: +python variant disabled")
             return
 
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             env = os.environ.copy()
             try:
@@ -316,7 +316,7 @@ class Hyperbeam(Package):
             print("Skipping beam calculation test: +python variant disabled")
             return
 
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if not python:
             return
 

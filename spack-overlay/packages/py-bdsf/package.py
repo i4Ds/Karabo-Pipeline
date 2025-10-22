@@ -77,7 +77,7 @@ class PyBdsf(PythonPackage):
     import_modules = ["bdsf"]
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import bdsf; print('ok') ")
 

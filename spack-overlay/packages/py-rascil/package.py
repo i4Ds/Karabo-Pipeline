@@ -67,13 +67,13 @@ class PyRascil(PythonPackage):
             python("-m", "pip", "install", "--no-build-isolation", "--no-deps", f"--prefix={prefix}", f"rascil=={self.version}")
 
     def test_import(self):
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if python:
             python("-c", "import rascil; print('py-rascil OK') ")
 
     def test_env_assignment_signature(self):
         # Minimal diagnostic to capture environment modules and KDTree behavior
-        python = which("python3") or which("python")
+        python = self.spec["python"].command
         if not python:
             return
         code = r'''import importlib, numpy as np
