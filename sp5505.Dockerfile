@@ -183,6 +183,7 @@ ARG RASCIL_VERSION=1.0.0
 ARG ARATMOSPY_VERSION=1.0.0
 ARG EIDOS_VERSION=1.1.0
 ARG KATBEAM_VERSION=0.1.0
+ARG KARABO_VERSION=0.34.0
 
 # Create Spack environment and install deps
 ARG SPACK_TARGET=""
@@ -271,6 +272,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-aratmospy@'$ARATMOSPY_VERSION \
         'py-eidos@'$EIDOS_VERSION \
         'py-katbeam@'$KATBEAM_VERSION \
+        'py-karabo@'$KARABO_VERSION \
         # TODO: 'hyperbeam+python' \
         # todo: py-tools21cm py-toolz
         # 'py-jupyterlab@4' \
@@ -351,7 +353,8 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack test run 'py-dask-mpi' && \
     spack test run 'py-pyfftw' && \
     spack test run 'py-eidos' && \
-    spack test run 'py-katbeam'
+    spack test run 'py-katbeam' && \
+    spack test run 'py-karabo'
     # TODO: spack test run 'hyperbeam'
     # spack test run 'py-pyuvdata'
 
@@ -420,6 +423,7 @@ checks = [
     ('erfa','2.0'),
     ('healpy','1.16'),
     ('joblib','0.0'),
+    ('karabo','0.34'),
     ('katbeam','0.1'),
     ('lazy_loader','0.0'),
     ('mpi4py','0.0'),
@@ -498,73 +502,15 @@ ARG NB_GID=100
 RUN fix-permissions /home/${NB_USER} && \
     fix-permissions /opt/view/lib/python3.10/
 
-RUN git clone https://github.com/micbia/mirto.git /opt/mirto && cd $_ && fix-permissions /opt/mirto
-
 COPY --chown=${NB_UID}:${NB_GID} . /home/${NB_USER}/Karabo-Pipeline
 
 RUN fix-permissions /home/${NB_USER}/Karabo-Pipeline
 
 USER ${NB_UID}
-# Set explicit version for Karabo-Pipeline when building without VCS metadata
-ARG KARABO_VERSION=0.34.0
-ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KARABO_PIPELINE=${KARABO_VERSION} \
-    VERSIONEER_OVERRIDE=${KARABO_VERSION}
 
-RUN --mount=type=cache,target=/home/${NB_USER}/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    echo PYTHONPATH="${PYTHONPATH}" && \
-    echo which pip: $(which pip) && \
-    echo pip --version: $(pip --version) && \
-    printf 'version = "%s"\n\n' "${KARABO_VERSION}" > /home/${NB_USER}/Karabo-Pipeline/karabo/_version.py && \
-    printf 'def get_versions():\n    return {"version": "%s", "full-revisionid": None, "dirty": None, "error": None, "date": None}\n' "${KARABO_VERSION}" >> /home/${NB_USER}/Karabo-Pipeline/karabo/_version.py && \
-    PYTHONPATH="${BOOTSTRAP_PYTHONPATH}:/opt/view/lib/python3.10/site-packages:${PYTHONPATH}" \
-        python -c "import sys, importlib.util as iu; print('sys.path[0:5]=', sys.path[:5]); print('versioneer spec:', iu.find_spec('versioneer'))" && \
-    PYTHONPATH="${BOOTSTRAP_PYTHONPATH}:/opt/view/lib/python3.10/site-packages:${PYTHONPATH}" \
-        PYTHONDONTWRITEBYTECODE=1 \
-        pip -vvv install --use-pep517 --no-build-isolation --no-cache-dir -e /home/jovyan/Karabo-Pipeline
-
-
-#    check.warn(importable)
-#  /opt/view/lib/python3.10/site-packages/setuptools/command/build_py.py:212: _Warning: Package 'karabo.examples.data' is absent from the `packages` configuration.
-#  !!
-#
-#          ********************************************************************************
-#          ############################
-#          # Package would be ignored #
-#          ############################
-#          Python recognizes 'karabo.examples.data' as an importable package[^1],
-#          but it is absent from setuptools' `packages` configuration.
-#
-#          This leads to an ambiguous overall configuration. If you want to distribute this
-#          package, please make sure that 'karabo.examples.data' is explicitly added
-#          to the `packages` configuration field.
-#
-#          Alternatively, you can also rely on setuptools' discovery methods
-#          (for example by using `find_namespace_packages(...)`/`find_namespace:`
-#          instead of `find_packages(...)`/`find:`).
-#
-#          You can read more about "package discovery" on setuptools documentation page:
-#
-#          - https://setuptools.pypa.io/en/latest/userguide/package_discovery.html
-#
-#          If you don't want 'karabo.examples.data' to be distributed and are
-#          already explicitly excluding 'karabo.examples.data' via
-#          `find_namespace_packages(...)/find_namespace` or `find_packages(...)/find`,
-#          you can try to use `exclude_package_data`, or `include-package-data=False` in
-#          combination with a more fine grained `package-data` configuration.
-#
-#          You can read more about "package data files" on setuptools documentation page:
-#
-#          - https://setuptools.pypa.io/en/latest/userguide/datafiles.html
-#
-#
-#          [^1]: For Python, any directory (with suitable naming) can be imported,
-#                even if it does not contain any `.py` files.
-#                On the other hand, currently there is no concept of package data
-#                directory, all directories are treated like packages.
-#          ********************************************************************************
-
+# Karabo is now installed via Spack (py-karabo-pipeline)
+# The local repository copy is kept for running tests
+# ARG KARABO_VERSION already set above for Spack package version
 
 # Register kernel for jovyan user using the Spack Python
 RUN python -m ipykernel install --user --name=karabo --display-name="Karabo (Spack Py3.10)"
@@ -572,15 +518,6 @@ RUN python -m ipykernel install --user --name=karabo --display-name="Karabo (Spa
 # Run tests during build to validate environment
 ARG SKIP_TESTS=0
 ENV SKIP_TESTS=${SKIP_TESTS}
-# Debug expected assignment ordering for unassigned rows (-1) before tests
-RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
-    PYTHONPATH="/opt/view/lib/python3.10/site-packages" python - <<'PY'
-import numpy as np
-a=np.load('/home/jovyan/Karabo-Pipeline/karabo/test/data/sdp/gt_assignment.npy')
-neg=a[a[:,0]<0]
-print('EXPECTED_NEG_HEAD', neg[:20,1].astype(int).tolist())
-print('EXPECTED_NEG_SORTED_BY_PRED', bool(np.all(neg[:,1]==np.sort(neg[:,1]))))
-PY
 RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
     export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1; \
     # heavy imaging test was failing (disk space): test_imaging

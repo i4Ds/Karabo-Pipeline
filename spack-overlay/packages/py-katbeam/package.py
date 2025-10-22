@@ -9,7 +9,7 @@ from spack.package import (version, build_system, PythonPackage, depends_on)
 
 class PyKatbeam(PythonPackage):
     """Karoo Array Telescope primary beam model library.
-    
+
     Primary beam model library for the MeerKAT project, providing functionality to
     compute simplified beam patterns of MeerKAT antennas using the JimBeam class.
     """
