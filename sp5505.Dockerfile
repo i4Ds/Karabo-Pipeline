@@ -177,6 +177,7 @@ ARG SDP_FUNC_PYTHON_VERSION=0.1.4
 # 0.1.5 works with the current stack
 ARG RASCIL_VERSION=1.0.0
 # conda uses 1.0.0
+ARG ARATMOSPY_VERSION=1.0.0
 
 # Create Spack environment and install deps
 ARG SPACK_TARGET=""
@@ -237,6 +238,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-pandas@'$PANDAS_VERSION \
         'py-photutils@'$PHOTUTILS_VERSION \
         'py-rascil@'$RASCIL_VERSION \
+        # from oskar.Dockerfile
         'py-reproject@'$REPROJECT_VERSION \
         'py-seqfile@'$SEQFILE_VERSION \
         'py-ska-sdp-datamodels@'$SDP_DATAMODELS_VERSION \
@@ -245,6 +247,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-tabulate@'$TABULATE_VERSION \
         'py-xarray@'$XARRAY_VERSION \
         'oskar@'$OSKAR_VERSION'+python~openmp' \
+        # others
         'py-bottleneck@'$BOTTLENECK_VERSION \
         'py-dask-mpi' \
         'py-extension-helpers@1.1.1' \
@@ -260,8 +263,9 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-scikit-learn' \
         'py-tqdm' \
         'py-pyuvdata@'$PYUVDATA_VERSION'+casa' \
+        'py-aratmospy@'$ARATMOSPY_VERSION \
         # TODO: 'hyperbeam+python' \
-        # todo: py-aratmospy py-eidos py-katbeam py-tools21cm py-toolz
+        # todo: py-eidos py-katbeam py-tools21cm py-toolz
         # 'py-jupyterlab@4' \
         # 'py-jupyter-server@2' \
         # 'py-jupyterlab-server@2' \
@@ -275,7 +279,6 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         # py-ska-gridder-nifty-cuda?
         # py-wheel?
         'wsclean@=3.4' \
-        # cfitsio?
         # harp?
         # montagepy?
         # mpich?
@@ -364,21 +367,18 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.3.0 async-lru-2.0.5 babel-2.17.0 certifi-2025.8.3 charset_normalizer-3.4.3 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.10 isoduration-20.11.0 json5-0.12.1 jsonpointer-3.0.0 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_server-2.17.0 jupyterlab-4.4.9 jupyterlab_server-2.27.3 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 prometheus-client-0.23.1 python-json-logger-3.3.0 requests-2.32.5 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 send2trash-1.8.3 sniffio-1.3.1 terminado-0.18.1 tornado-6.5.2 types-python-dateutil-2.9.0.20250822 uri-template-1.3.0 webcolors-24.11.1 websocket-client-1.8.0
 
 # TODO:
-# ARG ARATMOSPY_VERSION=1.0.0
-# ARG EIDOS_VERSION=1.1.0
-# ARG KATBEAM_VERSION=0.1.0
+ARG EIDOS_VERSION=1.1.0
+ARG KATBEAM_VERSION=0.1.0
 
 # Install aratmospy, eidos, katbeam, tools21cm with pinned toolchain via pip
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
     pip install --no-build-isolation -U 'pip<25.3' 'cython>=3.0,<3.1' 'extension_helpers>=1.0,<2' 'packaging>=24.2' setuptools setuptools-scm wheel build versioneer && \
-    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ARATMOSPY=$ARATMOSPY_VERSION && \
-    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_EIDOS=$EIDOS_VERSION && \
-    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KATBEAM=$KATBEAM_VERSION && \
-    # export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_TOOLS21CM=$TOOLS21CM_VERSION && \
+    export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_EIDOS=$EIDOS_VERSION && \
+    export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KATBEAM=$KATBEAM_VERSION && \
+    export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_TOOLS21CM=$TOOLS21CM_VERSION && \
     pip install --no-build-isolation --no-deps --no-build-isolation \
-        'git+https://github.com/i4Ds/ARatmospy.git@67c302a136beb40a1cc88b054d7b62ccd927d64f#egg=aratmospy' \
         'git+https://github.com/i4Ds/eidos.git@74ffe0552079486aef9b413efdf91756096e93e7' \
         'git+https://github.com/ska-sa/katbeam.git@5ce6fcc35471168f4c4b84605cf601d57ced8d9e' \
         'tools21cm=='$TOOLS21CM_VERSION \
