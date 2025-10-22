@@ -57,7 +57,8 @@ ARG BDSF_VERSION=1.12.0
 ARG BOOST_VERSION=1.82.0
 ARG MATPLOTLIB_VERSION=3.6.3
 ARG NUMPY_VERSION=1.23.5
-ARG PYERFA_VERSION=2.0.0.1 # best version for astropy 5.1
+# ARG PYERFA_VERSION=2.0.1.5
+# just let astropy install its own erfa
 ARG PYTHON_VERSION=3.10
 ARG SCIPY_VERSION=1.9.3
 
@@ -82,7 +83,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-astropy@'$ASTROPY_VERSION \
         'py-bdsf@'$BDSF_VERSION \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
-        'py-pyerfa@'$PYERFA_VERSION \
+        # 'py-pyerfa@'$PYERFA_VERSION \
         'py-numpy@'$NUMPY_VERSION \
         'py-pip@:25.2' \
         'py-scipy@'$SCIPY_VERSION \
@@ -119,7 +120,7 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     python -c "import matplotlib; print(matplotlib.__version__)" && \
     spack test run 'py-pyerfa' && \
     # spack test run 'py-astropy' && \
-    # The Spack-driven py-astropy test step is still failing because the harness tries to import the Astropy ASDF test packages, which in turn import plain pytest, and the sandbox it runs in doesn’t have pytest on PYTHONPATH. Even though py-pytest was installed as a root spec, the test runner launches /opt/software/.../python3 in a clean staging environment and only populates it with the dependencies declared in the package. Astropy’s packaging treats most of these test modules as optional; they aren’t pulled in automatically, so the runner reports ModuleNotFoundError: No module named 'pytest'.
+    # The Spack-driven py-astropy test step is still failing because the harness tries to import the Astropy ASDF test packages, which in turn import plain pytest, and the sandbox it runs in doesn't have pytest on PYTHONPATH. Even though py-pytest was installed as a root spec, the test runner launches /opt/software/.../python3 in a clean staging environment and only populates it with the dependencies declared in the package. Astropy's packaging treats most of these test modules as optional; they aren't pulled in automatically, so the runner reports ModuleNotFoundError: No module named 'pytest'.
     python -c "import astropy; print(astropy.__version__)" && \
     spack test run 'py-bdsf'
 # Minimal validation of dependencies
@@ -147,11 +148,6 @@ for name, target in pkgs:
         ver = None
     if ver:
         ver_tup=tuple(map(int,ver.split('.')))
-        # ensure astropy <5.2
-        if name == 'astropy':
-            if ver_tup >= (5,2):
-                print(f'FAIL {name}: {ver} >= 5.2')
-                exit(1)
         target_tup=tuple(map(int,target.split('.')))
         if ver_tup < target_tup:
             print(f'FAIL {name}: {ver} < {target}')

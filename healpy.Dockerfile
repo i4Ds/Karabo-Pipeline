@@ -64,7 +64,7 @@ ARG NUMPY_VERSION=1.23.5
 # astropy 5.1.1 requires numpy<1.24; healpy 1.16.6 builds with 1.23.x
 ARG CFITSIO_VERSION=4.3.1
 # conda installs 4.3.1
-ARG PYERFA_VERSION=2.0.0.1
+# ARG PYERFA_VERSION=2.0.1.5
 # astropy 5.1.1 requires pyerfa <2.0.1.0
 ARG PYTHON_VERSION=3.10
 # conda installs 3.10.18, but only up to 3.10.14 is available in spack
@@ -87,7 +87,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack config add "packages:py-astropy-healpix:version:[${ASTROPY_HEALPIX_VERSION}]"; \
     spack config add "packages:py-matplotlib:version:[${MATPLOTLIB_VERSION}]"; \
     spack config add "packages:py-numpy:version:[${NUMPY_VERSION}]"; \
-    spack config add "packages:py-pyerfa:version:[${PYERFA_VERSION}]"; \
+    # spack config add "packages:py-pyerfa:version:[${PYERFA_VERSION}]"; \
     spack config add "packages:py-scipy:version:[${SCIPY_VERSION}]"; \
     spack config add "packages:py-healpy:version:[${HEALPY_VERSION}]"; \
     spack config add "concretizer:unify:when_possible"; \
@@ -101,7 +101,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-numpy@'$NUMPY_VERSION \
         'cfitsio@'$CFITSIO_VERSION \
         'py-scipy@'$SCIPY_VERSION \
-        'py-pyerfa@'$PYERFA_VERSION \
+        # 'py-pyerfa@'$PYERFA_VERSION \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-astropy@'$ASTROPY_VERSION \
         'py-healpy@'$HEALPY_VERSION'+internal-healpix' \

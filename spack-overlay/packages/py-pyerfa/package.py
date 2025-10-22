@@ -1,4 +1,5 @@
 from spack.package import *
+import os
 
 class PyPyerfa(PythonPackage):
     """
@@ -27,7 +28,7 @@ class PyPyerfa(PythonPackage):
     depends_on("pkgconfig", type="build")
 
     # Disable Spack's default import_module tests; we run our own below
-    import_modules = ["erfa"]
+    import_modules = ["erfa", "erfa.ufunc"]
 
     def setup_build_environment(self, env):
         """Set up build environment to find erfa and provide an SCM version."""
@@ -36,6 +37,28 @@ class PyPyerfa(PythonPackage):
         env.set("CFLAGS", spec['erfa'].headers.include_flags)
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_PYERFA", spec.version.string)
         env.set("PIP_NO_BUILD_ISOLATION", "1")
+
+    @run_after("install")
+    def ensure_erfa_init(self):
+        """Ensure erfa/__init__.py exists and re-exports from the extension.
+
+        Some builds only install erfa/ufunc.*.so. Astropy imports symbols from
+        the package root, so provide a minimal shim when missing.
+        """
+        py_ver = str(self.spec["python"].version.up_to(2))
+        erfa_dir = join_path(self.prefix, "lib", f"python{py_ver}", "site-packages", "erfa")
+        init_path = join_path(erfa_dir, "__init__.py")
+        if os.path.isdir(erfa_dir) and not os.path.exists(init_path):
+            mkdirp(erfa_dir)
+            with open(init_path, "w") as f:
+                f.write(
+                    "from . import ufunc as _ufunc\n"
+                    "ErfaError = getattr(_ufunc, 'ErfaError', Exception)\n"
+                    "ErfaWarning = getattr(_ufunc, 'ErfaWarning', Warning)\n"
+                    f"__version__ = getattr(_ufunc, '__version__', '{self.spec.version.string}')\n"
+                    "globals().update({k: v for k, v in _ufunc.__dict__.items() if not k.startswith('_')})\n"
+                    "del _ufunc\n"
+                )
 
 #     def test(self):
 #         """Self-contained test; works without a Spack view."""

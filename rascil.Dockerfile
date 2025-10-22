@@ -12,6 +12,8 @@ RUN rm -f /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true; \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get --no-install-recommends install -y \
+        autoconf \
+        automake \
         build-essential \
         ca-certificates \
         cmake \
@@ -19,6 +21,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         file \
         gfortran \
         git \
+        libtool \
         patchelf \
         pkg-config \
         wget \
@@ -43,7 +46,10 @@ RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.g
     spack compiler find && \
     spack external find rust && \
     spack external find git && \
-    spack external find pkgconf
+    spack external find pkgconf && \
+    spack external find autoconf && \
+    spack external find automake && \
+    spack external find libtool
 
 # Add SKA SDP Spack repo and overlay
 RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
@@ -70,7 +76,8 @@ ARG OPENBLAS_VERSION=0.3.25
 ARG OSKAR_VERSION=2.8.3
 ARG PANDAS_VERSION=1.5.3
 ARG PHOTUTILS_VERSION=1.11.0
-ARG PYERFA_VERSION=2.0.0.1
+# ARG PYERFA_VERSION=2.0.1.5
+# just let astropy install its own erfa
 ARG PYTHON_VERSION=3.10
 ARG RASCIL_VERSION=1.0.0
 ARG REPROJECT_VERSION=0.9.1
@@ -92,7 +99,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env create --dir /opt/spack_env; \
     spack env activate /opt/spack_env; \
     spack config add "config:install_tree:root:/opt/software"; \
-    spack config add "concretizer:unify:true"; \
+    spack config add "concretizer:unify:when_possible"; \
     spack config add "view:/opt/view"; \
     spack config add "config:source_cache:/opt/spack-source-cache"; \
     spack config add "config:misc_cache:/opt/spack-misc-cache"; \
@@ -105,7 +112,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-astropy-healpix@'$ASTROPY_HEALPIX_VERSION \
         'py-bdsf@'$BDSF_VERSION \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
-        'py-pyerfa@'$PYERFA_VERSION \
+        # 'py-pyerfa@'$PYERFA_VERSION \
         'py-numpy@'$NUMPY_VERSION \
         'py-pip@:25.2' \
         'py-scipy@'$SCIPY_VERSION \
@@ -189,6 +196,7 @@ pkgs = [
     ('dask','2022.0'),
     ('distributed','2022.0'),
     ('ducc0','0.27'),
+    ('erfa','2.0'),
     ('fsspec','0.0'),
     ('h5py','3.7'),
     ('locket','0.0'),

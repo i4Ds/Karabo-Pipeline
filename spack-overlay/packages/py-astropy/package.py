@@ -67,11 +67,7 @@ class PyAstropy(PythonPackage):
     depends_on("py-numpy@1.6:", type=("build", "run"))
     depends_on("py-packaging@19.0:", when="@5.1:", type=("build", "run"))
     depends_on("py-pyyaml@3.13:", when="@5.1:", type=("build", "run"))
-
-    depends_on("py-pyerfa@2.0.1.1:2.0.1", when="@6.1.0:", type=("build", "run", "test"))
-    # For 5.1.x require pyerfa 2.0.0.x (avoid 2.0.1+ API changes)
-    depends_on("py-pyerfa@2.0.0.0:2.0.0", when="@5.1:6.0", type=("build", "run", "test"))
-    conflicts("^py-pyerfa@2.0.1:", when="@5.1:5.1", msg="Astropy 5.1.x is incompatible with pyerfa >= 2.0.1")
+    depends_on("py-pyerfa@2.0.1.1:", when="@5.1:", type=("build", "run", "test"))
 
     depends_on("py-setuptools-scm@6.2:6", when="@5.1:", type="build")
     depends_on("py-extension-helpers@1:1", when="@5.1:", type="build")

@@ -64,8 +64,9 @@ ARG NUMPY_VERSION=1.23.5
 # astropy 5.1.1 requires numpy<1.24; healpy 1.16.6 builds with 1.23.x
 ARG CFITSIO_VERSION=4.3.1
 # conda installs 4.3.1
-ARG PYERFA_VERSION=2.0.0.1
-# astropy 5.1.1 requires pyerfa <2.0.1.0
+# ARG PYERFA_VERSION=2.0.1.5
+# just let astropy install its own erfa
+# pyerfa <2.0.1.0 can't handle Quantity inputs from Astropy5 EarthLocation geodetic conversion
 ARG PYTHON_VERSION=3.10
 # conda installs 3.10.18, but only up to 3.10.14 is available in spack
 ARG SCIPY_VERSION=1.9.3
@@ -85,7 +86,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack config add "packages:py-astropy-healpix:version:[${ASTROPY_HEALPIX_VERSION}]"; \
     spack config add "packages:py-matplotlib:version:[${MATPLOTLIB_VERSION}]"; \
     spack config add "packages:py-numpy:version:[${NUMPY_VERSION}]"; \
-    spack config add "packages:py-pyerfa:version:[${PYERFA_VERSION}]"; \
+    # spack config add "packages:py-pyerfa:version:[${PYERFA_VERSION}]"; \
     spack config add "packages:py-scipy:version:[${SCIPY_VERSION}]"; \
     spack config add "packages:py-healpy:version:[${HEALPY_VERSION}]"; \
     spack config add "concretizer:unify:when_possible"; \
@@ -96,10 +97,11 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack buildcache keys --install --trust || true; \
     spack add \
         'python@'$PYTHON_VERSION \
+        'py-pip' \
         'py-numpy@'$NUMPY_VERSION \
         'cfitsio@'$CFITSIO_VERSION \
         'py-scipy@'$SCIPY_VERSION \
-        'py-pyerfa@'$PYERFA_VERSION \
+        # 'py-pyerfa@'$PYERFA_VERSION \
         'py-matplotlib@'$MATPLOTLIB_VERSION \
         'py-astropy@'$ASTROPY_VERSION \
     && \
@@ -127,12 +129,15 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate -p /opt/spack_env && \
     spack test run 'py-numpy' && \
     spack test run 'py-scipy' && \
-    spack test run 'py-pyerfa' && \
-    spack test run 'healpix-cxx'
+    spack test run 'py-pyerfa'
     # todo: spack test run 'py-astropy'
     # The Spack-driven py-astropy test step is still failing because the harness tries to import the Astropy ASDF test packages, which in turn import plain pytest, and the sandbox it runs in doesn't have pytest on PYTHONPATH. Even though py-pytest was installed as a root spec, the test runner launches /opt/software/.../python3 in a clean staging environment and only populates it with the dependencies declared in the package. Astropy's packaging treats most of these test modules as optional; they aren't pulled in automatically, so the runner reports ModuleNotFoundError: No module named 'pytest'.
 
 # Minimal validation of dependencies
+RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack env activate /opt/spack_env && \
+    python -c 'import erfa; print("\n".join(f"{attr}: {getattr(erfa,attr)}" for attr in dir(erfa)))'
+
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
     python - <<'PY'
@@ -144,11 +149,11 @@ pprint.pprint(sys.path)
 import importlib
 
 pkgs = [
-    ('astropy','5.1'),
-    ('matplotlib','3.6'),
     ('numpy','1.23'),
-    ('erfa','2.0'),
+    ('matplotlib','3.6'),
     ('scipy','1.9'),
+    ('erfa','2.0'),
+    ('astropy','5.1'),
 ]
 
 def parse_version(v):
