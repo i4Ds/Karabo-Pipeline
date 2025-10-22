@@ -54,14 +54,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Restore buildx local cache
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-${{ env.PLATFORM_PAIR }}-${{ github.ref_name }}
-          restore-keys: |
-            buildx-${{ env.PLATFORM_PAIR }}-
-            buildx-
+      - name: Check disk space before build
+        run: df -h
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -105,21 +99,17 @@ jobs:
           outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           cache-from: |
             type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache-${{ env.PLATFORM_PAIR }}
-            type=local,src=/tmp/.buildx-cache
           cache-to: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache-${{ env.PLATFORM_PAIR }},mode=max,compression=zstd
-            type=local,dest=/tmp/.buildx-cache-new,mode=max
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:buildcache-${{ env.PLATFORM_PAIR }},mode=max,compression=zstd,compression-level=3
           build-args: |
             SKIP_TESTS=1
             SPACK_TARGET=${{ matrix.platform == 'linux/amd64' && 'x86_64' || 'aarch64' }}
           build-contexts: |
             spack-cache=docker-image://ghcr.io/spack/ubuntu-jammy:v0.23.0
 
-      - name: Move local cache into place
+      - name: Check disk space after build
         if: always()
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true
+        run: df -h
 
       - name: Export digest (push)
         if: steps.build-push.outcome == 'success'
