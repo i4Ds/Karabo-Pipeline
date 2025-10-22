@@ -144,7 +144,7 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-xarray@'$XARRAY_VERSION \
     && \
     spack concretize --force && \
-    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
+    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --reuse && \
     spack env view regenerate && \
     spack test run 'py-astropy-healpix' && \
     # spack test run 'py-astropy' && \ # broken

@@ -108,11 +108,11 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
         'py-astropy-healpix@'$ASTROPY_HEALPIX_VERSION \
     && \
     spack concretize --force && \
-    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast && \
+    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --reuse && \
     spack gc -y && \
     spack env view regenerate
 
-# Make Spack view default in PATH and shells
+# Make Spack view default in system paths and shells
 RUN printf "/opt/view/lib\n/opt/view/lib64\n" > /etc/ld.so.conf.d/spack-view.conf && ldconfig && \
     echo ". ${SPACK_ROOT}/share/spack/setup-env.sh 2>/dev/null || true" > /etc/profile.d/spack.sh && \
     echo "spack env activate -p /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh && \
@@ -125,9 +125,17 @@ ENV PATH="/opt/view/bin:${PATH}" \
     BASH_ENV=/opt/etc/spack_env \
     PYTHONNOUSERSITE=1 \
     CMAKE_PREFIX_PATH="/opt/view" \
-    PKG_CONFIG_PATH="/opt/view/lib/pkgconfig:/opt/view/lib64/pkgconfig"
+    PKG_CONFIG_PATH="/opt/view/lib/pkgconfig:/opt/view/lib64/pkgconfig" \
+    PYTHONPATH="/opt/view/lib/python${PYTHON_VERSION}/site-packages"
 
-    RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+# Ensure start-notebook uses Spack jupyter first in PATH
+RUN mkdir -p /usr/local/bin/before-notebook.d && \
+    printf '#!/usr/bin/env bash\nPATH="/opt/view/bin:${HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\nexport PATH\nLD_LIBRARY_PATH="/opt/view/lib:/opt/view/lib64"\nexport LD_LIBRARY_PATH\nPYTHONPATH=/opt/view/lib/python${PYTHON_VERSION}/site-packages\nexport PYTHONPATH\n' > /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
+    chmod +x /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
+    # Remove conda and activation hook; we run Jupyter inside Spack Python
+    rm -f /opt/conda /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true
+
+RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate -p /opt/spack_env && \
     spack test run 'py-numpy' && \
     spack test run 'py-scipy' && \
