@@ -50,7 +50,7 @@ class PyKarabo(PythonPackage):
     depends_on("py-numpy@1.21:1.999", type=("build", "run"))
     depends_on("py-packaging", type=("build", "run"))
     depends_on("py-pandas", type=("build", "run"))
-    depends_on("py-pyuvdata@2.4:2.999", type=("build", "run"))
+    depends_on("py-pyuvdata@2.4.2+casa", type=("build", "run"))
     depends_on("py-rascil@1.0.0", type=("build", "run"))
     depends_on("py-reproject@0.9:10.0", type=("build", "run"))
     depends_on("py-requests", type=("build", "run"))
