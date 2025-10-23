@@ -24,14 +24,16 @@ class PyPyerfa(PythonPackage):
     depends_on("python@3.7:", type=("build", "run"))
     # Pin to numpy 1.23.5 to match our environment and avoid ABI issues
     depends_on("py-numpy@1.23.5:1", type=("build", "run"))
-    depends_on("py-setuptools@42:", type="build")
+    depends_on("py-setuptools@61.2:", type="build", when="@2.0.1.5:")
+    depends_on("py-setuptools@42:", type="build", when="@:2.0.0.1")
     depends_on("py-setuptools-scm@6.2:", type="build")
     depends_on("py-packaging", type=("build", "run"))
     depends_on("py-cython@0.29:", type="build")
-    depends_on("py-pip", type="build")
+    depends_on("py-pip@:25.2", type="build")
     depends_on("py-wheel", type="build")
     depends_on("erfa", type=("build", "link", "run"))
     depends_on("pkgconfig", type="build")
+    depends_on("py-jinja2@2.10.3:", type="build", when="@:2.0.0.1")
 
     # Disable Spack's default import_module tests; we run our own below
     import_modules = ["erfa", "erfa.ufunc"]

@@ -110,9 +110,6 @@ class PyBdsf(PythonPackage):
         boost_spec = self.spec["boost"]
 
         self.stage.keep = True
-        if self.spec.satisfies("@:1.10"):
-            env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_BDSF", self.spec.version.string)
-            env.set("SETUPTOOLS_SCM_PRETEND_VERSION", self.spec.version.string)
 
         boost_include = boost_spec.headers.directories[0]
         env.prepend_path("CPATH", boost_include)
