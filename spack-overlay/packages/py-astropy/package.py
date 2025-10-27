@@ -43,7 +43,7 @@ class PyAstropy(PythonPackage):
     # Required dependencies
     depends_on("python@3.10:", when="@6.1.0:", type=("build", "run"))
     depends_on("python@3.8:", when="@5.1:", type=("build", "run"))
-    depends_on("py-setuptools@45:59", type="build")
+    depends_on("py-setuptools@63", type="build")  # Pin to 63.x which works with PIP_NO_BUILD_ISOLATION
     depends_on("py-cython@0.21:", when="@:2", type="build")
     depends_on("py-cython@0.29.13:", when="@:4", type="build")
     depends_on("py-cython@0.29.30:", when="@:5", type="build")
@@ -133,11 +133,9 @@ class PyAstropy(PythonPackage):
     depends_on("expat")
 
     def setup_build_environment(self, env):
-        # Avoid PEP 517 build isolation fetching deps; Spack provides them.
+        # Force pip to use Spack-provided setuptools (with our upper bound constraints)
+        # instead of fetching latest from PyPI in an isolated environment
         env.set("PIP_NO_BUILD_ISOLATION", "1")
-        # Ensure pyerfa is built from source within Spack, not as a wheel
-        # that might not match ABI and would try to be pulled by pip.
-        env.set("PIP_NO_BINARY", "pyerfa")
         # Provide deterministic version to setuptools_scm.
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ASTROPY", self.spec.version.string)
 

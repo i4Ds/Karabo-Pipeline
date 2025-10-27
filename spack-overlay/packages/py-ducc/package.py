@@ -27,6 +27,10 @@ class PyDucc(PythonPackage):
 
     import_modules = ["ducc0"]
 
+    def setup_build_environment(self, env):
+        # Force pip to use Spack-provided setuptools with correct constraints
+        env.set("PIP_NO_BUILD_ISOLATION", "1")
+
     def patch(self):
         """Remove incomplete [project] table to let setuptools read setup.cfg."""
         pyproject_path = "pyproject.toml"

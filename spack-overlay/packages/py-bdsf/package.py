@@ -92,16 +92,11 @@ class PyBdsf(PythonPackage):
         )
 
     def setup_build_environment(self, env):
-        # Ensure PEP 517 does not try to fetch build deps in isolation.
-        # Spack provides these as explicit dependencies; forcing
-        # no-build-isolation keeps pip fully offline.
+        # Force pip to use Spack-provided setuptools/deps with correct constraints
+        # Critical for scikit-build to find Boost and other Spack deps
         env.set("PIP_NO_BUILD_ISOLATION", "1")
-
         # Make setuptools_scm generate a static version string when building
         # from sdists or VCS, avoiding any need for git metadata.
-        #
-        # Upstream started using setuptools_scm from 1.11.0+, while older
-        # releases sometimes infer version in setup.py.
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_BDSF", self.spec.version.string)
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION", self.spec.version.string)
 

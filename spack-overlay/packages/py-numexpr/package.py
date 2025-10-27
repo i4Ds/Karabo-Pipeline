@@ -6,8 +6,8 @@
 
 from spack.package import *
 import os
-import glob
 import shutil
+import glob
 
 
 class PyNumexpr(PythonPackage):
@@ -17,9 +17,6 @@ class PyNumexpr(PythonPackage):
     url = "https://github.com/pydata/numexpr/archive/v2.7.0.tar.gz"
 
     license("MIT")
-
-    # Prefer PEP 517 wheel builds to ensure dist-info and full package layout
-    build_system("python_pip")
 
     version("2.10.2", sha256="7e61a8aa4dacb15787b31c31bd7edf90c026d5e6dbe727844c238726e8464592")
     version("2.9.0", sha256="4df4163fcab20030137e8f2aa23e88e1e42e6fe702387cfd95d7675e1d84645e")
@@ -40,11 +37,13 @@ class PyNumexpr(PythonPackage):
 
     depends_on("python@3.7:", when="@2.8.3:", type=("build", "run"))
     depends_on("python@3.9:", when="@2.8.7:", type=("build", "run"))
-    depends_on("py-setuptools@61:", type="build")
+    # Require setuptools@61:69 for proper metadata generation and dist-info
+    depends_on("py-setuptools@61:69", type="build")
     depends_on("py-wheel", type="build")
-    depends_on("py-pip", type="build")
-    depends_on("py-build", type="build")
-    depends_on("py-pyproject-hooks", type="build")
+
+    def setup_build_environment(self, env):
+        # Force pip to use Spack-provided setuptools with correct constraints
+        env.set("PIP_NO_BUILD_ISOLATION", "1")
 
     depends_on("py-numpy@1.13.3:1.25", type=("build", "run"), when="@2.8.3:")
     # https://github.com/pydata/numexpr/issues/397
@@ -54,33 +53,3 @@ class PyNumexpr(PythonPackage):
 
     # Historical dependencies
     depends_on("py-packaging", type=("build", "run"), when="@:2.8.3")
-
-    def setup_build_environment(self, env):
-        # Ensure pip uses Spack-provided deps and avoids isolated venv
-        env.set("PIP_NO_BUILD_ISOLATION", "1")
-        env.set("PYTHONNOUSERSITE", "1")
-
-    @run_after("install")
-    def ensure_complete_package(self):
-        """Ensure numexpr has __init__.py and metadata in the install prefix.
-
-        Older toolchains may leave only the compiled extension visible in the view.
-        Copy missing Python shims from the source tree as a minimal fallback.
-        """
-        py_ver = str(self.spec["python"].version.up_to(2))
-        site_dir = join_path(self.prefix, "lib", f"python{py_ver}", "site-packages")
-        pkg_dir = join_path(site_dir, "numexpr")
-        has_init = os.path.isfile(join_path(pkg_dir, "__init__.py"))
-        has_dist = bool(glob.glob(join_path(site_dir, "numexpr-*.dist-info")))
-        if has_init and has_dist:
-            return
-        src_pkg = join_path(self.stage.source_path, "numexpr")
-        if os.path.isdir(src_pkg):
-            mkdirp(pkg_dir)
-            for name in os.listdir(src_pkg):
-                if not name.endswith(".py"):
-                    continue
-                src = join_path(src_pkg, name)
-                dst = join_path(pkg_dir, name)
-                if not os.path.isfile(dst):
-                    shutil.copyfile(src, dst)

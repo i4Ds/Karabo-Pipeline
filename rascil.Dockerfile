@@ -55,7 +55,9 @@ RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.g
 RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/ska-sdp-spack
 COPY spack-overlay /opt/karabo-spack
-RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/karabo-spack
+RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack repo add /opt/karabo-spack && \
+    spack repo rm /opt/ska-sdp-spack || true
 
 ARG ASTROPLAN_VERSION=0.10.1
 ARG ASTROPY_HEALPIX_VERSION=1.1.2
@@ -145,31 +147,14 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     && \
     spack concretize --force && \
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --reuse && \
+    spack gc -y && \
     spack env view regenerate && \
-    spack test run 'py-astropy-healpix' && \
-    # spack test run 'py-astropy' && \ # broken
-    spack test run 'py-numpy' && \
-    spack test run 'py-scipy' && \
-    spack test run 'py-bdsf' && \
-    spack test run 'py-astroplan' && \
-    spack test run 'py-casacore' && \
-    spack test run 'py-ducc' && \
-    spack test run 'py-h5py' && \
-    spack test run 'py-pandas' && \
-    spack test run 'py-photutils' && \
-    spack test run 'py-pyerfa' && \
-    spack test run 'py-reproject' && \
-    spack test run 'py-seqfile' && \
-    spack test run 'py-ska-sdp-datamodels' && \
-    spack test run 'py-ska-sdp-func-python' && \
-    spack test run 'py-ska-sdp-func' && \
-    spack test run 'py-xarray' && \
-    spack test run 'py-rascil'
+    fix-permissions /opt/view /opt/spack_env /opt/software /opt/view
 
-# Make Spack view default in PATH and shells
+# Make Spack view default in system paths and shells
 RUN printf "/opt/view/lib\n/opt/view/lib64\n" > /etc/ld.so.conf.d/spack-view.conf && ldconfig && \
     echo ". ${SPACK_ROOT}/share/spack/setup-env.sh 2>/dev/null || true" > /etc/profile.d/spack.sh && \
-    echo "spack env activate /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh && \
+    echo "spack env activate -p /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh && \
     mkdir -p /opt/etc && \
     echo ". /etc/profile.d/spack.sh" > /opt/etc/spack_env && \
     chmod 644 /opt/etc/spack_env
@@ -181,6 +166,36 @@ ENV PATH="/opt/view/bin:${PATH}" \
     CMAKE_PREFIX_PATH="/opt/view" \
     PKG_CONFIG_PATH="/opt/view/lib/pkgconfig:/opt/view/lib64/pkgconfig" \
     PYTHONPATH="/opt/view/lib/python${PYTHON_VERSION}/site-packages"
+
+# Ensure start-notebook uses Spack jupyter first in PATH
+RUN mkdir -p /usr/local/bin/before-notebook.d && \
+    printf '#!/usr/bin/env bash\nPATH="/opt/view/bin:${HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\nexport PATH\nLD_LIBRARY_PATH="/opt/view/lib:/opt/view/lib64"\nexport LD_LIBRARY_PATH\nPYTHONPATH=/opt/view/lib/python${PYTHON_VERSION}/site-packages\nexport PYTHONPATH\n' > /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
+    chmod +x /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
+    # Remove conda and activation hook; we run Jupyter inside Spack Python
+    rm -f /opt/conda /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true
+
+RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+    spack env activate /opt/spack_env && \
+    spack test run 'py-numpy' && \
+    spack test run 'py-scipy' && \
+    spack test run 'py-astroplan' && \
+    spack test run 'py-casacore' && \
+    spack test run 'py-ducc' && \
+    spack test run 'py-h5py' && \
+    spack test run 'py-numexpr' && \
+    spack test run 'py-pandas' && \
+    spack test run 'py-photutils' && \
+    spack test run 'py-pyerfa' && \
+    # spack test run 'py-astropy' && \ # broken
+    spack test run 'py-astropy-healpix' && \
+    spack test run 'py-reproject' && \
+    spack test run 'py-seqfile' && \
+    spack test run 'py-ska-sdp-datamodels' && \
+    spack test run 'py-ska-sdp-func-python' && \
+    spack test run 'py-ska-sdp-func' && \
+    spack test run 'py-xarray' && \
+    spack test run 'py-bdsf' && \
+    spack test run 'py-rascil'
 
 # Minimal validation of dependencies
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \

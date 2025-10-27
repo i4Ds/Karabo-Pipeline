@@ -41,10 +41,8 @@ class PyAstropyHealpix(PythonPackage):
     import_modules = ["astropy_healpix"]
 
     def setup_build_environment(self, env):
-        # Avoid setuptools_scm attempting to fetch VCS by providing the version
+        # Let pip's build isolation pick the ideal setuptools version
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ASTROPY_HEALPIX", self.spec.version.string)
-        # Ensure we do not create isolated venvs that miss Spack-provided deps
-        env.set("PIP_NO_BUILD_ISOLATION", "1")
 
     def patch(self):
         if self.spec.satisfies("@1.1.2"):

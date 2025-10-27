@@ -10,7 +10,7 @@ class PySkaSdpFuncPython(PythonPackage):
     license("BSD-3-Clause")
 
     version("0.1.5", tag="0.1.5")
-    version("0.1.4", tag="0.1.4") # <- conda
+    version("0.1.4", tag="0.1.4")  # <- conda
 
     build_system("python_pip", "python_setuptools")
 
@@ -32,12 +32,17 @@ class PySkaSdpFuncPython(PythonPackage):
     depends_on("py-photutils@1.11:", type=("build", "run"))
     depends_on("py-scipy@1.9:", type=("build", "run"))
     depends_on("py-ska-sdp-datamodels@0.1.3:", type=("build", "run"))
-    depends_on("py-xarray@2022.12.0:", type=("build", "run"))
+    depends_on(
+        "py-xarray@2022.12.0:2023.2.0", type=("build", "run")
+    )  # Match py-ska-sdp-datamodels constraint
 
     import_modules = ["ska_sdp_func_python"]
 
     def setup_build_environment(self, env):
-        env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SKA_SDP_FUNC_PYTHON", self.spec.version.string)
+        env.set(
+            "SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SKA_SDP_FUNC_PYTHON",
+            self.spec.version.string,
+        )
 
     def test_import(self):
         python = self.spec["python"].command
@@ -48,7 +53,7 @@ class PySkaSdpFuncPython(PythonPackage):
         python = self.spec["python"].command
         if not python:
             return
-        code = r'''import numpy as np
+        code = r"""import numpy as np
 from scipy.spatial import KDTree
 import importlib
 mods = ['numpy','scipy','astropy','astropy_healpix','erfa']
@@ -69,7 +74,5 @@ dist, idx = tree.query(det, k=1, distance_upper_bound=2.5)
 idx[dist==np.inf] = -1
 neg_pred = np.where(idx[:,0] if idx.ndim==2 else idx==-1)[0] if idx.ndim==2 else np.where(idx==-1)[0]
 print('SPACK_ENV_DEBUG_KD_NEG_HEAD', neg_pred[:20].tolist())
-'''
+"""
         python("-c", code)
-
-

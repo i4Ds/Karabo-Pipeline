@@ -42,7 +42,7 @@ class PyRascil(PythonPackage):
     depends_on("py-ska-sdp-func-python@0.1.4:", type=("build", "run"))
     depends_on("py-ska-sdp-func@0.1.0:", type=("build", "run"))
     depends_on("py-tabulate", type=("build", "run"))
-    depends_on("py-xarray@2022.12:", type=("build", "run"))
+    depends_on("py-xarray@2022.12.0:2023.2.0", type=("build", "run"))  # Match py-ska-sdp-datamodels constraint
 
     # Transitively required C/C++ libs via other Python deps
     depends_on("casacore@3.5.0:+python")

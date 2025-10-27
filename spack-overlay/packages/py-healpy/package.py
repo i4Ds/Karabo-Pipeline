@@ -132,10 +132,7 @@ class PyHealpy(PythonPackage):
             )
 
     def setup_build_environment(self, env):
-        # Ensure PEP517 builds use Spack-provided deps and do not create an
-        # isolated environment that misses compiled libs like healpix-cxx.
-        env.set("PIP_NO_BUILD_ISOLATION", "1")
-        # Provide version metadata when building from an sdist without VCS
+        # Let pip's build isolation pick the ideal setuptools version
         env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_HEALPY", self.spec.version.string)
         # Healpy 1.16.x Cython output may access deprecated NumPy C-API fields
         # like PyArrayObject->dimensions; allow deprecated API to avoid build

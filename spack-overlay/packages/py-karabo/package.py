@@ -5,7 +5,8 @@ linters. Disable lints for this file.
 """  # flake8: noqa  # mypy: ignore-errors
 # pyright: reportMissingImports=false, reportUndefinedVariable=false, reportMissingModuleSource=false
 
-from spack.package import (version, build_system, PythonPackage, depends_on)
+from spack.package import version, build_system, PythonPackage, depends_on
+
 
 class PyKarabo(PythonPackage):
     """A data-driven pipeline for Radio Astronomy from i4ds for the SKA Telescope.
@@ -58,7 +59,9 @@ class PyKarabo(PythonPackage):
     depends_on("py-scipy@1.9:", type=("build", "run"))
     depends_on("py-ska-sdp-datamodels@0.1.3", type=("build", "run"))
     depends_on("py-ska-sdp-func-python@0.1.4", type=("build", "run"))
-    depends_on("py-xarray@2022.11:", type=("build", "run"))
+    depends_on(
+        "py-xarray@2022.12.0:2023.2.0", type=("build", "run")
+    )  # Match py-ska-sdp-datamodels constraint
     depends_on("wsclean", type=("build", "run"))
     depends_on("oskar", type=("build", "run"))
 
@@ -66,7 +69,10 @@ class PyKarabo(PythonPackage):
         # Ensure Spack provides dependencies without pip attempting isolation
         env.set("PIP_NO_BUILD_ISOLATION", "1")
         # Provide deterministic version metadata for versioneer
-        env.set("SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KARABO_PIPELINE", self.spec.version.string)
+        env.set(
+            "SETUPTOOLS_SCM_PRETEND_VERSION_FOR_KARABO_PIPELINE",
+            self.spec.version.string,
+        )
         env.set("VERSIONEER_OVERRIDE", self.spec.version.string)
 
     def test_karabo_import(self):
@@ -80,4 +86,3 @@ class PyKarabo(PythonPackage):
             "print('KARABO_IMPORT_OK', karabo.__version__)\n"
         )
         python("-c", code)
-
