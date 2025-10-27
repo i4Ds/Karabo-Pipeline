@@ -8,25 +8,33 @@ SHELL ["/bin/bash", "-lc"]
 RUN rm -f /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true; \
     rm -rf /opt/conda || true
 
-# Essential system dependencies
+# Essential build dependencies
+# These are found by spack external find, and later garbage collected by spack.# Do not include runtime dependencies here.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get --no-install-recommends install -y \
-        autoconf \
-        automake \
-        build-essential \
-        ca-certificates \
-        cmake \
-        curl \
-        file \
-        gfortran \
-        git \
-        libtool \
-        patchelf \
-        pkg-config \
-        wget \
-        zstd \
-    ;
+    autoconf \
+    automake \
+    bison \
+    build-essential \
+    ca-certificates \
+    cmake \
+    curl \
+    diffutils \
+    file \
+    findutils \
+    gfortran \
+    git \
+    libcurl4-openssl-dev \
+    libtool \
+    m4 \
+    meson \
+    patchelf \
+    perl \
+    pkg-config \
+    wget \
+    zstd \
+    ; # not required because of buildcache: rm -rf /var/lib/apt/lists/*
 
 # Install Rust before any Spack setup, because Spack rust is unbelievably slow.
 ARG RUST_VERSION=1.81.0
@@ -41,18 +49,28 @@ ENV SPACK_ROOT=/opt/spack \
     DEBIAN_FRONTEND=noninteractive
 
 # Install Spack v0.23 and detect compilers
-RUN git clone --depth=2 --branch=releases/v0.23 https://github.com/spack/spack.git ${SPACK_ROOT} && \
+RUN git clone --depth=1 --single-branch --branch=releases/v0.23 https://github.com/spack/spack.git ${SPACK_ROOT} && \
+    rm -rf ${SPACK_ROOT}/.git && \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack compiler find && \
-    spack external find rust && \
-    spack external find git && \
-    spack external find pkgconf && \
-    spack external find autoconf && \
-    spack external find automake && \
-    spack external find libtool
+    spack external find \
+    autoconf \
+    automake \
+    bison \
+    curl \
+    diffutils \
+    findutils \
+    git \
+    libtool \
+    m4 \
+    meson \
+    perl \
+    pkgconf \
+    rust
 
 # Add SKA SDP Spack repo and overlay
-RUN git clone --depth=2 --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
+RUN git clone --depth=1 --single-branch --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
+    rm -rf /opt/ska-sdp-spack/.git && \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/ska-sdp-spack
 COPY spack-overlay /opt/karabo-spack
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/karabo-spack
@@ -138,6 +156,17 @@ ARG BOOST_VERSION=1.82.0
 # 1.86.0 worked at some point
 # conda has 1.82.0
 
+ARG SKIMAGE_VERSION=0.24.0
+# scikit-image needed by rascil source detection stack
+# conda installs 0.25.0, latest available is 0.24.0
+ARG SKLEARN_VERSION=1.3.2
+# scikit-learn required by rascil imaging utilities
+# conda installs 1.7.1
+
+ARG TQDM_VERSION=4.66.3
+# tqdm needed by tools21cm optional install
+# conda install 4.67.1
+# latest available is 4.66.3
 ARG PYUVDATA_VERSION=2.4.2
 # conda installs 2.4.2 but it has a bug in MWA beams pointed away from zenith
 # 3.2.1 is the last one that works with Python 3.10 but is yanked and unbuildable
@@ -184,6 +213,7 @@ ARG ARATMOSPY_VERSION=1.0.0
 ARG EIDOS_VERSION=1.1.0
 ARG KATBEAM_VERSION=0.1.0
 ARG KARABO_VERSION=0.34.0
+ARG WSCLEAN_VERSION=3.4
 
 # Create Spack environment and install deps
 ARG SPACK_TARGET=""
@@ -197,16 +227,16 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env activate /opt/spack_env; \
     arch=$(uname -m); \
     if [ -z "${SPACK_TARGET}" ]; then \
-      case "$arch" in \
-        x86_64) SPACK_TARGET=x86_64 ;; \
-        aarch64) SPACK_TARGET=aarch64 ;; \
-        *) SPACK_TARGET="$arch" ;; \
-      esac; \
+    case "$arch" in \
+    x86_64) SPACK_TARGET=x86_64 ;; \
+    aarch64) SPACK_TARGET=aarch64 ;; \
+    *) SPACK_TARGET="$arch" ;; \
+    esac; \
     fi; \
     echo "SPACK_TARGET=${SPACK_TARGET} <- (uname -m)=$arch"; \
     spack config add "config:install_tree:root:/opt/software"; \
     spack config add "concretizer:unify:when_possible"; \
-    spack config add "concretizer:reuse:true"; \
+    spack config add "concretizer:reuse:false"; \
     spack config add "view:/opt/view"; \
     spack config add "config:source_cache:/opt/spack-source-cache"; \
     spack config add "config:misc_cache:/opt/spack-misc-cache"; \
@@ -215,86 +245,61 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack buildcache keys --install --trust || true; \
     # TODO: spack mirror add v0.23.1 https://binaries.spack.io/v0.23.1; \
     spack add \
-        'cfitsio@'$CFITSIO_VERSION \
-        # known good from bdsf.Dockerfile and astropy.Dockerfile
-        'boost@'$BOOST_VERSION'+python+numpy' \
-        'py-astropy@'$ASTROPY_VERSION \
-        'py-astropy-healpix@'$ASTROPY_HEALPIX_VERSION \
-        'py-bdsf@'$BDSF_VERSION \
-        'py-matplotlib@'$MATPLOTLIB_VERSION \
-        # 'py-pyerfa@'$PYERFA_VERSION # astropy installs its own erfa \
-        'py-numpy@'$NUMPY_VERSION \
-        'py-pip' \
-        'py-scipy@'$SCIPY_VERSION \
-        'python@'$PYTHON_VERSION \
-        # known good from rascil.Dockerfile
-        'casacore@'$CASACORE_VERSION'+python' \
-        'fftw~mpi~openmp' \
-        'hdf5@'$HDF5_VERSION'+hl~mpi' \
-        'openblas@'$OPENBLAS_VERSION \
-        'py-astroplan@'$ASTROPLAN_VERSION \
-        'py-casacore@'$CASACORE_VERSION \
-        'py-dask@'$DASK_VERSION \
-        'py-dask-memusage@1.1' \
-        'py-distributed@'$DISTRIBUTED_VERSION \
-        'py-ducc@'$DUCC_VERSION \
-        'py-h5py@'$H5PY_VERSION \
-        'py-healpy@'$HEALPY_VERSION'+internal-healpix' \
-        'py-numexpr@'$NUMEXPR_VERSION \
-        'py-pandas@'$PANDAS_VERSION \
-        'py-photutils@'$PHOTUTILS_VERSION \
-        'py-rascil@'$RASCIL_VERSION \
-        # from oskar.Dockerfile
-        'py-reproject@'$REPROJECT_VERSION \
-        'py-seqfile@'$SEQFILE_VERSION \
-        'py-ska-sdp-datamodels@'$SDP_DATAMODELS_VERSION \
-        'py-ska-sdp-func-python@'$SDP_FUNC_PYTHON_VERSION \
-        'py-ska-sdp-func@'$SDP_FUNC_VERSION \
-        'py-tabulate@'$TABULATE_VERSION \
-        'py-xarray@'$XARRAY_VERSION \
-        'oskar@'$OSKAR_VERSION'+python~openmp' \
-        # others
-        'py-bottleneck@'$BOTTLENECK_VERSION \
-        'py-dask-mpi' \
-        'py-extension-helpers@1.1.1' \
-        'py-ipykernel@6:' \
-        'py-joblib' \
-        'py-lazy-loader' \
-        'py-mpi4py' \
-        'py-nbconvert' \
-        'py-pyfftw' \
-        'py-pytest' \
-        'py-rfc3986@2:' \
-        'py-scikit-image' \
-        'py-scikit-learn' \
-        'py-tqdm' \
-        'py-pyuvdata@'$PYUVDATA_VERSION'+casa' \
-        'py-aratmospy@'$ARATMOSPY_VERSION \
-        'py-eidos@'$EIDOS_VERSION \
-        'py-katbeam@'$KATBEAM_VERSION \
-        'py-karabo@'$KARABO_VERSION \
-        # TODO: 'hyperbeam+python' \
-        # todo: py-tools21cm py-toolz
-        # 'py-jupyterlab@4' \
-        # 'py-jupyter-server@2' \
-        # 'py-jupyterlab-server@2' \
-        # 'py-jupyter-core@5:' \
-        # 'py-jupyter-client@8:' \
-        # 'py-notebook@7' \
-        # py-nbformat
-        # py-packaging?
-        # py-requests?
-        # py-setuptools?
-        # py-ska-gridder-nifty-cuda?
-        # py-wheel?
-        'wsclean@=3.4' \
-        # harp?
-        # montagepy?
-        # mpich?
-        # psutil
+    'cfitsio@'$CFITSIO_VERSION \
+    'boost@'$BOOST_VERSION'+python+numpy' \
+    # 'py-astropy@'$ASTROPY_VERSION \ # in py-karabo
+    # 'py-astropy-healpix@'$ASTROPY_HEALPIX_VERSION \ # transitive
+    # 'py-bdsf@'$BDSF_VERSION \ # in py-karabo
+    # 'py-matplotlib@'$MATPLOTLIB_VERSION \ # in py-karabo
+    # 'py-numpy@'$NUMPY_VERSION \ # in py-karabo
+    # 'py-pip' \ # transitive
+    # 'py-scipy@'$SCIPY_VERSION \ # in py-karabo
+    'python@'$PYTHON_VERSION \
+    'casacore@'$CASACORE_VERSION'+python' \
+    # 'fftw~mpi~openmp' \
+    'hdf5@'$HDF5_VERSION'+hl~mpi' \
+    'py-maturin@1.6.0' \
+    # needed by something important
+    'py-pip' \
+    'py-joblib' \
+    'py-lazy-loader' \
+    # 'openblas@'$OPENBLAS_VERSION \ # transitive
+    # 'py-astroplan@'$ASTROPLAN_VERSION \ # transitive
+    # 'py-casacore@'$CASACORE_VERSION \ # transitive
+    # 'py-dask@'$DASK_VERSION \ # in py-karabo
+    # 'py-distributed@'$DISTRIBUTED_VERSION \ # in py-karabo
+    'py-ducc@'$DUCC_VERSION \
+    # h5py is not pulled transitively once we pin photutils; keep explicitly for karabo tests
+    'py-h5py@'$H5PY_VERSION \
+    'py-healpy@'$HEALPY_VERSION'+internal-healpix' \
+    # 'py-numexpr@'$NUMEXPR_VERSION \ # transitive
+    # 'py-pandas@'$PANDAS_VERSION \ # in py-karabo
+    'py-photutils@'$PHOTUTILS_VERSION \
+    'py-rascil@'$RASCIL_VERSION \
+    'py-scikit-image@'$SKIMAGE_VERSION \
+    'py-scikit-learn@'$SKLEARN_VERSION \
+    'py-tqdm@'$TQDM_VERSION \
+    'py-reproject@0.9.1' \
+    # Force 0.9.1 for rascil compatibility (0.14+ breaks it)
+    # 'py-seqfile@'$SEQFILE_VERSION \ # transitive
+    # 'py-ska-sdp-datamodels@'$SDP_DATAMODELS_VERSION \ # in py-karabo
+    'py-ska-sdp-func-python@'$SDP_FUNC_PYTHON_VERSION \
+    # 'py-ska-sdp-func@'$SDP_FUNC_VERSION \ # transitive
+    'py-tabulate@'$TABULATE_VERSION \
+    # 'py-xarray@'$XARRAY_VERSION \ # in py-karabo
+    'oskar@'$OSKAR_VERSION'+python~openmp' \
+    # 'py-bottleneck@'$BOTTLENECK_VERSION \ # transitive
+    # 'py-pyuvdata@'$PYUVDATA_VERSION'+casa' \ # transitive
+    # 'py-aratmospy@'$ARATMOSPY_VERSION \ # in py-karabo
+    # 'py-eidos@'$EIDOS_VERSION \ # in py-karabo
+    # 'py-katbeam@'$KATBEAM_VERSION \ # in py-karabo
+    'wsclean@'$WSCLEAN_VERSION'~mpi' \
+    'py-karabo@'$KARABO_VERSION \
+    # for testing karabo itself:
+    'py-pytest@8' \
     && \
     spack concretize --force && \
-    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --reuse --show-log-on-error && \
+    ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --fresh --show-log-on-error && \
     spack gc -y && \
     spack env view regenerate && \
     fix-permissions /opt/view /opt/spack_env /opt/software /opt/view
@@ -337,8 +342,9 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     # spack test run 'py-distributed' && \
     spack test run 'py-ducc' && \
     spack test run 'py-h5py' && \
-    spack test run 'py-rascil' && \
+    spack test run 'py-numexpr' && \
     spack test run 'py-pandas' && \
+    spack test run 'py-rascil' && \
     spack test run 'py-photutils' && \
     spack test run 'py-pyerfa' && \
     spack test run 'py-reproject' && \
@@ -347,7 +353,6 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack test run 'py-ska-sdp-func-python' && \
     spack test run 'py-ska-sdp-func' && \
     spack test run 'py-xarray' && \
-    spack test run 'py-rascil' && \
     spack test run 'oskar' && \
     spack test run 'py-mpi4py' && \
     spack test run 'py-dask-mpi' && \
@@ -355,8 +360,11 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack test run 'py-eidos' && \
     spack test run 'py-katbeam' && \
     spack test run 'py-karabo'
-    # TODO: spack test run 'hyperbeam'
-    # spack test run 'py-pyuvdata'
+# TODO: Clean up test artifacts
+# rm -rf /tmp/* /root/.cache/* && \
+# find /opt/software -type d -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true
+# TODO: spack test run 'hyperbeam'
+# spack test run 'py-pyuvdata'
 
 # TODO: Verify hyperbeam (Spack-installed) can be imported
 # RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
@@ -367,41 +375,27 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
 RUN --mount=type=cache,target=/root/.cache/pip \
     . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     spack env activate /opt/spack_env && \
-    pip install --no-build-isolation \
-        'jupyterlab==4.*' \
-        'ipykernel==6.*' \
-        'jupyter_server==2.*' \
-        'jupyterlab_server==2.*' \
-        'notebook==7.*' \
-        'jupyter_core>=5' \
-        'jupyter_client>=8'
-# uninstalled tornado-6.1 jupyter_client-7.1.2
-# Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.3.0 async-lru-2.0.5 babel-2.17.0 certifi-2025.8.3 charset_normalizer-3.4.3 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.10 isoduration-20.11.0 json5-0.12.1 jsonpointer-3.0.0 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_server-2.17.0 jupyterlab-4.4.9 jupyterlab_server-2.27.3 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 prometheus-client-0.23.1 python-json-logger-3.3.0 requests-2.32.5 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 send2trash-1.8.3 sniffio-1.3.1 terminado-0.18.1 tornado-6.5.2 types-python-dateutil-2.9.0.20250822 uri-template-1.3.0 webcolors-24.11.1 websocket-client-1.8.0
+    pip install \
+    'jupyterlab==4.*' \
+    'ipykernel==6.*' \
+    'jupyter_server==2.*' \
+    'jupyterlab_server==2.*' \
+    'notebook==7.*' \
+    'jupyter_core>=5' \
+    'jupyter_client>=8' \
+    && \
+    # optional extras
+    pip install --no-deps \
+    'tools21cm=='$TOOLS21CM_VERSION \
+    'mwa-hyperbeam==0.10.4'
 
-# Install tools21cm with pinned toolchain via pip (eidos, aratmospy, katbeam via Spack)
-RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    pip install --no-build-isolation -U 'pip<25.3' 'cython>=3.0,<3.1' 'extension_helpers>=1.0,<2' 'packaging>=24.2' setuptools setuptools-scm wheel build versioneer && \
-    export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_TOOLS21CM=$TOOLS21CM_VERSION && \
-    pip install -q -t "/home/${NB_USER}/.local/pytest" 'pytest>=8,<9' && \
-    pip install --no-build-isolation --no-deps --no-build-isolation \
-        'tools21cm=='$TOOLS21CM_VERSION \
-        'dask_memusage==1.1' \
-        'mwa-hyperbeam==0.10.4' \
-        'ps_eor==0.32'
-
-# bdsf 1.12.0 requires backports.shutil-get-terminal-size, which is not installed.
-# astropy-healpix 1.1.2 requires numpy>=1.25, but you have numpy 1.23.5 which is incompatible.
-# pyuvdata 3.2.0 requires astropy>=6.0, but you have astropy 5.1.1 which is incompatible.
+# distributed 2022.12.1 requires msgpack>=0.6.0, which is not installed.
+# rascil 1.0.0 requires h5py<3.8,>=3.7, but you have h5py 3.12.1 which is incompatible.
 # rascil 1.0.0 requires matplotlib<3.7,>=3.6, but you have matplotlib 3.9.2 which is incompatible.
+# rascil 1.0.0 requires scipy<1.10,>=1.9, but you have scipy 1.10.1 which is incompatible.
 # rascil 1.0.0 requires tabulate<0.10,>=0.9, but you have tabulate 0.0.0 which is incompatible.
 # rascil 1.0.0 requires xarray<2022.13,>=2022.12, but you have xarray 2023.2.0 which is incompatible.
-# ska-sdp-datamodels 0.1.3 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
-# ska-sdp-datamodels 0.1.3 requires xarray<2023.0.0,>=2022.10.0, but you have xarray 2023.2.0 which is incompatible.
-# ska-sdp-func-python 0.1.4 requires astroplan<0.9,>=0.8, but you have astroplan 0.0.0 which is incompatible.
-# ska-sdp-func-python 0.1.4 requires xarray<2023.0.0,>=2022.11.0, but you have xarray 2023.2.0 which is incompatible.
-# Successfully installed build-1.3.0 cython-3.0.12 extension_helpers-1.4.0 packaging-25.0 pip-25.2 pyproject_hooks-1.2.0 setuptools-80.9.0 setuptools-scm-9.2.1 versioneer-0.29 wheel-0.45.1
+# Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.4.0 asttokens-3.0.0 async-lru-2.0.5 attrs-25.4.0 babel-2.17.0 beautifulsoup4-4.14.2 bleach-6.2.0 cffi-2.0.0 comm-0.2.3 debugpy-1.8.17 decorator-5.2.1 defusedxml-0.7.1 executing-2.2.1 fastjsonschema-2.21.2 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 ipykernel-6.31.0 ipython-8.37.0 isoduration-20.11.0 jedi-0.19.2 json5-0.12.1 jsonpointer-3.0.0 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_core-5.9.1 jupyter_server-2.17.0 jupyterlab-4.4.10 jupyterlab-pygments-0.3.0 jupyterlab_server-2.28.0 lark-1.3.0 matplotlib-inline-0.2.1 mistune-3.1.4 nbclient-0.10.2 nbconvert-7.16.6 nbformat-5.10.4 nest-asyncio-1.6.0 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 pandocfilters-1.5.1 parso-0.8.5 pexpect-4.9.0 platformdirs-4.5.0 prometheus-client-0.23.1 prompt_toolkit-3.0.52 ptyprocess-0.7.0 pure-eval-0.2.3 pycparser-2.23 pygments-2.19.2 python-json-logger-4.0.0 pyzmq-27.1.0 referencing-0.37.0 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 rfc3987-syntax-1.1.0 rpds-py-0.28.0 send2trash-1.8.3 sniffio-1.3.1 soupsieve-2.8 stack_data-0.6.3 terminado-0.18.1 tinycss2-1.4.0 tornado-6.5.2 traitlets-5.14.3 tzdata-2025.2 uri-template-1.3.0 wcwidth-0.2.14 webcolors-24.11.1 webencodings-0.5.1 websocket-client-1.9.0
 
 # tests
 RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
@@ -410,7 +404,8 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
     python -c "import ska_sdp_func" || exit 1 && \
     python -c "import casacore, casacore.tables, casacore.quanta; print('python-casacore OK')" && \
     python - <<"PY"
-import importlib, sys
+import importlib, os, sys
+
 checks = [
     ('ARatmospy','1.0'),
     ('astropy','5.1'),
@@ -432,47 +427,21 @@ checks = [
     ('pyuvdata','2.4'),
     ('rascil','1.0'),
     ('rfc3986','2.0'),
-    ('skimage','0.24'),
-    ('sklearn','1.5'),
+    ('skimage', '0.24'),
+    ('sklearn', '1.3'),
     ('tools21cm','2.0.3'),
     ('toolz','0.0'),
     ('tqdm','4.0'),
-    ('wheel', '0.0'),
-    # ('mwa_hyperbeam','0.10'),
+    ('mwa_hyperbeam','0.10'),
 ]
+
 for (name, target) in checks:
     mod = None
-    if name.lower() == 'aratmospy':
-        exc = None
-        for candidate in ('aratmospy', 'ARatmospy'):
-            try:
-                mod = importlib.import_module(candidate)
-                break
-            except Exception:
-                mod = None
-                exc = exc
-        if mod is None:
-            print('aratmospy not importable: {exc or "unknown"}')
-            sys.exit(1)
-    elif name == 'dask_mpi':
-        try:
-            import importlib.util
-            spec = importlib.util.find_spec('dask_mpi')
-            if spec is None:
-                raise ImportError('dask_mpi not found')
-            # Do not import to avoid hard mpi4py dependency here
-            ver = '0.0'
-            print('dask_mpi present')
-            continue
-        except Exception:
-            print('dask_mpi not importable')
-            sys.exit(1)
-    else:
-        try:
-            mod = importlib.import_module(name)
-        except Exception as exc:
-            print(f'{name} not importable: {exc}')
-            sys.exit(1)
+    try:
+        mod = importlib.import_module(name)
+    except Exception as exc:
+        print(f'{name} not importable: {exc}')
+        sys.exit(1)
     ver = getattr(mod, '__version__', '0.0')
     try:
         assert tuple([*ver.split('.')]) >= tuple([*target.split('.')])
@@ -520,13 +489,18 @@ ARG SKIP_TESTS=0
 ENV SKIP_TESTS=${SKIP_TESTS}
 RUN if [ "${SKIP_TESTS:-0}" = "1" ]; then exit 0; fi; \
     export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1; \
-    # heavy imaging test was failing (disk space): test_imaging
+    # known failing test: test_source_detection_plot
     PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/${NB_USER}/Karabo-Pipeline && \
-    PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/${NB_USER}/Karabo-Pipeline || true && \
+    (PYTHONPATH="/home/${NB_USER}/.local/pytest:${PYTHONPATH}" python -m pytest -q -x --tb=short -k test_source_detection_plot /home/${NB_USER}/Karabo-Pipeline || true) && \
+    # Aggressive cleanup of all caches and temporary files
     rm -rf /home/${NB_USER}/.astropy/cache \
-           /home/${NB_USER}/.cache/astropy \
-           /home/${NB_USER}/.cache/pyuvdata \
-           /home/${NB_USER}/.cache/rascil
+    /home/${NB_USER}/.cache/* \
+    /tmp/* \
+    /home/${NB_USER}/.local/share/jupyter/runtime/* \
+    /home/${NB_USER}/Karabo-Pipeline/.pytest_cache \
+    /home/${NB_USER}/Karabo-Pipeline/**/__pycache__ && \
+    find /home/${NB_USER}/Karabo-Pipeline -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true && \
+    find /home/${NB_USER}/Karabo-Pipeline -type d -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true
 
 
 # ss.s..........................................................ssssssssss [ 20%]
