@@ -4,10 +4,6 @@ FROM quay.io/jupyter/minimal-notebook:notebook-7.2.2
 USER root
 SHELL ["/bin/bash", "-lc"]
 
-# Remove conda to avoid library conflicts
-RUN rm -f /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true; \
-    rm -rf /opt/conda || true
-
 # Essential build dependencies
 # These are found by spack external find, and later garbage collected by spack.# Do not include runtime dependencies here.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -50,9 +46,16 @@ ENV SPACK_ROOT=/opt/spack \
 
 # Install Spack v0.23 and detect compilers
 RUN git clone --depth=1 --single-branch --branch=releases/v0.23 https://github.com/spack/spack.git ${SPACK_ROOT} && \
-    rm -rf ${SPACK_ROOT}/.git && \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack compiler find && \
+    cd ${SPACK_ROOT} && \
+    rm -rf .git && \
+    . share/spack/setup-env.sh && \
+    spack env create --dir /opt/spack_env && \
+    fix-permissions ${SPACK_ROOT} /opt/spack_env
+
+RUN echo ". ${SPACK_ROOT}/share/spack/setup-env.sh 2>/dev/null || true" > /etc/profile.d/spack.sh && \
+    echo "spack env activate -p /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh
+
+RUN spack compiler find && \
     spack external find \
     autoconf \
     automake \
@@ -221,10 +224,7 @@ ARG SPACK_TARGET=""
 RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=locked \
     --mount=type=cache,target=/opt/spack-source-cache,id=spack-source-cache,sharing=locked \
     --mount=type=cache,target=/opt/spack-misc-cache,id=spack-misc-cache,sharing=locked \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh; \
     mkdir -p /opt/{software,view,buildcache,spack-source-cache,spack-misc-cache}; \
-    spack env create --dir /opt/spack_env; \
-    spack env activate /opt/spack_env; \
     arch=$(uname -m); \
     if [ -z "${SPACK_TARGET}" ]; then \
     case "$arch" in \
@@ -304,32 +304,10 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env view regenerate && \
     fix-permissions /opt/view /opt/spack_env /opt/software /opt/view
 
-# Make Spack view default in system paths and shells
-RUN printf "/opt/view/lib\n/opt/view/lib64\n" > /etc/ld.so.conf.d/spack-view.conf && ldconfig && \
-    echo ". ${SPACK_ROOT}/share/spack/setup-env.sh 2>/dev/null || true" > /etc/profile.d/spack.sh && \
-    echo "spack env activate -p /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh && \
-    mkdir -p /opt/etc && \
-    echo ". /etc/profile.d/spack.sh" > /opt/etc/spack_env && \
-    chmod 644 /opt/etc/spack_env
+RUN echo ". ${SPACK_ROOT}/share/spack/setup-env.sh 2>/dev/null || true" > /etc/profile.d/spack.sh && \
+    echo "spack env activate -p /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh
 
-ENV PATH="/opt/view/bin:${PATH}" \
-    LD_LIBRARY_PATH="/opt/view/lib:/opt/view/lib64" \
-    BASH_ENV=/opt/etc/spack_env \
-    PYTHONNOUSERSITE=1 \
-    CMAKE_PREFIX_PATH="/opt/view" \
-    PKG_CONFIG_PATH="/opt/view/lib/pkgconfig:/opt/view/lib64/pkgconfig" \
-    PYTHONPATH="/opt/view/lib/python${PYTHON_VERSION}/site-packages"
-
-# Ensure start-notebook uses Spack jupyter first in PATH
-RUN mkdir -p /usr/local/bin/before-notebook.d && \
-    printf '#!/usr/bin/env bash\nPATH="/opt/view/bin:${HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\nexport PATH\nLD_LIBRARY_PATH="/opt/view/lib:/opt/view/lib64"\nexport LD_LIBRARY_PATH\nPYTHONPATH=/opt/view/lib/python${PYTHON_VERSION}/site-packages\nexport PYTHONPATH\n' > /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
-    chmod +x /usr/local/bin/before-notebook.d/00-prefer-spack.sh && \
-    # Remove conda and activation hook; we run Jupyter inside Spack Python
-    rm -f /opt/conda /usr/local/bin/before-notebook.d/10activate-conda-env.sh || true
-
-RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    spack test run 'py-astropy-healpix' && \
+RUN spack test run 'py-astropy-healpix' && \
     # spack test run 'py-astropy' && \ # broken
     spack test run 'py-numpy' && \
     spack test run 'py-scipy' && \
@@ -373,8 +351,6 @@ RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
 
 # Install Jupyter stack via pip (Spack lacks notebook@7)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
     pip install \
     'jupyterlab==4.*' \
     'ipykernel==6.*' \
@@ -398,9 +374,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Successfully installed anyio-4.11.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 arrow-1.4.0 asttokens-3.0.0 async-lru-2.0.5 attrs-25.4.0 babel-2.17.0 beautifulsoup4-4.14.2 bleach-6.2.0 cffi-2.0.0 comm-0.2.3 debugpy-1.8.17 decorator-5.2.1 defusedxml-0.7.1 executing-2.2.1 fastjsonschema-2.21.2 fqdn-1.5.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 ipykernel-6.31.0 ipython-8.37.0 isoduration-20.11.0 jedi-0.19.2 json5-0.12.1 jsonpointer-3.0.0 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 jupyter-events-0.12.0 jupyter-lsp-2.3.0 jupyter-server-terminals-0.5.3 jupyter_client-8.6.3 jupyter_core-5.9.1 jupyter_server-2.17.0 jupyterlab-4.4.10 jupyterlab-pygments-0.3.0 jupyterlab_server-2.28.0 lark-1.3.0 matplotlib-inline-0.2.1 mistune-3.1.4 nbclient-0.10.2 nbconvert-7.16.6 nbformat-5.10.4 nest-asyncio-1.6.0 notebook-7.4.7 notebook-shim-0.2.4 overrides-7.7.0 pandocfilters-1.5.1 parso-0.8.5 pexpect-4.9.0 platformdirs-4.5.0 prometheus-client-0.23.1 prompt_toolkit-3.0.52 ptyprocess-0.7.0 pure-eval-0.2.3 pycparser-2.23 pygments-2.19.2 python-json-logger-4.0.0 pyzmq-27.1.0 referencing-0.37.0 rfc3339-validator-0.1.4 rfc3986-validator-0.1.1 rfc3987-syntax-1.1.0 rpds-py-0.28.0 send2trash-1.8.3 sniffio-1.3.1 soupsieve-2.8 stack_data-0.6.3 terminado-0.18.1 tinycss2-1.4.0 tornado-6.5.2 traitlets-5.14.3 tzdata-2025.2 uri-template-1.3.0 wcwidth-0.2.14 webcolors-24.11.1 webencodings-0.5.1 websocket-client-1.9.0
 
 # tests
-RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
-    spack env activate /opt/spack_env && \
-    python -c "import ska_sdp_func_python" || exit 1 && \
+RUN python -c "import ska_sdp_func_python" || exit 1 && \
     python -c "import ska_sdp_func" || exit 1 && \
     python -c "import casacore, casacore.tables, casacore.quanta; print('python-casacore OK')" && \
     python - <<"PY"
