@@ -227,8 +227,7 @@ jobs:
           docker run --rm "${IMAGE_REF}" bash -lc '
             set -euo pipefail
             export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
-            pip install -q --no-build-isolation --no-deps "dask_memusage==1.1" "pytest>=8,<9"
-            PYTHONPATH="/home/jovyan/.local/pytest:${PYTHONPATH:-}" python -m pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/jovyan/Karabo-Pipeline
+            pytest -q -x --tb=short -k "not (test_suppress_rascil_warning or test_source_detection_plot)" /home/jovyan/Karabo-Pipeline
           '
 
   promote-pass:
