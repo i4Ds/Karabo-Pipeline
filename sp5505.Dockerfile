@@ -309,8 +309,17 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     spack env view regenerate && \
     fix-permissions /opt/view /opt/spack_env /opt/software /opt/view
 
+# Activate spack env in login shells
 RUN echo ". ${SPACK_ROOT}/share/spack/setup-env.sh 2>/dev/null || true" > /etc/profile.d/spack.sh && \
     echo "spack env activate -p /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh
+
+# Set PATH to prioritize Spack over conda
+ENV PATH="/opt/view/bin:${PATH}"
+
+# Create hook that runs after conda activation to restore Spack priority
+RUN mkdir -p /usr/local/bin/before-notebook.d && \
+    printf '#!/bin/bash\n# Restore Spack priority after conda activation\nexport PATH="/opt/view/bin:${PATH}"\n' > /usr/local/bin/before-notebook.d/20-restore-spack.sh && \
+    chmod +x /usr/local/bin/before-notebook.d/20-restore-spack.sh
 
 RUN spack test run 'py-astropy-healpix' && \
     # spack test run 'py-astropy' && \ # broken
