@@ -1,6 +1,5 @@
-FROM quay.io/jupyter/minimal-notebook:notebook-7.2.2
+FROM quay.io/jupyter/minimal-notebook:notebook-7.2.2 AS builder
 
-# RASCIL deps-only image (no RASCIL itself). Versions aligned with sp5505.
 USER root
 SHELL ["/bin/bash", "-lc"]
 
@@ -73,15 +72,9 @@ RUN spack compiler find && \
 # Add SKA SDP Spack repo and overlay
 RUN git clone --depth=1 --single-branch --branch=2025.07.3 https://gitlab.com/ska-telescope/sdp/ska-sdp-spack.git /opt/ska-sdp-spack && \
     rm -rf /opt/ska-sdp-spack/.git && \
-    . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/ska-sdp-spack
+    spack repo add /opt/ska-sdp-spack
 COPY spack-overlay /opt/karabo-spack
-RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && spack repo add /opt/karabo-spack
-
-#HACK: setup rascil data - create canary file that RASCIL checks for
-ENV RASCIL_DATA=/opt/rascil_data
-RUN mkdir -p ${RASCIL_DATA}/models && \
-    echo "# Dummy RASCIL data file" > ${RASCIL_DATA}/models/S3_151MHz_10deg.csv && \
-    fix-permissions ${RASCIL_DATA}
+RUN spack repo add /opt/karabo-spack
 
 ARG PYTHON_VERSION=3.10
 ARG NUMPY_VERSION=1.23.5
@@ -307,11 +300,53 @@ RUN --mount=type=cache,target=/opt/buildcache,id=spack-binary-cache,sharing=lock
     ac_cv_lib_curl_curl_easy_init=no spack install --no-check-signature --no-checksum --fail-fast --fresh --show-log-on-error && \
     spack gc -y && \
     spack env view regenerate && \
-    fix-permissions /opt/view /opt/spack_env /opt/software /opt/view
+    fix-permissions /opt/view /opt/spack_env /opt/software
+
+# todo: delete
+FROM quay.io/jupyter/minimal-notebook:notebook-7.2.2 AS runtime
+
+USER root
+SHELL ["/bin/bash", "-lc"]
+
+# Install runtime dependencies
+ENV DEBIAN_FRONTEND=noninteractive
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get --no-install-recommends install -y \
+    build-essential \
+    ca-certificates \
+    curl \
+    gfortran \
+    git \
+    libcurl4-openssl-dev \
+    libgomp1 \
+    wget \
+    zstd
+
+COPY --from=builder /opt/software /opt/software
+COPY --from=builder /opt/view /opt/view
+COPY --from=builder /opt/spack_env /opt/spack_env
+COPY --from=builder /opt/spack /opt/spack
+COPY --from=builder /opt/ska-sdp-spack /opt/ska-sdp-spack
+COPY --from=builder /opt/karabo-spack /opt/karabo-spack
+COPY --from=builder /opt/cargo /opt/cargo
+COPY --from=builder /opt/rustup /opt/rustup
+
+# Set Spack environment variables (needed from builder stage)
+ENV SPACK_ROOT=/opt/spack \
+    SPACK_DISABLE_LOCAL_CONFIG=1 \
+    CARGO_HOME=/opt/cargo \
+    RUSTUP_HOME=/opt/rustup
 
 # Activate spack env in login shells
 RUN echo ". ${SPACK_ROOT}/share/spack/setup-env.sh 2>/dev/null || true" > /etc/profile.d/spack.sh && \
     echo "spack env activate -p /opt/spack_env 2>/dev/null || true" >> /etc/profile.d/spack.sh
+
+#HACK: setup rascil data - create canary file that RASCIL checks for
+ENV RASCIL_DATA=/opt/rascil_data
+RUN mkdir -p ${RASCIL_DATA}/models && \
+    echo "# Dummy RASCIL data file" > ${RASCIL_DATA}/models/S3_151MHz_10deg.csv && \
+    fix-permissions ${RASCIL_DATA}
 
 # Set PATH to prioritize Spack over conda
 ENV PATH="/opt/view/bin:${PATH}"
@@ -359,13 +394,17 @@ RUN spack test run 'py-astropy-healpix' && \
 # spack test run 'py-pyuvdata'
 
 # TODO: Verify hyperbeam (Spack-installed) can be imported
-# RUN . ${SPACK_ROOT}/share/spack/setup-env.sh && \
+# RUN \
 #     spack env activate /opt/spack_env && \
 #     python -c "from mwa_hyperbeam import FEEBeam; print('mwa_hyperbeam (Spack) import successful')"
 
+# Redeclare build args for runtime stage
+ARG PYTHON_VERSION=3.10
+ARG TOOLS21CM_VERSION=2.3.8
+
 # Install Jupyter stack via pip (Spack lacks notebook@7)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install \
+    python3 -m pip install \
     'jupyterlab==4.*' \
     'ipykernel==6.*' \
     'jupyter_server==2.*' \
@@ -375,7 +414,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     'jupyter_client>=8' \
     && \
     # optional extras
-    pip install --no-deps \
+    python3 -m pip install --no-deps \
     'tools21cm=='$TOOLS21CM_VERSION \
     'mwa-hyperbeam==0.10.4' && \
     fix-permissions /opt/view/lib/python${PYTHON_VERSION}
