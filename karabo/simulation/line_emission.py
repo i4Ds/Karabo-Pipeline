@@ -12,7 +12,8 @@ from ska_sdp_datamodels.science_data_model.polarisation_model import Polarisatio
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_rascil import RascilDirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
@@ -35,6 +36,7 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: List[NDArray[np.float_]],
+    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -50,6 +52,7 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
+    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -66,6 +69,7 @@ def line_emission_pipeline(
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: Optional[bool] = True,
+    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -81,6 +85,7 @@ def line_emission_pipeline(
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
     should_perform_primary_beam_correction: Optional[bool] = True,
+    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.
     A line emission simulation involves assuming every source in the input SkyModel
@@ -219,12 +224,13 @@ def line_emission_pipeline(
                 backend = "OSKAR"
             else:
                 backend = "RASCIL"
-            dirty_imager = RascilDirtyImager(
-                RascilDirtyImagerConfig(
+            dirty_imager = get_imager(
+                backend=imaging_backend,
+                config=RascilDirtyImagerConfig(
                     imaging_npixel=dirty_imager_config.imaging_npixel,
                     imaging_cellsize=dirty_imager_config.imaging_cellsize,
                     combine_across_frequencies=dirty_imager_config.combine_across_frequencies,  # noqa: E501
-                )
+                ),
             )
             dirty = dirty_imager.create_dirty_image(
                 vis,
