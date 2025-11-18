@@ -8,6 +8,7 @@ from typing import Optional
 from karabo.imaging.image import Image
 from karabo.imaging.imager_interface import Imager, ImageSpec
 from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.imager_sdp import SdpImager
 from karabo.simulation.visibility import Visibility
 from karabo.util.file_handler import FileHandler
 
@@ -64,5 +65,5 @@ def get_imager(backend: ImagingBackend) -> Imager:
     if backend is ImagingBackend.RASCIL:
         return _RascilImager()
     if backend is ImagingBackend.SDP:
-        raise NotImplementedError("SKA-SDP imaging backend not yet implemented.")
+        return SdpImager()
     raise ValueError(f"Unsupported imaging backend requested: {backend!r}")
