@@ -1,3 +1,4 @@
+import math
 import os
 from collections import namedtuple
 from copy import deepcopy
@@ -13,7 +14,7 @@ from ska_sdp_datamodels.science_data_model.polarisation_model import Polarisatio
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_factory import ImagingBackend, get_imager
-from karabo.imaging.imager_rascil import RascilDirtyImagerConfig
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
@@ -212,6 +213,7 @@ def line_emission_pipeline(
 
     print("Creating dirty images from visibilities...")
 
+    imager = get_imager(imaging_backend)
     dirty_images: List[List[Image]] = []
     for index_freq, _ in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")
@@ -220,24 +222,26 @@ def line_emission_pipeline(
             print(f"Processing pointing {index_p}...")
             vis = visibilities[index_freq][index_p]
 
+            image_spec = ImageSpec(
+                npix=dirty_imager_config.imaging_npixel,
+                cellsize_arcsec=math.degrees(dirty_imager_config.imaging_cellsize)
+                * 3600.0,
+                phase_centre_deg=(center.ra.deg, center.dec.deg),
+                polarisation="I",
+                nchan=1,
+            )
+            dirty, _ = imager.invert(vis, image_spec)
+
             if simulator_backend is SimulatorBackend.OSKAR:
                 backend = "OSKAR"
             else:
                 backend = "RASCIL"
-            dirty_imager = get_imager(
-                backend=imaging_backend,
-                config=RascilDirtyImagerConfig(
-                    imaging_npixel=dirty_imager_config.imaging_npixel,
-                    imaging_cellsize=dirty_imager_config.imaging_cellsize,
-                    combine_across_frequencies=dirty_imager_config.combine_across_frequencies,  # noqa: E501
-                ),
+
+            dirty_output_path = os.path.join(
+                output_base_directory, f"dirty_{backend}_{index_p}.fits"
             )
-            dirty = dirty_imager.create_dirty_image(
-                vis,
-                output_fits_path=os.path.join(
-                    output_base_directory, f"dirty_{backend}_{index_p}.fits"
-                ),
-            )
+            dirty.write_to_file(dirty_output_path, overwrite=True)
+            dirty = Image(path=dirty_output_path)
 
             dirty_images[-1].append(dirty)
 

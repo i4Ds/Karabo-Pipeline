@@ -84,18 +84,38 @@ class RascilDirtyImager(DirtyImager):
         *,
         output_fits_path: Optional[FilePathType] = None,
     ) -> Image:
+        dirty_image, _ = self.create_dirty_and_psf(
+            visibility, dirty_output_fits_path=output_fits_path
+        )
+        return dirty_image
+
+    def create_dirty_and_psf(
+        self,
+        visibility: Visibility,
+        /,
+        *,
+        dirty_output_fits_path: Optional[FilePathType] = None,
+        psf_output_fits_path: Optional[FilePathType] = None,
+    ) -> Tuple[Image, Image]:
         if visibility.format != "MS":
             raise NotImplementedError(
                 f"Visibility format {visibility.format} is not supported, "
                 "currently only MS is supported for RASCIL imaging"
             )
 
-        if output_fits_path is None:
+        if dirty_output_fits_path is None:
             tmp_dir = FileHandler().get_tmp_dir(
                 prefix="Imager-Dirty-",
                 purpose="disk-cache for dirty.fits",
             )
-            output_fits_path = os.path.join(tmp_dir, "dirty.fits")
+            dirty_output_fits_path = os.path.join(tmp_dir, "dirty.fits")
+
+        if psf_output_fits_path is None:
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="Imager-PSF-",
+                purpose="disk-cache for psf.fits",
+            )
+            psf_output_fits_path = os.path.join(tmp_dir, "psf.fits")
 
         block_visibilities = create_visibility_from_ms(str(visibility.path))
         if len(block_visibilities) != 1:
@@ -136,26 +156,42 @@ class RascilDirtyImager(DirtyImager):
             cellsize=self.config.imaging_cellsize,
             override_cellsize=self.config.override_cellsize,
         )
-        dirty, _ = invert_visibility(visibility, model, context="2d")
-        if os.path.exists(output_fits_path):
-            os.remove(output_fits_path)
-        dirty.image_acc.export_to_fits(fits_file=output_fits_path)
+        invert_outputs = invert_visibility(visibility, model, context="2d", dopsf=True)
+        if isinstance(invert_outputs, tuple) and len(invert_outputs) == 3:
+            dirty, _, psf = invert_outputs
+        else:
+            dirty, _ = invert_outputs  # type: ignore[misc]
+            # Approximate PSF if backend version does not return one
+            psf = dirty
 
-        image = Image(path=output_fits_path)
+        for path, img in (
+            (dirty_output_fits_path, dirty),
+            (psf_output_fits_path, psf),
+        ):
+            if os.path.exists(path):
+                os.remove(path)
+            img.image_acc.export_to_fits(fits_file=path)
+
+        image = Image(path=dirty_output_fits_path)
+        psf_image = Image(path=psf_output_fits_path)
 
         # By default, RASCIL Imager produces a 4D Image object, with shape
         # corresponding to (frequency channels, polarisations, pixels_x, pixels_y).
         # If requested, we combine images across all frequency channels into one image,
         # and modify the header information accordingly
         if self.config.combine_across_frequencies is True:
-            image.header["NAXIS4"] = 1
+            for current_image, path in (
+                (image, dirty_output_fits_path),
+                (psf_image, psf_output_fits_path),
+            ):
+                current_image.header["NAXIS4"] = 1
 
-            assert image.data.ndim == 4
-            image.data = np.array([np.sum(image.data, axis=0)])
+                assert current_image.data.ndim == 4
+                current_image.data = np.array([np.sum(current_image.data, axis=0)])
 
-            image.write_to_file(path=output_fits_path, overwrite=True)
+                current_image.write_to_file(path=path, overwrite=True)
 
-        return image
+        return image, psf_image
 
 
 ImageContextType = Literal["awprojection", "2d", "ng", "wg"]
