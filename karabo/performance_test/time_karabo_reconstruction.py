@@ -115,7 +115,7 @@ if __name__ == "__main__":
         imaging_cellsize=cellsize_radians,
     )
 
-    visibilities, dirty_images = line_emission_pipeline(
+    visibilities, dirty_images, _psf_images, _restored_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
         pointings=pointings,
         sky_model=sky,

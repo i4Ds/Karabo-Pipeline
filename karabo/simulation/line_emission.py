@@ -13,7 +13,11 @@ from ska_sdp_datamodels.science_data_model.polarisation_model import Polarisatio
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_factory import (
+    ImagingBackend,
+    get_imager,
+    parse_imaging_backend,
+)
 from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
@@ -37,8 +41,13 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: List[NDArray[np.float_]],
-    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
+    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
+) -> Tuple[
+    List[List[Visibility]],
+    List[List[Image]],
+    List[List[Image]],
+    List[List[Image]],
+]:
     ...
 
 
@@ -53,8 +62,13 @@ def line_emission_pipeline(
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
+    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
+) -> Tuple[
+    List[List[Visibility]],
+    List[List[Image]],
+    List[List[Image]],
+    List[List[Image]],
+]:
     ...
 
 
@@ -70,8 +84,13 @@ def line_emission_pipeline(
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = ...,
     should_perform_primary_beam_correction: Optional[bool] = True,
-    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
+    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
+) -> Tuple[
+    List[List[Visibility]],
+    List[List[Image]],
+    List[List[Image]],
+    List[List[Image]],
+]:
     ...
 
 
@@ -86,11 +105,19 @@ def line_emission_pipeline(
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
     should_perform_primary_beam_correction: Optional[bool] = True,
-    imaging_backend: ImagingBackend = ImagingBackend.RASCIL,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
-    """Perform a line emission simulation, to compute visibilities and dirty images.
+    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
+) -> Tuple[
+    List[List[Visibility]],
+    List[List[Image]],
+    List[List[Image]],
+    List[List[Image]],
+]:
+    """Perform a line emission simulation producing visibilities and images.
     A line emission simulation involves assuming every source in the input SkyModel
     only emits within one frequency channel.
+
+    Returns:
+        visibilities, dirty images, PSFs, restored images for each frequency/pointing.
 
     If requested, include primary beam effects into the visibilities and dirty images.
 
@@ -100,7 +127,9 @@ def line_emission_pipeline(
     For RASCIL, the provided primary beams are used
     for the primary beam effect.
     """
+    imaging_backend = parse_imaging_backend(imaging_backend)
     print(f"Selected backend: {simulator_backend}")
+    print(f"Selected imaging backend: {imaging_backend.value}")
 
     output_base_directory = Path(output_base_directory)
     # If output filepath does not exist, mkdir
@@ -215,9 +244,13 @@ def line_emission_pipeline(
 
     imager = get_imager(imaging_backend)
     dirty_images: List[List[Image]] = []
+    psf_images: List[List[Image]] = []
+    restored_images: List[List[Image]] = []
     for index_freq, _ in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")
         dirty_images.append([])
+        psf_images.append([])
+        restored_images.append([])
         for index_p, _ in enumerate(pointings):
             print(f"Processing pointing {index_p}...")
             vis = visibilities[index_freq][index_p]
@@ -230,20 +263,39 @@ def line_emission_pipeline(
                 polarisation="I",
                 nchan=1,
             )
-            dirty, _ = imager.invert(vis, image_spec)
+            dirty, psf = imager.invert(vis, image_spec)
+            restored = imager.restore(dirty, psf)
 
             if simulator_backend is SimulatorBackend.OSKAR:
-                backend = "OSKAR"
+                simulator_label = "OSKAR"
             else:
-                backend = "RASCIL"
+                simulator_label = "RASCIL"
+            imaging_label = imaging_backend.value.upper()
 
             dirty_output_path = os.path.join(
-                output_base_directory, f"dirty_{backend}_{index_p}.fits"
+                output_base_directory,
+                f"dirty_{simulator_label}_{imaging_label}_{index_p}.fits",
             )
             dirty.write_to_file(dirty_output_path, overwrite=True)
             dirty = Image(path=dirty_output_path)
 
+            psf_output_path = os.path.join(
+                output_base_directory,
+                f"psf_{simulator_label}_{imaging_label}_{index_p}.fits",
+            )
+            psf.write_to_file(psf_output_path, overwrite=True)
+            psf = Image(path=psf_output_path)
+
+            restored_output_path = os.path.join(
+                output_base_directory,
+                f"restored_{simulator_label}_{imaging_label}_{index_p}.fits",
+            )
+            restored.write_to_file(restored_output_path, overwrite=True)
+            restored = Image(path=restored_output_path)
+
             dirty_images[-1].append(dirty)
+            psf_images[-1].append(psf)
+            restored_images[-1].append(restored)
 
             # dirty.data.shape meaning:
             # (frequency channels, polarisations, pixels_x, pixels_y)
@@ -257,4 +309,4 @@ def line_emission_pipeline(
         pointings
     ), f"{len(dirty_images[0])}, {len(pointings)}"
 
-    return visibilities, dirty_images
+    return visibilities, dirty_images, psf_images, restored_images

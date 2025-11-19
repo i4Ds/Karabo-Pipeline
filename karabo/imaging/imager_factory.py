@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import os
-from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
-from karabo.imaging.image import Image
-from karabo.imaging.imager_interface import Imager, ImageSpec
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
-from karabo.imaging.imager_sdp import SdpImager
-from karabo.simulation.visibility import Visibility
-from karabo.util.file_handler import FileHandler
+from karabo.imaging.backends.rascil_backend import RascilBackendImager
+from karabo.imaging.backends.sdp_backend import SdpImager
+from karabo.imaging.imager_interface import Imager
+from karabo.util.helpers import Environment
 
 
 class ImagingBackend(str, Enum):
@@ -20,50 +16,27 @@ class ImagingBackend(str, Enum):
     SDP = "sdp"
 
 
-@dataclass
-class _RascilBackendConfig:
-    combine_across_frequencies: bool = True
+def parse_imaging_backend(
+    backend: Optional[Union[str, ImagingBackend]] = None,
+) -> ImagingBackend:
+    if backend is None:
+        backend = Environment.get("IMAGING_BACKEND", str, ImagingBackend.RASCIL.value)
+    if isinstance(backend, ImagingBackend):
+        return backend
+    backend_lower = backend.lower()
+    try:
+        return ImagingBackend(backend_lower)
+    except ValueError as exc:
+        raise ValueError(
+            f"Unsupported imaging backend '{backend}'. Expected one of: "
+            f"{', '.join(b.value for b in ImagingBackend)}"
+        ) from exc
 
 
-class _RascilImager(Imager):
-    """Adapter that exposes the legacy RASCIL imager via the new interface."""
-
-    def __init__(self, config: Optional[_RascilBackendConfig] = None) -> None:
-        self.config = config or _RascilBackendConfig()
-
-    def _config_for_spec(self, spec: ImageSpec) -> RascilDirtyImagerConfig:
-        return RascilDirtyImagerConfig(
-            imaging_npixel=spec.npix,
-            imaging_cellsize=spec.cellsize_radians,
-            combine_across_frequencies=self.config.combine_across_frequencies,
-        )
-
-    def _create_dirty_imager(self, spec: ImageSpec) -> RascilDirtyImager:
-        return RascilDirtyImager(self._config_for_spec(spec))
-
-    def invert(self, vis: Visibility, image_spec: ImageSpec) -> tuple[Image, Image]:
-        dirty_imager = self._create_dirty_imager(image_spec)
-
-        tmp_dir = FileHandler().get_tmp_dir(
-            prefix="rascil-imager-",
-            purpose="dirty and psf fits storage",
-        )
-        dirty_path = os.path.join(tmp_dir, "dirty.fits")
-        psf_path = os.path.join(tmp_dir, "psf.fits")
-        dirty_image, psf_image = dirty_imager.create_dirty_and_psf(
-            vis,
-            dirty_output_fits_path=dirty_path,
-            psf_output_fits_path=psf_path,
-        )
-        return dirty_image, psf_image
-
-    def restore(self, model_or_dirty: Image, psf: Image) -> Image:  # noqa: ARG002
-        return model_or_dirty
-
-
-def get_imager(backend: ImagingBackend) -> Imager:
-    if backend is ImagingBackend.RASCIL:
-        return _RascilImager()
-    if backend is ImagingBackend.SDP:
+def get_imager(backend: Optional[Union[str, ImagingBackend]] = None) -> Imager:
+    resolved = parse_imaging_backend(backend)
+    if resolved is ImagingBackend.RASCIL:
+        return RascilBackendImager()
+    if resolved is ImagingBackend.SDP:
         return SdpImager()
-    raise ValueError(f"Unsupported imaging backend requested: {backend!r}")
+    raise ValueError(f"Unsupported imaging backend requested: {resolved!r}")
