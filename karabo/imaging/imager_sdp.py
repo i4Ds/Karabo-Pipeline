@@ -73,25 +73,20 @@ class SdpImager(Imager):
             override_cellsize=False,
         )
 
-        invert_result = invert_visibility(
+        dirty, _ = invert_visibility(
+            sdp_visibility,
+            model,
+            context=self.config.context,
+            dopsf=False,
+            weighting=self.config.weighting,
+        )
+        psf, _ = invert_visibility(
             sdp_visibility,
             model,
             context=self.config.context,
             dopsf=True,
             weighting=self.config.weighting,
         )
-        if isinstance(invert_result, tuple):
-            if len(invert_result) == 3:
-                dirty, _, psf = invert_result
-            elif len(invert_result) == 2:
-                dirty, _ = invert_result
-                psf = dirty
-            else:
-                dirty = invert_result[0]
-                psf = dirty
-        else:
-            dirty = invert_result
-            psf = dirty
 
         return self._export_images(dirty, psf)
 

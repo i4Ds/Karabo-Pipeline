@@ -1,6 +1,7 @@
 import math
 import os
 
+import numpy as np
 import pytest
 
 from karabo.imaging.imager_factory import ImagingBackend, get_imager
@@ -24,6 +25,9 @@ def test_sdp_imager_invert_and_restore(minimal_casa_ms: Visibility) -> None:
     assert dirty_image.data.shape == psf_image.data.shape
     assert dirty_image.data.size > 0
     assert psf_image.data.size > 0
+    assert not np.allclose(
+        dirty_image.get_squeezed_data(), psf_image.get_squeezed_data()
+    )
 
     restored = imager.restore(dirty_image, psf_image)
     assert restored.path == dirty_image.path
