@@ -1,6 +1,9 @@
 name: Test Source Detection
 
 on:
+  push:
+    branches:
+      - run_simple_test
   workflow_dispatch:
 
 jobs:
