@@ -4,8 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test_source_setection:
-    if: github.event.pull_request.draft == false
+  test-source-detection:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
