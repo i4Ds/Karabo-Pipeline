@@ -36,4 +36,4 @@ jobs:
         run: |
           conda activate test_karabo
           export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
-          mpirun -n 2 pytest --only-mpi
+          pytest test/test_source_detection.py
