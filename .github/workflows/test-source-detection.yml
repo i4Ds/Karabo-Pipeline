@@ -27,7 +27,7 @@ jobs:
           conda env update -f environment.yaml
           pip install -e ".[dev]"
           python -m ipykernel install --user --name python3.10
-      - name: Run Code Quality Tools
+      - name: Activate conda environment
         shell: bash -l {0}
         run: |
           conda activate test_karabo
