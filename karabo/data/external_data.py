@@ -11,8 +11,8 @@ from tqdm import tqdm
 from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler
 
-cscs_base_url = "https://object.cscs.ch/v1/AUTH_1e1ed97536cf4e8f9e214c7ca2700d62"
-cscs_karabo_public_base_url = f"{cscs_base_url}/karabo_public"
+cscs_base_url = "https://rgw.cscs.ch/ska"  # S3 object storage
+cscs_karabo_public_base_url = f"{cscs_base_url}:karabo-public"
 cscs_karabo_public_testing_base_url = f"{cscs_karabo_public_base_url}/testing"
 
 

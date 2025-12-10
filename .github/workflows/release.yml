@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  setup-builds:
+    runs-on: ubuntu-latest
+    outputs:
+      karabo-version: ${{ steps.skrm.outputs.karabo_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Setup Karabo release metadata
+        id: skrm
+        shell: bash
+        run: |
+          echo "Setup Karabo release metadata"
+          apt-get update && apt-get install -y git
+          git fetch --tags
+          KARABO_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "The latest published version is $KARABO_TAG"
+          echo "karabo_version=$KARABO_TAG" >> $GITHUB_OUTPUT
+          build="0"
+  conda-build:
+    needs: setup-builds
+    uses: ./.github/workflows/conda-build.yml
+    strategy:
+      matrix:
+        python: ["3.9", "3.10"]
+    with:
+        buildNumber: 0
+        version: ${{ needs.setup-builds.outputs.karabo-version }}
+        python-version: ${{ matrix.python }}
+        buildDocker: true
+        latestDocker: true
+    secrets:
+        ANACONDA_SECRET: ${{ secrets.ANACONDA_SECRET }}
