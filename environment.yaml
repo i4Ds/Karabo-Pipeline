@@ -1,7 +1,7 @@
 channels:
+  - conda-forge
   - i4ds
   - nvidia/label/cuda-11.7.0
-  - conda-forge
 dependencies:
 # Set dependencies and it's constraints in the package they belong. Otherwise you just cause chaos for future builds.
 # Just Karabo's direct dependencies and Karabo constraints (from our code) should be handled here.
@@ -28,8 +28,9 @@ dependencies:
   - libcufft
   - matplotlib
   - montagepy               =6.0.0
-  - mpi4py
-  - mpich
+  - mpi4py                  =3.1.5
+  - mpich                   >=4.1,<4.2
+  - ucx                     <1.18
   - nbformat
   - nbconvert
   - numpy                   >=1.21, !=1.24.0, <2.0  # upper-bounded because see issue #584
@@ -59,3 +60,4 @@ dependencies:
   # for MWA measurement set, uvfits, hdf5, mir support (choc-234)
   # this [casa] syntax won't work with mamba!
   - pyuvdata[casa]          >=2.4,<3
+  
