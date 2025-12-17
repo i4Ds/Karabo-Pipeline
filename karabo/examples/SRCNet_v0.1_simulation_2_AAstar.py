@@ -17,6 +17,8 @@ from karabo.data.obscore import ObsCoreMeta
 from karabo.data.src import RucioMeta
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_factory import get_imager, parse_imaging_backend
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_wsclean import (
     WscleanDirtyImager,
     WscleanImageCleaner,
@@ -174,24 +176,42 @@ def create_visibilities_metadata(visibility: Visibility) -> None:
 
 
 def create_dirty_image(visibility: Visibility) -> Image:
-    dirty_imager = WscleanDirtyImager(
-        DirtyImagerConfig(
-            imaging_npixel=IMAGING_NPIXEL,
-            imaging_cellsize=IMAGING_CELLSIZE,
-            combine_across_frequencies=True,
-        )
-    )
+    imaging_backend = parse_imaging_backend()
 
-    return dirty_imager.create_dirty_image(
-        visibility,
-        output_fits_path=os.path.join(
-            OUTPUT_ROOT_DIR,
-            f"{RUCIO_NAME_PREFIX}dirty.fits",
-        ),
-    )
+    if imaging_backend.value in {"rascil", "sdp"}:
+        image_spec = ImageSpec(
+            npix=IMAGING_NPIXEL,
+            cellsize_arcsec=math.degrees(IMAGING_CELLSIZE) * 3600.0,
+            phase_centre_deg=(PHASE_CENTER_RA, PHASE_CENTER_DEC),
+        )
+        dirty_imager = get_imager(imaging_backend)
+        dirty, _psf = dirty_imager.invert(visibility, image_spec)
+    else:
+        dirty_imager = WscleanDirtyImager(
+            DirtyImagerConfig(
+                imaging_npixel=IMAGING_NPIXEL,
+                imaging_cellsize=IMAGING_CELLSIZE,
+                combine_across_frequencies=True,
+            )
+        )
+
+        dirty = dirty_imager.create_dirty_image(
+            visibility,
+            output_fits_path=os.path.join(
+                OUTPUT_ROOT_DIR,
+                f"{RUCIO_NAME_PREFIX}dirty.fits",
+            ),
+        )
+
+    return dirty
 
 
 def create_cleaned_image(visibility: Visibility, dirty_image: Image) -> Image:
+    imaging_backend = parse_imaging_backend()
+
+    if imaging_backend.value in {"rascil", "sdp"}:
+        return dirty_image
+
     image_cleaner = WscleanImageCleaner(
         WscleanImageCleanerConfig(
             imaging_npixel=IMAGING_NPIXEL,

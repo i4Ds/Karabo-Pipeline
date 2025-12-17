@@ -730,7 +730,7 @@ class InterferometerSimulation:
             ),
         )
 
-        # Informative time mismatch note (same logic, just update label)
+        # Informative time mismatch note
         sdp_obs_times = vis["datetime"]
         sdp_obs_start_time = sdp_obs_times[0]
         timestamp_ns = sdp_obs_start_time.values.astype("int64")
@@ -744,7 +744,7 @@ class InterferometerSimulation:
                 sep=os.linesep,
             )
 
-        # Sky to SDP components (reuses your Step 3)
+        # Sky to SDP components
         skycomponents = sky.convert_to_backend(
             backend=SimulatorBackend.SDP,
             desired_frequencies_hz=frequency_channel_starts,

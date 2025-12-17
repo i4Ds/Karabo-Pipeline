@@ -4,6 +4,8 @@ import math
 from datetime import datetime, timedelta, timezone
 
 from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_factory import get_imager, parse_imaging_backend
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_wsclean import WscleanDirtyImager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -78,15 +80,23 @@ if __name__ == "__main__":
         backend=SIMULATOR_BACKEND,
     )  # type: ignore[call-overload]
 
-    # Imaging using WSClean
-    dirty_imager = WscleanDirtyImager(
-        DirtyImagerConfig(
-            # Image size in degrees should be smaller than FOV
-            # Bigger baseline -> higher resolution
-            imaging_npixel=4096,
-            # -> Cellsize < FOV / 4096 -> 0.0000050418955078125
-            imaging_cellsize=5e-6,
-            combine_across_frequencies=True,
+    imaging_backend = parse_imaging_backend()
+    npix = 4096
+    cellsize_rad = 5e-6
+
+    if imaging_backend.value == "rascil" or imaging_backend.value == "sdp":
+        spec = ImageSpec(
+            npix=npix,
+            cellsize_arcsec=math.degrees(cellsize_rad) * 3600.0,
+            phase_centre_deg=(phase_center_ra, phase_center_dec),
         )
-    )
-    dirty = dirty_imager.create_dirty_image(visibility)
+        dirty, _psf = get_imager(imaging_backend).invert(visibility, spec)
+    else:
+        dirty_imager = WscleanDirtyImager(
+            DirtyImagerConfig(
+                imaging_npixel=npix,
+                imaging_cellsize=cellsize_rad,
+                combine_across_frequencies=True,
+            )
+        )
+        dirty = dirty_imager.create_dirty_image(visibility)
