@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -24,26 +24,37 @@ jobs:
           channels: conda-forge
           channel-priority: "true"
           conda-remove-defaults: "true"
+          activate-environment: test_karabo
+          python-version: "3.10"
+      - name: Install System MPI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mpich libmpich-dev
+          which mpirun
+          mpirun --version
+
       - name: Install Deps
         shell: bash -el {0}
         run: |
           conda create -y -n test_karabo python=3.10
           conda activate test_karabo
+          # Entfernen Sie mpich aus environment.yaml oder überschreiben Sie es:
           conda env update -f environment.yaml
+          # mpi4py wird gegen System-MPI gebaut:
+          pip install --no-binary mpi4py mpi4py==4.1.1
           pip install -e ".[dev]"
-          python -m ipykernel install --user --name python3.10
+          python -m ipykernel install --user --name python3.10        
+
       - name: Test Dev-Tools
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          conda activate test_karabo
           flake8 .
           black --check .
           isort --check .
           mypy .
       - name: Test Code
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          conda activate test_karabo
           export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
           mpirun -n 2 pytest --only-mpi
           pytest --cov=./ --cov-report=xml

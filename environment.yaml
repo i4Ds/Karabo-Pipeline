@@ -28,8 +28,8 @@ dependencies:
   - libcufft
   - matplotlib
   - montagepy               =6.0.0
-  - mpi4py                  =3.1.5
-  - mpich                   >=4.1,<4.2
+  - mpi4py                  =4.1.1
+  - mpich                   >=4.3
   - ucx                     <1.18
   - nbformat
   - nbconvert
@@ -60,4 +60,3 @@ dependencies:
   # for MWA measurement set, uvfits, hdf5, mir support (choc-234)
   # this [casa] syntax won't work with mamba!
   - pyuvdata[casa]          >=2.4,<3
-  
