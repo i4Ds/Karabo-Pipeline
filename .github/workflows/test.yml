@@ -1,4 +1,4 @@
-name: Tests
+name: Run Karabo Tests
 
 on:
   schedule: # Every night at 5am
@@ -17,6 +17,23 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
+      
+      - name: Install system MPICH (needed for external mpich) + compat symlink for wsclean
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mpich libmpich-dev libmpich12
+          arch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+          # wsclean expects libmpicxx.so.12 but Ubuntu provides libmpichcxx.so.12
+          if [ -e "/usr/lib/$arch/libmpichcxx.so.12" ] && [ ! -e "/usr/lib/$arch/libmpicxx.so.12" ]; then
+            sudo ln -s "/usr/lib/$arch/libmpichcxx.so.12" "/usr/lib/$arch/libmpicxx.so.12"
+            sudo ldconfig
+          fi
+          # Optional sanity:
+          ldconfig -p | grep -E 'libmpi\.so\.12|libmpichcxx\.so\.12|libmpicxx\.so\.12' || true
+          which mpirun
+          mpirun --version
+      
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -26,38 +43,39 @@ jobs:
           conda-remove-defaults: "true"
           activate-environment: test_karabo
           python-version: "3.10"
-      - name: Install System MPI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mpich libmpich-dev
-          which mpirun
-          mpirun --version
 
       - name: Install Deps
         shell: bash -el {0}
         run: |
           conda create -y -n test_karabo python=3.10
+          conda env update -n test_karabo -f environment.yaml --prune
           conda activate test_karabo
-          # Entfernen Sie mpich aus environment.yaml oder überschreiben Sie es:
-          conda env update -f environment.yaml
-          # mpi4py wird gegen System-MPI gebaut:
           pip install --no-binary mpi4py mpi4py==4.1.1
           pip install -e ".[dev]"
-          python -m ipykernel install --user --name python3.10        
+          python -m ipykernel install --user --name python3.10
+
+          # Debug since we had problems with mpi installation
+          python -c "import h5py; print('h5py ok')"
+          which wsclean || true
+          ldd "$(which wsclean)" | grep -i mpi || tru  
 
       - name: Test Dev-Tools
         shell: bash -el {0}
         run: |
+          conda activate test_karabo
           flake8 .
           black --check .
           isort --check .
           mypy .
+
       - name: Test Code
         shell: bash -el {0}
         run: |
           export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
+          conda activate test_karabo
           mpirun -n 2 pytest --only-mpi
           pytest --cov=./ --cov-report=xml
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:
