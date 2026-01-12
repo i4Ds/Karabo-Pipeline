@@ -28,9 +28,8 @@ dependencies:
   - libcufft
   - matplotlib
   - montagepy               =6.0.0
-  - mpi4py                  =4.1.1
-  - mpich                   >=4.3
-  - ucx                     <1.18
+  - mpi4py
+  - mpich
   - nbformat
   - nbconvert
   - numpy                   >=1.21, !=1.24.0, <2.0  # upper-bounded because see issue #584
