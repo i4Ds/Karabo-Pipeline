@@ -1,7 +1,7 @@
 channels:
+  - conda-forge
   - i4ds
   - nvidia/label/cuda-11.7.0
-  - conda-forge
 dependencies:
 # Set dependencies and it's constraints in the package they belong. Otherwise you just cause chaos for future builds.
 # Just Karabo's direct dependencies and Karabo constraints (from our code) should be handled here.
