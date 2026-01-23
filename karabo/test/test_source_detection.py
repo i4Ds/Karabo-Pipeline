@@ -51,7 +51,9 @@ def test_source_detection_plot(
     with tempfile.TemporaryDirectory() as tmpdir:
         detection.write_to_file(os.path.join(tmpdir, "detection.zip"))
 
-    img = detection.get_source_image()
+    img: Image | None = detection.get_source_image()
+    assert img is not None
+
     imaging_npixel = img.header["NAXIS1"]
     imaging_cellsize = img.get_cellsize()
 
@@ -197,6 +199,10 @@ def test_full_source_detection(
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(
         restored, thresh_isl=15, thresh_pix=20
     )
+
+    # detect_sources_in_image() may return None
+    assert detection_result is not None
+
     gtruth = np.array(
         [
             [981.74904041, 843.23261492],
@@ -219,6 +225,10 @@ def test_full_source_detection(
     detection_results = PyBDSFSourceDetectionResultList.detect_sources_in_images(
         restored_cuts, thresh_isl=15, thresh_pix=20
     )
+
+    # detect_sources_in_images() may return None
+    assert detection_results is not None
+
     detected = detection_results.get_pixel_position_of_sources()
     # Sometimes the order of the sources is different, so we need to sort them
     detected = detected[np.argsort(detected[:, 0])]
@@ -235,7 +245,7 @@ def test_create_detection_from_ms_cuda():
         phase_center + np.array([+5, +5]),
         100,
         200,
-        0.4,
+        1,
     )
 
     telescope = Telescope.constructor("MeerKAT")
@@ -274,4 +284,5 @@ def test_create_detection_from_ms_cuda():
         residual.write_to_file(os.path.join(tmpdir, "residual.fits"))
 
         result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
+        assert result is not None
         result.write_to_file(os.path.join(tmpdir, "sources.zip"))
