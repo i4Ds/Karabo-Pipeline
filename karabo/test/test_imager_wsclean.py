@@ -12,6 +12,10 @@ from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 from karabo.util.file_handler import FileHandler
 
+# this parameter sets the number of interations that WSClean does
+# to clean an image. The default is set to 50_000. We don't need
+# that many because we do run tests only, i.e. the quality of the
+# result is not tested.
 CLEAN_ITERATIONS = 100
 
 
