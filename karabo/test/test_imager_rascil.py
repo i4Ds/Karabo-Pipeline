@@ -20,7 +20,7 @@ from karabo.test.conftest import TFiles
 # result is not tested.
 CLEAN_ITERATIONS = 100
 
-NUM_CHANNELS = 16
+NUM_CHANNELS = 11
 
 
 def test_dirty_image(tobject: TFiles):
@@ -50,7 +50,7 @@ def test_create_cleaned_image():
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
         number_of_channels=NUM_CHANNELS,
-        number_of_time_steps=24,
+        number_of_time_steps=4,
     )
 
     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
@@ -72,7 +72,7 @@ def test_create_cleaned_image():
             clean_algorithm="mmclean",
             clean_scales=[10, 30, 60],
             clean_threshold=0.12e-3,
-            clean_nmoment=5,
+            clean_nmoment=3,
             clean_psf_support=640,
             clean_restored_output="integrated",
             clean_niter=CLEAN_ITERATIONS,

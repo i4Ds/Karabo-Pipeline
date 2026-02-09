@@ -97,14 +97,18 @@ def test_backend_simulations(
         channel_bandwidth_hz=1e6,
         time_average_sec=10,
     )
+
+    # Run the test with low performance settings, i.e. few time steps
+    # and number of channels. We only assert that an image was created and
+    # that it has 4 dimensions. There is no assessment of the image quality.
     observation = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         phase_centre_ra_deg=240,
         phase_centre_dec_deg=-70,
-        number_of_time_steps=24,
+        number_of_time_steps=4,
         frequency_increment_hz=20e6,
-        number_of_channels=64,
+        number_of_channels=4,
     )
 
     visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
@@ -117,7 +121,6 @@ def test_backend_simulations(
         ),
     )
     dirty = dirty_imager.create_dirty_image(visibility)
-
     assert isinstance(dirty, Image)
     assert len(dirty.data.shape) == 4
 
