@@ -20,6 +20,8 @@ from karabo.test.conftest import TFiles
 # result is not tested.
 CLEAN_ITERATIONS = 100
 
+NUM_CHANNELS = 16
+
 
 def test_dirty_image(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
@@ -36,7 +38,6 @@ def test_dirty_image(tobject: TFiles):
 
 
 def test_create_cleaned_image():
-    n_channels = 16
     phase_center = [250, -80]
 
     gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
@@ -48,7 +49,7 @@ def test_create_cleaned_image():
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
-        number_of_channels=n_channels,
+        number_of_channels=NUM_CHANNELS,
         number_of_time_steps=24,
     )
 
@@ -66,7 +67,7 @@ def test_create_cleaned_image():
         RascilImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
-            ingest_vis_nchan=n_channels,
+            ingest_vis_nchan=NUM_CHANNELS,
             clean_nmajor=1,
             clean_algorithm="mmclean",
             clean_scales=[10, 30, 60],
