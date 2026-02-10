@@ -113,6 +113,7 @@ def test_get_compatible_dirty_imager_should_return_RascilDirtyImager(
         sky_model,
         observation,
         backend=sim_backend,
+        primary_beam=None,
         visibility_format="MS",
     )
 
