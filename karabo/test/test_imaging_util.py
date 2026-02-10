@@ -5,6 +5,9 @@ import pytest
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_oskar import OskarDirtyImager
+from karabo.imaging.imager_rascil import RascilDirtyImager
+from karabo.imaging.imager_wsclean import WscleanDirtyImager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -65,5 +68,27 @@ def test_get_compatible_dirty_imager(
     )
 
     dirty_imager = get_compatible_dirty_imager(visibility, dirty_imager_config)
+
+    # First, let's test if we get the right imager back
+    if (telescope_name, visibility_format, combine_across_frequencies) == (
+        "SKA1MID",
+        "OSKAR_VIS",
+        True,
+    ):
+        assert isinstance(dirty_imager, OskarDirtyImager)
+    if (telescope_name, visibility_format, combine_across_frequencies) == (
+        "SKA1MID",
+        "MS",
+        True,
+    ):
+        assert isinstance(dirty_imager, WscleanDirtyImager)
+    if (telescope_name, visibility_format, combine_across_frequencies) == (
+        "MID",
+        "MS",
+        False,
+    ):
+        assert isinstance(dirty_imager, RascilDirtyImager)
+
+    # Now test if the imager works.
     dirty_image = dirty_imager.create_dirty_image(visibility)
     assert dirty_image.data.ndim == 4
