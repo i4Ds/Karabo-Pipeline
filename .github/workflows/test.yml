@@ -63,11 +63,10 @@ jobs:
         shell: bash -el {0}
         run: |
           conda activate test_karabo
-          mypy --install-types
           flake8 .
           black --check .
           isort --check .
-          mypy .
+          mypy --install-types .
 
       - name: Test Code
         shell: bash -el {0}
