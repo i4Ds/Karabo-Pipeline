@@ -1,8 +1,8 @@
 """Segmentation with SegU-net."""
 
+from importlib.resources import files
 from typing import Literal
 
-import pkg_resources
 import tools21cm as t2c
 from typing_extensions import assert_never
 
@@ -78,15 +78,19 @@ class FixedSegUNet(t2c.segmentation.segunet21cm):  # type: ignore[misc]
         self.NR_MANIP = len(self.MANIP)
 
         # load model
+        MODEL_NAME = "segunet_02-10T23-52-36_128slice_ep56.h5"
+        MODEL_FILENAME = str(files("tool21cm").joinpath(f"input_data/{MODEL_NAME}"))
+        """
         MODEL_NAME = pkg_resources.resource_filename(
             "tools21cm", "input_data/segunet_02-10T23-52-36_128slice_ep56.h5"
         )
+        """
         METRICS = {
             "balanced_cross_entropy": t2c.segmentation.balanced_cross_entropy,
             "iou": t2c.segmentation.iou,
             "dice_coef": t2c.segmentation.dice_coef,
         }
-        self.MODEL_LOADED = load_model(MODEL_NAME, custom_objects=METRICS)
+        self.MODEL_LOADED = load_model(MODEL_FILENAME, custom_objects=METRICS)
         print(f" Loaded model: {MODEL_NAME}")
         # pylint: enable=invalid-name
 
