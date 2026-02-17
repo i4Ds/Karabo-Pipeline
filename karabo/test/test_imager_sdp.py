@@ -30,4 +30,11 @@ def test_sdp_imager_invert_and_restore(minimal_casa_ms: Visibility) -> None:
     )
 
     restored = imager.restore(dirty_image, psf_image)
-    assert restored.path == dirty_image.path
+    assert os.path.exists(restored.path)
+    assert restored.data.shape == dirty_image.data.shape
+    assert restored.data.size > 0
+    # model/residual artefacts are exported for inspection
+    assert hasattr(imager, "last_model_image")
+    assert hasattr(imager, "last_residual_image")
+    assert os.path.exists(imager.last_model_image.path)
+    assert os.path.exists(imager.last_residual_image.path)
