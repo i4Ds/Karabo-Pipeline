@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import enum
 import math
+import os
 import re
 from collections.abc import Hashable, Mapping, Sequence
 from copy import deepcopy
@@ -40,8 +41,17 @@ from astropy.units.core import PrefixUnit, Unit, UnitBase
 from astropy.visualization.wcsaxes import SphericalCircle
 from astropy.wcs import WCS
 from numpy.typing import NDArray
+from ska_sdp_datamodels.image.image_model import Image as SdpImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 from ska_sdp_datamodels.sky_model.sky_model import SkyComponent
+
+try:
+    from ska_sdp_datamodels.image import (
+        import_image_from_fits as sdp_import_image_from_fits,
+    )
+except ImportError:  # pragma: no cover - depends on installed datamodels version
+    sdp_import_image_from_fits = None
+
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
@@ -591,6 +601,147 @@ class SkyModel:
         self.wcs = wcs
         self.sources = sources  # type: ignore [assignment]
         self.h5_file_connection = h5_file_connection
+
+    @classmethod
+    def _build_sdp_image_from_fits(
+        cls,
+        data_2d: NDArray[np.float_],
+        header: fits.Header,
+        wcs_celestial: WCS,
+    ) -> SdpImage:
+        """Build a 4D SDP image from 2D FITS pixels and celestial WCS."""
+        npixel_y, npixel_x = data_2d.shape
+
+        wcs_4d = WCS(naxis=4)
+        wcs_4d.wcs.ctype = [
+            wcs_celestial.wcs.ctype[0],
+            wcs_celestial.wcs.ctype[1],
+            "STOKES",
+            "FREQ",
+        ]
+        wcs_4d.wcs.crpix = [
+            float(wcs_celestial.wcs.crpix[0]),
+            float(wcs_celestial.wcs.crpix[1]),
+            1.0,
+            1.0,
+        ]
+        wcs_4d.wcs.crval = [
+            float(wcs_celestial.wcs.crval[0]),
+            float(wcs_celestial.wcs.crval[1]),
+            1.0,
+            float(header.get("CRVAL3", 1.0e8)),
+        ]
+        freq_step = float(header.get("CDELT3", 1.0))
+        if freq_step == 0.0:
+            freq_step = 1.0
+        wcs_4d.wcs.cdelt = [
+            float(wcs_celestial.wcs.cdelt[0]),
+            float(wcs_celestial.wcs.cdelt[1]),
+            1.0,
+            freq_step,
+        ]
+
+        data_4d = np.zeros((1, 1, npixel_y, npixel_x), dtype=np.float64)
+        data_4d[0, 0, :, :] = data_2d
+        return SdpImage.constructor(
+            data=data_4d,
+            polarisation_frame=PolarisationFrame("stokesI"),
+            wcs=wcs_4d,
+        )
+
+    @classmethod
+    def from_fits_image(
+        cls: Type[_TSkyModel],
+        fits_path: FilePathType,
+        threshold: float = 0.0,
+        backend: Union[SimulatorBackend, str] = SimulatorBackend.SDP,
+    ) -> _TSkyModel:
+        """Create a sky model by extracting point sources from a FITS image.
+
+        Internal flow:
+            FITS -> numpy array + WCS -> SDP Image -> Karabo Image wrapper.
+        Pixels with finite values strictly above `threshold` are converted to point
+        sources.
+
+        Args:
+            fits_path: Path to the FITS image.
+            threshold: Minimum pixel value to include as a source.
+            backend: Must be SDP (`SimulatorBackend.SDP`, `\"sdp\"`, or `\"ska-sdp\"`).
+
+        Returns:
+            SkyModel populated from the FITS image.
+        """
+        resolved_backend: SimulatorBackend
+        if isinstance(backend, SimulatorBackend):
+            resolved_backend = backend
+        else:
+            normalized = backend.strip().lower()
+            if normalized in {"sdp", "ska-sdp"}:
+                resolved_backend = SimulatorBackend.SDP
+            elif normalized == "rascil":
+                resolved_backend = SimulatorBackend.RASCIL
+            elif normalized == "oskar":
+                resolved_backend = SimulatorBackend.OSKAR
+            else:
+                raise ValueError(f"Unknown backend: {backend}")
+
+        if resolved_backend is not SimulatorBackend.SDP:
+            raise ValueError("from_fits_image currently supports only the SDP backend.")
+
+        with fits.open(fits_path, memmap=True) as hdul:
+            image_data = hdul[0].data
+            header = hdul[0].header
+            if image_data is None:
+                raise ValueError(f"FITS image has no data: {fits_path}")
+
+            squeezed = np.squeeze(np.asarray(image_data, dtype=np.float64))
+            if squeezed.ndim != 2:
+                raise ValueError(
+                    f"Expected 2D FITS image after squeeze, got shape {squeezed.shape}"
+                )
+
+            wcs = WCS(header).celestial
+            if not wcs.has_celestial:
+                raise ValueError(f"FITS header has no celestial WCS: {fits_path}")
+
+            if sdp_import_image_from_fits is not None:
+                sdp_image = sdp_import_image_from_fits(str(fits_path))
+            else:
+                sdp_image = cls._build_sdp_image_from_fits(
+                    data_2d=squeezed, header=header, wcs_celestial=wcs
+                )
+
+            # Wrap SDP image in Karabo Image to keep downstream format consistent.
+            from karabo.imaging.image import Image as KaraboImage
+            from karabo.util.file_handler import FileHandler
+
+            tmp_dir = FileHandler().get_tmp_dir(
+                prefix="SkyModel-FITS-SDP-",
+                purpose="temporary SDP-to-Karabo image conversion",
+            )
+            wrapped_fits_path = os.path.join(tmp_dir, "sdp_wrapped.fits")
+            if os.path.exists(wrapped_fits_path):
+                os.remove(wrapped_fits_path)
+            sdp_image.image_acc.export_to_fits(wrapped_fits_path)
+            karabo_image = KaraboImage(path=wrapped_fits_path)
+
+            pixel_data = karabo_image.get_squeezed_data()
+            source_mask = np.isfinite(pixel_data) & (pixel_data > threshold)
+            y_pix, x_pix = np.where(source_mask)
+            flux_i = pixel_data[y_pix, x_pix]
+
+            sources = np.zeros((len(flux_i), cls.SOURCES_COLS), dtype=np.float64)
+            if len(flux_i) > 0:
+                wcs_2d = karabo_image.get_2d_wcs()
+                ra_deg, dec_deg = wcs_2d.wcs_pix2world(x_pix, y_pix, 0)
+                sources[:, cls.COL_IDX["ra"]] = ra_deg
+                sources[:, cls.COL_IDX["dec"]] = dec_deg
+                sources[:, cls.COL_IDX["stokes_i"]] = flux_i
+                ref_freq = header.get("CRVAL3")
+                if ref_freq is not None:
+                    sources[:, cls.COL_IDX["ref_freq"]] = float(ref_freq)
+
+            return cls(sources=sources, wcs=wcs)
 
     def __get_empty_sources(self, n_sources: int) -> xr.DataArray:
         empty_sources = np.hstack((np.zeros((n_sources, SkyModel.SOURCES_COLS)),))
