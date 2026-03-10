@@ -20,7 +20,7 @@ def parse_imaging_backend(
     backend: Optional[Union[str, ImagingBackend]] = None,
 ) -> ImagingBackend:
     if backend is None:
-        backend = Environment.get("IMAGING_BACKEND", str, ImagingBackend.RASCIL.value)
+        backend = Environment.get("IMAGING_BACKEND", str, ImagingBackend.SDP.value)
     if isinstance(backend, ImagingBackend):
         return backend
     backend_lower = backend.lower()

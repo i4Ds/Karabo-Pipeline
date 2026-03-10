@@ -25,7 +25,7 @@ def _parse_args() -> ImagingBackend:
     parser.add_argument(
         "--imaging-backend",
         choices=[backend.value for backend in ImagingBackend],
-        default=ImagingBackend.RASCIL.value,
+        default=ImagingBackend.SDP.value,
         help="Imaging backend to use for dirty image creation.",
     )
     args = parser.parse_args()
