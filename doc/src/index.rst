@@ -30,6 +30,7 @@ Modules
    :caption: Imaging
 
    main_features/imaging.rst
+   main_features/imaging_backend_selection.rst
    main_features/base_imaging.rst
    main_features/oskar_imaging.rst
    main_features/rascil_imaging.rst
