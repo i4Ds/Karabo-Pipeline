@@ -1,7 +1,7 @@
 channels:
+  - conda-forge
   - i4ds
   - nvidia/label/cuda-11.7.0
-  - conda-forge
 dependencies:
 # Set dependencies and it's constraints in the package they belong. Otherwise you just cause chaos for future builds.
 # Just Karabo's direct dependencies and Karabo constraints (from our code) should be handled here.
@@ -55,7 +55,7 @@ dependencies:
   # casacore hast just no-mpi & open-mpi, but no mpich-wheel
   - conda-forge::fftw       =*=mpi_mpich*  # oskarpy(oskar(casacore)), tools21cm, bluebild(finufft) -> from conda-forge to ignore channel-prio & not take our legacy fftw-wheel
   # exclude buggy versions of other tools
-  - setuptools              !=71.0.0, !=71.0.1, !=71.0.2  # buggy with `importlib_metadata`
+  - setuptools              >=69.0.0,<70.0.0  # pkg_resources required by ska_sdp_datamodels and karabo code
   # for MWA measurement set, uvfits, hdf5, mir support (choc-234)
   # this [casa] syntax won't work with mamba!
   - pyuvdata[casa]          >=2.4,<3

@@ -12,6 +12,12 @@ from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 from karabo.util.file_handler import FileHandler
 
+# this parameter sets the number of interations that WSClean does
+# to clean an image. The default is set to 50_000. We don't need
+# that many because we do run tests only, i.e. the quality of the
+# result is not tested.
+CLEAN_ITERATIONS = 100
+
 
 def test_dirty_image(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
@@ -57,6 +63,7 @@ def test_create_cleaned_image(default_sample_simulation_visibility: Visibility):
         WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
+            niter=CLEAN_ITERATIONS,
         )
     ).create_cleaned_image(default_sample_simulation_visibility)
 
@@ -78,6 +85,7 @@ def test_create_cleaned_image_custom_path(
             WscleanImageCleanerConfig(
                 imaging_npixel=imaging_npixel,
                 imaging_cellsize=imaging_cellsize,
+                niter=CLEAN_ITERATIONS,
             )
         ).create_cleaned_image(
             default_sample_simulation_visibility,
@@ -107,6 +115,7 @@ def test_create_cleaned_image_reuse_dirty(
         WscleanImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
+            niter=CLEAN_ITERATIONS,
         )
     ).create_cleaned_image(
         default_sample_simulation_visibility,
@@ -124,10 +133,10 @@ def test_create_image_custom_command(default_sample_simulation_visibility: Visib
         "wsclean "
         f"-size {imaging_npixel} {imaging_npixel} "
         f"-scale {math.degrees(imaging_cellsize)}deg "
-        "-niter 50000 "
+        f"-niter {CLEAN_ITERATIONS} "
         "-mgain 0.8 "
         "-auto-threshold 3 "
-        f"{default_sample_simulation_visibility.path}"
+        f"{default_sample_simulation_visibility.path}",
     )
 
     assert os.path.exists(restored.path)
@@ -143,12 +152,12 @@ def test_create_image_custom_command_multiple_outputs(
         "wsclean "
         f"-size {imaging_npixel} {imaging_npixel} "
         f"-scale {math.degrees(imaging_cellsize)}deg "
-        "-niter 50000 "
+        f"-niter {CLEAN_ITERATIONS} "
         "-mgain 0.8 "
         "-auto-threshold 3 "
         f"{default_sample_simulation_visibility.path}",
         ["wsclean-image.fits", "wsclean-residual.fits"],
-    )
+    )  # type: ignore  # cannot infer type, should be List[Image]
 
     assert os.path.exists(restored.path)
     assert os.path.exists(residual.path)

@@ -17,6 +17,14 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 
+# this parameter sets the number of interations that RASCIL does
+# to clean an image. The default is set to 1_000. We don't need
+# that many because we do run tests only, i.e. the quality of the
+# result is not tested.
+CLEAN_ITERATIONS = 100
+
+NUM_CHANNELS = 11
+
 CELL_SIZE_RAD = 3.878509448876288e-05
 CELL_SIZE_ARCSEC = math.degrees(CELL_SIZE_RAD) * 3600.0
 PHASE_CENTRE = (250.0, -80.0)
@@ -77,6 +85,7 @@ def test_dirty_image(tobject: TFiles):
 
 def test_create_cleaned_image():
     phase_center = [250, -80]
+
     gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
     sky = gleam_sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
     sky.setup_default_wcs(phase_center=phase_center)
@@ -86,8 +95,8 @@ def test_create_cleaned_image():
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         phase_centre_ra_deg=phase_center[0],
         phase_centre_dec_deg=phase_center[1],
-        number_of_channels=16,
-        number_of_time_steps=24,
+        number_of_channels=NUM_CHANNELS,
+        number_of_time_steps=4,
     )
 
     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
@@ -104,14 +113,15 @@ def test_create_cleaned_image():
         RascilImageCleanerConfig(
             imaging_npixel=imaging_npixel,
             imaging_cellsize=imaging_cellsize,
-            ingest_vis_nchan=16,
+            ingest_vis_nchan=NUM_CHANNELS,
             clean_nmajor=1,
             clean_algorithm="mmclean",
             clean_scales=[10, 30, 60],
             clean_threshold=0.12e-3,
-            clean_nmoment=5,
+            clean_nmoment=3,
             clean_psf_support=640,
             clean_restored_output="integrated",
+            clean_niter=CLEAN_ITERATIONS,
             # TODO DASK_TEST_ISSUE Commented out to avoid test failure on GitHub
             # use_dask=True,
         )
