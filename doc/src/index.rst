@@ -24,6 +24,7 @@ Modules
    :caption: Simulation
 
    main_features/simulation.rst
+   main_features/simulation_backend_selection.rst
 
 .. toctree::
    :maxdepth: 2
