@@ -14,7 +14,7 @@ dependencies:
   - python                  >=3.11,<3.12
   - aratmospy               =1.0.dev0
   - astropy                 
-  - bdsf                    
+  - bdsf                    =1.13.dev0.post2
   - bluebild                =0.1.dev0
   - casacore
   - cuda-cudart             >=12,<13 # =11.7
