@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 
 from karabo.util._types import IntFloat
 
-_T = TypeVar("_T", NDArray[np.float_], xr.DataArray, IntFloat)
+_T = TypeVar("_T", NDArray[np.float64], xr.DataArray, IntFloat)
 
 
 def convert_z_to_frequency(z: _T) -> _T:
@@ -40,7 +40,7 @@ def freq_channels(
     z_obs: _T,
     channel_num: int = 10,
     equally_spaced_freq: bool = True,
-) -> Tuple[NDArray[np.float_], NDArray[np.float_], NDArray[np.float_], np.float_]:
+) -> Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], np.float64]:
     """
     Calculates the frequency channels from the redshifts.
 
@@ -62,7 +62,7 @@ def freq_channels(
 
     freq_endpoints = convert_z_to_frequency(np.array([z_start, z_end]))
 
-    freq_start, freq_end = cast(Tuple[np.float_, np.float_], freq_endpoints)
+    freq_start, freq_end = cast(Tuple[np.float64, np.float64], freq_endpoints)
 
     freq_mid = freq_start + (freq_end - freq_start) / 2
 

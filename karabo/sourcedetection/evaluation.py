@@ -23,8 +23,8 @@ class SourceDetectionEvaluation:
     def __init__(
         self,
         sky: SkyModel,
-        ground_truth: NDArray[np.float_],
-        assignments: NDArray[np.float_],
+        ground_truth: NDArray[np.float64],
+        assignments: NDArray[np.float64],
         sky_idxs: NDArray[np.int_],
         source_detection: ISourceDetectionResult,
     ) -> None:
@@ -61,7 +61,7 @@ class SourceDetectionEvaluation:
     def __setup_assignments(self) -> None:
         # get `SkyModel` array of ground truth sources
         assignment_truth = cast(
-            NDArray[np.float_], self.assignments[np.where(self.assignments[:, 0] >= 0)]
+            NDArray[np.float64], self.assignments[np.where(self.assignments[:, 0] >= 0)]
         )
         sky_idxs_gt = self.sky_idxs[assignment_truth[:, 0].astype(np.int64)]
         self.sky_array_gt = self.sky[sky_idxs_gt]
@@ -72,7 +72,7 @@ class SourceDetectionEvaluation:
         self.detected_sources_array_pred = self.source_detection.detected_sources
         # get `SkyModel` array of assigned ground truth sources
         assignment_assigned = cast(
-            NDArray[np.float_],
+            NDArray[np.float64],
             self.assignments[np.where(self.assignments[:, 2] != np.inf)],
         )
         sky_idxs_gt_assigned = self.sky_idxs[assignment_assigned[:, 0].astype(np.int64)]
@@ -89,8 +89,8 @@ class SourceDetectionEvaluation:
     @classmethod
     def __return_multiple_assigned_detected_points(
         cls,
-        assignments: NDArray[np.float_],
-    ) -> NDArray[np.float_]:
+        assignments: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
         """
         Returns the indices of the predicted sources that are assigned
         to more than one ground truth source.
@@ -103,16 +103,16 @@ class SourceDetectionEvaluation:
         pred_multiple_assignment = pred_multiple_assignment[
             pred_multiple_assignment != -1
         ]
-        return cast(NDArray[np.float_], pred_multiple_assignment)
+        return cast(NDArray[np.float64], pred_multiple_assignment)
 
     @classmethod
     def automatic_assignment_of_ground_truth_and_prediction(
         cls,
-        ground_truth: Union[NDArray[np.int_], NDArray[np.float_]],
-        detected: Union[NDArray[np.int_], NDArray[np.float_]],
+        ground_truth: Union[NDArray[np.int_], NDArray[np.float64]],
+        detected: Union[NDArray[np.int_], NDArray[np.float64]],
         max_dist: float,
         top_k: int = 3,
-    ) -> NDArray[np.float_]:
+    ) -> NDArray[np.float64]:
         """Automatic assignment of the predicted sources `predicted` to the
             ground truth `gtruth`. The strategy is the following (similar to
             `AUTOMATIC SOURCE DETECTION IN ASTRONOMICAL IMAGES, P.61,
@@ -223,11 +223,11 @@ class SourceDetectionEvaluation:
                 ]
             )
             assignments = np.vstack([assignments, missing_gts.T])
-        return cast(NDArray[np.float_], assignments[assignments[:, 0].argsort()])
+        return cast(NDArray[np.float64], assignments[assignments[:, 0].argsort()])
 
     @staticmethod
     def calculate_evaluation_measures(
-        assignments: NDArray[np.float_],
+        assignments: NDArray[np.float64],
     ) -> Tuple[int, int, int]:
         """
         Calculates the True Positive (TP), False Positive (FP)

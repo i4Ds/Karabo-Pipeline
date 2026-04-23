@@ -78,7 +78,7 @@ def get_vis_from_hdf5(hdffile: Any) -> Any:
     return vis
 
 
-def convert_healpix_2_radec(arr: NDArray[Any]) -> Tuple[np.float_, np.float_, int]:
+def convert_healpix_2_radec(arr: NDArray[Any]) -> Tuple[np.float64, np.float64, int]:
     """
     Convert array from healpix to 2-D array of RADEC
 
@@ -86,7 +86,7 @@ def convert_healpix_2_radec(arr: NDArray[Any]) -> Tuple[np.float_, np.float_, in
         arr: The healpix 2D array to be converted
 
     Returns:
-        Tuple[np.float_, np.float_, int]: RADEC in degrees
+        Tuple[np.float64, np.float64, int]: RADEC in degrees
     """
     nside = int(np.sqrt(arr.shape[0] / 12.0))
     index = np.arange(arr.shape[0])

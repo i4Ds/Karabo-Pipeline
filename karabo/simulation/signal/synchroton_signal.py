@@ -182,11 +182,11 @@ class SignalSynchroton(BaseSignal[Image2D]):
     @classmethod
     def _tb_conv(
         cls,
-        freq: npt.NDArray[np.float_],
+        freq: npt.NDArray[np.float64],
         source_freq: float,
         target_freq: float,
         alpha: float,
-    ) -> npt.NDArray[np.float_]:
+    ) -> npt.NDArray[np.float64]:
         """
         Brightness Temperature Conversion.
 
@@ -194,7 +194,7 @@ class SignalSynchroton(BaseSignal[Image2D]):
 
         Parameters
         ----------
-        freq : npt.NDArray[np.float_]
+        freq : npt.NDArray[np.float64]
             The brightness to be converted. The array may be in any shape.
         source_freq : float
             Source frequency of the brightness
@@ -205,7 +205,7 @@ class SignalSynchroton(BaseSignal[Image2D]):
 
         Returns
         -------
-        npt.NDArray[np.float_]
+        npt.NDArray[np.float64]
             Converted array in the same shape as the input array.
         """
         return np.power(freq * (target_freq / source_freq), alpha)

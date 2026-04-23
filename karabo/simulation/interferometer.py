@@ -771,7 +771,7 @@ class InterferometerSimulation:
 
     @staticmethod
     def __run_simulation_oskar(
-        os_sky: Union[oskar.Sky, NDArray[np.float_], xr.DataArray, Delayed],
+        os_sky: Union[oskar.Sky, NDArray[np.float64], xr.DataArray, Delayed],
         params_total: OskarSettingsTreeType,
         precision: PrecisionType = "double",
     ) -> Dict[str, Any]:
@@ -871,13 +871,13 @@ class InterferometerSimulation:
         foreground_vis_file: str,
     ) -> Tuple[
         Visibility,
-        List[NDArray[np.complex_]],
+        List[NDArray[np.complex128]],
         oskar.VisHeader,
         oskar.Binary,
         oskar.VisBlock,
-        NDArray[np.float_],
-        NDArray[np.float_],
-        NDArray[np.float_],
+        NDArray[np.float64],
+        NDArray[np.float64],
+        NDArray[np.float64],
     ]:
         """
         Simulates foreground sources
@@ -885,13 +885,13 @@ class InterferometerSimulation:
         print("### Simulating foreground source....")
         visibility = self.run_simulation(telescope, foreground, foreground_observation)
         (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
-        foreground_cross_correlation: List[NDArray[np.complex_]] = list()
+        foreground_cross_correlation: List[NDArray[np.complex128]] = list()
         # fg_max_channel=fg_header.max_channels_per_block;
         for i in range(fg_header.num_blocks):
             fg_block = oskar.VisBlock.create_from_header(fg_header)
             fg_block.read(fg_header, fg_handle, i)
             foreground_cross_correlation[i] = cast(
-                NDArray[np.complex_], fg_block.cross_correlations()
+                NDArray[np.complex128], fg_block.cross_correlations()
             )
         ff_uu = fg_block.baseline_uu_metres()
         ff_vv = fg_block.baseline_vv_metres()

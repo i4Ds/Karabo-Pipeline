@@ -85,7 +85,7 @@ SkySourcesColName = Literal[  # preserve python-var-name compatibility
     "id",
 ]
 
-_NPSkyType = Union[NDArray[np.float_], NDArray[np.object_]]
+_NPSkyType = Union[NDArray[np.float64], NDArray[np.object_]]
 _SkySourcesType = Union[_NPSkyType, xr.DataArray]
 _SourceIdType = Union[
     List[str],
@@ -93,7 +93,7 @@ _SourceIdType = Union[
     List[float],
     NDArray[np.object_],
     NDArray[np.int_],
-    NDArray[np.float_],
+    NDArray[np.float64],
     DataArrayCoordinates[xr.DataArray],
 ]
 _SkyPrefixMappingValueType = Union[str, List[str]]
@@ -527,7 +527,7 @@ class SkyModel:
             transformation between pixel coordinates and celestial coordinates
             (e.g., right ascension and declination).
         precision: The precision of numerical values used in the SkyModel.
-            Has to be of type np.float_.
+            Has to be of type np.float64.
         h5_file_connection: An open connection to an HDF5 (h5) file
             that can be used to store or retrieve data related to the SkyModel.
     """
@@ -562,7 +562,7 @@ class SkyModel:
         self,
         sources: Optional[_SkySourcesType] = None,
         wcs: Optional[WCS] = None,
-        precision: Type[np.float_] = np.float64,
+        precision: Type[np.float64] = np.float64,
         h5_file_connection: Optional[h5py.File] = None,
     ) -> None:
         """
@@ -1236,7 +1236,7 @@ class SkyModel:
                     )
 
                     flux = np.where(flux > 0, flux, np.nan)
-                flux = cast(NDArray[np.float_], cfun(flux))
+                flux = cast(NDArray[np.float64], cfun(flux))
 
         # handle matplotlib kwargs
         # not set as normal args because default assignment depends on args
@@ -1511,17 +1511,17 @@ class SkyModel:
     @staticmethod
     def __convert_ra_dec_to_cartesian(
         ra: IntFloat, dec: IntFloat
-    ) -> NDArray[np.float_]:
+    ) -> NDArray[np.float64]:
         x = math.cos(math.radians(ra)) * math.cos(math.radians(dec))
         y = math.sin(math.radians(ra)) * math.cos(math.radians(dec))
         z = math.sin(math.radians(dec))
         r = np.array([x, y, z])
-        norm = cast(np.float_, np.linalg.norm(r))
+        norm = cast(np.float64, np.linalg.norm(r))
         if norm == 0:
             return r
         return r / norm
 
-    def get_cartesian_sky(self) -> NDArray[np.float_]:
+    def get_cartesian_sky(self) -> NDArray[np.float64]:
         if self.sources is None:
             raise AttributeError("Can't create cartesian-sky when `sources` is None.")
         cartesian_sky = np.squeeze(
@@ -2194,7 +2194,7 @@ class SkyModel:
     def convert_to_backend(
         self,
         backend: Literal[SimulatorBackend.RASCIL],
-        desired_frequencies_hz: NDArray[np.float_],
+        desired_frequencies_hz: NDArray[np.float64],
         channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
     ) -> List[SkyComponent]:
@@ -2203,7 +2203,7 @@ class SkyModel:
     def convert_to_backend(
         self,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
-        desired_frequencies_hz: Optional[NDArray[np.float_]] = None,
+        desired_frequencies_hz: Optional[NDArray[np.float64]] = None,
         channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
     ) -> Union[SkyModel, List[SkyComponent]]:
@@ -2247,7 +2247,7 @@ class SkyModel:
                     RASCIL SkyComponent instances."""
                 )
 
-            desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
+            desired_frequencies_hz = cast(NDArray[np.float64], desired_frequencies_hz)
 
             assert (
                 len(desired_frequencies_hz) > 0

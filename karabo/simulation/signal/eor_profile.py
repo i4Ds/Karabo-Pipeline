@@ -53,7 +53,7 @@ class EoRProfile:
     @classmethod
     def simulate(
         cls,
-        x_hi: Annotated[npt.NDArray[np.float_], Literal["N"]],
+        x_hi: Annotated[npt.NDArray[np.float64], Literal["N"]],
         dv_r_over_dr: float = 0,
         f_range: tuple[float, float] = (1e6, 200e6),
     ) -> EoRProfileT:
@@ -66,7 +66,7 @@ class EoRProfile:
 
         Parameters
         ----------
-        x_hi : Annotated[npt.NDArray[np.float_], Literal["N"]]
+        x_hi : Annotated[npt.NDArray[np.float64], Literal["N"]]
             Neutral hydrogen fraction.
         dv_r_over_dr : float, optional
             ???. By default 0
@@ -99,7 +99,7 @@ class EoRProfile:
     @classmethod
     def plot(
         cls,
-        x_hi: Optional[Annotated[npt.NDArray[np.float_], Literal["N"]]] = None,
+        x_hi: Optional[Annotated[npt.NDArray[np.float64], Literal["N"]]] = None,
         profile: Optional[EoRProfileT] = None,
     ) -> Figure:
         """
@@ -109,7 +109,7 @@ class EoRProfile:
 
         Parameters
         ----------
-        x_hi : Optional[Annotated[npt.NDArray[np.float_], Literal["N"]]], optional
+        x_hi : Optional[Annotated[npt.NDArray[np.float64], Literal["N"]]], optional
             Neutral hydrogen fraction, by default None.
         profile : Optional[EoRProfileT], optional
             An optional profile to be plotted. If not given, a default EoR profile will

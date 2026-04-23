@@ -58,7 +58,7 @@ class ISourceDetectionResult(ABC):
 
     @property
     @abstractmethod
-    def detected_sources(self) -> NDArray[np.float_]:
+    def detected_sources(self) -> NDArray[np.float64]:
         ...
 
     @abstractmethod
@@ -73,7 +73,7 @@ class ISourceDetectionResult(ABC):
 class SourceDetectionResult(ISourceDetectionResult):
     def __init__(
         self,
-        detected_sources: NDArray[np.float_],
+        detected_sources: NDArray[np.float64],
         source_image: Image,
     ) -> None:
         """
@@ -98,11 +98,11 @@ class SourceDetectionResult(ISourceDetectionResult):
         self.detected_sources = detected_sources
 
     @property
-    def detected_sources(self) -> NDArray[np.float_]:
+    def detected_sources(self) -> NDArray[np.float64]:
         return self._detected_sources
 
     @detected_sources.setter
-    def detected_sources(self, sources: NDArray[np.float_]) -> None:
+    def detected_sources(self, sources: NDArray[np.float64]) -> None:
         self._detected_sources = sources
 
     @classmethod
@@ -249,7 +249,7 @@ class SourceDetectionResult(ISourceDetectionResult):
         else:
             return None
 
-    def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
+    def get_pixel_position_of_sources(self) -> NDArray[np.float64]:
         x_pos = self.detected_sources[:, 3]
         y_pos = self.detected_sources[:, 4]
         return np.vstack((np.array(x_pos), np.array(y_pos))).T
@@ -307,8 +307,8 @@ class PyBDSFSourceDetectionResult(SourceDetectionResult):
     @classmethod
     def __transform_bdsf_to_reduced_result_array(
         cls,
-        bdsf_detected_sources: NDArray[np.float_],
-    ) -> NDArray[np.float_]:
+        bdsf_detected_sources: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
         if (
             len(bdsf_detected_sources.shape) == 2
             and bdsf_detected_sources.shape[1] > 14
@@ -395,7 +395,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
     Attributes:
         bdsf_detection (List[PyBDSFSourceDetectionResult]):
             The list of detection results from PyBDSF.
-        detected_sources (NDArray[np.float_]):
+        detected_sources (NDArray[np.float64]):
             Array of detected sources. Calculated based on `bdsf_detection` and
             `min_pixel_distance_between_sources`. It's populated when the property
             is accessed and not beforehand.
@@ -483,7 +483,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         return PyBDSFSourceDetectionResultList(results)
 
     @property
-    def detected_sources(self) -> NDArray[np.float_]:
+    def detected_sources(self) -> NDArray[np.float64]:
         """
         Aggregate detected sources from multiple pybdsf detection instances.
 
@@ -492,7 +492,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         It identifies and removes overlapping sources using pixel overlap.
 
         Returns:
-            NDArray[np.float_]:
+            NDArray[np.float64]:
             A numpy array of detected sources after removing overlaps. The array
             structure and content depend on the format used by individual
             detection instances.
@@ -583,7 +583,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
 
         return mi.mosaic(images)[0]
 
-    def get_pixel_position_of_sources(self) -> NDArray[np.float_]:
+    def get_pixel_position_of_sources(self) -> NDArray[np.float64]:
         """
         Calculate and return corrected pixel positions of sources in a mosaic image.
 
@@ -593,7 +593,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
 
         Returns
         -------
-        NDArray[np.float_]
+        NDArray[np.float64]
             A NumPy array of the corrected and filtered pixel positions of sources
             in the mosaic image.
         """
@@ -615,9 +615,9 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
 
     def __drop_cast_sources(
         self,
-        detected_sources: NDArray[np.float_],
+        detected_sources: NDArray[np.float64],
         to_drop: List[int],
-    ) -> NDArray[np.float_]:
+    ) -> NDArray[np.float64]:
         if self.verbose:
             print(f"Merged in total {len(to_drop)*2} sources into {len(to_drop)}")
         # Create a boolean mask to keep sources not in to_drop
@@ -628,8 +628,8 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
 
     def __get_corrected_positions(
         self,
-        xy_poss: List[NDArray[np.float_]],
-    ) -> NDArray[np.float_]:
+        xy_poss: List[NDArray[np.float64]],
+    ) -> NDArray[np.float64]:
         """
         Calculate corrected positions of detected sources in a mosaic image.
 
@@ -640,13 +640,13 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
 
         Parameters
         ----------
-        xy_poss : List[NDArray[np.float_]]
+        xy_poss : List[NDArray[np.float64]]
             A list of NumPy arrays. Each array contains the x and y pixel positions
             of detected sources in individual images that comprise the mosaic.
 
         Returns
         -------
-        NDArray[np.float_]
+        NDArray[np.float64]
             A NumPy array containing the combined and corrected pixel positions
             of the sources in the mosaic image.
         """
@@ -675,7 +675,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         )
         mosaic_crpixs = np.array([mosaic_header["CRPIX1"], mosaic_header["CRPIX2"]])
         # Apply delta to xy positions
-        corrected_positions: List[NDArray[np.float_]] = []
+        corrected_positions: List[NDArray[np.float64]] = []
         for xy_pos, crpix in zip(xy_poss, header_crpixs):
             delta_crpixs = crpix - mosaic_crpixs
             corrected_positions.append(

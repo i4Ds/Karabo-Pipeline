@@ -93,21 +93,21 @@ class SegmentationOutput(NamedTuple):
     image: Image3D
     xhii_stitch: Optional[npt.NDArray[np.bool_]]
     mask_xhi: npt.NDArray[np.bool_]
-    dt_smooth: npt.NDArray[np.float_]
-    xhi_seg_err: Optional[npt.NDArray[np.float_]]
+    dt_smooth: npt.NDArray[np.float64]
+    xhi_seg_err: Optional[npt.NDArray[np.float64]]
 
 
 @dataclass(frozen=True)
 class BaseImage:
     """A general image, meant to be subclassed."""
 
-    data: Annotated[npt.NDArray[np.float_], Literal["X", "Y"]]
+    data: Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]
     """Image data in a 2D array."""
 
-    x_label: Annotated[npt.NDArray[np.float_], Literal["X"]]
+    x_label: Annotated[npt.NDArray[np.float64], Literal["X"]]
     """X-labels."""
 
-    y_label: Annotated[npt.NDArray[np.float_], Literal["Y"]]
+    y_label: Annotated[npt.NDArray[np.float64], Literal["Y"]]
     """Y-labels."""
 
     redshift: float
@@ -126,10 +126,10 @@ class Image2D(BaseImage):
 class Image3D(BaseImage):
     """A 3D cube of images along the z-axis."""
 
-    data: Annotated[npt.NDArray[np.float_], Literal["Z", "X", "Y"]]
+    data: Annotated[npt.NDArray[np.float64], Literal["Z", "X", "Y"]]
     """Image data in a 3D cube."""
 
-    z_label: Annotated[npt.NDArray[np.float_], Literal["Z"]]
+    z_label: Annotated[npt.NDArray[np.float64], Literal["Z"]]
     """Z-labels."""
 
 
@@ -141,7 +141,7 @@ class Image2DOriented(Image2D):
     """Sky Model for the orientation."""
 
 
-EoRProfileT = Annotated[npt.NDArray[np.float_], Literal["N", 2]]
+EoRProfileT = Annotated[npt.NDArray[np.float64], Literal["N", 2]]
 
-FloatArrayNxNxN = Annotated[npt.NDArray[np.float_], Literal["N", "N", "N"]]
-FloatArrayN = Annotated[npt.NDArray[np.float_], Literal["N"]]
+FloatArrayNxNxN = Annotated[npt.NDArray[np.float64], Literal["N", "N", "N"]]
+FloatArrayN = Annotated[npt.NDArray[np.float64], Literal["N"]]

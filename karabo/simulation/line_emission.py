@@ -34,7 +34,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
-    primary_beams: List[NDArray[np.float_]],
+    primary_beams: List[NDArray[np.float64]],
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -49,7 +49,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
+    primary_beams: Optional[List[NDArray[np.float64]]] = ...,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
 
@@ -64,7 +64,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
+    primary_beams: Optional[List[NDArray[np.float64]]] = ...,
     should_perform_primary_beam_correction: Optional[bool] = True,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     ...
@@ -79,7 +79,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = None,
+    primary_beams: Optional[List[NDArray[np.float64]]] = None,
     should_perform_primary_beam_correction: Optional[bool] = True,
 ) -> Tuple[List[List[Visibility]], List[List[Image]]]:
     """Perform a line emission simulation, to compute visibilities and dirty images.

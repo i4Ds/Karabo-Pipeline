@@ -14,8 +14,8 @@ NPIntLike: TypeAlias = Union[
     bool, int, np.integer
 ]  # not BoolLike because "-" doesn't support np.bool_
 NPFloatLike: TypeAlias = Union[NPIntLike, float, np.floating]
-NPIntFloat: TypeAlias = Union[np.int_, np.float_]
-NPIntFloatCompl: TypeAlias = Union[NPIntFloat, np.complex_]
+NPIntFloat: TypeAlias = Union[np.int_, np.float64]
+NPIntFloatCompl: TypeAlias = Union[NPIntFloat, np.complex128]
 NPComplexLike: TypeAlias = Union[NPFloatLike, complex, np.complexfloating]
 NPTD64Like: TypeAlias = Union[NPIntLike, np.timedelta64]
 NPNumberLike: TypeAlias = Union[int, float, complex, np.number, np.bool_]
