@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -10,6 +11,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util.file_handler import FileHandler
+from karabo.warning import RASCIL_DEPRECATION_MESSAGE, RascilDeprecationWarning
 
 
 def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
@@ -45,7 +47,9 @@ def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
     sky.add_point_sources(arr)
 
     # Telescope via RASCIL/SDP config (same config object underneath)
-    tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+    with pytest.warns(RascilDeprecationWarning) as constructor_warning:
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+    assert str(constructor_warning[0].message) == RASCIL_DEPRECATION_MESSAGE
 
     # Obs: 1 time, 1 chan, centred at phase centre
     sim = InterferometerSimulation(
@@ -69,9 +73,15 @@ def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
     rascil_ms = tmp_path / "rascil.ms"
     sdp_ms = tmp_path / "sdp.ms"
 
-    v_rascil = sim.run_simulation(
-        tel, sky, obs, backend=SimulatorBackend.RASCIL, visibility_path=str(rascil_ms)
-    )
+    with pytest.warns(RascilDeprecationWarning) as simulation_warning:
+        v_rascil = sim.run_simulation(
+            tel,
+            sky,
+            obs,
+            backend=SimulatorBackend.RASCIL,
+            visibility_path=str(rascil_ms),
+        )
+    assert str(simulation_warning[0].message) == RASCIL_DEPRECATION_MESSAGE
     v_sdp = sim.run_simulation(
         tel, sky, obs, backend=SimulatorBackend.SDP, visibility_path=str(sdp_ms)
     )

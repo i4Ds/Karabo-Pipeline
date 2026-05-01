@@ -2,6 +2,8 @@ import math
 import os
 from datetime import datetime
 
+import pytest
+
 from karabo.imaging.imager_factory import ImagingBackend, get_imager
 from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_rascil import (
@@ -16,6 +18,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
+from karabo.warning import RASCIL_DEPRECATION_MESSAGE, RascilDeprecationWarning
 
 # this parameter sets the number of interations that RASCIL does
 # to clean an image. The default is set to 1_000. We don't need
@@ -53,7 +56,10 @@ def test_create_dirty_and_psf_returns_distinct_files(
 def test_rascil_imager_factory_invert_and_restore(
     default_sample_simulation_visibility: Visibility,
 ) -> None:
-    imager = get_imager(ImagingBackend.RASCIL)
+    with pytest.warns(RascilDeprecationWarning) as warning_record:
+        imager = get_imager(ImagingBackend.RASCIL)
+    assert str(warning_record[0].message) == RASCIL_DEPRECATION_MESSAGE
+
     image_spec = ImageSpec(
         npix=512,
         cellsize_arcsec=CELL_SIZE_ARCSEC,

@@ -62,6 +62,7 @@ from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import FileHandler, write_dir
 from karabo.util.math_util import long_lat_to_cartesian
+from karabo.warning import warn_rascil_deprecated
 
 OSKARTelescopesWithVersionType = Literal[
     "ACA",
@@ -307,6 +308,7 @@ but was not provided. Please provide a value for the version field."
             path = os.path.join(get_module_absolute_path(), "data", data_path)
             return cls.read_OSKAR_tm_file(path)
         elif backend is SimulatorBackend.RASCIL:
+            warn_rascil_deprecated(stacklevel=2)
             if version is not None:
                 logging.warning(
                     f"""The version parameter is not supported

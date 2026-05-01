@@ -51,6 +51,7 @@ from karabo.util.gpu_util import is_cuda_available
 from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (  # type: ignore[attr-defined] # noqa: E501
     export_visibility_to_ms,
 )
+from karabo.warning import warn_rascil_deprecated
 
 
 def format_timedelta(td: timedelta) -> str:
@@ -524,6 +525,7 @@ class InterferometerSimulation:
                     ),
                 )
         elif backend is SimulatorBackend.RASCIL:
+            warn_rascil_deprecated(stacklevel=2)
             return self.__run_simulation_rascil(
                 telescope=telescope,
                 sky=sky,

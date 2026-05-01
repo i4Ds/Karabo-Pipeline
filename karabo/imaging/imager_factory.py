@@ -7,6 +7,7 @@ from karabo.imaging.backends.rascil_backend import RascilBackendImager
 from karabo.imaging.backends.sdp_backend import SdpImager
 from karabo.imaging.imager_interface import Imager
 from karabo.util.helpers import Environment
+from karabo.warning import warn_rascil_deprecated
 
 
 class ImagingBackend(str, Enum):
@@ -36,6 +37,7 @@ def parse_imaging_backend(
 def get_imager(backend: Optional[Union[str, ImagingBackend]] = None) -> Imager:
     resolved = parse_imaging_backend(backend)
     if resolved is ImagingBackend.RASCIL:
+        warn_rascil_deprecated(stacklevel=2)
         return RascilBackendImager()
     if resolved is ImagingBackend.SDP:
         return SdpImager()

@@ -19,6 +19,7 @@ from karabo.simulation.telescope_versions import (
     VLAVersions,
 )
 from karabo.simulator_backend import SimulatorBackend
+from karabo.warning import RASCIL_DEPRECATION_MESSAGE, RascilDeprecationWarning
 
 
 @pytest.mark.parametrize("filename", ["test_telescope.tm"])
@@ -162,7 +163,9 @@ def test_read_WSRT():
 
 
 def test_RASCIL_telescope():
-    tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+    with pytest.warns(RascilDeprecationWarning) as warning_record:
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+    assert str(warning_record[0].message) == RASCIL_DEPRECATION_MESSAGE
     assert tel.backend is SimulatorBackend.RASCIL
     info = tel.get_backend_specific_information()
     assert isinstance(info, Configuration)
