@@ -37,9 +37,9 @@ Use the same API and only change the ``backend`` argument:
 
 Telescope selection note (important during transition)
 ------------------------------------------------------
-At the moment, ``Telescope.constructor(...)`` supports telescope loading for
-``OSKAR`` and ``RASCIL`` labels. For SDP simulations, use the RASCIL-compatible
-telescope constructor path and run the simulation with ``backend=SimulatorBackend.SDP``.
+For SDP simulations, use the SDP telescope constructor path and run the simulation
+with ``backend=SimulatorBackend.SDP``. The legacy RASCIL constructor path still
+works during the transition, but emits a deprecation warning.
 
 Example:
 
@@ -48,7 +48,7 @@ Example:
    from karabo.simulator_backend import SimulatorBackend
    from karabo.simulation.telescope import Telescope
 
-   telescope = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+   telescope = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
    # ...
    vis = simulation.run_simulation(
        telescope=telescope,
@@ -56,9 +56,6 @@ Example:
        observation=observation,
        backend=SimulatorBackend.SDP,
    )
-
-This is a naming/adapter transition detail; simulation dispatch itself already
-supports SDP.
 
 Backend behavior notes
 ----------------------

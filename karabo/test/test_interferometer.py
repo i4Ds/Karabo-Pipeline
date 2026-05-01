@@ -48,8 +48,9 @@ def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
 
     # Telescope via RASCIL/SDP config (same config object underneath)
     with pytest.warns(RascilDeprecationWarning) as constructor_warning:
-        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+        rascil_tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
     assert str(constructor_warning[0].message) == RASCIL_DEPRECATION_MESSAGE
+    sdp_tel = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
 
     # Obs: 1 time, 1 chan, centred at phase centre
     sim = InterferometerSimulation(
@@ -75,7 +76,7 @@ def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
 
     with pytest.warns(RascilDeprecationWarning) as simulation_warning:
         v_rascil = sim.run_simulation(
-            tel,
+            rascil_tel,
             sky,
             obs,
             backend=SimulatorBackend.RASCIL,
@@ -83,7 +84,7 @@ def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
         )
     assert str(simulation_warning[0].message) == RASCIL_DEPRECATION_MESSAGE
     v_sdp = sim.run_simulation(
-        tel, sky, obs, backend=SimulatorBackend.SDP, visibility_path=str(sdp_ms)
+        sdp_tel, sky, obs, backend=SimulatorBackend.SDP, visibility_path=str(sdp_ms)
     )
 
     # Basic assertions on API

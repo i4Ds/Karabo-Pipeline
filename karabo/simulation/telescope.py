@@ -244,6 +244,16 @@ class Telescope:
     ) -> Telescope:
         ...
 
+    @overload
+    @classmethod
+    def constructor(
+        cls,
+        name: RASCILTelescopes,
+        version: Literal[None] = None,
+        backend: Literal[SimulatorBackend.SDP] = SimulatorBackend.SDP,
+    ) -> Telescope:
+        ...
+
     @classmethod
     def constructor(
         cls,
@@ -307,8 +317,9 @@ but was not provided. Please provide a value for the version field."
 
             path = os.path.join(get_module_absolute_path(), "data", data_path)
             return cls.read_OSKAR_tm_file(path)
-        elif backend is SimulatorBackend.RASCIL:
-            warn_rascil_deprecated(stacklevel=2)
+        elif backend is SimulatorBackend.RASCIL or backend is SimulatorBackend.SDP:
+            if backend is SimulatorBackend.RASCIL:
+                warn_rascil_deprecated(stacklevel=2)
             if version is not None:
                 logging.warning(
                     f"""The version parameter is not supported
@@ -317,7 +328,10 @@ but was not provided. Please provide a value for the version field."
                 )
             assert name in get_args(RASCILTelescopes)
             try:
-                telescope: Telescope = cls.__convert_to_karabo_telescope(name)
+                telescope: Telescope = cls.__convert_to_karabo_telescope(
+                    name,
+                    backend=backend,
+                )
             except ValueError as e:
                 raise ValueError(
                     f"""Requested telescope {name} is not supported by this backend.
@@ -330,7 +344,7 @@ but was not provided. Please provide a value for the version field."
             # model (.tm). This is not available for RASCIL datasets.
             # Thus, we create a temporary one.
             disk_cache = FileHandler().get_tmp_dir(
-                prefix="telescope-constructor-rascil-",
+                prefix=f"telescope-constructor-{backend.value.lower()}-",
                 mkdir=False,
             )
             tm_path = os.path.join(disk_cache, f"{name}.tm")
@@ -342,7 +356,11 @@ but was not provided. Please provide a value for the version field."
             assert_never(backend)
 
     @classmethod
-    def __convert_to_karabo_telescope(cls, instr_name: str) -> Telescope:
+    def __convert_to_karabo_telescope(
+        cls,
+        instr_name: str,
+        backend: SimulatorBackend,
+    ) -> Telescope:
         """
         Converts a site saved in RASCIl data format into a Karabo Telescope.
             This function acts as an adapter to make the functionality in Telescope
@@ -388,7 +406,7 @@ but was not provided. Please provide a value for the version field."
             # Reason: Value not set to 0 probably to compensate
             # for dish diameter. (see comment for PR #631)
             telescope.add_antenna_to_station(i, 0.1, 0.1)
-        telescope.backend = SimulatorBackend.RASCIL
+        telescope.backend = backend
         return telescope
 
     @property
@@ -416,8 +434,11 @@ but was not provided. Please provide a value for the version field."
     def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
             return self.path
-        if self.backend is SimulatorBackend.RASCIL:
-            return self.RASCIL_configuration
+        if (
+            self.backend is SimulatorBackend.RASCIL
+            or self.backend is SimulatorBackend.SDP
+        ):
+            return self.SDP_configuration
 
         raise ValueError(
             f"""Unexpected: current backend is set to {self.backend},
@@ -521,9 +542,12 @@ but was not provided. Please provide a value for the version field."
         """
         if self.backend is SimulatorBackend.OSKAR:
             self.plot_telescope_OSKAR(file)
-        elif self.backend is SimulatorBackend.RASCIL:
+        elif (
+            self.backend is SimulatorBackend.RASCIL
+            or self.backend is SimulatorBackend.SDP
+        ):
             # we can use plot_telescope_OSKAR here because we converted
-            # the RASCIl setup into an OSKAR setup when constructing it.
+            # the SDP datamodel setup into an OSKAR setup when constructing it.
             self.plot_telescope_OSKAR(file)
         else:
             logging.warning(
