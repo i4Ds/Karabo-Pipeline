@@ -1,6 +1,7 @@
 import math
 import os
 import shutil
+import warnings
 
 import pytest
 
@@ -17,6 +18,7 @@ from karabo.imaging.imager_wsclean import (
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
 from karabo.util.file_handler import FileHandler
+from karabo.warning import DIRECT_WSCLEAN_USAGE_MESSAGE, DirectWscleanUsageWarning
 
 # this parameter sets the number of interations that WSClean does
 # to clean an image. The default is set to 50_000. We don't need
@@ -27,8 +29,44 @@ WSCLEAN_AVAILABLE = shutil.which("wsclean") is not None
 
 
 def test_wsclean_imager_factory_returns_adapter():
-    imager = get_imager(ImagingBackend.WSCLEAN)
+    with warnings.catch_warnings(record=True) as warning_record:
+        warnings.simplefilter("always")
+        imager = get_imager(ImagingBackend.WSCLEAN)
+    assert not any(
+        isinstance(warning.message, DirectWscleanUsageWarning)
+        for warning in warning_record
+    )
     assert isinstance(imager, WscleanBackendImager)
+
+
+def test_direct_wsclean_dirty_imager_warns():
+    with pytest.warns(DirectWscleanUsageWarning) as warning_record:
+        WscleanDirtyImager(
+            DirtyImagerConfig(
+                imaging_npixel=64,
+                imaging_cellsize=3.878509448876288e-05,
+            ),
+        )
+    assert str(warning_record[0].message) == DIRECT_WSCLEAN_USAGE_MESSAGE
+
+
+def test_direct_wsclean_cleaner_warns():
+    with pytest.warns(DirectWscleanUsageWarning) as warning_record:
+        WscleanImageCleaner(
+            WscleanImageCleanerConfig(
+                imaging_npixel=64,
+                imaging_cellsize=3.878509448876288e-05,
+                niter=CLEAN_ITERATIONS,
+            ),
+        )
+    assert str(warning_record[0].message) == DIRECT_WSCLEAN_USAGE_MESSAGE
+
+
+def test_direct_wsclean_custom_command_warns():
+    with pytest.warns(DirectWscleanUsageWarning) as warning_record:
+        with pytest.raises(ValueError):
+            create_image_custom_command("not-wsclean")
+    assert str(warning_record[0].message) == DIRECT_WSCLEAN_USAGE_MESSAGE
 
 
 def test_wsclean_restore_before_invert_raises():

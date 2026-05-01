@@ -31,7 +31,7 @@ How to select a backend
    from karabo.imaging.imager_factory import ImagingBackend, get_imager
    from karabo.imaging.imager_interface import ImageSpec
 
-   imager = get_imager(ImagingBackend.SDP)  # or ImagingBackend.RASCIL
+   imager = get_imager(ImagingBackend.SDP)  # or RASCIL / WSCLEAN
    spec = ImageSpec(npix=1024, cellsize_arcsec=1.0, phase_centre_deg=(20.0, -30.0))
    dirty, psf = imager.invert(vis, spec)
    restored = imager.restore(dirty, psf)
@@ -40,7 +40,7 @@ How to select a backend
 
 .. code-block:: bash
 
-   export IMAGING_BACKEND=sdp   # or rascil
+   export IMAGING_BACKEND=sdp   # or rascil / wsclean
 
 3. Via CLI flag in entry points that expose it (for example):
 
@@ -58,14 +58,18 @@ Behavior notes
   - ``invert`` uses the RASCIL adapter path.
   - ``restore`` is currently pass-through (identity).
 
-- WSClean remains a standalone backend and is not selected via ``get_imager``.
+- ``ImagingBackend.WSCLEAN``:
+  - ``invert`` uses the WSClean dirty imaging path and returns dirty + PSF.
+  - ``restore`` runs WSClean cleaning through the common backend interface.
+  - Direct WSClean classes remain available for compatibility and custom commands,
+    but emit a warning. Prefer ``get_imager(ImagingBackend.WSCLEAN)``.
 
 
 When to use each backend
 ------------------------
 - Use ``sdp`` for current and preferred imaging workflows.
+- Use ``wsclean`` when you want WSClean imaging through the common backend API.
 - Use ``rascil`` only for legacy compatibility or result comparison.
-- Use WSClean only through its dedicated integration path.
 
 Migration guidance
 ------------------

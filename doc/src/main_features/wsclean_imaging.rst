@@ -4,7 +4,11 @@ karabo.imaging.imager_wsclean
 Overview
 ------------
 This package summarizes tools and functions to be used with the imager
-based on the WSClean algorithm. 
+based on the WSClean algorithm.
+
+For normal imaging workflows, prefer the common backend interface:
+``get_imager(ImagingBackend.WSCLEAN)``. The direct classes documented here remain
+available for compatibility and custom WSClean commands, but emit a warning.
 
 
 Classes

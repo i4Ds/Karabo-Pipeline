@@ -21,15 +21,35 @@ class RascilDeprecationWarning(KaraboWarning):
     """
 
 
+class DirectWscleanUsageWarning(KaraboWarning):
+    """
+    Warning thrown when users use WSClean outside the imager backend interface.
+    """
+
+
 RASCIL_DEPRECATION_MESSAGE = (
     "RASCIL support is deprecated and will be removed in a future release. "
     "Please use SDP instead."
+)
+
+DIRECT_WSCLEAN_USAGE_MESSAGE = (
+    "Direct WSClean imaging classes are deprecated. "
+    "Please use get_imager(ImagingBackend.WSCLEAN) instead."
 )
 
 
 def warn_rascil_deprecated(*, stacklevel: int = 2) -> None:
     """Warn that the selected RASCIL backend is deprecated."""
     warn(RASCIL_DEPRECATION_MESSAGE, RascilDeprecationWarning, stacklevel=stacklevel)
+
+
+def warn_direct_wsclean_use(*, stacklevel: int = 2) -> None:
+    """Warn that direct WSClean use should go through the imager backend."""
+    warn(
+        DIRECT_WSCLEAN_USAGE_MESSAGE,
+        DirectWscleanUsageWarning,
+        stacklevel=stacklevel,
+    )
 
 
 _DEV_ERROR_MSG = (

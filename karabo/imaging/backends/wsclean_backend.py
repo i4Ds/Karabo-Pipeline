@@ -58,11 +58,15 @@ class WscleanBackendImager(Imager):
             "-make-psf "
             f"{vis.path}",
             "wsclean-psf.fits",
+            warn_direct_use=False,
         )
         return cast(Image, psf_image)
 
     def invert(self, vis: Visibility, image_spec: ImageSpec) -> tuple[Image, Image]:
-        dirty_imager = WscleanDirtyImager(self._dirty_config_for_spec(image_spec))
+        dirty_imager = WscleanDirtyImager(
+            self._dirty_config_for_spec(image_spec),
+            warn_direct_use=False,
+        )
         dirty_image = dirty_imager.create_dirty_image(vis)
         psf_image = self._create_psf_image(vis, image_spec)
 
@@ -81,7 +85,8 @@ class WscleanBackendImager(Imager):
             )
 
         cleaner = WscleanImageCleaner(
-            self._cleaner_config_for_spec(self.last_image_spec)
+            self._cleaner_config_for_spec(self.last_image_spec),
+            warn_direct_use=False,
         )
         return cleaner.create_cleaned_image(
             self.last_visibility,
