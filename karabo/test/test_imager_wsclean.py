@@ -1,7 +1,13 @@
 import math
 import os
+import shutil
 
+import pytest
+
+from karabo.imaging.backends.wsclean_backend import WscleanBackendImager
 from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_wsclean import (
     WscleanDirtyImager,
     WscleanImageCleaner,
@@ -17,6 +23,41 @@ from karabo.util.file_handler import FileHandler
 # that many because we do run tests only, i.e. the quality of the
 # result is not tested.
 CLEAN_ITERATIONS = 100
+WSCLEAN_AVAILABLE = shutil.which("wsclean") is not None
+
+
+def test_wsclean_imager_factory_returns_adapter():
+    imager = get_imager(ImagingBackend.WSCLEAN)
+    assert isinstance(imager, WscleanBackendImager)
+
+
+def test_wsclean_restore_before_invert_raises():
+    imager = get_imager(ImagingBackend.WSCLEAN)
+    with pytest.raises(RuntimeError, match="previous invert"):
+        imager.restore(None, None)  # type: ignore[arg-type]
+
+
+@pytest.mark.skipif(not WSCLEAN_AVAILABLE, reason="WSClean is not installed")
+def test_wsclean_imager_factory_invert_and_restore_smoke(
+    minimal_casa_ms: Visibility,
+):
+    imager = get_imager(ImagingBackend.WSCLEAN)
+    spec = ImageSpec(
+        npix=64,
+        cellsize_arcsec=math.degrees(5e-5) * 3600.0,
+        phase_centre_deg=(0.0, 0.0),
+    )
+
+    dirty_image, psf_image = imager.invert(minimal_casa_ms, spec)
+
+    assert os.path.exists(dirty_image.path)
+    assert os.path.exists(psf_image.path)
+    assert dirty_image.data.size > 0
+    assert psf_image.data.size > 0
+
+    restored = imager.restore(dirty_image, psf_image)
+    assert os.path.exists(restored.path)
+    assert restored.data.size > 0
 
 
 def test_dirty_image(tobject: TFiles):
