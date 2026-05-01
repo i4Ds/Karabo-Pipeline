@@ -12,9 +12,11 @@ The simulation backend is selected with
 
 Supported simulation backends
 -----------------------------
-- ``SimulatorBackend.OSKAR``
-- ``SimulatorBackend.RASCIL``
-- ``SimulatorBackend.SDP`` (value: ``"ska-sdp"``)
+- ``SimulatorBackend.SDP`` (value: ``"ska-sdp"``): recommended Karabo-native
+  simulation path for new workflows.
+- ``SimulatorBackend.OSKAR``: still supported for OSKAR-specific simulation
+  workflows and telescope/beam behavior.
+- ``SimulatorBackend.RASCIL``: deprecated legacy compatibility path.
 
 For all backends, ``run_simulation(...)`` returns a Karabo ``Visibility`` wrapper.
 
@@ -32,7 +34,7 @@ Use the same API and only change the ``backend`` argument:
        telescope=telescope,
        sky=sky,
        observation=observation,
-       backend=SimulatorBackend.SDP,  # or OSKAR / RASCIL
+       backend=SimulatorBackend.SDP,  # or OSKAR / deprecated RASCIL
    )
 
 Telescope selection note (important during transition)
@@ -60,15 +62,24 @@ Example:
 Backend behavior notes
 ----------------------
 - OSKAR
+  - Still supported.
   - Custom ``primary_beam`` passed to ``run_simulation`` is ignored.
   - Configure beam behavior through ``InterferometerSimulation`` parameters.
 
-- RASCIL and SDP
-  - Both follow an MS-based simulation path in Karabo.
-  - Both can apply a provided custom ``primary_beam`` in simulation.
+- SDP
+  - Recommended for new Karabo-native simulation workflows.
+  - Follows an MS-based simulation path in Karabo.
+  - Can apply a provided custom ``primary_beam`` in simulation.
+
+- RASCIL
+  - Deprecated and kept for legacy compatibility only.
+  - Follows the older MS-based simulation path and emits a deprecation warning
+    when selected.
 
 Recommendations
 ---------------
+- Prefer ``SimulatorBackend.SDP`` in new simulation scripts/notebooks unless you
+  specifically need OSKAR behavior.
 - Prefer passing simulation backend explicitly in scripts/notebooks.
 - Keep output format as MS for cross-backend comparability.
-- Avoid backend-specific calls outside Karabo abstractions in user workflows.
+- Avoid ``SimulatorBackend.RASCIL`` in new workflows.

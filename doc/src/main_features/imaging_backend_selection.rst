@@ -55,8 +55,11 @@ Behavior notes
   - ``restore`` runs SDP deconvolution + restore.
 
 - ``ImagingBackend.RASCIL``:
+  - Deprecated legacy backend. Selecting it emits a deprecation warning.
   - ``invert`` uses the RASCIL adapter path.
-  - ``restore`` is currently pass-through (identity).
+  - ``restore`` runs the legacy RASCIL cleaning workflow. The adapter reuses the
+    visibility from the previous ``invert`` call because RASCIL cleaning does not
+    consume an existing dirty/PSF FITS pair directly.
 
 - ``ImagingBackend.WSCLEAN``:
   - ``invert`` uses the WSClean dirty imaging path and returns dirty + PSF.

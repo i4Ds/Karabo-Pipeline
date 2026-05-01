@@ -3,10 +3,8 @@
 import math
 from datetime import datetime, timedelta, timezone
 
-from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_factory import get_imager, parse_imaging_backend
 from karabo.imaging.imager_interface import ImageSpec
-from karabo.imaging.imager_wsclean import WscleanDirtyImager
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -84,19 +82,9 @@ if __name__ == "__main__":
     npix = 4096
     cellsize_rad = 5e-6
 
-    if imaging_backend.value == "rascil" or imaging_backend.value == "sdp":
-        spec = ImageSpec(
-            npix=npix,
-            cellsize_arcsec=math.degrees(cellsize_rad) * 3600.0,
-            phase_centre_deg=(phase_center_ra, phase_center_dec),
-        )
-        dirty, _psf = get_imager(imaging_backend).invert(visibility, spec)
-    else:
-        dirty_imager = WscleanDirtyImager(
-            DirtyImagerConfig(
-                imaging_npixel=npix,
-                imaging_cellsize=cellsize_rad,
-                combine_across_frequencies=True,
-            )
-        )
-        dirty = dirty_imager.create_dirty_image(visibility)
+    spec = ImageSpec(
+        npix=npix,
+        cellsize_arcsec=math.degrees(cellsize_rad) * 3600.0,
+        phase_centre_deg=(phase_center_ra, phase_center_dec),
+    )
+    dirty, _psf = get_imager(imaging_backend).invert(visibility, spec)

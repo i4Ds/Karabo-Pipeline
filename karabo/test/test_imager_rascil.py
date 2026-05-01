@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pytest
 
+from karabo.imaging.backends.rascil_backend import RascilBackendImager
 from karabo.imaging.imager_factory import ImagingBackend, get_imager
 from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_rascil import (
@@ -72,7 +73,19 @@ def test_rascil_imager_factory_invert_and_restore(
 
     assert dirty_image.data.shape == psf_image.data.shape
     restored_image = imager.restore(dirty_image, psf_image)
-    assert restored_image.path == dirty_image.path
+    assert restored_image.path != dirty_image.path
+    assert os.path.exists(restored_image.path)
+    assert isinstance(imager, RascilBackendImager)
+    assert imager.last_model_image is not None
+    assert imager.last_residual_image is not None
+    assert os.path.exists(imager.last_model_image.path)
+    assert os.path.exists(imager.last_residual_image.path)
+
+
+def test_rascil_restore_before_invert_raises() -> None:
+    imager = RascilBackendImager()
+    with pytest.raises(RuntimeError, match="previous invert"):
+        imager.restore(None, None)  # type: ignore[arg-type]
 
 
 def test_dirty_image(tobject: TFiles):
