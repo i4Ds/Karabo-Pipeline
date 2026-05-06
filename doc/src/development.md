@@ -18,7 +18,7 @@ conda config --set solver libmamba
 
 Next, clone the code via git, and cd into it:
 ```shell
-git clone git@github.com:i4Ds/Karabo-Pipeline.git
+git clone https://github.com/i4Ds/Karabo-Pipeline.git
 cd Karabo-Pipeline
 ```
 

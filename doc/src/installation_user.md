@@ -17,18 +17,18 @@ source ~/miniconda3/bin/activate
 conda init bash
 conda install -n base conda-libmamba-solver
 # setup virtual environment
-conda create -n karabo python=3.9
+conda create -n karabo python=3.10
 conda activate karabo
 conda config --env --set solver libmamba
 conda config --env --set channel_priority true
 # install karabo
-conda install -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
+conda install -c nvidia/label/cuda-12.9.1 -c i4ds -c conda-forge karabo-pipeline
 # in case you use wsl2
 conda env config vars set LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/wsl/lib
 ```
 
 ## Dealing with the error 'OSKAR library not found'
-If you use Karabo and get the error `RuntimeError: OSKAR library not found.` then this is because the correct CUDA drivers were not installed. Karabo relies on CUDA drivers 11.7. It has been reported that often versions > 12 get installed automatically. In this case the above mentioned error is shown at runtime. More information about this issue can be found [here (issue #568)](https://github.com/i4Ds/Karabo-Pipeline/issues/568). Refer to this issue for a workaround.
+If you use Karabo and get the error `RuntimeError: OSKAR library not found.` then this is because the correct CUDA drivers were not installed. Karabo relies on CUDA drivers 12.9. It has been reported that often versions > 12 get installed automatically. In this case the above mentioned error is shown at runtime. More information about this issue can be found [here (issue #568)](https://github.com/i4Ds/Karabo-Pipeline/issues/568). Refer to this issue for a workaround.
 
 Please refer to the troubleshooting section at the bottom of this page if you feel something else does not work.
 
@@ -38,7 +38,7 @@ A Karabo installation can be updated the following way:
 Note: Even though we care about not introducing API-breaking changes through different minor releases of Karabo, we don't guarantee it.
 
 ```
-conda update -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline
+conda update -c nvidia/label/cuda-12.9.1 -c i4ds -c conda-forge karabo-pipeline
 ```
 
 ## Older versions of Karabo
