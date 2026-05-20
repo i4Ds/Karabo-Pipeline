@@ -412,7 +412,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: Observation,
         backend: Literal[SimulatorBackend.RASCIL],
-        primary_beam: Optional[RASCILImage],
+        primary_beam: Optional[RASCILImage] = ...,
         visibility_format: Literal["MS"] = ...,
         visibility_path: Optional[DirPathType] = ...,
     ) -> Visibility:
@@ -425,7 +425,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: Observation,
         backend: Literal[SimulatorBackend.SDP],
-        primary_beam: Optional[RASCILImage],
+        primary_beam: Optional[RASCILImage] = ...,
         visibility_format: Literal["MS"] = ...,
         visibility_path: Optional[DirPathType] = ...,
     ) -> Visibility:

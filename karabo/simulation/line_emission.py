@@ -3,7 +3,7 @@ import os
 from collections import namedtuple
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, overload
+from typing import List, Optional, Tuple, Union
 
 import astropy.units as u
 import numpy as np
@@ -28,70 +28,6 @@ from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
 
 CircleSkyRegion = namedtuple("CircleSkyRegion", ["center", "radius"])
-
-
-@overload
-def line_emission_pipeline(
-    output_base_directory: Union[Path, str],
-    pointings: List[CircleSkyRegion],
-    sky_model: SkyModel,
-    observation_details: Observation,
-    telescope: Telescope,
-    interferometer: InterferometerSimulation,
-    simulator_backend: SimulatorBackend,
-    dirty_imager_config: DirtyImagerConfig,
-    primary_beams: List[NDArray[np.float_]],
-    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
-) -> Tuple[
-    List[List[Visibility]],
-    List[List[Image]],
-    List[List[Image]],
-    List[List[Image]],
-]:
-    ...
-
-
-@overload
-def line_emission_pipeline(
-    output_base_directory: Union[Path, str],
-    pointings: List[CircleSkyRegion],
-    sky_model: SkyModel,
-    observation_details: Observation,
-    telescope: Telescope,
-    interferometer: InterferometerSimulation,
-    simulator_backend: SimulatorBackend,
-    dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
-) -> Tuple[
-    List[List[Visibility]],
-    List[List[Image]],
-    List[List[Image]],
-    List[List[Image]],
-]:
-    ...
-
-
-@overload
-def line_emission_pipeline(
-    output_base_directory: Union[Path, str],
-    pointings: List[CircleSkyRegion],
-    sky_model: SkyModel,
-    observation_details: Observation,
-    telescope: Telescope,
-    interferometer: InterferometerSimulation,
-    simulator_backend: SimulatorBackend,
-    dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-    should_perform_primary_beam_correction: Optional[bool] = True,
-    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
-) -> Tuple[
-    List[List[Visibility]],
-    List[List[Image]],
-    List[List[Image]],
-    List[List[Image]],
-]:
-    ...
 
 
 def line_emission_pipeline(

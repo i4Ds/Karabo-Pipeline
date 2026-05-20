@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import xarray as xr
@@ -44,7 +45,7 @@ class SdpImager(Imager):
     def __init__(self, config: SdpImagerConfig | None = None) -> None:
         self.config = config or SdpImagerConfig()
 
-    def _load_visibility(self, vis: Visibility):
+    def _load_visibility(self, vis: Visibility) -> Any:
         if vis.format != "MS":
             raise NotImplementedError(
                 "SDP imager currently supports Measurement Set inputs only."
@@ -68,7 +69,7 @@ class SdpImager(Imager):
         block = self._flag_autocorrelations(block)
         return block
 
-    def _flag_autocorrelations(self, visibility):  # type: ignore[no-untyped-def]
+    def _flag_autocorrelations(self, visibility: Any) -> Any:
         autocorr_mask = visibility.antenna1 == visibility.antenna2
         mask_da = xr.DataArray(autocorr_mask, dims=["baselines"])
         expanded_mask = mask_da.broadcast_like(visibility.flags)
@@ -102,8 +103,7 @@ class SdpImager(Imager):
 
         return self._export_images(dirty, psf)
 
-    # type: ignore[no-untyped-def]
-    def _export_images(self, dirty, psf) -> tuple[Image, Image]:
+    def _export_images(self, dirty: Any, psf: Any) -> tuple[Image, Image]:
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="sdp-imager-", purpose="dirty and psf storage"
         )
@@ -127,11 +127,11 @@ class SdpImager(Imager):
 
         return dirty_image, psf_image
 
-    def _import_native_image(self, img: Image):
+    def _import_native_image(self, img: Image) -> Any:
         """Convert Karabo Image (FITS on disk) back to ska-sdp image object."""
         return import_image_from_fits(img.path)
 
-    def _export_native_image(self, tmp_dir: str, fname: str, native_img) -> Image:
+    def _export_native_image(self, tmp_dir: str, fname: str, native_img: Any) -> Image:
         """Write ska-sdp image object to FITS and wrap as Karabo Image."""
         path = os.path.join(tmp_dir, fname)
         if os.path.exists(path):

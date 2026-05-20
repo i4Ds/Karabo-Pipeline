@@ -160,7 +160,7 @@ class RascilDirtyImager(DirtyImager):
         if isinstance(invert_outputs, tuple) and len(invert_outputs) == 3:
             dirty, _, psf = invert_outputs
         else:
-            dirty, _ = invert_outputs  # type: ignore[misc]
+            dirty, _ = invert_outputs
             # Approximate PSF if backend version does not return one
             psf = dirty
 

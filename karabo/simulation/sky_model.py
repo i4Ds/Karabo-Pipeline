@@ -2504,9 +2504,9 @@ class SkyModel:
 
             frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
 
-            skycomponents: List[SkyComponent] = []
+            sdp_skycomponents: List[SkyComponent] = []
             if self.sources is None:
-                return skycomponents
+                return sdp_skycomponents
 
             ras = self.sources[:, 0]
             decs = self.sources[:, 1]
@@ -2516,7 +2516,7 @@ class SkyModel:
                 flux_array = np.zeros((len(frequency_channel_centers), 1))
                 flux_array[:, 0] = flux  # stokesI across all channels (continuum)
 
-                skycomponents.append(
+                sdp_skycomponents.append(
                     SkyComponent(
                         direction=SkyCoord(
                             ra=ra, dec=dec, unit="deg", frame="icrs", equinox="J2000"
@@ -2529,6 +2529,6 @@ class SkyModel:
                         params=None,
                     )
                 )
-            return skycomponents
+            return sdp_skycomponents
 
         assert_never(backend)
