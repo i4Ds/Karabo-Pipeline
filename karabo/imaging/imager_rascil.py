@@ -156,13 +156,8 @@ class RascilDirtyImager(DirtyImager):
             cellsize=self.config.imaging_cellsize,
             override_cellsize=self.config.override_cellsize,
         )
-        invert_outputs = invert_visibility(visibility, model, context="2d", dopsf=True)
-        if isinstance(invert_outputs, tuple) and len(invert_outputs) == 3:
-            dirty, _, psf = invert_outputs
-        else:
-            dirty, _ = invert_outputs
-            # Approximate PSF if backend version does not return one
-            psf = dirty
+        dirty, _ = invert_visibility(visibility, model, context="2d", dopsf=False)
+        psf, _ = invert_visibility(visibility, model, context="2d", dopsf=True)
 
         for path, img in (
             (dirty_output_fits_path, dirty),
