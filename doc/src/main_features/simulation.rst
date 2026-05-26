@@ -5,6 +5,9 @@ Overview
 ------------
 This module contains the functionality required for an interferometer simulation. This includes defining a sky model and selecting a telescope. 
 
+For simulation backend selection (OSKAR/RASCIL/SDP), see
+:doc:`simulation_backend_selection`.
+
 Classes
 -------
 
@@ -52,4 +55,3 @@ Line emission package
 .. automodule:: karabo.simulation.line_emission_helpers
    :members:
    :show-inheritance:
-

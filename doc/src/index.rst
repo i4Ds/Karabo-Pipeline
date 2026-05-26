@@ -24,12 +24,14 @@ Modules
    :caption: Simulation
 
    main_features/simulation.rst
+   main_features/simulation_backend_selection.rst
 
 .. toctree::
    :maxdepth: 2
    :caption: Imaging
 
    main_features/imaging.rst
+   main_features/imaging_backend_selection.rst
    main_features/base_imaging.rst
    main_features/oskar_imaging.rst
    main_features/rascil_imaging.rst

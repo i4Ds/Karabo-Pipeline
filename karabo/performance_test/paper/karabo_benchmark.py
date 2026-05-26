@@ -12,7 +12,11 @@ from datetime import datetime, timedelta
 import numpy as np
 import skymodel_reader
 
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.backends.rascil_backend import (
+    RascilBackendConfig,
+    RascilBackendImager,
+)
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_wsclean import WscleanImageCleaner, WscleanImageCleanerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -177,15 +181,16 @@ for phase_ra in ra_list:
         )
         logger.info("--- Simulation Run Ends....")
         k = k + 1
-        dirty_imager = RascilDirtyImager(
-            RascilDirtyImagerConfig(
-                imaging_npixel=img_nsize,
-                imaging_cellsize=cellsize_rad,
-                combine_across_frequencies=False,
-            )
+        dirty_imager = RascilBackendImager(
+            RascilBackendConfig(combine_across_frequencies=False)
+        )
+        image_spec = ImageSpec(
+            npix=img_nsize,
+            cellsize_arcsec=cellsize_arcsec,
+            phase_centre_deg=(phase_ra, phase_dec),
         )
 
-        dirty = dirty_imager.create_dirty_image(visibility)
+        dirty, _psf = dirty_imager.invert(visibility, image_spec)
 
         dirty.write_to_file(
             os.path.join(path, f"{file_name+str(k)}.fits"),

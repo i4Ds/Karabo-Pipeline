@@ -1,6 +1,12 @@
+import math
 import os
 from datetime import datetime
 
+import pytest
+
+from karabo.imaging.backends.rascil_backend import RascilBackendImager
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_rascil import (
     RascilDirtyImager,
     RascilDirtyImagerConfig,
@@ -13,6 +19,7 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
+from karabo.warning import RASCIL_DEPRECATION_MESSAGE, RascilDeprecationWarning
 
 # this parameter sets the number of interations that RASCIL does
 # to clean an image. The default is set to 1_000. We don't need
@@ -21,6 +28,64 @@ from karabo.test.conftest import TFiles
 CLEAN_ITERATIONS = 100
 
 NUM_CHANNELS = 11
+
+CELL_SIZE_RAD = 3.878509448876288e-05
+CELL_SIZE_ARCSEC = math.degrees(CELL_SIZE_RAD) * 3600.0
+PHASE_CENTRE = (250.0, -80.0)
+
+
+def test_create_dirty_and_psf_returns_distinct_files(
+    default_sample_simulation_visibility: Visibility,
+) -> None:
+    dirty_imager = RascilDirtyImager(
+        RascilDirtyImagerConfig(
+            imaging_npixel=512,
+            imaging_cellsize=CELL_SIZE_RAD,
+        )
+    )
+
+    dirty_image, psf_image = dirty_imager.create_dirty_and_psf(
+        default_sample_simulation_visibility
+    )
+
+    assert os.path.exists(dirty_image.path)
+    assert os.path.exists(psf_image.path)
+    assert dirty_image.path != psf_image.path
+    assert dirty_image.data.shape == psf_image.data.shape
+
+
+def test_rascil_imager_factory_invert_and_restore(
+    default_sample_simulation_visibility: Visibility,
+) -> None:
+    with pytest.warns(RascilDeprecationWarning) as warning_record:
+        imager = get_imager(ImagingBackend.RASCIL)
+    assert str(warning_record[0].message) == RASCIL_DEPRECATION_MESSAGE
+
+    image_spec = ImageSpec(
+        npix=512,
+        cellsize_arcsec=CELL_SIZE_ARCSEC,
+        phase_centre_deg=PHASE_CENTRE,
+    )
+
+    dirty_image, psf_image = imager.invert(
+        default_sample_simulation_visibility, image_spec
+    )
+
+    assert dirty_image.data.shape == psf_image.data.shape
+    restored_image = imager.restore(dirty_image, psf_image)
+    assert restored_image.path != dirty_image.path
+    assert os.path.exists(restored_image.path)
+    assert isinstance(imager, RascilBackendImager)
+    assert imager.last_model_image is not None
+    assert imager.last_residual_image is not None
+    assert os.path.exists(imager.last_model_image.path)
+    assert os.path.exists(imager.last_residual_image.path)
+
+
+def test_rascil_restore_before_invert_raises() -> None:
+    imager = RascilBackendImager()
+    with pytest.raises(RuntimeError, match="previous invert"):
+        imager.restore(None, None)  # type: ignore[arg-type]
 
 
 def test_dirty_image(tobject: TFiles):
