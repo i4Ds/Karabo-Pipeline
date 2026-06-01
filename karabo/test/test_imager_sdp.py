@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pytest
 
+from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
 from karabo.imaging.imager_factory import ImagingBackend, get_imager
 from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.visibility import Visibility
@@ -38,3 +39,18 @@ def test_sdp_imager_invert_and_restore(minimal_casa_ms: Visibility) -> None:
     assert hasattr(imager, "last_residual_image")
     assert os.path.exists(imager.last_model_image.path)
     assert os.path.exists(imager.last_residual_image.path)
+
+
+@pytest.mark.parametrize("algorithm", ["hogbom-complex", "msclean", "mmclean"])
+def test_sdp_imager_config_rejects_unsupported_clean_algorithm(
+    algorithm: str,
+) -> None:
+    with pytest.raises(NotImplementedError, match="only clean_algorithm='hogbom'"):
+        SdpImagerConfig(clean_algorithm=algorithm)
+
+
+def test_sdp_imager_restore_rejects_mutated_clean_algorithm() -> None:
+    imager = SdpImager()
+    imager.config.clean_algorithm = "msclean"
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        imager.restore(None, None)  # type: ignore[arg-type]

@@ -24,6 +24,8 @@ from karabo.imaging.util import guess_beam_parameters
 from karabo.simulation.visibility import Visibility
 from karabo.util.file_handler import FileHandler
 
+_SUPPORTED_CLEAN_ALGORITHM = "hogbom"
+
 
 @dataclass
 class SdpImagerConfig:
@@ -40,10 +42,26 @@ class SdpImagerConfig:
     clean_fractional_threshold: float | None = None
     clean_scales: tuple[int, ...] | None = None
 
+    def __post_init__(self) -> None:
+        if self.clean_algorithm != _SUPPORTED_CLEAN_ALGORITHM:
+            raise NotImplementedError(
+                "SDP imaging currently supports only clean_algorithm='hogbom'. "
+                f"Received clean_algorithm={self.clean_algorithm!r}. "
+                "'hogbom-complex', 'msclean', and 'mmclean' are not implemented yet."
+            )
+
 
 class SdpImager(Imager):
     def __init__(self, config: SdpImagerConfig | None = None) -> None:
         self.config = config or SdpImagerConfig()
+
+    def _validate_clean_algorithm(self) -> None:
+        if self.config.clean_algorithm != _SUPPORTED_CLEAN_ALGORITHM:
+            raise NotImplementedError(
+                "SDP imaging currently supports only clean_algorithm='hogbom'. "
+                f"Received clean_algorithm={self.config.clean_algorithm!r}. "
+                "'hogbom-complex', 'msclean', and 'mmclean' are not implemented yet."
+            )
 
     def _load_visibility(self, vis: Visibility) -> Any:
         if vis.format != "MS":
@@ -155,6 +173,7 @@ class SdpImager(Imager):
         Returns a restored image; model and residual are written to disk as a side
         effect for inspection (paths stored on instance attributes).
         """
+        self._validate_clean_algorithm()
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="sdp-clean-", purpose="model/residual/restored storage"
         )
