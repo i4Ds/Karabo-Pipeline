@@ -50,9 +50,9 @@ jobs:
           conda create -y -n test_karabo python=3.10
           conda env update -n test_karabo -f environment.yaml --prune
           conda activate test_karabo
-          pip install --no-binary mpi4py mpi4py==4.1.1
-          pip install -e ".[dev]"
+          conda install -y pybind11 ipykernel
           python -m ipykernel install --user --name python3.10
+          pip install -e ".[dev]"
 
           # Debug since we had problems with mpi installation
           python -c "import h5py; print('h5py ok')"
