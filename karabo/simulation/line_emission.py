@@ -1,8 +1,9 @@
+import math
 import os
 from collections import namedtuple
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, overload
+from typing import List, Optional, Tuple, Union
 
 import astropy.units as u
 import numpy as np
@@ -12,7 +13,12 @@ from ska_sdp_datamodels.science_data_model.polarisation_model import Polarisatio
 
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.imager_factory import (
+    ImagingBackend,
+    get_imager,
+    parse_imaging_backend,
+)
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.line_emission_helpers import convert_frequency_to_z
 from karabo.simulation.observation import Observation
@@ -22,52 +28,6 @@ from karabo.simulation.visibility import Visibility
 from karabo.simulator_backend import SimulatorBackend
 
 CircleSkyRegion = namedtuple("CircleSkyRegion", ["center", "radius"])
-
-
-@overload
-def line_emission_pipeline(
-    output_base_directory: Union[Path, str],
-    pointings: List[CircleSkyRegion],
-    sky_model: SkyModel,
-    observation_details: Observation,
-    telescope: Telescope,
-    interferometer: InterferometerSimulation,
-    simulator_backend: SimulatorBackend,
-    dirty_imager_config: DirtyImagerConfig,
-    primary_beams: List[NDArray[np.float_]],
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
-    ...
-
-
-@overload
-def line_emission_pipeline(
-    output_base_directory: Union[Path, str],
-    pointings: List[CircleSkyRegion],
-    sky_model: SkyModel,
-    observation_details: Observation,
-    telescope: Telescope,
-    interferometer: InterferometerSimulation,
-    simulator_backend: SimulatorBackend,
-    dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
-    ...
-
-
-@overload
-def line_emission_pipeline(
-    output_base_directory: Union[Path, str],
-    pointings: List[CircleSkyRegion],
-    sky_model: SkyModel,
-    observation_details: Observation,
-    telescope: Telescope,
-    interferometer: InterferometerSimulation,
-    simulator_backend: SimulatorBackend,
-    dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = ...,
-    should_perform_primary_beam_correction: Optional[bool] = True,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
-    ...
 
 
 def line_emission_pipeline(
@@ -81,10 +41,19 @@ def line_emission_pipeline(
     dirty_imager_config: DirtyImagerConfig,
     primary_beams: Optional[List[NDArray[np.float_]]] = None,
     should_perform_primary_beam_correction: Optional[bool] = True,
-) -> Tuple[List[List[Visibility]], List[List[Image]]]:
-    """Perform a line emission simulation, to compute visibilities and dirty images.
+    imaging_backend: Optional[Union[ImagingBackend, str]] = None,
+) -> Tuple[
+    List[List[Visibility]],
+    List[List[Image]],
+    List[List[Image]],
+    List[List[Image]],
+]:
+    """Perform a line emission simulation producing visibilities and images.
     A line emission simulation involves assuming every source in the input SkyModel
     only emits within one frequency channel.
+
+    Returns:
+        visibilities, dirty images, PSFs, restored images for each frequency/pointing.
 
     If requested, include primary beam effects into the visibilities and dirty images.
 
@@ -94,7 +63,9 @@ def line_emission_pipeline(
     For RASCIL, the provided primary beams are used
     for the primary beam effect.
     """
+    imaging_backend = parse_imaging_backend(imaging_backend)
     print(f"Selected backend: {simulator_backend}")
+    print(f"Selected imaging backend: {imaging_backend.value}")
 
     output_base_directory = Path(output_base_directory)
     # If output filepath does not exist, mkdir
@@ -207,33 +178,60 @@ def line_emission_pipeline(
 
     print("Creating dirty images from visibilities...")
 
+    imager = get_imager(imaging_backend)
     dirty_images: List[List[Image]] = []
+    psf_images: List[List[Image]] = []
+    restored_images: List[List[Image]] = []
     for index_freq, _ in enumerate(frequency_channel_starts):
         print(f"Processing frequency channel {index_freq}...")
         dirty_images.append([])
+        psf_images.append([])
+        restored_images.append([])
         for index_p, _ in enumerate(pointings):
             print(f"Processing pointing {index_p}...")
             vis = visibilities[index_freq][index_p]
 
+            image_spec = ImageSpec(
+                npix=dirty_imager_config.imaging_npixel,
+                cellsize_arcsec=math.degrees(dirty_imager_config.imaging_cellsize)
+                * 3600.0,
+                phase_centre_deg=(center.ra.deg, center.dec.deg),
+                polarisation="I",
+                nchan=1,
+            )
+            dirty, psf = imager.invert(vis, image_spec)
+            restored = imager.restore(dirty, psf)
+
             if simulator_backend is SimulatorBackend.OSKAR:
-                backend = "OSKAR"
+                simulator_label = "OSKAR"
             else:
-                backend = "RASCIL"
-            dirty_imager = RascilDirtyImager(
-                RascilDirtyImagerConfig(
-                    imaging_npixel=dirty_imager_config.imaging_npixel,
-                    imaging_cellsize=dirty_imager_config.imaging_cellsize,
-                    combine_across_frequencies=dirty_imager_config.combine_across_frequencies,  # noqa: E501
-                )
+                simulator_label = "RASCIL"
+            imaging_label = imaging_backend.value.upper()
+
+            dirty_output_path = os.path.join(
+                output_base_directory,
+                f"dirty_{simulator_label}_{imaging_label}_{index_p}.fits",
             )
-            dirty = dirty_imager.create_dirty_image(
-                vis,
-                output_fits_path=os.path.join(
-                    output_base_directory, f"dirty_{backend}_{index_p}.fits"
-                ),
+            dirty.write_to_file(dirty_output_path, overwrite=True)
+            dirty = Image(path=dirty_output_path)
+
+            psf_output_path = os.path.join(
+                output_base_directory,
+                f"psf_{simulator_label}_{imaging_label}_{index_p}.fits",
             )
+            psf.write_to_file(psf_output_path, overwrite=True)
+            psf = Image(path=psf_output_path)
+
+            restored_output_path = os.path.join(
+                output_base_directory,
+                f"restored_{simulator_label}_{imaging_label}_{index_p}.fits",
+            )
+            restored.write_to_file(restored_output_path, overwrite=True)
+            restored = Image(path=restored_output_path)
 
             dirty_images[-1].append(dirty)
+            psf_images[-1].append(psf)
+            restored_images[-1].append(restored)
 
             # dirty.data.shape meaning:
             # (frequency channels, polarisations, pixels_x, pixels_y)
@@ -247,4 +245,4 @@ def line_emission_pipeline(
         pointings
     ), f"{len(dirty_images[0])}, {len(pointings)}"
 
-    return visibilities, dirty_images
+    return visibilities, dirty_images, psf_images, restored_images

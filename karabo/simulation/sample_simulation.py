@@ -67,12 +67,26 @@ def run_sample_simulation(
         print("Generating Visibilities")
 
     interferometer_sim = InterferometerSimulation(channel_bandwidth_hz=1e6)
-    visibility = interferometer_sim.run_simulation(
-        telescope,
-        sky,
-        observation,
-        backend=simulator_backend,
-        visibility_format=visibility_format,
-    )
+    if simulator_backend is SimulatorBackend.SDP:
+        if visibility_format != "MS":
+            raise NotImplementedError(
+                "SDP simulations are currently supported only with MS visibility "
+                "format in this sample"
+            )
+        visibility = interferometer_sim.run_simulation(
+            telescope,
+            sky,
+            observation,
+            backend=SimulatorBackend.SDP,
+            visibility_format="MS",
+        )
+    else:
+        visibility = interferometer_sim.run_simulation(
+            telescope,
+            sky,
+            observation,
+            backend=SimulatorBackend.OSKAR,
+            visibility_format=visibility_format,
+        )
 
     return visibility, phase_center, sky, telescope, observation, interferometer_sim

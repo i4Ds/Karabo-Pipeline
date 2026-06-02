@@ -9,8 +9,10 @@ import astropy.units as u
 import numpy as np
 import pytest
 import xarray as xr
+from astropy.io import fits
 from astropy.io.fits import ColDefs, Column
 from astropy.units import UnitBase, UnitConversionError
+from astropy.wcs import WCS
 from numpy.typing import NDArray
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
@@ -239,6 +241,98 @@ def test_convert_sky_to_backends():
         # For continuous sources, all channels are set to the same flux.
         # Here we set it to 1. And there are 5 frequency channels
         assert np.sum(rascil_component.flux) == 5
+
+
+def test_from_fits_image_extracts_thresholded_sources(tmpdir: str) -> None:
+    fits_path = os.path.join(tmpdir, "sky_from_image.fits")
+    data = np.zeros((8, 8), dtype=np.float32)
+    data[2, 3] = 1.5
+    data[5, 6] = 3.0
+
+    wcs = WCS(naxis=2)
+    wcs.wcs.crpix = [4.0, 4.0]
+    wcs.wcs.cdelt = np.array([-0.1, 0.1])
+    wcs.wcs.crval = [20.0, -30.0]
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    header = wcs.to_header()
+    header["CRVAL3"] = 1.5e9
+    fits.writeto(fits_path, data, header=header, overwrite=True)
+
+    sky = SkyModel.from_fits_image(
+        fits_path,
+        threshold=1.0,
+        backend=SimulatorBackend.SDP,
+    )
+
+    assert sky.num_sources == 2
+    fluxes = np.sort(sky.sources[:, SkyModel.COL_IDX["stokes_i"]].to_numpy())
+    assert np.allclose(fluxes, [1.5, 3.0])
+    assert np.all(np.isfinite(sky.sources[:, SkyModel.COL_IDX["ra"]].to_numpy()))
+    assert np.all(np.isfinite(sky.sources[:, SkyModel.COL_IDX["dec"]].to_numpy()))
+    assert np.allclose(
+        sky.sources[:, SkyModel.COL_IDX["ref_freq"]].to_numpy(),
+        [1.5e9, 1.5e9],
+    )
+
+
+def test_from_fits_image_rejects_non_sdp_backends(tmpdir: str) -> None:
+    fits_path = os.path.join(tmpdir, "sky_from_image_invalid_backend.fits")
+    data = np.zeros((4, 4), dtype=np.float32)
+    wcs = WCS(naxis=2)
+    wcs.wcs.crpix = [2.0, 2.0]
+    wcs.wcs.cdelt = np.array([-0.2, 0.2])
+    wcs.wcs.crval = [20.0, -30.0]
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    fits.writeto(fits_path, data, header=wcs.to_header(), overwrite=True)
+
+    with pytest.raises(ValueError, match="supports only the SDP backend"):
+        SkyModel.from_fits_image(
+            fits_path,
+            threshold=0.0,
+            backend=SimulatorBackend.OSKAR,
+        )
+    with pytest.raises(ValueError, match="supports only the SDP backend"):
+        SkyModel.from_fits_image(
+            fits_path,
+            threshold=0.0,
+            backend=SimulatorBackend.RASCIL,
+        )
+
+
+def test_from_fits_image_accepts_sdp_string_backend(tmpdir: str) -> None:
+    fits_path = os.path.join(tmpdir, "sky_from_image_sdp_string.fits")
+    data = np.zeros((4, 4), dtype=np.float32)
+    data[1, 2] = 2.0
+    wcs = WCS(naxis=2)
+    wcs.wcs.crpix = [2.0, 2.0]
+    wcs.wcs.cdelt = np.array([-0.2, 0.2])
+    wcs.wcs.crval = [20.0, -30.0]
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    fits.writeto(fits_path, data, header=wcs.to_header(), overwrite=True)
+
+    sky = SkyModel.from_fits_image(fits_path, threshold=1.0, backend="sdp")
+    assert sky.num_sources == 1
+
+
+def test_from_fits_image_returns_empty_model_when_threshold_is_too_high(
+    tmpdir: str,
+) -> None:
+    fits_path = os.path.join(tmpdir, "sky_from_image_empty.fits")
+    data = np.zeros((4, 4), dtype=np.float32)
+    data[1, 1] = 0.2
+    wcs = WCS(naxis=2)
+    wcs.wcs.crpix = [2.0, 2.0]
+    wcs.wcs.cdelt = np.array([-0.2, 0.2])
+    wcs.wcs.crval = [20.0, -30.0]
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    fits.writeto(fits_path, data, header=wcs.to_header(), overwrite=True)
+
+    sky = SkyModel.from_fits_image(
+        fits_path,
+        threshold=1.0,
+        backend=SimulatorBackend.SDP,
+    )
+    assert sky.num_sources == 0
 
 
 def test_SkySourcesColName_assumption():

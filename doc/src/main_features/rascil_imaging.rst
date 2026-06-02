@@ -3,9 +3,16 @@ karabo.imaging.imager_rascil
 
 Overview
 ------------
-This package summerizes tools and functions to be used with the imager
-from the RASCIL backend. This backend allows both calculating a dirty
-images and a cleaned image, respoectivley.
+This package summarizes legacy tools and functions for the RASCIL imager.
+RASCIL imaging remains available during the transitional release, but it is
+deprecated. New workflows should prefer the common backend interface with
+``get_imager(ImagingBackend.SDP)`` or ``get_imager(ImagingBackend.WSCLEAN)``.
+
+.. warning::
+
+   RASCIL support is deprecated and will be removed in a future release.
+   Prefer SDP for Karabo-native imaging, or WSClean when you need WSClean
+   imaging through the common backend interface.
 
 
 Classes

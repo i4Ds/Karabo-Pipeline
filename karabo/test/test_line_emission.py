@@ -103,7 +103,12 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
         imaging_cellsize=cellsize_radians,
     )
 
-    visibilities, dirty_images = line_emission_pipeline(
+    (
+        visibilities,
+        dirty_images,
+        _psf_images,
+        _restored_images,
+    ) = line_emission_pipeline(
         output_base_directory=output_base_directory,
         pointings=pointings,
         sky_model=sky,
@@ -187,7 +192,12 @@ def test_compare_oskar_rascil_dirty_images():
             )
         )
 
-        _, dirty_images = line_emission_pipeline(
+        (
+            _vis,
+            dirty_images,
+            _psf_images,
+            _restored_images,
+        ) = line_emission_pipeline(
             output_base_directory=output_base_directory,
             pointings=[pointing],
             sky_model=sky,
@@ -337,7 +347,12 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
 
         # Verify that we apply the correct primary beam corrections
         # for each frequency channels
-        _, dirty_images_with_primary_beam = line_emission_pipeline(
+        (
+            _vis_with_pb,
+            dirty_images_with_primary_beam,
+            _psf_with_pb,
+            _restored_with_pb,
+        ) = line_emission_pipeline(
             output_base_directory=output_base_directory,
             pointings=pointings,
             sky_model=sky,
@@ -349,7 +364,12 @@ def test_primary_beam_effects(simulator_backend, telescope_name):
             primary_beams=primary_beams,
         )
 
-        _, dirty_images_without_primary_beam = line_emission_pipeline(
+        (
+            _vis_without_pb,
+            dirty_images_without_primary_beam,
+            _psf_without_pb,
+            _restored_without_pb,
+        ) = line_emission_pipeline(
             output_base_directory=output_base_directory,
             pointings=pointings,
             sky_model=sky,

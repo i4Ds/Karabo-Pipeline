@@ -19,6 +19,7 @@ from karabo.imaging.imager_base import (
 from karabo.simulation.visibility import Visibility
 from karabo.util._types import FilePathType
 from karabo.util.file_handler import FileHandler
+from karabo.warning import warn_direct_wsclean_use
 
 _WSCLEAN_BINARY = "wsclean"
 
@@ -56,7 +57,12 @@ class WscleanDirtyImager(DirtyImager):
 
     OUTPUT_FITS_DIRTY = "wsclean-dirty.fits"
 
-    def __init__(self, config: DirtyImagerConfig) -> None:
+    def __init__(
+        self,
+        config: DirtyImagerConfig,
+        *,
+        warn_direct_use: bool = True,
+    ) -> None:
         """Initializes the instance with a config.
 
         Args:
@@ -64,6 +70,8 @@ class WscleanDirtyImager(DirtyImager):
 
         """
         super().__init__()
+        if warn_direct_use:
+            warn_direct_wsclean_use(stacklevel=3)
         self.config = config
 
     @override
@@ -164,7 +172,12 @@ class WscleanImageCleaner(ImageCleaner):
 
     OUTPUT_FITS_CLEANED = "wsclean-image.fits"
 
-    def __init__(self, config: WscleanImageCleanerConfig) -> None:
+    def __init__(
+        self,
+        config: WscleanImageCleanerConfig,
+        *,
+        warn_direct_use: bool = True,
+    ) -> None:
         """Initializes the instance with a config.
 
         Args:
@@ -172,6 +185,8 @@ class WscleanImageCleaner(ImageCleaner):
 
         """
         super().__init__()
+        if warn_direct_use:
+            warn_direct_wsclean_use(stacklevel=3)
         self.config = config
 
     @override
@@ -240,6 +255,8 @@ TMP_PURPOSE_CUSTOM = "Disk cache for WSClean custom command images"
 def create_image_custom_command(
     command: str,
     output_filenames: Union[str, List[str]] = "wsclean-image.fits",
+    *,
+    warn_direct_use: bool = True,
 ) -> Union[Image, List[Image]]:
     """Create a dirty or cleaned image using your own command.
 
@@ -267,6 +284,8 @@ def create_image_custom_command(
             Image objects, one object per filename in output_filenames.
 
     """
+    if warn_direct_use:
+        warn_direct_wsclean_use(stacklevel=3)
 
     tmp_dir = FileHandler().get_tmp_dir(
         prefix=TMP_PREFIX_CUSTOM,

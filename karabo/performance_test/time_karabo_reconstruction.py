@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
@@ -9,6 +10,7 @@ from astropy.coordinates import SkyCoord
 from karabo.data.external_data import HISourcesSmallCatalogDownloadObject
 from karabo.imaging.image import ImageMosaicker
 from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_factory import ImagingBackend
 from karabo.simulation.interferometer import FilterUnits, InterferometerSimulation
 from karabo.simulation.line_emission import CircleSkyRegion, line_emission_pipeline
 from karabo.simulation.observation import Observation
@@ -17,13 +19,24 @@ from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util.file_handler import FileHandler
 
-if __name__ == "__main__":
-    simulator_backend = SimulatorBackend.RASCIL
 
-    if simulator_backend == SimulatorBackend.OSKAR:
-        telescope = Telescope.constructor("SKA1MID", backend=simulator_backend)
-    elif simulator_backend == SimulatorBackend.RASCIL:
-        telescope = Telescope.constructor("MID", backend=simulator_backend)
+def _parse_args() -> ImagingBackend:
+    parser = ArgumentParser(description="Benchmark Karabo reconstruction pipeline.")
+    parser.add_argument(
+        "--imaging-backend",
+        choices=[backend.value for backend in ImagingBackend],
+        default=ImagingBackend.SDP.value,
+        help="Imaging backend to use for dirty image creation.",
+    )
+    args = parser.parse_args()
+    return ImagingBackend(args.imaging_backend)
+
+
+if __name__ == "__main__":
+    imaging_backend = _parse_args()
+    simulator_backend: Literal[SimulatorBackend.SDP] = SimulatorBackend.SDP
+
+    telescope = Telescope.constructor("MID", backend=simulator_backend)
 
     # Configuration parameters
     should_apply_primary_beam = False
@@ -99,7 +112,7 @@ if __name__ == "__main__":
         imaging_cellsize=cellsize_radians,
     )
 
-    visibilities, dirty_images = line_emission_pipeline(
+    visibilities, dirty_images, _psf_images, _restored_images = line_emission_pipeline(
         output_base_directory=output_base_directory,
         pointings=pointings,
         sky_model=sky,
@@ -108,6 +121,7 @@ if __name__ == "__main__":
         interferometer=interferometer,
         simulator_backend=simulator_backend,
         dirty_imager_config=dirty_imager_config,
+        imaging_backend=imaging_backend,
     )
 
     # Create mosaics of pointings for each frequency channel

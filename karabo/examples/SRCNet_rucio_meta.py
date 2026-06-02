@@ -22,7 +22,9 @@ from astropy import units as u
 
 from karabo.data.obscore import FitsHeaderAxes, FitsHeaderAxis, ObsCoreMeta
 from karabo.data.src import RucioMeta
-from karabo.imaging.imager_wsclean import WscleanImageCleaner, WscleanImageCleanerConfig
+from karabo.imaging.image import Image
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -114,13 +116,16 @@ def main() -> None:
 
     print(f"Imaging: {imaging_npixel=}, {imaging_cellsize=} ...", flush=True)
     restored_path = os.path.join(FileHandler.stm(), "my-unique-image-fname.fits")
-    restored = WscleanImageCleaner(
-        WscleanImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-            niter=5000,  # 10 times less than default
-        )
-    ).create_cleaned_image(vis, output_fits_path=restored_path)
+    imager = get_imager(ImagingBackend.WSCLEAN)
+    image_spec = ImageSpec(
+        npix=imaging_npixel,
+        cellsize_arcsec=np.rad2deg(imaging_cellsize) * 3600.0,
+        phase_centre_deg=(phase_center[0], phase_center[1]),
+    )
+    dirty, psf = imager.invert(vis, image_spec)
+    restored = imager.restore(dirty, psf)
+    restored.write_to_file(restored_path, overwrite=True)
+    restored = Image(path=restored_path)
 
     # create metadata for restored .fits image
     # `FitsHeaderAxes` may need adaption based on the structure of your .fits image
