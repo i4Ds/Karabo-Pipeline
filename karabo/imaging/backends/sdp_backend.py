@@ -33,7 +33,7 @@ class SdpImagerConfig:
     weighting: str = "natural"
     context: str = "2d"
     # CLEAN / deconvolution
-    clean_algorithm: str = "hogbom"
+    _clean_algorithm: str = "hogbom"
     clean_niter: int = 100
     clean_gain: float = 0.1
     clean_threshold: float = 0.0
@@ -42,6 +42,27 @@ class SdpImagerConfig:
     clean_fractional_threshold: float | None = None
     clean_scales: tuple[int, ...] | None = None
 
+    # Fail fast: This works with
+    # imager = get_imager(ImagingBackend.SDP)
+    # imager.config.clean_algorithm = "msclean"
+    @property
+    def clean_algorithm(self) -> str:
+        return self._clean_algorithm
+
+    @clean_algorithm.setter
+    def clean_algorithm(self, algorithm: str):
+        if algorithm != _SUPPORTED_CLEAN_ALGORITHM:
+            raise NotImplementedError(
+                "SDP imaging currently supports only clean_algorithm='hogbom'. "
+                f"Received clean_algorithm={self.clean_algorithm!r}. "
+                "'hogbom-complex', 'msclean', and 'mmclean' are not implemented yet."
+            )
+        self._clean_algorithm = algorithm
+
+    # This is not called until you do
+    # restored_image = imager.restore(dirty_image, psf_image)
+    # This is too late because your code already spent a lot of time
+    # calculating the dirty image.
     def __post_init__(self) -> None:
         if self.clean_algorithm != _SUPPORTED_CLEAN_ALGORITHM:
             raise NotImplementedError(
