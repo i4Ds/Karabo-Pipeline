@@ -34,12 +34,9 @@ def _parse_args() -> ImagingBackend:
 
 if __name__ == "__main__":
     imaging_backend = _parse_args()
-    simulator_backend = SimulatorBackend.RASCIL
+    simulator_backend = SimulatorBackend.SDP
 
-    if simulator_backend == SimulatorBackend.OSKAR:
-        telescope = Telescope.constructor("SKA1MID", backend=simulator_backend)
-    elif simulator_backend == SimulatorBackend.RASCIL:
-        telescope = Telescope.constructor("MID", backend=simulator_backend)
+    telescope = Telescope.constructor("MID", backend=simulator_backend)
 
     # Configuration parameters
     should_apply_primary_beam = False
