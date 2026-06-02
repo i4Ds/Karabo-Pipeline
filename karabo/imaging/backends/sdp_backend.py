@@ -50,7 +50,7 @@ class SdpImagerConfig:
         return self._clean_algorithm
 
     @clean_algorithm.setter
-    def clean_algorithm(self, algorithm: str):
+    def clean_algorithm(self, algorithm: str) -> None:
         if algorithm != _SUPPORTED_CLEAN_ALGORITHM:
             raise NotImplementedError(
                 "SDP imaging currently supports only clean_algorithm='hogbom'. "

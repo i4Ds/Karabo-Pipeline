@@ -34,7 +34,7 @@ def _parse_args() -> ImagingBackend:
 
 if __name__ == "__main__":
     imaging_backend = _parse_args()
-    simulator_backend = SimulatorBackend.SDP
+    simulator_backend: Literal[SimulatorBackend.SDP] = SimulatorBackend.SDP
 
     telescope = Telescope.constructor("MID", backend=simulator_backend)
 
