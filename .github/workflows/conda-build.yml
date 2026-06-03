@@ -59,7 +59,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           auto-update-conda: true
       - name: Build Conda
