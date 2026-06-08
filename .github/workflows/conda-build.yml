@@ -82,15 +82,17 @@ jobs:
 
           conda install -y -n base conda-libmamba-solver
           conda config --set solver libmamba
-          conda install anaconda-client "conda-build>=25"
-          conda install -c conda-forge conda-build
-          conda config --remove channels defaults
+
+          conda config --remove channels defaults || true
           conda config --append channels i4ds
           conda config --append channels nvidia/label/cuda-11.7.0
           conda config --append channels conda-forge
 
+          conda install -y -n base -c conda-forge anaconda-client conda-build
+          conda run -n base conda build --version
+          
           export KARABO_VERSION=$KARABO_VERSION build=$build
-          conda build conda
+          conda run -n base conda build conda
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash -l {0}
