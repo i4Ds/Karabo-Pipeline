@@ -15,7 +15,7 @@ build:
 requirements:
   build:
     - python
-    - setuptools
+    - setuptools              >=69.0.0,<81,!=71.0.0,!=71.0.1,!=71.0.2
     - numpy
   host:
     - python                  {{ python }}
@@ -65,7 +65,8 @@ requirements:
     # transversal dependencies which we need to reference to get mpi-wheels
     - conda-forge::fftw       =*=mpi_mpich*
     # exclude buggy versions of other tools
-    - setuptools              !=71.0.0, !=71.0.1, !=71.0.2  # buggy with `importlib_metadata`
+    # <81: setuptools>=81 removed bundled `pkg_resources`, which ska_sdp_datamodels and karabo code still import
+    - setuptools              >=69.0.0,<81,!=71.0.0,!=71.0.1,!=71.0.2  # 71.0.0-71.0.2 buggy with `importlib_metadata`
     # for MWA measurement set, uvfits, hdf5, mir support (choc-234)
     # this [casa] syntax won't work with mamba!
     - pyuvdata[casa]          >=2.4,<3
