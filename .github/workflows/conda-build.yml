@@ -97,10 +97,7 @@ jobs:
       - name: Publish to Conda
         shell: bash -l {0}
         run: |
-          echo "************* DEBUG: Get installed anaconda"
-          which anaconda
-          anaconda --help
-          anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/envs/test/conda-bld/linux-64/karabo-pipeline-*.conda --force
+          conda run -n base anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda --force
 
   test-conda-wheel:
     needs: conda-build
