@@ -1,0 +1,93 @@
+karabo.imaging package
+======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   karabo.imaging.backends
+
+Submodules
+----------
+
+karabo.imaging.image module
+---------------------------
+
+.. automodule:: karabo.imaging.image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.imager\_base module
+----------------------------------
+
+.. automodule:: karabo.imaging.imager_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.imager\_factory module
+-------------------------------------
+
+.. automodule:: karabo.imaging.imager_factory
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.imager\_interface module
+---------------------------------------
+
+.. automodule:: karabo.imaging.imager_interface
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.imager\_oskar module
+-----------------------------------
+
+.. automodule:: karabo.imaging.imager_oskar
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.imager\_rascil module
+------------------------------------
+
+.. automodule:: karabo.imaging.imager_rascil
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.imager\_sdp module
+---------------------------------
+
+.. automodule:: karabo.imaging.imager_sdp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.imager\_wsclean module
+-------------------------------------
+
+.. automodule:: karabo.imaging.imager_wsclean
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+karabo.imaging.util module
+--------------------------
+
+.. automodule:: karabo.imaging.util
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: karabo.imaging
+   :members:
+   :undoc-members:
+   :show-inheritance:

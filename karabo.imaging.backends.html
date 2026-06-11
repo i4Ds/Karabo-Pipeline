@@ -1,0 +1,564 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>karabo.imaging.backends package &mdash; Karabo-Pipeline 0.35.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=ca1b380b"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_processing.html">Parallel processing with Karabo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/simulation.html">karabo.simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/simulation_backend_selection.html">Simulation Backend Selection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/imaging.html">karabo.imaging.image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/imaging_backend_selection.html">Imaging Backend Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/base_imaging.html">karabo.imaging.imager_base</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/oskar_imaging.html">karabo.imaging.imager_oskar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/rascil_imaging.html">karabo.imaging.imager_rascil</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/wsclean_imaging.html">karabo.imaging.imager_wsclean</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Utilities</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="utilities/utils.html">karabo.util package</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">karabo.imaging.backends package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/karabo.imaging.backends.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="karabo-imaging-backends-package">
+<h1>karabo.imaging.backends package<a class="headerlink" href="#karabo-imaging-backends-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-karabo.imaging.backends.rascil_backend">
+<span id="karabo-imaging-backends-rascil-backend-module"></span><h2>karabo.imaging.backends.rascil_backend module<a class="headerlink" href="#module-karabo.imaging.backends.rascil_backend" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilBackendConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_algorithm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'CleanAlgorithmType'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'hogbom'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_nmajor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_niter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_fractional_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_scales</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Tuple[int,</span> <span class="pre">...]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0,)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_nmoment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_psf_support</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_restored_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'CleanRestoredOutputType'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'list'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_algorithm">
+<span class="sig-name descname"><span class="pre">clean_algorithm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'hogbom'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'msclean'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'mmclean'</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'hogbom'</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_algorithm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_fractional_threshold">
+<span class="sig-name descname"><span class="pre">clean_fractional_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.3</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_fractional_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_gain">
+<span class="sig-name descname"><span class="pre">clean_gain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_gain" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_niter">
+<span class="sig-name descname"><span class="pre">clean_niter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_niter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_nmajor">
+<span class="sig-name descname"><span class="pre">clean_nmajor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_nmajor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_nmoment">
+<span class="sig-name descname"><span class="pre">clean_nmoment</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_nmoment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_psf_support">
+<span class="sig-name descname"><span class="pre">clean_psf_support</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_psf_support" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_restored_output">
+<span class="sig-name descname"><span class="pre">clean_restored_output</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'taylor'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'list'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'integrated'</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'list'</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_restored_output" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_scales">
+<span class="sig-name descname"><span class="pre">clean_scales</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0,)</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_scales" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_threshold">
+<span class="sig-name descname"><span class="pre">clean_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0001</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.clean_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendConfig.combine_across_frequencies">
+<span class="sig-name descname"><span class="pre">combine_across_frequencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig.combine_across_frequencies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendImager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilBackendImager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig" title="karabo.imaging.backends.rascil_backend.RascilBackendConfig"><span class="pre">RascilBackendConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendImager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.Imager" title="karabo.imaging.imager_interface.Imager"><code class="xref py py-class docutils literal notranslate"><span class="pre">Imager</span></code></a></p>
+<p>Adapter exposing the legacy RASCIL imaging stack.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendImager.invert">
+<span class="sig-name descname"><span class="pre">invert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.ImageSpec" title="karabo.imaging.imager_interface.ImageSpec"><span class="pre">ImageSpec</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendImager.invert" title="Link to this definition"></a></dt>
+<dd><p>Grid visibilities into dirty image and PSF images.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.rascil_backend.RascilBackendImager.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_or_dirty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.backends.rascil_backend.RascilBackendImager.restore" title="Link to this definition"></a></dt>
+<dd><p>Return a restored image using the provided PSF.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-karabo.imaging.backends.sdp_backend">
+<span id="karabo-imaging-backends-sdp-backend-module"></span><h2>karabo.imaging.backends.sdp_backend module<a class="headerlink" href="#module-karabo.imaging.backends.sdp_backend" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SdpImager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig" title="karabo.imaging.backends.sdp_backend.SdpImagerConfig"><span class="pre">SdpImagerConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.Imager" title="karabo.imaging.imager_interface.Imager"><code class="xref py py-class docutils literal notranslate"><span class="pre">Imager</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImager.invert">
+<span class="sig-name descname"><span class="pre">invert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.ImageSpec" title="karabo.imaging.imager_interface.ImageSpec"><span class="pre">ImageSpec</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImager.invert" title="Link to this definition"></a></dt>
+<dd><p>Grid visibilities into dirty image and PSF images.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImager.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_or_dirty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImager.restore" title="Link to this definition"></a></dt>
+<dd><p>Perform CLEAN-style deconvolution + restore using ska-sdp-func-python.</p>
+<p>Returns a restored image; model and residual are written to disk as a side
+effect for inspection (paths stored on instance attributes).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SdpImagerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weighting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'str'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'natural'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'str'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'2d'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_algorithm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'str'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'hogbom'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_niter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_preserve_facets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_model_and_residual</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_fractional_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float</span> <span class="pre">|</span> <span class="pre">None'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_scales</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'tuple[int,</span> <span class="pre">...]</span> <span class="pre">|</span> <span class="pre">None'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_algorithm">
+<span class="sig-name descname"><span class="pre">clean_algorithm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'hogbom'</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_algorithm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_fractional_threshold">
+<span class="sig-name descname"><span class="pre">clean_fractional_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_fractional_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_gain">
+<span class="sig-name descname"><span class="pre">clean_gain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_gain" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_niter">
+<span class="sig-name descname"><span class="pre">clean_niter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_niter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_preserve_facets">
+<span class="sig-name descname"><span class="pre">clean_preserve_facets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_preserve_facets" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_scales">
+<span class="sig-name descname"><span class="pre">clean_scales</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_scales" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_threshold">
+<span class="sig-name descname"><span class="pre">clean_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.clean_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.combine_across_frequencies">
+<span class="sig-name descname"><span class="pre">combine_across_frequencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.combine_across_frequencies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.context">
+<span class="sig-name descname"><span class="pre">context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'2d'</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.save_model_and_residual">
+<span class="sig-name descname"><span class="pre">save_model_and_residual</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.save_model_and_residual" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.sdp_backend.SdpImagerConfig.weighting">
+<span class="sig-name descname"><span class="pre">weighting</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'natural'</span></em><a class="headerlink" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig.weighting" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-karabo.imaging.backends.wsclean_backend">
+<span id="karabo-imaging-backends-wsclean-backend-module"></span><h2>karabo.imaging.backends.wsclean_backend module<a class="headerlink" href="#module-karabo.imaging.backends.wsclean_backend" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">WscleanBackendConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_niter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_mgain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_auto_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.clean_auto_threshold">
+<span class="sig-name descname"><span class="pre">clean_auto_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.clean_auto_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.clean_mgain">
+<span class="sig-name descname"><span class="pre">clean_mgain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.8</span></em><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.clean_mgain" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.clean_niter">
+<span class="sig-name descname"><span class="pre">clean_niter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.clean_niter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.combine_across_frequencies">
+<span class="sig-name descname"><span class="pre">combine_across_frequencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendConfig.combine_across_frequencies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendImager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">WscleanBackendImager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendConfig" title="karabo.imaging.backends.wsclean_backend.WscleanBackendConfig"><span class="pre">WscleanBackendConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendImager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.Imager" title="karabo.imaging.imager_interface.Imager"><code class="xref py py-class docutils literal notranslate"><span class="pre">Imager</span></code></a></p>
+<p>Adapter exposing WSClean through the backend-agnostic imager API.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendImager.invert">
+<span class="sig-name descname"><span class="pre">invert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.ImageSpec" title="karabo.imaging.imager_interface.ImageSpec"><span class="pre">ImageSpec</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendImager.invert" title="Link to this definition"></a></dt>
+<dd><p>Grid visibilities into dirty image and PSF images.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.wsclean_backend.WscleanBackendImager.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_or_dirty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendImager.restore" title="Link to this definition"></a></dt>
+<dd><p>Return a restored image using the provided PSF.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-karabo.imaging.backends">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-karabo.imaging.backends" title="Link to this heading"></a></h2>
+<p>Backend-specific imager adapters.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilBackendConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_algorithm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'CleanAlgorithmType'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'hogbom'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_nmajor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_niter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_fractional_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_scales</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Tuple[int,</span> <span class="pre">...]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0,)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_nmoment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_psf_support</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_restored_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'CleanRestoredOutputType'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'list'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_algorithm">
+<span class="sig-name descname"><span class="pre">clean_algorithm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'hogbom'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'msclean'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'mmclean'</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'hogbom'</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_algorithm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_fractional_threshold">
+<span class="sig-name descname"><span class="pre">clean_fractional_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.3</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_fractional_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_gain">
+<span class="sig-name descname"><span class="pre">clean_gain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_gain" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_niter">
+<span class="sig-name descname"><span class="pre">clean_niter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_niter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_nmajor">
+<span class="sig-name descname"><span class="pre">clean_nmajor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_nmajor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_nmoment">
+<span class="sig-name descname"><span class="pre">clean_nmoment</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_nmoment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_psf_support">
+<span class="sig-name descname"><span class="pre">clean_psf_support</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_psf_support" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_restored_output">
+<span class="sig-name descname"><span class="pre">clean_restored_output</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'taylor'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'list'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'integrated'</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'list'</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_restored_output" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_scales">
+<span class="sig-name descname"><span class="pre">clean_scales</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0,)</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_scales" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.clean_threshold">
+<span class="sig-name descname"><span class="pre">clean_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0001</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.clean_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendConfig.combine_across_frequencies">
+<span class="sig-name descname"><span class="pre">combine_across_frequencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.RascilBackendConfig.combine_across_frequencies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendImager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RascilBackendImager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.backends.rascil_backend.RascilBackendConfig" title="karabo.imaging.backends.rascil_backend.RascilBackendConfig"><span class="pre">RascilBackendConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.RascilBackendImager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.Imager" title="karabo.imaging.imager_interface.Imager"><code class="xref py py-class docutils literal notranslate"><span class="pre">Imager</span></code></a></p>
+<p>Adapter exposing the legacy RASCIL imaging stack.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendImager.invert">
+<span class="sig-name descname"><span class="pre">invert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.ImageSpec" title="karabo.imaging.imager_interface.ImageSpec"><span class="pre">ImageSpec</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.imaging.backends.RascilBackendImager.invert" title="Link to this definition"></a></dt>
+<dd><p>Grid visibilities into dirty image and PSF images.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.RascilBackendImager.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_or_dirty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.backends.RascilBackendImager.restore" title="Link to this definition"></a></dt>
+<dd><p>Return a restored image using the provided PSF.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SdpImager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.backends.sdp_backend.SdpImagerConfig" title="karabo.imaging.backends.sdp_backend.SdpImagerConfig"><span class="pre">SdpImagerConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.SdpImager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.Imager" title="karabo.imaging.imager_interface.Imager"><code class="xref py py-class docutils literal notranslate"><span class="pre">Imager</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImager.invert">
+<span class="sig-name descname"><span class="pre">invert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.ImageSpec" title="karabo.imaging.imager_interface.ImageSpec"><span class="pre">ImageSpec</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.imaging.backends.SdpImager.invert" title="Link to this definition"></a></dt>
+<dd><p>Grid visibilities into dirty image and PSF images.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImager.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_or_dirty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.backends.SdpImager.restore" title="Link to this definition"></a></dt>
+<dd><p>Perform CLEAN-style deconvolution + restore using ska-sdp-func-python.</p>
+<p>Returns a restored image; model and residual are written to disk as a side
+effect for inspection (paths stored on instance attributes).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SdpImagerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weighting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'str'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'natural'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'str'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'2d'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_algorithm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'str'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'hogbom'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_niter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_preserve_facets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_model_and_residual</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_fractional_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float</span> <span class="pre">|</span> <span class="pre">None'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_scales</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'tuple[int,</span> <span class="pre">...]</span> <span class="pre">|</span> <span class="pre">None'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.clean_algorithm">
+<span class="sig-name descname"><span class="pre">clean_algorithm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'hogbom'</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.clean_algorithm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.clean_fractional_threshold">
+<span class="sig-name descname"><span class="pre">clean_fractional_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.clean_fractional_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.clean_gain">
+<span class="sig-name descname"><span class="pre">clean_gain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.clean_gain" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.clean_niter">
+<span class="sig-name descname"><span class="pre">clean_niter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.clean_niter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.clean_preserve_facets">
+<span class="sig-name descname"><span class="pre">clean_preserve_facets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.clean_preserve_facets" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.clean_scales">
+<span class="sig-name descname"><span class="pre">clean_scales</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.clean_scales" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.clean_threshold">
+<span class="sig-name descname"><span class="pre">clean_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.clean_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.combine_across_frequencies">
+<span class="sig-name descname"><span class="pre">combine_across_frequencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.combine_across_frequencies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.context">
+<span class="sig-name descname"><span class="pre">context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'2d'</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.save_model_and_residual">
+<span class="sig-name descname"><span class="pre">save_model_and_residual</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.save_model_and_residual" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.SdpImagerConfig.weighting">
+<span class="sig-name descname"><span class="pre">weighting</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'natural'</span></em><a class="headerlink" href="#karabo.imaging.backends.SdpImagerConfig.weighting" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">WscleanBackendConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">combine_across_frequencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'bool'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_niter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_mgain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'float'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_auto_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendConfig.clean_auto_threshold">
+<span class="sig-name descname"><span class="pre">clean_auto_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendConfig.clean_auto_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendConfig.clean_mgain">
+<span class="sig-name descname"><span class="pre">clean_mgain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.8</span></em><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendConfig.clean_mgain" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendConfig.clean_niter">
+<span class="sig-name descname"><span class="pre">clean_niter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendConfig.clean_niter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendConfig.combine_across_frequencies">
+<span class="sig-name descname"><span class="pre">combine_across_frequencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendConfig.combine_across_frequencies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendImager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">WscleanBackendImager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#karabo.imaging.backends.wsclean_backend.WscleanBackendConfig" title="karabo.imaging.backends.wsclean_backend.WscleanBackendConfig"><span class="pre">WscleanBackendConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendImager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.Imager" title="karabo.imaging.imager_interface.Imager"><code class="xref py py-class docutils literal notranslate"><span class="pre">Imager</span></code></a></p>
+<p>Adapter exposing WSClean through the backend-agnostic imager API.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendImager.invert">
+<span class="sig-name descname"><span class="pre">invert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.simulation.html#karabo.simulation.visibility.Visibility" title="karabo.simulation.visibility.Visibility"><span class="pre">Visibility</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="karabo.imaging.html#karabo.imaging.imager_interface.ImageSpec" title="karabo.imaging.imager_interface.ImageSpec"><span class="pre">ImageSpec</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendImager.invert" title="Link to this definition"></a></dt>
+<dd><p>Grid visibilities into dirty image and PSF images.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="karabo.imaging.backends.WscleanBackendImager.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_or_dirty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="main_features/imaging.html#karabo.imaging.image.Image" title="karabo.imaging.image.Image"><span class="pre">Image</span></a></span></span><a class="headerlink" href="#karabo.imaging.backends.WscleanBackendImager.restore" title="Link to this definition"></a></dt>
+<dd><p>Return a restored image using the provided PSF.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Jun 11, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

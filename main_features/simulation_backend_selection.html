@@ -1,0 +1,235 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulation Backend Selection &mdash; Karabo-Pipeline 0.35.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ca1b380b"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="karabo.imaging.image" href="imaging.html" />
+    <link rel="prev" title="karabo.simulation" href="simulation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallel_processing.html">Parallel processing with Karabo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">karabo.simulation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Simulation Backend Selection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#supported-simulation-backends">Supported simulation backends</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-select-a-backend">How to select a backend</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#telescope-selection-note-important-during-transition">Telescope selection note (important during transition)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#backend-behavior-notes">Backend behavior notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#recommendations">Recommendations</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="imaging.html">karabo.imaging.image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imaging_backend_selection.html">Imaging Backend Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_imaging.html">karabo.imaging.imager_base</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oskar_imaging.html">karabo.imaging.imager_oskar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rascil_imaging.html">karabo.imaging.imager_rascil</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wsclean_imaging.html">karabo.imaging.imager_wsclean</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Utilities</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../utilities/utils.html">karabo.util package</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Simulation Backend Selection</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/main_features/simulation_backend_selection.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="simulation-backend-selection">
+<h1>Simulation Backend Selection<a class="headerlink" href="#simulation-backend-selection" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Karabo simulation uses a unified entry point:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">karabo.simulation.interferometer.InterferometerSimulation.run_simulation</span></code></p></li>
+</ul>
+<p>The simulation backend is selected with
+<code class="docutils literal notranslate"><span class="pre">karabo.simulator_backend.SimulatorBackend</span></code>.</p>
+</section>
+<section id="supported-simulation-backends">
+<h2>Supported simulation backends<a class="headerlink" href="#supported-simulation-backends" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.SDP</span></code> (value: <code class="docutils literal notranslate"><span class="pre">&quot;ska-sdp&quot;</span></code>): recommended Karabo-native
+simulation path for new workflows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.OSKAR</span></code>: still supported for OSKAR-specific simulation
+workflows and telescope/beam behavior.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.RASCIL</span></code>: deprecated legacy compatibility path.</p></li>
+</ul>
+<p>For all backends, <code class="docutils literal notranslate"><span class="pre">run_simulation(...)</span></code> returns a Karabo <code class="docutils literal notranslate"><span class="pre">Visibility</span></code> wrapper.</p>
+</section>
+<section id="how-to-select-a-backend">
+<h2>How to select a backend<a class="headerlink" href="#how-to-select-a-backend" title="Link to this heading"></a></h2>
+<p>Use the same API and only change the <code class="docutils literal notranslate"><span class="pre">backend</span></code> argument:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">karabo.simulator_backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulatorBackend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">karabo.simulation.interferometer</span><span class="w"> </span><span class="kn">import</span> <span class="n">InterferometerSimulation</span>
+
+<span class="n">simulation</span> <span class="o">=</span> <span class="n">InterferometerSimulation</span><span class="p">()</span>
+<span class="n">vis</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span>
+    <span class="n">telescope</span><span class="o">=</span><span class="n">telescope</span><span class="p">,</span>
+    <span class="n">sky</span><span class="o">=</span><span class="n">sky</span><span class="p">,</span>
+    <span class="n">observation</span><span class="o">=</span><span class="n">observation</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="n">SimulatorBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">,</span>  <span class="c1"># or OSKAR / deprecated RASCIL</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="telescope-selection-note-important-during-transition">
+<h2>Telescope selection note (important during transition)<a class="headerlink" href="#telescope-selection-note-important-during-transition" title="Link to this heading"></a></h2>
+<p>For SDP simulations, use the SDP telescope constructor path and run the simulation
+with <code class="docutils literal notranslate"><span class="pre">backend=SimulatorBackend.SDP</span></code>. The legacy RASCIL constructor path still
+works during the transition, but emits a deprecation warning.</p>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">karabo.simulator_backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulatorBackend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">karabo.simulation.telescope</span><span class="w"> </span><span class="kn">import</span> <span class="n">Telescope</span>
+
+<span class="n">telescope</span> <span class="o">=</span> <span class="n">Telescope</span><span class="o">.</span><span class="n">constructor</span><span class="p">(</span><span class="s2">&quot;MID&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">SimulatorBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">)</span>
+<span class="c1"># ...</span>
+<span class="n">vis</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span>
+    <span class="n">telescope</span><span class="o">=</span><span class="n">telescope</span><span class="p">,</span>
+    <span class="n">sky</span><span class="o">=</span><span class="n">sky</span><span class="p">,</span>
+    <span class="n">observation</span><span class="o">=</span><span class="n">observation</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="n">SimulatorBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="backend-behavior-notes">
+<h2>Backend behavior notes<a class="headerlink" href="#backend-behavior-notes" title="Link to this heading"></a></h2>
+<ul>
+<li><p>OSKAR
+- Still supported.
+- Custom <code class="docutils literal notranslate"><span class="pre">primary_beam</span></code> passed to <code class="docutils literal notranslate"><span class="pre">run_simulation</span></code> is ignored.
+- Configure beam behavior through <code class="docutils literal notranslate"><span class="pre">InterferometerSimulation</span></code> parameters.</p></li>
+<li><p>SDP
+- Recommended for new Karabo-native simulation workflows.
+- Follows an MS-based simulation path in Karabo.
+- Can apply a provided custom <code class="docutils literal notranslate"><span class="pre">primary_beam</span></code> in simulation.</p></li>
+<li><p>RASCIL
+- Deprecated and kept for legacy compatibility only.
+- Follows the older MS-based simulation path and emits a deprecation warning</p>
+<blockquote>
+<div><p>when selected.</p>
+</div></blockquote>
+</li>
+</ul>
+</section>
+<section id="recommendations">
+<h2>Recommendations<a class="headerlink" href="#recommendations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Prefer <code class="docutils literal notranslate"><span class="pre">SimulatorBackend.SDP</span></code> in new simulation scripts/notebooks unless you
+specifically need OSKAR behavior.</p></li>
+<li><p>Prefer passing simulation backend explicitly in scripts/notebooks.</p></li>
+<li><p>Keep output format as MS for cross-backend comparability.</p></li>
+<li><p>Avoid <code class="docutils literal notranslate"><span class="pre">SimulatorBackend.RASCIL</span></code> in new workflows.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="simulation.html" class="btn btn-neutral float-left" title="karabo.simulation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="imaging.html" class="btn btn-neutral float-right" title="karabo.imaging.image" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Jun 11, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

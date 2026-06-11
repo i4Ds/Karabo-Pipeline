@@ -1,0 +1,21 @@
+karabo.workflows package
+========================
+
+Submodules
+----------
+
+karabo.workflows.SRCNet\_SKA\-MID\_AAstar module
+------------------------------------------------
+
+.. automodule:: karabo.workflows.SRCNet_SKA-MID_AAstar
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: karabo.workflows
+   :members:
+   :undoc-members:
+   :show-inheritance:
