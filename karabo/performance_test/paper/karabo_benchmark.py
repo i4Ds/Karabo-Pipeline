@@ -193,7 +193,7 @@ for phase_ra in ra_list:
         dirty, _psf = dirty_imager.invert(visibility, image_spec)
 
         dirty.write_to_file(
-            os.path.join(path, f"{file_name+str(k)}.fits"),
+            os.path.join(path, f"{file_name + str(k)}.fits"),
             overwrite=True,
         )
 
@@ -205,12 +205,12 @@ logger.info(
     f"BEAM SIZE: {beam_size_arcsec} arcsec | "
     f"IMAGE CELL SIZE: {cellsize_arcsec} arcsec | "
     f"IMG SIZE: {img_nsize} pixels | "
-    f"IMG FOV: {img_nsize*cellsize_arcsec/3600} deg"
+    f"IMG FOV: {img_nsize * cellsize_arcsec / 3600} deg"
 )
 
 k = 0
 logger.info(f"----OUTPUT MS PATH: {visibility.path} -----------")
-output_img = os.path.join(path, "img", f"{file_name+str(k)}.ms")
+output_img = os.path.join(path, "img", f"{file_name + str(k)}.ms")
 
 logger.info(f"----OUTPUT IMG PATH: {output_img} -----------")
 logger.info("##### IMAGING Begins.....")

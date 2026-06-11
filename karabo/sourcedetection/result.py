@@ -619,7 +619,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         to_drop: List[int],
     ) -> NDArray[np.float_]:
         if self.verbose:
-            print(f"Merged in total {len(to_drop)*2} sources into {len(to_drop)}")
+            print(f"Merged in total {len(to_drop) * 2} sources into {len(to_drop)}")
         # Create a boolean mask to keep sources not in to_drop
         mask = np.ones(len(detected_sources), dtype=np.bool_)
         mask[np.array(to_drop)] = False

@@ -29,7 +29,7 @@ from karabo.util.file_handler import FileHandler
     [(SimulatorBackend.OSKAR, "SKA1MID"), (SimulatorBackend.RASCIL, "MID")],
 )
 def test_line_emission_pipeline(simulator_backend, telescope_name):
-    print(f"Running test for {simulator_backend = }")
+    print(f"Running test for {simulator_backend=}")
     telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
     output_base_directory = Path(
@@ -243,7 +243,7 @@ def test_compare_oskar_rascil_dirty_images():
     ],
 )
 def test_primary_beam_effects(simulator_backend, telescope_name):
-    print(f"Running test for {simulator_backend = }")
+    print(f"Running test for {simulator_backend=}")
     telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
     pointings = [

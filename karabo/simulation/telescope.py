@@ -297,7 +297,7 @@ class Telescope:
 but was not provided. Please provide a value for the version field."
                 assert (
                     version in accepted_versions
-                ), f"""{version = } is not one of the accepted versions.
+                ), f"""{version=} is not one of the accepted versions.
                 List of accepted versions: {accepted_versions}"""
                 data_path = data_path.format(version.value)
             elif name in get_args(OSKARTelescopesWithoutVersionType):
@@ -311,7 +311,7 @@ but was not provided. Please provide a value for the version field."
             else:
                 raise TypeError(
                     f"""
-                    {name = } is not an accepted telescope name for this backend.
+                    {name=} is not an accepted telescope name for this backend.
                 """
                 )
 
@@ -532,7 +532,7 @@ but was not provided. Please provide a value for the version field."
         else:
             raise IndexError(
                 "You tried to add an antenna to a station that doesn't exist.\n"
-                f"station_index must be between 0 and {len(self.stations)-1}"
+                f"station_index must be between 0 and {len(self.stations) - 1}"
             )
 
     def plot_telescope(self, file: Optional[str] = None) -> None:
