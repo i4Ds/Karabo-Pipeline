@@ -210,4 +210,4 @@ class SignalGalacticForeground(BaseSignal[Image2D]):
         str
             Flux column name.
         """
-        return f"Fint{(redshift*10):0>3.0f}"
+        return f"Fint{(redshift * 10):0>3.0f}"

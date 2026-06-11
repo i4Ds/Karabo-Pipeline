@@ -1,14 +1,9 @@
 import os
 
-import nbformat
-import nest_asyncio
 import pytest
-from nbconvert.preprocessors import ExecutePreprocessor
 
 from karabo.test.conftest import IS_GITHUB_RUNNER
 from karabo.util.plotting_util import Font
-
-nest_asyncio.apply()
 
 RUN_NOTEBOOK_TESTS = os.environ.get("RUN_NOTEBOOK_TESTS", "false").lower() == "true"
 
@@ -17,6 +12,15 @@ notebook_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "example
 
 
 def _run_notebook(notebook: str) -> None:
+    # Imported lazily: these are dev-only dependencies (see pyproject.toml) and
+    # are not part of the conda runtime deps, so importing them at module level
+    # would break test collection in the conda-build pipeline.
+    import nbformat
+    import nest_asyncio
+    from nbconvert.preprocessors import ExecutePreprocessor
+
+    nest_asyncio.apply()
+
     notebook = os.path.join(notebook_dir, notebook)
     print(Font.BOLD + Font.BLUE + "Testing notebook " + notebook + Font.END)
 
