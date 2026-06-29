@@ -49,7 +49,10 @@ jobs:
         run: |
           conda create -y -n test_karabo python=3.10
           conda env update -n test_karabo -f environment.yaml --prune
-          conda install -y -n test_karabo pybind11 ipykernel
+          # `pip` is not listed in environment.yaml, so `conda env update
+          # --prune` strips it from the env; reinstall it alongside the build
+          # deps so the absolute-path `python -m pip` below works.
+          conda install -y -n test_karabo pybind11 ipykernel pip
           # Address the env by the absolute path to its interpreter. `conda
           # activate` / `conda run -n` proved unreliable on the runner: they
           # silently resolved to a different Python, so dev tools were installed
