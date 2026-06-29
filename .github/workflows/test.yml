@@ -49,32 +49,34 @@ jobs:
         run: |
           conda create -y -n test_karabo python=3.10
           conda env update -n test_karabo -f environment.yaml --prune
-          conda activate test_karabo
-          conda install -y pybind11 ipykernel
-          python -m ipykernel install --user --name python3.10
-          pip install -e ".[dev]"
+          conda install -y -n test_karabo pybind11 ipykernel
+          # Run tools via `conda run -n test_karabo` so they execute inside the
+          # env's Python 3.10 interpreter. `conda activate` is unreliable in the
+          # runner shell and silently falls back to system Python, which breaks
+          # type checking (dask/xarray missing -> spurious mypy errors).
+          conda run -n test_karabo --no-capture-output \
+            python -m ipykernel install --user --name python3.10
+          conda run -n test_karabo --no-capture-output pip install -e ".[dev]"
 
           # Debug since we had problems with mpi installation
-          python -c "import h5py; print('h5py ok')"
+          conda run -n test_karabo --no-capture-output python -c "import h5py; print('h5py ok')"
           which wsclean || true
-          ldd "$(which wsclean)" | grep -i mpi || tru  
+          ldd "$(which wsclean)" | grep -i mpi || true
 
       - name: Test Dev-Tools
         shell: bash -el {0}
         run: |
-          conda activate test_karabo
-          flake8 .
-          black --check .
-          isort --check .
-          mypy .
+          conda run -n test_karabo --no-capture-output flake8 .
+          conda run -n test_karabo --no-capture-output black --check .
+          conda run -n test_karabo --no-capture-output isort --check .
+          conda run -n test_karabo --no-capture-output mypy .
 
       - name: Test Code
         shell: bash -el {0}
         run: |
           export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
-          conda activate test_karabo
-          mpirun -n 2 pytest --only-mpi
-          pytest --cov=./ --cov-report=xml
+          conda run -n test_karabo --no-capture-output mpirun -n 2 pytest --only-mpi
+          conda run -n test_karabo --no-capture-output pytest --cov=./ --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
