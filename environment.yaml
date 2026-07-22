@@ -14,7 +14,8 @@ dependencies:
   - astropy
   - bdsf                    =1.10.2
   - bluebild                =0.1.0
-  - casacore
+  # Karabo's SDP Measurement Set writer imports casacore.tables directly.
+  - python-casacore
   - cuda-cudart             =11.7
   - cuda-version            =11.7
   - dask                    =2022.12.1
