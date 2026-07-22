@@ -5,8 +5,13 @@ import numpy as np
 import pytest
 
 from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
-from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_factory import (
+    ImagingBackend,
+    get_imager,
+    parse_imaging_backend,
+)
 from karabo.imaging.imager_interface import ImageSpec
+from karabo.imaging.util import guess_beam_parameters
 from karabo.simulation.visibility import Visibility
 
 
@@ -29,6 +34,19 @@ def test_sdp_imager_invert_and_restore(minimal_casa_ms: Visibility) -> None:
     assert not np.allclose(
         dirty_image.get_squeezed_data(), psf_image.get_squeezed_data()
     )
+
+    psf_data = psf_image.get_squeezed_data()
+    psf_peak = np.unravel_index(np.nanargmax(psf_data), psf_data.shape)
+    image_centre = tuple(size // 2 for size in psf_data.shape)
+    assert (
+        max(abs(actual - expected) for actual, expected in zip(psf_peak, image_centre))
+        <= 1
+    )
+
+    beam = guess_beam_parameters(psf_image)
+    assert np.isfinite([beam["bmaj"], beam["bmin"], beam["bpa"]]).all()
+    assert beam["bmaj"] > 0.0
+    assert beam["bmin"] > 0.0
 
     restored = imager.restore(dirty_image, psf_image)
     assert os.path.exists(restored.path)
@@ -54,3 +72,11 @@ def test_sdp_imager_restore_rejects_mutated_clean_algorithm() -> None:
     imager.config.clean_algorithm = "msclean"
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         imager.restore(None, None)  # type: ignore[arg-type]
+
+
+def test_removed_rascil_backend_has_migration_error() -> None:
+    with pytest.raises(
+        ValueError,
+        match="RASCIL imaging backend has been removed.*'sdp' or 'wsclean'",
+    ):
+        parse_imaging_backend("rascil")
