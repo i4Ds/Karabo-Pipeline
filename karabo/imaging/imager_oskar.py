@@ -104,8 +104,7 @@ class OskarDirtyImager(DirtyImager):
 
         # OSKAR Imager always produces one image by
         # combining all frequency channels.
-        # To maintain the same data shape when compared to other imagers (e.g. RASCIL),
-        # We add an axis for frequency, and modify the header accordingly
+        # Karabo's canonical image shape includes frequency and polarisation axes.
         assert image.data.ndim == 4
 
         image.header["NAXIS"] = 4
@@ -113,7 +112,7 @@ class OskarDirtyImager(DirtyImager):
 
         # This card is not set correctly by OSKAR. It sets the value to 0.0 which
         # prevents the calculation of the world coordinate system later on.
-        # Using the value from RASCIL imager, which sets it correctly.
+        # Use a valid unit increment for the Stokes axis.
         image.header.set("CDELT3", 1.0, "Coordinate increment at reference point")
 
         image.write_to_file(path=output_fits_path, overwrite=True)

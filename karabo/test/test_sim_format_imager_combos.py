@@ -1,10 +1,12 @@
+import math
 import os
 
 import pytest
 
 from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_oskar import OskarDirtyImager, OskarDirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.imaging.imager_wsclean import WscleanDirtyImager
 from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.visibility import VisibilityFormat
@@ -44,7 +46,7 @@ def test_oskar_imager(
         (SimulatorBackend.OSKAR, "MS"),
     ],
 )
-def test_rascil_imager(
+def test_sdp_imager(
     simulator_backend: SimulatorBackend, visibility_format: VisibilityFormat
 ) -> None:
     visibility, *_ = run_sample_simulation(
@@ -52,12 +54,14 @@ def test_rascil_imager(
         visibility_format=visibility_format,
     )
     assert os.path.exists(visibility.path)
-    dirty_image = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            imaging_npixel=IMAGING_NPIXEL,
-            imaging_cellsize=IMAGING_CELLSIZE,
-        )
-    ).create_dirty_image(visibility)
+    dirty_image, _ = get_imager(ImagingBackend.SDP).invert(
+        visibility,
+        ImageSpec(
+            npix=IMAGING_NPIXEL,
+            cellsize_arcsec=math.degrees(IMAGING_CELLSIZE) * 3600.0,
+            phase_centre_deg=(250.0, -80.0),
+        ),
+    )
     assert os.path.isfile(dirty_image.path)
 
 

@@ -8,12 +8,13 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
+from karabo.test.util import create_compatible_dirty_image
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import DirPathType
 
@@ -97,14 +98,14 @@ def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
             visibility_path=os.path.join(tmpdir, "out.ms"),
         )
 
-        dirty_imager = RascilDirtyImager(
-            RascilDirtyImagerConfig(
+        dirty = create_compatible_dirty_image(
+            visibility,
+            DirtyImagerConfig(
                 imaging_npixel=4096,
                 imaging_cellsize=50,
                 combine_across_frequencies=False,
-            )
+            ),
         )
-        dirty = dirty_imager.create_dirty_image(visibility)
         assert os.path.isdir(visibility.path)
 
         dirty.write_to_file(os.path.join(tmpdir, "baseline_cut.fits"), overwrite=True)

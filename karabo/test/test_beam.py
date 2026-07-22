@@ -14,13 +14,14 @@ from karabo.data.external_data import (
     SingleFileDownloadObject,
     cscs_karabo_public_testing_base_url,
 )
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.simulation.beam import generate_gaussian_beam_data
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
+from karabo.test.util import create_compatible_dirty_image
 
 
 # DownloadObject instances used to download different golden files:
@@ -157,15 +158,14 @@ def test_gaussian_beam(
             visibility_path=os.path.join(tmpdir, "beam_vis.ms"),
         )
 
-        # Legacy direct imager retained until the imaging-removal slice.
-        dirty_imager = RascilDirtyImager(
-            RascilDirtyImagerConfig(
+        dirty = create_compatible_dirty_image(
+            visibility,
+            DirtyImagerConfig(
                 imaging_npixel=npixels,
                 imaging_cellsize=cellsize,
                 combine_across_frequencies=False,
-            )
+            ),
         )
-        dirty = dirty_imager.create_dirty_image(visibility)
 
         outpath = Path(tmpdir)
         beam_fits_path = outpath / "test_beam.fits"

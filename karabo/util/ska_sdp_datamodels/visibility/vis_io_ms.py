@@ -13,11 +13,253 @@ They take definitions of columns from msv2.py
 and interact with Casacore.
 """
 
+import numpy as np
+import pandas as pd
+from astropy import units as u
+from astropy.coordinates import EarthLocation, SkyCoord
+from astropy.units import Quantity
+from ska_sdp_datamodels.configuration.config_model import Configuration
+from ska_sdp_datamodels.science_data_model.polarisation_model import (
+    PolarisationFrame,
+    ReceptorFrame,
+)
+from ska_sdp_datamodels.visibility.vis_model import Visibility
+from ska_sdp_datamodels.visibility.vis_utils import generate_baselines
+
+
+def _polarisation_frame_from_corr_type(corr_type):
+    corr_type = np.sort(corr_type)
+    frames = {
+        (1, 2, 3, 4): "stokesIQUV",
+        (1, 2): "stokesIQ",
+        (1, 4): "stokesIV",
+        (5, 6, 7, 8): "circular",
+        (5, 8): "circularnp",
+        (9, 10, 11, 12): "linear",
+        (9, 12): "linearnp",
+        (1,): "stokesI",
+        (9,): "stokesI",
+    }
+    try:
+        return PolarisationFrame(frames[tuple(corr_type.tolist())])
+    except KeyError as exc:
+        raise KeyError(f"Polarisation not understood: {corr_type}") from exc
+
+
+def import_visibility_from_ms(msname, ack=False, datacolumn="DATA"):
+    """Read Measurement Set fields and spectral windows as SDP visibilities.
+
+    The pinned ska-sdp-datamodels release does not yet provide its later MS reader.
+    This reader covers the single-field/spectral-window inputs supported by the SDP
+    imager while returning a list so unsupported multi-block inputs can be rejected
+    explicitly by the caller.
+    """
+    try:
+        from casacore.tables import table
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError("python-casacore is required for MS input") from exc
+
+    root = table(msname, ack=ack)
+    visibilities = []
+    try:
+        fields = np.unique(root.getcol("FIELD_ID"))
+        data_descriptions = np.unique(root.getcol("DATA_DESC_ID"))
+
+        for field in fields:
+            field_rows = root.query(f"FIELD_ID=={int(field)}", style="")
+            try:
+                if field_rows.nrows() == 0:
+                    continue
+
+                for data_description in data_descriptions:
+                    rows = field_rows.query(
+                        f"DATA_DESC_ID=={int(data_description)}", style=""
+                    )
+                    try:
+                        if rows.nrows() == 0:
+                            continue
+
+                        dd_table = table(f"{msname}/DATA_DESCRIPTION", ack=False)
+                        try:
+                            spectral_window_id = dd_table.getcol("SPECTRAL_WINDOW_ID")[
+                                data_description
+                            ]
+                            polarisation_id = dd_table.getcol("POLARIZATION_ID")[
+                                data_description
+                            ]
+                        finally:
+                            dd_table.close()
+
+                        ms_vis = rows.getcol(datacolumn)
+                        ms_flags = rows.getcol("FLAG")
+                        ms_weight = rows.getcol("WEIGHT")
+                        uvw = -rows.getcol("UVW")
+                        antenna1 = rows.getcol("ANTENNA1")
+                        antenna2 = rows.getcol("ANTENNA2")
+                        integration_time = rows.getcol("INTERVAL")
+                        time = rows.getcol("TIME") - integration_time / 2.0
+
+                        spectral_window = table(f"{msname}/SPECTRAL_WINDOW", ack=False)
+                        try:
+                            frequency = np.asarray(
+                                spectral_window.getcol("CHAN_FREQ")[spectral_window_id]
+                            )
+                            channel_bandwidth = np.asarray(
+                                spectral_window.getcol("CHAN_WIDTH")[spectral_window_id]
+                            )
+                        finally:
+                            spectral_window.close()
+
+                        polarisation = table(f"{msname}/POLARIZATION", ack=False)
+                        try:
+                            polarisation_frame = _polarisation_frame_from_corr_type(
+                                polarisation.getcol("CORR_TYPE")[polarisation_id]
+                            )
+                        finally:
+                            polarisation.close()
+
+                        antenna = table(f"{msname}/ANTENNA", ack=False)
+                        try:
+                            all_names = np.asarray(antenna.getcol("NAME"))
+                            valid = all_names != ""
+                            if not np.any(valid):
+                                valid = np.ones(len(all_names), dtype=bool)
+                                all_names = np.asarray(
+                                    [f"ANT{index}" for index in range(len(all_names))]
+                                )
+
+                            antenna_map = np.full(len(all_names), -1, dtype=int)
+                            antenna_map[valid] = np.arange(np.count_nonzero(valid))
+                            names = all_names[valid]
+                            mount = np.asarray(antenna.getcol("MOUNT"))[valid]
+                            diameter = np.asarray(antenna.getcol("DISH_DIAMETER"))[
+                                valid
+                            ]
+                            xyz = np.asarray(antenna.getcol("POSITION"))[valid]
+                            offset = np.asarray(antenna.getcol("OFFSET"))[valid]
+                            stations = np.asarray(antenna.getcol("STATION"))[valid]
+                        finally:
+                            antenna.close()
+
+                        antenna1 = antenna_map[antenna1]
+                        antenna2 = antenna_map[antenna2]
+                        nants = len(names)
+                        baselines = pd.MultiIndex.from_tuples(
+                            list(generate_baselines(nants)),
+                            names=("antenna1", "antenna2"),
+                        )
+                        location = EarthLocation(
+                            x=Quantity(xyz[0][0], "m"),
+                            y=Quantity(xyz[0][1], "m"),
+                            z=Quantity(xyz[0][2], "m"),
+                        )
+                        configuration = Configuration.constructor(
+                            name="",
+                            location=location,
+                            names=names,
+                            xyz=xyz,
+                            mount=mount,
+                            frame="ITRF",
+                            receptor_frame=ReceptorFrame("linear"),
+                            diameter=diameter,
+                            offset=offset,
+                            stations=stations,
+                        )
+
+                        field_table = table(f"{msname}/FIELD", ack=False)
+                        try:
+                            phase_direction = field_table.getcol("PHASE_DIR")[
+                                field, 0, :
+                            ]
+                            source = field_table.getcol("NAME")[field]
+                        finally:
+                            field_table.close()
+                        phasecentre = SkyCoord(
+                            ra=phase_direction[0] * u.rad,
+                            dec=phase_direction[1] * u.rad,
+                            frame="icrs",
+                            equinox="J2000",
+                        )
+
+                        time_index_by_row = np.zeros_like(time, dtype=int)
+                        last_time = time[0]
+                        time_index = 0
+                        for row, row_time in enumerate(time):
+                            if row_time > last_time + 0.5 * integration_time[row]:
+                                if row_time <= last_time:
+                                    raise ValueError(
+                                        "MS is not time-sorted and cannot be converted"
+                                    )
+                                time_index += 1
+                                last_time = row_time
+                            time_index_by_row[row] = time_index
+
+                        ntimes = time_index + 1
+                        nbaselines = len(baselines)
+                        nchan = len(frequency)
+                        npol = polarisation_frame.npol
+                        visibility_data = np.zeros(
+                            (ntimes, nbaselines, nchan, npol), dtype=complex
+                        )
+                        flags = np.zeros((ntimes, nbaselines, nchan, npol), dtype=int)
+                        weights = np.zeros(
+                            (ntimes, nbaselines, nchan, npol), dtype=float
+                        )
+                        visibility_uvw = np.zeros((ntimes, nbaselines, 3))
+                        visibility_times = np.zeros(ntimes)
+                        visibility_integration_time = np.zeros(ntimes)
+
+                        for row in range(len(time)):
+                            baseline = baselines.get_loc((antenna1[row], antenna2[row]))
+                            time_index = time_index_by_row[row]
+                            visibility_times[time_index] = time[row]
+                            visibility_data[time_index, baseline] = ms_vis[row]
+                            flags[time_index, baseline] = ms_flags[row].astype(int)
+                            weights[time_index, baseline] = ms_weight[
+                                row, np.newaxis, :
+                            ]
+                            visibility_uvw[time_index, baseline] = uvw[row]
+                            visibility_integration_time[time_index] = integration_time[
+                                row
+                            ]
+
+                        visibilities.append(
+                            Visibility.constructor(
+                                uvw=visibility_uvw,
+                                baselines=baselines,
+                                time=visibility_times,
+                                frequency=frequency,
+                                channel_bandwidth=channel_bandwidth,
+                                vis=visibility_data,
+                                flags=flags,
+                                weight=weights,
+                                integration_time=visibility_integration_time,
+                                configuration=configuration,
+                                phasecentre=phasecentre,
+                                polarisation_frame=polarisation_frame,
+                                source=source,
+                                meta={
+                                    "MSV2": {
+                                        "FIELD_ID": int(field),
+                                        "DATA_DESC_ID": int(data_description),
+                                    }
+                                },
+                            )
+                        )
+                    finally:
+                        rows.close()
+            finally:
+                field_rows.close()
+    finally:
+        root.close()
+
+    return visibilities
+
 
 def export_visibility_to_ms(msname, vis_list, source_name=None):
     """Minimal Visibility to MS converter
 
-    The MS format is much more general than the RASCIL Visibility
+    The MS format is much more general than the SDP Visibility
     so we cut many corners. This requires casacore to be
     installed. If not an exception ModuleNotFoundError is raised.
 
