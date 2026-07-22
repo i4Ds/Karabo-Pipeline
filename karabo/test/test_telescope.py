@@ -1,7 +1,6 @@
 import os
 import pathlib as pl
 import tempfile
-import warnings
 from unittest import mock
 
 import numpy as np
@@ -20,7 +19,6 @@ from karabo.simulation.telescope_versions import (
     VLAVersions,
 )
 from karabo.simulator_backend import SimulatorBackend
-from karabo.warning import RASCIL_DEPRECATION_MESSAGE, RascilDeprecationWarning
 
 
 @pytest.mark.parametrize("filename", ["test_telescope.tm"])
@@ -163,24 +161,8 @@ def test_read_WSRT():
     assert len(tel.stations) == 14
 
 
-def test_RASCIL_telescope():
-    with pytest.warns(RascilDeprecationWarning) as warning_record:
-        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
-    assert str(warning_record[0].message) == RASCIL_DEPRECATION_MESSAGE
-    assert tel.backend is SimulatorBackend.RASCIL
-    info = tel.get_backend_specific_information()
-    assert isinstance(info, Configuration)
-
-
 def test_SDP_telescope():
-    with warnings.catch_warnings(record=True) as warning_record:
-        warnings.simplefilter("always")
-        tel = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
-
-    assert not any(
-        isinstance(warning.message, RascilDeprecationWarning)
-        for warning in warning_record
-    )
+    tel = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
     assert tel.backend is SimulatorBackend.SDP
     info = tel.get_backend_specific_information()
     assert isinstance(info, Configuration)
@@ -190,16 +172,24 @@ def test_SDP_telescope():
 # Interesting and funny article on asserting with mocks:
 # https://engineeringblog.yelp.com/2015/02/assert_called_once-threat-or-menace.html
 @mock.patch("logging.warning", autospec=True)
-def test_RASCIL_telescope_with_version_triggers_logging(mock_logging_warning):
+def test_SDP_telescope_with_version_triggers_logging(mock_logging_warning):
     Telescope.constructor(
-        "MID", backend=SimulatorBackend.RASCIL, version="Not None version"
+        "MID", backend=SimulatorBackend.SDP, version="Not None version"
     )
     assert mock_logging_warning.call_count == 1
 
 
-def test_invalid_RASCIL_telescope():
+def test_invalid_SDP_telescope():
     with pytest.raises(AssertionError):
-        Telescope.constructor("FAKETELESCOPE", backend=SimulatorBackend.RASCIL)
+        Telescope.constructor("FAKETELESCOPE", backend=SimulatorBackend.SDP)
+
+
+def test_removed_RASCIL_backend_has_migration_error():
+    with pytest.raises(
+        ValueError,
+        match="RASCIL simulation backend has been removed.*SimulatorBackend.SDP",
+    ):
+        SimulatorBackend("RASCIL")
 
 
 def test_invalid_backend():
@@ -213,18 +203,10 @@ def test_get_OSKAR_backend_information():
     assert isinstance(info, str)
 
 
-def test_get_RASCIL_backend_information():
-    from ska_sdp_datamodels.configuration.config_model import Configuration
-
-    tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
-    info = tel.get_backend_specific_information()
-    assert isinstance(info, Configuration)
-
-
-def test_RASCIL_telescope_plot_file_created():
+def test_SDP_telescope_plot_file_created():
     with tempfile.TemporaryDirectory() as tmpfile:
         temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
-        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
         tel.plot_telescope(temp_plot_file_name)
         assert os.path.exists(temp_plot_file_name)
         # It is tedious to check a specific file size. Even
@@ -234,12 +216,10 @@ def test_RASCIL_telescope_plot_file_created():
         assert os.path.getsize(temp_plot_file_name) > 0
 
 
-# There is an if statement in Telescope::plot_telescope for the
-# RASCIL backend. Let's test it
-def test_RASCIL_telescope_no_plot_file_created():
+def test_SDP_telescope_no_plot_file_created():
     with tempfile.TemporaryDirectory() as tmpfile:
         temp_plot_file_name = os.path.join(tmpfile, "test-plot.png")
-        tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
+        tel = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
         tel.plot_telescope()
         assert not os.path.exists(temp_plot_file_name)
 

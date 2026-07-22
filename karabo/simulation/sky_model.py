@@ -679,7 +679,10 @@ class SkyModel:
             if normalized in {"sdp", "ska-sdp"}:
                 resolved_backend = SimulatorBackend.SDP
             elif normalized == "rascil":
-                resolved_backend = SimulatorBackend.RASCIL
+                raise ValueError(
+                    "The RASCIL simulation backend has been removed. "
+                    "Use 'sdp' instead."
+                )
             elif normalized == "oskar":
                 resolved_backend = SimulatorBackend.OSKAR
             else:
@@ -2344,16 +2347,6 @@ class SkyModel:
     @overload
     def convert_to_backend(
         self,
-        backend: Literal[SimulatorBackend.RASCIL],
-        desired_frequencies_hz: NDArray[np.float_],
-        channel_bandwidth_hz: Optional[float] = None,
-        verbose: bool = False,
-    ) -> List[SkyComponent]:
-        ...
-
-    @overload
-    def convert_to_backend(
-        self,
         backend: Literal[SimulatorBackend.SDP],
         desired_frequencies_hz: NDArray[np.float_],
         channel_bandwidth_hz: Optional[float] = None,
@@ -2376,11 +2369,11 @@ class SkyModel:
 
                 - OSKAR: return the current SkyModel instance, since methods \
                     in Karabo support OSKAR-formatted source np.array values.
-                - RASCIL: convert the current source array into a \
-                    list of RASCIL SkyComponent instances.
+                - SDP: convert the current source array into a list of SKA-SDP
+                    SkyComponent instances.
             desired_frequencies_hz: List of frequencies corresponding to start
                 of desired frequency channels. This field is required
-                to convert sources into RASCIL SkyComponents.
+                to convert sources into SKA-SDP SkyComponents.
                 The array contains starting frequencies for the desired channels.
                 E.g. [100e6, 110e6] corresponds to 2 frequency channels,
                 which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
@@ -2400,81 +2393,6 @@ class SkyModel:
                     Will not modify existing SkyModel instance."""
                 )
             return self
-        elif backend is SimulatorBackend.RASCIL:
-            if verbose is True:
-                print(
-                    """Desired backend is RASCIL.
-                    Will convert sources into a list of
-                    RASCIL SkyComponent instances."""
-                )
-
-            desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
-
-            assert (
-                len(desired_frequencies_hz) > 0
-            ), """Must have at least 1 element
-            in desired_frequencies_hz array"""
-
-            desired_frequencies_hz = np.sort(desired_frequencies_hz)
-
-            if len(desired_frequencies_hz) == 1:
-                if channel_bandwidth_hz is None:
-                    raise ValueError(
-                        """desired_frequencies_hz has one entry
-                        and channel_bandwidth_hz is None.
-                        There is not enough information to find channel bandwidths.
-                        Please specify channel_bandwidth_hz,
-                        or add entries to desired_frequencies_hz."""
-                    )
-                frequency_bandwidth = channel_bandwidth_hz
-            else:
-                frequency_bandwidth = (
-                    desired_frequencies_hz[1] - desired_frequencies_hz[0]
-                )
-
-            frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
-
-            skycomponents: List[SkyComponent] = []
-
-            if self.sources is None:
-                return skycomponents
-
-            ras = self.sources[:, 0]  # Degrees
-            decs = self.sources[:, 1]  # Degrees
-            fluxes = self.sources[:, 2]  # Jy * MHz
-
-            for ra, dec, flux in zip(
-                ras,
-                decs,
-                fluxes,
-            ):
-                # 1 == npolarisations, fixed as 1 (stokesI) for now
-                # TODO eventually handle full stokes source catalogs
-                flux_array = np.zeros((len(frequency_channel_centers), 1))
-
-                # for continuum emission: distribute flux evenly over all channels
-                flux_array[:, 0] = flux
-                # flux_array[index,0] : Access [0] since this is the stokesI flux,
-                # and [index] to place the source's flux onto each channel
-
-                skycomponents.append(
-                    SkyComponent(
-                        direction=SkyCoord(
-                            ra=ra,
-                            dec=dec,
-                            unit="deg",
-                            frame="icrs",
-                            equinox="J2000",
-                        ),
-                        frequency=frequency_channel_centers,
-                        name=f"pointsource{ra}{dec}",
-                        flux=flux_array,  # shape: nchannels, npolarisations
-                        shape="Point",
-                        polarisation_frame=PolarisationFrame("stokesI"),
-                        params=None,
-                    )
-                )
-            return skycomponents
         elif backend is SimulatorBackend.SDP:
             if verbose:
                 print(

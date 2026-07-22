@@ -27,14 +27,14 @@ from karabo.simulator_backend import SimulatorBackend
 # - FITS file of a test continuous emission simulation including a gaussian beam of
 # SKA-Mid using OSKAR.
 # - FITS file of a test continuous emission simulation including a gaussian beam of
-# SKA-Mid using RASCIL.
+# SKA-Mid using the SDP simulation path.
 @pytest.fixture
 def beam_gauss_O_fits_filename() -> str:
     return "test_beam_Gauss_OSKAR_v1.fits"
 
 
 @pytest.fixture
-def beam_gauss_R_fits_filename() -> str:
+def beam_gauss_SDP_fits_filename() -> str:
     return "test_beam_Gauss_RASCIL_v1.fits"
 
 
@@ -49,11 +49,11 @@ def beam_gauss_O_fits_downloader(
 
 
 @pytest.fixture
-def beam_gauss_R_fits_downloader(
-    beam_gauss_R_fits_filename: str,
+def beam_gauss_SDP_fits_downloader(
+    beam_gauss_SDP_fits_filename: str,
 ) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
-        remote_file_path=beam_gauss_R_fits_filename,
+        remote_file_path=beam_gauss_SDP_fits_filename,
         remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
@@ -62,27 +62,27 @@ def beam_gauss_R_fits_downloader(
     "backend,telescope_name",
     [
         (SimulatorBackend.OSKAR, "SKA1MID"),
-        (SimulatorBackend.RASCIL, "MID"),
+        (SimulatorBackend.SDP, "MID"),
     ],
 )
 def test_gaussian_beam(
     beam_gauss_O_fits_filename: str,
     beam_gauss_O_fits_downloader: SingleFileDownloadObject,
-    beam_gauss_R_fits_filename: str,
-    beam_gauss_R_fits_downloader: SingleFileDownloadObject,
+    beam_gauss_SDP_fits_filename: str,
+    beam_gauss_SDP_fits_downloader: SingleFileDownloadObject,
     backend: SimulatorBackend,
     telescope_name: str,
 ) -> None:
     """
     We test that image reconstruction works with a Gaussian beam and
-    test both visibility simulators: Oskar and Rascil.
+    test both visibility simulators: OSKAR and SDP.
     """
     # --------------------------
     # Download golden files for comparison
     if backend == SimulatorBackend.OSKAR:
         golden_beam_Gauss_path = beam_gauss_O_fits_downloader.get()
     else:
-        golden_beam_Gauss_path = beam_gauss_R_fits_downloader.get()
+        golden_beam_Gauss_path = beam_gauss_SDP_fits_downloader.get()
 
     # Simulation parameters
     freq = 1.5e9
@@ -97,7 +97,7 @@ def test_gaussian_beam(
     beam_type = "Gaussian beam"
     fwhm_deg = 1.0
 
-    # Beam for RASCIL
+    # Custom beam image for SDP
     primary_beam = create_image(
         npixel=npixels,
         cellsize=cellsize,
@@ -157,7 +157,7 @@ def test_gaussian_beam(
             visibility_path=os.path.join(tmpdir, "beam_vis.ms"),
         )
 
-        # RASCIL IMAGING
+        # Legacy direct imager retained until the imaging-removal slice.
         dirty_imager = RascilDirtyImager(
             RascilDirtyImagerConfig(
                 imaging_npixel=npixels,

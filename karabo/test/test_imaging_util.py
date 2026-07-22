@@ -104,7 +104,7 @@ def test_get_compatible_dirty_imager_should_return_RascilDirtyImager(
     observation: Observation,
     simulation: InterferometerSimulation,
 ) -> None:
-    sim_backend = SimulatorBackend.RASCIL
+    sim_backend = SimulatorBackend.SDP
     telescope = Telescope.constructor("MID", backend=sim_backend)
     telescope.centre_longitude = 3
 

@@ -26,7 +26,7 @@ from karabo.util.file_handler import FileHandler
 
 @pytest.mark.parametrize(
     "simulator_backend,telescope_name",
-    [(SimulatorBackend.OSKAR, "SKA1MID"), (SimulatorBackend.RASCIL, "MID")],
+    [(SimulatorBackend.OSKAR, "SKA1MID"), (SimulatorBackend.SDP, "MID")],
 )
 def test_line_emission_pipeline(simulator_backend, telescope_name):
     print(f"Running test for {simulator_backend=}")
@@ -126,7 +126,7 @@ def test_line_emission_pipeline(simulator_backend, telescope_name):
     assert len(dirty_images[0]) == len(pointings)
 
 
-def test_compare_oskar_rascil_dirty_images():
+def test_compare_oskar_sdp_dirty_images():
     pointing = CircleSkyRegion(
         radius=1 * u.deg,
         center=SkyCoord(ra=20, dec=-31.4, unit="deg", frame="icrs"),
@@ -181,7 +181,7 @@ def test_compare_oskar_rascil_dirty_images():
     backend_to_dirty_images = {}
     for simulator_backend, telescope_name in (
         (SimulatorBackend.OSKAR, "SKA1MID"),
-        (SimulatorBackend.RASCIL, "MID"),
+        (SimulatorBackend.SDP, "MID"),
     ):
         telescope = Telescope.constructor(telescope_name, backend=simulator_backend)
 
@@ -212,21 +212,21 @@ def test_compare_oskar_rascil_dirty_images():
 
     # Check that the dirty images are close to each other
     oskar_images = backend_to_dirty_images[SimulatorBackend.OSKAR]
-    rascil_images = backend_to_dirty_images[SimulatorBackend.RASCIL]
+    sdp_images = backend_to_dirty_images[SimulatorBackend.SDP]
 
     channel_index = 0  # This test uses only one frequency channel
     pointing_index = 0  # This tests uses only one pointing
     oskar_data = oskar_images[channel_index][pointing_index].data
-    rascil_data = rascil_images[channel_index][pointing_index].data
+    sdp_data = sdp_images[channel_index][pointing_index].data
 
-    assert oskar_data.shape == rascil_data.shape
+    assert oskar_data.shape == sdp_data.shape
     assert oskar_data.shape == (1, 1, npixels, npixels)
 
     # Check pixel value differences are mostly within the tolerance
     # set as 10% of maximum pixel value
-    tolerance = 0.1 * max(oskar_data.max(), rascil_data.max())
+    tolerance = 0.1 * max(oskar_data.max(), sdp_data.max())
     count_very_different_pixels = np.sum(
-        ~np.isclose(oskar_data, rascil_data, atol=tolerance)
+        ~np.isclose(oskar_data, sdp_data, atol=tolerance)
     )
     count_pixels = np.prod(oskar_data.shape)  # Number of entries in data array
     fraction_very_different_pixels = count_very_different_pixels / count_pixels
@@ -239,7 +239,7 @@ def test_compare_oskar_rascil_dirty_images():
     "simulator_backend,telescope_name",
     [
         (SimulatorBackend.OSKAR, "SKA1MID"),
-        (SimulatorBackend.RASCIL, "MID"),
+        (SimulatorBackend.SDP, "MID"),
     ],
 )
 def test_primary_beam_effects(simulator_backend, telescope_name):

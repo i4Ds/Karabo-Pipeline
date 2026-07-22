@@ -24,8 +24,8 @@ def oskar_telescope() -> Telescope:
 
 
 @pytest.fixture
-def rascil_telescope() -> Telescope:
-    return Telescope.constructor("LOFAR", backend=SimulatorBackend.RASCIL)
+def sdp_telescope() -> Telescope:
+    return Telescope.constructor("LOFAR", backend=SimulatorBackend.SDP)
 
 
 @pytest.fixture
@@ -120,32 +120,32 @@ def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
 
 
 def test_telescope_max_baseline_length(
-    oskar_telescope: Telescope, rascil_telescope: Telescope
+    oskar_telescope: Telescope, sdp_telescope: Telescope
 ):
     max_length_oskar: np.float64 = oskar_telescope.max_baseline()
     # Should be the same +/- 1 m
     assert math.isclose(max_length_oskar - 7500.0, 0, abs_tol=1)
 
-    max_length_rascil: np.float64 = rascil_telescope.max_baseline()
+    max_length_sdp: np.float64 = sdp_telescope.max_baseline()
     # Should be the same +/- 1 m
-    assert math.isclose(max_length_rascil - 995242.0, 0, abs_tol=1)
+    assert math.isclose(max_length_sdp - 995242.0, 0, abs_tol=1)
 
     freq_Hz = 100e6
     angular_res: float = Telescope.ang_res(freq_Hz, max_length_oskar)
     assert math.isclose(angular_res, 82.44, rel_tol=1e-2)
 
 
-def test_telescope_stations(oskar_telescope: Telescope, rascil_telescope: Telescope):
+def test_telescope_stations(oskar_telescope: Telescope, sdp_telescope: Telescope):
     # station has 30 stations according to *.tm file
     baseline_wgs: NDArray[np.float64] = oskar_telescope.get_stations_wgs84()
     assert len(baseline_wgs) == 64
 
-    baseline_wgs: NDArray[np.float64] = rascil_telescope.get_stations_wgs84()
+    baseline_wgs = sdp_telescope.get_stations_wgs84()
     assert len(baseline_wgs) == 134
 
 
-def test_telescope_baseline_length(rascil_telescope):
-    stations_wgs: NDArray[np.float64] = rascil_telescope.get_stations_wgs84()
+def test_telescope_baseline_length(sdp_telescope):
+    stations_wgs: NDArray[np.float64] = sdp_telescope.get_stations_wgs84()
     num_stations = len(stations_wgs)
     baseline_length: NDArray[np.float64] = Telescope.get_baseline_lengths(stations_wgs)
     assert len(baseline_length) == num_stations * (num_stations - 1) / 2

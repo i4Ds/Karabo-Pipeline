@@ -30,7 +30,7 @@ from karabo.test.util import get_compatible_dirty_imager
 # - FITS file of the test continuous emission simulation of MeerKAT using OSKAR.
 # - FITS files of the test continuous emission simulation with noise of MeerKAT using
 # OSKAR.
-# - FITS file of the test continuous emission simulation of MeerKAT using RASCIL.
+# - FITS file retained from the cohabitation release as the SDP reference output.
 @pytest.fixture
 def continuous_fits_filename() -> str:
     return "test_continuous_emission.fits"
@@ -42,7 +42,7 @@ def continuous_noise_fits_filename() -> str:
 
 
 @pytest.fixture
-def continuous_Rascil_fits_filename() -> str:
+def continuous_sdp_reference_fits_filename() -> str:
     return "test_continuous_emission_RASCIL_v1.fits"
 
 
@@ -67,11 +67,11 @@ def continuous_noise_fits_downloader(
 
 
 @pytest.fixture
-def continuous_Rascil_fits_downloader(
-    continuous_Rascil_fits_filename: str,
+def continuous_sdp_reference_fits_downloader(
+    continuous_sdp_reference_fits_filename: str,
 ) -> SingleFileDownloadObject:
     return SingleFileDownloadObject(
-        remote_file_path=continuous_Rascil_fits_filename,
+        remote_file_path=continuous_sdp_reference_fits_filename,
         remote_base_url=cscs_karabo_public_testing_base_url,
     )
 
@@ -80,7 +80,7 @@ def continuous_Rascil_fits_downloader(
     "backend,telescope_name",
     [
         (SimulatorBackend.OSKAR, "SKA1MID"),
-        (SimulatorBackend.RASCIL, "MID"),
+        (SimulatorBackend.SDP, "MID"),
     ],
 )
 def test_backend_simulations(
@@ -129,20 +129,20 @@ def test_backend_simulations(
     "backend,telescope_name",
     [
         (SimulatorBackend.OSKAR, "MeerKAT"),
-        (SimulatorBackend.RASCIL, "MEERKAT+"),
+        (SimulatorBackend.SDP, "MEERKAT+"),
     ],
 )
 def test_simulation_meerkat(
     continuous_fits_filename: str,
     continuous_fits_downloader: SingleFileDownloadObject,
-    continuous_Rascil_fits_filename: str,
-    continuous_Rascil_fits_downloader: SingleFileDownloadObject,
+    continuous_sdp_reference_fits_filename: str,
+    continuous_sdp_reference_fits_downloader: SingleFileDownloadObject,
     backend: SimulatorBackend,
     telescope_name: str,
 ) -> None:
     """
     Executes a simulation of continuous emission and validates the output files. Testing
-    the OSKAR and the RASCIL backends.
+    the OSKAR and SDP backends.
 
     Args:
         continuous_fits_filename:
@@ -152,7 +152,7 @@ def test_simulation_meerkat(
     if backend == SimulatorBackend.OSKAR:
         golden_continuous_fits_path = continuous_fits_downloader.get()
     else:
-        golden_continuous_fits_path = continuous_Rascil_fits_downloader.get()
+        golden_continuous_fits_path = continuous_sdp_reference_fits_downloader.get()
 
     # Parameter definition
     ra_deg = 20

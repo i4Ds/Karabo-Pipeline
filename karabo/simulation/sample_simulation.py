@@ -31,11 +31,6 @@ def run_sample_simulation(
             sky model, telescope, observation and interferometer configuration used
             to generate it.
     """
-    if simulator_backend == SimulatorBackend.RASCIL:
-        raise NotImplementedError(
-            "RASCIL simulations are currently not supported in this sample"
-        )
-
     phase_center = [250, -80]
 
     if verbose:

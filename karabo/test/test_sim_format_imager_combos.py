@@ -19,7 +19,6 @@ IMAGING_CELLSIZE = 3.878509448876288e-05
     [
         (SimulatorBackend.OSKAR, "MS"),
         (SimulatorBackend.OSKAR, "OSKAR_VIS"),
-        # (SimulatorBackend.RASCIL, "MS"),
     ],
 )
 def test_oskar_imager(
@@ -43,7 +42,6 @@ def test_oskar_imager(
     "simulator_backend,visibility_format",
     [
         (SimulatorBackend.OSKAR, "MS"),
-        # (SimulatorBackend.RASCIL, "MS"),
     ],
 )
 def test_rascil_imager(
@@ -67,7 +65,6 @@ def test_rascil_imager(
     "simulator_backend,visibility_format",
     [
         (SimulatorBackend.OSKAR, "MS"),
-        # (SimulatorBackend.RASCIL, "MS"),
     ],
 )
 def test_wsclean_imager(

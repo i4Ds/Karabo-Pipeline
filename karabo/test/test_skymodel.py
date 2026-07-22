@@ -203,11 +203,7 @@ def test_test_sky_model_LE():
 
 def test_convert_sky_to_backends():
     """
-    The sky model used in Karabo is based on the OSKAR data structure. RASCIL
-    uses a slightly different model. The function SykModel.connvert_to_backend()
-    is supposed to convert an OSKAR sky model into a RASCIL one.
-    For RASCIL we need to set the flux for each frequency channel. This is what
-    we test here.
+    Verify the backend-neutral sky model and its SKA-SDP component conversion.
     """
     sky = SkyModel.sky_test()
     desired_frequencies_hz = 1e6 * np.array([700, 710, 720, 730, 740])
@@ -219,28 +215,28 @@ def test_convert_sky_to_backends():
     oskar_sky = sky.convert_to_backend(backend=SimulatorBackend.OSKAR)
     assert np.allclose(oskar_sky.sources, sky.sources)
 
-    # Verify conversion to RASCIL backend
-    rascil_sky = sky.convert_to_backend(
-        backend=SimulatorBackend.RASCIL,
+    # Verify conversion to SDP components
+    sdp_sky = sky.convert_to_backend(
+        backend=SimulatorBackend.SDP,
         desired_frequencies_hz=desired_frequencies_hz,
     )
 
-    assert len(rascil_sky) == sky.sources.shape[0]
-    for i, rascil_component in enumerate(rascil_sky):
+    assert len(sdp_sky) == sky.sources.shape[0]
+    for i, sdp_component in enumerate(sdp_sky):
         # Verify that RA, Dec and other parameters are correct
-        assert np.isclose(rascil_component.direction.ra.value, sky.sources[i][0])
-        assert np.isclose(rascil_component.direction.dec.value, sky.sources[i][1])
-        assert rascil_component.shape == "Point"
-        assert rascil_component.polarisation_frame == PolarisationFrame("stokesI")
+        assert np.isclose(sdp_component.direction.ra.value, sky.sources[i][0])
+        assert np.isclose(sdp_component.direction.dec.value, sky.sources[i][1])
+        assert sdp_component.shape == "Point"
+        assert sdp_component.polarisation_frame == PolarisationFrame("stokesI")
 
         # Verify flux and frequencies of the source
         # Assert source frequencies are the same as centers of desired frequency channel
-        assert len(rascil_component.frequency) == len(desired_frequencies_hz)
-        assert np.allclose(rascil_component.frequency, frequency_channel_centers)
+        assert len(sdp_component.frequency) == len(desired_frequencies_hz)
+        assert np.allclose(sdp_component.frequency, frequency_channel_centers)
 
         # For continuous sources, all channels are set to the same flux.
         # Here we set it to 1. And there are 5 frequency channels
-        assert np.sum(rascil_component.flux) == 5
+        assert np.sum(sdp_component.flux) == 5
 
 
 def test_from_fits_image_extracts_thresholded_sources(tmpdir: str) -> None:
@@ -291,11 +287,11 @@ def test_from_fits_image_rejects_non_sdp_backends(tmpdir: str) -> None:
             threshold=0.0,
             backend=SimulatorBackend.OSKAR,
         )
-    with pytest.raises(ValueError, match="supports only the SDP backend"):
+    with pytest.raises(ValueError, match="RASCIL simulation backend has been removed"):
         SkyModel.from_fits_image(
             fits_path,
             threshold=0.0,
-            backend=SimulatorBackend.RASCIL,
+            backend="rascil",
         )
 
 

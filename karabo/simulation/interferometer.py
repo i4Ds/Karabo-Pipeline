@@ -16,7 +16,7 @@ from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
-from ska_sdp_datamodels.image.image_model import Image as RASCILImage
+from ska_sdp_datamodels.image.image_model import Image as SdpImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 from ska_sdp_datamodels.visibility import create_visibility
 from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
@@ -51,7 +51,6 @@ from karabo.util.gpu_util import is_cuda_available
 from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (  # type: ignore[attr-defined] # noqa: E501
     export_visibility_to_ms,
 )
-from karabo.warning import warn_rascil_deprecated
 
 
 def format_timedelta(td: timedelta) -> str:
@@ -411,21 +410,8 @@ class InterferometerSimulation:
         telescope: Telescope,
         sky: SkyModel,
         observation: Observation,
-        backend: Literal[SimulatorBackend.RASCIL],
-        primary_beam: Optional[RASCILImage] = ...,
-        visibility_format: Literal["MS"] = ...,
-        visibility_path: Optional[DirPathType] = ...,
-    ) -> Visibility:
-        ...
-
-    @overload
-    def run_simulation(
-        self,
-        telescope: Telescope,
-        sky: SkyModel,
-        observation: Observation,
         backend: Literal[SimulatorBackend.SDP],
-        primary_beam: Optional[RASCILImage] = ...,
+        primary_beam: Optional[SdpImage] = ...,
         visibility_format: Literal["MS"] = ...,
         visibility_path: Optional[DirPathType] = ...,
     ) -> Visibility:
@@ -437,7 +423,7 @@ class InterferometerSimulation:
         sky: SkyModel,
         observation: ObservationAbstract,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
-        primary_beam: Optional[RASCILImage] = None,
+        primary_beam: Optional[SdpImage] = None,
         visibility_format: VisibilityFormat = "MS",
         visibility_path: Optional[Union[DirPathType, FilePathType]] = None,
     ) -> Union[Visibility, List[Visibility]]:
@@ -449,7 +435,7 @@ class InterferometerSimulation:
             observation: observation settings
             backend: Simulation backend to be used
             primary_beam: Primary beam to be included into visibilities.
-                Currently only relevant for RASCIL.
+                Currently only relevant for SDP.
                 For OSKAR, use the InterferometerSimulation constructor parameters
                 instead.
             visibility_format: Visibility format in which to write generated data to
@@ -524,19 +510,6 @@ class InterferometerSimulation:
                         visibility_path,
                     ),
                 )
-        elif backend is SimulatorBackend.RASCIL:
-            warn_rascil_deprecated(stacklevel=2)
-            return self.__run_simulation_rascil(
-                telescope=telescope,
-                sky=sky,
-                observation=observation,
-                visibility_format=visibility_format,
-                visibility_path=self._create_or_validate_visibility_path(
-                    visibility_format,
-                    visibility_path,
-                ),
-                primary_beam=primary_beam,
-            )
         elif backend is SimulatorBackend.SDP:
             return self.__run_simulation_sdp(
                 telescope=telescope,
@@ -562,113 +535,6 @@ class InterferometerSimulation:
         """
         self.ionosphere_fits_path = file_path
 
-    def __run_simulation_rascil(
-        self,
-        telescope: Telescope,
-        sky: SkyModel,
-        observation: ObservationAbstract,
-        visibility_format: VisibilityFormat,
-        visibility_path: Union[DirPathType, FilePathType],
-        primary_beam: Optional[RASCILImage],
-    ) -> Visibility:
-        # Steps followed in this simulation:
-        # Compute hour angles based on Observation details
-        # Create an empty visibility according to the observation details
-        # Convert SkyModel into RASCIL-compatible list of SkyComponent objects
-        # Apply DFT to compute visibilities from SkyComponent list
-        # Return visibilities
-
-        if visibility_format != "MS":
-            raise NotImplementedError(
-                f"Visibility format {visibility_format} is not supported, "
-                "currently only MS is supported for RASCIL simulations"
-            )
-
-        # Hour angles and integration time from observation
-        observation_hour_angles = observation.compute_hour_angles_of_observation()
-        observation_integration_time_seconds = (
-            observation.length.total_seconds() / observation.number_of_time_steps
-        )
-        # Note regarding integration time:
-        # If the hour angles array has more than one element,
-        # then the integration time parameter is not used,
-        # since it can be determined as the delta between successive observation times
-
-        # Compute frequency channels
-        frequency_channel_starts = np.linspace(
-            observation.start_frequency_hz,
-            observation.start_frequency_hz
-            + observation.frequency_increment_hz * observation.number_of_channels,
-            num=observation.number_of_channels,
-            endpoint=False,
-        )
-
-        frequency_bandwidths = np.full(
-            frequency_channel_starts.shape, observation.frequency_increment_hz
-        )
-        frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
-
-        # Initialize empty visibilities based on observation details
-        vis = create_visibility(
-            telescope.RASCIL_configuration,  # Configuration of the interferometer array
-            times=observation_hour_angles,  # Hour angles
-            frequency=frequency_channel_centers,  # Center channel frequencies in Hz
-            channel_bandwidth=frequency_bandwidths,
-            phasecentre=SkyCoord(
-                observation.phase_centre_ra_deg,
-                observation.phase_centre_dec_deg,
-                unit="deg",
-                frame="icrs",
-            ),
-            weight=1.0,  # Keep as 1, per recommendation from RASCIL docs
-            polarisation_frame=PolarisationFrame(
-                "stokesI"
-            ),  # TODO handle full stokes as well
-            integration_time=observation_integration_time_seconds,
-            zerow=self.ignore_w_components,
-            utc_time=Time(
-                observation.start_date_and_time, format="datetime", scale="utc"
-            ),
-        )
-
-        # this part is to inform the user if RASCIl did not match the
-        # observation time. This happens if the pointing is not right
-        # above the instrument at the time of observation.
-        rascil_obs_times = vis["datetime"]
-        rascil_obs_start_time = rascil_obs_times[0]
-
-        timestamp_ns = rascil_obs_start_time.values.astype("int64")
-        dt = datetime.fromtimestamp(timestamp_ns / 1e9)
-
-        diff_time = dt - observation.start_date_and_time
-        # I think a difference of less than 1 min is ok
-        tolerance = timedelta(minutes=1)
-        if abs(diff_time) > tolerance:
-            print(
-                "INFO: RASCIL could not match your observation time.",
-                "This not a bug but how RASCIL works.",
-                f"There is a time difference of {format_timedelta(diff_time)}",
-                sep=os.linesep,
-            )
-
-        skycomponents = sky.convert_to_backend(
-            backend=SimulatorBackend.RASCIL,
-            desired_frequencies_hz=frequency_channel_starts,
-            channel_bandwidth_hz=observation.frequency_increment_hz,
-        )
-
-        if primary_beam is not None:
-            skycomponents = apply_beam_to_skycomponent(skycomponents, primary_beam)
-
-        # Compute visibilities from SkyComponent list using DFT
-        vis = dft_skycomponent_visibility(
-            vis, skycomponents, dft_compute_kernel="cpu_looped"
-        )
-
-        # Save visibilities to disk
-        export_visibility_to_ms(visibility_path, [vis])
-        return Visibility(visibility_path)
-
     def __run_simulation_sdp(
         self,
         telescope: Telescope,
@@ -676,15 +542,9 @@ class InterferometerSimulation:
         observation: ObservationAbstract,
         visibility_format: VisibilityFormat,
         visibility_path: Union[DirPathType, FilePathType],
-        primary_beam: Optional[RASCILImage],
+        primary_beam: Optional[SdpImage],
     ) -> Visibility:
-        # Same flow as RASCIL:
-        # - compute times/channels
-        # - create empty visibility from telescope config
-        # - convert SkyModel -> List[SkyComponent] for SDP
-        # - optional primary beam application
-        # - DFT predict
-        # - write MS
+        # Create the visibility grid, predict the SDP sky components, and write MS.
 
         if visibility_format != "MS":
             raise NotImplementedError(
@@ -713,7 +573,7 @@ class InterferometerSimulation:
 
         # Visibility grid
         vis = create_visibility(
-            telescope.SDP_configuration,  # <- key difference vs RASCIL
+            telescope.SDP_configuration,
             times=observation_hour_angles,
             frequency=frequency_channel_centers,
             channel_bandwidth=frequency_bandwidths,
