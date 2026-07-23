@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -91,7 +93,7 @@ def test_sdp_simulation_exports_finite_visibility(monkeypatch, tmp_path):
         (SimulatorBackend.SDP, "ASKAP"),
     ],
 )
-def test_supported_backends_write_measurement_sets(
+def test_supported_backends_write_imageable_measurement_sets(
     tmp_path, backend: SimulatorBackend, telescope_name: str
 ):
     sky = _create_point_source_sky(15.0, -30.0)
@@ -118,3 +120,32 @@ def test_supported_backends_write_measurement_sets(
     assert visibility.path == str(ms_path)
     assert (ms_path / "table.dat").is_file()
     assert (ms_path / "ANTENNA" / "table.dat").is_file()
+
+    imager = get_imager(ImagingBackend.SDP)
+    dirty, psf = imager.invert(
+        visibility,
+        ImageSpec(
+            npix=128,
+            cellsize_arcsec=20.0,
+            phase_centre_deg=(15.0, -30.0),
+        ),
+    )
+    restored = imager.restore(dirty, psf)
+
+    image_centre = (64, 64)
+    for image in (dirty, psf, restored):
+        data = image.get_squeezed_data()
+        assert data.shape == (128, 128)
+        assert np.isfinite(data).all()
+        assert np.unravel_index(np.nanargmax(data), data.shape) == image_centre
+        assert np.isclose(np.nanmax(data), 1.0, rtol=0.02)
+        assert np.isclose(image.header["CRVAL1"], 15.0)
+        assert np.isclose(image.header["CRVAL2"], -30.0)
+        assert image.header["CTYPE1"].startswith("RA")
+        assert image.header["CTYPE2"].startswith("DEC")
+
+    model = imager.last_model_image
+    residual = imager.last_residual_image
+    assert np.isfinite(model.data).all()
+    assert np.isfinite(residual.data).all()
+    assert np.nanmax(np.abs(residual.data)) < 0.02 * np.nanmax(np.abs(dirty.data))

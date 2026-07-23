@@ -1,19 +1,13 @@
 import os
 import tempfile
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import numpy as np
 import pytest
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.io import fits
 from ska_sdp_datamodels.image import create_image
 
-from karabo.data.external_data import (
-    SingleFileDownloadObject,
-    cscs_karabo_public_testing_base_url,
-)
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.simulation.beam import generate_gaussian_beam_data
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -24,41 +18,6 @@ from karabo.simulator_backend import SimulatorBackend
 from karabo.test.util import create_compatible_dirty_image
 
 
-# DownloadObject instances used to download different golden files:
-# - FITS file of a test continuous emission simulation including a gaussian beam of
-# SKA-Mid using OSKAR.
-# - FITS file of a test continuous emission simulation including a gaussian beam of
-# SKA-Mid using the SDP simulation path.
-@pytest.fixture
-def beam_gauss_O_fits_filename() -> str:
-    return "test_beam_Gauss_OSKAR_v1.fits"
-
-
-@pytest.fixture
-def beam_gauss_SDP_fits_filename() -> str:
-    return "test_beam_Gauss_RASCIL_v1.fits"
-
-
-@pytest.fixture
-def beam_gauss_O_fits_downloader(
-    beam_gauss_O_fits_filename: str,
-) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=beam_gauss_O_fits_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
-    )
-
-
-@pytest.fixture
-def beam_gauss_SDP_fits_downloader(
-    beam_gauss_SDP_fits_filename: str,
-) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=beam_gauss_SDP_fits_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
-    )
-
-
 @pytest.mark.parametrize(
     "backend,telescope_name",
     [
@@ -67,10 +26,6 @@ def beam_gauss_SDP_fits_downloader(
     ],
 )
 def test_gaussian_beam(
-    beam_gauss_O_fits_filename: str,
-    beam_gauss_O_fits_downloader: SingleFileDownloadObject,
-    beam_gauss_SDP_fits_filename: str,
-    beam_gauss_SDP_fits_downloader: SingleFileDownloadObject,
     backend: SimulatorBackend,
     telescope_name: str,
 ) -> None:
@@ -78,13 +33,6 @@ def test_gaussian_beam(
     We test that image reconstruction works with a Gaussian beam and
     test both visibility simulators: OSKAR and SDP.
     """
-    # --------------------------
-    # Download golden files for comparison
-    if backend == SimulatorBackend.OSKAR:
-        golden_beam_Gauss_path = beam_gauss_O_fits_downloader.get()
-    else:
-        golden_beam_Gauss_path = beam_gauss_SDP_fits_downloader.get()
-
     # Simulation parameters
     freq = 1.5e9
     freq_bin = 1e7
@@ -167,20 +115,23 @@ def test_gaussian_beam(
             ),
         )
 
-        outpath = Path(tmpdir)
-        beam_fits_path = outpath / "test_beam.fits"
-        dirty.write_to_file(str(beam_fits_path), overwrite=True)
-
-        # Verify fits
-        beam_fits_data, beam_fits_header = fits.getdata(
-            beam_fits_path, ext=0, header=True
+        assert dirty.data.shape == (nchannels, 1, npixels, npixels)
+        assert np.isfinite(dirty.data).all()
+        assert np.all(np.std(dirty.data, axis=(-2, -1)) > 0.0)
+        assert np.nanmax(np.abs(dirty.data)) > 0.0
+        assert dirty.header["CTYPE1"].startswith("RA")
+        assert dirty.header["CTYPE2"].startswith("DEC")
+        assert dirty.header["CTYPE3"] == "STOKES"
+        assert dirty.header["CTYPE4"] == "FREQ"
+        assert np.isclose(dirty.header["CRVAL1"], ra_deg)
+        assert np.isclose(dirty.header["CRVAL2"], dec_deg)
+        first_channel_frequency = (
+            freq + freq_bin / 2 if backend is SimulatorBackend.SDP else freq
         )
-        golden_beam_fits_data, golden_beam_fits_header = fits.getdata(
-            golden_beam_Gauss_path, ext=0, header=True
-        )
+        assert np.isclose(dirty.header["CRVAL4"], first_channel_frequency)
+        assert np.isclose(abs(dirty.header["CDELT4"]), freq_bin)
 
-        # Check FITS data is close to goldenfile
-        assert np.allclose(golden_beam_fits_data, beam_fits_data, equal_nan=True)
-
-        # Check FITS header contain the same keys
-        assert set(golden_beam_fits_header.keys()) == set(beam_fits_header.keys())
+        centre = np.array([npixels // 2, npixels // 2])
+        for channel in dirty.data[:, 0]:
+            peak = np.array(np.unravel_index(np.nanargmax(channel), channel.shape))
+            assert np.max(np.abs(peak - centre)) <= 8

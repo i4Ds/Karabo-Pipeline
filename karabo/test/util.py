@@ -1,5 +1,6 @@
 import math
 
+from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_factory import ImagingBackend, get_imager
@@ -27,12 +28,10 @@ def create_compatible_dirty_image(
             )
         ).create_dirty_image(visibility)
 
-    backend = (
-        ImagingBackend.WSCLEAN
-        if config.combine_across_frequencies
-        else ImagingBackend.SDP
-    )
-    imager = get_imager(backend)
+    if config.combine_across_frequencies:
+        imager = get_imager(ImagingBackend.WSCLEAN)
+    else:
+        imager = SdpImager(SdpImagerConfig(combine_across_frequencies=False))
     dirty, _ = imager.invert(
         visibility,
         ImageSpec(
