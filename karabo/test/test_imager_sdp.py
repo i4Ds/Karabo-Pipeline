@@ -4,9 +4,11 @@ import os
 import numpy as np
 import pytest
 
-from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
+from karabo.imaging.backends.sdp_backend import SdpImager
 from karabo.imaging.imager_factory import (
     ImagingBackend,
+    SdpImagerConfig,
+    WscleanBackendConfig,
     get_imager,
     parse_imaging_backend,
 )
@@ -66,6 +68,22 @@ def test_sdp_imager_invert_and_restore(minimal_casa_ms: Visibility) -> None:
     assert os.path.exists(imager.last_residual_image.path)
     assert np.isfinite(imager.last_model_image.data).all()
     assert np.isfinite(imager.last_residual_image.data).all()
+
+
+def test_imager_factory_forwards_matching_sdp_config() -> None:
+    config = SdpImagerConfig(clean_niter=17)
+    imager = get_imager(ImagingBackend.SDP, config=config)
+
+    assert isinstance(imager, SdpImager)
+    assert imager.config is config
+
+
+def test_imager_factory_rejects_config_for_another_backend() -> None:
+    with pytest.raises(TypeError, match="SDP backend"):
+        get_imager(
+            ImagingBackend.SDP,
+            config=WscleanBackendConfig(),
+        )
 
 
 @pytest.mark.parametrize("algorithm", ["hogbom-complex", "msclean", "mmclean"])

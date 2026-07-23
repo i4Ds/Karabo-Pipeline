@@ -12,9 +12,13 @@ from datetime import datetime, timedelta
 import numpy as np
 import skymodel_reader
 
-from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
+from karabo.imaging.imager_factory import (
+    ImagingBackend,
+    SdpImagerConfig,
+    WscleanBackendConfig,
+    get_imager,
+)
 from karabo.imaging.imager_interface import ImageSpec
-from karabo.imaging.imager_wsclean import WscleanImageCleaner, WscleanImageCleanerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.telescope import Telescope
@@ -178,7 +182,10 @@ for phase_ra in ra_list:
         )
         logger.info("--- Simulation Run Ends....")
         k = k + 1
-        dirty_imager = SdpImager(SdpImagerConfig(combine_across_frequencies=False))
+        dirty_imager = get_imager(
+            ImagingBackend.SDP,
+            config=SdpImagerConfig(combine_across_frequencies=False),
+        )
         image_spec = ImageSpec(
             npix=img_nsize,
             cellsize_arcsec=cellsize_arcsec,
@@ -195,7 +202,6 @@ for phase_ra in ra_list:
 
 nchan_img = nchan
 cellsize_arcsec = 15  # beam_size_arcsec/3 # in arcsec
-cellsize_rad = cellsize_arcsec / 3600.0 * np.pi / 180.0
 logger.info(
     f"BEAM SIZE: {beam_size_arcsec} arcsec | "
     f"IMAGE CELL SIZE: {cellsize_arcsec} arcsec | "
@@ -209,16 +215,20 @@ output_img = os.path.join(path, "img", f"{file_name + str(k)}.ms")
 
 logger.info(f"----OUTPUT IMG PATH: {output_img} -----------")
 logger.info("##### IMAGING Begins.....")
-wscleaner = WscleanImageCleaner(
-    WscleanImageCleanerConfig(
-        niter=5000,
-        mgain=0.8,
-        imaging_npixel=img_nsize,
-        imaging_cellsize=cellsize_rad,
-    )
+wscleaner = get_imager(
+    ImagingBackend.WSCLEAN,
+    config=WscleanBackendConfig(
+        clean_niter=5000,
+        clean_mgain=0.8,
+    ),
 )
-
-cleaned_image = wscleaner.create_cleaned_image(visibility)
+wsclean_spec = ImageSpec(
+    npix=img_nsize,
+    cellsize_arcsec=cellsize_arcsec,
+    phase_centre_deg=(phase_ra, phase_dec),
+)
+wsclean_dirty, wsclean_psf = wscleaner.invert(visibility, wsclean_spec)
+cleaned_image = wscleaner.restore(wsclean_dirty, wsclean_psf)
 cleaned_image.write_to_file(os.path.join(path, "cleaned_image.fits"), overwrite=True)
 cleaned_image.plot(filename=os.path.join(path, "cleaned_image.png"))
 

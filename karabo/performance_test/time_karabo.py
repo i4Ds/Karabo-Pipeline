@@ -5,7 +5,7 @@ from typing import List, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
+from karabo.imaging.imager_factory import ImagingBackend, SdpImagerConfig, get_imager
 from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.util import project_sky_to_image
 from karabo.simulation.interferometer import InterferometerSimulation
@@ -102,12 +102,13 @@ def main(n_random_sources: int) -> None:
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
-    imager = SdpImager(
-        SdpImagerConfig(
+    imager = get_imager(
+        ImagingBackend.SDP,
+        config=SdpImagerConfig(
             combine_across_frequencies=False,
             clean_algorithm="hogbom",
             clean_threshold=0.12e-3,
-        )
+        ),
     )
     dirty, psf = imager.invert(
         visibility_askap,

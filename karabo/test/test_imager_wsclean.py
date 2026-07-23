@@ -7,7 +7,11 @@ import pytest
 
 from karabo.imaging.backends.wsclean_backend import WscleanBackendImager
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_factory import (
+    ImagingBackend,
+    WscleanBackendConfig,
+    get_imager,
+)
 from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_wsclean import (
     WscleanDirtyImager,
@@ -37,6 +41,14 @@ def test_wsclean_imager_factory_returns_adapter():
         for warning in warning_record
     )
     assert isinstance(imager, WscleanBackendImager)
+
+
+def test_wsclean_imager_factory_forwards_matching_config():
+    config = WscleanBackendConfig(clean_niter=23)
+    imager = get_imager(ImagingBackend.WSCLEAN, config=config)
+
+    assert isinstance(imager, WscleanBackendImager)
+    assert imager.config is config
 
 
 def test_direct_wsclean_dirty_imager_warns():
