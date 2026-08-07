@@ -8,7 +8,12 @@ import astropy.units as u
 
 
 def east_north_to_long_lat(
-    east_relative: float, north_relative: float, long: float, lat: float
+    east_relative: float,
+    north_relative: float,
+    long: float,
+    lat: float,
+    alt: float = 0.0,
+    up: float = 0.0,
 ) -> Tuple[float, float]:
     """
     Calculate the longitude and latitude of an east-north coordinate
@@ -19,11 +24,13 @@ def east_north_to_long_lat(
     :param north_relative: north coordinate in meters
     :param long: reference location longitude in degrees
     :param lat: reference location latitude in degrees
+    :param alt: reference location altitude in meters (default 0.0)
+    :param up: up (vertical) offset in meters (default 0.0)
     :return: Tuple of calculated (longitude, latitude) in degrees
     """
     # 1. Reference point in ECEF
     ref = EarthLocation.from_geodetic(
-        lon=long * u.deg, lat=lat * u.deg, height=0.0 * u.m
+        lon=long * u.deg, lat=lat * u.deg, height=alt * u.m
     )
     x0 = ref.x.to_value(u.m)
     y0 = ref.y.to_value(u.m)
@@ -37,9 +44,17 @@ def east_north_to_long_lat(
     sin_lat = np.sin(lat_rad)
     cos_lat = np.cos(lat_rad)
 
-    dx = -sin_lon * east_relative - sin_lat * cos_lon * north_relative
-    dy = cos_lon * east_relative - sin_lat * sin_lon * north_relative
-    dz = cos_lat * north_relative
+    dx = (
+        -sin_lon * east_relative
+        - sin_lat * cos_lon * north_relative
+        + cos_lat * cos_lon * up
+    )
+    dy = (
+        cos_lon * east_relative
+        - sin_lat * sin_lon * north_relative
+        + cos_lat * sin_lon * up
+    )
+    dz = cos_lat * north_relative + sin_lat * up
 
     # 3. ECEF → geodetic
     target = EarthLocation.from_geocentric(
