@@ -59,4 +59,4 @@ dependencies:
   - setuptools              >=69.0.0,<81,!=71.0.0,!=71.0.1,!=71.0.2  # 71.0.0-71.0.2 buggy with `importlib_metadata`
   # for MWA measurement set, uvfits, hdf5, mir support (choc-234)
   # this [casa] syntax won't work with mamba!
-  - pyuvdata[casa]          >=2.4,<3
+  - pyuvdata                >=2.4,<3

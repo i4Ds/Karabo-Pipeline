@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from karabo.error import KaraboError
-from karabo.util._types import IntFloat, OskarSettingsTreeType
+from karabo.util._types import IntFloat, IntFloatList, OskarSettingsTreeType
 
 
 class ObservationAbstract(ABC):
@@ -26,8 +26,7 @@ class ObservationAbstract(ABC):
         length: timedelta = timedelta(hours=4),
         number_of_channels: int = 1,
         frequency_increment_hz: IntFloat = 0,
-        phase_centre_ra_deg: IntFloat = 0,
-        phase_centre_dec_deg: IntFloat = 0,
+        phase_center: IntFloatList = [0, 0],
         number_of_time_steps: int = 1,
     ) -> None:
         """
@@ -45,12 +44,9 @@ class ObservationAbstract(ABC):
                 Defaults to 1.
             frequency_increment_hz (IntFloat, optional): Frequency increment between
                 successive channels in Hz. Defaults to 0.
-            phase_centre_ra_deg (IntFloat, optional): Right Ascension of
-                the observation pointing (phase centre) in degrees.
-                Defaults to 0.
-            phase_centre_dec_deg (IntFloat, optional): Declination of the observation
-                pointing (phase centre) in degrees.
-                Defaults to 0.
+            phase_center (IntFloatList, optional): Right Ascension and Declination
+                of the observation pointing (phase centre) in degrees.
+                Defaults to [0, 0].
             number_of_time_steps (int, optional): Number of time steps in the output
                 data during the observation length. This corresponds to the number of
                 correlator dumps for interferometer simulations, and the number of beam
@@ -71,8 +67,7 @@ class ObservationAbstract(ABC):
         # optional
         self.number_of_channels = number_of_channels
         self.frequency_increment_hz = frequency_increment_hz
-        self.phase_centre_ra_deg = phase_centre_ra_deg
-        self.phase_centre_dec_deg = phase_centre_dec_deg
+        self.phase_center = phase_center
         self.number_of_time_steps = number_of_time_steps
 
     def set_length_of_observation(
@@ -118,8 +113,8 @@ class ObservationAbstract(ABC):
                 "length": self.__strfdelta(self.length),
                 "num_channels": str(self.number_of_channels),
                 "frequency_inc_hz": str(self.frequency_increment_hz),
-                "phase_centre_ra_deg": str(self.phase_centre_ra_deg),
-                "phase_centre_dec_deg": str(self.phase_centre_dec_deg),
+                "phase_centre_ra_deg": str(self.phase_center[0]),
+                "phase_centre_dec_deg": str(self.phase_center[1]),
                 "num_time_steps": str(self.number_of_time_steps),
             },
         }
@@ -211,8 +206,8 @@ class ObservationAbstract(ABC):
         milliseconds = tdelta.microseconds // 1000
         return "{}:{}:{}:{}".format(hours, minutes, seconds, milliseconds)
 
-    def get_phase_centre(self) -> List[float]:
-        return [self.phase_centre_ra_deg, self.phase_centre_dec_deg]
+    def get_phase_centre(self) -> IntFloatList:
+        return self.phase_center
 
     def compute_hour_angles_of_observation(self) -> NDArray[np.float_]:
         """
@@ -268,8 +263,7 @@ class ObservationLong(ObservationAbstract):
         length: timedelta = timedelta(hours=4),
         number_of_channels: int = 1,
         frequency_increment_hz: IntFloat = 0,
-        phase_centre_ra_deg: IntFloat = 0,
-        phase_centre_dec_deg: IntFloat = 0,
+        phase_center: IntFloatList = [0, 0],
         number_of_time_steps: int = 1,
         number_of_days: int = 2,
     ) -> None:
@@ -281,8 +275,7 @@ class ObservationLong(ObservationAbstract):
             length=length,
             number_of_channels=number_of_channels,
             frequency_increment_hz=frequency_increment_hz,
-            phase_centre_ra_deg=phase_centre_ra_deg,
-            phase_centre_dec_deg=phase_centre_dec_deg,
+            phase_center=phase_center,
             number_of_time_steps=number_of_time_steps,
         )
         self.number_of_days: int = number_of_days
@@ -326,8 +319,7 @@ class ObservationParallelized(ObservationAbstract):
         length: timedelta = timedelta(hours=4),
         n_channels: Union[int, List[int]] = [0, 1, 2, 3, 4, 5],
         channel_bandwidths_hz: Union[IntFloat, List[IntFloat]] = [1],
-        phase_centre_ra_deg: IntFloat = 0,
-        phase_centre_dec_deg: IntFloat = 0,
+        phase_center: IntFloatList = [0, 0],
         number_of_time_steps: int = 1,
     ) -> None:
         self.enable_check = False
@@ -338,8 +330,7 @@ class ObservationParallelized(ObservationAbstract):
             length=length,
             number_of_channels=1,
             frequency_increment_hz=0,
-            phase_centre_ra_deg=phase_centre_ra_deg,
-            phase_centre_dec_deg=phase_centre_dec_deg,
+            phase_center=phase_center,
             number_of_time_steps=number_of_time_steps,
         )
         self.center_frequencies_hz = center_frequencies_hz
