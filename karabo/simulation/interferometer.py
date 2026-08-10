@@ -608,6 +608,7 @@ class InterferometerSimulation:
         )
         frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
 
+        obs_phasecenter = observation.get_phase_center()
         # Initialize empty visibilities based on observation details
         vis = create_visibility(
             telescope.RASCIL_configuration,  # Configuration of the interferometer array
@@ -615,8 +616,8 @@ class InterferometerSimulation:
             frequency=frequency_channel_centers,  # Center channel frequencies in Hz
             channel_bandwidth=frequency_bandwidths,
             phasecentre=SkyCoord(
-                observation.phase_centre_ra_deg,
-                observation.phase_centre_dec_deg,
+                obs_phasecenter[0],
+                obs_phasecenter[1],
                 unit="deg",
                 frame="icrs",
             ),
@@ -712,14 +713,16 @@ class InterferometerSimulation:
         frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
 
         # Visibility grid
+
+        obs_phasecenter = observation.get_phase_center()
         vis = create_visibility(
             telescope.SDP_configuration,  # <- key difference vs RASCIL
             times=observation_hour_angles,
             frequency=frequency_channel_centers,
             channel_bandwidth=frequency_bandwidths,
             phasecentre=SkyCoord(
-                observation.phase_centre_ra_deg,
-                observation.phase_centre_dec_deg,
+                obs_phasecenter[0],
+                obs_phasecenter[1],
                 unit="deg",
                 frame="icrs",
             ),

@@ -104,8 +104,7 @@ def test_backend_simulations(
     observation = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=240,
-        phase_centre_dec_deg=-70,
+        phase_center=[240, -70],
         number_of_time_steps=4,
         frequency_increment_hz=20e6,
         number_of_channels=4,
@@ -177,8 +176,7 @@ def test_simulation_meerkat(
         use_dask=False,
     )
     observation = Observation(
-        phase_centre_ra_deg=ra_deg,
-        phase_centre_dec_deg=dec_deg,
+        phase_center=[ra_deg, dec_deg],
         start_date_and_time=start_time,
         length=obs_length,
         number_of_time_steps=10,
@@ -264,8 +262,7 @@ def test_simulation_noise_meerkat(
         noise_rms_end=10,
     )
     observation = Observation(
-        phase_centre_ra_deg=ra_deg,
-        phase_centre_dec_deg=dec_deg,
+        phase_center=[ra_deg, dec_deg],
         start_date_and_time=start_time,
         length=obs_length,
         number_of_time_steps=10,
@@ -331,8 +328,7 @@ def test_parallelization_by_observation() -> None:
         center_frequencies_hz=CENTER_FREQUENCIES_HZ,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         channel_bandwidths_hz=CHANNEL_BANDWIDTHS_HZ,
-        phase_centre_ra_deg=phase_center[0],
-        phase_centre_dec_deg=phase_center[1],
+        phase_center=phase_center,
         number_of_time_steps=24,
         n_channels=N_CHANNELS,
     )

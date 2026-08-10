@@ -103,17 +103,16 @@ def test_dirty_image(tobject: TFiles):
 
 
 def test_create_cleaned_image():
-    phase_center = [250, -80]
+    phasecenter = [250, -80]
 
     gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
-    sky = gleam_sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
-    sky.setup_default_wcs(phase_center=phase_center)
+    sky = gleam_sky.filter_by_radius(0, 0.55, phasecenter[0], phasecenter[1])
+    sky.setup_default_wcs(phase_center=phasecenter)
     askap_tel = Telescope.constructor("ASKAP")
     observation_settings = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=phase_center[0],
-        phase_centre_dec_deg=phase_center[1],
+        phase_center=phasecenter,
         number_of_channels=NUM_CHANNELS,
         number_of_time_steps=4,
     )

@@ -241,8 +241,8 @@ def test_full_source_detection(
 def test_create_detection_from_ms_cuda():
     phase_center = np.array([225, -65])
     sky = SkyModel.get_random_poisson_disk_sky(
-        phase_center + np.array([-5, -5]),
-        phase_center + np.array([+5, +5]),
+        phase_center + np.array([-5, -5]).tolist(),
+        phase_center + np.array([+5, +5]).tolist(),
         100,
         200,
         1,
@@ -256,8 +256,7 @@ def test_create_detection_from_ms_cuda():
     observation = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=phase_center[0],
-        phase_centre_dec_deg=phase_center[1],
+        phase_center=phase_center.tolist(),
         number_of_time_steps=1,
         frequency_increment_hz=20e6,
         number_of_channels=3,

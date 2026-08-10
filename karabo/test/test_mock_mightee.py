@@ -69,10 +69,9 @@ def test_mock_mightee():
                     noise_rms_end=10,
                 )
                 observation = Observation(
-                    phase_centre_ra_deg=phase_ra,
+                    phase_center=[phase_ra, phase_dec],
                     start_date_and_time=datetime(2022, 9, 1, 9, 00, 00, 521489),
                     length=timedelta(hours=10, minutes=0, seconds=1, milliseconds=0),
-                    phase_centre_dec_deg=phase_dec,
                     number_of_time_steps=1,
                     start_frequency_hz=1.0e9 + chan,
                     frequency_increment_hz=chan,

@@ -138,10 +138,9 @@ def test_gaussian_beam(
             gauss_ref_freq_hz=1.5e9,
         )
         observation = Observation(
-            phase_centre_ra_deg=ra_deg,
+            phase_center=[ra_deg, dec_deg],
             start_date_and_time=datetime(2000, 3, 20, 12, 6, 39, 0),
             length=timedelta(hours=1, minutes=5, seconds=0, milliseconds=0),
-            phase_centre_dec_deg=dec_deg,
             number_of_time_steps=10,
             start_frequency_hz=freq,
             frequency_increment_hz=freq_bin,

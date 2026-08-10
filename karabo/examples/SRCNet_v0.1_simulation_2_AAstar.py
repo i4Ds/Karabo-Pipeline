@@ -114,8 +114,7 @@ def generate_visibilities() -> Visibility:
     )
 
     observation = Observation(
-        phase_centre_ra_deg=PHASE_CENTER_RA,
-        phase_centre_dec_deg=PHASE_CENTER_DEC,
+        phase_center=[PHASE_CENTER_RA, PHASE_CENTER_DEC],
         # During the chosen time range [start, start + length]
         # sources shouldn't be behind horizon, otherwise we won't see much.
         # Original survey: 2020-04-26 14:36:50.820 UTC to 2020-04-26 22:35:42.665 UTC

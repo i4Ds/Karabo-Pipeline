@@ -50,8 +50,7 @@ def main() -> None:
     obs = Observation(
         start_frequency_hz=start_freq_hz,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=phase_center[0],
-        phase_centre_dec_deg=phase_center[1],
+        phase_center=phase_center,
         number_of_channels=num_chan,
         frequency_increment_hz=freq_inc_hz,
         number_of_time_steps=24,

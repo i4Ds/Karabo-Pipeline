@@ -79,8 +79,7 @@ def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
         )
 
         observation = Observation(
-            phase_centre_ra_deg=20.0,
-            phase_centre_dec_deg=-30.5,
+            phase_center=[20.0, -30.5],
             start_date_and_time=datetime(2022, 1, 1, 11, 00, 00, 521489),
             length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
             number_of_time_steps=1,

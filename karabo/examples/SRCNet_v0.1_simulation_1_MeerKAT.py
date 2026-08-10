@@ -57,8 +57,7 @@ if __name__ == "__main__":
     )
 
     observation = Observation(
-        phase_centre_ra_deg=phase_center_ra,
-        phase_centre_dec_deg=phase_center_dec,
+        phase_center=[phase_center_ra, phase_center_dec],
         # During the chosen time range [start, start + length]
         # sources shouldn't be behind horizon, otherwise we won't see much.
         # Original survey: 2020-04-26 14:36:50.820 UTC to 2020-04-26 22:35:42.665 UTC

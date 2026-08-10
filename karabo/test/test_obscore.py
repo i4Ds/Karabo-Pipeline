@@ -129,8 +129,7 @@ class TestObsCoreMeta:
             observation = Observation(  # original settings for `minimal_oskar_vis`
                 start_frequency_hz=exp_freq_start,
                 start_date_and_time=exp_time_start,
-                phase_centre_ra_deg=exp_ra,
-                phase_centre_dec_deg=exp_dec,
+                phase_center=[exp_ra, exp_dec],
                 number_of_channels=exp_nfreqs,
                 frequency_increment_hz=exp_freq_res,
                 number_of_time_steps=exp_ntimes,

@@ -32,10 +32,9 @@ def test_basic(sky_data: NDArray[np.float64]):
             noise_rms_end=10000,
         )
         observation = Observation(
-            phase_centre_ra_deg=20.0,
+            phase_center=[20.0, -30.5],
             start_date_and_time=datetime(2022, 9, 1, 23, 00, 00, 521489),
             length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
-            phase_centre_dec_deg=-30.5,
             number_of_time_steps=1,
             start_frequency_hz=1.0e9,
             frequency_increment_hz=1e6,

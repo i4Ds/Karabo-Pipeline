@@ -17,8 +17,7 @@ def one_expirement(flux):
     simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=10)
     observation = Observation(
         100e6,
-        phase_centre_ra_deg=20,
-        phase_centre_dec_deg=-30,
+        phase_center=[20, -30],
         number_of_time_steps=24,
         frequency_increment_hz=20e6,
         number_of_channels=16,

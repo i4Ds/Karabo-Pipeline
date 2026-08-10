@@ -27,8 +27,7 @@ def observation() -> Observation:
     return Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=240,
-        phase_centre_dec_deg=-70,
+        phase_center=[240, -70],
         number_of_time_steps=4,
         frequency_increment_hz=20e6,
         number_of_channels=4,

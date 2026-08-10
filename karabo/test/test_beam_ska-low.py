@@ -42,10 +42,9 @@ def test_beam():
         )
         observation = Observation(
             mode="Tracking",
-            phase_centre_ra_deg=20.0,
+            phase_center=[20.0, -30.0],
             start_date_and_time=datetime(2000, 1, 1, 13, 00, 00, 521489),
             length=timedelta(hours=0, minutes=0, seconds=1, milliseconds=0),
-            phase_centre_dec_deg=-30.0,
             number_of_time_steps=1,
             start_frequency_hz=1.0e8,
             frequency_increment_hz=1e6,

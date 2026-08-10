@@ -37,8 +37,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     observation_settings = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=phase_center[0],
-        phase_centre_dec_deg=phase_center[1],
+        phase_center=phase_center,
         number_of_channels=n_channels,
         number_of_time_steps=24,
     )

@@ -146,8 +146,7 @@ def generate_visibilities(outdir: str) -> Visibility:
 
     start_date_and_time = pd.to_datetime(START_DATE_AND_TIME, utc=True).to_pydatetime()
     observation = Observation(
-        phase_centre_ra_deg=PHASE_CENTER_RA_DEG,
-        phase_centre_dec_deg=PHASE_CENTER_DEC_DEG,
+        phase_center=[PHASE_CENTER_RA_DEG, PHASE_CENTER_DEC_DEG],
         start_date_and_time=start_date_and_time,
         length=timedelta(hours=OBS_LENGTH_HOURS),
         number_of_time_steps=NUM_TIME_STAMPS,

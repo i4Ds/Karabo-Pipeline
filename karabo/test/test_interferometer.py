@@ -63,8 +63,7 @@ def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
     obs = Observation(
         start_frequency_hz=1.0e9,
         start_date_and_time=datetime(2020, 1, 1, 0, 0, 0),
-        phase_centre_ra_deg=15.0,
-        phase_centre_dec_deg=-30.0,
+        phase_center=[15.0, -30.0],
         number_of_time_steps=1,
         frequency_increment_hz=1.0e6,
         number_of_channels=1,

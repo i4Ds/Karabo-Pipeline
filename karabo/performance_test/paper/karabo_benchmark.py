@@ -162,10 +162,9 @@ for phase_ra in ra_list:
             use_gpus=use_gpus_,
         )
         observation = Observation(
-            phase_centre_ra_deg=phase_ra,
+            phase_center=[phase_ra, phase_dec],
             start_date_and_time=datetime(2022, 9, 1, 15, 00, 00, 521489),
             length=timedelta(hours=hours_, minutes=min_, seconds=sec_, milliseconds=0),
-            phase_centre_dec_deg=phase_dec,
             number_of_time_steps=t_nchan,
             start_frequency_hz=f_obs,
             frequency_increment_hz=chan,

@@ -27,10 +27,9 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
         telescope = Telescope.constructor("MeerKAT")
         observation_long = ObservationLong(
             mode="Tracking",
-            phase_centre_ra_deg=20.0,
+            phase_center=[20.0, -30.0],
             start_date_and_time=datetime(2000, 1, 1, 11, 00, 00, 521489),
             length=timedelta(hours=hours_per_day, minutes=0, seconds=0, milliseconds=0),
-            phase_centre_dec_deg=-30.0,
             number_of_time_steps=7,
             start_frequency_hz=1.0e9,
             frequency_increment_hz=1e6,

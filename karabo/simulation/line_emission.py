@@ -108,8 +108,7 @@ def line_emission_pipeline(
             center = p.center
             radius = p.radius.to(u.deg).value
             # Create observation details
-            observation.phase_centre_ra_deg = center.ra.deg
-            observation.phase_centre_dec_deg = center.dec.deg
+            observation.phase_center = [center.ra.deg, center.dec.deg]
             observation.number_of_channels = 1  # For line emission
             observation.start_frequency_hz = frequency_start
 
