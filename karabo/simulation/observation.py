@@ -206,7 +206,7 @@ class ObservationAbstract(ABC):
         milliseconds = tdelta.microseconds // 1000
         return "{}:{}:{}:{}".format(hours, minutes, seconds, milliseconds)
 
-    def get_phase_centre(self) -> IntFloatList:
+    def get_phase_center(self) -> IntFloatList:
         return self.phase_center
 
     def compute_hour_angles_of_observation(self) -> NDArray[np.float_]:
