@@ -199,7 +199,7 @@ class TestWgs84ToCartesian:
     """Tests for the public WGS84 → ECEF conversion (supports arrays)."""
 
     @pytest.mark.parametrize("lon, lat, alt", SITES, ids=["LOFAR", "MeerKAT",
-        "ASKAP", "VLA"])
+                                                          "ASKAP", "VLA"])
     def test_against_astropy(self, lon: float, lat: float, alt: float) -> None:
         """Scalar input must match astropy to sub-millimetre accuracy."""
         result: NDArray[np.float64] = wgs84_to_cartesian(lon, lat, alt)
