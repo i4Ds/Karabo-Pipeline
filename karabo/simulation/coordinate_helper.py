@@ -1,10 +1,9 @@
 from typing import Tuple, Union
 
+import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
 from numpy.typing import NDArray
-
-import astropy.units as u
 
 
 def east_north_to_long_lat(
