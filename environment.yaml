@@ -51,7 +51,7 @@ dependencies:
   - ska-sdp-func-python     =1.0.0
 
   - tools21cm               =2.0.3
-  - wsclean                 =3.6.0
+  - wsclean                 
   - xarray                  >=2024.9
 
   - conda-forge::fftw       =*=mpi_mpich*

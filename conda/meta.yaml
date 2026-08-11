@@ -27,9 +27,9 @@ requirements:
     - aratmospy               =1.0.0
     - astropy
     - bdsf                    =1.14.1
-    - bluebild                =0.1.0
-    - cuda-cudart
-    - dask                    =2022.12.1
+    - bluebild                =1.0.0
+    - cuda-cudart             >=12,<13 
+    - dask                    >=2024.12,<2025.4
     - dask-mpi
     - distributed
     - eidos                   =1.1.0
