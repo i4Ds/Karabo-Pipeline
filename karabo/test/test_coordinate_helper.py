@@ -198,7 +198,8 @@ class TestEastNorthToLongLat:
 class TestWgs84ToCartesian:
     """Tests for the public WGS84 → ECEF conversion (supports arrays)."""
 
-    @pytest.mark.parametrize("lon, lat, alt", SITES, ids=["LOFAR", "MeerKAT", "ASKAP", "VLA"])
+    @pytest.mark.parametrize("lon, lat, alt", SITES, ids=["LOFAR", "MeerKAT",
+        "ASKAP", "VLA"])
     def test_against_astropy(self, lon: float, lat: float, alt: float) -> None:
         """Scalar input must match astropy to sub-millimetre accuracy."""
         result: NDArray[np.float64] = wgs84_to_cartesian(lon, lat, alt)
@@ -226,4 +227,4 @@ class TestWgs84ToCartesian:
     def test_no_radius_parameter(self) -> None:
         """The old `radius` parameter has been removed; passing it must raise."""
         with pytest.raises(TypeError):
-            wgs84_to_cartesian(0.0, 0.0, 0.0, radius=6_378_100)  # type: ignore[call-arg]
+            wgs84_to_cartesian(0.0, 0.0, 0.0, radius=6_378_100)
