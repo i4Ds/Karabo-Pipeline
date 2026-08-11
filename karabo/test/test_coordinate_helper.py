@@ -1,9 +1,8 @@
+import astropy.units as u
 import numpy as np
 import pytest
 from astropy.coordinates import EarthLocation
 from numpy.typing import NDArray
-
-import astropy.units as u
 
 from karabo.simulation.coordinate_helper import (
     east_north_to_long_lat,
@@ -118,12 +117,12 @@ class TestEastNorthToLongLat:
         expected_lon, expected_lat = _astropy_enu_to_geodetic(
             east, north, lon0, lat0, alt0=alt0, up=up
         )
-        assert abs(result_lon - expected_lon) < GEODETIC_ATOL_DEG, (
-            f"{site_name}: lon mismatch {result_lon} vs {expected_lon}"
-        )
-        assert abs(result_lat - expected_lat) < GEODETIC_ATOL_DEG, (
-            f"{site_name}: lat mismatch {result_lat} vs {expected_lat}"
-        )
+        assert (
+            abs(result_lon - expected_lon) < GEODETIC_ATOL_DEG
+        ), f"{site_name}: lon mismatch {result_lon} vs {expected_lon}"
+        assert (
+            abs(result_lat - expected_lat) < GEODETIC_ATOL_DEG
+        ), f"{site_name}: lat mismatch {result_lat} vs {expected_lat}"
 
     def test_zero_offset_is_identity(self) -> None:
         """A zero ENU offset must return the reference point exactly."""
@@ -198,8 +197,9 @@ class TestEastNorthToLongLat:
 class TestWgs84ToCartesian:
     """Tests for the public WGS84 → ECEF conversion (supports arrays)."""
 
-    @pytest.mark.parametrize("lon, lat, alt", SITES, ids=["LOFAR", "MeerKAT",
-                                                          "ASKAP", "VLA"])
+    @pytest.mark.parametrize(
+        "lon, lat, alt", SITES, ids=["LOFAR", "MeerKAT", "ASKAP", "VLA"]
+    )
     def test_against_astropy(self, lon: float, lat: float, alt: float) -> None:
         """Scalar input must match astropy to sub-millimetre accuracy."""
         result: NDArray[np.float64] = wgs84_to_cartesian(lon, lat, alt)
