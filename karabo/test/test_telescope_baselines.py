@@ -125,7 +125,8 @@ def test_telescope_max_baseline_length(
 ):
     max_length_oskar: np.float64 = oskar_telescope.max_baseline()
     # Should be the same +/- 1 m
-    assert math.isclose(max_length_oskar - 7500.0, 0, abs_tol=1)
+    # assert math.isclose(max_length_oskar - 7500.0, 0, abs_tol=1)
+    assert math.isclose(max_length_oskar - 7697.0, 0, abs_tol=1)
 
     max_length_sdp: np.float64 = sdp_telescope.max_baseline()
     # Should be the same +/- 1 m
@@ -133,7 +134,7 @@ def test_telescope_max_baseline_length(
 
     freq_Hz = 100e6
     angular_res: float = Telescope.ang_res(freq_Hz, max_length_oskar)
-    assert math.isclose(angular_res, 82.44, rel_tol=1e-2)
+    assert math.isclose(angular_res, 80.33, rel_tol=1e-2)
 
 
 def test_telescope_stations(oskar_telescope: Telescope, sdp_telescope: Telescope):

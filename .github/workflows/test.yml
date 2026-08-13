@@ -57,7 +57,7 @@ jobs:
           # Debug since we had problems with mpi installation
           python -c "import h5py; print('h5py ok')"
           which wsclean || true
-          ldd "$(which wsclean)" | grep -i mpi || tru  
+          ldd "$(which wsclean)" | grep -i mpi || true
 
       - name: Test Dev-Tools
         shell: bash -el {0}
