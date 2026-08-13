@@ -23,7 +23,7 @@ def generate_gaussian_beam_data(
     fwhm_pixels: float,
     x_size: int,
     y_size: int,
-) -> NDArray[np.float_]:
+) -> NDArray[np.float64]:
     """Given a FWHM in pixel units, and a size in x and y coordinates,
     return a 2D array of shape (x_size, y_size) containing normalized Gaussian values
     (such that the central value of the 2D array is 1.0).
@@ -34,7 +34,7 @@ def generate_gaussian_beam_data(
         x_size=x_size,
         y_size=y_size,
     )
-    beam = cast(NDArray[np.float_], gauss_kernel.array)
+    beam = cast(NDArray[np.float64], gauss_kernel.array)
     beam = beam / np.max(beam)
 
     return beam
@@ -43,7 +43,7 @@ def generate_gaussian_beam_data(
 def generate_eidos_beam(
     npixels: int,
     image_width_degrees: float,
-    frequencies: NDArray[np.float_],
+    frequencies: NDArray[np.float64],
     stokes: str = "I",
 ) -> None:
     """This function generates a beam using EIDOS. Takes Image details as input and
@@ -75,7 +75,7 @@ def generate_eidos_beam(
 
 def generate_airy_beam_data(
     fwhm_pixels: float, x_size: int, y_size: int
-) -> NDArray[np.float_]:
+) -> NDArray[np.float64]:
     """Given a FWHM in pixel units, and a size in x and y coordinates,
     return a 2D array of shape (x_size, y_size) containing normalized Airy values
     (such that the central value of the 2D array is 1.0).
@@ -103,7 +103,7 @@ def generate_airy_beam_data(
     # Normalize peak to 1
     airy_pattern /= np.max(airy_pattern)
 
-    return cast(NDArray[np.float_], airy_pattern)
+    return cast(NDArray[np.float64], airy_pattern)
 
 
 def airy_beam_fwhm_for_frequency(frequency_hz: float, dish_diameter_m: float) -> float:

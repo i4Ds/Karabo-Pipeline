@@ -60,7 +60,7 @@ class Image:
         self,
         *,
         path: Literal[None] = None,
-        data: NDArray[np.float_],
+        data: NDArray[np.float64],
         header: Header,
         **kwargs: Any,
     ) -> None:
@@ -70,7 +70,7 @@ class Image:
         self,
         *,
         path: Optional[FilePathType] = None,
-        data: Optional[NDArray[np.float_]] = None,
+        data: Optional[NDArray[np.float64]] = None,
         header: Optional[Header] = None,
         **kwargs: Any,
     ) -> None:
@@ -131,11 +131,11 @@ class Image:
         return Image(path=path)
 
     @property
-    def data(self) -> NDArray[np.float_]:
+    def data(self) -> NDArray[np.float64]:
         return self._data
 
     @data.setter
-    def data(self, new_data: NDArray[np.float_]) -> None:
+    def data(self, new_data: NDArray[np.float64]) -> None:
         self._data = new_data
         if hasattr(self, "header"):
             self._update_header_after_resize()
@@ -257,7 +257,7 @@ class Image:
 
         """
 
-        def circle_pixels(pixels: NDArray[np.float_]) -> NDArray[np.float_]:
+        def circle_pixels(pixels: NDArray[np.float64]) -> NDArray[np.float64]:
             radius = min(pixels.shape) // 2
             y, x = np.ogrid[-radius:radius, -radius:radius]
             mask = x**2 + y**2 > radius**2

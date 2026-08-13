@@ -158,7 +158,7 @@ class _CasaTableABC(ABC):
         *,
         startrow: int = 0,
         nrow: int = -1,  # 500M is about 4GB for float64
-    ) -> Any:  # usually list[str], NDArray[np.float64|np.int32|np.bool], dict[str,Any]
+    ) -> Any:  # usually list[str], NDArray[np.float64|np.int32|np.bool_], dict[str,Any]
         """Get a specific column `col` of `ms_path`.
 
         This is a very useful function in particular for the main table since it
