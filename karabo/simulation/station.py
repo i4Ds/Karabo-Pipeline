@@ -19,11 +19,16 @@ class Station:
         self.position: EastNorthCoordinate = position
         self.antennas: List[EastNorthCoordinate] = []
         long, lat = east_north_to_long_lat(
-            position.x, position.y, parent_longitude, parent_latitude
+            position.x,
+            position.y,
+            parent_longitude,
+            parent_latitude,
+            alt=parent_altitude,
+            up=position.z,
         )
         self.longitude: float = long
         self.latitude: float = lat
-        self.altitude: float = position.z
+        self.altitude: float = parent_altitude + position.z
 
     def add_station_antenna(self, antenna: EastNorthCoordinate) -> None:
         self.antennas.append(antenna)
