@@ -608,19 +608,13 @@ class InterferometerSimulation:
         )
         frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
 
-        obs_phasecenter = observation.get_phase_center()
         # Initialize empty visibilities based on observation details
         vis = create_visibility(
             telescope.RASCIL_configuration,  # Configuration of the interferometer array
             times=observation_hour_angles,  # Hour angles
             frequency=frequency_channel_centers,  # Center channel frequencies in Hz
             channel_bandwidth=frequency_bandwidths,
-            phasecentre=SkyCoord(
-                obs_phasecenter[0],
-                obs_phasecenter[1],
-                unit="deg",
-                frame="icrs",
-            ),
+            phasecentre=observation.get_phase_center(),
             weight=1.0,  # Keep as 1, per recommendation from RASCIL docs
             polarisation_frame=PolarisationFrame(
                 "stokesI"

@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from ska_sdp_datamodels.image import create_image
@@ -89,8 +88,8 @@ def test_gaussian_beam(
     freq_bin = 1e7
     npixels = 512
     cellsize = 3 / 180 * np.pi / npixels
-    ra_deg = 20.0
-    dec_deg = -30.0
+
+    phasecenter = SkyCoord(20.0, -30.0, unit="deg", frame="icrs")
     nchannels = 2
 
     # Beam for OSKAR
@@ -101,7 +100,7 @@ def test_gaussian_beam(
     primary_beam = create_image(
         npixel=npixels,
         cellsize=cellsize,
-        phasecentre=SkyCoord(ra_deg, dec_deg, unit=(u.deg, u.deg), frame="icrs"),
+        phasecentre=phasecenter,
         frequency=freq,
         channel_bandwidth=freq_bin,
         nchan=nchannels,
@@ -138,7 +137,7 @@ def test_gaussian_beam(
             gauss_ref_freq_hz=1.5e9,
         )
         observation = Observation(
-            phase_center=[ra_deg, dec_deg],
+            phase_center=phasecenter,
             start_date_and_time=datetime(2000, 3, 20, 12, 6, 39, 0),
             length=timedelta(hours=1, minutes=5, seconds=0, milliseconds=0),
             number_of_time_steps=10,

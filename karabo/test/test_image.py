@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime
 
 import numpy as np
+from astropy.coordinates import SkyCoord
 
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_rascil import (
@@ -211,10 +212,10 @@ def test_cellsize_overwrite_false(tobject: TFiles):
 
 
 def test_imaging():
-    phasecenter = [250, -80]
+    phasecenter = SkyCoord(250, -80, unit="deg")
     gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
-    sky = gleam_sky.filter_by_radius(0, 0.55, phasecenter[0], phasecenter[1])
-    sky.setup_default_wcs(phase_center=phasecenter)
+    sky = gleam_sky.filter_by_radius(0, 0.55, phasecenter)
+    sky.setup_default_wcs(phase_center=[phasecenter.ra.deg, phasecenter.dec.deg])
     askap_tel = Telescope.constructor("ASKAP")
     observation_settings = Observation(
         start_frequency_hz=100e6,
