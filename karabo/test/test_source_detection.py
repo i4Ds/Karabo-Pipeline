@@ -4,6 +4,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+from astropy.coordinates import SkyCoord
 
 from karabo.data.external_data import (
     SingleFileDownloadObject,
@@ -44,9 +45,9 @@ def test_restored_filtered_example_gleam_downloader(
 def test_source_detection_plot(
     tobject: TFiles, normalized_norm_diff: NNImageDiffCallable
 ):
-    phase_center = [250, -80]
+    phasecenter = SkyCoord(250, -80, unit="deg")
     sky = SkyModel.read_from_file(tobject.filtered_sky_csv)
-    sky.setup_default_wcs(phase_center=phase_center)
+    sky.setup_default_wcs(phase_center=phasecenter)
     detection = SourceDetectionResult.read_from_file(tobject.detection_zip)
     with tempfile.TemporaryDirectory() as tmpdir:
         detection.write_to_file(os.path.join(tmpdir, "detection.zip"))
@@ -59,7 +60,7 @@ def test_source_detection_plot(
 
     ground_truth, sky_idxs = project_sky_to_image(
         sky=sky,
-        phase_center=phase_center,
+        phase_center=phasecenter,
         imaging_cellsize=imaging_cellsize,
         imaging_npixel=imaging_npixel,
         filter_outlier=True,
@@ -256,7 +257,7 @@ def test_create_detection_from_ms_cuda():
     observation = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_center=phase_center.tolist(),
+        phase_center=SkyCoord(phase_center[0], phase_center[1], unit="deg"),
         number_of_time_steps=1,
         frequency_increment_hz=20e6,
         number_of_channels=3,

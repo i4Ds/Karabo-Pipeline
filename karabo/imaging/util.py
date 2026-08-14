@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import warnings
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import numpy as np
+from astropy.coordinates import SkyCoord
 from astropy.modeling import fitting, models
 from astropy.wcs import WCS
 from numpy.typing import NDArray
@@ -174,7 +175,7 @@ def guess_beam_parameters(img: Image) -> BeamType:
 
 def project_sky_to_image(
     sky: SkyModel,
-    phase_center: Union[List[int], List[float]],
+    phase_center: SkyCoord,
     imaging_cellsize: float,
     imaging_npixel: int,
     filter_outlier: bool = True,
@@ -185,7 +186,7 @@ def project_sky_to_image(
     If you want to have integer indices, just round them.
 
     :param sky: `SkyModel` with the sources
-    :param phase_center: [RA,DEC]
+    :param phase_center: RA, DEC sky coordinates as astropy.coordinates.SkyCoord object
     :param imaging_cellsize: Image cellsize in radian (pixel coverage)
     :param imaging_npixel: Number of pixels of the image
     :param filter_outlier: Exclude source outside of image?
@@ -209,7 +210,7 @@ def project_sky_to_image(
     w.wcs.cdelt = np.array(
         [ra_sign * cdelt, cdelt]
     )  # coordinate increments on sphere per axis
-    w.wcs.crval = phase_center
+    w.wcs.crval = [phase_center.ra.deg, phase_center.dec.deg]
     w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
 
     # convert coordinates

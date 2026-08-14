@@ -3,7 +3,8 @@ from __future__ import annotations
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Tuple
+
+from astropy.coordinates import SkyCoord
 
 from karabo.imaging.image import Image
 from karabo.simulation.visibility import Visibility
@@ -15,7 +16,7 @@ class ImageSpec:
 
     npix: int
     cellsize_arcsec: float
-    phase_centre_deg: Tuple[float, float]
+    phase_centre_deg: SkyCoord
     polarisation: str = "I"
     nchan: int = 1
 

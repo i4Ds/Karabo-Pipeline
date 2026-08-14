@@ -9,7 +9,6 @@ from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility, VisibilityFormat
 from karabo.simulator_backend import SimulatorBackend
-from karabo.util._types import IntFloatList
 
 
 def run_sample_simulation(
@@ -18,7 +17,7 @@ def run_sample_simulation(
     visibility_format: VisibilityFormat = "MS",
     verbose: bool = False,
 ) -> Tuple[
-    Visibility, IntFloatList, SkyModel, Telescope, Observation, InterferometerSimulation
+    Visibility, SkyCoord, SkyModel, Telescope, Observation, InterferometerSimulation
 ]:
     """Creates example visibilities for use in tests, experiments and examples.
 
