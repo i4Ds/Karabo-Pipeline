@@ -19,6 +19,7 @@ from typing import Tuple, cast
 import numpy as np
 import pandas as pd
 from astropy import constants
+from astropy.coordinates import SkyCoord
 
 from karabo.data.obscore import ObsCoreMeta
 from karabo.data.src import RucioMeta
@@ -44,6 +45,7 @@ from karabo.util.helpers import Environment
 SKY_MODEL = Environment.get("SKY_MODEL", str)
 PHASE_CENTER_RA_DEG = Environment.get("PHASE_CENTER_RA_DEG", float)
 PHASE_CENTER_DEC_DEG = Environment.get("PHASE_CENTER_DEC_DEG", float)
+PHASECENTER = SkyCoord(PHASE_CENTER_RA_DEG, PHASE_CENTER_DEC_DEG, unit="deg")
 START_FREQ_HZ = Environment.get("START_FREQ_HZ", float)
 END_FREQ_HZ = Environment.get("END_FREQ_HZ", float)
 FREQ_INC_HZ = Environment.get("FREQ_INC_HZ", float)
@@ -124,8 +126,7 @@ def generate_visibilities(outdir: str) -> Visibility:
     sky_model = sky_model.filter_by_radius(
         inner_radius_deg=0.0,
         outer_radius_deg=filter_radius_deg,
-        ra0_deg=PHASE_CENTER_RA_DEG,
-        dec0_deg=PHASE_CENTER_DEC_DEG,
+        sky_center=PHASECENTER,
     )
 
     telescope = Telescope.constructor(  # type: ignore[call-overload]
@@ -146,7 +147,7 @@ def generate_visibilities(outdir: str) -> Visibility:
 
     start_date_and_time = pd.to_datetime(START_DATE_AND_TIME, utc=True).to_pydatetime()
     observation = Observation(
-        phase_center=[PHASE_CENTER_RA_DEG, PHASE_CENTER_DEC_DEG],
+        phase_center=PHASECENTER,
         start_date_and_time=start_date_and_time,
         length=timedelta(hours=OBS_LENGTH_HOURS),
         number_of_time_steps=NUM_TIME_STAMPS,

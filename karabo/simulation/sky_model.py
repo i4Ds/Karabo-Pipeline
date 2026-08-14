@@ -1725,9 +1725,11 @@ class SkyModel:
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
                 shape = f[prefix_mapping.ra].shape
-                dask_array = da.zeros(shape, chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
+                dask_array = da.zeros(shape, chunks=(chunksize,))  # noqa: E501
             else:
-                dask_array = da.from_array(f[field_value], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
+                dask_array = da.from_array(
+                    f[field_value], chunks=(chunksize,)
+                )  # noqa: E501
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
 
         if load_as == "numpy_array":

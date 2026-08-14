@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 import numpy as np
+from astropy.coordinates import SkyCoord
 
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -16,19 +17,17 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     DaskHandler.memory_limit = memory_limit
     print("Setting up sky model...")
     sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
-    phase_center = [250, -80]
+    phasecenter = SkyCoord(250, -80, unit="deg")
 
     print("Filtering sky model...")
-    sky = sky.filter_by_radius_euclidean_flat_approximation(
-        0, 1, phase_center[0], phase_center[1]
-    )
+    sky = sky.filter_by_radius_euclidean_flat_approximation(0, 1, phasecenter)
 
     # Rechunk Sky model
     sky.sources = sky.sources.chunk(np.ceil(len(sky.sources) / 2))  # type: ignore
     print("Size of sky sources: ", sky.sources.nbytes / 1e6, "MB")
 
     print("Setting up default wcs...")
-    sky.setup_default_wcs(phase_center=phase_center)
+    sky.setup_default_wcs(phase_center=phasecenter)
 
     print("Setting up telescope...")
     askap_tel = Telescope.constructor("ASKAP")
@@ -37,7 +36,7 @@ def main(n_channels: int, memory_limit: Optional[int] = None) -> None:
     observation_settings = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_center=phase_center,
+        phase_center=phasecenter,
         number_of_channels=n_channels,
         number_of_time_steps=24,
     )

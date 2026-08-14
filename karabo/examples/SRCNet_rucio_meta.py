@@ -39,9 +39,9 @@ def main() -> None:
     # the params for this example are highly adapted to not create large
     # data products, because this is not the focus of this script.
     sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=231e6)  # in Hz
-    phase_center = [250, -80]  # RA,DEC in deg
+    phasecenter = [250, -80]  # RA,DEC in deg
     filter_radius_deg = 0.8
-    sky = sky.filter_by_radius(0, filter_radius_deg, phase_center[0], phase_center[1])
+    sky = sky.filter_by_radius(0, filter_radius_deg, phasecenter)
     tel = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
     start_freq_hz = 76e6
     num_chan = 16
@@ -50,7 +50,7 @@ def main() -> None:
     obs = Observation(
         start_frequency_hz=start_freq_hz,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_center=phase_center,
+        phase_center=phasecenter,
         number_of_channels=num_chan,
         frequency_increment_hz=freq_inc_hz,
         number_of_time_steps=24,
@@ -119,7 +119,7 @@ def main() -> None:
     image_spec = ImageSpec(
         npix=imaging_npixel,
         cellsize_arcsec=np.rad2deg(imaging_cellsize) * 3600.0,
-        phase_centre_deg=(phase_center[0], phase_center[1]),
+        phase_centre_deg=phasecenter,
     )
     dirty, psf = imager.invert(vis, image_spec)
     restored = imager.restore(dirty, psf)
