@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from numpy.typing import NDArray
 
@@ -86,10 +87,11 @@ def continuous_Rascil_fits_downloader(
 def test_backend_simulations(
     sky_data: NDArray[np.float64], backend: SimulatorBackend, telescope_name: str
 ) -> None:
+    phasecenter = SkyCoord(240, -70, unit="deg")
     sky = SkyModel()
     sky.add_point_sources(sky_data)
     sky = SkyModel.get_random_poisson_disk_sky((220, -60), (260, -80), 1, 1, 1)
-    sky.explore_sky([240, -70], s=10)
+    sky.explore_sky(phase_center=phasecenter, s=10)
     telescope = Telescope.constructor(telescope_name, backend=backend)
     telescope.centre_longitude = 3
 
@@ -104,7 +106,7 @@ def test_backend_simulations(
     observation = Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_center=[240, -70],
+        phase_center=phasecenter,
         number_of_time_steps=4,
         frequency_increment_hz=20e6,
         number_of_channels=4,
@@ -154,8 +156,7 @@ def test_simulation_meerkat(
         golden_continuous_fits_path = continuous_Rascil_fits_downloader.get()
 
     # Parameter definition
-    ra_deg = 20
-    dec_deg = -30
+    phasecenter = SkyCoord(20, -30, unit="deg")
     start_time = datetime(2000, 3, 20, 12, 6, 39)
     obs_length = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0)
     start_freq = 1.5e9
@@ -176,7 +177,7 @@ def test_simulation_meerkat(
         use_dask=False,
     )
     observation = Observation(
-        phase_center=[ra_deg, dec_deg],
+        phase_center=phasecenter,
         start_date_and_time=start_time,
         length=obs_length,
         number_of_time_steps=10,
@@ -236,8 +237,7 @@ def test_simulation_noise_meerkat(
     golden_continuous_noise_fits_path = continuous_noise_fits_downloader.get()
 
     # Parameter definition
-    ra_deg = 20
-    dec_deg = -30
+    phasecenter = SkyCoord(20, -30, unit="deg")
     start_time = datetime(2000, 3, 20, 12, 6, 39)
     obs_length = timedelta(hours=3, minutes=5, seconds=0, milliseconds=0)
     start_freq = 1.5e9
@@ -262,7 +262,7 @@ def test_simulation_noise_meerkat(
         noise_rms_end=10,
     )
     observation = Observation(
-        phase_center=[ra_deg, dec_deg],
+        phase_center=phasecenter,
         start_date_and_time=start_time,
         length=obs_length,
         number_of_time_steps=10,
@@ -314,12 +314,12 @@ def test_simulation_noise_meerkat(
 )
 def test_parallelization_by_observation() -> None:
     sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
-    phase_center = [250, -80]
+    phasecenter = SkyCoord(250, -80, unit="deg")
     CENTER_FREQUENCIES_HZ = [100e6, 101e6]
     CHANNEL_BANDWIDTHS_HZ = [1.0, 2.0]
     N_CHANNELS = [2, 4]
 
-    sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    sky = sky.filter_by_radius(0, 0.55, phasecenter.ra.deg, phasecenter.dec.deg)
     telescope = Telescope.constructor("ASKAP")
 
     simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=1)
@@ -328,7 +328,7 @@ def test_parallelization_by_observation() -> None:
         center_frequencies_hz=CENTER_FREQUENCIES_HZ,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
         channel_bandwidths_hz=CHANNEL_BANDWIDTHS_HZ,
-        phase_center=phase_center,
+        phase_center=phasecenter,
         number_of_time_steps=24,
         n_channels=N_CHANNELS,
     )

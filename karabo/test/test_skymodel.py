@@ -9,6 +9,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 import xarray as xr
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.io.fits import ColDefs, Column
 from astropy.units import UnitBase, UnitConversionError
@@ -68,11 +69,11 @@ def test_mals_v3():
 
 
 def test_filter_sky_model(gleam: SkyModel):
-    phase_center = [250, -80]  # ra,dec
-    filtered_sky = gleam.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    phasecenter = SkyCoord(250, -80, unit="deg")
+    filtered_sky = gleam.filter_by_radius(0, 0.55, phasecenter)
     assert len(filtered_sky.sources) == 8
     filtered_sky_euclidean_approx = gleam.filter_by_radius_euclidean_flat_approximation(
-        0, 0.55, phase_center[0], phase_center[1]
+        0, 0.55, phasecenter
     )
     assert len(filtered_sky_euclidean_approx.sources) == len(filtered_sky.sources)
 
@@ -98,14 +99,16 @@ def test_not_full_array():
 
 def test_filter_sky_model_h5():
     sky = SkyModel.get_sample_simulated_catalog()
-    phase_center = [21.44213503, -30.70729488]
-    filtered_sky = sky.filter_by_radius_euclidean_flat_approximation(
-        0, 1, phase_center[0], phase_center[1]
-    )
-    filtered_sky.setup_default_wcs(phase_center)
+    phasecenter = SkyCoord(21.44213503, -30.70729488, unit="deg")
+    filtered_sky = sky.filter_by_radius_euclidean_flat_approximation(0, 1, phasecenter)
+    filtered_sky.setup_default_wcs(phasecenter)
     assert len(filtered_sky.sources) == 33
     assert np.all(
-        np.abs(filtered_sky.sources.compute()[:, 0:2] - phase_center) < [2, 2]
+        np.abs(
+            filtered_sky.sources.compute()[:, 0:2]
+            - [phasecenter.ra.deg, phasecenter.dec.deg]
+        )
+        < [2, 2]
     )
 
 
@@ -189,7 +192,7 @@ def test_get_poisson_sky():
 
 
 def test_explore_sky(gleam: SkyModel):
-    gleam.explore_sky([250, -80], s=0.1)
+    gleam.explore_sky(SkyCoord(250, -80, unit="deg"), s=0.1)
 
 
 def test_test_sky_model_LE():

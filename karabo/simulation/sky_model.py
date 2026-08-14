@@ -66,7 +66,6 @@ from karabo.simulator_backend import SimulatorBackend
 from karabo.util._types import (
     FilePathType,
     IntFloat,
-    IntFloatList,
     NPFloatInpBroadType,
     NPFloatLike,
     PrecisionType,
@@ -1290,7 +1289,7 @@ class SkyModel:
 
     def explore_sky(
         self,
-        phase_center: IntFloatList,
+        phase_center: SkyCoord,
         stokes: StokesType = "Stokes I",
         idx_to_plot: Optional[NDArray[np.int_]] = None,
         xlim: Optional[Tuple[IntFloat, IntFloat]] = None,
