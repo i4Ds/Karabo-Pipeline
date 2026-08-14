@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from reproject import reproject_interp
 
@@ -45,8 +46,7 @@ def test_mock_mightee():
         for phase_ra in ra_list:
             for phase_dec in dec_list:
                 sky_filter = sky.filter_by_radius(
-                    ra0_deg=phase_ra,
-                    dec0_deg=phase_dec,
+                    sky_center=SkyCoord(phase_ra, phase_dec, unit="deg"),
                     inner_radius_deg=0,
                     outer_radius_deg=2.0,
                 )
@@ -69,7 +69,7 @@ def test_mock_mightee():
                     noise_rms_end=10,
                 )
                 observation = Observation(
-                    phase_center=[phase_ra, phase_dec],
+                    phase_center=SkyCoord(phase_ra, phase_dec, unit="deg"),
                     start_date_and_time=datetime(2022, 9, 1, 9, 00, 00, 521489),
                     length=timedelta(hours=10, minutes=0, seconds=1, milliseconds=0),
                     number_of_time_steps=1,

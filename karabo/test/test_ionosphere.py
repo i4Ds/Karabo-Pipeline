@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 from ARatmospy.ArScreens import ArScreens
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
 from numpy.typing import NDArray
@@ -103,7 +104,7 @@ def test_ionosphere(sky_data: NDArray[np.float64]):
             ionosphere_isoplanatic_screen=True,
         )
         observation = Observation(
-            phase_center=[20.0, -30.5],
+            phase_center=SkyCoord(20.0, -30.5, unit="deg"),
             start_date_and_time=datetime(2022, 9, 1, 3, 00, 00, 521489),
             length=timedelta(hours=0, minutes=10, seconds=1, milliseconds=0),
             number_of_time_steps=5,

@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Tuple
 
+from astropy.coordinates import SkyCoord
+
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -36,7 +38,7 @@ def run_sample_simulation(
             "RASCIL simulations are currently not supported in this sample"
         )
 
-    phase_center = [250, -80]
+    phase_center = SkyCoord(250, -80, unit="deg")
 
     if verbose:
         print("Getting Sky Survey")
@@ -45,7 +47,7 @@ def run_sample_simulation(
 
     if verbose:
         print("Filtering Sky Model")
-    sky = sky.filter_by_radius(0, 0.55, phase_center[0], phase_center[1])
+    sky = sky.filter_by_radius(0, 0.55, phase_center)
     sky.setup_default_wcs(phase_center=phase_center)
 
     if verbose:

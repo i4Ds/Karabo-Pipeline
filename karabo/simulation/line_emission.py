@@ -108,7 +108,7 @@ def line_emission_pipeline(
             center = p.center
             radius = p.radius.to(u.deg).value
             # Create observation details
-            observation.phase_center = [center.ra.deg, center.dec.deg]
+            observation.phase_center = center
             observation.number_of_channels = 1  # For line emission
             observation.start_frequency_hz = frequency_start
 
@@ -137,8 +137,7 @@ def line_emission_pipeline(
             filtered_sky = sky_model.filter_by_radius_euclidean_flat_approximation(
                 inner_radius_deg=0,
                 outer_radius_deg=radius,
-                ra0_deg=center.ra.deg,
-                dec0_deg=center.dec.deg,
+                sky_center=center,
             )
             z_min = convert_frequency_to_z(
                 frequency_start + observation.frequency_increment_hz

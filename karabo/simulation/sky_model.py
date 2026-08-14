@@ -1024,8 +1024,7 @@ class SkyModel:
         self,
         inner_radius_deg: IntFloat,
         outer_radius_deg: IntFloat,
-        ra0_deg: IntFloat,
-        dec0_deg: IntFloat,
+        sky_center: SkyCoord,
         indices: Literal[False] = False,
     ) -> SkyModel:
         ...
@@ -1035,8 +1034,7 @@ class SkyModel:
         self,
         inner_radius_deg: IntFloat,
         outer_radius_deg: IntFloat,
-        ra0_deg: IntFloat,
-        dec0_deg: IntFloat,
+        sky_center: SkyCoord,
         indices: Literal[True],
     ) -> Tuple[SkyModel, NDArray[np.int_]]:
         ...
@@ -1045,8 +1043,7 @@ class SkyModel:
         self,
         inner_radius_deg: IntFloat,
         outer_radius_deg: IntFloat,
-        ra0_deg: IntFloat,
-        dec0_deg: IntFloat,
+        sky_center: SkyCoord,
         indices: bool = False,
     ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int_]]]:
         """
@@ -1069,11 +1066,11 @@ class SkyModel:
                 "`sources` is None, add sources before calling `filter_by_radius`."
             )
         inner_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg),
+            (sky_center.ra, sky_center.dec),
             inner_radius_deg * u.deg,
         )
         outer_circle = SphericalCircle(
-            (ra0_deg * u.deg, dec0_deg * u.deg),
+            (sky_center.ra, sky_center.dec),
             outer_radius_deg * u.deg,
         )
         outer_sources = outer_circle.contains_points(copied_sky[:, 0:2])
@@ -1095,8 +1092,7 @@ class SkyModel:
         self,
         inner_radius_deg: IntFloat,
         outer_radius_deg: IntFloat,
-        ra0_deg: IntFloat,
-        dec0_deg: IntFloat,
+        sky_center: SkyCoord,
         indices: Literal[False] = False,
     ) -> SkyModel:
         ...
@@ -1106,8 +1102,7 @@ class SkyModel:
         self,
         inner_radius_deg: IntFloat,
         outer_radius_deg: IntFloat,
-        ra0_deg: IntFloat,
-        dec0_deg: IntFloat,
+        sky_center: SkyCoord,
         indices: Literal[True],
     ) -> Tuple[SkyModel, NDArray[np.int_]]:
         ...
@@ -1116,8 +1111,7 @@ class SkyModel:
         self,
         inner_radius_deg: IntFloat,
         outer_radius_deg: IntFloat,
-        ra0_deg: IntFloat,
-        dec0_deg: IntFloat,
+        sky_center: SkyCoord,
         indices: bool = False,
     ) -> Union[SkyModel, Tuple[SkyModel, NDArray[np.int_]]]:
         """
@@ -1139,10 +1133,8 @@ class SkyModel:
                 The inner radius of the annular search region, in degrees.
             outer_radius_deg : IntFloat
                 The outer radius of the annular search region, in degrees.
-            ra0_deg : IntFloat
-                The right ascension of the search region's center, in degrees.
-            dec0_deg : IntFloat
-                The declination of the search region's center, in degrees.
+            sky_center : astropy.coordinates.SkyCoord
+                The center of the search region's center
             indices : bool, optional
                 If True, returns the indices of the filtered sources in addition to the
                 SkyModel object. Defaults to False.
@@ -1170,8 +1162,10 @@ class SkyModel:
             )
 
         # Calculate distances to phase center using flat Euclidean approximation
-        x = (copied_sky[:, 0] - ra0_deg) * np.cos(np.radians(dec0_deg))
-        y = copied_sky[:, 1] - dec0_deg
+        x = (copied_sky[:, 0] - sky_center.ra.deg) * np.cos(
+            np.radians(sky_center.dec.deg)
+        )
+        y = copied_sky[:, 1] - sky_center.dec.deg
         distances_sq = np.add(np.square(x), np.square(y))
 
         # Filter sources based on inner and outer radius
@@ -1261,7 +1255,7 @@ class SkyModel:
 
     def setup_default_wcs(
         self,
-        phase_center: IntFloatList = [0, 0],
+        phase_center: SkyCoord,
     ) -> WCS:
         """
         Defines a default world coordinate system astropy.wcs
@@ -1276,7 +1270,7 @@ class SkyModel:
         w = WCS(naxis=2)
         w.wcs.crpix = [0, 0]  # coordinate reference pixel per axis
         w.wcs.cdelt = [-1, 1]  # coordinate increments on sphere per axis
-        w.wcs.crval = phase_center
+        w.wcs.crval = [phase_center.ra.deg, phase_center.dec.deg]
         w.wcs.ctype = ["RA---AIR", "DEC--AIR"]  # coordinate axis type
         self.wcs = w
         return w

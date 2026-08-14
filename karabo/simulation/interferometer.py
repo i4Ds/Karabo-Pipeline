@@ -10,7 +10,6 @@ import numpy as np
 import oskar
 import pandas as pd
 import xarray as xr
-from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
@@ -707,19 +706,12 @@ class InterferometerSimulation:
         frequency_channel_centers = frequency_channel_starts + frequency_bandwidths / 2
 
         # Visibility grid
-
-        obs_phasecenter = observation.get_phase_center()
         vis = create_visibility(
             telescope.SDP_configuration,  # <- key difference vs RASCIL
             times=observation_hour_angles,
             frequency=frequency_channel_centers,
             channel_bandwidth=frequency_bandwidths,
-            phasecentre=SkyCoord(
-                obs_phasecenter[0],
-                obs_phasecenter[1],
-                unit="deg",
-                frame="icrs",
-            ),
+            phasecentre=observation.get_phase_center(),
             weight=1.0,
             polarisation_frame=PolarisationFrame("stokesI"),
             integration_time=observation_integration_time_seconds,

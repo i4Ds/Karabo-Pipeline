@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 import pytest
+from astropy.coordinates import SkyCoord
 
 from karabo.imaging.backends.rascil_backend import RascilBackendImager
 from karabo.imaging.imager_factory import ImagingBackend, get_imager
@@ -103,10 +104,10 @@ def test_dirty_image(tobject: TFiles):
 
 
 def test_create_cleaned_image():
-    phasecenter = [250, -80]
+    phasecenter = SkyCoord(250, -80, unit="deg")
 
     gleam_sky = SkyModel.get_GLEAM_Sky(min_freq=72e6, max_freq=80e6)
-    sky = gleam_sky.filter_by_radius(0, 0.55, phasecenter[0], phasecenter[1])
+    sky = gleam_sky.filter_by_radius(0, 0.55, phasecenter)
     sky.setup_default_wcs(phase_center=phasecenter)
     askap_tel = Telescope.constructor("ASKAP")
     observation_settings = Observation(

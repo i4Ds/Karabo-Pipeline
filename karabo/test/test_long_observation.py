@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime, timedelta
 
 import numpy as np
+from astropy.coordinates import SkyCoord
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_base import DirtyImagerConfig
@@ -27,7 +28,7 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
         telescope = Telescope.constructor("MeerKAT")
         observation_long = ObservationLong(
             mode="Tracking",
-            phase_center=[20.0, -30.0],
+            phase_center=SkyCoord(20.0, -30.0, unit="deg"),
             start_date_and_time=datetime(2000, 1, 1, 11, 00, 00, 521489),
             length=timedelta(hours=hours_per_day, minutes=0, seconds=0, milliseconds=0),
             number_of_time_steps=7,

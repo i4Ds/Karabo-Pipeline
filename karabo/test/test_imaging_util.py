@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+from astropy.coordinates import SkyCoord
 
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_oskar import OskarDirtyImager
@@ -27,7 +28,7 @@ def observation() -> Observation:
     return Observation(
         start_frequency_hz=100e6,
         start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_center=[240, -70],
+        phase_center=SkyCoord(240, -70, unit="deg"),
         number_of_time_steps=4,
         frequency_increment_hz=20e6,
         number_of_channels=4,
