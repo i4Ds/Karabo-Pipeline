@@ -20,6 +20,7 @@ TODO remove karabo.util.ska_sdp_datamodels when upgrade to Python 3.10,
 RASCIL > 1.0.0, ska_sdp_datamodels >= 0.2.1 or hopefully >= 0.3.1 is done.
 Change imports to ska_sdp_datamodels.visibility.*
 """
+
 import warnings
 from importlib.metadata import version
 

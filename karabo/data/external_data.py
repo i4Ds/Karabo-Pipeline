@@ -86,13 +86,16 @@ class DownloadObject:
             response.raw.read = functools.partial(  # type: ignore[method-assign]
                 response.raw.read, decode_content=True
             )
-            with tqdm.wrapattr(
-                response.raw,
-                "read",
-                total=file_size,
-                desc=desc,
-                disable=not verbose,
-            ) as r_raw, open(local_file_path, "wb") as f:
+            with (
+                tqdm.wrapattr(
+                    response.raw,
+                    "read",
+                    total=file_size,
+                    desc=desc,
+                    disable=not verbose,
+                ) as r_raw,
+                open(local_file_path, "wb") as f,
+            ):
                 shutil.copyfileobj(r_raw, f)
 
         except BaseException:  # cleanup if interrupted

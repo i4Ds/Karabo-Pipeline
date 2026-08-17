@@ -1,4 +1,5 @@
-""" Offers functions to handle some of the RASCIL output. """
+"""Offers functions to handle some of the RASCIL output."""
+
 import logging
 import os
 from logging import LogRecord

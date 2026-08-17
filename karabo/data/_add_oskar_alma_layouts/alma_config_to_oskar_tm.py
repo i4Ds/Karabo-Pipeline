@@ -1,11 +1,11 @@
-""" Gets the ALMA telescope configuration files for an observation cycle.
-    The files are downloaded as an archive from the ALMA server. See
-    constant CONFIG_FILE_URL for the URL. It converts the configuration
-    files to an OSKAR telescope model directory. The folder are created
-    in the current working directory.
-    The script is based on the script 'array_config_to_oskar_tm.py'
-    by M. Pluess, FHNW. You can find the code here:
-    karabo/data/_add_oskar_ska_layouts.
+"""Gets the ALMA telescope configuration files for an observation cycle.
+The files are downloaded as an archive from the ALMA server. See
+constant CONFIG_FILE_URL for the URL. It converts the configuration
+files to an OSKAR telescope model directory. The folder are created
+in the current working directory.
+The script is based on the script 'array_config_to_oskar_tm.py'
+by M. Pluess, FHNW. You can find the code here:
+karabo/data/_add_oskar_ska_layouts.
 """
 
 import glob

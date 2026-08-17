@@ -57,13 +57,13 @@ def test_baselines_based_cutoff(oskar_telescope: Telescope, sky_data: SkyModel):
     hcut = 10000  # Lower cut off and higher cut-off in meters
     with tempfile.TemporaryDirectory() as tmpdir:
         tm_path = os.path.join(tmpdir, "tel-cut.tm")
-        baseline_cut: Tuple[
-            DirPathType, Dict[str, str]
-        ] = Telescope.create_baseline_cut_telescope(
-            lcut,
-            hcut,
-            oskar_telescope,
-            tm_path=tm_path,
+        baseline_cut: Tuple[DirPathType, Dict[str, str]] = (
+            Telescope.create_baseline_cut_telescope(
+                lcut,
+                hcut,
+                oskar_telescope,
+                tm_path=tm_path,
+            )
         )
 
         telescope_path, _ = baseline_cut

@@ -1503,9 +1503,9 @@ class WriteMs(BaseData):
                 order, :
             ]
             if dataSet.weights is not None:
-                weight_spectrum_matrix[
-                    :, self.stokes.index(dataSet.pol), :
-                ] = dataSet.weights[order, :]
+                weight_spectrum_matrix[:, self.stokes.index(dataSet.pol), :] = (
+                    dataSet.weights[order, :]
+                )
             flag_matrix[:, self.stokes.index(dataSet.pol), :] = (
                 dataSet.flags[order, :] == 1
             )

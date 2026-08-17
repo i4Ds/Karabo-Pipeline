@@ -276,9 +276,9 @@ class SkySourcesUnits:
             ) is not None:
                 if isinstance(col_names_of_interest, list):
                     for col_name_of_interest in col_names_of_interest:
-                        cols_to_field_name_of_interest[
-                            col_name_of_interest
-                        ] = field.name
+                        cols_to_field_name_of_interest[col_name_of_interest] = (
+                            field.name
+                        )
                 elif isinstance(col_names_of_interest, str):
                     cols_to_field_name_of_interest[col_names_of_interest] = field.name
                 else:
@@ -908,10 +908,8 @@ class SkyModel:
 
         """
         if (len(sources.shape) == 2) and (sources.shape[0] == 0):
-            warn(
-                """There are no sources in the received sources array.
-            Will not modify the current SkyModel instance."""
-            )
+            warn("""There are no sources in the received sources array.
+            Will not modify the current SkyModel instance.""")
             return
         try:
             sds, sdd = self._sources_dim_sources, self._sources_dim_data
@@ -1025,8 +1023,7 @@ class SkyModel:
         outer_radius_deg: IntFloat,
         sky_center: SkyCoord,
         indices: Literal[False] = False,
-    ) -> SkyModel:
-        ...
+    ) -> SkyModel: ...
 
     @overload
     def filter_by_radius(
@@ -1035,8 +1032,7 @@ class SkyModel:
         outer_radius_deg: IntFloat,
         sky_center: SkyCoord,
         indices: Literal[True],
-    ) -> Tuple[SkyModel, NDArray[np.int_]]:
-        ...
+    ) -> Tuple[SkyModel, NDArray[np.int_]]: ...
 
     def filter_by_radius(
         self,
@@ -1093,8 +1089,7 @@ class SkyModel:
         outer_radius_deg: IntFloat,
         sky_center: SkyCoord,
         indices: Literal[False] = False,
-    ) -> SkyModel:
-        ...
+    ) -> SkyModel: ...
 
     @overload
     def filter_by_radius_euclidean_flat_approximation(
@@ -1103,8 +1098,7 @@ class SkyModel:
         outer_radius_deg: IntFloat,
         sky_center: SkyCoord,
         indices: Literal[True],
-    ) -> Tuple[SkyModel, NDArray[np.int_]]:
-        ...
+    ) -> Tuple[SkyModel, NDArray[np.int_]]: ...
 
     def filter_by_radius_euclidean_flat_approximation(
         self,
@@ -2333,8 +2327,7 @@ class SkyModel:
         desired_frequencies_hz: Literal[None] = None,
         channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
-    ) -> SkyModel:
-        ...
+    ) -> SkyModel: ...
 
     @overload
     def convert_to_backend(
@@ -2343,8 +2336,7 @@ class SkyModel:
         desired_frequencies_hz: NDArray[np.float_],
         channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
-    ) -> List[SkyComponent]:
-        ...
+    ) -> List[SkyComponent]: ...
 
     @overload
     def convert_to_backend(
@@ -2353,8 +2345,7 @@ class SkyModel:
         desired_frequencies_hz: NDArray[np.float_],
         channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
-    ) -> List[SkyComponent]:
-        ...
+    ) -> List[SkyComponent]: ...
 
     def convert_to_backend(
         self,
@@ -2390,37 +2381,29 @@ class SkyModel:
 
         if backend is SimulatorBackend.OSKAR:
             if verbose is True:
-                print(
-                    """Desired backend is OSKAR.
-                    Will not modify existing SkyModel instance."""
-                )
+                print("""Desired backend is OSKAR.
+                    Will not modify existing SkyModel instance.""")
             return self
         elif backend is SimulatorBackend.RASCIL:
             if verbose is True:
-                print(
-                    """Desired backend is RASCIL.
+                print("""Desired backend is RASCIL.
                     Will convert sources into a list of
-                    RASCIL SkyComponent instances."""
-                )
+                    RASCIL SkyComponent instances.""")
 
             desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
 
-            assert (
-                len(desired_frequencies_hz) > 0
-            ), """Must have at least 1 element
+            assert len(desired_frequencies_hz) > 0, """Must have at least 1 element
             in desired_frequencies_hz array"""
 
             desired_frequencies_hz = np.sort(desired_frequencies_hz)
 
             if len(desired_frequencies_hz) == 1:
                 if channel_bandwidth_hz is None:
-                    raise ValueError(
-                        """desired_frequencies_hz has one entry
+                    raise ValueError("""desired_frequencies_hz has one entry
                         and channel_bandwidth_hz is None.
                         There is not enough information to find channel bandwidths.
                         Please specify channel_bandwidth_hz,
-                        or add entries to desired_frequencies_hz."""
-                    )
+                        or add entries to desired_frequencies_hz.""")
                 frequency_bandwidth = channel_bandwidth_hz
             else:
                 frequency_bandwidth = (

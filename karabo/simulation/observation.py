@@ -237,8 +237,7 @@ class ObservationAbstract(ABC):
         return hour_angles
 
 
-class Observation(ObservationAbstract):
-    ...
+class Observation(ObservationAbstract): ...
 
 
 class ObservationLong(ObservationAbstract):

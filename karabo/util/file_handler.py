@@ -2,6 +2,7 @@
 Offers functionality for handling caching data on disk and
 reading/writung to temporary files.
 """
+
 from __future__ import annotations
 
 import glob
@@ -84,9 +85,9 @@ def _get_disk_cache_root(
         ):
             tmpdir = scratch
         # third guess is to honor the env-variables mentioned (high prio)
-        env_check: Optional[
-            str
-        ] = None  # variable to check previous environment variables
+        env_check: Optional[str] = (
+            None  # variable to check previous environment variables
+        )
         environment_varname = ""
         if (TMPDIR := _get_env_value("TMPDIR")) is not None:
             tmpdir = os.path.abspath(TMPDIR)
@@ -227,8 +228,7 @@ class FileHandler:
         unique: object = None,
         mkdir: bool = True,
         seed: Optional[Union[str, int, float, bytes]] = None,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     def get_tmp_dir(
@@ -239,8 +239,7 @@ class FileHandler:
         unique: object = None,
         mkdir: bool = True,
         seed: Optional[Union[str, int, float, bytes]] = None,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     def get_tmp_dir(
         self,

@@ -150,9 +150,7 @@ def line_emission_pipeline(
                 max_val=z_max,
             )
 
-            assert (
-                filtered_sky.num_sources > 0
-            ), f"""For frequency channel {index_freq}
+            assert filtered_sky.num_sources > 0, f"""For frequency channel {index_freq}
                     and pointing {index_p}, there are 0 sources in the sky model.
                     Setting visibility to None, and skipping analysis."""
 
