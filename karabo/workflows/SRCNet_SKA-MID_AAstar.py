@@ -73,11 +73,17 @@ filter_radius_deg = fov_deg * 3  # 3x primary beam
 # Bigger baseline -> higher resolution
 IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int)
 # None calculates cellsize automatically
-IMAGING_CELLSIZE = Environment.get(
+imaging_cellsize = Environment.get(
     "IMAGING_CELLSIZE", float, None, allow_none_parsing=True
 )
-if IMAGING_CELLSIZE is None:
-    IMAGING_CELLSIZE = fov_rad / IMAGING_NPIXEL
+
+IMAGING_CELLSIZE: float = (
+    fov_rad / IMAGING_NPIXEL
+    if imaging_cellsize is None
+    else imaging_cellsize
+)
+
+if imaging_cellsize is None:
     print(f"Calculated {IMAGING_CELLSIZE=}")
 
 # Rucio metadata

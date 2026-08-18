@@ -1,4 +1,4 @@
-# type: ignore
+# mypy: ignore-errors
 # pylint: disable=too-many-locals, too-many-arguments, too-many-statements
 # pylint: disable=too-many-nested-blocks,too-many-branches
 # pylint: disable=invalid-name, duplicate-code

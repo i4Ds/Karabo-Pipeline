@@ -45,7 +45,18 @@ def run_sample_simulation(
 
     if verbose:
         print("Setting Up Telescope")
-    telescope = Telescope.constructor("ASKAP", version=None, backend=simulator_backend)
+    if simulator_backend is SimulatorBackend.SDP:
+        telescope = Telescope.constructor(
+            "ASKAP",
+            version=None,
+            backend=SimulatorBackend.SDP,
+        )
+    else:
+        telescope = Telescope.constructor(
+            "ASKAP",
+            version=None,
+            backend=SimulatorBackend.OSKAR,
+        )
 
     if verbose:
         print("Setting Up Observation")
