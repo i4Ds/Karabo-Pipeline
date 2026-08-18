@@ -78,9 +78,7 @@ imaging_cellsize = Environment.get(
 )
 
 IMAGING_CELLSIZE: float = (
-    fov_rad / IMAGING_NPIXEL
-    if imaging_cellsize is None
-    else imaging_cellsize
+    fov_rad / IMAGING_NPIXEL if imaging_cellsize is None else imaging_cellsize
 )
 
 if imaging_cellsize is None:

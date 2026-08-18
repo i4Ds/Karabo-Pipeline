@@ -3,14 +3,12 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, Union
 
-from karabo.imaging.backends.sdp_backend import (
-    SdpImager,
-    SdpImagerConfig as SdpImagerConfig,
-)
+from karabo.imaging.backends.sdp_backend import SdpImager
+from karabo.imaging.backends.sdp_backend import SdpImagerConfig as SdpImagerConfig
 from karabo.imaging.backends.wsclean_backend import (
     WscleanBackendConfig as WscleanBackendConfig,
-    WscleanBackendImager,
 )
+from karabo.imaging.backends.wsclean_backend import WscleanBackendImager
 from karabo.imaging.imager_interface import Imager
 from karabo.util.helpers import Environment
 
