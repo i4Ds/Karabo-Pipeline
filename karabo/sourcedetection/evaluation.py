@@ -390,7 +390,7 @@ class SourceDetectionEvaluation:
         _, ax = plt.subplots()
         if np.mean(np.deg2rad(dec_ref)) != 0.0:
             ax.set_aspect(1.0 / np.cos(np.mean(np.deg2rad(dec_ref))))
-        _ = ax.quiver(ra_ref, dec_ref, ra_error, dec_error, color="b")  # type: ignore[attr-defined] # noqa: E501
+        _ = ax.quiver(ra_ref, dec_ref, ra_error, dec_error, color="b")
 
         ax.scatter(ra_ref, dec_ref, color="r", s=8)
         ax.set_xlabel("RA (deg)")
