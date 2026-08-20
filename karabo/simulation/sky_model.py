@@ -761,7 +761,7 @@ class SkyModel:
                 Tuple[str, str], sources.dims
             )
         else:
-            assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
+            assert_never(sources)
 
     def close(self) -> None:
         """
@@ -818,7 +818,7 @@ class SkyModel:
                     + f"don't match already existing index name {sky_keys}."
                 )
         else:
-            assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
+            assert_never(sources)
         return None
 
     def to_sky_xarray(self, sources: _SkySourcesType) -> xr.DataArray:
@@ -879,7 +879,7 @@ class SkyModel:
                 fill[:, :-missing_cols] = sources
                 da = fill
         else:
-            assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
+            assert_never(sources)
 
         return da
 
@@ -1010,7 +1010,7 @@ class SkyModel:
                 )
             )
         else:
-            return self.sources.to_numpy()
+            return cast(_NPSkyType, self.sources.to_numpy())
 
     def rechunk_array_based_on_self(self, array: xr.DataArray) -> xr.DataArray:
         if self.sources is None:
@@ -1489,7 +1489,7 @@ class SkyModel:
             raise AttributeError(
                 "`sources` is None and therefore has no `shape` attribute."
             )
-        return self.sources.shape
+        return tuple(self.sources.shape)
 
     @property
     def num_sources(self) -> int:
