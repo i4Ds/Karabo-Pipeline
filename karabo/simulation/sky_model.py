@@ -599,7 +599,7 @@ class SkyModel:
         self._sources: Optional[xr.DataArray] = None
         self.precision = precision
         self.wcs = wcs
-        self.sources = sources
+        self.sources = sources  # type: ignore[assignment]
         self.h5_file_connection = h5_file_connection
 
     @classmethod
@@ -861,7 +861,11 @@ class SkyModel:
             ):  # sources have IDs. 13 is for backwards compatibility
                 index_of_ids_column = sources.shape[1] - 1
                 source_ids = sources[:, index_of_ids_column]
-                sources = np.delete(sources, np.s_[index_of_ids_column], axis=1)
+                sources = np.delete(  # type: ignore[assignment]
+                    sources,
+                    np.s_[index_of_ids_column],
+                    axis=1,
+                )
                 sources = sources.astype(self.precision)
                 da = xr.DataArray(
                     sources,
@@ -1736,9 +1740,15 @@ class SkyModel:
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
                 shape = f[prefix_mapping.ra].shape
-                dask_array = da.zeros(shape, chunks=(chunksize,))
+                dask_array = da.zeros(  # type: ignore[attr-defined]
+                    shape,
+                    chunks=(chunksize,),
+                )
             else:
-                dask_array = da.from_array(f[field_value], chunks=(chunksize,))
+                dask_array = da.from_array(  # type: ignore[attr-defined]
+                    f[field_value],
+                    chunks=(chunksize,),
+                )
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
 
         if load_as == "numpy_array":

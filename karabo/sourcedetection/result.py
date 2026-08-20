@@ -11,7 +11,7 @@ import bdsf
 import numpy as np
 from astropy.io import fits
 from bdsf.image import Image as bdsf_image
-from dask import compute, delayed
+from dask import compute, delayed  # type: ignore
 from numpy.typing import NDArray
 
 from karabo.imaging.image import Image, ImageMosaicker
