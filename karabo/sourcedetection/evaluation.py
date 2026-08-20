@@ -353,7 +353,7 @@ class SourceDetectionEvaluation:
         conf_matrix = self.get_confusion_matrix()
         ax: Axes
         _, ax = plt.subplots()
-        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)
+        ax.matshow(conf_matrix, cmap=plt.cm.Blues, alpha=0.3)  # type: ignore[attr-defined] # noqa: E501
         for i in range(conf_matrix.shape[0]):
             for j in range(conf_matrix.shape[1]):
                 ax.text(
@@ -390,7 +390,7 @@ class SourceDetectionEvaluation:
         _, ax = plt.subplots()
         if np.mean(np.deg2rad(dec_ref)) != 0.0:
             ax.set_aspect(1.0 / np.cos(np.mean(np.deg2rad(dec_ref))))
-        _ = ax.quiver(ra_ref, dec_ref, ra_error, dec_error, color="b")
+        _ = ax.quiver(ra_ref, dec_ref, ra_error, dec_error, color="b")  # type: ignore[attr-defined] # noqa: E501
 
         ax.scatter(ra_ref, dec_ref, color="r", s=8)
         ax.set_xlabel("RA (deg)")

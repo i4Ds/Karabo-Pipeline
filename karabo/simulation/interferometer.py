@@ -12,7 +12,7 @@ import pandas as pd
 import xarray as xr
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
-from dask import compute, delayed
+from dask import compute, delayed  # type: ignore[attr-defined]
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
