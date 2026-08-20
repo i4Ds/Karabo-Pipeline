@@ -14,7 +14,7 @@ from typing import Any, Callable, List, Literal, Optional, Tuple, Type, Union, c
 from warnings import warn
 
 import psutil
-from dask import compute, delayed  # type: ignore[attr-defined]
+from dask import compute, delayed
 from dask.distributed import Client, LocalCluster, Nanny, Worker
 from dask_mpi import initialize
 from mpi4py import MPI
@@ -359,7 +359,7 @@ class DaskHandlerSlurm(DaskHandlerBasic):
                 memory_limit=memory_limit,
             )
             await worker.finished()
-            return worker  # type: ignore[no-any-return]
+            return worker
 
         async def start_nanny(scheduler_address: str) -> Nanny:
             nanny = await Nanny(
@@ -368,7 +368,7 @@ class DaskHandlerSlurm(DaskHandlerBasic):
                 memory_limit=memory_limit,
             )
             await nanny.finished()
-            return nanny  # type: ignore[no-any-return]
+            return nanny
 
         scheduler_address = str(dask_info["scheduler_address"])
         n_workers = int(str(dask_info["n_workers_per_node"]))

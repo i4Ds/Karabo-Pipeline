@@ -599,7 +599,7 @@ class SkyModel:
         self._sources: Optional[xr.DataArray] = None
         self.precision = precision
         self.wcs = wcs
-        self.sources = sources  # type: ignore [assignment]
+        self.sources = sources
         self.h5_file_connection = h5_file_connection
 
     @classmethod
@@ -741,6 +741,7 @@ class SkyModel:
                 sources[:, cls.COL_IDX["dec"]] = dec_deg
                 sources[:, cls.COL_IDX["stokes_i"]] = flux_i
                 ref_freq = header.get("CRVAL3")
+
                 if ref_freq is not None:
                     sources[:, cls.COL_IDX["ref_freq"]] = float(ref_freq)
 
@@ -860,7 +861,7 @@ class SkyModel:
             ):  # sources have IDs. 13 is for backwards compatibility
                 index_of_ids_column = sources.shape[1] - 1
                 source_ids = sources[:, index_of_ids_column]
-                sources = np.delete(sources, np.s_[index_of_ids_column], axis=1)  # type: ignore [assignment] # noqa: E501
+                sources = np.delete(sources, np.s_[index_of_ids_column], axis=1)
                 sources = sources.astype(self.precision)
                 da = xr.DataArray(
                     sources,
@@ -1735,9 +1736,9 @@ class SkyModel:
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
                 shape = f[prefix_mapping.ra].shape
-                dask_array = da.zeros(shape, chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
+                dask_array = da.zeros(shape, chunks=(chunksize,))
             else:
-                dask_array = da.from_array(f[field_value], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
+                dask_array = da.from_array(f[field_value], chunks=(chunksize,))
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
 
         if load_as == "numpy_array":

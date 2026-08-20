@@ -12,7 +12,7 @@ import pandas as pd
 import xarray as xr
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
-from dask import compute, delayed  # type: ignore[attr-defined]
+from dask import compute, delayed
 from dask.delayed import Delayed
 from dask.distributed import Client
 from numpy.typing import NDArray
@@ -48,9 +48,7 @@ from karabo.util._types import (
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
-from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (  # type: ignore[attr-defined] # noqa: E501
-    export_visibility_to_ms,
-)
+from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import export_visibility_to_ms
 
 
 def format_timedelta(td: timedelta) -> str:
