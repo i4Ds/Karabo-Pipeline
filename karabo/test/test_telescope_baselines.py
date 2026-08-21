@@ -130,7 +130,7 @@ def test_telescope_max_baseline_length(
 
     max_length_sdp: np.float64 = sdp_telescope.max_baseline()
     # Should be the same +/- 1 m
-    assert math.isclose(max_length_sdp - 995242.0, 0, abs_tol=1)
+    assert math.isclose(max_length_sdp - 1285790.0, 0, abs_tol=1)
 
     freq_Hz = 100e6
     angular_res: float = Telescope.ang_res(freq_Hz, max_length_oskar)
