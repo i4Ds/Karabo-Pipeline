@@ -67,6 +67,14 @@ def test_source_detection_assessment_notebook() -> None:
     not RUN_NOTEBOOK_TESTS,
     reason="'Error: The operation was canceled' when running this test on the package",
 )
+def test_line_emission_notebook() -> None:
+    _run_notebook(notebook="LineEmissionSimulation.ipynb")
+
+
+@pytest.mark.skipif(
+    not RUN_NOTEBOOK_TESTS,
+    reason="'Error: The operation was canceled' when running this test on the package",
+)
 def test_ImageMosaicker_notebook() -> None:
     _run_notebook(notebook="ImageMosaicker.ipynb")
 

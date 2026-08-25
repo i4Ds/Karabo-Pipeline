@@ -13,7 +13,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.test.util import get_compatible_dirty_imager
+from karabo.test.util import create_compatible_dirty_image
 
 
 def sim_ion(
@@ -114,14 +114,13 @@ def test_ionosphere(sky_data: NDArray[np.float64]):
         )
         visibility = simulation.run_simulation(telescope, sky, observation)
 
-        dirty_imager = get_compatible_dirty_imager(
+        dirty = create_compatible_dirty_image(
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=2048,
                 imaging_cellsize=5.0e-5,
             ),
         )
-        dirty = dirty_imager.create_dirty_image(visibility)
 
         dirty.write_to_file(os.path.join(tmpdir, "test_ion.fits"), overwrite=True)
         dirty.plot(title="Flux Density (Jy)")

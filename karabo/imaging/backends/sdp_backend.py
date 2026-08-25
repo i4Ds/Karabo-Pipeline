@@ -15,14 +15,15 @@ try:  # pragma: no cover - optional dependency path
 except ModuleNotFoundError:  # pragma: no cover
     _read_ms = None
 
-from rascil.processing_components import create_visibility_from_ms
-from rascil.processing_components.image.operations import import_image_from_fits
-
 from karabo.imaging.image import Image
 from karabo.imaging.imager_interface import Imager, ImageSpec
+from karabo.imaging.sdp_io import import_sdp_image_from_fits
 from karabo.imaging.util import guess_beam_parameters
 from karabo.simulation.visibility import Visibility
 from karabo.util.file_handler import FileHandler
+from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (
+    import_visibility_from_ms,
+)
 
 _SUPPORTED_CLEAN_ALGORITHM = "hogbom"
 
@@ -32,6 +33,7 @@ class SdpImagerConfig:
     combine_across_frequencies: bool = True
     weighting: str = "natural"
     context: str = "2d"
+    override_cellsize: bool = False
     # CLEAN / deconvolution
     clean_algorithm: str = "hogbom"
     clean_niter: int = 100
@@ -77,7 +79,7 @@ class SdpImager(Imager):
                     )
                 block = block[0]
         else:
-            block_visibilities = create_visibility_from_ms(str(vis.path))
+            block_visibilities = import_visibility_from_ms(str(vis.path))
             if len(block_visibilities) != 1:
                 raise NotImplementedError(
                     "SdpImager currently supports a single visibility per call."
@@ -101,7 +103,7 @@ class SdpImager(Imager):
             sdp_visibility,
             npixel=image_spec.npix,
             cellsize=image_spec.cellsize_radians,
-            override_cellsize=False,
+            override_cellsize=self.config.override_cellsize,
         )
 
         dirty, _ = invert_visibility(
@@ -147,7 +149,7 @@ class SdpImager(Imager):
 
     def _import_native_image(self, img: Image) -> Any:
         """Convert Karabo Image (FITS on disk) back to ska-sdp image object."""
-        return import_image_from_fits(img.path)
+        return import_sdp_image_from_fits(img.path)
 
     def _export_native_image(self, tmp_dir: str, fname: str, native_img: Any) -> Image:
         """Write ska-sdp image object to FITS and wrap as Karabo Image."""

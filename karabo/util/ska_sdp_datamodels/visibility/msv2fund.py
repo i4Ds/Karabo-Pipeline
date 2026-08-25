@@ -491,7 +491,6 @@ class BaseData:
         self.freq = []
         self.stokes = []
         self.data = []
-        self.uvw_RASCIL = None
 
     def __enter__(self):
         return self

@@ -83,11 +83,11 @@ The notebook [SRCNet_simulation_walkthrough.ipynb](https://github.com/i4Ds/Karab
 
 In addition, we provide utility to create SRCNet Rucio metadata for the ingestion daemon for `images` and `visibilities` data products. The script [SRCNet_rucio_meta.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/SRCNet_rucio_meta.py) provides an example of how to generate metadata for a small simulation and imaging pipeline.
 
-## Performing a line emission simulation, using OSKAR, RASCIL, and SDP
+## Performing a line emission simulation with SDP
 
-See the script [line_emission.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/simulation/line_emission.py) and the notebook [LineEmissionSimulation_RASCIL.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/LineEmissionSimulation_RASCIL.ipynb) for an end-to-end line emission simulation.
+See the script [line_emission.py](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/simulation/line_emission.py) and the notebook [LineEmissionSimulation.ipynb](https://github.com/i4Ds/Karabo-Pipeline/blob/main/karabo/examples/LineEmissionSimulation.ipynb) for an end-to-end SDP line emission simulation.
 
-This simulation begins with a `SkyModel` instance, and with the definition of the desired `Observation` and `Telescope` details. Then, the `InterferometerSimulation` instance uses the requested backend (OSKAR, RASCIL, or SDP) to compute the corresponding visibilities, and the desired `DirtyImager` instance is used to convert the visibilities into dirty images. Optionally, we can include primary beam effects and correct for such effects in the final dirty images. Finally, we can mosaic different dirty images into one larger image using the `ImageMosaicker` class.
+This simulation begins with a `SkyModel` instance and the desired `Observation` and SDP `Telescope` details. `InterferometerSimulation` computes the visibilities, and the common SDP imager creates dirty, PSF, and restored images. Optionally, primary-beam effects can be included and corrected in the final images. Different pointings can then be combined with `ImageMosaicker`.
 
 
 

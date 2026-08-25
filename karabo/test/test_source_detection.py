@@ -1,6 +1,5 @@
 import os
 import tempfile
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -10,19 +9,15 @@ from karabo.data.external_data import (
     cscs_karabo_public_testing_base_url,
 )
 from karabo.imaging.image import Image
-from karabo.imaging.imager_rascil import RascilImageCleaner, RascilImageCleanerConfig
 from karabo.imaging.util import project_sky_to_image
-from karabo.simulation.interferometer import InterferometerSimulation
-from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
-from karabo.simulation.telescope import Telescope
 from karabo.sourcedetection.evaluation import SourceDetectionEvaluation
 from karabo.sourcedetection.result import (
     PyBDSFSourceDetectionResult,
     PyBDSFSourceDetectionResultList,
     SourceDetectionResult,
 )
-from karabo.test.conftest import RUN_GPU_TESTS, NNImageDiffCallable, TFiles
+from karabo.test.conftest import NNImageDiffCallable, TFiles
 from karabo.util.dask import DaskHandler
 
 
@@ -235,54 +230,3 @@ def test_full_source_detection(
     gtruth = gtruth[np.argsort(gtruth[:, 0])]
     mse = np.linalg.norm(gtruth - detected, axis=1)
     assert np.all(mse < 1), "Source detection is not correct"
-
-
-@pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
-def test_create_detection_from_ms_cuda():
-    phase_center = np.array([225, -65])
-    sky = SkyModel.get_random_poisson_disk_sky(
-        phase_center + np.array([-5, -5]),
-        phase_center + np.array([+5, +5]),
-        100,
-        200,
-        1,
-    )
-
-    telescope = Telescope.constructor("MeerKAT")
-    # telescope.centre_longitude = 3
-
-    simulation = InterferometerSimulation(channel_bandwidth_hz=1e6, time_average_sec=1)
-
-    observation = Observation(
-        start_frequency_hz=100e6,
-        start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
-        phase_centre_ra_deg=phase_center[0],
-        phase_centre_dec_deg=phase_center[1],
-        number_of_time_steps=1,
-        frequency_increment_hz=20e6,
-        number_of_channels=3,
-    )
-
-    visibility = simulation.run_simulation(telescope, sky, observation)
-
-    (
-        convolved,
-        restored,
-        residual,
-    ) = RascilImageCleaner(
-        RascilImageCleanerConfig(
-            imaging_npixel=2048,
-            imaging_cellsize=0.0003,
-            ingest_vis_nchan=3,
-            use_cuda=True,
-        )
-    ).create_cleaned_image_variants(visibility)
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        convolved.write_to_file(os.path.join(tmpdir, "convolved.fits"))
-        restored.write_to_file(os.path.join(tmpdir, "restored.fits"))
-        residual.write_to_file(os.path.join(tmpdir, "residual.fits"))
-
-        result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
-        assert result is not None
-        result.write_to_file(os.path.join(tmpdir, "sources.zip"))

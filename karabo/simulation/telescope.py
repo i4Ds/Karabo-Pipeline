@@ -62,7 +62,6 @@ from karabo.util._types import DirPathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import FileHandler, write_dir
 from karabo.util.math_util import long_lat_to_cartesian
-from karabo.warning import warn_rascil_deprecated
 
 OSKARTelescopesWithVersionType = Literal[
     "ACA",
@@ -95,9 +94,9 @@ OSKARTelescopesWithoutVersionType = Literal[
     "VLBA",
     "WSRT",
 ]
-# RASCIL Telescopes based on:
+# SKA-SDP telescopes based on:
 # https://developer.skatelescope.org/projects/ska-sdp-datamodels/en/latest/_modules/ska_sdp_datamodels/configuration/config_create.html#create_named_configuration # noqa: E501
-RASCILTelescopes = Literal[
+SDPTelescopes = Literal[
     "LOWBD2",
     "LOWBD2-CORE",
     "LOW",
@@ -212,7 +211,7 @@ class Telescope:
 
         self.backend: SimulatorBackend = SimulatorBackend.OSKAR
 
-        self.RASCIL_configuration: Optional[Configuration] = None
+        self._sdp_configuration: Optional[Configuration] = None
 
     @overload
     @classmethod
@@ -238,17 +237,7 @@ class Telescope:
     @classmethod
     def constructor(
         cls,
-        name: RASCILTelescopes,
-        version: Literal[None] = None,
-        backend: Literal[SimulatorBackend.RASCIL] = SimulatorBackend.RASCIL,
-    ) -> Telescope:
-        ...
-
-    @overload
-    @classmethod
-    def constructor(
-        cls,
-        name: RASCILTelescopes,
+        name: SDPTelescopes,
         version: Literal[None] = None,
         backend: Literal[SimulatorBackend.SDP] = SimulatorBackend.SDP,
     ) -> Telescope:
@@ -258,7 +247,7 @@ class Telescope:
     def constructor(
         cls,
         name: Union[
-            RASCILTelescopes,
+            SDPTelescopes,
             OSKARTelescopesWithVersionType,
             OSKARTelescopesWithoutVersionType,
         ],
@@ -317,21 +306,16 @@ but was not provided. Please provide a value for the version field."
 
             path = os.path.join(get_module_absolute_path(), "data", data_path)
             return cls.read_OSKAR_tm_file(path)
-        elif backend is SimulatorBackend.RASCIL or backend is SimulatorBackend.SDP:
-            if backend is SimulatorBackend.RASCIL:
-                warn_rascil_deprecated(stacklevel=2)
+        elif backend is SimulatorBackend.SDP:
             if version is not None:
                 logging.warning(
                     f"""The version parameter is not supported
     by the backend {backend}.
     The version value {version} provided will be ignored."""
                 )
-            assert name in get_args(RASCILTelescopes)
+            assert name in get_args(SDPTelescopes)
             try:
-                telescope: Telescope = cls.__convert_to_karabo_telescope(
-                    name,
-                    backend=backend,
-                )
+                telescope = cls.__convert_sdp_configuration_to_telescope(name)
             except ValueError as e:
                 raise ValueError(
                     f"""Requested telescope {name} is not supported by this backend.
@@ -341,7 +325,7 @@ but was not provided. Please provide a value for the version field."
 
             # Function like _get_station_infos() and
             # create_baseline_cut_telescope() need access to an OSKAR telescope
-            # model (.tm). This is not available for RASCIL datasets.
+            # model (.tm). This is not available for SDP configurations.
             # Thus, we create a temporary one.
             disk_cache = FileHandler().get_tmp_dir(
                 prefix=f"telescope-constructor-{backend.value.lower()}-",
@@ -356,24 +340,18 @@ but was not provided. Please provide a value for the version field."
             assert_never(backend)
 
     @classmethod
-    def __convert_to_karabo_telescope(
+    def __convert_sdp_configuration_to_telescope(
         cls,
         instr_name: str,
-        backend: SimulatorBackend,
     ) -> Telescope:
         """
-        Converts a site saved in RASCIl data format into a Karabo Telescope.
-            This function acts as an adapter to make the functionality in Telescope
-            class work for a RASCIL telescope. Namely the functions max_baseline()
-            and get_baseline_lengths().
-            It derives the necessary data structures from the RASCIL_configuration
-            and fits them into those of the Telescope class. The resuting class is
-            a SimulatorBackend.RASCIL but has the stations: List[Station]
-            list filled as well. Nevertheless, it should only be used as a RASCIL
-            telescope class.
+        Convert an SKA-SDP configuration into a Karabo Telescope.
+
+        This adapter populates Karabo stations so helpers such as max_baseline()
+        and get_baseline_lengths() continue to work for SDP configurations.
 
         :param instr_name: The name of the instrument to convert.
-        :raise ValueError: If instr_name is not a valid RASCIL telescope
+        :raise ValueError: If instr_name is not a valid SKA-SDP telescope
         :returns: An instance of Karabo Telescope.
         :rtype: karabo.simulation.telescope.Telecope
 
@@ -388,8 +366,7 @@ but was not provided. Please provide a value for the version field."
         altitude = site_location_gc.height.to("m").value
 
         telescope = Telescope(longitude, latitude, altitude)
-        # This is used in some inteferometer simulations
-        telescope.RASCIL_configuration = config
+        telescope._sdp_configuration = config
 
         station_coords = config.xyz.data
         for i, coord in enumerate(station_coords):
@@ -399,14 +376,14 @@ but was not provided. Please provide a value for the version field."
                 horizontal_z=coord[2],
             )
 
-            # there are only stations in the rascil files no antennas.
+            # SKA-SDP configurations contain stations but no antenna layouts.
             # we add a dummy antenna in order to avoid the creation
             # of an empty file. This matches other files. See
             # karabo/data/aca.all.tm/station000/layout.txt for example.
             # Reason: Value not set to 0 probably to compensate
             # for dish diameter. (see comment for PR #631)
             telescope.add_antenna_to_station(i, 0.1, 0.1)
-        telescope.backend = backend
+        telescope.backend = SimulatorBackend.SDP
         return telescope
 
     @property
@@ -434,10 +411,7 @@ but was not provided. Please provide a value for the version field."
     def get_backend_specific_information(self) -> Union[DirPathType, Configuration]:
         if self.backend is SimulatorBackend.OSKAR:
             return self.path
-        if (
-            self.backend is SimulatorBackend.RASCIL
-            or self.backend is SimulatorBackend.SDP
-        ):
+        if self.backend is SimulatorBackend.SDP:
             return self.SDP_configuration
 
         raise ValueError(
@@ -448,15 +422,10 @@ but was not provided. Please provide a value for the version field."
 
     @property
     def SDP_configuration(self) -> Configuration:
-        """
-        Returns the telescope configuration as expected by SKA-SDP.
-        Reuses the existing RASCIL_configuration, which uses the same data model.
-        """
-        if self.RASCIL_configuration is None:
-            raise ValueError(
-                "No RASCIL/SKA-SDP configuration available in this Telescope."
-            )
-        return self.RASCIL_configuration
+        """Return the telescope configuration expected by SKA-SDP."""
+        if self._sdp_configuration is None:
+            raise ValueError("No SKA-SDP configuration available in this Telescope.")
+        return self._sdp_configuration
 
     def add_station(
         self,
@@ -542,10 +511,7 @@ but was not provided. Please provide a value for the version field."
         """
         if self.backend is SimulatorBackend.OSKAR:
             self.plot_telescope_OSKAR(file)
-        elif (
-            self.backend is SimulatorBackend.RASCIL
-            or self.backend is SimulatorBackend.SDP
-        ):
+        elif self.backend is SimulatorBackend.SDP:
             # we can use plot_telescope_OSKAR here because we converted
             # the SDP datamodel setup into an OSKAR setup when constructing it.
             self.plot_telescope_OSKAR(file)

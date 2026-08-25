@@ -4,9 +4,16 @@ import os
 import numpy as np
 import pytest
 
-from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
-from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.backends.sdp_backend import SdpImager
+from karabo.imaging.imager_factory import (
+    ImagingBackend,
+    SdpImagerConfig,
+    WscleanBackendConfig,
+    get_imager,
+    parse_imaging_backend,
+)
 from karabo.imaging.imager_interface import ImageSpec
+from karabo.imaging.util import guess_beam_parameters
 from karabo.simulation.visibility import Visibility
 
 
@@ -24,21 +31,59 @@ def test_sdp_imager_invert_and_restore(minimal_casa_ms: Visibility) -> None:
     assert os.path.exists(dirty_image.path)
     assert os.path.exists(psf_image.path)
     assert dirty_image.data.shape == psf_image.data.shape
+    assert dirty_image.data.ndim == 4
     assert dirty_image.data.size > 0
     assert psf_image.data.size > 0
+    assert np.isfinite(dirty_image.data).all()
+    assert np.isfinite(psf_image.data).all()
+    assert dirty_image.header["CTYPE1"].startswith("RA")
+    assert dirty_image.header["CTYPE2"].startswith("DEC")
     assert not np.allclose(
         dirty_image.get_squeezed_data(), psf_image.get_squeezed_data()
     )
+
+    psf_data = psf_image.get_squeezed_data()
+    psf_peak = np.unravel_index(np.nanargmax(psf_data), psf_data.shape)
+    image_centre = tuple(size // 2 for size in psf_data.shape)
+    assert (
+        max(abs(actual - expected) for actual, expected in zip(psf_peak, image_centre))
+        <= 1
+    )
+
+    beam = guess_beam_parameters(psf_image)
+    assert np.isfinite([beam["bmaj"], beam["bmin"], beam["bpa"]]).all()
+    assert beam["bmaj"] > 0.0
+    assert beam["bmin"] > 0.0
 
     restored = imager.restore(dirty_image, psf_image)
     assert os.path.exists(restored.path)
     assert restored.data.shape == dirty_image.data.shape
     assert restored.data.size > 0
+    assert np.isfinite(restored.data).all()
+    assert np.nanmax(np.abs(restored.data)) > 0.0
     # model/residual artefacts are exported for inspection
     assert hasattr(imager, "last_model_image")
     assert hasattr(imager, "last_residual_image")
     assert os.path.exists(imager.last_model_image.path)
     assert os.path.exists(imager.last_residual_image.path)
+    assert np.isfinite(imager.last_model_image.data).all()
+    assert np.isfinite(imager.last_residual_image.data).all()
+
+
+def test_imager_factory_forwards_matching_sdp_config() -> None:
+    config = SdpImagerConfig(clean_niter=17)
+    imager = get_imager(ImagingBackend.SDP, config=config)
+
+    assert isinstance(imager, SdpImager)
+    assert imager.config is config
+
+
+def test_imager_factory_rejects_config_for_another_backend() -> None:
+    with pytest.raises(TypeError, match="SDP backend"):
+        get_imager(
+            ImagingBackend.SDP,
+            config=WscleanBackendConfig(),
+        )
 
 
 @pytest.mark.parametrize("algorithm", ["hogbom-complex", "msclean", "mmclean"])
@@ -54,3 +99,11 @@ def test_sdp_imager_restore_rejects_mutated_clean_algorithm() -> None:
     imager.config.clean_algorithm = "msclean"
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         imager.restore(None, None)  # type: ignore[arg-type]
+
+
+def test_removed_rascil_backend_has_migration_error() -> None:
+    with pytest.raises(
+        ValueError,
+        match="RASCIL imaging backend has been removed.*'sdp' or 'wsclean'",
+    ):
+        parse_imaging_backend("rascil")

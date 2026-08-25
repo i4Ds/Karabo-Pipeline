@@ -60,7 +60,7 @@ def line_emission_pipeline(
     For the actual primary beam effect in OSKAR,
     set the relevant parameter in the InterferometerSimulation constructor.
 
-    For RASCIL, the provided primary beams are used
+    For SDP, the provided primary beams are used.
     for the primary beam effect.
     """
     imaging_backend = parse_imaging_backend(imaging_backend)
@@ -117,7 +117,7 @@ def line_emission_pipeline(
             if primary_beams is None:
                 primary_beam = None
             else:
-                # Currently supported backend for custom primary beams: RASCIL
+                # Currently supported backend for custom primary beams: SDP
                 primary_beam = create_image(
                     npixel=dirty_imager_config.imaging_npixel,
                     cellsize=dirty_imager_config.imaging_cellsize,
@@ -202,10 +202,7 @@ def line_emission_pipeline(
             dirty, psf = imager.invert(vis, image_spec)
             restored = imager.restore(dirty, psf)
 
-            if simulator_backend is SimulatorBackend.OSKAR:
-                simulator_label = "OSKAR"
-            else:
-                simulator_label = "RASCIL"
+            simulator_label = simulator_backend.name
             imaging_label = imaging_backend.value.upper()
 
             dirty_output_path = os.path.join(

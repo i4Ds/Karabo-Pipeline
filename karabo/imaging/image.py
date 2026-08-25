@@ -17,16 +17,15 @@ from typing import (
     overload,
 )
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy import constants as consts
 from astropy.coordinates.sky_coordinate import SkyCoord
 from astropy.io import fits
 from astropy.io.fits.header import Header
 from astropy.nddata import Cutout2D, NDData
 from astropy.wcs import WCS
 from numpy.typing import NDArray
-from rascil.apps.imaging_qa.imaging_qa_diagnostics import power_spectrum
 from reproject import reproject_interp
 from reproject.mosaicking import find_optimal_celestial_wcs, reproject_and_coadd
 from scipy.interpolate import RegularGridInterpolator
@@ -36,11 +35,15 @@ from karabo.util._types import BeamType, FilePathType
 from karabo.util.file_handler import FileHandler, assert_valid_ending
 from karabo.util.plotting_util import get_slices
 
-# store and restore the previously set matplotlib backend,
-# because rascil sets it to Agg (non-GUI)
-previous_backend = matplotlib.get_backend()
 
-matplotlib.use(previous_backend)
+def _radial_profile(image: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Average a centred two-dimensional image in integer-radius annuli."""
+    centre = (image.shape[0] // 2, image.shape[1] // 2)
+    y, x = np.indices(image.shape)
+    radius = np.sqrt((y - centre[0]) ** 2 + (x - centre[1]) ** 2).astype(int)
+    sums = np.bincount(radius.ravel(), image.ravel())
+    counts = np.bincount(radius.ravel())
+    return sums / counts
 
 
 class Image:
@@ -687,7 +690,6 @@ class Image:
             Dictionary holding all image statistics
 
         """
-        # same implementation as RASCIL
         image_stats = {
             "shape": str(self.data.shape),
             "max": np.max(self.data),
@@ -724,7 +726,45 @@ class Image:
                 - theta_axis: Angular scale data in degrees
 
         """
-        profile, theta = power_spectrum(self.path, resolution, signal_channel)
+        if self.data.ndim != 4:
+            raise ValueError(
+                "Power-spectrum calculation requires a 4D "
+                f"(frequency, polarisation, y, x) image, got {self.data.shape}."
+            )
+
+        nchan, _, _, nx = self.data.shape
+        if signal_channel is None:
+            signal_channel = nchan // 2
+        if not 0 <= signal_channel < nchan:
+            raise IndexError(
+                f"signal_channel {signal_channel} is outside 0..{nchan - 1}"
+            )
+
+        transformed = np.fft.fftshift(
+            np.fft.ifft2(
+                np.fft.ifftshift(self.data.astype(complex), axes=(-2, -1)),
+                axes=(-2, -1),
+            ),
+            axes=(-2, -1),
+        )
+
+        wcs = WCS(self.header)
+        frequencies = wcs.sub([4]).wcs_pix2world(range(nchan), 0)[0]
+        omega = np.pi * resolution**2 / (4.0 * np.log(2.0))
+        wavelength = consts.c / np.average(frequencies)
+        kelvin_per_jansky = (
+            1.0e-26 * wavelength**2 / (2.0 * consts.k_B * omega)
+        ).value
+
+        spectrum = kelvin_per_jansky * np.abs(transformed[signal_channel, 0])
+        profile = _radial_profile(spectrum)
+
+        cellsize_radians = np.deg2rad(abs(float(self.header["CDELT1"])))
+        cellsize_uv = 1.0 / (nx * cellsize_radians)
+        spatial_frequency = np.linspace(
+            cellsize_uv, cellsize_uv * len(profile), len(profile)
+        )
+        theta = 180.0 / (np.pi * spatial_frequency)
         return profile, theta
 
     def plot_power_spectrum(

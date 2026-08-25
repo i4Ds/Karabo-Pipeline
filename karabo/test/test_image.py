@@ -1,36 +1,56 @@
+import math
 import os
 import tempfile
 from datetime import datetime
 
 import numpy as np
 
+from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import (
-    RascilDirtyImager,
-    RascilDirtyImagerConfig,
-    RascilImageCleaner,
-    RascilImageCleanerConfig,
-)
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
-from karabo.test.util import get_compatible_dirty_imager
+from karabo.test.util import create_compatible_dirty_image
+
+
+def _create_sdp_dirty_image(
+    visibility: Visibility,
+    npixel: int,
+    cellsize_radians: float,
+    *,
+    override_cellsize: bool = False,
+):
+    imager = SdpImager(
+        SdpImagerConfig(
+            combine_across_frequencies=False,
+            override_cellsize=override_cellsize,
+        )
+    )
+    dirty, _ = imager.invert(
+        visibility,
+        ImageSpec(
+            npix=npixel,
+            cellsize_arcsec=np.rad2deg(cellsize_radians) * 3600.0,
+            phase_centre_deg=(0.0, 0.0),
+        ),
+    )
+    return dirty
 
 
 def test_image_circle(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = get_compatible_dirty_imager(
+    dirty = create_compatible_dirty_image(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
         ),
     )
-    dirty = dirty_imager.create_dirty_image(vis)
 
     data = dirty.data[0][0]  # Returns a 2D array, with values for each (x, y) pixel
 
@@ -48,14 +68,13 @@ def test_image_circle(tobject: TFiles):
 def test_dirty_image(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = get_compatible_dirty_imager(
+    dirty = create_compatible_dirty_image(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
         ),
     )
-    dirty = dirty_imager.create_dirty_image(vis)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dirty.write_to_file(os.path.join(tmpdir, "dirty.fits"), overwrite=True)
@@ -66,14 +85,13 @@ def test_dirty_image_resample(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
     SHAPE = 2048
 
-    dirty_imager = get_compatible_dirty_imager(
+    dirty = create_compatible_dirty_image(
         vis,
         DirtyImagerConfig(
             imaging_npixel=SHAPE,
             imaging_cellsize=3.878509448876288e-05,
         ),
     )
-    dirty = dirty_imager.create_dirty_image(vis)
 
     shape_before = dirty.data.shape
     NEW_SHAPE = 512
@@ -100,14 +118,11 @@ def test_dirty_image_resample(tobject: TFiles):
 def test_dirty_image_cutout(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            imaging_npixel=2048,
-            imaging_cellsize=3.878509448876288e-05,
-            combine_across_frequencies=False,
-        )
+    dirty = _create_sdp_dirty_image(
+        vis,
+        npixel=2048,
+        cellsize_radians=3.878509448876288e-05,
     )
-    dirty = dirty_imager.create_dirty_image(vis)
 
     cutout1 = dirty.cutout((1000, 1000), (500, 500))
 
@@ -127,14 +142,13 @@ def test_dirty_image_cutout(tobject: TFiles):
 def test_dirty_image_N_cutout(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = get_compatible_dirty_imager(
+    dirty = create_compatible_dirty_image(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
         ),
     )
-    dirty = dirty_imager.create_dirty_image(vis)
 
     cutouts = dirty.split_image(N=4)
 
@@ -158,26 +172,16 @@ def test_dirty_image_N_cutout(tobject: TFiles):
 def test_cellsize_overwrite(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            imaging_npixel=2048,
-            imaging_cellsize=10,
-            combine_across_frequencies=False,
-            override_cellsize=True,
-        )
-    ).create_dirty_image(vis)
+    dirty = _create_sdp_dirty_image(
+        vis, npixel=256, cellsize_radians=10, override_cellsize=True
+    )
 
     header = dirty.header
     cdelt_overwrite_cellsize_false = header["CDELT1"]
 
-    dirty = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            imaging_npixel=2048,
-            imaging_cellsize=1,
-            combine_across_frequencies=False,
-            override_cellsize=True,
-        )
-    ).create_dirty_image(vis)
+    dirty = _create_sdp_dirty_image(
+        vis, npixel=256, cellsize_radians=1, override_cellsize=True
+    )
 
     header = dirty.header
     cdelt_overwrite_cellsize_true = header["CDELT1"]
@@ -187,24 +191,14 @@ def test_cellsize_overwrite(tobject: TFiles):
 
 def test_cellsize_overwrite_false(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
-    dirty = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            imaging_npixel=2048,
-            imaging_cellsize=10,
-            combine_across_frequencies=False,
-            override_cellsize=False,
-        )
-    ).create_dirty_image(vis)
+    dirty = _create_sdp_dirty_image(
+        vis, npixel=256, cellsize_radians=10, override_cellsize=False
+    )
     cdelt_overwrite_cellsize_false = dirty.header["CDELT1"]
 
-    dirty = RascilDirtyImager(
-        RascilDirtyImagerConfig(
-            imaging_npixel=2048,
-            imaging_cellsize=1,
-            combine_across_frequencies=False,
-            override_cellsize=False,
-        )
-    ).create_dirty_image(vis)
+    dirty = _create_sdp_dirty_image(
+        vis, npixel=256, cellsize_radians=1, override_cellsize=False
+    )
     cdelt_overwrite_cellsize_true = dirty.header["CDELT1"]
 
     assert cdelt_overwrite_cellsize_false != cdelt_overwrite_cellsize_true
@@ -234,26 +228,24 @@ def test_imaging():
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
-    # could fail if `xarray` and `ska-sdp-func-python` not compatible, see issue #542
-    (
-        deconvolved,
-        restored,
-        residual,
-    ) = RascilImageCleaner(
-        RascilImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-            ingest_vis_nchan=16,
-            clean_nmajor=1,
-            clean_algorithm="mmclean",
-            clean_scales=[10, 30, 60],
+    imager = SdpImager(
+        SdpImagerConfig(
+            combine_across_frequencies=False,
+            clean_algorithm="hogbom",
             clean_threshold=0.12e-3,
-            clean_nmoment=5,
-            clean_psf_support=640,
-            clean_restored_output="integrated",
-            use_dask=True,
         )
-    ).create_cleaned_image_variants(visibility_askap)
+    )
+    dirty, psf = imager.invert(
+        visibility_askap,
+        ImageSpec(
+            npix=imaging_npixel,
+            cellsize_arcsec=math.degrees(imaging_cellsize) * 3600.0,
+            phase_centre_deg=(phase_center[0], phase_center[1]),
+        ),
+    )
+    restored = imager.restore(dirty, psf)
+    deconvolved = imager.last_model_image
+    residual = imager.last_residual_image
 
     assert os.path.exists(deconvolved.path)
     assert os.path.exists(restored.path)

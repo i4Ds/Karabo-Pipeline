@@ -218,8 +218,8 @@ class ObservationAbstract(ABC):
         """
         Given a total observation length and an integration time interval,
         determine the corresponding hour angles of observation.
-        This utility function is used during simulations using the RASCIL backend.
-        Approach based on https://gitlab.com/ska-sdp-china/rascil/-/blob/9002d853b64465238177b37e941c7445fed50d35/examples/performance/mid_write_ms.py#L32-40 # noqa: E501
+        This utility function is used during SKA-SDP simulations.
+        It converts observation timestamps into hour angles for visibility creation.
         """
         total_observation_length = self.length
         integration_time = timedelta(

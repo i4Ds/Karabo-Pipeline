@@ -49,8 +49,7 @@ BDSFResultIdxsToUseForKarabo = [
     14,
     8,
     9,
-]  # 0: Gauss_id, 4: RA, 6: DEC, 12: Total_flux, 14: Peak_flux, 8: RA_max, 9: E_RA_max
-# See: https://pybdsf.readthedocs.io/en/latest/write_catalog.html#definition-of-output-columns # noqa E501
+]
 
 
 class ISourceDetectionResult(ABC):

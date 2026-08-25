@@ -88,7 +88,7 @@ class WriteMs(BaseData):
         Given a station and an array of stands, set the relevant common
         observation parameters and add entries to the self.array list.
 
-        :param site_config:  RASCIL Configuration
+        :param site_config: SKA-SDP Configuration
         :param antennas: Antenna array
         :param bits: Preserved
 

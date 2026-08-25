@@ -3,84 +3,50 @@ import sys
 import tempfile
 from datetime import datetime, timedelta
 from io import StringIO
-from pathlib import Path
 
 import numpy as np
 import pytest
-from astropy.io import fits
 from numpy.typing import NDArray
 
-from karabo.data.external_data import (
-    SingleFileDownloadObject,
-    cscs_karabo_public_testing_base_url,
-)
 from karabo.imaging.image import Image
 from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation, format_timedelta
 from karabo.simulation.observation import Observation, ObservationParallelized
 from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
-from karabo.test.util import get_compatible_dirty_imager
+from karabo.test.util import create_compatible_dirty_image
 
 
-# DownloadObject instances used to download different golden files:
-# - FITS file of the test continuous emission simulation of MeerKAT using OSKAR.
-# - FITS files of the test continuous emission simulation with noise of MeerKAT using
-# OSKAR.
-# - FITS file of the test continuous emission simulation of MeerKAT using RASCIL.
-@pytest.fixture
-def continuous_fits_filename() -> str:
-    return "test_continuous_emission.fits"
-
-
-@pytest.fixture
-def continuous_noise_fits_filename() -> str:
-    return "test_continuous_emission_noise.fits"
-
-
-@pytest.fixture
-def continuous_Rascil_fits_filename() -> str:
-    return "test_continuous_emission_RASCIL_v1.fits"
-
-
-@pytest.fixture
-def continuous_fits_downloader(
-    continuous_fits_filename: str,
-) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=continuous_fits_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
-    )
-
-
-@pytest.fixture
-def continuous_noise_fits_downloader(
-    continuous_noise_fits_filename: str,
-) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=continuous_noise_fits_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
-    )
-
-
-@pytest.fixture
-def continuous_Rascil_fits_downloader(
-    continuous_Rascil_fits_filename: str,
-) -> SingleFileDownloadObject:
-    return SingleFileDownloadObject(
-        remote_file_path=continuous_Rascil_fits_filename,
-        remote_base_url=cscs_karabo_public_testing_base_url,
-    )
+def _assert_valid_multichannel_dirty_image(
+    image: Image,
+    *,
+    nchan: int,
+    npixel: int,
+    phase_centre_deg: tuple[float, float],
+    first_channel_frequency_hz: float,
+    frequency_increment_hz: float,
+) -> None:
+    assert image.data.shape == (nchan, 1, npixel, npixel)
+    assert np.isfinite(image.data).all()
+    assert np.all(np.std(image.data, axis=(-2, -1)) > 0.0)
+    assert np.nanmax(np.abs(image.data)) > 0.0
+    assert image.header["CTYPE1"].startswith("RA")
+    assert image.header["CTYPE2"].startswith("DEC")
+    assert image.header["CTYPE3"] == "STOKES"
+    assert image.header["CTYPE4"] == "FREQ"
+    assert np.isclose(image.header["CRVAL1"], phase_centre_deg[0])
+    assert np.isclose(image.header["CRVAL2"], phase_centre_deg[1])
+    assert np.isclose(image.header["CRVAL4"], first_channel_frequency_hz)
+    assert np.isclose(abs(image.header["CDELT4"]), frequency_increment_hz)
 
 
 @pytest.mark.parametrize(
     "backend,telescope_name",
     [
         (SimulatorBackend.OSKAR, "SKA1MID"),
-        (SimulatorBackend.RASCIL, "MID"),
+        (SimulatorBackend.SDP, "MID"),
     ],
 )
 def test_backend_simulations(
@@ -113,14 +79,13 @@ def test_backend_simulations(
 
     visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
 
-    dirty_imager = get_compatible_dirty_imager(
+    dirty = create_compatible_dirty_image(
         visibility,
         DirtyImagerConfig(
             imaging_npixel=1024,
             imaging_cellsize=3 / 180 * np.pi / 1024,
         ),
     )
-    dirty = dirty_imager.create_dirty_image(visibility)
     assert isinstance(dirty, Image)
     assert len(dirty.data.shape) == 4
 
@@ -129,31 +94,17 @@ def test_backend_simulations(
     "backend,telescope_name",
     [
         (SimulatorBackend.OSKAR, "MeerKAT"),
-        (SimulatorBackend.RASCIL, "MEERKAT+"),
+        (SimulatorBackend.SDP, "MEERKAT+"),
     ],
 )
 def test_simulation_meerkat(
-    continuous_fits_filename: str,
-    continuous_fits_downloader: SingleFileDownloadObject,
-    continuous_Rascil_fits_filename: str,
-    continuous_Rascil_fits_downloader: SingleFileDownloadObject,
     backend: SimulatorBackend,
     telescope_name: str,
 ) -> None:
     """
-    Executes a simulation of continuous emission and validates the output files. Testing
-    the OSKAR and the RASCIL backends.
-
-    Args:
-        continuous_fits_filename:
-            Name of FITS file containing the simulated dirty image.
+    Simulate continuous emission and validate scientifically relevant image
+    properties for the OSKAR and SDP backends.
     """
-    # Download golden files for comparison
-    if backend == SimulatorBackend.OSKAR:
-        golden_continuous_fits_path = continuous_fits_downloader.get()
-    else:
-        golden_continuous_fits_path = continuous_Rascil_fits_downloader.get()
-
     # Parameter definition
     ra_deg = 20
     dec_deg = -30
@@ -188,55 +139,32 @@ def test_simulation_meerkat(
     )
     visibility = simulation.run_simulation(telescope, sky, observation, backend=backend)
 
-    # We use the Imager to check the simulation
-    dirty_imager = RascilDirtyImager(
-        RascilDirtyImagerConfig(
+    dirty = create_compatible_dirty_image(
+        visibility,
+        DirtyImagerConfig(
             imaging_npixel=1024,
             imaging_cellsize=3 / 180 * np.pi / 1024,
             combine_across_frequencies=False,
-        )
+        ),
     )
-    dirty = dirty_imager.create_dirty_image(visibility)
-    # Temporary directory containing output files for validation
-    with tempfile.TemporaryDirectory() as tmpdir:
-        outpath = Path(tmpdir)
-        continuous_fits_path = outpath / "test_continuous_emission.fits"
-        dirty.write_to_file(str(continuous_fits_path), overwrite=True)
-
-        # Verify fits
-        continuous_fits_data, continuous_fits_header = fits.getdata(
-            continuous_fits_path, ext=0, header=True
-        )
-        golden_continuous_fits_data, golden_continuous_fits_header = fits.getdata(
-            golden_continuous_fits_path, ext=0, header=True
-        )
-
-        # Check FITS data is close to goldenfile
-        assert np.allclose(
-            golden_continuous_fits_data, continuous_fits_data, equal_nan=True
-        )
-
-        # Check that headers contain the same keys
-        assert set(golden_continuous_fits_header.keys()) == set(
-            continuous_fits_header.keys()
-        )
+    _assert_valid_multichannel_dirty_image(
+        dirty,
+        nchan=3,
+        npixel=1024,
+        phase_centre_deg=(ra_deg, dec_deg),
+        first_channel_frequency_hz=(
+            start_freq + freq_bin / 2 if backend is SimulatorBackend.SDP else start_freq
+        ),
+        frequency_increment_hz=freq_bin,
+    )
 
 
-def test_simulation_noise_meerkat(
-    continuous_noise_fits_filename: str,
-    continuous_noise_fits_downloader: SingleFileDownloadObject,
-) -> None:
+def test_simulation_noise_meerkat() -> None:
     """
     Executes a simulation of continuous emission with noise and validates
     the output files.
 
-    Args:
-        continuous_noise_fits_filename:
-            Name of FITS file containing the simulated dirty image.
     """
-    # Download golden files for comparison
-    golden_continuous_noise_fits_path = continuous_noise_fits_downloader.get()
-
     # Parameter definition
     ra_deg = 20
     dec_deg = -30
@@ -259,6 +187,7 @@ def test_simulation_noise_meerkat(
         enable_power_pattern=True,
         use_dask=False,
         noise_enable=True,
+        noise_seed=1,
         noise_freq="Observation settings",
         noise_rms_start=10,
         noise_rms_end=10,
@@ -275,41 +204,23 @@ def test_simulation_noise_meerkat(
     )
     visibility = simulation.run_simulation(telescope, sky, observation)
 
-    # We use the Imager to check the simulation
-    dirty_imager = RascilDirtyImager(
-        RascilDirtyImagerConfig(
+    dirty = create_compatible_dirty_image(
+        visibility,
+        DirtyImagerConfig(
             imaging_npixel=1024,
             imaging_cellsize=3 / 180 * np.pi / 1024,
             combine_across_frequencies=False,
-        )
+        ),
     )
-    dirty = dirty_imager.create_dirty_image(visibility)
-    # Temporary directory containing output files for validation
-    with tempfile.TemporaryDirectory() as tmpdir:
-        outpath = Path(tmpdir)
-        continuous_noise_fits_path = outpath / "test_continuous_emission_noise.fits"
-        dirty.write_to_file(str(continuous_noise_fits_path), overwrite=True)
-
-        # Verify fits
-        continuous_noise_fits_data, continuous_noise_fits_header = fits.getdata(
-            continuous_noise_fits_path, ext=0, header=True
-        )
-        (
-            golden_continuous_noise_fits_data,
-            golden_continuous_noise_fits_header,
-        ) = fits.getdata(golden_continuous_noise_fits_path, ext=0, header=True)
-
-        # Check FITS data is close to goldenfile
-        assert np.allclose(
-            golden_continuous_noise_fits_data,
-            continuous_noise_fits_data,
-            equal_nan=True,
-        )
-
-        # Check that headers contain the same keys
-        assert set(golden_continuous_noise_fits_header.keys()) == set(
-            continuous_noise_fits_header.keys()
-        )
+    _assert_valid_multichannel_dirty_image(
+        dirty,
+        nchan=3,
+        npixel=1024,
+        phase_centre_deg=(ra_deg, dec_deg),
+        first_channel_frequency_hz=start_freq,
+        frequency_increment_hz=freq_bin,
+    )
+    assert np.all(np.std(dirty.data, axis=(-2, -1)) > 0.01)
 
 
 @pytest.mark.skip(
@@ -340,14 +251,14 @@ def test_parallelization_by_observation() -> None:
     visibilities = simulation.run_simulation(telescope, sky, obs_parallelized)
 
     for i, vis in enumerate(visibilities):
-        dirty_imager = RascilDirtyImager(
-            RascilDirtyImagerConfig(
+        dirty = create_compatible_dirty_image(
+            vis,
+            DirtyImagerConfig(
                 imaging_npixel=512,
                 imaging_cellsize=3.878509448876288e-05,
                 combine_across_frequencies=False,
-            )
+            ),
         )
-        dirty = dirty_imager.create_dirty_image(vis)
         with tempfile.TemporaryDirectory() as tmpdir:
             dirty.write_to_file(os.path.join(tmpdir, f"dirty_{i}.fits"), overwrite=True)
         assert dirty.header["CRVAL4"] == CENTER_FREQUENCIES_HZ[i]

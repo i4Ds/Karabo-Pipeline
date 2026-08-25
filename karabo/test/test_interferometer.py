@@ -3,120 +3,149 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import xarray as xr
 
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulator_backend import SimulatorBackend
 from karabo.util.file_handler import FileHandler
-from karabo.warning import RASCIL_DEPRECATION_MESSAGE, RascilDeprecationWarning
 
 
-def test_sdp_simulation_matches_rascil(monkeypatch, tmp_path):
-    # Redirect temp roots
-    monkeypatch.setattr(FileHandler, "root_stm", str(tmp_path), raising=False)
-    monkeypatch.setattr(FileHandler, "root_ltm", str(tmp_path), raising=False)
-
-    # Capture in-memory visibilities instead of writing MS
-    exported = []
-
-    def fake_export(ms_path, vis_list, source_name=None):
-        Path(ms_path).mkdir(parents=True, exist_ok=True)
-        # store deep copies to avoid later mutation
-        exported.append([vis.copy(deep=True) for vis in vis_list])
-
-    monkeypatch.setattr(
-        "karabo.util.ska_sdp_datamodels.visibility.vis_io_ms.export_visibility_to_ms",
-        fake_export,
-        raising=False,
-    )
-    monkeypatch.setattr(
-        "karabo.simulation.interferometer.export_visibility_to_ms",
-        fake_export,
-        raising=False,
-    )
-
-    # Minimal sky: single 1 Jy point at phase centre
+def _create_point_source_sky(ra_deg: float, dec_deg: float) -> SkyModel:
     sky = SkyModel()
-    arr = np.zeros((1, SkyModel.SOURCES_COLS))
-    arr[0, 0] = 15.0  # RA deg
-    arr[0, 1] = -30.0  # DEC deg
-    arr[0, 2] = 1.0  # Stokes I Jy
-    sky.add_point_sources(arr)
+    source = np.zeros((1, SkyModel.SOURCES_COLS))
+    source[0, 0] = ra_deg
+    source[0, 1] = dec_deg
+    source[0, 2] = 1.0
+    sky.add_point_sources(source)
+    return sky
 
-    # Telescope via RASCIL/SDP config (same config object underneath)
-    with pytest.warns(RascilDeprecationWarning) as constructor_warning:
-        rascil_tel = Telescope.constructor("MID", backend=SimulatorBackend.RASCIL)
-    assert str(constructor_warning[0].message) == RASCIL_DEPRECATION_MESSAGE
-    sdp_tel = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
 
-    # Obs: 1 time, 1 chan, centred at phase centre
-    sim = InterferometerSimulation(
-        channel_bandwidth_hz=1e6,
-        time_average_sec=1.0,
-        ignore_w_components=True,
-        use_gpus=False,
-        use_dask=False,
-    )
-    obs = Observation(
+def _create_minimal_observation(ra_deg: float, dec_deg: float) -> Observation:
+    return Observation(
         start_frequency_hz=1.0e9,
         start_date_and_time=datetime(2020, 1, 1, 0, 0, 0),
-        phase_centre_ra_deg=15.0,
-        phase_centre_dec_deg=-30.0,
+        phase_centre_ra_deg=ra_deg,
+        phase_centre_dec_deg=dec_deg,
         number_of_time_steps=1,
         frequency_increment_hz=1.0e6,
         number_of_channels=1,
         length=timedelta(seconds=1),
     )
 
-    rascil_ms = tmp_path / "rascil.ms"
-    sdp_ms = tmp_path / "sdp.ms"
 
-    with pytest.warns(RascilDeprecationWarning) as simulation_warning:
-        v_rascil = sim.run_simulation(
-            rascil_tel,
-            sky,
-            obs,
-            backend=SimulatorBackend.RASCIL,
-            visibility_path=str(rascil_ms),
-        )
-    assert str(simulation_warning[0].message) == RASCIL_DEPRECATION_MESSAGE
-    v_sdp = sim.run_simulation(
-        sdp_tel, sky, obs, backend=SimulatorBackend.SDP, visibility_path=str(sdp_ms)
+def test_sdp_simulation_exports_finite_visibility(monkeypatch, tmp_path):
+    monkeypatch.setattr(FileHandler, "root_stm", str(tmp_path), raising=False)
+    monkeypatch.setattr(FileHandler, "root_ltm", str(tmp_path), raising=False)
+
+    exported = []
+
+    def fake_export(ms_path, vis_list, source_name=None):
+        Path(ms_path).mkdir(parents=True, exist_ok=True)
+        exported.append([vis.copy(deep=True) for vis in vis_list])
+
+    monkeypatch.setattr(
+        "karabo.simulation.interferometer.export_visibility_to_ms",
+        fake_export,
+        raising=False,
     )
 
-    # Basic assertions on API
-    assert v_rascil.format == "MS"
-    assert v_sdp.format == "MS"
-    assert v_rascil.path == str(rascil_ms)
-    assert v_sdp.path == str(sdp_ms)
+    sky = _create_point_source_sky(15.0, -30.0)
 
-    # We expect two export calls, each with a single xarray.Dataset
-    assert len(exported) == 2
-    assert all(len(entry) == 1 for entry in exported)
-    ds_r = exported[0][0]
-    ds_s = exported[1][0]
+    telescope = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
+    simulation = InterferometerSimulation(
+        channel_bandwidth_hz=1e6,
+        time_average_sec=1.0,
+        ignore_w_components=True,
+        use_gpus=False,
+        use_dask=False,
+    )
+    observation = _create_minimal_observation(15.0, -30.0)
 
-    # Helper to compare datasets with tolerance and ignore attr noise
-    def _assert_ds_close(a: xr.Dataset, b: xr.Dataset, rtol=1e-6, atol=1e-9):
-        # Same variable names and shapes
-        assert set(a.data_vars) == set(b.data_vars)
-        for name in a.data_vars:
-            va, vb = a[name], b[name]
-            assert va.shape == vb.shape
-            if np.issubdtype(va.dtype, np.floating):
-                np.testing.assert_allclose(va.values, vb.values, rtol=rtol, atol=atol)
-            else:
-                assert np.array_equal(va.values, vb.values)
-        # Coordinates (times, frequency, baselines) with tolerance
-        for cname in set(a.coords) & set(b.coords):
-            ca, cb = a[cname], b[cname]
-            assert ca.shape == cb.shape
-            if np.issubdtype(ca.dtype, np.floating):
-                np.testing.assert_allclose(ca.values, cb.values, rtol=rtol, atol=atol)
-            else:
-                assert np.array_equal(ca.values, cb.values)
+    ms_path = tmp_path / "sdp.ms"
+    visibility = simulation.run_simulation(
+        telescope,
+        sky,
+        observation,
+        backend=SimulatorBackend.SDP,
+        visibility_path=str(ms_path),
+    )
 
-    _assert_ds_close(ds_r, ds_s)
+    assert visibility.format == "MS"
+    assert visibility.path == str(ms_path)
+    assert len(exported) == 1
+    assert len(exported[0]) == 1
+
+    dataset = exported[0][0]
+    assert "vis" in dataset.data_vars
+    assert dataset["vis"].size > 0
+    assert np.isfinite(dataset["vis"].values).all()
+    assert np.any(np.abs(dataset["vis"].values) > 0.0)
+
+
+@pytest.mark.parametrize(
+    "backend,telescope_name",
+    [
+        (SimulatorBackend.OSKAR, "SKA1MID"),
+        (SimulatorBackend.SDP, "ASKAP"),
+    ],
+)
+def test_supported_backends_write_imageable_measurement_sets(
+    tmp_path, backend: SimulatorBackend, telescope_name: str
+):
+    sky = _create_point_source_sky(15.0, -30.0)
+    telescope = Telescope.constructor(telescope_name, backend=backend)
+    simulation = InterferometerSimulation(
+        channel_bandwidth_hz=1e6,
+        time_average_sec=1.0,
+        ignore_w_components=True,
+        use_gpus=False,
+        use_dask=False,
+    )
+    observation = _create_minimal_observation(15.0, -30.0)
+    ms_path = tmp_path / f"{backend.name.lower()}.ms"
+
+    visibility = simulation.run_simulation(
+        telescope,
+        sky,
+        observation,
+        backend=backend,
+        visibility_path=str(ms_path),
+    )
+
+    assert visibility.format == "MS"
+    assert visibility.path == str(ms_path)
+    assert (ms_path / "table.dat").is_file()
+    assert (ms_path / "ANTENNA" / "table.dat").is_file()
+
+    imager = get_imager(ImagingBackend.SDP)
+    dirty, psf = imager.invert(
+        visibility,
+        ImageSpec(
+            npix=128,
+            cellsize_arcsec=20.0,
+            phase_centre_deg=(15.0, -30.0),
+        ),
+    )
+    restored = imager.restore(dirty, psf)
+
+    image_centre = (64, 64)
+    for image in (dirty, psf, restored):
+        data = image.get_squeezed_data()
+        assert data.shape == (128, 128)
+        assert np.isfinite(data).all()
+        assert np.unravel_index(np.nanargmax(data), data.shape) == image_centre
+        assert np.isclose(np.nanmax(data), 1.0, rtol=0.02)
+        assert np.isclose(image.header["CRVAL1"], 15.0)
+        assert np.isclose(image.header["CRVAL2"], -30.0)
+        assert image.header["CTYPE1"].startswith("RA")
+        assert image.header["CTYPE2"].startswith("DEC")
+
+    model = imager.last_model_image
+    residual = imager.last_residual_image
+    assert np.isfinite(model.data).all()
+    assert np.isfinite(residual.data).all()
+    assert np.nanmax(np.abs(residual.data)) < 0.02 * np.nanmax(np.abs(dirty.data))
