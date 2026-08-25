@@ -599,7 +599,7 @@ class SkyModel:
         self._sources: Optional[xr.DataArray] = None
         self.precision = precision
         self.wcs = wcs
-        self.sources = sources  # type: ignore [assignment]
+        self.sources = sources  # type: ignore[assignment]
         self.h5_file_connection = h5_file_connection
 
     @classmethod
@@ -679,7 +679,10 @@ class SkyModel:
             if normalized in {"sdp", "ska-sdp"}:
                 resolved_backend = SimulatorBackend.SDP
             elif normalized == "rascil":
-                resolved_backend = SimulatorBackend.RASCIL
+                raise ValueError(
+                    "The RASCIL simulation backend has been removed. "
+                    "Use 'sdp' instead."
+                )
             elif normalized == "oskar":
                 resolved_backend = SimulatorBackend.OSKAR
             else:
@@ -738,6 +741,7 @@ class SkyModel:
                 sources[:, cls.COL_IDX["dec"]] = dec_deg
                 sources[:, cls.COL_IDX["stokes_i"]] = flux_i
                 ref_freq = header.get("CRVAL3")
+
                 if ref_freq is not None:
                     sources[:, cls.COL_IDX["ref_freq"]] = float(ref_freq)
 
@@ -757,7 +761,7 @@ class SkyModel:
                 Tuple[str, str], sources.dims
             )
         else:
-            assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
+            assert_never(sources)
 
     def close(self) -> None:
         """
@@ -814,7 +818,7 @@ class SkyModel:
                     + f"don't match already existing index name {sky_keys}."
                 )
         else:
-            assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
+            assert_never(sources)
         return None
 
     def to_sky_xarray(self, sources: _SkySourcesType) -> xr.DataArray:
@@ -857,7 +861,11 @@ class SkyModel:
             ):  # sources have IDs. 13 is for backwards compatibility
                 index_of_ids_column = sources.shape[1] - 1
                 source_ids = sources[:, index_of_ids_column]
-                sources = np.delete(sources, np.s_[index_of_ids_column], axis=1)  # type: ignore [assignment] # noqa: E501
+                sources = np.delete(  # type: ignore[assignment]
+                    sources,
+                    np.s_[index_of_ids_column],
+                    axis=1,
+                )
                 sources = sources.astype(self.precision)
                 da = xr.DataArray(
                     sources,
@@ -875,7 +883,7 @@ class SkyModel:
                 fill[:, :-missing_cols] = sources
                 da = fill
         else:
-            assert_never(f"{type(sources)} is not a valid `SkySourcesType`.")
+            assert_never(sources)
 
         return da
 
@@ -1006,7 +1014,7 @@ class SkyModel:
                 )
             )
         else:
-            return self.sources.to_numpy()
+            return cast(_NPSkyType, self.sources.to_numpy())
 
     def rechunk_array_based_on_self(self, array: xr.DataArray) -> xr.DataArray:
         if self.sources is None:
@@ -1485,7 +1493,7 @@ class SkyModel:
             raise AttributeError(
                 "`sources` is None and therefore has no `shape` attribute."
             )
-        return self.sources.shape
+        return tuple(self.sources.shape)
 
     @property
     def num_sources(self) -> int:
@@ -1732,9 +1740,15 @@ class SkyModel:
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
                 shape = f[prefix_mapping.ra].shape
-                dask_array = da.zeros(shape, chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
+                dask_array = da.zeros(  # type: ignore[attr-defined]
+                    shape,
+                    chunks=(chunksize,),
+                )
             else:
-                dask_array = da.from_array(f[field_value], chunks=(chunksize,))  # type: ignore [attr-defined] # noqa: E501
+                dask_array = da.from_array(  # type: ignore[attr-defined]
+                    f[field_value],
+                    chunks=(chunksize,),
+                )
             data_arrays.append(xr.DataArray(dask_array, dims=[XARRAY_DIM_0_DEFAULT]))
 
         if load_as == "numpy_array":
@@ -2344,16 +2358,6 @@ class SkyModel:
     @overload
     def convert_to_backend(
         self,
-        backend: Literal[SimulatorBackend.RASCIL],
-        desired_frequencies_hz: NDArray[np.float_],
-        channel_bandwidth_hz: Optional[float] = None,
-        verbose: bool = False,
-    ) -> List[SkyComponent]:
-        ...
-
-    @overload
-    def convert_to_backend(
-        self,
         backend: Literal[SimulatorBackend.SDP],
         desired_frequencies_hz: NDArray[np.float_],
         channel_bandwidth_hz: Optional[float] = None,
@@ -2376,11 +2380,11 @@ class SkyModel:
 
                 - OSKAR: return the current SkyModel instance, since methods \
                     in Karabo support OSKAR-formatted source np.array values.
-                - RASCIL: convert the current source array into a \
-                    list of RASCIL SkyComponent instances.
+                - SDP: convert the current source array into a list of SKA-SDP
+                    SkyComponent instances.
             desired_frequencies_hz: List of frequencies corresponding to start
                 of desired frequency channels. This field is required
-                to convert sources into RASCIL SkyComponents.
+                to convert sources into SKA-SDP SkyComponents.
                 The array contains starting frequencies for the desired channels.
                 E.g. [100e6, 110e6] corresponds to 2 frequency channels,
                 which start at 100 MHz and 110 MHz, both with a bandwidth of 10 MHz.
@@ -2400,81 +2404,6 @@ class SkyModel:
                     Will not modify existing SkyModel instance."""
                 )
             return self
-        elif backend is SimulatorBackend.RASCIL:
-            if verbose is True:
-                print(
-                    """Desired backend is RASCIL.
-                    Will convert sources into a list of
-                    RASCIL SkyComponent instances."""
-                )
-
-            desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
-
-            assert (
-                len(desired_frequencies_hz) > 0
-            ), """Must have at least 1 element
-            in desired_frequencies_hz array"""
-
-            desired_frequencies_hz = np.sort(desired_frequencies_hz)
-
-            if len(desired_frequencies_hz) == 1:
-                if channel_bandwidth_hz is None:
-                    raise ValueError(
-                        """desired_frequencies_hz has one entry
-                        and channel_bandwidth_hz is None.
-                        There is not enough information to find channel bandwidths.
-                        Please specify channel_bandwidth_hz,
-                        or add entries to desired_frequencies_hz."""
-                    )
-                frequency_bandwidth = channel_bandwidth_hz
-            else:
-                frequency_bandwidth = (
-                    desired_frequencies_hz[1] - desired_frequencies_hz[0]
-                )
-
-            frequency_channel_centers = desired_frequencies_hz + frequency_bandwidth / 2
-
-            skycomponents: List[SkyComponent] = []
-
-            if self.sources is None:
-                return skycomponents
-
-            ras = self.sources[:, 0]  # Degrees
-            decs = self.sources[:, 1]  # Degrees
-            fluxes = self.sources[:, 2]  # Jy * MHz
-
-            for ra, dec, flux in zip(
-                ras,
-                decs,
-                fluxes,
-            ):
-                # 1 == npolarisations, fixed as 1 (stokesI) for now
-                # TODO eventually handle full stokes source catalogs
-                flux_array = np.zeros((len(frequency_channel_centers), 1))
-
-                # for continuum emission: distribute flux evenly over all channels
-                flux_array[:, 0] = flux
-                # flux_array[index,0] : Access [0] since this is the stokesI flux,
-                # and [index] to place the source's flux onto each channel
-
-                skycomponents.append(
-                    SkyComponent(
-                        direction=SkyCoord(
-                            ra=ra,
-                            dec=dec,
-                            unit="deg",
-                            frame="icrs",
-                            equinox="J2000",
-                        ),
-                        frequency=frequency_channel_centers,
-                        name=f"pointsource{ra}{dec}",
-                        flux=flux_array,  # shape: nchannels, npolarisations
-                        shape="Point",
-                        polarisation_frame=PolarisationFrame("stokesI"),
-                        params=None,
-                    )
-                )
-            return skycomponents
         elif backend is SimulatorBackend.SDP:
             if verbose:
                 print(

@@ -31,11 +31,6 @@ def run_sample_simulation(
             sky model, telescope, observation and interferometer configuration used
             to generate it.
     """
-    if simulator_backend == SimulatorBackend.RASCIL:
-        raise NotImplementedError(
-            "RASCIL simulations are currently not supported in this sample"
-        )
-
     phase_center = [250, -80]
 
     if verbose:
@@ -50,7 +45,18 @@ def run_sample_simulation(
 
     if verbose:
         print("Setting Up Telescope")
-    telescope = Telescope.constructor("ASKAP", version=None, backend=simulator_backend)
+    if simulator_backend is SimulatorBackend.SDP:
+        telescope = Telescope.constructor(
+            "ASKAP",
+            version=None,
+            backend=SimulatorBackend.SDP,
+        )
+    else:
+        telescope = Telescope.constructor(
+            "ASKAP",
+            version=None,
+            backend=SimulatorBackend.OSKAR,
+        )
 
     if verbose:
         print("Setting Up Observation")

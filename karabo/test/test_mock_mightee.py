@@ -9,11 +9,12 @@ from astropy.io import fits
 from reproject import reproject_interp
 
 from karabo.data.external_data import MIGHTEESurveyDownloadObject
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
+from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
+from karabo.test.util import create_compatible_dirty_image
 
 
 def test_mightee_download():
@@ -82,15 +83,15 @@ def test_mock_mightee():
                     telescope, sky_filter, observation
                 )
 
-                dirty_imager = RascilDirtyImager(
-                    RascilDirtyImagerConfig(
+                dirty = create_compatible_dirty_image(
+                    visibility,
+                    DirtyImagerConfig(
                         imaging_npixel=4096,
                         # (1 * pi/180) / 4096
                         imaging_cellsize=4.26e-6,
                         combine_across_frequencies=False,
-                    )
+                    ),
                 )
-                dirty = dirty_imager.create_dirty_image(visibility)
 
                 dirty.write_to_file(
                     os.path.join(tmpdir, "noise_dirty")

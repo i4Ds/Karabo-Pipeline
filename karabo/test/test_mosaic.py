@@ -4,20 +4,19 @@ from karabo.imaging.image import ImageMosaicker
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import TFiles
-from karabo.test.util import get_compatible_dirty_imager
+from karabo.test.util import create_compatible_dirty_image
 
 
 def test_ImageMosaicker(tobject: TFiles):
     vis = Visibility(tobject.visibilities_gleam_ms)
 
-    dirty_imager = get_compatible_dirty_imager(
+    dirty = create_compatible_dirty_image(
         vis,
         DirtyImagerConfig(
             imaging_npixel=2048,
             imaging_cellsize=3.878509448876288e-05,
         ),
     )
-    dirty = dirty_imager.create_dirty_image(vis)
 
     dirties = dirty.split_image(N=4, overlap=50)
     mosaicker = ImageMosaicker()

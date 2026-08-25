@@ -12,7 +12,7 @@ from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
-from karabo.test.util import get_compatible_dirty_imager
+from karabo.test.util import create_compatible_dirty_image
 
 
 @pytest.mark.skip(reason="`run_simulation` is taking way too long")
@@ -59,7 +59,7 @@ def test_beam():
             visibility_path=os.path.join(tmpdir, "beam_vis.vis"),
         )
 
-        dirty_imager = get_compatible_dirty_imager(
+        dirty = create_compatible_dirty_image(
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=4096,
@@ -73,7 +73,6 @@ def test_beam():
                 imaging_cellsize=50,
             ),
         )
-        dirty = dirty_imager.create_dirty_image(visibility)
 
         dirty.write_to_file(
             os.path.join(tmpdir, "ska_low_array_vis.fits"), overwrite=True

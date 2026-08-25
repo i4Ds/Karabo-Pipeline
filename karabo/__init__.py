@@ -7,8 +7,6 @@ import os
 import platform
 import sys
 
-from karabo.util.rascil_util import filter_data_dir_warning_message
-
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -40,5 +38,3 @@ if "SLURM_JOB_ID" in os.environ:
     from karabo.util.dask import DaskHandlerSlurm
 
     DaskHandlerSlurm._prepare_slurm_nodes_for_dask()
-
-filter_data_dir_warning_message()

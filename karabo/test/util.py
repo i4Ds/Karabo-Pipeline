@@ -1,47 +1,43 @@
-from karabo.imaging.imager_base import DirtyImager, DirtyImagerConfig
+import math
+
+from karabo.imaging.backends.sdp_backend import SdpImager, SdpImagerConfig
+from karabo.imaging.image import Image
+from karabo.imaging.imager_base import DirtyImagerConfig
+from karabo.imaging.imager_factory import ImagingBackend, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.imager_oskar import OskarDirtyImager, OskarDirtyImagerConfig
-from karabo.imaging.imager_rascil import RascilDirtyImager, RascilDirtyImagerConfig
-from karabo.imaging.imager_wsclean import WscleanDirtyImager
 from karabo.simulation.visibility import Visibility
 
 
-def get_compatible_dirty_imager(
+def create_compatible_dirty_image(
     visibility: Visibility,
     config: DirtyImagerConfig,
-) -> DirtyImager:
-    """Automatically choose a suitable dirty imager based on a visibility object.
+) -> Image:
+    """Create a dirty image for tests that exercise both visibility formats.
 
-    Temporary function until we have a general visibility object
-    and functions to convert general objects to implementation-specific
-    objects on demand.
-
-    Args:
-        visibility: Visibility object
-        config: Config to initialize dirty imager
-            object with.
-
-    Returns:
-        DirtyImager: The created dirty imager object
+    OSKAR_VIS still requires the OSKAR-native imager. Measurement Sets use the
+    backend-neutral imaging API, selecting SDP when channel separation is required
+    and WSClean otherwise.
     """
-    dirty_imager: DirtyImager
     if visibility.format == "OSKAR_VIS":
-        dirty_imager = OskarDirtyImager(
+        return OskarDirtyImager(
             OskarDirtyImagerConfig(
                 imaging_npixel=config.imaging_npixel,
                 imaging_cellsize=config.imaging_cellsize,
                 combine_across_frequencies=config.combine_across_frequencies,
             )
-        )
-    else:
-        if config.combine_across_frequencies is False:
-            dirty_imager = RascilDirtyImager(
-                RascilDirtyImagerConfig(
-                    imaging_npixel=config.imaging_npixel,
-                    imaging_cellsize=config.imaging_cellsize,
-                    combine_across_frequencies=config.combine_across_frequencies,
-                )
-            )
-        else:
-            dirty_imager = WscleanDirtyImager(config)
+        ).create_dirty_image(visibility)
 
-    return dirty_imager
+    if config.combine_across_frequencies:
+        imager = get_imager(ImagingBackend.WSCLEAN)
+    else:
+        imager = SdpImager(SdpImagerConfig(combine_across_frequencies=False))
+    dirty, _ = imager.invert(
+        visibility,
+        ImageSpec(
+            npix=config.imaging_npixel,
+            cellsize_arcsec=math.degrees(config.imaging_cellsize) * 3600.0,
+            phase_centre_deg=(0.0, 0.0),
+        ),
+    )
+    return dirty

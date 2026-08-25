@@ -11,7 +11,7 @@ from karabo.simulation.observation import ObservationLong
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.test.conftest import TFiles
-from karabo.test.util import get_compatible_dirty_imager
+from karabo.test.util import create_compatible_dirty_image
 
 
 def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
@@ -61,11 +61,10 @@ def test_long_observations(tobject: TFiles, sky_data: NDArray[np.float64]):
             visibility_path=combined_ms_filepath,
         )
 
-        dirty_imager = get_compatible_dirty_imager(
+        create_compatible_dirty_image(
             visibility,
             DirtyImagerConfig(
                 imaging_npixel=4096,
                 imaging_cellsize=1.0e-5,
             ),
         )
-        dirty_imager.create_dirty_image(visibility)

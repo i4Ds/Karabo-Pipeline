@@ -23,12 +23,12 @@ from astropy import constants
 from karabo.data.obscore import ObsCoreMeta
 from karabo.data.src import RucioMeta
 from karabo.imaging.image import Image
-from karabo.imaging.imager_base import DirtyImagerConfig
-from karabo.imaging.imager_wsclean import (
-    WscleanDirtyImager,
-    WscleanImageCleaner,
-    WscleanImageCleanerConfig,
+from karabo.imaging.imager_factory import (
+    ImagingBackend,
+    WscleanBackendConfig,
+    get_imager,
 )
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
 from karabo.simulation.sky_model import SkyModel
@@ -73,11 +73,15 @@ filter_radius_deg = fov_deg * 3  # 3x primary beam
 # Bigger baseline -> higher resolution
 IMAGING_NPIXEL = Environment.get("IMAGING_NPIXEL", int)
 # None calculates cellsize automatically
-IMAGING_CELLSIZE = Environment.get(
+imaging_cellsize = Environment.get(
     "IMAGING_CELLSIZE", float, None, allow_none_parsing=True
 )
-if IMAGING_CELLSIZE is None:
-    IMAGING_CELLSIZE = fov_rad / IMAGING_NPIXEL
+
+IMAGING_CELLSIZE: float = (
+    fov_rad / IMAGING_NPIXEL if imaging_cellsize is None else imaging_cellsize
+)
+
+if imaging_cellsize is None:
     print(f"Calculated {IMAGING_CELLSIZE=}")
 
 # Rucio metadata
@@ -200,43 +204,45 @@ def create_visibilities_metadata(visibility: Visibility) -> None:
 
 
 def create_dirty_image(visibility: Visibility, outdir: str) -> Image:
-    dirty_imager = WscleanDirtyImager(
-        DirtyImagerConfig(
-            imaging_npixel=IMAGING_NPIXEL,
-            imaging_cellsize=IMAGING_CELLSIZE,  # type: ignore[arg-type]
-            combine_across_frequencies=True,
-        )
+    image_spec = ImageSpec(
+        npix=IMAGING_NPIXEL,
+        cellsize_arcsec=math.degrees(IMAGING_CELLSIZE) * 3600.0,
+        phase_centre_deg=(PHASE_CENTER_RA_DEG, PHASE_CENTER_DEC_DEG),
     )
+    imager = get_imager(ImagingBackend.WSCLEAN)
+    dirty_image, _psf = imager.invert(visibility, image_spec)
 
     os.makedirs(outdir, exist_ok=True)
-    return dirty_imager.create_dirty_image(
-        visibility,
-        output_fits_path=os.path.join(
-            outdir,
-            f"{FILE_PREFIX}dirty.fits",
-        ),
+    output_fits_path = os.path.join(
+        outdir,
+        f"{FILE_PREFIX}dirty.fits",
     )
+    dirty_image.write_to_file(output_fits_path, overwrite=True)
+    return Image(path=output_fits_path)
 
 
 def create_cleaned_image(
     visibility: Visibility, dirty_image: Image, outdir: str
 ) -> Image:
-    image_cleaner = WscleanImageCleaner(
-        WscleanImageCleanerConfig(
-            imaging_npixel=IMAGING_NPIXEL,
-            imaging_cellsize=IMAGING_CELLSIZE,  # type: ignore[arg-type]
-        )
+    image_spec = ImageSpec(
+        npix=IMAGING_NPIXEL,
+        cellsize_arcsec=math.degrees(IMAGING_CELLSIZE) * 3600.0,
+        phase_centre_deg=(PHASE_CENTER_RA_DEG, PHASE_CENTER_DEC_DEG),
     )
+    imager = get_imager(
+        ImagingBackend.WSCLEAN,
+        config=WscleanBackendConfig(clean_niter=50000),
+    )
+    _generated_dirty, psf = imager.invert(visibility, image_spec)
+    cleaned_image = imager.restore(dirty_image, psf)
 
     os.makedirs(outdir, exist_ok=True)
-    return image_cleaner.create_cleaned_image(
-        visibility,
-        dirty_fits_path=dirty_image.path,
-        output_fits_path=os.path.join(
-            outdir,
-            f"{FILE_PREFIX}cleaned.fits",
-        ),
+    output_fits_path = os.path.join(
+        outdir,
+        f"{FILE_PREFIX}cleaned.fits",
     )
+    cleaned_image.write_to_file(output_fits_path, overwrite=True)
+    return Image(path=output_fits_path)
 
 
 def create_image_metadata(image: Image) -> None:

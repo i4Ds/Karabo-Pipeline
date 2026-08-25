@@ -5,7 +5,8 @@ from typing import List, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from karabo.imaging.imager_rascil import RascilImageCleaner, RascilImageCleanerConfig
+from karabo.imaging.imager_factory import ImagingBackend, SdpImagerConfig, get_imager
+from karabo.imaging.imager_interface import ImageSpec
 from karabo.imaging.util import project_sky_to_image
 from karabo.simulation.interferometer import InterferometerSimulation
 from karabo.simulation.observation import Observation
@@ -101,27 +102,23 @@ def main(n_random_sources: int) -> None:
     imaging_npixel = 2048
     imaging_cellsize = 3.878509448876288e-05
 
-    # Try different algorithm
-    # More sources
-    (
-        deconvolved,
-        restored,
-        residual,
-    ) = RascilImageCleaner(
-        RascilImageCleanerConfig(
-            imaging_npixel=imaging_npixel,
-            imaging_cellsize=imaging_cellsize,
-            ingest_vis_nchan=16,
-            clean_nmajor=0,
-            clean_algorithm="mmclean",
-            clean_scales=[0, 6, 10, 30, 60],
+    imager = get_imager(
+        ImagingBackend.SDP,
+        config=SdpImagerConfig(
+            combine_across_frequencies=False,
+            clean_algorithm="hogbom",
             clean_threshold=0.12e-3,
-            clean_nmoment=5,
-            clean_psf_support=640,
-            clean_restored_output="integrated",
-            use_dask=False,
-        )
-    ).create_cleaned_image_variants(visibility_askap)
+        ),
+    )
+    dirty, psf = imager.invert(
+        visibility_askap,
+        ImageSpec(
+            npix=imaging_npixel,
+            cellsize_arcsec=np.rad2deg(imaging_cellsize) * 3600,
+            phase_centre_deg=(phase_center[0], phase_center[1]),
+        ),
+    )
+    restored = imager.restore(dirty, psf)
 
     # Source detection
     detection_result = PyBDSFSourceDetectionResult.detect_sources_in_image(restored)
