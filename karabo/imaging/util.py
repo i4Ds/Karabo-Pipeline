@@ -213,20 +213,22 @@ def project_sky_to_image(
     # convert coordinates
     px, py = w.wcs_world2pix(sky[:, 0], sky[:, 1], 1)
 
+    idxs: NDArray[np.int64]
+
     # check length to cover single source pre-filtering
     if len(px.shape) == 0 and len(py.shape) == 0:
         px, py = [px], [py]
-        idxs = np.arange(sky.num_sources)
+        idxs = np.arange(sky.num_sources, dtype=np.int64)
     # post processing, pre filtering before calling wcs.wcs_world2pix would be
     # more efficient, however this has to be done in the ra-dec space.
     # Maybe for future work!?
     elif filter_outlier:
         px_idxs = np.where(np.logical_and(px <= imaging_npixel, px >= 0))[0]
         py_idxs = np.where(np.logical_and(py <= imaging_npixel, py >= 0))[0]
-        idxs = np.intersect1d(px_idxs, py_idxs)
+        idxs = np.intersect1d(px_idxs, py_idxs).astype(np.int64, copy=False)
         px, py = px[idxs], py[idxs]
     else:
-        idxs = np.arange(sky.num_sources)
+        idxs = np.arange(sky.num_sources, dtype=np.int64)
     img_coords = np.array([px, py])
 
     return img_coords, idxs

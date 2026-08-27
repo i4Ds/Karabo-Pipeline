@@ -60,17 +60,26 @@ def freq_channels(
     z_start = np.min(z_obs)
     z_end = np.max(z_obs)
 
-    freq_endpoints = convert_z_to_frequency(np.array([z_start, z_end]))
+    freq_endpoints = convert_z_to_frequency(
+        np.array([z_start, z_end], dtype=np.float64)
+    )
 
-    freq_start, freq_end = cast(Tuple[np.float64, np.float64], freq_endpoints)
+    freq_start, freq_end = cast(
+        Tuple[np.float64, np.float64],
+        freq_endpoints,
+    )
 
-    freq_mid = freq_start + (freq_end - freq_start) / 2
+    freq_mid = np.float64(freq_start + (freq_end - freq_start) / 2)
 
-    if equally_spaced_freq is True:
+    freq_channels_array: NDArray[np.float64]
+    redshift_channels_array: NDArray[np.float64]
+
+    if equally_spaced_freq:
         freq_channels_array = np.linspace(
             freq_start,
             freq_end,
             channel_num + 1,
+            dtype=np.float64,
         )
 
         redshift_channels_array = convert_frequency_to_z(freq_channels_array)
@@ -79,11 +88,14 @@ def freq_channels(
             np.amin(z_obs),
             np.amax(z_obs),
             channel_num + 1,
+            dtype=np.float64,
         )
 
         freq_channels_array = convert_z_to_frequency(redshift_channels_array)
 
-    freq_bins = np.abs(np.diff(freq_channels_array))
+    freq_bins: NDArray[np.float64] = np.abs(np.diff(freq_channels_array)).astype(
+        np.float64
+    )
 
     print("The frequency channel starts at:", freq_start, "Hz")
     print("The bin sizes of the freq channel are:", freq_bins, "Hz")

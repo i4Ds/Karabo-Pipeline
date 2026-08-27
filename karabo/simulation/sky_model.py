@@ -1385,7 +1385,9 @@ class SkyModel:
         if cmap is not None:
             flux = self[:, SkyModel._STOKES_IDX[stokes]].to_numpy()
             if cfun is not None:
-                if cfun in [np.log10, np.log] and any(flux <= 0):
+                is_log_transform = cast(Any, cfun) in (np.log10, np.log)
+
+                if is_log_transform and any(flux <= 0):
                     warn(
                         KaraboWarning(
                             "Warning: flux with value <= 0 found, setting "
@@ -1393,10 +1395,9 @@ class SkyModel:
                             "logarithmic errors (only affects the colorbar)"
                         )
                     )
-
                     flux = np.where(flux > 0, flux, np.nan)
-                flux = cast(NDArray[np.float64], cfun(flux))
 
+                flux = cast(NDArray[np.float64], cfun(flux))
         # handle matplotlib kwargs
         # not set as normal args because default assignment depends on args
         if "vmin" not in kwargs:

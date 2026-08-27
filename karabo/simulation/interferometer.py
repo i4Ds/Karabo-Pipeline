@@ -557,12 +557,13 @@ class InterferometerSimulation:
         )
 
         # Frequencies
-        frequency_channel_starts = np.linspace(
+        frequency_channel_starts: NDArray[np.float64] = np.linspace(
             observation.start_frequency_hz,
             observation.start_frequency_hz
             + observation.frequency_increment_hz * observation.number_of_channels,
             num=observation.number_of_channels,
             endpoint=False,
+            dtype=np.float64,
         )
         frequency_bandwidths = np.full(
             frequency_channel_starts.shape, observation.frequency_increment_hz

@@ -7,6 +7,7 @@ from typing import Callable, Final, Optional, cast
 import numpy as np
 import requests
 import tools21cm as t2c
+from numpy.typing import NDArray
 
 from karabo.data.external_data import SingleFileDownloadObject
 from karabo.error import KaraboError
@@ -150,7 +151,10 @@ class Signal21cm(BaseSignal[Image3D]):
         Image3D
             The generated cube with multiple light cones.
         """
-        cube = np.zeros((n_cells, n_cells, n_cells))
+        cube: NDArray[np.float64] = np.zeros(
+            (n_cells, n_cells, n_cells),
+            dtype=np.float64,
+        )
         xx, yy, zz = np.meshgrid(
             np.arange(n_cells), np.arange(n_cells), np.arange(n_cells), sparse=True
         )
@@ -163,7 +167,10 @@ class Signal21cm(BaseSignal[Image3D]):
         xx_0 = n_cells // 2
         yy_0 = n_cells // 2
         zz_0 = n_cells // 2
-        cube0 = np.zeros((n_cells, n_cells, n_cells))
+        cube0: NDArray[np.float64] = np.zeros(
+            (n_cells, n_cells, n_cells),
+            dtype=np.float64,
+        )
         cube0[r2 <= r**2] = 1
         cube0 = np.roll(
             np.roll(np.roll(cube0, -xx_0, axis=0), -yy_0, axis=1), -zz_0, axis=2

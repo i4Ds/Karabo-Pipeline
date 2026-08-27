@@ -91,8 +91,8 @@ class SegmentationOutput(NamedTuple):
     """Output of the segmentation."""
 
     image: Image3D
-    xhii_stitch: Optional[npt.NDArray[np.bool_]]
-    mask_xhi: npt.NDArray[np.bool_]
+    xhii_stitch: Optional[npt.NDArray[np.bool_[bool]]]
+    mask_xhi: npt.NDArray[np.bool_[bool]]
     dt_smooth: npt.NDArray[np.float64]
     xhi_seg_err: Optional[npt.NDArray[np.float64]]
 
