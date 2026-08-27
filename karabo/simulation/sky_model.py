@@ -1741,12 +1741,12 @@ class SkyModel:
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
                 shape = f[prefix_mapping.ra].shape
-                dask_array = da.zeros(  # type: ignore[attr-defined]
+                dask_array = da.zeros(
                     shape,
                     chunks=(chunksize,),
                 )
             else:
-                dask_array = da.from_array(  # type: ignore[attr-defined]
+                dask_array = da.from_array(
                     f[field_value],
                     chunks=(chunksize,),
                 )
