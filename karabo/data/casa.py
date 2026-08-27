@@ -363,7 +363,7 @@ class MSObservationTable(_CasaTableABC):
     schedule: Optional[Dict[str, Any]]
     project: List[str]
     release_date: NDArray[np.float64]
-    flag_row: NDArray[np.bool_]
+    flag_row: NDArray[np.bool_[bool]]
 
     @classmethod
     def _table_name(cls) -> str:
@@ -386,7 +386,7 @@ class MSPolarizationTable(_CasaTableABC):
     num_corr: NDArray[np.int32]
     corr_type: NDArray[np.int32]
     corr_product: NDArray[np.int32]
-    flag_row: NDArray[np.bool_]
+    flag_row: NDArray[np.bool_[bool]]
 
     @classmethod
     def _table_name(cls) -> str:
@@ -484,7 +484,7 @@ class MSAntennaTable(_CasaTableABC):
     position: NDArray[np.float64]
     offset: NDArray[np.float64]
     dish_diameter: NDArray[np.float64]
-    flag_row: NDArray[np.bool_]
+    flag_row: NDArray[np.bool_[bool]]
 
     @classmethod
     def _table_name(cls) -> str:
@@ -534,7 +534,7 @@ class MSFieldTable(_CasaTableABC):
     phase_dir: NDArray[np.float64]
     reference_dir: NDArray[np.float64]
     source_id: NDArray[np.int32]
-    flag_row: NDArray[np.bool_]
+    flag_row: NDArray[np.bool_[bool]]
 
     @classmethod
     def _table_name(cls) -> str:
@@ -587,7 +587,7 @@ class MSSpectralWindowTable(_CasaTableABC):
     if_conv_chain: NDArray[np.int32]
     freq_group: NDArray[np.int32]
     freq_group_name: List[str]
-    flag_row: NDArray[np.bool_]
+    flag_row: NDArray[np.bool_[bool]]
 
     @classmethod
     def _table_name(cls) -> str:

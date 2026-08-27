@@ -243,7 +243,12 @@ def get_spectral_sky_data(
             - [6]: reference frequency
             - [7]: spectral index set to -200
     """
-    dfreq_arr = np.linspace(-0.1, 0.1, 100)
+    dfreq_arr: NDArray[np.float64] = np.linspace(
+        -0.1,
+        0.1,
+        100,
+        dtype=np.float64,
+    )
     y_voigt = cast(NDArray[NPIntFloat], Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01))
     # y_gauss = Gauss(dfreq_arr, 0, 0, 1, 0.01)
     dfreq_sample = dfreq_arr[::nfreq]
