@@ -1,4 +1,3 @@
-import functools
 import os
 import re
 import shutil
@@ -83,9 +82,7 @@ class DownloadObject:
             os.makedirs(download_dir, exist_ok=True)
 
             desc = f"Downloading {url} to {local_file_path}"
-            response.raw.read = functools.partial(
-                response.raw.read, decode_content=True
-            )
+            response.raw.decode_content = True
             with tqdm.wrapattr(
                 response.raw,
                 "read",
