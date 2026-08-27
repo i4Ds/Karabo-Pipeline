@@ -49,32 +49,40 @@ jobs:
         run: |
           conda create -y -n test_karabo python=3.10
           conda env update -n test_karabo -f environment.yaml --prune
-          conda activate test_karabo
-          conda install -y pybind11 ipykernel
-          python -m ipykernel install --user --name python3.10
-          pip install -e ".[dev]"
+          # `pip` is not listed in environment.yaml, so `conda env update
+          # --prune` strips it from the env; reinstall it alongside the build
+          # deps so the absolute-path `python -m pip` below works.
+          conda install -y -n test_karabo pybind11 ipykernel pip
+          # Address the env by the absolute path to its interpreter. `conda
+          # activate` / `conda run -n` proved unreliable on the runner: they
+          # silently resolved to a different Python, so dev tools were installed
+          # into the wrong environment and mypy then ran against an interpreter
+          # without typed dask/xarray, producing spurious type errors.
+          PY="$CONDA/envs/test_karabo/bin/python"
+          "$PY" -m ipykernel install --user --name python3.10
+          "$PY" -m pip install -e ".[dev]"
 
           # Debug since we had problems with mpi installation
-          python -c "import h5py; print('h5py ok')"
+          "$PY" -c "import h5py; print('h5py ok')"
           which wsclean || true
           ldd "$(which wsclean)" | grep -i mpi || true
 
       - name: Test Dev-Tools
         shell: bash -el {0}
         run: |
-          conda activate test_karabo
-          flake8 .
-          black --check .
-          isort --check .
-          mypy .
+          PY="$CONDA/envs/test_karabo/bin/python"
+          "$PY" -m flake8 .
+          "$PY" -m black --check .
+          "$PY" -m isort --check .
+          "$PY" -m mypy .
 
       - name: Test Code
         shell: bash -el {0}
         run: |
           export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
-          conda activate test_karabo
-          mpirun -n 2 pytest --only-mpi
-          pytest --cov=./ --cov-report=xml
+          PY="$CONDA/envs/test_karabo/bin/python"
+          "$CONDA/envs/test_karabo/bin/mpirun" -n 2 "$PY" -m pytest --only-mpi
+          "$PY" -m pytest --cov=./ --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
