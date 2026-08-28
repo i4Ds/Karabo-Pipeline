@@ -52,7 +52,7 @@ requirements:
     - reproject               >=0.9,<=10.0
     - requests
     - rfc3986                 >=2.0.0
-    - scipy                   >=1.15
+    - scipy                   >=1.14,<1.15
     - ska-gridder-nifty-cuda  =0.3.0
     - ska-sdp-datamodels      =1.0.0
     - ska-sdp-func-python     =1.0.0
