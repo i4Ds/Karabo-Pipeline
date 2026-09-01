@@ -68,13 +68,35 @@ jobs:
           isort --check .
           mypy .
 
-      - name: Test Code
+      - name: Diagnose MPI Runtime
         shell: bash -el {0}
         run: |
-          export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
           conda activate test_karabo
-          mpirun -n 2 pytest --only-mpi
-          pytest --cov=./ --cov-report=xml
+          which python
+          which pytest
+          which mpirun
+          mpirun --version
+          python -c "import h5py; print('h5py MPI:', h5py.get_config().mpi)"
+          python -c "from mpi4py import MPI; print(MPI.Get_library_version())"
+
+      - name: Test MPI Code
+        shell: bash -el {0}
+        run: |
+          export IS_GITHUB_RUNNER=true
+          export RUN_GPU_TESTS=false
+          export RUN_NOTEBOOK_TESTS=true
+          export PYTHONUNBUFFERED=1
+          conda activate test_karabo
+          mpirun -n 2 python -m pytest --only-mpi -vv -s
+
+      - name: Test Non-MPI Code
+        shell: bash -el {0}
+        run: |
+          export IS_GITHUB_RUNNER=true
+          export RUN_GPU_TESTS=false
+          export RUN_NOTEBOOK_TESTS=true
+          conda activate test_karabo
+          python -m pytest --cov=./ --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
