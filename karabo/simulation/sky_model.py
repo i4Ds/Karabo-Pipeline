@@ -1716,7 +1716,7 @@ class SkyModel:
             Rows represent data points and columns represent
             different data fields ('ra', 'dec', ...).
         """
-        f = h5py.File(path, "r", locking=False)
+        f = h5py.File(path, "r")
         data_arrays: List[xr.DataArray] = []
 
         # not sure why we have a default here, but keep for compatibility I guess?
