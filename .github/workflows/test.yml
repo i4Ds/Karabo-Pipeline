@@ -14,6 +14,11 @@ jobs:
   Test_Karabo:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # UCX may select an unusable Azure MANA/verbs interface on GitHub runners.
+    # MPI tests run on one host, so restrict communication to shared memory and loopback.
+    env:
+      UCX_TLS: "self,sm,tcp"
+      UCX_NET_DEVICES: "lo"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
@@ -67,17 +72,6 @@ jobs:
           black --check .
           isort --check .
           mypy .
-
-      - name: Diagnose MPI Runtime
-        shell: bash -el {0}
-        run: |
-          conda activate test_karabo
-          which python
-          which pytest
-          which mpirun
-          mpirun --version
-          python -c "import h5py; print('h5py MPI:', h5py.get_config().mpi)"
-          python -c "from mpi4py import MPI; print(MPI.Get_library_version())"
 
       - name: Test MPI Code
         shell: bash -el {0}
