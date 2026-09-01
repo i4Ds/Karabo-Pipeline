@@ -44,14 +44,6 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.image.image_model import Image as SdpImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 from ska_sdp_datamodels.sky_model.sky_model import SkyComponent
-
-try:
-    from ska_sdp_datamodels.image import (
-        import_image_from_fits as sdp_import_image_from_fits,
-    )
-except ImportError:  # pragma: no cover - depends on installed datamodels version
-    sdp_import_image_from_fits = None
-
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
@@ -707,12 +699,11 @@ class SkyModel:
             if not wcs.has_celestial:
                 raise ValueError(f"FITS header has no celestial WCS: {fits_path}")
 
-            if sdp_import_image_from_fits is not None:
-                sdp_image = sdp_import_image_from_fits(str(fits_path))
-            else:
-                sdp_image = cls._build_sdp_image_from_fits(
-                    data_2d=squeezed, header=header, wcs_celestial=wcs
-                )
+            sdp_image = cls._build_sdp_image_from_fits(
+                data_2d=squeezed,
+                header=header,
+                wcs_celestial=wcs,
+            )
 
             # Wrap SDP image in Karabo Image to keep downstream format consistent.
             from karabo.imaging.image import Image as KaraboImage
@@ -1690,7 +1681,7 @@ class SkyModel:
                     self.__convert_ra_dec_to_cartesian(float(row[0]), float(row[1]))
                 ],
                 axis=1,
-                arr=self.sources,
+                arr=np.asarray(self.sources),
             )
         )
         return cartesian_sky
