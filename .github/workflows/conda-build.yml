@@ -85,7 +85,7 @@ jobs:
 
           conda config --remove channels defaults || true
           conda config --append channels i4ds
-          conda config --append channels nvidia/label/cuda-11.7.0
+          conda config --append channels nvidia/label/cuda-12.9.1
           conda config --append channels conda-forge
 
           conda install -y -n base -c conda-forge anaconda-client conda-build

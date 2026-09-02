@@ -29,6 +29,7 @@ requirements:
     - bdsf                    =1.14.1
     - bluebild                =1.0.0
     - cuda-cudart             >=12,<13
+    - cuda-version            >=12,<13
     - dask                    >=2024.12,<2025.4
     - dask-mpi
     - distributed
@@ -54,9 +55,9 @@ requirements:
     - rfc3986                 >=2.0.0
     - scipy                   >=1.15
     - ska-gridder-nifty-cuda  =0.3.0
-    - ska-sdp-datamodels      =1.0.0
+    - ska-sdp-datamodels      =1.4.1
     - ska-sdp-func-python     =1.0.0
-    - tools21cm               =2.0.3
+    - tools21cm               =2.4.3
     - wsclean
     - xarray                  >=2024.9
     # transversal dependencies which we need to reference to get mpi-wheels
