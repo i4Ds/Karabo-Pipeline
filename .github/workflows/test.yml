@@ -57,10 +57,6 @@ jobs:
           conda create -y -n test_karabo python=3.12
           conda env update -n test_karabo -f environment.yaml --prune
           conda activate test_karabo
-
-          # Temporarily validate the patched native OSKAR package.
-          conda install -y -c i4ds/label/dev "oskar=2.12.2=_1"
-
           conda install -y pybind11 ipykernel
           python -m ipykernel install --user --name python3.12
           pip install -e ".[dev]"
