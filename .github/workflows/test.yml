@@ -49,17 +49,24 @@ jobs:
           channel-priority: "true"
           conda-remove-defaults: "true"
           activate-environment: test_karabo
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Install Deps
         shell: bash -el {0}
         run: |
-          conda create -y -n test_karabo python=3.10
+          conda create -y -n test_karabo python=3.12
           conda env update -n test_karabo -f environment.yaml --prune
           conda activate test_karabo
+
+          # Temporarily validate the patched native OSKAR package.
+          conda install -y -c i4ds/label/dev "oskar=2.12.2=_1"
+
           conda install -y pybind11 ipykernel
-          python -m ipykernel install --user --name python3.10
+          python -m ipykernel install --user --name python3.12
           pip install -e ".[dev]"
+
+          python --version
+          conda list | grep -E '^oskar(py)?[[:space:]]'
 
           # Debug since we had problems with mpi installation
           python -c "import h5py; print('h5py ok')"
