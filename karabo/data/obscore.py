@@ -605,39 +605,80 @@ class ObsCoreMeta:
             if pol_states is not None:
                 ocm.pol_xel = len(pol_states)
         elif vis.format == "OSKAR_VIS":
-            header, _ = VisHeader.read(vis_inode)
-            ocm.s_ra = header.phase_centre_ra_deg
-            ocm.s_dec = header.phase_centre_dec_deg
-            time_start_mjd_utc = header.time_start_mjd_utc
-            ocm.t_min = time_start_mjd_utc
-            time_inc_sec = header.time_inc_sec
-            total_duration_sec = time_inc_sec * header.num_times_total
-            time_end_mjd_utc = time_start_mjd_utc + (total_duration_sec / 86400.0)
-            ocm.t_max = time_end_mjd_utc
-            ocm.t_exptime = (
-                time_end_mjd_utc - time_start_mjd_utc
-            ) * 86400  # assumes constant exposure time & mjd to [s]
-            t_res = max(time_inc_sec, header.time_average_sec)
-            ocm.t_resolution = t_res
-            num_elements_t = int(total_duration_sec / t_res)
-            ocm.t_xel = num_elements_t
-            freq_start_hz = header.freq_start_hz  # midpoint freq of first channel
-            channel_bandwidth_hz = header.channel_bandwidth_hz
-            freq_inc_hz = header.freq_inc_hz
-            min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
-            n_channels = header.num_channels_total
-            max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
-            # wavelength = c/f, min is the highest frequency, max is the lowest
-            max_wavelength_m = c / min_freq_hz
-            ocm.em_max = max_wavelength_m
-            min_wavelength_m = c / max_freq_hz
-            ocm.em_min = min_wavelength_m
-            if freq_inc_hz != 0:
-                midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
-                ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
-            ocm.em_xel = n_channels
-            if tel is not None and (tel_name := tel.name) is not None:
-                ocm.instrument_name = tel_name
+            try:
+                header, _ = VisHeader.read(vis_inode)
+            except RuntimeError:
+                if tel is None or obs is None:
+                    raise
+                warn(
+                    (
+                        "Failed to read OSKAR visibility header from "
+                        f"{vis_inode}. Falling back to provided `obs` metadata."
+                    ),
+                    category=UserWarning,
+                    stacklevel=2,
+                )
+                if obs.number_of_time_steps <= 0:
+                    raise ValueError("`obs.number_of_time_steps` must be > 0.")
+                ocm.s_ra = obs.phase_centre_ra_deg
+                ocm.s_dec = obs.phase_centre_dec_deg
+                time_start_mjd_utc = Time(obs.start_date_and_time).mjd
+                ocm.t_min = time_start_mjd_utc
+                total_duration_sec = obs.length.total_seconds()
+                time_inc_sec = total_duration_sec / obs.number_of_time_steps
+                time_end_mjd_utc = time_start_mjd_utc + (total_duration_sec / 86400.0)
+                ocm.t_max = time_end_mjd_utc
+                ocm.t_exptime = total_duration_sec
+                ocm.t_resolution = time_inc_sec
+                ocm.t_xel = obs.number_of_time_steps
+                freq_start_hz = obs.start_frequency_hz  # midpoint freq of first channel
+                freq_inc_hz = obs.frequency_increment_hz
+                min_freq_hz = freq_start_hz - freq_inc_hz / 2
+                n_channels = obs.number_of_channels
+                max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
+                max_wavelength_m = c / min_freq_hz
+                ocm.em_max = max_wavelength_m
+                min_wavelength_m = c / max_freq_hz
+                ocm.em_min = min_wavelength_m
+                if freq_inc_hz != 0:
+                    midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
+                    ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
+                ocm.em_xel = n_channels
+                if tel_name := tel.name:
+                    ocm.instrument_name = tel_name
+            else:
+                ocm.s_ra = header.phase_centre_ra_deg
+                ocm.s_dec = header.phase_centre_dec_deg
+                time_start_mjd_utc = header.time_start_mjd_utc
+                ocm.t_min = time_start_mjd_utc
+                time_inc_sec = header.time_inc_sec
+                total_duration_sec = time_inc_sec * header.num_times_total
+                time_end_mjd_utc = time_start_mjd_utc + (total_duration_sec / 86400.0)
+                ocm.t_max = time_end_mjd_utc
+                ocm.t_exptime = (
+                    time_end_mjd_utc - time_start_mjd_utc
+                ) * 86400  # assumes constant exposure time & mjd to [s]
+                t_res = max(time_inc_sec, header.time_average_sec)
+                ocm.t_resolution = t_res
+                num_elements_t = int(total_duration_sec / t_res)
+                ocm.t_xel = num_elements_t
+                freq_start_hz = header.freq_start_hz  # midpoint freq of first channel
+                channel_bandwidth_hz = header.channel_bandwidth_hz
+                freq_inc_hz = header.freq_inc_hz
+                min_freq_hz = freq_start_hz - channel_bandwidth_hz / 2
+                n_channels = header.num_channels_total
+                max_freq_hz = min_freq_hz + freq_inc_hz * n_channels
+                # wavelength = c/f, min is the highest frequency, max is the lowest
+                max_wavelength_m = c / min_freq_hz
+                ocm.em_max = max_wavelength_m
+                min_wavelength_m = c / max_freq_hz
+                ocm.em_min = min_wavelength_m
+                if freq_inc_hz != 0:
+                    midpoint_frequency_hz = (freq_start_hz + max_freq_hz) / 2
+                    ocm.em_res_power = midpoint_frequency_hz / freq_inc_hz
+                ocm.em_xel = n_channels
+                if tel is not None and (tel_name := tel.name) is not None:
+                    ocm.instrument_name = tel_name
         else:
             assert_never(vis.format)
         ocm.access_estsize = int(getsize(inode=vis_inode) / 1e3)  # B -> KB

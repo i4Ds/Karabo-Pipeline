@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, get_args
 
 import numpy as np
@@ -259,6 +259,38 @@ class TestObsCoreMeta:
             ocm.obs_publisher_did = "<obs-publisher-did>"
             _ = ocm.to_dict(fpath=meta_path)
             assert os.path.exists(meta_path)
+
+    def test_from_visibility_oskar_fallback_to_obs_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            broken_vis_path = os.path.join(tmpdir, "broken.vis")
+            with open(broken_vis_path, "wb") as f:
+                f.write(b"not-an-oskar-visibility")
+            visibility = Visibility(broken_vis_path)
+            observation = Observation(
+                start_frequency_hz=100e6,
+                start_date_and_time=datetime(2024, 3, 15, 10, 46, 0),
+                phase_centre_ra_deg=250.0,
+                phase_centre_dec_deg=-80.0,
+                number_of_channels=16,
+                frequency_increment_hz=1e6,
+                number_of_time_steps=24,
+                length=timedelta(hours=4),
+            )
+            telescope = Telescope.constructor("ASKAP", backend=SimulatorBackend.OSKAR)
+            with pytest.warns(UserWarning, match="Falling back to provided `obs` metadata"):
+                ocm = ObsCoreMeta.from_visibility(
+                    vis=visibility,
+                    calibrated=False,
+                    tel=telescope,
+                    obs=observation,
+                )
+            assert ocm.s_ra is not None and np.isclose(ocm.s_ra, 250.0)
+            assert ocm.s_dec is not None and np.isclose(ocm.s_dec, -80.0)
+            assert ocm.t_min is not None and np.isclose(
+                ocm.t_min, Time(datetime(2024, 3, 15, 10, 46, 0)).mjd
+            )
+            assert ocm.t_xel == 24
+            assert ocm.em_xel == 16
 
     def test_from_image(self, minimal_fits_restored: Image) -> None:
         axes = FitsHeaderAxes(freq=FitsHeaderAxis(axis=4, unit=u.Hz))
