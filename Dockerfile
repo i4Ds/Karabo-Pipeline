@@ -1,11 +1,11 @@
-FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.9.1-cudnn-devel-ubuntu24.04
 # build: user|test, KARABO_VERSION: version to install from anaconda.org in case build=user: `{major}.{minor}.{patch}` (no leading 'v')
-ARG GIT_REV="main" BUILD="user" KARABO_VERSION="" PYTHON_VERSION="3.10"
-RUN apt-get update && apt-get install -y git gcc gfortran libarchive13 wget curl nano
+ARG GIT_REV="main" BUILD="user" KARABO_VERSION="" PYTHON_VERSION="3.12"
+RUN apt-get update && apt-get install -y git gcc gfortran libarchive13t64 wget curl nano
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh -O ~/miniconda.sh && \
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py312_26.5.3-2-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
@@ -22,10 +22,10 @@ RUN mkdir Karabo-Pipeline && \
     git fetch && \
     git checkout ${GIT_REV} && \
     if [ "$BUILD" = "user" ] ; then \
-    conda install -y -c i4ds -c conda-forge -c "nvidia/label/cuda-11.7.1" karabo-pipeline="$KARABO_VERSION"; \
+    conda install -y -c "nvidia/label/cuda-12.9.1" -c i4ds -c conda-forge karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     conda env update -f="environment.yaml"; \
-    pip install --no-deps "."; \
+    python -m pip install --no-deps "."; \
     else \
     exit 1; \
     fi && \
@@ -34,7 +34,7 @@ RUN mkdir Karabo-Pipeline && \
     cp -r karabo/examples/* /workspace/karabo-examples && \
     cd ".." && \
     rm -rf Karabo-Pipeline/ && \
-    pip install jupyterlab ipykernel pytest && \
+    python -m pip install jupyterlab ipykernel pytest==7.4.2 && \
     python -m ipykernel install --user --name=karabo
 
 # set bash-env accordingly for interactive and non-interactive shells for docker & singularity
