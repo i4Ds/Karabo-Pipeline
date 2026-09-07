@@ -10,7 +10,10 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py312_26.5.3-2-L
     /opt/conda/bin/conda init && \
     rm ~/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
-RUN conda install -y -n base conda-libmamba-solver && \
+RUN conda config --remove channels defaults || true && \
+    conda config --append channels conda-forge && \
+    conda config --set channel_priority strict && \
+    conda install -y -n base conda-libmamba-solver && \
     conda config --set solver libmamba && \
     conda create -y -n karabo python=${PYTHON_VERSION}
 # change venv because libmamba solver lives in base and any serious environment update could f*** up the linked deps like `libarchive.so`

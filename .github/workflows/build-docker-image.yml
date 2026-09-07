@@ -104,7 +104,7 @@ jobs:
             type=raw, value=${{ env.version }}
 
       - name: Docker build
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
           docker build \
             --build-arg GIT_REV=${{ env.gitrev }} \
