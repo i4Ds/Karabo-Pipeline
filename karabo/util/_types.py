@@ -85,6 +85,6 @@ MISSING = MissingType()
 
 
 class BeamType(TypedDict):
-    bmaj: float  # major-axis in arcsec
-    bmin: float  # minor-axis in arcsec
+    bmaj: float  # major-axis in deg
+    bmin: float  # minor-axis in deg
     bpa: float  # position-angle in deg
