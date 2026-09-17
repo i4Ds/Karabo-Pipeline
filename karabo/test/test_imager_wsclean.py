@@ -44,11 +44,16 @@ def test_wsclean_imager_factory_returns_adapter():
 
 
 def test_wsclean_imager_factory_forwards_matching_config():
-    config = WscleanBackendConfig(clean_niter=23)
+    config = WscleanBackendConfig(weighting="natural", clean_niter=23)
     imager = get_imager(ImagingBackend.WSCLEAN, config=config)
 
     assert isinstance(imager, WscleanBackendImager)
     assert imager.config is config
+
+
+def test_wsclean_backend_config_rejects_unsupported_weighting():
+    with pytest.raises(ValueError, match="weighting must be"):
+        WscleanBackendConfig(weighting="briggs")  # type: ignore[arg-type]
 
 
 def test_direct_wsclean_dirty_imager_warns():

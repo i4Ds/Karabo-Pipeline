@@ -5,7 +5,7 @@ Overview
 ------------
 This module contains the functionality required for an interferometer simulation. This includes defining a sky model and selecting a telescope. 
 
-For simulation backend selection (OSKAR/RASCIL/SDP), see
+For simulation backend selection (SDP or OSKAR), see
 :doc:`simulation_backend_selection`.
 
 Classes

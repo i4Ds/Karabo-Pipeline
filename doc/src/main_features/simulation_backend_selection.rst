@@ -1,85 +1,76 @@
 Simulation Backend Selection
 ============================
 
-Overview
---------
-Karabo simulation uses a unified entry point:
+Supported backends and defaults
+-------------------------------
 
-- ``karabo.simulation.interferometer.InterferometerSimulation.run_simulation``
+Use ``InterferometerSimulation.run_simulation(...)`` with a
+``SimulatorBackend`` enum value:
 
-The simulation backend is selected with
-``karabo.simulator_backend.SimulatorBackend``.
+* ``SimulatorBackend.SDP`` (value ``"ska-sdp"``) selects the Karabo-native
+  SKA-SDP simulation path.
+* ``SimulatorBackend.OSKAR`` (value ``"OSKAR"``) selects OSKAR simulation and
+  its telescope and beam options.
 
-Supported simulation backends
------------------------------
-- ``SimulatorBackend.SDP`` (value: ``"ska-sdp"``): recommended Karabo-native
-  simulation path for new workflows.
-- ``SimulatorBackend.OSKAR``: still supported for OSKAR-specific simulation
-  workflows and telescope/beam behavior.
-- ``SimulatorBackend.RASCIL``: deprecated legacy compatibility path.
+The default is OSKAR for both ``run_simulation`` and ``Telescope.constructor``.
+Pass the backend explicitly, and construct a telescope for that backend.
+A regular ``Observation`` returns a Karabo ``Visibility``; an OSKAR
+``ObservationParallelized`` returns a list of visibility products.
 
-For all backends, ``run_simulation(...)`` returns a Karabo ``Visibility`` wrapper.
+Selecting SDP
+-------------
 
-How to select a backend
------------------------
-Use the same API and only change the ``backend`` argument:
+Given a Karabo ``sky`` and ``observation``:
 
 .. code-block:: python
 
    from karabo.simulator_backend import SimulatorBackend
    from karabo.simulation.interferometer import InterferometerSimulation
+   from karabo.simulation.telescope import Telescope
 
+   telescope = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
    simulation = InterferometerSimulation()
    vis = simulation.run_simulation(
        telescope=telescope,
        sky=sky,
        observation=observation,
-       backend=SimulatorBackend.SDP,  # or OSKAR / deprecated RASCIL
+       backend=SimulatorBackend.SDP,
+       visibility_format="MS",
    )
 
-Telescope selection note (important during transition)
-------------------------------------------------------
-For SDP simulations, use the SDP telescope constructor path and run the simulation
-with ``backend=SimulatorBackend.SDP``. The legacy RASCIL constructor path still
-works during the transition, but emits a deprecation warning.
+SDP writes Measurement Sets and can apply a custom SDP image supplied through
+``primary_beam``. Sky-model conversion uses SKA-SDP sky components internally.
+The :doc:`/examples/examples` page links an end-to-end SDP line-emission notebook.
 
-Example:
+Selecting OSKAR
+---------------
+
+Use an OSKAR telescope configuration and select OSKAR in the same entry point:
 
 .. code-block:: python
 
-   from karabo.simulator_backend import SimulatorBackend
-   from karabo.simulation.telescope import Telescope
-
-   telescope = Telescope.constructor("MID", backend=SimulatorBackend.SDP)
-   # ...
+   telescope = Telescope.constructor("EXAMPLE", backend=SimulatorBackend.OSKAR)
    vis = simulation.run_simulation(
        telescope=telescope,
        sky=sky,
        observation=observation,
-       backend=SimulatorBackend.SDP,
+       backend=SimulatorBackend.OSKAR,
+       visibility_format="MS",
    )
 
-Backend behavior notes
-----------------------
-- OSKAR
-  - Still supported.
-  - Custom ``primary_beam`` passed to ``run_simulation`` is ignored.
-  - Configure beam behavior through ``InterferometerSimulation`` parameters.
+Configure OSKAR beam behavior through ``InterferometerSimulation`` constructor
+parameters. A custom ``primary_beam`` passed to ``run_simulation`` is ignored
+with a warning for OSKAR.
 
-- SDP
-  - Recommended for new Karabo-native simulation workflows.
-  - Follows an MS-based simulation path in Karabo.
-  - Can apply a provided custom ``primary_beam`` in simulation.
+Imaging the result
+------------------
 
-- RASCIL
-  - Deprecated and kept for legacy compatibility only.
-  - Follows the older MS-based simulation path and emits a deprecation warning
-    when selected.
+Use Measurement Set output for either :doc:`imaging_backend_selection` backend.
+The simulation backend does not determine which imager you must use.
 
-Recommendations
----------------
-- Prefer ``SimulatorBackend.SDP`` in new simulation scripts/notebooks unless you
-  specifically need OSKAR behavior.
-- Prefer passing simulation backend explicitly in scripts/notebooks.
-- Keep output format as MS for cross-backend comparability.
-- Avoid ``SimulatorBackend.RASCIL`` in new workflows.
+For cross-simulator frequency comparisons, check the output frequency metadata:
+OSKAR uses the configured start frequency for the first channel, while SDP uses
+the channel centre (start frequency plus half the channel width).
+
+For removed selectors and older telescope-construction patterns, see
+:doc:`/migration_rascil`.

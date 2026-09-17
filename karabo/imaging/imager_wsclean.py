@@ -5,7 +5,7 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from typing_extensions import override
 
@@ -22,6 +22,7 @@ from karabo.util.file_handler import FileHandler
 from karabo.warning import warn_direct_wsclean_use
 
 _WSCLEAN_BINARY = "wsclean"
+WscleanWeighting = Literal["natural", "uniform"]
 
 
 def _get_command_prefix(tmp_dir: str) -> str:
@@ -61,6 +62,7 @@ class WscleanDirtyImager(DirtyImager):
         self,
         config: DirtyImagerConfig,
         *,
+        weighting: Optional[WscleanWeighting] = None,
         warn_direct_use: bool = True,
     ) -> None:
         """Initializes the instance with a config.
@@ -73,6 +75,7 @@ class WscleanDirtyImager(DirtyImager):
         if warn_direct_use:
             warn_direct_wsclean_use(stacklevel=3)
         self.config = config
+        self.weighting = weighting
 
     @override
     def create_dirty_image(
@@ -101,7 +104,8 @@ class WscleanDirtyImager(DirtyImager):
         )
         command = _get_command_prefix(tmp_dir) + (
             f"{_WSCLEAN_BINARY} "
-            f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
+            + (f"-weight {self.weighting} " if self.weighting is not None else "")
+            + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
             f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
             f"{visibility.path}"
         )
@@ -176,6 +180,7 @@ class WscleanImageCleaner(ImageCleaner):
         self,
         config: WscleanImageCleanerConfig,
         *,
+        weighting: Optional[WscleanWeighting] = None,
         warn_direct_use: bool = True,
     ) -> None:
         """Initializes the instance with a config.
@@ -188,6 +193,7 @@ class WscleanImageCleaner(ImageCleaner):
         if warn_direct_use:
             warn_direct_wsclean_use(stacklevel=3)
         self.config = config
+        self.weighting = weighting
 
     @override
     def create_cleaned_image(
@@ -216,6 +222,7 @@ class WscleanImageCleaner(ImageCleaner):
             )
         command = _get_command_prefix(tmp_dir) + (
             f"{_WSCLEAN_BINARY} "
+            + (f"-weight {self.weighting} " if self.weighting is not None else "")
             + (f"-reuse-dirty {prefix} " if dirty_fits_path is not None else "")
             + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
             + f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
