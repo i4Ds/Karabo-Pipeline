@@ -39,7 +39,7 @@ def line_emission_pipeline(
     interferometer: InterferometerSimulation,
     simulator_backend: SimulatorBackend,
     dirty_imager_config: DirtyImagerConfig,
-    primary_beams: Optional[List[NDArray[np.float_]]] = None,
+    primary_beams: Optional[List[NDArray[np.float64]]] = None,
     should_perform_primary_beam_correction: Optional[bool] = True,
     imaging_backend: Optional[Union[ImagingBackend, str]] = None,
 ) -> Tuple[

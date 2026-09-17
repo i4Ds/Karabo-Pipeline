@@ -184,7 +184,7 @@ class SignalPlotting:
             else:
                 image = elem
 
-            d_t_subtracted: npt.NDArray[np.float_] = image.data
+            d_t_subtracted: npt.NDArray[np.float64] = image.data
             if isinstance(image, Image3D):
                 d_t_subtracted = d_t_subtracted[z_layer, :, :]
 
@@ -243,7 +243,7 @@ class SignalPlotting:
         else:
             img = image
 
-        d_t_subtracted: npt.NDArray[np.float_] = img.data
+        d_t_subtracted: npt.NDArray[np.float64] = img.data
         if isinstance(image, Image3D):
             d_t_subtracted = d_t_subtracted[z_layer, :, :]
 
@@ -346,9 +346,9 @@ class SignalPlotting:
     @classmethod
     def general_polar_plot(
         cls,
-        ra_series: Annotated[npt.NDArray[np.float_], Literal["N"]],
-        dec_series: Annotated[npt.NDArray[np.float_], Literal["N"]],
-        intensities_series: Annotated[npt.NDArray[np.float_], Literal["N"]],
+        ra_series: Annotated[npt.NDArray[np.float64], Literal["N"]],
+        dec_series: Annotated[npt.NDArray[np.float64], Literal["N"]],
+        intensities_series: Annotated[npt.NDArray[np.float64], Literal["N"]],
         title: str,
         bar_label: str = "Temperature [K]",
         log_bar: bool = False,
@@ -358,11 +358,11 @@ class SignalPlotting:
 
         Parameters
         ----------
-        ra_series : Annotated[npt.NDArray[np.float_], Literal["N"]]
+        ra_series : Annotated[npt.NDArray[np.float64], Literal["N"]]
             RA coordinates in degrees.
-        dec_series : Annotated[npt.NDArray[np.float_], Literal["N"]]
+        dec_series : Annotated[npt.NDArray[np.float64], Literal["N"]]
             DEC coordinates in degrees.
-        intensities_series : Annotated[npt.NDArray[np.float_], Literal["N"]]
+        intensities_series : Annotated[npt.NDArray[np.float64], Literal["N"]]
             Intensities in Kelvin.
         title : str
             Title to be shown in the figure.

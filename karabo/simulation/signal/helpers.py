@@ -179,7 +179,7 @@ def map_radec_datapoints_to_grid(
     dec_column: str,
     intensity_column: str,
     par_count: int = 5,
-) -> Annotated[npt.NDArray[np.float_], Literal["X", "Y"]]:
+) -> Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]:
     """
     Map the given data points with a destination to source mapping.
 
@@ -203,7 +203,7 @@ def map_radec_datapoints_to_grid(
 
     Returns
     -------
-    Annotated[npt.NDArray[np.float_], Literal["X", "Y"]]
+    Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]
         A 2D numpy array representing an image with the dimensions of the grid_size
         parameter.
     """
@@ -236,7 +236,7 @@ def map_radec_datapoints_to_grid(
         )
 
     with multiprocessing.Pool(par_count) as p:
-        chunks: list[npt.NDArray[np.float_]] = p.starmap(
+        chunks: list[npt.NDArray[np.float64]] = p.starmap(
             _map_radec_datapoints_rows,
             args,
         )
@@ -255,7 +255,7 @@ def _map_radec_datapoints_rows(
     width: int,
     x_start: int,
     par_count: int,
-) -> npt.NDArray[np.float_]:
+) -> npt.NDArray[np.float64]:
     grid = np.zeros((par_count, width))
 
     for x in range(par_count):
@@ -288,16 +288,16 @@ SciPyInterpolationModes = Literal[
 
 
 def interpolate_image(
-    image: Annotated[npt.NDArray[np.float_], Literal["X", "Y"]],
+    image: Annotated[npt.NDArray[np.float64], Literal["X", "Y"]],
     new_size: tuple[int, int],
     mode: SciPyInterpolationModes = "constant",
-) -> Annotated[npt.NDArray[np.float_], Literal["N", "M"]]:
+) -> Annotated[npt.NDArray[np.float64], Literal["N", "M"]]:
     """
     Interpolate an image from it's original size to `new_size`.
 
     Parameters
     ----------
-    image : Annotated[npt.NDArray[np.float_], Literal["X", "Y"]]
+    image : Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]
         The image that is to be interpolated.
     new_size : tuple[int, int]
         The desired output size of the image
@@ -306,7 +306,7 @@ def interpolate_image(
 
     Returns
     -------
-    Annotated[npt.NDArray[np.float_], Literal["N", "M"]]
+    Annotated[npt.NDArray[np.float64], Literal["N", "M"]]
         The interpolated input image with it's new dimensions.
     """
     original_shape = image.shape
@@ -318,7 +318,7 @@ def interpolate_image(
     coordinates = np.stack(grid, axis=-1)
 
     interpolated_array = cast(
-        npt.NDArray[np.float_],
+        npt.NDArray[np.float64],
         map_coordinates(image, coordinates.T, order=1, mode=mode),
     )
     return interpolated_array.reshape(new_size).T

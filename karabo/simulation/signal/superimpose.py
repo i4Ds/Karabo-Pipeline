@@ -21,14 +21,14 @@ class Superimpose:
 
         Parameters
         ----------
-        first_image_data_2d : npt.NDArray[np.float_]
+        first_image_data_2d : npt.NDArray[np.float64]
             First image data to be combined
-        second_image_data_2d : npt.NDArray[np.float_]
+        second_image_data_2d : npt.NDArray[np.float64]
             Second image data to be combined
 
         Returns
         -------
-        npt.NDArray[np.float_]
+        npt.NDArray[np.float64]
             Combined image data
         """
         data = np.add(second_image_2d.data, first_image_2d.data)
@@ -51,14 +51,14 @@ class Superimpose:
 
         Parameters
         ----------
-        image_data_3d : npt.NDArray[np.float_]
+        image_data_3d : npt.NDArray[np.float64]
             3D image data to be combined
-        image_data_2d : npt.NDArray[np.float_]
+        image_data_2d : npt.NDArray[np.float64]
             Image data to be combined
 
         Returns
         -------
-        npt.NDArray[np.float_]
+        npt.NDArray[np.float64]
             Combined image data
         """
         data = np.add(image_3d.data, image_2d.data)
@@ -82,14 +82,14 @@ class Superimpose:
 
         Parameters
         ----------
-        first_image_data_3d : npt.NDArray[np.float_]
+        first_image_data_3d : npt.NDArray[np.float64]
             3D image data to be combined
-        second_image_data_3d : npt.NDArray[np.float_]
+        second_image_data_3d : npt.NDArray[np.float64]
             3D image data to be combined
 
         Returns
         -------
-        npt.NDArray[np.float_]
+        npt.NDArray[np.float64]
             Combined image data
         """
         data = np.add(first_image_3d.data, second_image_3d.data)

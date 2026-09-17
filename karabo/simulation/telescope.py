@@ -621,7 +621,7 @@ but was not provided. Please provide a value for the version field."
             )
         layout_file.close()
 
-    def get_cartesian_position(self) -> NDArray[np.float_]:
+    def get_cartesian_position(self) -> NDArray[np.float64]:
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
 
     @classmethod

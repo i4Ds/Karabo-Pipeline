@@ -215,11 +215,11 @@ def full_getter(self: object) -> Dict[str, Any]:
 
 
 def get_spectral_sky_data(
-    ra: NDArray[np.float_],
-    dec: NDArray[np.float_],
-    freq0: NDArray[np.float_],
+    ra: NDArray[np.float64],
+    dec: NDArray[np.float64],
+    freq0: NDArray[np.float64],
     nfreq: int,
-) -> NDArray[np.float_]:
+) -> NDArray[np.float64]:
     """
     Used to add the properties flux and frequency to a sample of
     point sources. The data is then returned as a structure that can be
@@ -228,14 +228,14 @@ def get_spectral_sky_data(
     See :obj:`karabo.simulation.sky_model.SkyModel.add_point_sources`
 
     Args:
-        ra (NDArray[np.float_]): A list of RA (right ascension) of the sources.
-        dec (NDArray[np.float_]): Their declinations
-        freq0 (NDArray[np.float_]): The main frequency of each source
+        ra (NDArray[np.float64]): A list of RA (right ascension) of the sources.
+        dec (NDArray[np.float64]): Their declinations
+        freq0 (NDArray[np.float64]): The main frequency of each source
         nfreq (int): Number of frequencies to sample. Must have the same length
             as the other arrays.
 
     Returns:
-        NDArray[np.float_]: A sky model (n x 12 array) which has the following \
+        NDArray[np.float64]: A sky model (n x 12 array) which has the following \
         entries set for each source:
             - [0]: right ascension
             - [1]: declination
@@ -243,7 +243,12 @@ def get_spectral_sky_data(
             - [6]: reference frequency
             - [7]: spectral index set to -200
     """
-    dfreq_arr = np.linspace(-0.1, 0.1, 100)
+    dfreq_arr: NDArray[np.float64] = np.linspace(
+        -0.1,
+        0.1,
+        100,
+        dtype=np.float64,
+    )
     y_voigt = cast(NDArray[NPIntFloat], Voigt(dfreq_arr, 0, 0, 1, 0.01, 0.01))
     # y_gauss = Gauss(dfreq_arr, 0, 0, 1, 0.01)
     dfreq_sample = dfreq_arr[::nfreq]
@@ -262,20 +267,20 @@ def get_spectral_sky_data(
 
 def resample_spectral_lines(
     npoints: int,
-    dfreq: NDArray[np.float_],
-    spec_line: NDArray[np.float_],
-) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+    dfreq: NDArray[np.float64],
+    spec_line: NDArray[np.float64],
+) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Downsamples a spectral line. The new line will have npoints.
 
     Args:
         npoints (int): Desired number of points after resampling. Must be samller
             than in the original sample.
-        dfreq (NDArray[np.float_]): The frequencies samples fo the original line.
-        spec_line (NDArray[np.float_]): The intensities of the original line.
+        dfreq (NDArray[np.float64]): The frequencies samples fo the original line.
+        spec_line (NDArray[np.float64]): The intensities of the original line.
 
     Returns:
-        Tuple[NDArray[np.float_], NDArray[np.float_]]: A tuple of arrays where \
+        Tuple[NDArray[np.float64], NDArray[np.float64]]: A tuple of arrays where \
         [new_frequency_samples[], new_intensitiy_samples[]].
     """
     m = int(len(dfreq) / npoints)

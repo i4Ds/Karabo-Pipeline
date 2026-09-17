@@ -44,14 +44,6 @@ from numpy.typing import NDArray
 from ska_sdp_datamodels.image.image_model import Image as SdpImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 from ska_sdp_datamodels.sky_model.sky_model import SkyComponent
-
-try:
-    from ska_sdp_datamodels.image import (
-        import_image_from_fits as sdp_import_image_from_fits,
-    )
-except ImportError:  # pragma: no cover - depends on installed datamodels version
-    sdp_import_image_from_fits = None
-
 from typing_extensions import assert_never
 from xarray.core.coordinates import DataArrayCoordinates
 
@@ -95,7 +87,7 @@ SkySourcesColName = Literal[  # preserve python-var-name compatibility
     "id",
 ]
 
-_NPSkyType = Union[NDArray[np.float_], NDArray[np.object_]]
+_NPSkyType = Union[NDArray[np.float64], NDArray[np.object_]]
 _SkySourcesType = Union[_NPSkyType, xr.DataArray]
 _SourceIdType = Union[
     List[str],
@@ -103,7 +95,7 @@ _SourceIdType = Union[
     List[float],
     NDArray[np.object_],
     NDArray[np.int_],
-    NDArray[np.float_],
+    NDArray[np.float64],
     DataArrayCoordinates[xr.DataArray],
 ]
 _SkyPrefixMappingValueType = Union[str, List[str]]
@@ -537,7 +529,7 @@ class SkyModel:
             transformation between pixel coordinates and celestial coordinates
             (e.g., right ascension and declination).
         precision: The precision of numerical values used in the SkyModel.
-            Has to be of type np.float_.
+            Has to be of type np.float64.
         h5_file_connection: An open connection to an HDF5 (h5) file
             that can be used to store or retrieve data related to the SkyModel.
     """
@@ -572,7 +564,7 @@ class SkyModel:
         self,
         sources: Optional[_SkySourcesType] = None,
         wcs: Optional[WCS] = None,
-        precision: Type[np.float_] = np.float64,
+        precision: Type[np.float64] = np.float64,
         h5_file_connection: Optional[h5py.File] = None,
     ) -> None:
         """
@@ -605,7 +597,7 @@ class SkyModel:
     @classmethod
     def _build_sdp_image_from_fits(
         cls,
-        data_2d: NDArray[np.float_],
+        data_2d: NDArray[np.float64],
         header: fits.Header,
         wcs_celestial: WCS,
     ) -> SdpImage:
@@ -707,12 +699,11 @@ class SkyModel:
             if not wcs.has_celestial:
                 raise ValueError(f"FITS header has no celestial WCS: {fits_path}")
 
-            if sdp_import_image_from_fits is not None:
-                sdp_image = sdp_import_image_from_fits(str(fits_path))
-            else:
-                sdp_image = cls._build_sdp_image_from_fits(
-                    data_2d=squeezed, header=header, wcs_celestial=wcs
-                )
+            sdp_image = cls._build_sdp_image_from_fits(
+                data_2d=squeezed,
+                header=header,
+                wcs_celestial=wcs,
+            )
 
             # Wrap SDP image in Karabo Image to keep downstream format consistent.
             from karabo.imaging.image import Image as KaraboImage
@@ -1385,7 +1376,9 @@ class SkyModel:
         if cmap is not None:
             flux = self[:, SkyModel._STOKES_IDX[stokes]].to_numpy()
             if cfun is not None:
-                if cfun in [np.log10, np.log] and any(flux <= 0):
+                is_log_transform = cast(Any, cfun) in (np.log10, np.log)
+
+                if is_log_transform and any(flux <= 0):
                     warn(
                         KaraboWarning(
                             "Warning: flux with value <= 0 found, setting "
@@ -1393,10 +1386,9 @@ class SkyModel:
                             "logarithmic errors (only affects the colorbar)"
                         )
                     )
-
                     flux = np.where(flux > 0, flux, np.nan)
-                flux = cast(NDArray[np.float_], cfun(flux))
 
+                flux = cast(NDArray[np.float64], cfun(flux))
         # handle matplotlib kwargs
         # not set as normal args because default assignment depends on args
         if "vmin" not in kwargs:
@@ -1670,17 +1662,17 @@ class SkyModel:
     @staticmethod
     def __convert_ra_dec_to_cartesian(
         ra: IntFloat, dec: IntFloat
-    ) -> NDArray[np.float_]:
+    ) -> NDArray[np.float64]:
         x = math.cos(math.radians(ra)) * math.cos(math.radians(dec))
         y = math.sin(math.radians(ra)) * math.cos(math.radians(dec))
         z = math.sin(math.radians(dec))
         r = np.array([x, y, z])
-        norm = cast(np.float_, np.linalg.norm(r))
+        norm = cast(np.float64, np.linalg.norm(r))
         if norm == 0:
             return r
         return r / norm
 
-    def get_cartesian_sky(self) -> NDArray[np.float_]:
+    def get_cartesian_sky(self) -> NDArray[np.float64]:
         if self.sources is None:
             raise AttributeError("Can't create cartesian-sky when `sources` is None.")
         cartesian_sky = np.squeeze(
@@ -1689,7 +1681,7 @@ class SkyModel:
                     self.__convert_ra_dec_to_cartesian(float(row[0]), float(row[1]))
                 ],
                 axis=1,
-                arr=self.sources,
+                arr=np.asarray(self.sources),
             )
         )
         return cartesian_sky
@@ -1724,7 +1716,7 @@ class SkyModel:
             Rows represent data points and columns represent
             different data fields ('ra', 'dec', ...).
         """
-        f = h5py.File(path, "r", locking=False)
+        f = h5py.File(path, "r")
         data_arrays: List[xr.DataArray] = []
 
         # not sure why we have a default here, but keep for compatibility I guess?
@@ -1740,12 +1732,12 @@ class SkyModel:
             field_value: Optional[str] = getattr(prefix_mapping, field.name)
             if field_value is None:
                 shape = f[prefix_mapping.ra].shape
-                dask_array = da.zeros(  # type: ignore[attr-defined]
+                dask_array = da.zeros(
                     shape,
                     chunks=(chunksize,),
                 )
             else:
-                dask_array = da.from_array(  # type: ignore[attr-defined]
+                dask_array = da.from_array(
                     f[field_value],
                     chunks=(chunksize,),
                 )
@@ -2359,7 +2351,7 @@ class SkyModel:
     def convert_to_backend(
         self,
         backend: Literal[SimulatorBackend.SDP],
-        desired_frequencies_hz: NDArray[np.float_],
+        desired_frequencies_hz: NDArray[np.float64],
         channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
     ) -> List[SkyComponent]:
@@ -2368,7 +2360,7 @@ class SkyModel:
     def convert_to_backend(
         self,
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
-        desired_frequencies_hz: Optional[NDArray[np.float_]] = None,
+        desired_frequencies_hz: Optional[NDArray[np.float64]] = None,
         channel_bandwidth_hz: Optional[float] = None,
         verbose: bool = False,
     ) -> Union[SkyModel, List[SkyComponent]]:
@@ -2411,7 +2403,7 @@ class SkyModel:
                     "Converting sources into a list of SKA-SDP SkyComponent instances."
                 )
 
-            desired_frequencies_hz = cast(NDArray[np.float_], desired_frequencies_hz)
+            desired_frequencies_hz = cast(NDArray[np.float64], desired_frequencies_hz)
             assert (
                 len(desired_frequencies_hz) > 0
             ), "Must have at least 1 element in desired_frequencies_hz array"

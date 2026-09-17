@@ -108,7 +108,7 @@ def get_poisson_disk_sky(
     flux_min: FloatLike,
     flux_max: FloatLike,
     r: int = 10,
-) -> NDArray[np.float_]:
+) -> NDArray[np.float64]:
     """
     Creates a virtual sky by creating random source with flux between
     flux_min and flux_max.
@@ -123,7 +123,7 @@ def get_poisson_disk_sky(
             sparser sky. Defaults to 10.
 
     Returns:
-        NDArray[np.float_]: Array of sources and flux \
+        NDArray[np.float64]: Array of sources and flux \
             [[x1, y1, flux], [x2, y2, flux] ...]
     """
     assert flux_max >= flux_min
@@ -148,7 +148,7 @@ def get_poisson_disk_sky(
 
 
 #
-def long_lat_to_cartesian(lat: NPFloatLike, lon: NPFloatLike) -> NDArray[np.float_]:
+def long_lat_to_cartesian(lat: NPFloatLike, lon: NPFloatLike) -> NDArray[np.float64]:
     """
     Converts geodesic coordinates (latitude and longitude) into geocentric ones,
     also called cartesian coordinates.
@@ -158,14 +158,14 @@ def long_lat_to_cartesian(lat: NPFloatLike, lon: NPFloatLike) -> NDArray[np.floa
         lon (NPFloatLike): The longitude to convert, south is negative.
 
     Returns:
-        NDArray[np.float_]: An array with the geodesic coordinates [x, y, z]
+        NDArray[np.float64]: An array with the geodesic coordinates [x, y, z]
     """
     lat_, lon_ = np.deg2rad(lat), np.deg2rad(lon)
     x = R * cos(lat_) * cos(lon_)
     y = R * cos(lat_) * sin(lon_)
     z = R * sin(lat_)
     out = cast(
-        NDArray[np.float_], np.array([x, y, z]) / np.linalg.norm(np.array([x, y, z]))
+        NDArray[np.float64], np.array([x, y, z]) / np.linalg.norm(np.array([x, y, z]))
     )
     return out
 

@@ -65,15 +65,17 @@ jobs:
           conda config --env --set channel_priority true
           conda create -y -n karabo-env python=${PYTHON_VERSION}
           conda activate karabo-env
-          conda install -y -c nvidia/label/cuda-11.7.0 -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
-          pip install ipykernel
+          conda install -y -c nvidia/label/cuda-12.9.1 -c i4ds -c conda-forge karabo-pipeline=$KARABO_VERSION
+
+          # Install test tools into the active environment and use the same pytest version as the regular CI.
+          python -m pip install ipykernel pytest==7.4.2
           python -m ipykernel install --user --name python${PYTHON_VERSION}
 
       - name: Test Package
         shell: bash -l {0}
         run: |
           conda activate karabo-env
-          pytest --pyargs karabo.test
+          python -m pytest --pyargs karabo.test
 
   build-docker:
     needs: test-conda-build
