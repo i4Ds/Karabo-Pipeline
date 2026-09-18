@@ -70,6 +70,27 @@ def test_sdp_imager_invert_and_restore(minimal_casa_ms: Visibility) -> None:
     assert np.isfinite(imager.last_residual_image.data).all()
 
 
+def test_sdp_restore_preserves_fitted_beam_angular_scale(
+    minimal_casa_ms: Visibility,
+) -> None:
+    imager = get_imager(ImagingBackend.SDP)
+    spec = ImageSpec(
+        npix=256,
+        cellsize_arcsec=math.degrees(5e-5) * 3600.0,
+        phase_centre_deg=(0.0, 0.0),
+    )
+    dirty_image, psf_image = imager.invert(minimal_casa_ms, spec)
+    fitted_beam_deg = guess_beam_parameters(psf_image)
+
+    restored = imager.restore(dirty_image, psf_image)
+    assert restored.has_beam_parameters()
+    restored_beam_deg = restored.get_beam_parameters()
+
+    assert restored_beam_deg["bmaj"] == pytest.approx(fitted_beam_deg["bmaj"])
+    assert restored_beam_deg["bmin"] == pytest.approx(fitted_beam_deg["bmin"])
+    assert restored_beam_deg["bpa"] == pytest.approx(fitted_beam_deg["bpa"])
+
+
 def test_imager_factory_forwards_matching_sdp_config() -> None:
     config = SdpImagerConfig(clean_niter=17)
     imager = get_imager(ImagingBackend.SDP, config=config)

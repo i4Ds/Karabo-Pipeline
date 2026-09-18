@@ -212,13 +212,8 @@ class SdpImager(Imager):
             ),
         )
 
-        # Guess a clean beam from the PSF (arcsec → degrees for SDP restore)
-        beam_arcsec = guess_beam_parameters(psf)
-        clean_beam = {
-            "bmaj": beam_arcsec["bmaj"] / 3600.0,
-            "bmin": beam_arcsec["bmin"] / 3600.0,
-            "bpa": beam_arcsec["bpa"],
-        }
+        # Both the fitted beam and SDP restore_cube use degrees.
+        clean_beam = guess_beam_parameters(psf)
 
         restored_native = restore_cube(
             comp_native,
