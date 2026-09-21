@@ -40,6 +40,9 @@ on:
 jobs:
   test-conda-build:
     runs-on: ubuntu-latest
+    env:
+      UCX_TLS: self,sm,tcp
+      UCX_NET_DEVICES: lo
     steps:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v4
