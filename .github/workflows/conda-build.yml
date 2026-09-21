@@ -92,7 +92,7 @@ jobs:
           conda run -n base conda build --version
           
           export KARABO_VERSION=$KARABO_VERSION build=$build
-          conda run -n base conda build conda
+          conda run -n base conda build --python "${{ inputs.python-version }}" conda
           echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
       - name: Publish to Conda
         shell: bash -l {0}

@@ -30,7 +30,7 @@ jobs:
     uses: ./.github/workflows/conda-build.yml
     strategy:
       matrix:
-        python: ["3.9", "3.10"]
+        python: ["3.12"]
     with:
         buildNumber: 0
         version: ${{ needs.setup-builds.outputs.karabo-version }}
