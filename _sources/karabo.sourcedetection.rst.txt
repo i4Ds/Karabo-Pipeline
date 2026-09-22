@@ -1,0 +1,29 @@
+karabo.sourcedetection package
+==============================
+
+Submodules
+----------
+
+karabo.sourcedetection.evaluation module
+----------------------------------------
+
+.. automodule:: karabo.sourcedetection.evaluation
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+karabo.sourcedetection.result module
+------------------------------------
+
+.. automodule:: karabo.sourcedetection.result
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: karabo.sourcedetection
+   :members:
+   :show-inheritance:
+   :undoc-members:

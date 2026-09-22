@@ -1,0 +1,280 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migrating from RASCIL &mdash; Karabo-Pipeline 0+untagged.1.g5ae307b documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=4391af6e"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Release Notes" href="release_notes.html" />
+    <link rel="prev" title="Backend Overview" href="main_features/backend_overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_processing.html">Parallel processing with Karabo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/backend_overview.html">Backend Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Migrating from RASCIL</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#replacement-apis">Replacement APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-the-sdp-telescope-constructor-directly">Use the SDP telescope constructor directly</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#replace-direct-imaging-calls">Replace direct imaging calls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#check-units-and-scientific-outputs">Check units and scientific outputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-and-modernization">Installation and modernization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_notes.html">Release Notes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/simulation.html">karabo.simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/simulation_backend_selection.html">Simulation Backend Selection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/imaging.html">karabo.imaging.image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/imaging_backend_selection.html">Imaging Backend Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/base_imaging.html">Common Imaging API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/oskar_imaging.html">karabo.imaging.imager_oskar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/sdp_imaging.html">SDP Imaging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/wsclean_imaging.html">karabo.imaging.imager_wsclean</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Utilities</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="utilities/utils.html">karabo.util package</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Migrating from RASCIL</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/migration_rascil.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="migrating-from-rascil">
+<h1>Migrating from RASCIL<a class="headerlink" href="#migrating-from-rascil" title="Link to this heading"></a></h1>
+<p>The transitional cohabitation release (v0.35.0) supported RASCIL alongside SDP,
+OSKAR, and WSClean. The current source tree removes the RASCIL implementation,
+selectors, warnings, and dependency. Old workflows must select a supported
+backend; there is no compatibility adapter that executes RASCIL.</p>
+<section id="replacement-apis">
+<h2>Replacement APIs<a class="headerlink" href="#replacement-apis" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Upgrade map</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 45.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Removed usage</p></th>
+<th class="head"><p>Replacement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.RASCIL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.SDP</span></code> in simulation and telescope construction</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ImagingBackend.RASCIL</span></code> or <code class="docutils literal notranslate"><span class="pre">get_imager(&quot;rascil&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">get_imager(ImagingBackend.SDP)</span></code> or <code class="docutils literal notranslate"><span class="pre">get_imager(ImagingBackend.WSCLEAN)</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">IMAGING_BACKEND=rascil</span></code> / <code class="docutils literal notranslate"><span class="pre">--imaging-backend</span> <span class="pre">rascil</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sdp</span></code> or <code class="docutils literal notranslate"><span class="pre">wsclean</span></code> in the same setting</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RascilDirtyImager</span></code> / <code class="docutils literal notranslate"><span class="pre">RascilDirtyImagerConfig</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">get_imager</span></code> plus <code class="docutils literal notranslate"><span class="pre">ImageSpec</span></code> and <code class="docutils literal notranslate"><span class="pre">invert</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RascilImageCleaner</span></code> / <code class="docutils literal notranslate"><span class="pre">RascilImageCleanerConfig</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SdpImagerConfig</span></code> or <code class="docutils literal notranslate"><span class="pre">WscleanBackendConfig</span></code> through the factory,
+followed by <code class="docutils literal notranslate"><span class="pre">restore</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SkyModel.from_fits_image(...,</span> <span class="pre">backend=&quot;rascil&quot;)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">backend=SimulatorBackend.SDP</span></code> (also the default for this method)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SkyModel.convert_to_backend(SimulatorBackend.RASCIL,</span> <span class="pre">...)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.SDP</span></code> with the same frequency and channel-bandwidth
+arguments</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LineEmissionSimulation_RASCIL.ipynb</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LineEmissionSimulation.ipynb</span></code> in <code class="docutils literal notranslate"><span class="pre">karabo/examples</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Removed enum attributes and modules are no longer importable. Parsing a legacy
+value through <code class="docutils literal notranslate"><span class="pre">SimulatorBackend(&quot;RASCIL&quot;)</span></code>, <code class="docutils literal notranslate"><span class="pre">get_imager(&quot;rascil&quot;)</span></code>, or the
+FITS sky-model loader raises an actionable <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Remove imports and
+warning filters for the deleted RASCIL deprecation helpers and
+<code class="docutils literal notranslate"><span class="pre">karabo.util.rascil_util</span></code>; those warnings are no longer emitted.</p>
+</section>
+<section id="use-the-sdp-telescope-constructor-directly">
+<h2>Use the SDP telescope constructor directly<a class="headerlink" href="#use-the-sdp-telescope-constructor-directly" title="Link to this heading"></a></h2>
+<p>For an existing Karabo <code class="docutils literal notranslate"><span class="pre">sky</span></code> and <code class="docutils literal notranslate"><span class="pre">observation</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">karabo.simulator_backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulatorBackend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">karabo.simulation.interferometer</span><span class="w"> </span><span class="kn">import</span> <span class="n">InterferometerSimulation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">karabo.simulation.telescope</span><span class="w"> </span><span class="kn">import</span> <span class="n">Telescope</span>
+
+<span class="n">telescope</span> <span class="o">=</span> <span class="n">Telescope</span><span class="o">.</span><span class="n">constructor</span><span class="p">(</span><span class="s2">"MID"</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">SimulatorBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">)</span>
+<span class="n">simulation</span> <span class="o">=</span> <span class="n">InterferometerSimulation</span><span class="p">()</span>
+<span class="n">vis</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span>
+    <span class="n">telescope</span><span class="o">=</span><span class="n">telescope</span><span class="p">,</span>
+    <span class="n">sky</span><span class="o">=</span><span class="n">sky</span><span class="p">,</span>
+    <span class="n">observation</span><span class="o">=</span><span class="n">observation</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="n">SimulatorBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">,</span>
+    <span class="n">visibility_format</span><span class="o">=</span><span class="s2">"MS"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Do not access the old telescope configuration aliases. Use the public telescope
+constructor and simulation APIs. OSKAR simulation remains supported and remains
+the default when no simulator is passed.</p>
+</section>
+<section id="replace-direct-imaging-calls">
+<h2>Replace direct imaging calls<a class="headerlink" href="#replace-direct-imaging-calls" title="Link to this heading"></a></h2>
+<p>For a Measurement Set in <code class="docutils literal notranslate"><span class="pre">vis</span></code>, with phase centre RA 20 degrees, Dec -30 degrees:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">karabo.imaging.imager_factory</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ImagingBackend</span><span class="p">,</span>
+    <span class="n">SdpImagerConfig</span><span class="p">,</span>
+    <span class="n">get_imager</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">karabo.imaging.imager_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageSpec</span>
+
+<span class="n">imager</span> <span class="o">=</span> <span class="n">get_imager</span><span class="p">(</span>
+    <span class="n">ImagingBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">,</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">SdpImagerConfig</span><span class="p">(</span><span class="n">clean_niter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">override_cellsize</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">spec</span> <span class="o">=</span> <span class="n">ImageSpec</span><span class="p">(</span><span class="n">npix</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">cellsize_arcsec</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">phase_centre_deg</span><span class="o">=</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">30.0</span><span class="p">))</span>
+<span class="n">dirty</span><span class="p">,</span> <span class="n">psf</span> <span class="o">=</span> <span class="n">imager</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">vis</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">imager</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">dirty</span><span class="p">,</span> <span class="n">psf</span><span class="p">)</span>
+<span class="n">restored</span><span class="o">.</span><span class="n">write_to_file</span><span class="p">(</span><span class="s2">"restored.fits"</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Migration is not a one-to-one rename of cleaner options. The current SDP adapter
+supports Hogbom CLEAN only. Choose supported settings explicitly; use WSClean
+through the same factory with <code class="docutils literal notranslate"><span class="pre">WscleanBackendConfig</span></code> when appropriate.
+WSClean restoration requires a preceding <code class="docutils literal notranslate"><span class="pre">invert</span></code> on that same instance.</p>
+</section>
+<section id="check-units-and-scientific-outputs">
+<h2>Check units and scientific outputs<a class="headerlink" href="#check-units-and-scientific-outputs" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Old direct-imager <code class="docutils literal notranslate"><span class="pre">imaging_cellsize</span></code> values are radians. Convert them to
+<code class="docutils literal notranslate"><span class="pre">ImageSpec.cellsize_arcsec</span></code> with <code class="docutils literal notranslate"><span class="pre">math.degrees(value)</span> <span class="pre">*</span> <span class="pre">3600</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ImageSpec.phase_centre_deg</span></code> should match the Measurement Set; it does not
+rephase input visibilities. Check the output WCS.</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">override_cellsize=True</span></code> in SDP to preserve the requested pixel scale.
+Set <code class="docutils literal notranslate"><span class="pre">combine_across_frequencies=False</span></code> if channel images must be preserved;
+by default SDP sums channel images.</p></li>
+<li><p>A restoring beam uses degrees for <code class="docutils literal notranslate"><span class="pre">bmaj</span></code>, <code class="docutils literal notranslate"><span class="pre">bmin</span></code>, and <code class="docutils literal notranslate"><span class="pre">bpa</span></code>. The SDP
+restoration fix removes an erroneous extra division by 3600; images produced
+before that correction should be regenerated if the restoring-beam scale
+matters to the analysis.</p></li>
+<li><p>Check source position, flux units, PSF width, and residuals after migration.
+Different gridders, weighting, restoring beams, and CLEAN controls can change
+images; exact numerical equivalence to the retired backend is not promised.</p></li>
+</ul>
+</section>
+<section id="installation-and-modernization">
+<h2>Installation and modernization<a class="headerlink" href="#installation-and-modernization" title="Link to this heading"></a></h2>
+<p>Use the updated project environment/recipe when installing this source version.
+RASCIL is no longer a dependency. <code class="docutils literal notranslate"><span class="pre">python-casacore</span></code> is now an explicit
+dependency for Karabo’s Measurement Set I/O, and Astropy is constrained to
+<code class="docutils literal notranslate"><span class="pre">&gt;=5.1,&lt;5.2</span></code> for the pinned SDP data-model package.</p>
+<p>Removal enables further dependency work; it does not complete it. NumPy remains
+below 2, and the SDP stack remains pinned. NumPy 2, broader dependency upgrades,
+and ARM64/HPC validation are separate follow-up tasks. See <a class="reference internal" href="release_notes.html"><span class="doc">Release Notes</span></a>
+for the unreleased status and remaining validation.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="main_features/backend_overview.html" class="btn btn-neutral float-left" title="Backend Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="release_notes.html" class="btn btn-neutral float-right" title="Release Notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Sep 22, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

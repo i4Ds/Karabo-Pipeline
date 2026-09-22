@@ -1,0 +1,207 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Release Notes &mdash; Karabo-Pipeline 0+untagged.1.g5ae307b documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=4391af6e"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="karabo.simulation" href="main_features/simulation.html" />
+    <link rel="prev" title="Migrating from RASCIL" href="migration_rascil.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_processing.html">Parallel processing with Karabo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/backend_overview.html">Backend Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_rascil.html">Migrating from RASCIL</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#unreleased-first-rascil-free-release">Unreleased: first RASCIL-free release</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#removed">Removed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#supported-workflows">Supported workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#corrections-and-configuration">Corrections and configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#validation-and-follow-up">Validation and follow-up</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/simulation.html">karabo.simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/simulation_backend_selection.html">Simulation Backend Selection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/imaging.html">karabo.imaging.image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/imaging_backend_selection.html">Imaging Backend Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/base_imaging.html">Common Imaging API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/oskar_imaging.html">karabo.imaging.imager_oskar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/sdp_imaging.html">SDP Imaging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_features/wsclean_imaging.html">karabo.imaging.imager_wsclean</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_features/sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Utilities</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="utilities/utils.html">karabo.util package</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Release Notes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/release_notes.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="release-notes">
+<h1>Release Notes<a class="headerlink" href="#release-notes" title="Link to this heading"></a></h1>
+<section id="unreleased-first-rascil-free-release">
+<h2>Unreleased: first RASCIL-free release<a class="headerlink" href="#unreleased-first-rascil-free-release" title="Link to this heading"></a></h2>
+<p>These notes describe the current source tree after the v0.35.0 transitional
+release. They do not announce a published release or completion of the final
+release-validation checklist.</p>
+<section id="removed">
+<h3>Removed<a class="headerlink" href="#removed" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>RASCIL simulation and imaging implementations, backend enum members, adapters,
+direct imager/cleaner classes, and transitional deprecation helpers.</p></li>
+<li><p>The RASCIL dependency from the Conda environment and recipe, and RASCIL-only
+tests and examples. Legacy configuration strings now fail with migration
+guidance instead of selecting an implementation.</p></li>
+</ul>
+</section>
+<section id="supported-workflows">
+<h3>Supported workflows<a class="headerlink" href="#supported-workflows" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Simulation through <code class="docutils literal notranslate"><span class="pre">InterferometerSimulation</span></code> with SDP or OSKAR.</p></li>
+<li><p>Dirty, PSF, and CLEAN/restored imaging through <code class="docutils literal notranslate"><span class="pre">get_imager</span></code> with SDP or
+WSClean, including matching backend configuration passed through the factory.</p></li>
+<li><p>Measurement Set I/O and FITS import without RASCIL; Karabo’s power-spectrum
+calculation retains its validated normalization and angular-scale convention.</p></li>
+<li><p>Updated common-imaging and SDP line-emission notebooks, plus controlled
+scientific regression checks in place of retired RASCIL parity/golden tests.</p></li>
+</ul>
+</section>
+<section id="corrections-and-configuration">
+<h3>Corrections and configuration<a class="headerlink" href="#corrections-and-configuration" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>SDP channel images are preserved when the compatible-dirty-image helper is
+called with <code class="docutils literal notranslate"><span class="pre">combine_across_frequencies=False</span></code>.</p></li>
+<li><p>SDP restoration passes fitted beam axes in degrees, fixing the extra division
+by 3600 that made the restoring beam too small.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WscleanBackendConfig.weighting</span></code> accepts <code class="docutils literal notranslate"><span class="pre">&quot;natural&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;uniform&quot;</span></code>.
+Its default remains <code class="docutils literal notranslate"><span class="pre">None</span></code>, preserving the executable’s weighting default.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python-casacore</span></code> is explicit, and <code class="docutils literal notranslate"><span class="pre">astropy&gt;=5.1,&lt;5.2</span></code> records the pinned
+SDP data-model compatibility requirement. The NumPy <code class="docutils literal notranslate"><span class="pre">&lt;2.0</span></code> bound remains.</p></li>
+</ul>
+<p>The simulation default remains OSKAR; imaging defaults to SDP unless overridden
+by <code class="docutils literal notranslate"><span class="pre">IMAGING_BACKEND</span></code>. See <a class="reference internal" href="migration_rascil.html"><span class="doc">Migrating from RASCIL</span></a> for removed values, unit
+conversions, and supported replacements, and <a class="reference internal" href="main_features/backend_overview.html"><span class="doc">Backend Overview</span></a>
+for the backend matrix.</p>
+</section>
+<section id="validation-and-follow-up">
+<h3>Validation and follow-up<a class="headerlink" href="#validation-and-follow-up" title="Link to this heading"></a></h3>
+<p>Fresh RASCIL-free installation and selected simulation, imaging, downstream, and
+notebook checks have passed during removal. The final broad clean-environment
+suite and external scientific user validation remain release gates.</p>
+<p>NumPy 2, upgrades of the pinned scientific stack, and ARM64/HPC support are not
+claimed by this change. They require separately scoped implementation and
+validation after removal.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="migration_rascil.html" class="btn btn-neutral float-left" title="Migrating from RASCIL" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="main_features/simulation.html" class="btn btn-neutral float-right" title="karabo.simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Sep 22, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,204 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend Overview &mdash; Karabo-Pipeline 0+untagged.1.g5ae307b documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=4391af6e"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Migrating from RASCIL" href="../migration_rascil.html" />
+    <link rel="prev" title="Parallel processing with Karabo" href="../parallel_processing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallel_processing.html">Parallel processing with Karabo</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Backend Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_rascil.html">Migrating from RASCIL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">Release Notes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">karabo.simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_backend_selection.html">Simulation Backend Selection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="imaging.html">karabo.imaging.image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imaging_backend_selection.html">Imaging Backend Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_imaging.html">Common Imaging API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oskar_imaging.html">karabo.imaging.imager_oskar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sdp_imaging.html">SDP Imaging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wsclean_imaging.html">karabo.imaging.imager_wsclean</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Utilities</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../utilities/utils.html">karabo.util package</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Backend Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/main_features/backend_overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="backend-overview">
+<h1>Backend Overview<a class="headerlink" href="#backend-overview" title="Link to this heading"></a></h1>
+<p>Simulation and imaging are separate choices. A Measurement Set produced by
+either simulator can be passed to either common imaging backend:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Telescope + SkyModel + Observation
+                |
+    InterferometerSimulation.run_simulation
+          [SDP or OSKAR]
+                |
+         Visibility (MS)
+                |
+       get_imager(SDP or WSCLEAN)
+                |
+        invert -&gt; dirty + PSF
+                |
+        restore -&gt; CLEAN/restored image
+                |
+       analysis / source detection
+</pre></div>
+</div>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Supported backend selectors</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Operation</p></th>
+<th class="head"><p>Selector and string value</p></th>
+<th class="head"><p>Entry point</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SDP simulation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.SDP</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;ska-sdp&quot;</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">InterferometerSimulation.run_simulation</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>OSKAR simulation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SimulatorBackend.OSKAR</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;OSKAR&quot;</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">InterferometerSimulation.run_simulation</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>SDP imaging</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ImagingBackend.SDP</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;sdp&quot;</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">get_imager</span></code> followed by <code class="docutils literal notranslate"><span class="pre">invert</span></code> and <code class="docutils literal notranslate"><span class="pre">restore</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>WSClean imaging</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ImagingBackend.WSCLEAN</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;wsclean&quot;</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">get_imager</span></code> followed by <code class="docutils literal notranslate"><span class="pre">invert</span></code> and <code class="docutils literal notranslate"><span class="pre">restore</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Simulation defaults to OSKAR. Imaging defaults to SDP unless <code class="docutils literal notranslate"><span class="pre">IMAGING_BACKEND</span></code>
+is set. Pass both selectors explicitly for reproducible workflows. Construct the
+telescope for the selected simulator; the available telescope names and beam
+options depend on that simulator.</p>
+<p>Both common imaging adapters accept Measurement Sets. The separate
+<a class="reference internal" href="oskar_imaging.html"><span class="doc">karabo.imaging.imager_oskar</span></a> utility remains available for dirty imaging, including
+OSKAR visibility files, but is not a member of <code class="docutils literal notranslate"><span class="pre">ImagingBackend</span></code> and does not
+provide CLEAN/restoration.</p>
+<p>See <a class="reference internal" href="simulation_backend_selection.html"><span class="doc">Simulation Backend Selection</span></a> and <a class="reference internal" href="imaging_backend_selection.html"><span class="doc">Imaging Backend Selection</span></a>
+for usage, and <a class="reference internal" href="../migration_rascil.html"><span class="doc">Migrating from RASCIL</span></a> for upgrading older workflows.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../parallel_processing.html" class="btn btn-neutral float-left" title="Parallel processing with Karabo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../migration_rascil.html" class="btn btn-neutral float-right" title="Migrating from RASCIL" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Sep 22, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

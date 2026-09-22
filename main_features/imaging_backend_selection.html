@@ -1,0 +1,238 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imaging Backend Selection &mdash; Karabo-Pipeline 0+untagged.1.g5ae307b documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=4391af6e"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Common Imaging API" href="base_imaging.html" />
+    <link rel="prev" title="karabo.imaging.image" href="imaging.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_user.html">Installation (User)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../container.html">Containers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallel_processing.html">Parallel processing with Karabo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend_overview.html">Backend Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_rascil.html">Migrating from RASCIL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">Release Notes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">karabo.simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_backend_selection.html">Simulation Backend Selection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Imaging</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="imaging.html">karabo.imaging.image</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Imaging Backend Selection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#common-workflow">Common workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#defaults-and-selection">Defaults and selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#backend-configuration">Backend configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#comparing-backends">Comparing backends</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="base_imaging.html">Common Imaging API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oskar_imaging.html">karabo.imaging.imager_oskar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sdp_imaging.html">SDP Imaging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wsclean_imaging.html">karabo.imaging.imager_wsclean</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Detection</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sourcedetection.html">karabo.sourcedetection</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Utilities</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../utilities/utils.html">karabo.util package</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Karabo-Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Imaging Backend Selection</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/main_features/imaging_backend_selection.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="imaging-backend-selection">
+<h1>Imaging Backend Selection<a class="headerlink" href="#imaging-backend-selection" title="Link to this heading"></a></h1>
+<section id="common-workflow">
+<h2>Common workflow<a class="headerlink" href="#common-workflow" title="Link to this heading"></a></h2>
+<p>Karabo supports SDP and WSClean imaging through <code class="docutils literal notranslate"><span class="pre">get_imager</span></code> and the common
+<code class="docutils literal notranslate"><span class="pre">Imager</span></code> / <code class="docutils literal notranslate"><span class="pre">ImageSpec</span></code> interface. Given a Karabo <code class="docutils literal notranslate"><span class="pre">Visibility</span></code> named <code class="docutils literal notranslate"><span class="pre">vis</span></code>
+that wraps a Measurement Set:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">karabo.imaging.imager_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImagingBackend</span><span class="p">,</span> <span class="n">get_imager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">karabo.imaging.imager_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageSpec</span>
+
+<span class="n">imager</span> <span class="o">=</span> <span class="n">get_imager</span><span class="p">(</span><span class="n">ImagingBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">)</span>  <span class="c1"># or ImagingBackend.WSCLEAN</span>
+<span class="n">spec</span> <span class="o">=</span> <span class="n">ImageSpec</span><span class="p">(</span><span class="n">npix</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">cellsize_arcsec</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">phase_centre_deg</span><span class="o">=</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">30.0</span><span class="p">))</span>
+<span class="n">dirty</span><span class="p">,</span> <span class="n">psf</span> <span class="o">=</span> <span class="n">imager</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">vis</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">imager</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">dirty</span><span class="p">,</span> <span class="n">psf</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">invert</span></code> returns distinct dirty and PSF <code class="docutils literal notranslate"><span class="pre">Image</span></code> objects; <code class="docutils literal notranslate"><span class="pre">restore</span></code> returns
+a CLEAN/restored <code class="docutils literal notranslate"><span class="pre">Image</span></code>. Use the same imager instance for both calls. WSClean
+needs the Measurement Set and image specification saved by its preceding
+<code class="docutils literal notranslate"><span class="pre">invert</span></code> call; it reruns CLEAN on those visibilities rather than deconvolving
+an arbitrary dirty/PSF pair in memory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ImageSpec.cellsize_arcsec</span></code> is in arcseconds per pixel. Set
+<code class="docutils literal notranslate"><span class="pre">phase_centre_deg</span></code> to the Measurement Set’s phase centre: the current adapters
+use the input visibility metadata and do not use this field to rephase data.
+The SDP adapter currently converts to Stokes I. <code class="docutils literal notranslate"><span class="pre">ImageSpec.polarisation</span></code> and
+<code class="docutils literal notranslate"><span class="pre">nchan</span></code> are not general polarization/channel-selection controls in the current
+adapters; check the output WCS and frequency axes.</p>
+</section>
+<section id="defaults-and-selection">
+<h2>Defaults and selection<a class="headerlink" href="#defaults-and-selection" title="Link to this heading"></a></h2>
+<p>An explicit backend passed to <code class="docutils literal notranslate"><span class="pre">get_imager</span></code> takes precedence. Without one,
+<code class="docutils literal notranslate"><span class="pre">parse_imaging_backend</span></code> reads <code class="docutils literal notranslate"><span class="pre">IMAGING_BACKEND</span></code> and otherwise uses SDP.
+The accepted imaging strings are <code class="docutils literal notranslate"><span class="pre">&quot;sdp&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;wsclean&quot;</span></code> (case-insensitive).</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">IMAGING_BACKEND</span><span class="o">=</span>sdp<span class="w">   </span><span class="c1"># or wsclean</span>
+</pre></div>
+</div>
+<p>Some scripts also expose a CLI option:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>karabo/performance_test/time_karabo_reconstruction.py<span class="w"> </span>--imaging-backend<span class="w"> </span>sdp
+</pre></div>
+</div>
+</section>
+<section id="backend-configuration">
+<h2>Backend configuration<a class="headerlink" href="#backend-configuration" title="Link to this heading"></a></h2>
+<p>Pass a matching configuration through the factory to control CLEAN and other
+backend-specific settings. A configuration for the wrong backend raises
+<code class="docutils literal notranslate"><span class="pre">TypeError</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">karabo.imaging.imager_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">SdpImagerConfig</span><span class="p">,</span> <span class="n">WscleanBackendConfig</span>
+
+<span class="n">sdp</span> <span class="o">=</span> <span class="n">get_imager</span><span class="p">(</span>
+    <span class="n">ImagingBackend</span><span class="o">.</span><span class="n">SDP</span><span class="p">,</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">SdpImagerConfig</span><span class="p">(</span>
+        <span class="n">weighting</span><span class="o">=</span><span class="s2">"natural"</span><span class="p">,</span>
+        <span class="n">override_cellsize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">clean_niter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+        <span class="n">clean_gain</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+<span class="n">wsclean</span> <span class="o">=</span> <span class="n">get_imager</span><span class="p">(</span>
+    <span class="n">ImagingBackend</span><span class="o">.</span><span class="n">WSCLEAN</span><span class="p">,</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">WscleanBackendConfig</span><span class="p">(</span>
+        <span class="n">weighting</span><span class="o">=</span><span class="s2">"natural"</span><span class="p">,</span>
+        <span class="n">clean_niter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+        <span class="n">clean_mgain</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">clean_auto_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>These are illustrative settings, not changed defaults. SDP defaults to natural
+weighting and 100 Hogbom CLEAN iterations. <code class="docutils literal notranslate"><span class="pre">override_cellsize=True</span></code> keeps the
+requested pixel scale; its default, <code class="docutils literal notranslate"><span class="pre">False</span></code>, allows SDP to adjust it. Set
+<code class="docutils literal notranslate"><span class="pre">combine_across_frequencies=False</span></code> in <code class="docutils literal notranslate"><span class="pre">SdpImagerConfig</span></code> to preserve channel
+images; the default combines channels by summing them.</p>
+<p>WSClean requires its executable on <code class="docutils literal notranslate"><span class="pre">PATH</span></code>. Its configuration defaults to
+100 CLEAN iterations, a major-loop gain of 0.8, and a 3-sigma automatic
+threshold. <code class="docutils literal notranslate"><span class="pre">weighting=None</span></code> leaves weighting to the installed WSClean’s
+default; select <code class="docutils literal notranslate"><span class="pre">&quot;natural&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;uniform&quot;</span></code> explicitly for reproducibility.</p>
+</section>
+<section id="comparing-backends">
+<h2>Comparing backends<a class="headerlink" href="#comparing-backends" title="Link to this heading"></a></h2>
+<p>Reuse one Measurement Set and the same image size and pixel scale. Check actual
+output WCS, restoring beam, channel handling, and flux units. SDP and WSClean
+have different gridders, PSF fits, CLEAN controls, and stopping criteria, so
+matching iteration counts does not guarantee equivalent results. In particular,
+SDP’s <code class="docutils literal notranslate"><span class="pre">clean_gain</span></code> and WSClean’s <code class="docutils literal notranslate"><span class="pre">clean_mgain</span></code> are different controls.</p>
+<p>Restoring-beam <code class="docutils literal notranslate"><span class="pre">bmaj</span></code> and <code class="docutils literal notranslate"><span class="pre">bmin</span></code> and FITS <code class="docutils literal notranslate"><span class="pre">BMAJ</span></code> / <code class="docutils literal notranslate"><span class="pre">BMIN</span></code> are in degrees;
+multiply by 3600 only when displaying arcseconds. <code class="docutils literal notranslate"><span class="pre">bpa</span></code> / <code class="docutils literal notranslate"><span class="pre">BPA</span></code> is in degrees.</p>
+<p>See <a class="reference internal" href="base_imaging.html"><span class="doc">Common Imaging API</span></a>, <a class="reference internal" href="sdp_imaging.html"><span class="doc">SDP Imaging</span></a>, and <a class="reference internal" href="wsclean_imaging.html"><span class="doc">karabo.imaging.imager_wsclean</span></a> for the API
+reference, or <a class="reference internal" href="../migration_rascil.html"><span class="doc">Migrating from RASCIL</span></a> for removed entry points.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="imaging.html" class="btn btn-neutral float-left" title="karabo.imaging.image" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="base_imaging.html" class="btn btn-neutral float-right" title="Common Imaging API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, i4ds.
+      <span class="lastupdated">Last updated on Sep 22, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

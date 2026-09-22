@@ -1,0 +1,29 @@
+karabo.imaging.backends package
+===============================
+
+Submodules
+----------
+
+karabo.imaging.backends.sdp\_backend module
+-------------------------------------------
+
+.. automodule:: karabo.imaging.backends.sdp_backend
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+karabo.imaging.backends.wsclean\_backend module
+-----------------------------------------------
+
+.. automodule:: karabo.imaging.backends.wsclean_backend
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: karabo.imaging.backends
+   :members:
+   :show-inheritance:
+   :undoc-members:

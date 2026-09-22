@@ -1,0 +1,45 @@
+karabo.data package
+===================
+
+Submodules
+----------
+
+karabo.data.casa module
+-----------------------
+
+.. automodule:: karabo.data.casa
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+karabo.data.external\_data module
+---------------------------------
+
+.. automodule:: karabo.data.external_data
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+karabo.data.obscore module
+--------------------------
+
+.. automodule:: karabo.data.obscore
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+karabo.data.src module
+----------------------
+
+.. automodule:: karabo.data.src
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: karabo.data
+   :members:
+   :show-inheritance:
+   :undoc-members:
