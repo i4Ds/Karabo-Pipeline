@@ -17,6 +17,11 @@ import sphinx_rtd_theme  # noqa: F401
 
 from karabo import __version__
 
+# ``mpi4py`` otherwise initializes MPI while autodoc imports modules that use
+# Dask. Documentation generation neither runs MPI code nor needs an MPI
+# runtime, and eager initialization fails in restricted build environments.
+os.environ.setdefault("MPI4PY_RC_INITIALIZE", "0")
+
 # We need to add the parent directory to the path so that Sphinx can find the
 # modules to document.
 sys.path.insert(0, os.path.abspath(".."))
