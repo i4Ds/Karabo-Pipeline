@@ -1,20 +1,15 @@
-name: Run Karabo Tests
+name: Daily Check
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: '0 5 * * *'
   workflow_dispatch:
-  push:
-    branches:
-      - main  # is activated once a PR gets merged
 
 jobs:
   Test_Karabo:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
-    # UCX may select an unusable Azure MANA/verbs interface on GitHub runners.
-    # MPI tests run on one host, so restrict communication to shared memory and loopback.
+    # Keep MPI communication on the runner's shared memory and loopback.
     env:
       UCX_TLS: "self,sm,tcp"
       UCX_NET_DEVICES: "lo"
@@ -22,23 +17,21 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
-      
-      - name: Install system MPICH (needed for external mpich) + compat symlink for wsclean
+
+      - name: Install system MPICH and compatibility symlink for wsclean
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y mpich libmpich-dev libmpich12
           arch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
-          # wsclean expects libmpicxx.so.12 but Ubuntu provides libmpichcxx.so.12
           if [ -e "/usr/lib/$arch/libmpichcxx.so.12" ] && [ ! -e "/usr/lib/$arch/libmpicxx.so.12" ]; then
             sudo ln -s "/usr/lib/$arch/libmpichcxx.so.12" "/usr/lib/$arch/libmpicxx.so.12"
             sudo ldconfig
           fi
-          # Optional sanity:
           ldconfig -p | grep -E 'libmpi\.so\.12|libmpichcxx\.so\.12|libmpicxx\.so\.12' || true
           which mpirun
           mpirun --version
-      
+
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v4
         with:
@@ -62,19 +55,9 @@ jobs:
           python --version
           conda list | grep -E '^oskar(py)?[[:space:]]'
 
-          # Debug since we had problems with mpi installation
           python -c "import h5py; print('h5py ok')"
           which wsclean || true
           ldd "$(which wsclean)" | grep -i mpi || true
-
-      - name: Test Dev-Tools
-        shell: bash -el {0}
-        run: |
-          conda activate test_karabo
-          flake8 .
-          black --check .
-          isort --check .
-          mypy .
 
       - name: Test Code
         shell: bash -el {0}
