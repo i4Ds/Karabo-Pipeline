@@ -43,6 +43,11 @@ extensions = [
     "sphinx.ext.napoleon",
 ]
 
+# Render "Attributes" sections as :ivar: fields inside the class description
+# instead of separate py:attribute objects. Without this they collide with the
+# real class attributes picked up by :undoc-members:.
+napoleon_use_ivar = True
+
 source_suffix = {
     ".rst": "restructuredtext",
     ".txt": "markdown",
@@ -77,7 +82,6 @@ html_theme = "sphinx_rtd_theme"
 html_logo = "_static/logo.png"
 html_theme_options = {
     "logo_only": True,
-    "display_version": True,
     "collapse_navigation": True,
     "sticky_navigation": True,
     "titles_only": False,

@@ -45,14 +45,18 @@ class DaskHandlerBasic:
         to use dask or not for certain tasks.
     use_processes:
         Use processes instead of threads?
+
         Threads:
-            - Fast to initiate.
-            - No need to transfer data to them.
-            - Limited by the GIL, which allows one thread to read the code at once.
+
+        - Fast to initiate.
+        - No need to transfer data to them.
+        - Limited by the GIL, which allows one thread to read the code at once.
+
         Processes:
-            - Take time to set up.
-            - Slow to transfer data to.
-            - Each have their own GIL and so don't need to take turns reading the code.
+
+        - Take time to set up.
+        - Slow to transfer data to.
+        - Each have their own GIL and so don't need to take turns reading the code.
     """
 
     dask_client: Optional[Client] = None
@@ -649,14 +653,18 @@ class DaskHandler(DaskHandlerBasic):
         to use dask or not for certain tasks.
     use_processes:
         Use processes instead of threads?
+
         Threads:
-            - Fast to initiate.
-            - No need to transfer data to them.
-            - Limited by the GIL, which allows one thread to read the code at once.
+
+        - Fast to initiate.
+        - No need to transfer data to them.
+        - Limited by the GIL, which allows one thread to read the code at once.
+
         Processes:
-            - Take time to set up.
-            - Slow to transfer data to.
-            - Each have their own GIL and so don't need to take turns reading the code.
+
+        - Take time to set up.
+        - Slow to transfer data to.
+        - Each have their own GIL and so don't need to take turns reading the code.
     """
 
     # Important: API-functions of `DaskHandler` should redirect ALL functions defined

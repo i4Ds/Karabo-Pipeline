@@ -38,10 +38,11 @@ def poisson_disc_samples(
         k (int, optional): How often the algorithm tries to fit a point.
             Higher value give a more dense pointcloud but the generation takes
             longer. Defaults to 5.
-        ord (Union[None, float, Literal['fro', 'nuc]], optional): Which norm to use
+        ord (Union[None, float, Literal['fro', 'nuc']], optional): Which norm to use
             for calulating the distance. Options are
-                - 'fro': Frobenius norm or
-                - 'nuc' for infinity
+
+            - 'fro': Frobenius norm or
+            - 'nuc' for infinity
 
     Note:
         Calculating the norm is based on numpynp.linalg.norm(). See there for more

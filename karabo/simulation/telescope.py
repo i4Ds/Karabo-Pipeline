@@ -255,6 +255,7 @@ class Telescope:
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
         """Main constructor to obtain a pre-configured telescope instance.
+
         :param name: Name of the desired telescope configuration.
             This name, together with the backend, is used as the key
             to look up the correct telescope specification file.

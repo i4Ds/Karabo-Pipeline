@@ -83,15 +83,14 @@ class CaptureSpam:
 
     Captures exact-match spam-messages of an external library.
     It checks each new line (not an entire print-message with
-     multiple multiple newlines), if it has already been printed once.
+    multiple newlines), if it has already been printed once.
     Don't use CaptureSpam if the external library function
-     provides a way to suppress their output.
+    provides a way to suppress their output.
 
-    Example usage:
-        ```
+    Example usage::
+
         with CaptureSpam():
             library_spam_fun()
-        ```
     """
 
     def __init__(self, stream: TextIO = sys.stdout):

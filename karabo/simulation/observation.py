@@ -138,14 +138,13 @@ class ObservationAbstract(ABC):
         the missing information is repeated to match the longest list.
 
         Args:
-        settings_tree : OskarSettingsTreeType
-            The OSKAR settings tree, with 'observation' key among others.
-        central_frequencies_hz : int or list of int
-            List of central frequencies in MHz for each observation.
-        channel_bandwidths_hz : int or list of int
-            List of channel bandwidths in MHz for each observation.
-        n_channels : int or list of int
-            List of numbers of channels for each observation.
+            settings_tree: The OSKAR settings tree, with 'observation' key
+                among others.
+            central_frequencies_hz: List of central frequencies in MHz for each
+                observation.
+            channel_bandwidths_hz: List of channel bandwidths in MHz for each
+                observation.
+            n_channels: List of numbers of channels for each observation.
 
         Returns:
         list of dict: List of OSKAR observations,

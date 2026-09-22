@@ -389,7 +389,8 @@ class SkySourcesUnits:
         for each pos-id.
 
         A valid example of `pos_ids` (here just str instead of an iterable) is
-        `pos_ids`="J130508.50-285042.0", which results in RA≈196.285, DEC≈-28.845
+        ``pos_ids="J130508.50-285042.0"``, which results in RA≈196.285,
+        DEC≈-28.845
 
         Args:
             pos_ids: Position-id(s)
@@ -522,9 +523,9 @@ class SkyModel:
             - [11] position angle (deg): defaults to 0
             - [12] true redshift: defaults to 0
             - [13] observed redshift: defaults to 0 (only necessary for line emission)
-            - [14] object-id: just for `np.ndarray` \
-            it is removed in the `xr.DataArray`
-            and exists then in `xr.DataArray.coords` as index.
+            - [14] object-id: just for `np.ndarray`,
+              it is removed in the `xr.DataArray`
+              and exists then in `xr.DataArray.coords` as index.
         wcs: World Coordinate System (WCS) object representing the coordinate
             transformation between pixel coordinates and celestial coordinates
             (e.g., right ascension and declination).
@@ -650,10 +651,9 @@ class SkyModel:
     ) -> _TSkyModel:
         """Create a sky model by extracting point sources from a FITS image.
 
-        Internal flow:
-            FITS -> numpy array + WCS -> SDP Image -> Karabo Image wrapper.
-        Pixels with finite values strictly above `threshold` are converted to point
-        sources.
+        Internal flow: FITS -> numpy array + WCS -> SDP Image -> Karabo Image
+        wrapper. Pixels with finite values strictly above `threshold` are
+        converted to point sources.
 
         Args:
             fits_path: Path to the FITS image.
@@ -1147,7 +1147,7 @@ class SkyModel:
                 SkyModel object. Defaults to False.
 
         Returns:
-            SkyModel or tuple of (SkyModel, NDArray[np.int_]):
+            SkyModel or tuple of ``(SkyModel, NDArray[np.int_])``:
                 The filtered SkyModel object, and optionally the indices of the filtered
                 sources if `indices` is set to True.
 
@@ -2130,7 +2130,7 @@ class SkyModel:
 
     @classmethod
     def get_sample_simulated_catalog(cls: Type[_TSkyModel]) -> _TSkyModel:
-        """ Downloads a sample simulated HI source catalog and generates a sky
+        """Downloads a sample simulated HI source catalog and generates a sky
         model using the downloaded data. The catalog size is around 8MB.
 
         Source: The simulated catalog data was provided by Luis Machado
@@ -2140,13 +2140,14 @@ class SkyModel:
         Returns:
             SkyModel: The corresponding sky model.
             The sky model contains the following information:
-                - 'Right Ascension' (ra): The right ascension coordinates \
-                of the celestial objects.
-                - 'Declination' (dec): The declination coordinates of the \
-                celestial objects.
-                - 'Flux' (i): The flux measurements of the celestial objects.
-                - 'Observed Redshift': Additional observed redshift information \
-                of the celestial objects.
+
+            - 'Right Ascension' (ra): The right ascension coordinates
+              of the celestial objects.
+            - 'Declination' (dec): The declination coordinates of the
+              celestial objects.
+            - 'Flux' (i): The flux measurements of the celestial objects.
+            - 'Observed Redshift': Additional observed redshift information
+              of the celestial objects.
 
         Note:
             Other properties such as 'stokes_q', 'stokes_u', 'stokes_v',

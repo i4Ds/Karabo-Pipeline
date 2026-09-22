@@ -487,7 +487,7 @@ class PyBDSFSourceDetectionResultList(ISourceDetectionResult):
         Aggregate detected sources from multiple pybdsf detection instances.
 
         This method concatenates detected sources from all instances in the
-        `bdsf_detection`attribute.
+        `bdsf_detection` attribute.
         It identifies and removes overlapping sources using pixel overlap.
 
         Returns:

@@ -167,23 +167,25 @@ class FileHandler:
     The root STM and LTM must be unique per user (seeded rnd chars+digits) to
     avoid conflicting dir-names on any computer with any root-directory.
 
-    LTM-root
-    └── karabo-LTM-<user>-<10 rnd chars+digits>
-        ├── <prefix><10 rnd chars+digits>
-        |    ├── <subdir>
-        |    └── <file>
-        └── <prefix><10 rnd chars+digits>
-             ├── <subdir>
-             └── <file>
+    LTM-root::
 
-    STM-root
-    └── karabo-STM-<user>-<10 rnd chars+digits>
-        ├── <prefix><10 rnd chars+digits>
-        |    ├── <subdir>
-        |    └── <file>
-        └── <prefix><10 rnd chars+digits>
-             ├── <subdir>
-             └── <file>
+        └── karabo-LTM-<user>-<10 rnd chars+digits>
+            ├── <prefix><10 rnd chars+digits>
+            |    ├── <subdir>
+            |    └── <file>
+            └── <prefix><10 rnd chars+digits>
+                 ├── <subdir>
+                 └── <file>
+
+    STM-root::
+
+        └── karabo-STM-<user>-<10 rnd chars+digits>
+            ├── <prefix><10 rnd chars+digits>
+            |    ├── <subdir>
+            |    └── <file>
+            └── <prefix><10 rnd chars+digits>
+                 ├── <subdir>
+                 └── <file>
 
     FileHandler can be used the same way as `tempfile.TemporaryDirectory` using `with`.
     """

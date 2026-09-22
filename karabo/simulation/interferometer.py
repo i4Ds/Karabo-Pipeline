@@ -157,22 +157,22 @@ class InterferometerSimulation:
         noise_rms: The specifications for the RMS noise value:
 
             - Telescope model: values are loaded from files in the telescope
-            model directory.
+              model directory.
 
             - Data file: values are loaded from the specified file.
 
             - Range: values are evaluated according to the specified range
-            parameters (Default). The noise values are specified in Jy and
-            represent the RMS noise of
-            an unpolarised source in terms of flux measured in a single
-            polarisation of the detector.
+              parameters (Default). The noise values are specified in Jy and
+              represent the RMS noise of
+              an unpolarised source in terms of flux measured in a single
+              polarisation of the detector.
         noise_freq: The list of frequencies for which noise values are defined:
 
             - Telescope model: frequencies are loaded from a data file in
-            the telescope model directory.
+              the telescope model directory.
 
             - Observation settings: frequencies are defined by the observation
-            settings.
+              settings.
 
             - Data file: frequencies are loaded from the specified data file.
 

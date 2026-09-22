@@ -52,7 +52,7 @@ def get_MGCLS_images(regex_pattern: str, verbose: bool = False) -> List[SkaSdpIm
     from https://archive-gw-1.kat.ac.za/public/repository/10.48479/7epd-w356/
     data/enhanced_products/bucket_contents.html
 
-    Parameters:
+    Parameters
     ----------
     regex_pattern : str
         Regex pattern to match the files to download. Best is to check in the bucket
@@ -61,7 +61,7 @@ def get_MGCLS_images(regex_pattern: str, verbose: bool = False) -> List[SkaSdpIm
     verbose : bool, optional
         If True, prints out the files being downloaded. Defaults to False.
 
-    Returns:
+    Returns
     -------
     List[SkaSdpImage]
         List of images from the MGCLS Enhanced Products bucket.
@@ -190,7 +190,7 @@ def project_sky_to_image(
     :param invert_ra: Invert RA axis?
 
     :return: image-coordinates as np.ndarray[px,py] and
-    `SkyModel` sources indices as np.ndarray[idxs]
+        `SkyModel` sources indices as np.ndarray[idxs]
     """
 
     # calc WCS args

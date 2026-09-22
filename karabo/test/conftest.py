@@ -88,8 +88,8 @@ class TFiles:
     It is assumed that all artifacts here exist in the repo
      and therefore are not in the .gitignore.
 
-    The defined artifacts should reflect the `karabo/test/data/* file
-     and dir paths.
+    The defined artifacts should reflect the `karabo/test/data/*` file
+    and dir paths.
     """
 
     cst_like_beam_port_1_txt: str = os.path.join(data_path, "cst_like_beam_port_1.txt")

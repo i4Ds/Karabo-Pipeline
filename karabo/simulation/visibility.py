@@ -207,9 +207,9 @@ class Visibility:
 
         This may help estimating the size of a simulated casa measurement set.
         E.g. you can just multiply the resulting number by `bytes_dtype` to get
-            the size of a table like "DATA" (complex64=8bytes). Then you just have to
-            account for other tables which could have a significant influence on the
-            inode size to get a good estimate of the resulting disk requirement.
+        the size of a table like "DATA" (complex64=8bytes). Then you just have to
+        account for other tables which could have a significant influence on the
+        inode size to get a good estimate of the resulting disk requirement.
 
         Args:
             start_freq_hz: Start freq of simulation.

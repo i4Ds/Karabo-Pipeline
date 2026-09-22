@@ -645,10 +645,10 @@ class Image:
     def get_beam_parameters(self) -> BeamType:
         """Gets the beam-parameters fom the image-header.
 
-        "bmaj": FWHM of the major axis of the elliptical Gaussian beam in degrees
-        "bmin": FWHM of the minor axis of the elliptical Gaussian beam in degrees
-        "bpa": position angle of the major axis of the elliptical Gaussian beam in
-            degrees, counter-clock from the North direction
+        - "bmaj": FWHM of the major axis of the elliptical Gaussian beam in degrees
+        - "bmin": FWHM of the minor axis of the elliptical Gaussian beam in degrees
+        - "bpa": position angle of the major axis of the elliptical Gaussian beam in
+          degrees, counter-clock from the North direction
 
         Returns:
            "bmaj" (deg), "bmin" (deg), "bpa" (deg)

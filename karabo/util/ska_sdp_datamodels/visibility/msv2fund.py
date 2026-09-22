@@ -39,13 +39,15 @@ class Stand:
     """
     Object to store the information (location and ID) about a stand.
     Stores stand:
-     * ID number (id)
-     * Position relative to the center stake in meters (x,y,z)
 
-    The x, y, and z positions can also be accessed through subscripts:
-     Stand[0] = x
-     Stand[1] = y
-     Stand[2] = z
+    * ID number (id)
+    * Position relative to the center stake in meters (x,y,z)
+
+    The x, y, and z positions can also be accessed through subscripts::
+
+        Stand[0] = x
+        Stand[1] = y
+        Stand[2] = z
     """
 
     def __init__(self, stand_id, x, y, z):

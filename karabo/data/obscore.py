@@ -192,12 +192,13 @@ class ObsCoreMeta:
             This is not a useful value for global discovery, but within an archive.
 
         calib_level: Calibration level {0, 1, 2, 3, 4} (mandatory).
+
             - 0: Raw instrumental data.
             - 1: Instrumental data in a standard format (FITS, VOTable, etc.)
             - 2: Calibrated, science ready measurements without instrument signature.
             - 3: Enhanced data products like mosaics, drizzled images or heavily
-                processed survey fields. May represent a combination of data from
-                multiple primary obs.
+              processed survey fields. May represent a combination of data from
+              multiple primary obs.
             - 4: Analysis data products generated after scientific data manipulation.
 
         obs_collection: Name of the data collection (mandatory). Either registered

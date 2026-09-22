@@ -28,9 +28,6 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate karabo_dev_env
-          python doc/src/examples/combine_examples.py
-          cp -a doc/src/ _build
-          sphinx-apidoc . -o _build
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v4

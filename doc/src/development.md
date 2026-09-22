@@ -59,7 +59,7 @@ The following sections list the tools to be used and their function & usage.
 
 ### black
 
-[https://github.com/psf/black](black) is a Python [PEP 8](https://peps.python.org/pep-0008/) compliant opinionated code formatter. It formats entire Python files with the CLI command `black {source_file_or_directory}`. For specific options, see [command line options](https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html) or `black --help`.
+[black](https://github.com/psf/black) is a Python [PEP 8](https://peps.python.org/pep-0008/) compliant opinionated code formatter. It formats entire Python files with the CLI command `black {source_file_or_directory}`. For specific options, see [command line options](https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html) or `black --help`.
 
 ### isort
 
@@ -173,10 +173,9 @@ Welcome to Karabo-Pipeline's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   Installation
-   Container
-   modules
-   examples/Examples.md
+   installation_user
+   container
+   examples/examples.md
    --> ADD THE REFERENCE TO YOUR FILE HERE
 
 
@@ -187,12 +186,12 @@ Welcome to Karabo-Pipeline's documentation!
 Once you have made changes to the documentation, you can test them via the following steps:
 
 ```shell
-# Inserts code snippets into Examples documentation
-python doc/src/examples/combine_examples.py
-cp -a doc/src/ _build
-sphinx-apidoc . -o _build
 make html
 ```
+
+`make html` assembles the Sphinx source tree in `_build` from `doc/src` (which
+includes inserting the code snippets into the Examples documentation) and then
+builds the HTML into `_deploy/html`. Use `make clean` to remove both.
 
 Then, you can serve the documentation locally:
 
