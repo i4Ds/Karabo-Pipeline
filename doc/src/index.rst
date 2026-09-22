@@ -15,27 +15,41 @@ Karabo is a starting point for the `Square Kilometer Array <https://www.skateles
    container
    examples/examples.md
    parallel_processing
-   main_features/external_data
-   main_features/backend_overview
    migration_rascil
    release_notes
 
-
-Modules
-===============
 .. toctree::
    :maxdepth: 2
-   :caption: Simulation
+   :caption: Developers
+
+   development.md
+
+Guides
+======
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Workflows
+
+   main_features/backend_overview
+   guides/simulation
+   guides/imaging
+   main_features/external_data
+
+API reference
+=============
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Simulation API
 
    main_features/simulation.rst
-   main_features/simulation_backend_selection.rst
 
 .. toctree::
    :maxdepth: 2
-   :caption: Imaging
+   :caption: Imaging API
 
    main_features/imaging.rst
-   main_features/imaging_backend_selection.rst
    main_features/base_imaging.rst
    main_features/oskar_imaging.rst
    main_features/sdp_imaging.rst
@@ -43,21 +57,13 @@ Modules
 
 .. toctree::
    :maxdepth: 2
-   :caption: Source Detection
+   :caption: Source-detection API
 
    main_features/sourcedetection.rst
 
 .. toctree::
    :maxdepth: 2
-   :caption: Utilities
+   :caption: Utilities API
 
    utilities/utils.rst
 
-
-Development
-===========
-.. toctree::
-   :maxdepth: 2
-   :caption: Developers
-
-   development.md
