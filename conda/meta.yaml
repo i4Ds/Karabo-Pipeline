@@ -27,7 +27,6 @@ requirements:
     - aratmospy               =1.0.0
     - astropy
     - bdsf                    =1.14.1
-    - bluebild                =1.0.0
     - cuda-cudart             >=12,<13
     - cuda-version            >=12,<13
     - dask                    >=2024.12,<2025.4
@@ -37,10 +36,8 @@ requirements:
     - healpy
     - h5py                    =*=mpi_mpich*
     - ipython
-    - katbeam                 =0.1.0
     - libcufft
     - matplotlib
-    - montagepy               =6.0.0
     - mpi4py
     - mpich
     - nbformat
