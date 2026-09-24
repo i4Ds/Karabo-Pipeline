@@ -51,7 +51,6 @@ requirements:
     - requests
     - rfc3986                 >=2.0.0
     - scipy                   >=1.15
-    - ska-gridder-nifty-cuda  =0.3.0
     - ska-sdp-datamodels      =1.4.1
     - ska-sdp-func-python     =1.0.0
     - tools21cm               =2.4.3
