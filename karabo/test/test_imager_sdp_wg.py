@@ -6,10 +6,12 @@ and cupy at runtime; without cupy invert_visibility(context="wg") raises
 "cupy is not installed. Cannot run invert_wg".
 """
 
-import math
+import os
+from pathlib import Path
 
 import numpy as np
 import pytest
+from casacore.tables import table
 from numpy.typing import NDArray
 
 from karabo.imaging.imager_factory import ImagingBackend, SdpImagerConfig, get_imager
@@ -30,6 +32,29 @@ def test_sdp_wg_context_dependencies_installed() -> None:
     assert wg.GridderUvwEsFft is not None, "ska-sdp-func gridder is not importable"
 
 
+def _image_spec_from_ms(
+    ms_path: str | Path, npix: int, pixels_per_beam: float
+) -> ImageSpec:
+    """Cell size from the finest resolution in the MS, lambda_min / max |(u, v)|."""
+    ms_path = os.fspath(ms_path)
+    with table(ms_path, ack=False) as t:
+        uvw = t.getcol("UVW")  # metres
+    with table(f"{ms_path}/SPECTRAL_WINDOW", ack=False) as spw:
+        freq_max_hz = spw.getcol("CHAN_FREQ").max()
+    with table(f"{ms_path}/FIELD", ack=False) as field:
+        ra_rad, dec_rad = field.getcol("PHASE_DIR")[0][0]
+    baseline_max_m = np.sqrt((uvw[:, :2] ** 2).sum(axis=1)).max()
+    resolution_rad = (299792458.0 / freq_max_hz) / baseline_max_m
+    return ImageSpec(
+        npix=npix,
+        cellsize_arcsec=float(np.degrees(resolution_rad) * 3600.0 / pixels_per_beam),
+        phase_centre_deg=(
+            float(np.degrees(ra_rad) % 360.0),
+            float(np.degrees(dec_rad)),
+        ),
+    )
+
+
 @pytest.mark.skipif(not RUN_GPU_TESTS, reason="GPU tests are disabled")
 def test_sdp_wg_context_matches_ng(minimal_casa_ms: Visibility) -> None:
     """The GPU gridder ("wg") must reproduce the CPU nifty gridder ("ng") result.
@@ -38,11 +63,7 @@ def test_sdp_wg_context_matches_ng(minimal_casa_ms: Visibility) -> None:
     machine with a CUDA GPU (CI runners have none); the dependency test above is
     the part that runs everywhere.
     """
-    spec = ImageSpec(
-        npix=256,
-        cellsize_arcsec=math.degrees(5e-5) * 3600.0,
-        phase_centre_deg=(0.0, 0.0),
-    )
+    spec = _image_spec_from_ms(minimal_casa_ms.path, npix=256, pixels_per_beam=3.0)
     images: dict[str, tuple[NDArray[np.float64], NDArray[np.float64]]] = {}
     for context in ("ng", "wg"):
         imager = get_imager(ImagingBackend.SDP, config=SdpImagerConfig(context=context))
