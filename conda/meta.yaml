@@ -30,6 +30,7 @@ requirements:
     - bluebild                =1.0.0
     - cuda-cudart             >=12,<13
     - cuda-version            >=12,<13
+    - cupy                    >=13
     - dask                    >=2024.12,<2025.4
     - dask-mpi
     - distributed

@@ -19,6 +19,9 @@ dependencies:
 
   - cuda-cudart             >=12,<13
   - cuda-version            >=12,<13
+  # GPU gridder of the SDP imaging backend (SdpImagerConfig(context="wg")): ska-sdp-func-python
+  # routes it to ska-sdp-func's GridderUvwEsFft, which takes cupy arrays.
+  - cupy                    >=13
 
   - dask                    >=2024.12,<2025.4
   - dask-mpi
