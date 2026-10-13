@@ -645,13 +645,13 @@ class Image:
     def get_beam_parameters(self) -> BeamType:
         """Gets the beam-parameters fom the image-header.
 
-        "bmaj": FWHM of the major axis of the elliptical Gaussian beam in arcsec
-        "bmin": FWHM of the minor minor axis of the elliptical Gaussian beam in arcsec
+        "bmaj": FWHM of the major axis of the elliptical Gaussian beam in degrees
+        "bmin": FWHM of the minor axis of the elliptical Gaussian beam in degrees
         "bpa": position angle of the major axis of the elliptical Gaussian beam in
             degrees, counter-clock from the North direction
 
         Returns:
-           "bmaj" (arcsec), "bmin" (arcsec), "bpa" (deg)
+           "bmaj" (deg), "bmin" (deg), "bpa" (deg)
 
         """
         try:

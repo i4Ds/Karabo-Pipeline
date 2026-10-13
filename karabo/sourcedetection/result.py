@@ -121,7 +121,7 @@ class SourceDetectionResult(ISourceDetectionResult):
                 images.
             beam (Optional[BeamType]):
                 The Full Width Half Maximum (FWHM) of the restoring beam,
-                BMAJ(arcsec), BMIN(arcsec), BPA(degree).
+                BMAJ(degree), BMIN(degree), BPA(degree).
                 If None, tries to extract from image metadata.
             verbose (bool): verbose?
             n_splits (int): default 0

@@ -82,7 +82,7 @@ def _convert_clean_beam_to_degrees(
     im: Image,
     beam_pixels: tuple[float, float, float],
 ) -> BeamType:
-    """Convert clean beam in pixels to arcsec, arcsec, degree.
+    """Convert clean beam in pixels to degrees.
 
     Source: https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/blob/main/src/ska_sdp_func_python/image/operations.py  # noqa: E501
 
@@ -91,7 +91,7 @@ def _convert_clean_beam_to_degrees(
         beam_pixels: Beam size in pixels
 
     Returns:
-        "bmaj" (arcsec), "bmin" (arcsec), "bpa" (degree)
+        "bmaj" (degree), "bmin" (degree), "bpa" (degree)
     """
     cellsize = im.get_cellsize()
     to_mm: np.float64 = np.sqrt(8.0 * np.log(2.0))
@@ -124,7 +124,7 @@ def guess_beam_parameters(img: Image) -> BeamType:
         img: Image to guess the beam
 
     Returns:
-        major-axis (arcsec), minor-axis (arcsec), position-angle (degree)
+        major-axis (degree), minor-axis (degree), position-angle (degree)
     """
     if img.has_beam_parameters():
         warnings.warn(

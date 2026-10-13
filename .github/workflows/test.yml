@@ -1,8 +1,6 @@
 name: Run Karabo Tests
 
 on:
-  schedule: # Every night at 5am
-    - cron: '0 5 * * *'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
@@ -12,7 +10,7 @@ on:
 
 jobs:
   Test_Karabo:
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     # UCX may select an unusable Azure MANA/verbs interface on GitHub runners.

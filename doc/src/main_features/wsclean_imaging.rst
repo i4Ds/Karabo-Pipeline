@@ -11,8 +11,20 @@ For normal imaging workflows, prefer the common backend interface:
 available for compatibility and custom WSClean commands, but emit a warning.
 
 
-Classes
--------
+Common backend configuration
+----------------------------
+
+Import ``WscleanBackendConfig`` from ``karabo.imaging.imager_factory`` and pass
+it as ``config=`` to ``get_imager``. The adapter requires ``wsclean`` on ``PATH``
+and a previous ``invert`` call on the same instance before ``restore``. See
+:doc:`imaging_backend_selection` for an example and weighting defaults.
+
+.. autoclass:: karabo.imaging.backends.wsclean_backend.WscleanBackendConfig
+   :members:
+   :undoc-members:
+
+Direct classes
+--------------
 
 .. autoclass:: karabo.imaging.imager_wsclean.WscleanDirtyImager
    :members:

@@ -7,7 +7,9 @@ This package summarizes tools and functions to be used with the imager
 from the OSKAR backend. This backend does not offer functionality to
 calculate a cleaned image. For cleaned images, prefer
 ``get_imager(ImagingBackend.SDP)`` or ``get_imager(ImagingBackend.WSCLEAN)``.
-RASCIL remains available only as a deprecated legacy option.
+This direct dirty-imaging utility is separate from the common ``ImagingBackend``
+selector. OSKAR remains a supported simulation backend; write a Measurement Set
+to image its simulated visibilities with either common imaging backend.
 
 
 Classes

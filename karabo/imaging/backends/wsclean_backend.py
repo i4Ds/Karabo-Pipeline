@@ -11,6 +11,7 @@ from karabo.imaging.imager_wsclean import (
     WscleanDirtyImager,
     WscleanImageCleaner,
     WscleanImageCleanerConfig,
+    WscleanWeighting,
     create_image_custom_command,
 )
 from karabo.simulation.visibility import Visibility
@@ -19,9 +20,14 @@ from karabo.simulation.visibility import Visibility
 @dataclass
 class WscleanBackendConfig:
     combine_across_frequencies: bool = True
+    weighting: Optional[WscleanWeighting] = None
     clean_niter: int = 100
     clean_mgain: float = 0.8
     clean_auto_threshold: int = 3
+
+    def __post_init__(self) -> None:
+        if self.weighting not in (None, "natural", "uniform"):
+            raise ValueError("WSClean weighting must be 'natural', 'uniform', or None.")
 
 
 class WscleanBackendImager(Imager):
@@ -53,7 +59,12 @@ class WscleanBackendImager(Imager):
     def _create_psf_image(self, vis: Visibility, spec: ImageSpec) -> Image:
         psf_image = create_image_custom_command(
             "wsclean "
-            f"-size {spec.npix} {spec.npix} "
+            + (
+                f"-weight {self.config.weighting} "
+                if self.config.weighting is not None
+                else ""
+            )
+            + f"-size {spec.npix} {spec.npix} "
             f"-scale {math.degrees(spec.cellsize_radians)}deg "
             "-make-psf "
             f"{vis.path}",
@@ -65,6 +76,7 @@ class WscleanBackendImager(Imager):
     def invert(self, vis: Visibility, image_spec: ImageSpec) -> tuple[Image, Image]:
         dirty_imager = WscleanDirtyImager(
             self._dirty_config_for_spec(image_spec),
+            weighting=self.config.weighting,
             warn_direct_use=False,
         )
         dirty_image = dirty_imager.create_dirty_image(vis)
@@ -86,6 +98,7 @@ class WscleanBackendImager(Imager):
 
         cleaner = WscleanImageCleaner(
             self._cleaner_config_for_spec(self.last_image_spec),
+            weighting=self.config.weighting,
             warn_direct_use=False,
         )
         return cleaner.create_cleaned_image(

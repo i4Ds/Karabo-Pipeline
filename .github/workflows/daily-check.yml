@@ -1,0 +1,76 @@
+name: Daily Check
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  Test_Karabo:
+    runs-on: ubuntu-latest
+
+    # Keep MPI communication on the runner's shared memory and loopback.
+    env:
+      UCX_TLS: "self,sm,tcp"
+      UCX_NET_DEVICES: "lo"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Install system MPICH and compatibility symlink for wsclean
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mpich libmpich-dev libmpich12
+          arch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+          if [ -e "/usr/lib/$arch/libmpichcxx.so.12" ] && [ ! -e "/usr/lib/$arch/libmpicxx.so.12" ]; then
+            sudo ln -s "/usr/lib/$arch/libmpichcxx.so.12" "/usr/lib/$arch/libmpicxx.so.12"
+            sudo ldconfig
+          fi
+          ldconfig -p | grep -E 'libmpi\.so\.12|libmpichcxx\.so\.12|libmpicxx\.so\.12' || true
+          which mpirun
+          mpirun --version
+
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: "true"
+          conda-remove-defaults: "true"
+          activate-environment: test_karabo
+          python-version: "3.12"
+
+      - name: Install Deps
+        shell: bash -el {0}
+        run: |
+          conda create -y -n test_karabo python=3.12
+          conda env update -n test_karabo -f environment.yaml --prune
+          conda activate test_karabo
+          conda install -y pybind11 ipykernel
+          python -m ipykernel install --user --name python3.12
+          pip install -e ".[dev]"
+
+          python --version
+          conda list | grep -E '^oskar(py)?[[:space:]]'
+
+          python -c "import h5py; print('h5py ok')"
+          which wsclean || true
+          ldd "$(which wsclean)" | grep -i mpi || true
+
+      - name: Test Code
+        shell: bash -el {0}
+        run: |
+          export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=true
+          conda activate test_karabo
+          mpirun -n 2 pytest --only-mpi
+          pytest --cov=./ --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
+          name: codecov-karabo
