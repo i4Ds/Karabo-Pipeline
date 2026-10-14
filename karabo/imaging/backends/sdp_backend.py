@@ -30,6 +30,14 @@ _SUPPORTED_CLEAN_ALGORITHM = "hogbom"
 
 @dataclass
 class SdpImagerConfig:
+    """Options of the SDP imaging backend.
+
+    ``context`` selects the gridder used by ska-sdp-func-python: ``"2d"`` (simple
+    2D gridding, the default), ``"ng"`` (nifty/ducc0 w-stacking gridder on the
+    CPU) or ``"wg"`` (the same algorithm on the GPU through ska-sdp-func and
+    cupy; requires a CUDA-capable GPU).
+    """
+
     combine_across_frequencies: bool = True
     weighting: str = "natural"
     context: str = "2d"

@@ -29,6 +29,7 @@ requirements:
     - bdsf                    =1.14.1
     - cuda-cudart             >=12,<13
     - cuda-version            >=12,<13
+    - cupy                    >=13
     - dask                    >=2024.12,<2025.4
     - dask-mpi
     - distributed
