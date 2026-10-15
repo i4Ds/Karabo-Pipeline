@@ -39,7 +39,13 @@ on:
         required: true
 jobs:
   test-conda-build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     env:
       UCX_TLS: self,sm,tcp
       UCX_NET_DEVICES: lo

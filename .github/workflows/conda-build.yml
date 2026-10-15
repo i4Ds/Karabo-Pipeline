@@ -52,7 +52,13 @@ on:
 
 jobs:
   conda-build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     outputs:
       karabo-version: ${{ steps.bcs.outputs.karabo_version }}
     steps:
@@ -77,7 +83,7 @@ jobs:
               echo "Dev build docker image can not be tagged as latest!"
               exit 1
             fi
-            build="$(($build + 1000))"
+            build="$((build + 1000))"
           fi
 
           conda install -y -n base conda-libmamba-solver
@@ -93,11 +99,17 @@ jobs:
           
           export KARABO_VERSION=$KARABO_VERSION build=$build
           conda run -n base conda build --python "${{ inputs.python-version }}" conda
-          echo "karabo_version=$KARABO_VERSION" >> $GITHUB_OUTPUT
+          eecho "karabo_version=$KARABO_VERSION" >> "$GITHUB_OUTPUT"
       - name: Publish to Conda
         shell: bash -l {0}
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_SECRET }}
         run: |
-          conda run -n base anaconda -t ${{ secrets.ANACONDA_SECRET }} upload /usr/share/miniconda/conda-bld/linux-64/karabo-pipeline-*.conda --force
+          arch="$(conda info --json | jq -r .platform)"
+          package_dir="$(conda info --base)/conda-bld/$arch"
+
+          conda run -n base anaconda -t "$ANACONDA_TOKEN" \
+            upload "$package_dir"/karabo-pipeline-*.conda
 
   test-conda-wheel:
     needs: conda-build
