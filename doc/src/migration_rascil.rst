@@ -115,11 +115,15 @@ Installation and modernization
 ------------------------------
 
 Use the updated project environment/recipe when installing this source version.
-RASCIL is no longer a dependency. ``python-casacore`` is now an explicit
-dependency for Karabo's Measurement Set I/O, and Astropy is constrained to
-``>=5.1,<5.2`` for the pinned SDP data-model package.
+RASCIL is no longer a dependency. ``python-casacore`` is explicit. Measurement
+Set I/O now delegates to ``ska-sdp-datamodels==1.4.1`` instead of a vendored copy.
+See :doc:`main_features/sdp_imaging` for intentional timestamp, flag, weight and
+polarization corrections. No automatic timestamp repair is attempted on old MS
+files, since their provenance and actual sample epochs cannot be inferred safely.
 
-Removal enables further dependency work; it does not complete it. NumPy remains
-below 2, and the SDP stack remains pinned. NumPy 2, broader dependency upgrades,
-and ARM64/HPC validation are separate follow-up tasks. See :doc:`release_notes`
-for the unreleased status and remaining validation.
+Dependency declarations and validation are distinct: the current recipes request
+NumPy 2, but the published ``ska-sdp-func-python==1.0.0`` pip metadata requires
+NumPy below 2. The targeted SDP migration tests use NumPy 1.26.4 and Astropy 6.1.7
+with datamodels 1.4.1 and processing-functions 1.0.0. This does not certify the
+complete declared environment. Resolving that mismatch, broader dependency
+upgrades and ARM64/HPC validation remain separate tasks. See :doc:`release_notes`.

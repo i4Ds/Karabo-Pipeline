@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import warnings
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS, FITSFixedWarning
+from ska_sdp_datamodels.image import import_image_from_fits
 from ska_sdp_datamodels.image.image_model import Image as SdpImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
@@ -56,11 +57,13 @@ def _expand_wcs_to_four_axes(wcs: WCS, header: fits.Header, third_axis: str) -> 
 def import_sdp_image_from_fits(
     fits_path: Union[str, FilePathType], *, fix_polarisation_order: bool = True
 ) -> SdpImage:
-    """Read a FITS image into the pinned SKA-SDP image data model.
+    """Read FITS with SDP, retaining Karabo's supported formats and ordering.
 
-    This is the small FITS-I/O boundary missing from ska-sdp-datamodels 0.1.3.
-    It accepts 2D images and canonical 3D/4D FITS cubes and preserves clean-beam
-    metadata when present.
+    SDP 1.4.1 handles canonical and axis-swapped 4D cubes. Its importer cannot
+    expand 2D/3D images or interpret non-I singleton polarization planes, so
+    those cases use the same data model's constructor in memory. Validation and
+    the historical polarization permutation remain here to avoid silently
+    changing previously supported inputs or their scientific interpretation.
     """
     with fits.open(fits_path, memmap=False) as hdul:
         if hdul[0].data is None:
@@ -68,6 +71,27 @@ def import_sdp_image_from_fits(
         data = np.asarray(hdul[0].data)
         header = hdul[0].header.copy()
 
+    return _sdp_image_from_fits_data(
+        data,
+        header,
+        fits_path=fits_path,
+        fix_polarisation_order=fix_polarisation_order,
+    )
+
+
+def _sdp_image_from_fits_data(
+    data: np.ndarray,
+    header: fits.Header,
+    *,
+    fits_path: Optional[FilePathType] = None,
+    fix_polarisation_order: bool = True,
+) -> SdpImage:
+    """Shared in-memory normalization for formats SDP cannot import directly.
+
+    A supplied path enables upstream import of supported 4D files. Without one,
+    this also supports SkyModel's squeezed celestial plane without a disk write.
+    """
+    original_ndim = data.ndim
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FITSFixedWarning)
         wcs = WCS(header)
@@ -100,21 +124,33 @@ def import_sdp_image_from_fits(
         raise ValueError(f"Expected a 2D, 3D, or 4D FITS image, got {data.shape}")
 
     polarisation_frame = _polarisation_frame_from_wcs(wcs, data.shape[1])
-    if fix_polarisation_order:
-        permutation = PolarisationFrame.fits_to_datamodels[polarisation_frame.type]
-        data = data[:, permutation, ...]
-
-    clean_beam = None
-    if all(key in header for key in ("BMAJ", "BMIN", "BPA")):
-        clean_beam = {
-            "bmaj": float(header["BMAJ"]),
-            "bmin": float(header["BMIN"]),
-            "bpa": float(header["BPA"]),
-        }
-
-    return SdpImage.constructor(
-        data=data,
-        polarisation_frame=polarisation_frame,
-        wcs=wcs,
-        clean_beam=clean_beam,
+    # Karabo has always interpreted singleton planes as Stokes I, even when the
+    # header says Q or XX. SDP cannot construct these as singleton images.
+    native_polarisation = (
+        data.shape[1] > 1 or int(wcs.sub(["stokes"]).wcs_pix2world([0], 0)[0][0]) == 1
     )
+    if fits_path is not None and original_ndim == 4 and native_polarisation:
+        # Disabling memmap also preserves support for BSCALE/BZERO/BLANK images.
+        with fits.conf.set_temp("use_memmap", False):
+            image = import_image_from_fits(str(fits_path), fixpol=False)
+    else:
+        clean_beam = None
+        if all(key in header for key in ("BMAJ", "BMIN", "BPA")):
+            clean_beam = {
+                "bmaj": float(header["BMAJ"]),
+                "bmin": float(header["BMIN"]),
+                "bpa": float(header["BPA"]),
+            }
+        image = SdpImage.constructor(
+            data=data,
+            polarisation_frame=polarisation_frame,
+            wcs=wcs,
+            clean_beam=clean_beam,
+        )
+
+    if fix_polarisation_order:
+        # Deliberately keep Karabo's gather permutation. SDP's fixpol=True uses
+        # the inverse (scatter) permutation for linear/circular correlations.
+        permutation = PolarisationFrame.fits_to_datamodels[polarisation_frame.type]
+        image["pixels"].data = image["pixels"].data[:, permutation, ...]
+    return image

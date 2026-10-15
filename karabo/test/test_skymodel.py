@@ -14,6 +14,7 @@ from astropy.io.fits import ColDefs, Column
 from astropy.units import UnitBase, UnitConversionError
 from astropy.wcs import WCS
 from numpy.typing import NDArray
+from ska_sdp_datamodels.image.image_model import Image as SdpImage
 from ska_sdp_datamodels.science_data_model.polarisation_model import PolarisationFrame
 
 from karabo.data.external_data import (
@@ -329,6 +330,128 @@ def test_from_fits_image_returns_empty_model_when_threshold_is_too_high(
         backend=SimulatorBackend.SDP,
     )
     assert sky.num_sources == 0
+
+
+@pytest.mark.parametrize("shape", [(4, 6), (5, 7)])
+@pytest.mark.parametrize(
+    "layout",
+    [
+        "2d",
+        "frequency",
+        "stokes",
+        "velocity",
+        "4d",
+        "swapped",
+        "5d",
+        "spectral-plane",
+        "polarisation-plane",
+    ],
+)
+@pytest.mark.parametrize("geometry", ["normal", "unequal_cells", "rotated"])
+def test_from_fits_image_matches_legacy_roundtrip_without_writes(
+    tmp_path, monkeypatch, shape, layout, geometry
+) -> None:
+    from karabo.imaging.image import Image
+    from karabo.util.file_handler import FileHandler
+
+    data = np.zeros(shape, dtype=np.float32)
+    data[0, 0], data[1, 2], data[-1, -1] = 1.0, 1.5, 3.0
+    data[0, 1:4] = [np.nan, np.inf, -np.inf]
+    naxis = {
+        "2d": 2,
+        "4d": 4,
+        "swapped": 4,
+        "5d": 5,
+        "spectral-plane": 4,
+        "polarisation-plane": 4,
+    }.get(layout, 3)
+    wcs = WCS(naxis=naxis)
+    extra = {
+        "2d": [],
+        "frequency": ["FREQ"],
+        "stokes": ["STOKES"],
+        "velocity": ["VRAD"],
+        "4d": ["STOKES", "FREQ"],
+        "swapped": ["FREQ", "STOKES"],
+        "5d": ["FREQ", "STOKES", "TIME"],
+        "spectral-plane": ["STOKES", "FREQ"],
+        "polarisation-plane": ["STOKES", "FREQ"],
+    }[layout]
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"] + extra
+    wcs.wcs.crpix = [2.3, 1.7] + [1.0] * (naxis - 2)
+    wcs.wcs.crval = [20.0, -30.0] + [1.5e9 if axis == "FREQ" else 1.0 for axis in extra]
+    wcs.wcs.cdelt = [-0.13 if geometry == "unequal_cells" else -0.1, 0.1] + [1.0] * (
+        naxis - 2
+    )
+    if geometry == "rotated":
+        pc = np.eye(naxis)
+        angle = np.deg2rad(20)
+        pc[:2, :2] = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+        wcs.wcs.pc = pc
+    header = wcs.to_header()
+    path = tmp_path / "input.fits"
+    if layout == "spectral-plane":
+        input_data = data[:, None, None, :]
+    elif layout == "polarisation-plane":
+        input_data = data[None, :, None, :]
+    else:
+        input_data = data.reshape((1,) * (naxis - 2) + shape)
+    fits.writeto(path, input_data, header)
+
+    # Independent reproduction of the old builder + export/read path. Keep this
+    # oracle in the test, not a second production conversion implementation.
+    legacy_wcs = WCS(naxis=4)
+    celestial = wcs.celestial
+    legacy_wcs.wcs.ctype = [*celestial.wcs.ctype, "STOKES", "FREQ"]
+    legacy_wcs.wcs.crpix = [*celestial.wcs.crpix, 1.0, 1.0]
+    legacy_wcs.wcs.crval = [*celestial.wcs.crval, 1.0, header.get("CRVAL3", 1e8)]
+    legacy_wcs.wcs.cdelt = [*celestial.wcs.cdelt, 1.0, header.get("CDELT3", 1.0) or 1.0]
+    legacy = SdpImage.constructor(
+        data.astype(np.float64)[None, None], PolarisationFrame("stokesI"), legacy_wcs
+    )
+    reference_path = tmp_path / "legacy.fits"
+    legacy.image_acc.export_to_fits(str(reference_path))
+    reference = Image(path=reference_path)
+    y, x = np.where(np.isfinite(data) & (data > 1.0))
+    expected_positions = np.column_stack(reference.get_2d_wcs().wcs_pix2world(x, y, 0))
+
+    def unexpected_write(*args, **kwargs):
+        pytest.fail("SkyModel.from_fits_image must not write temporary FITS files")
+
+    monkeypatch.setattr(FileHandler, "get_tmp_dir", unexpected_write)
+    monkeypatch.setattr(type(legacy.image_acc), "export_to_fits", unexpected_write)
+    monkeypatch.setattr(fits.HDUList, "writeto", unexpected_write)
+    sky = SkyModel.from_fits_image(path, threshold=1.0, backend="ska-sdp")
+    values = sky.sources.to_numpy()
+    assert sky.num_sources == 2
+    np.testing.assert_allclose(values[:, :2], expected_positions, rtol=0, atol=1e-10)
+    np.testing.assert_array_equal(values[:, SkyModel.COL_IDX["stokes_i"]], [1.5, 3.0])
+    np.testing.assert_array_equal(
+        values[:, SkyModel.COL_IDX["ref_freq"]], [header.get("CRVAL3", 0.0)] * 2
+    )
+    assert sky.wcs.to_header_string() == celestial.to_header_string()
+
+
+@pytest.mark.parametrize(
+    "problem", ["no-data", "cube", "no-celestial", "squeezes-to-1d"]
+)
+def test_from_fits_image_preserves_input_errors(tmp_path, problem) -> None:
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    data = np.zeros((4, 6))
+    if problem == "no-data":
+        data, message = None, "no data"
+    elif problem == "cube":
+        data, message = np.zeros((2, 4, 6)), "Expected 2D"
+    elif problem == "squeezes-to-1d":
+        data, message = np.zeros((1, 6)), "Expected 2D"
+    else:
+        wcs.wcs.ctype = ["LINEAR", "LINEAR"]
+        message = "no celestial WCS"
+    path = tmp_path / "invalid.fits"
+    fits.PrimaryHDU(data, wcs.to_header()).writeto(path)
+    with pytest.raises(ValueError, match=message):
+        SkyModel.from_fits_image(path)
 
 
 def test_SkySourcesColName_assumption():
