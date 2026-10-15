@@ -35,10 +35,22 @@ Corrections and configuration
   called with ``combine_across_frequencies=False``.
 * SDP restoration passes fitted beam axes in degrees, fixing the extra division
   by 3600 that made the restoring beam too small.
-* ``WscleanBackendConfig.weighting`` accepts ``"natural"`` or ``"uniform"``.
-  Its default remains ``None``, preserving the executable's weighting default.
-* ``python-casacore`` is explicit, and ``astropy>=5.1,<5.2`` records the pinned
-  SDP data-model compatibility requirement. The NumPy ``<2.0`` bound remains.
+* ``WscleanBackendConfig.weighting`` accepts ``"natural"``, ``"uniform"``, or
+  ``"briggs"`` with explicit ``robustness``. Optional rank-filter factor/window
+  and Gaussian taper in arcseconds are applied consistently to dirty, PSF, and
+  CLEAN commands. New controls default to ``None``, preserving the executable's
+  defaults; existing CLEAN defaults are unchanged. See
+  :doc:`main_features/wsclean_imaging` for the complete parameter list.
+* Measurement Set conversion uses official SDP datamodels 1.4.1 functions;
+  the vendored implementation and obsolete optional reader fallback are removed.
+  Sample midpoint timestamps, flags, spectral weights, correlation ordering and
+  reversed cross-hands are preserved/corrected. Simulation exports also correct
+  ancillary time metadata, row weights and antenna offsets. See
+  :doc:`main_features/sdp_imaging` for behavior changes and limitations.
+* ``python-casacore`` is explicit. Current recipes request NumPy 2, while the
+  published processing-functions 1.0.0 pip metadata requires NumPy below 2.
+  Targeted SDP validation uses NumPy 1.26.4; resolving the dependency mismatch
+  and validating the full declared environment remain separate work.
 
 The simulation default remains OSKAR; imaging defaults to SDP unless overridden
 by ``IMAGING_BACKEND``. See :doc:`migration_rascil` for removed values, unit

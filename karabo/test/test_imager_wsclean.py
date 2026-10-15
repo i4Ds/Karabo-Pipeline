@@ -1,10 +1,14 @@
 import math
 import os
+import shlex
 import shutil
 import warnings
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
+import karabo.imaging.imager_wsclean as wsclean_module
 from karabo.imaging.backends.wsclean_backend import WscleanBackendImager
 from karabo.imaging.imager_base import DirtyImagerConfig
 from karabo.imaging.imager_factory import (
@@ -53,7 +57,123 @@ def test_wsclean_imager_factory_forwards_matching_config():
 
 def test_wsclean_backend_config_rejects_unsupported_weighting():
     with pytest.raises(ValueError, match="weighting must be"):
-        WscleanBackendConfig(weighting="briggs")  # type: ignore[arg-type]
+        WscleanBackendConfig(weighting="invalid")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "options, message",
+    [
+        ({"weighting": "briggs"}, "requires an explicit robustness"),
+        ({"robustness": 0.0}, "requires weighting='briggs'"),
+        ({"weighting": "natural", "robustness": 0.5}, "requires weighting='briggs'"),
+        ({"weighting": "uniform", "robustness": 0.5}, "requires weighting='briggs'"),
+        ({"weighting": "briggs", "robustness": "0.5"}, "finite real number"),
+        ({"weighting": "briggs", "robustness": True}, "finite real number"),
+        ({"weighting_rank_filter": -1.0}, "non-negative"),
+        ({"weighting_rank_filter": True}, "finite real number"),
+        ({"weighting_rank_filter_size": 0}, "positive integer"),
+        ({"weighting_rank_filter_size": -1}, "positive integer"),
+        ({"weighting_rank_filter_size": 2.5}, "positive integer"),
+        ({"weighting_rank_filter_size": True}, "positive integer"),
+        ({"taper_gaussian_arcsec": 0.0}, "positive"),
+        ({"taper_gaussian_arcsec": -1.0}, "positive"),
+        ({"taper_gaussian_arcsec": "8asec"}, "finite real number"),
+    ],
+)
+def test_wsclean_backend_config_rejects_invalid_options(options, message):
+    with pytest.raises(ValueError, match=message):
+        WscleanBackendConfig(**options)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+@pytest.mark.parametrize(
+    "name", ["robustness", "weighting_rank_filter", "taper_gaussian_arcsec"]
+)
+def test_wsclean_backend_config_rejects_nonfinite_options(name, value):
+    options = {name: value}
+    if name == "robustness":
+        options["weighting"] = "briggs"
+    with pytest.raises(ValueError, match="finite real number"):
+        WscleanBackendConfig(**options)
+
+
+@pytest.mark.parametrize(
+    "options, expected",
+    [
+        ({}, []),
+        ({"weighting": "natural"}, ["-weight", "natural"]),
+        ({"weighting": "uniform"}, ["-weight", "uniform"]),
+        ({"weighting": "briggs", "robustness": 0.0}, ["-weight", "briggs", "0.0"]),
+        ({"weighting_rank_filter": 0.0}, ["-weighting-rank-filter", "0.0"]),
+        ({"weighting_rank_filter_size": 64}, ["-weighting-rank-filter-size", "64"]),
+        ({"taper_gaussian_arcsec": 8.0}, ["-taper-gaussian", "8.0asec"]),
+        (
+            {
+                "weighting": "briggs",
+                "robustness": -0.5,
+                "weighting_rank_filter": 3.0,
+                "weighting_rank_filter_size": 32,
+                "taper_gaussian_arcsec": 8.0,
+            },
+            [
+                "-weight",
+                "briggs",
+                "-0.5",
+                "-weighting-rank-filter",
+                "3.0",
+                "-weighting-rank-filter-size",
+                "32",
+                "-taper-gaussian",
+                "8.0asec",
+            ],
+        ),
+    ],
+)
+def test_wsclean_common_arguments_reach_all_commands(
+    monkeypatch, tmp_path, options, expected
+):
+    commands = []
+
+    def capture_command(command, **kwargs):
+        argv = shlex.split(command)
+        commands.append(argv[argv.index("wsclean") + 1 :])
+        return SimpleNamespace(stdout="")
+
+    monkeypatch.setattr(wsclean_module.subprocess, "run", capture_command)
+    monkeypatch.setattr(wsclean_module, "Image", SimpleNamespace)
+    monkeypatch.setattr(wsclean_module.shutil, "copyfile", lambda *args: None)
+    monkeypatch.setattr(
+        FileHandler, "get_tmp_dir", lambda *args, **kwargs: str(tmp_path)
+    )
+    vis = SimpleNamespace(format="MS", path="/tmp/input.ms")
+    imager = get_imager(ImagingBackend.WSCLEAN, config=WscleanBackendConfig(**options))
+    spec = ImageSpec(npix=64, cellsize_arcsec=2.0, phase_centre_deg=(0.0, 0.0))
+    dirty, psf = imager.invert(vis, spec)
+    imager.restore(dirty, psf)
+
+    common = expected + [
+        "-size",
+        "64",
+        "64",
+        "-scale",
+        f"{math.degrees(spec.cellsize_radians)}deg",
+    ]
+    assert commands == [
+        common + [vis.path],
+        common + ["-make-psf", vis.path],
+        common
+        + [
+            "-reuse-dirty",
+            "pre_existing",
+            "-niter",
+            "100",
+            "-mgain",
+            "0.8",
+            "-auto-threshold",
+            "3",
+            vis.path,
+        ],
+    ]
 
 
 def test_direct_wsclean_dirty_imager_warns():
@@ -93,10 +213,27 @@ def test_wsclean_restore_before_invert_raises():
 
 
 @pytest.mark.skipif(not WSCLEAN_AVAILABLE, reason="WSClean is not installed")
+@pytest.mark.parametrize(
+    "config",
+    [
+        WscleanBackendConfig(),
+        WscleanBackendConfig(weighting="briggs", robustness=0.5),
+        WscleanBackendConfig(taper_gaussian_arcsec=60.0),
+        WscleanBackendConfig(
+            weighting="briggs",
+            robustness=-0.5,
+            weighting_rank_filter=3.0,
+            weighting_rank_filter_size=32,
+            taper_gaussian_arcsec=60.0,
+        ),
+    ],
+    ids=["defaults", "briggs", "gaussian-taper", "combined"],
+)
 def test_wsclean_imager_factory_invert_and_restore_smoke(
     minimal_casa_ms: Visibility,
+    config: WscleanBackendConfig,
 ):
-    imager = get_imager(ImagingBackend.WSCLEAN)
+    imager = get_imager(ImagingBackend.WSCLEAN, config=config)
     spec = ImageSpec(
         npix=64,
         cellsize_arcsec=math.degrees(5e-5) * 3600.0,
@@ -113,6 +250,15 @@ def test_wsclean_imager_factory_invert_and_restore_smoke(
     restored = imager.restore(dirty_image, psf_image)
     assert os.path.exists(restored.path)
     assert restored.data.size > 0
+    for image in (dirty_image, psf_image, restored):
+        data = image.get_squeezed_data()
+        assert data.shape == (64, 64)
+        assert np.isfinite(data).all()
+        assert np.max(np.abs(data)) > 0
+        assert image.header["CTYPE1"].startswith("RA")
+        assert image.header["CTYPE2"].startswith("DEC")
+    assert restored.header["BMAJ"] > 0
+    assert restored.header["BMIN"] > 0
 
 
 def test_dirty_image(tobject: TFiles):

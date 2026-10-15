@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass
+from numbers import Integral, Real
 from typing import List, Literal, Optional, Union
 
 from typing_extensions import override
@@ -22,7 +23,73 @@ from karabo.util.file_handler import FileHandler
 from karabo.warning import warn_direct_wsclean_use
 
 _WSCLEAN_BINARY = "wsclean"
-WscleanWeighting = Literal["natural", "uniform"]
+WscleanWeighting = Literal["natural", "uniform", "briggs"]
+
+
+@dataclass
+class _WscleanCommonOptions:
+    """Validated options shared by dirty, PSF, and CLEAN command generation."""
+
+    weighting: Optional[WscleanWeighting] = None
+    robustness: Optional[float] = None
+    weighting_rank_filter: Optional[float] = None
+    weighting_rank_filter_size: Optional[int] = None
+    taper_gaussian_arcsec: Optional[float] = None
+
+    def __post_init__(self) -> None:
+        if self.weighting not in (None, "natural", "uniform", "briggs"):
+            raise ValueError(
+                "WSClean weighting must be 'natural', 'uniform', 'briggs', or None."
+            )
+        if self.weighting == "briggs" and self.robustness is None:
+            raise ValueError("Briggs weighting requires an explicit robustness.")
+        if self.robustness is not None and self.weighting != "briggs":
+            raise ValueError("robustness requires weighting='briggs'.")
+        for name in ("robustness", "weighting_rank_filter", "taper_gaussian_arcsec"):
+            value = getattr(self, name)
+            if value is not None and (
+                isinstance(value, bool)
+                or not isinstance(value, Real)
+                or not math.isfinite(value)
+            ):
+                raise ValueError(f"{name} must be a finite real number.")
+        if self.weighting_rank_filter is not None and self.weighting_rank_filter < 0:
+            raise ValueError("weighting_rank_filter must be non-negative.")
+        if self.taper_gaussian_arcsec is not None and self.taper_gaussian_arcsec <= 0:
+            raise ValueError("taper_gaussian_arcsec must be positive.")
+        size = self.weighting_rank_filter_size
+        if size is not None and (
+            isinstance(size, bool) or not isinstance(size, Integral) or size <= 0
+        ):
+            raise ValueError("weighting_rank_filter_size must be a positive integer.")
+
+    def arguments(self, npix: int, cellsize_radians: float) -> str:
+        """Build the common CLI arguments; omit unspecified WSClean options."""
+        # Revalidate because direct-imager options remain mutable.
+        self.__post_init__()
+        args = []
+        if self.weighting is not None:
+            args.extend(["-weight", self.weighting])
+            if self.weighting == "briggs":
+                args.append(str(self.robustness))
+        for flag, value in (
+            ("-weighting-rank-filter", self.weighting_rank_filter),
+            ("-weighting-rank-filter-size", self.weighting_rank_filter_size),
+        ):
+            if value is not None:
+                args.extend([flag, str(value)])
+        if self.taper_gaussian_arcsec is not None:
+            args.extend(["-taper-gaussian", f"{self.taper_gaussian_arcsec}asec"])
+        args.extend(
+            [
+                "-size",
+                str(npix),
+                str(npix),
+                "-scale",
+                f"{math.degrees(cellsize_radians)}deg",
+            ]
+        )
+        return " ".join(args) + " "
 
 
 def _get_command_prefix(tmp_dir: str) -> str:
@@ -63,6 +130,10 @@ class WscleanDirtyImager(DirtyImager):
         config: DirtyImagerConfig,
         *,
         weighting: Optional[WscleanWeighting] = None,
+        robustness: Optional[float] = None,
+        weighting_rank_filter: Optional[float] = None,
+        weighting_rank_filter_size: Optional[int] = None,
+        taper_gaussian_arcsec: Optional[float] = None,
         warn_direct_use: bool = True,
     ) -> None:
         """Initializes the instance with a config.
@@ -76,6 +147,10 @@ class WscleanDirtyImager(DirtyImager):
             warn_direct_wsclean_use(stacklevel=3)
         self.config = config
         self.weighting = weighting
+        self.robustness = robustness
+        self.weighting_rank_filter = weighting_rank_filter
+        self.weighting_rank_filter_size = weighting_rank_filter_size
+        self.taper_gaussian_arcsec = taper_gaussian_arcsec
 
     @override
     def create_dirty_image(
@@ -104,10 +179,14 @@ class WscleanDirtyImager(DirtyImager):
         )
         command = _get_command_prefix(tmp_dir) + (
             f"{_WSCLEAN_BINARY} "
-            + (f"-weight {self.weighting} " if self.weighting is not None else "")
-            + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
-            f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
-            f"{visibility.path}"
+            + _WscleanCommonOptions(
+                weighting=self.weighting,
+                robustness=self.robustness,
+                weighting_rank_filter=self.weighting_rank_filter,
+                weighting_rank_filter_size=self.weighting_rank_filter_size,
+                taper_gaussian_arcsec=self.taper_gaussian_arcsec,
+            ).arguments(self.config.imaging_npixel, self.config.imaging_cellsize)
+            + str(visibility.path)
         )
         print(f"WSClean command: [{command}]")
         completed_process = subprocess.run(
@@ -181,6 +260,10 @@ class WscleanImageCleaner(ImageCleaner):
         config: WscleanImageCleanerConfig,
         *,
         weighting: Optional[WscleanWeighting] = None,
+        robustness: Optional[float] = None,
+        weighting_rank_filter: Optional[float] = None,
+        weighting_rank_filter_size: Optional[int] = None,
+        taper_gaussian_arcsec: Optional[float] = None,
         warn_direct_use: bool = True,
     ) -> None:
         """Initializes the instance with a config.
@@ -194,6 +277,10 @@ class WscleanImageCleaner(ImageCleaner):
             warn_direct_wsclean_use(stacklevel=3)
         self.config = config
         self.weighting = weighting
+        self.robustness = robustness
+        self.weighting_rank_filter = weighting_rank_filter
+        self.weighting_rank_filter_size = weighting_rank_filter_size
+        self.taper_gaussian_arcsec = taper_gaussian_arcsec
 
     @override
     def create_cleaned_image(
@@ -222,10 +309,14 @@ class WscleanImageCleaner(ImageCleaner):
             )
         command = _get_command_prefix(tmp_dir) + (
             f"{_WSCLEAN_BINARY} "
-            + (f"-weight {self.weighting} " if self.weighting is not None else "")
+            + _WscleanCommonOptions(
+                weighting=self.weighting,
+                robustness=self.robustness,
+                weighting_rank_filter=self.weighting_rank_filter,
+                weighting_rank_filter_size=self.weighting_rank_filter_size,
+                taper_gaussian_arcsec=self.taper_gaussian_arcsec,
+            ).arguments(self.config.imaging_npixel, self.config.imaging_cellsize)
             + (f"-reuse-dirty {prefix} " if dirty_fits_path is not None else "")
-            + f"-size {self.config.imaging_npixel} {self.config.imaging_npixel} "
-            + f"-scale {math.degrees(self.config.imaging_cellsize)}deg "
             + (f"-niter {self.config.niter} " if self.config.niter is not None else "")
             + (f"-mgain {self.config.mgain} " if self.config.mgain is not None else "")
             + (

@@ -87,7 +87,11 @@ images; the default combines channels by summing them.
 WSClean requires its executable on ``PATH``. Its configuration defaults to
 100 CLEAN iterations, a major-loop gain of 0.8, and a 3-sigma automatic
 threshold. ``weighting=None`` leaves weighting to the installed WSClean's
-default; select ``"natural"`` or ``"uniform"`` explicitly for reproducibility.
+default; select ``"natural"``, ``"uniform"``, or ``"briggs"`` explicitly for
+reproducibility. Briggs requires an explicit finite ``robustness`` value.
+Optional ``weighting_rank_filter``, ``weighting_rank_filter_size``, and
+``taper_gaussian_arcsec`` settings apply consistently to dirty, PSF, and CLEAN
+generation. See :doc:`wsclean_imaging` for the full parameter list and example.
 
 Comparing backends
 ------------------

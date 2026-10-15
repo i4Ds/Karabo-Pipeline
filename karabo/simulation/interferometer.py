@@ -30,6 +30,7 @@ from karabo.simulation.observation import (
     ObservationLong,
     ObservationParallelized,
 )
+from karabo.simulation.sdp_ms import export_sdp_visibility
 from karabo.simulation.sky_model import SkyModel
 from karabo.simulation.telescope import Telescope
 from karabo.simulation.visibility import (
@@ -48,7 +49,6 @@ from karabo.util._types import (
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
 from karabo.util.gpu_util import is_cuda_available
-from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import export_visibility_to_ms
 
 
 def format_timedelta(td: timedelta) -> str:
@@ -621,7 +621,7 @@ class InterferometerSimulation:
         )
 
         # Persist
-        export_visibility_to_ms(visibility_path, [vis])
+        export_sdp_visibility(visibility_path, vis)
         return Visibility(visibility_path)
 
     def __run_simulation_parallelized_observation(

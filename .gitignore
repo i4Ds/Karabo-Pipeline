@@ -91,6 +91,7 @@ karabo/test/result/*
 karabo/test/data/*
 # Exception!
 !karabo/test/data/sdp
+!karabo/test/data/legacy_sdp_ms.json
 example_telescope.png
 *.vis
 
