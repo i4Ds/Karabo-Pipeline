@@ -67,10 +67,23 @@ def test_source_detection_plot(
         top_k=3,
     )
     # Compare the assignment
+    expected_assignments = np.load(tobject.gt_assignment)
+
+    # Source assignments must match exactly.
     np.testing.assert_array_equal(
-        assignments,
-        np.load(tobject.gt_assignment),
-        err_msg="The assignment has changed!",
+        assignments[:, :2],
+        expected_assignments[:, :2],
+        err_msg="The source assignment has changed!",
+    )
+
+    # Allow tiny floating-point differences between architectures.
+    np.testing.assert_allclose(
+        assignments[:, 2],
+        expected_assignments[:, 2],
+        rtol=0,
+        atol=1e-12,
+        equal_nan=False,
+        err_msg="The assignment distances have changed!",
     )
     mapping = SourceDetectionEvaluation(
         sky=sky,
