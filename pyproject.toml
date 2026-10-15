@@ -43,7 +43,7 @@ testpaths = "karabo/test"
 
 [project.optional-dependencies]
     dev = [
-        'black[jupyter]==23.10.0',
+        'black[jupyter]==26.3.1',
         'flake8==6.1.0',
         'ipykernel',
         'isort==5.12.0',
