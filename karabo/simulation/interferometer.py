@@ -47,7 +47,7 @@ from karabo.util._types import (
 )
 from karabo.util.dask import DaskHandler
 from karabo.util.file_handler import FileHandler
-from karabo.util.gpu_util import is_cuda_available
+from karabo.util.gpu_util import is_cuda_available, is_oskar_opencl_gpu_available
 from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import export_visibility_to_ms
 
 
@@ -272,11 +272,14 @@ class InterferometerSimulation:
         self.enable_numerical_beam = enable_numerical_beam
         # set use_gpu
         if use_gpus is None:
-            use_gpus = is_cuda_available()
+            use_gpus = is_cuda_available() or is_oskar_opencl_gpu_available(
+                double_precision=precision == "double"
+            )
             print(
-                "Parameter 'use_gpus' is None! Using function "
-                + "'karabo.util.gpu_util.is_cuda_available()'. To overwrite, set "
-                + "'use_gpus' True or False."
+                "Parameter 'use_gpus' is None! Using functions "
+                + "'karabo.util.gpu_util.is_cuda_available()' and "
+                + "'karabo.util.gpu_util.is_oskar_opencl_gpu_available()'. "
+                + "To overwrite, set 'use_gpus' True or False."
             )
         self.use_gpus = use_gpus
 

@@ -119,3 +119,5 @@ data_download/*
 karabo/data/meerkat.tm/element_pattern*
 
 RASCIL*.md
+# native macOS arm64 build tree (macos/install_osx_arm64.sh)
+.build-osx-arm64/

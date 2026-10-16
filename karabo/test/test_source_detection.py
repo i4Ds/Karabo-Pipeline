@@ -66,10 +66,11 @@ def test_source_detection_plot(
         max_dist=10,
         top_k=3,
     )
-    # Compare the assignment
-    np.testing.assert_array_equal(
+    # Compare the assignment; distances differ by ~1e-13 across CPU archs (x86/arm64)
+    np.testing.assert_allclose(
         assignments,
         np.load(tobject.gt_assignment),
+        rtol=1e-10,
         err_msg="The assignment has changed!",
     )
     mapping = SourceDetectionEvaluation(

@@ -7,7 +7,6 @@ from __future__ import annotations
 import glob
 import os
 import shutil
-import subprocess
 from collections.abc import Generator
 from contextlib import contextmanager
 from copy import copy
@@ -445,11 +444,16 @@ def getsize(inode: Union[str, Path]) -> int:
         err_msg = f"{inode=} doesn't exist!"
         raise RuntimeError(err_msg)
     if os.path.isdir(inode_path):
+        # Apparent size like GNU `du -sb`, but portable (BSD/macOS `du` has no -b).
         try:
-            du_out = subprocess.run(  # sh should be supported by any linux/WSL dist
-                ["du", "-sb", str(inode_path)], check=True, capture_output=True
-            )
-            nbytes = int(du_out.stdout.decode().split(sep="\t")[0])
+            seen: set[tuple[int, int]] = set()
+            nbytes = 0
+            for root, dirs, files in os.walk(inode_path):
+                for name in (root, *(os.path.join(root, n) for n in dirs + files)):
+                    st = os.lstat(name)
+                    if (st.st_dev, st.st_ino) not in seen:
+                        seen.add((st.st_dev, st.st_ino))
+                        nbytes += st.st_size
         except Exception as e:
             err_msg = (
                 f"Get size of {inode=} failed unexpectedly (most likely a dev-error)."

@@ -1,0 +1,10 @@
+diff --git a/oskar/vis/src/oskar_vis_header_read.c b/oskar/vis/src/oskar_vis_header_read.c
+--- a/oskar/vis/src/oskar_vis_header_read.c
++++ b/oskar/vis/src/oskar_vis_header_read.c
+@@ -89,5 +89,5 @@
+     tag_error = 0;
+     oskar_binary_read_int(h, grp, OSKAR_VIS_HEADER_TAG_CASA_PHASE_CONVENTION, 0,
+-            &vis->casa_phase_convention, status
++            &vis->casa_phase_convention, &tag_error
+     );
+     if (!tag_error) num_tags_header += 1;

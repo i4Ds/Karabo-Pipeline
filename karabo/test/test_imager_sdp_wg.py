@@ -7,6 +7,7 @@ and cupy at runtime; without cupy invert_visibility(context="wg") raises
 """
 
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,10 @@ from karabo.simulation.visibility import Visibility
 from karabo.test.conftest import RUN_GPU_TESTS
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="context='wg' needs CUDA (cupy), which does not exist on macOS",
+)
 def test_sdp_wg_context_dependencies_installed() -> None:
     """Runs on CPU-only CI too: catches a missing runtime dependency of context="wg".
 

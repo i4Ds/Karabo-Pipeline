@@ -1,0 +1,68 @@
+name: karabo-osx
+# Native Apple Silicon (osx-arm64) environment. No CUDA, no Rosetta.
+# Use together with `macos/install_osx_arm64.sh`, which builds OSKAR from
+# source and pip-installs the packages that have no osx-arm64 conda build.
+# Keep versions in line with `environment.yaml` where a package exists here.
+channels:
+  - i4ds
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - python                  >=3.12,<3.13
+
+  - aratmospy               =1.0.0
+  - astropy
+  - dask                    >=2024.12,<2025.4
+  - dask-mpi
+  - distributed
+  - eidos                   =1.1.0
+  - healpy
+  - h5py
+  - ipython
+  - katbeam                 =0.1.0
+  - matplotlib
+  - mpi4py
+  - mpich
+  - nbformat
+  - nbconvert
+  - numpy                   >=2.1.3,<2.3
+  - packaging
+  - pandas
+  - psutil
+  - reproject               >=0.9,<=10.0
+  - requests
+  - rfc3986                 >=2.0.0
+  - scipy                   >=1.15
+  - xarray                  >=2024.9
+  - setuptools              !=71.0.0,!=71.0.1,!=71.0.2
+  - pyuvdata                >=2.4,<3
+  - python-casacore
+  - casacore
+  - fftw
+
+  # dependencies of the pip-installed packages (installed there with --no-deps)
+  - ska-telmodel            =1.33.0
+  - astroplan               # ska-sdp-datamodels, ska-sdp-func-python
+  - msgpack-python
+  - msgpack-numpy
+  - ducc0
+  - photutils               >=1.12,<2
+  - scikit-learn            # tools21cm
+  - scikit-image
+  - tqdm
+  - joblib
+  - openpyxl
+  - backports.shutil_get_terminal_size  # bdsf
+
+  # build tools for OSKAR, oskarpy and tools21cm
+  - cmake
+  - ninja
+  - cxx-compiler
+  - cython
+  - hdf5
+  - cfitsio
+  - pip
+  - versioneer
+  - tomli
+  - pytest

@@ -4,12 +4,21 @@ import pytest
 
 import karabo
 from karabo.test.conftest import RUN_GPU_TESTS
-from karabo.util.gpu_util import get_gpu_memory, is_cuda_available
+from karabo.util.gpu_util import (
+    get_gpu_memory,
+    is_cuda_available,
+    is_oskar_opencl_gpu_available,
+)
 from karabo.util.helpers import Environment
 
 
 def test_is_cuda_available():
     assert isinstance(is_cuda_available(), bool)
+
+
+def test_is_oskar_opencl_gpu_available():
+    assert isinstance(is_oskar_opencl_gpu_available(), bool)
+    assert isinstance(is_oskar_opencl_gpu_available(double_precision=True), bool)
 
 
 CUDA_AVAILABLE = is_cuda_available()

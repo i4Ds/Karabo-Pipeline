@@ -1,7 +1,7 @@
 # Installation (User)
 
 ## System Requirements
-- Linux or Windows with WSL. For macOS we recommend you use [Docker](container.md), starting with version 0.18.1 of the image.
+- Linux or Windows with WSL. On Apple Silicon Macs, see [Installation (macOS, Apple Silicon)](installation_macos.md) for a native install.
 - 8GB RAM
 - 10GB disk space
 - GPU-acceleration requires proprietary nVidia drivers/CUDA >= 11
