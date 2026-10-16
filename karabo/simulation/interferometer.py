@@ -386,8 +386,7 @@ class InterferometerSimulation:
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
         visibility_path: Optional[Union[DirPathType, FilePathType]] = ...,
-    ) -> Visibility:
-        ...
+    ) -> Visibility: ...
 
     @overload
     def run_simulation(
@@ -399,8 +398,7 @@ class InterferometerSimulation:
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
         visibility_path: Optional[DirPathType] = ...,
-    ) -> List[Visibility]:
-        ...
+    ) -> List[Visibility]: ...
 
     @overload
     def run_simulation(
@@ -412,8 +410,7 @@ class InterferometerSimulation:
         primary_beam: Optional[SdpImage] = ...,
         visibility_format: Literal["MS"] = ...,
         visibility_path: Optional[DirPathType] = ...,
-    ) -> Visibility:
-        ...
+    ) -> Visibility: ...
 
     def run_simulation(
         self,
@@ -451,15 +448,13 @@ class InterferometerSimulation:
 
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
-                warn(
-                    """
+                warn("""
                     Providing a custom primary beam is not supported by OSKAR.
                     The provided primary beam will be ignored.
                     To configure a primary beam effect with OSKAR,
                     set the InterferometerSimulation primary beam parameters
                     (FWHM and reference frequency) instead.
-                    """
-                )
+                    """)
 
             if isinstance(observation, ObservationLong):
                 return self.__run_simulation_long(
@@ -866,7 +861,7 @@ class InterferometerSimulation:
         """
         print("### Simulating foreground source....")
         visibility = self.run_simulation(telescope, foreground, foreground_observation)
-        (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
+        fg_header, fg_handle = oskar.VisHeader.read(foreground_vis_file)
         foreground_cross_correlation: List[NDArray[np.complex128]] = list()
         # fg_max_channel=fg_header.max_channels_per_block;
         for i in range(fg_header.num_blocks):

@@ -55,8 +55,7 @@ class Image:
         data: Literal[None] = None,
         header: Literal[None] = None,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -66,8 +65,7 @@ class Image:
         data: NDArray[np.float64],
         header: Header,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -105,26 +103,20 @@ class Image:
             raise RuntimeError("Provide either `path` or both `data` and `header`.")
 
         if self.data.ndim not in (2, 3, 4):
-            raise ValueError(
-                f"""Unexpected shape for image data:
+            raise ValueError(f"""Unexpected shape for image data:
             {self.data.shape}; expected 2D, 3D or (ideally) 4D array. Ideal image shape:
-            (frequencies, polarisations, pixels_x, pixels_y)"""
-            )
+            (frequencies, polarisations, pixels_x, pixels_y)""")
 
         if self.data.ndim == 2:
-            warnings.warn(
-                """Received 2D data for image object.
+            warnings.warn("""Received 2D data for image object.
                 Will assume the 2 axes correspond to (pixels_x, pixels_y).
-                Inserting 2 additional axes for frequencies and polarisations."""
-            )
+                Inserting 2 additional axes for frequencies and polarisations.""")
             self.data = np.array([[self.data]])
         elif self.data.ndim == 3:
-            warnings.warn(
-                """Received 3D data for image object.
+            warnings.warn("""Received 3D data for image object.
                 Will assume the 3 axes correspond to
                 (polarisations, pixels_x, pixels_y).
-                Inserting 1 additional axis for frequencies."""
-            )
+                Inserting 1 additional axis for frequencies.""")
             self.data = np.array([self.data])
 
         self._fname = os.path.split(self.path)[-1]
@@ -752,9 +744,7 @@ class Image:
         frequencies = wcs.sub([4]).wcs_pix2world(range(nchan), 0)[0]
         omega = np.pi * resolution**2 / (4.0 * np.log(2.0))
         wavelength = consts.c / np.average(frequencies)
-        kelvin_per_jansky = (
-            1.0e-26 * wavelength**2 / (2.0 * consts.k_B * omega)
-        ).value
+        kelvin_per_jansky = (1.0e-26 * wavelength**2 / (2.0 * consts.k_B * omega)).value
 
         spectrum = kelvin_per_jansky * np.abs(transformed[signal_channel, 0])
         profile = _radial_profile(spectrum)
@@ -929,9 +919,11 @@ class ImageMosaicker:
 
         """
         optimal_wcs = find_optimal_celestial_wcs(
-            [image.to_2dNNData() for image in images]
-            if isinstance(images[0], Image)
-            else images,
+            (
+                [image.to_2dNNData() for image in images]
+                if isinstance(images[0], Image)
+                else images
+            ),
             projection=projection,
             **kwargs,
         )
