@@ -929,9 +929,11 @@ class ImageMosaicker:
 
         """
         optimal_wcs = find_optimal_celestial_wcs(
-            [image.to_2dNNData() for image in images]
-            if isinstance(images[0], Image)
-            else images,
+            (
+                [image.to_2dNNData() for image in images]
+                if isinstance(images[0], Image)
+                else images
+            ),
             projection=projection,
             **kwargs,
         )

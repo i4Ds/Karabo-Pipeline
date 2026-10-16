@@ -1,4 +1,5 @@
-""" Collection of functions to work with HDF5 files. """
+"""Collection of functions to work with HDF5 files."""
+
 from typing import Any, Dict, Generator, Tuple, Union
 
 import h5py as h5

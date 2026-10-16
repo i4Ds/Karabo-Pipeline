@@ -2,6 +2,7 @@
 This module offers a variety of functions connected to string manipulation,
 file paths and data handling.
 """
+
 import os
 import re
 from types import ModuleType

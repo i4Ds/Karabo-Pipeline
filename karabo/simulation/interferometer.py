@@ -866,7 +866,7 @@ class InterferometerSimulation:
         """
         print("### Simulating foreground source....")
         visibility = self.run_simulation(telescope, foreground, foreground_observation)
-        (fg_header, fg_handle) = oskar.VisHeader.read(foreground_vis_file)
+        fg_header, fg_handle = oskar.VisHeader.read(foreground_vis_file)
         foreground_cross_correlation: List[NDArray[np.complex128]] = list()
         # fg_max_channel=fg_header.max_channels_per_block;
         for i in range(fg_header.num_blocks):
