@@ -77,8 +77,7 @@ FilePathType: TypeAlias = Union[Path, str]
 TFilePathType = TypeVar("TFilePathType", bound=FilePathType)
 
 
-class MissingType:
-    ...
+class MissingType: ...
 
 
 MISSING = MissingType()

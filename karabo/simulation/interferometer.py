@@ -386,8 +386,7 @@ class InterferometerSimulation:
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
         visibility_path: Optional[Union[DirPathType, FilePathType]] = ...,
-    ) -> Visibility:
-        ...
+    ) -> Visibility: ...
 
     @overload
     def run_simulation(
@@ -399,8 +398,7 @@ class InterferometerSimulation:
         primary_beam: None = ...,
         visibility_format: VisibilityFormat = ...,
         visibility_path: Optional[DirPathType] = ...,
-    ) -> List[Visibility]:
-        ...
+    ) -> List[Visibility]: ...
 
     @overload
     def run_simulation(
@@ -412,8 +410,7 @@ class InterferometerSimulation:
         primary_beam: Optional[SdpImage] = ...,
         visibility_format: Literal["MS"] = ...,
         visibility_path: Optional[DirPathType] = ...,
-    ) -> Visibility:
-        ...
+    ) -> Visibility: ...
 
     def run_simulation(
         self,
@@ -451,15 +448,13 @@ class InterferometerSimulation:
 
         if backend is SimulatorBackend.OSKAR:
             if primary_beam is not None:
-                warn(
-                    """
+                warn("""
                     Providing a custom primary beam is not supported by OSKAR.
                     The provided primary beam will be ignored.
                     To configure a primary beam effect with OSKAR,
                     set the InterferometerSimulation primary beam parameters
                     (FWHM and reference frequency) instead.
-                    """
-                )
+                    """)
 
             if isinstance(observation, ObservationLong):
                 return self.__run_simulation_long(
