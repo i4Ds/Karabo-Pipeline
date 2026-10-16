@@ -41,6 +41,10 @@ tag_prefix = "v"
 [tool.pytest.ini_options]
 testpaths = "karabo/test"
 
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
 [project.optional-dependencies]
     dev = [
         'black[jupyter]==26.3.1',
