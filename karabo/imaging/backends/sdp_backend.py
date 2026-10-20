@@ -10,20 +10,13 @@ from ska_sdp_func_python.image.deconvolution import deconvolve_cube, restore_cub
 from ska_sdp_func_python.imaging import create_image_from_visibility, invert_visibility
 from ska_sdp_func_python.visibility import convert_visibility_to_stokesI
 
-try:  # pragma: no cover - optional dependency path
-    from ska_sdp_func_python.visibility.ms import read_ms as _read_ms
-except ModuleNotFoundError:  # pragma: no cover
-    _read_ms = None
-
 from karabo.imaging.image import Image
 from karabo.imaging.imager_interface import Imager, ImageSpec
 from karabo.imaging.sdp_io import import_sdp_image_from_fits
 from karabo.imaging.util import guess_beam_parameters
+from karabo.simulation.sdp_ms import import_sdp_visibility
 from karabo.simulation.visibility import Visibility
 from karabo.util.file_handler import FileHandler
-from karabo.util.ska_sdp_datamodels.visibility.vis_io_ms import (
-    import_visibility_from_ms,
-)
 
 _SUPPORTED_CLEAN_ALGORITHM = "hogbom"
 
@@ -78,21 +71,7 @@ class SdpImager(Imager):
             raise NotImplementedError(
                 "SDP imager currently supports Measurement Set inputs only."
             )
-        if _read_ms is not None:
-            block = _read_ms(str(vis.path))
-            if isinstance(block, list):
-                if len(block) != 1:
-                    raise NotImplementedError(
-                        "SdpImager currently supports a single visibility per call."
-                    )
-                block = block[0]
-        else:
-            block_visibilities = import_visibility_from_ms(str(vis.path))
-            if len(block_visibilities) != 1:
-                raise NotImplementedError(
-                    "SdpImager currently supports a single visibility per call."
-                )
-            block = block_visibilities[0]
+        block = import_sdp_visibility(vis.path)
         block = convert_visibility_to_stokesI(block)
         block = self._flag_autocorrelations(block)
         return block

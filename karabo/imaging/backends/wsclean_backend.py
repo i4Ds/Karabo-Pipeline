@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Optional, cast
 
 from karabo.imaging.image import Image
@@ -12,6 +11,7 @@ from karabo.imaging.imager_wsclean import (
     WscleanImageCleaner,
     WscleanImageCleanerConfig,
     WscleanWeighting,
+    _WscleanCommonOptions,
     create_image_custom_command,
 )
 from karabo.simulation.visibility import Visibility
@@ -24,10 +24,23 @@ class WscleanBackendConfig:
     clean_niter: int = 100
     clean_mgain: float = 0.8
     clean_auto_threshold: int = 3
+    # Appended to preserve the existing positional configuration arguments.
+    robustness: Optional[float] = None
+    weighting_rank_filter: Optional[float] = None
+    weighting_rank_filter_size: Optional[int] = None
+    taper_gaussian_arcsec: Optional[float] = None
 
     def __post_init__(self) -> None:
-        if self.weighting not in (None, "natural", "uniform"):
-            raise ValueError("WSClean weighting must be 'natural', 'uniform', or None.")
+        self._common_options()
+
+    def _common_options(self) -> _WscleanCommonOptions:
+        return _WscleanCommonOptions(
+            weighting=self.weighting,
+            robustness=self.robustness,
+            weighting_rank_filter=self.weighting_rank_filter,
+            weighting_rank_filter_size=self.weighting_rank_filter_size,
+            taper_gaussian_arcsec=self.taper_gaussian_arcsec,
+        )
 
 
 class WscleanBackendImager(Imager):
@@ -59,15 +72,8 @@ class WscleanBackendImager(Imager):
     def _create_psf_image(self, vis: Visibility, spec: ImageSpec) -> Image:
         psf_image = create_image_custom_command(
             "wsclean "
-            + (
-                f"-weight {self.config.weighting} "
-                if self.config.weighting is not None
-                else ""
-            )
-            + f"-size {spec.npix} {spec.npix} "
-            f"-scale {math.degrees(spec.cellsize_radians)}deg "
-            "-make-psf "
-            f"{vis.path}",
+            + self.config._common_options().arguments(spec.npix, spec.cellsize_radians)
+            + f"-make-psf {vis.path}",
             "wsclean-psf.fits",
             warn_direct_use=False,
         )
@@ -76,7 +82,7 @@ class WscleanBackendImager(Imager):
     def invert(self, vis: Visibility, image_spec: ImageSpec) -> tuple[Image, Image]:
         dirty_imager = WscleanDirtyImager(
             self._dirty_config_for_spec(image_spec),
-            weighting=self.config.weighting,
+            **asdict(self.config._common_options()),
             warn_direct_use=False,
         )
         dirty_image = dirty_imager.create_dirty_image(vis)
@@ -98,7 +104,7 @@ class WscleanBackendImager(Imager):
 
         cleaner = WscleanImageCleaner(
             self._cleaner_config_for_spec(self.last_image_spec),
-            weighting=self.config.weighting,
+            **asdict(self.config._common_options()),
             warn_direct_use=False,
         )
         return cleaner.create_cleaned_image(
