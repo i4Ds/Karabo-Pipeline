@@ -5,10 +5,18 @@ RUN apt-get update && apt-get install -y git gcc gfortran libarchive13t64 wget c
 ENV LD_LIBRARY_PATH="/usr/local/cuda/compat:/usr/local/cuda/lib64" \
     PATH="/opt/conda/bin:${PATH}" \
     IS_DOCKER_CONTAINER="true"
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py312_26.5.3-2-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    /opt/conda/bin/conda init && \
-    rm ~/miniconda.sh
+RUN set -eu; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+        x86_64|aarch64) ;; \
+        *) echo "Unsupported architecture: $arch"; exit 1 ;; \
+    esac; \
+    wget --quiet \
+        "https://repo.anaconda.com/miniconda/Miniconda3-py312_26.5.3-2-Linux-${arch}.sh" \
+        -O /tmp/miniconda.sh; \
+    /bin/bash /tmp/miniconda.sh -b -p /opt/conda; \
+    /opt/conda/bin/conda init; \
+    rm /tmp/miniconda.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 RUN conda install -y -n base \
         --override-channels \

@@ -45,7 +45,17 @@ env:
 
 jobs:
   build-test-and-push-image:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -107,26 +117,60 @@ jobs:
         shell: bash -el {0}
         run: |
           docker build \
+            --platform "${{ matrix.platform }}" \
             --build-arg GIT_REV=${{ env.gitrev }} \
             --build-arg BUILD=${{ env.build }} \
             --build-arg KARABO_VERSION=${{ env.version }} \
             --build-arg PYTHON_VERSION=${{ inputs.python-version }} \
             -f Dockerfile \
-            -t ${{ env.IMG_ADDR }}:${{ env.version }} \
+            -t "${{ env.IMG_ADDR }}:build-${{ github.run_id }}-${{ matrix.arch }}" \
             .
-          if [[ ${{ env.latest }} == 'true' ]]; then
-            docker tag ${{ env.IMG_ADDR }}:${{ env.version }} ${{ env.IMG_ADDR }}:latest
-          fi
 
       - name: Test image
-        run: |  # Locate Karabo's site-packages path because --only-mpi is defined by Karabo.
-          docker run --rm ${{ env.IMG_ADDR }}:${{ env.version }} bash -ec \
+        run: |
+          docker run --rm "${{ env.IMG_ADDR }}:build-${{ github.run_id }}-${{ matrix.arch }}" bash -ec \
             'export IS_GITHUB_RUNNER=true RUN_GPU_TESTS=false RUN_NOTEBOOK_TESTS=false;
             python -m pytest --pyargs karabo.test;
             SITE_PKGS=$(python -m pip show karabo-pipeline | grep Location | sed "s/Location: //g");
             mpirun -n 2 python -m pytest --only-mpi "$SITE_PKGS/karabo/test"'
-            
+
       - name: Docker push
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          docker push --all-tags ${{ env.IMG_ADDR }}
+          docker push "${{ env.IMG_ADDR }}:build-${{ github.run_id }}-${{ matrix.arch }}"
+
+  publish-manifest:
+    needs: build-test-and-push-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish multi-platform image
+        shell: bash -el {0}
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ inputs.verstag }}
+          TAG_LATEST: ${{ inputs.latest }}
+        run: |
+          image="${REGISTRY}/${REPO_OWNER,,}/${IMG_NAME}"
+          source_tag="build-${GITHUB_RUN_ID}"
+
+          tags=(--tag "$image:$VERSION")
+          if [[ "$TAG_LATEST" == "true" ]]; then
+            tags+=(--tag "$image:latest")
+          fi
+
+          docker buildx imagetools create \
+            "${tags[@]}" \
+            "$image:${source_tag}-amd64" \
+            "$image:${source_tag}-arm64"
+
+          docker buildx imagetools inspect "$image:$VERSION"
