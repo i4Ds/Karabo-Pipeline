@@ -1,0 +1,1076 @@
+{
+  "format": "karabo-telescope",
+  "version": 1,
+  "name": "SKA-MID-AAstar",
+  "centre": {
+    "longitude_deg": 21.443803,
+    "latitude_deg": -30.712925,
+    "altitude_m": 0.0
+  },
+  "sefd_reference": {
+    "source": "ska-ost-senscalc 12.0.1"
+  },
+  "element_layouts": {
+    "dish": [
+      [0.0, 0.0, 0.0]
+    ]
+  },
+  "sefd_curves": {
+    "MID": {
+      "Band 1": [
+        [350000000.0, 1671.3],
+        [525000000.0, 769.2],
+        [700000000.0, 550.9],
+        [875000000.0, 488.0],
+        [1050000000.0, 495.8]
+      ],
+      "Band 2": [
+        [950000000.0, 326.8],
+        [1152500000.0, 303.2],
+        [1355000000.0, 291.6],
+        [1557500000.0, 285.1],
+        [1760000000.0, 281.3]
+      ],
+      "Band 5a": [
+        [4600000000.0, 277.7],
+        [5575000000.0, 291.6],
+        [6550000000.0, 306.1],
+        [7525000000.0, 321.0],
+        [8500000000.0, 336.6]
+      ],
+      "Band 5b": [
+        [8300000000.0, 333.4],
+        [10050000000.0, 362.8],
+        [11800000000.0, 394.8],
+        [13550000000.0, 430.7],
+        [15300000000.0, 473.0]
+      ]
+    },
+    "MEERKAT": {
+      "Band 1": [
+        [580000000.0, 803.7],
+        [688750000.0, 658.9],
+        [797500000.0, 576.0],
+        [906250000.0, 522.1],
+        [1015000000.0, 484.1]
+      ],
+      "Band 2": [
+        [950000000.0, 505.3],
+        [1130000000.0, 491.6],
+        [1310000000.0, 447.0],
+        [1490000000.0, 416.3],
+        [1670000000.0, 400.4]
+      ]
+    }
+  },
+  "stations": [
+    {
+      "name": "M000",
+      "position_m": [3.4e-05, -0.000482, -0.000182],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M001",
+      "position_m": [9.384675, 35.527961, -0.728308],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M002",
+      "position_m": [-23.848824, -16.945799, -0.852907],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M003",
+      "position_m": [-58.253583, 5.013949, -1.429309],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M004",
+      "position_m": [-115.359713, -45.655873, -1.260387],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M005",
+      "position_m": [-93.823508, -75.83079, -1.165416],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M006",
+      "position_m": [-9.96747, -88.138263, -0.921046],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M007",
+      "position_m": [-81.327617, -195.44204, -0.147724],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M008",
+      "position_m": [-85.26318, -327.735569, 0.50104],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M009",
+      "position_m": [40.620005, -163.764863, 0.110812],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M010",
+      "position_m": [96.358268, -304.582511, 1.15606],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M011",
+      "position_m": [92.27619, -144.78749, 0.245032],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M012",
+      "position_m": [148.283098, -160.97727, 0.296028],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M013",
+      "position_m": [245.055053, -186.169824, 1.065558],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M014",
+      "position_m": [288.933439, -78.503141, 0.217841],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M015",
+      "position_m": [218.908283, -11.852038, -0.537098],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M016",
+      "position_m": [296.422838, 21.416218, -0.452997],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M017",
+      "position_m": [207.887199, 95.026256, -1.329615],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M018",
+      "position_m": [113.990707, -38.58042, -0.592666],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M019",
+      "position_m": [179.050284, -77.934243, -0.063904],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M020",
+      "position_m": [105.279896, -92.348923, -0.323988],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M021",
+      "position_m": [-287.701951, -119.950951, -2.226115],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M022",
+      "position_m": [-364.737437, 207.833684, -4.529445],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M023",
+      "position_m": [-314.041974, 65.10543, -3.275907],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M024",
+      "position_m": [-342.781675, 357.37725, -5.533584],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M025",
+      "position_m": [-173.713285, 432.90668, -5.227259],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M026",
+      "position_m": [-90.739114, 224.335541, -3.487306],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M027",
+      "position_m": [48.739135, 184.177426, -2.411254],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M028",
+      "position_m": [-42.914824, 120.120119, -2.668613],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M029",
+      "position_m": [-80.496872, 83.178649, -2.648939],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M030",
+      "position_m": [179.545204, 321.238343, -3.044943],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M031",
+      "position_m": [254.830559, 301.04587, -3.017957],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M032",
+      "position_m": [469.53865, 382.794078, -2.996486],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M033",
+      "position_m": [588.942714, 1071.247554, -6.808663],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M034",
+      "position_m": [366.074255, 178.980953, -1.274858],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M035",
+      "position_m": [394.416687, 26.396736, 0.144053],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M036",
+      "position_m": [396.519774, -83.46969, 0.429445],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M037",
+      "position_m": [388.548454, -252.018996, 2.032838],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M038",
+      "position_m": [221.571885, -361.790409, 1.636246],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M039",
+      "position_m": [262.011788, -384.856931, 2.06084],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M040",
+      "position_m": [-18.59399, -504.929052, 1.44711],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M041",
+      "position_m": [-279.281893, -454.388033, -0.407097],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M042",
+      "position_m": [-353.449458, -253.027859, -1.770209],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M043",
+      "position_m": [-621.587887, 78.964514, -5.147383],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M044",
+      "position_m": [-887.899616, 807.786845, -11.092553],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M045",
+      "position_m": [-1824.594568, 474.040687, -10.097808],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M046",
+      "position_m": [-1459.075242, 1959.213115, -17.51884],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M047",
+      "position_m": [-570.031299, -310.005892, -2.673078],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M048",
+      "position_m": [-2797.386078, 2894.153209, -20.131405],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M049",
+      "position_m": [-3597.691616, 643.754308, -7.716753],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M050",
+      "position_m": [-2044.072626, -636.423604, -4.939236],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M051",
+      "position_m": [-841.990671, -562.068703, -2.760686],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M052",
+      "position_m": [-584.927978, -941.361411, 0.113582],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M053",
+      "position_m": [17.627264, -1097.172129, 4.60464],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M054",
+      "position_m": [880.243363, -292.523291, 3.031308],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M055",
+      "position_m": [1210.043286, 303.780584, -0.394032],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M056",
+      "position_m": [1606.666853, 673.955181, -3.399833],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M057",
+      "position_m": [302.911786, 3467.202829, -20.975271],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M058",
+      "position_m": [2814.029522, 2894.159569, -14.00209],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M059",
+      "position_m": [3694.690924, 966.181621, 1.52424],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M060",
+      "position_m": [3427.944857, -1633.190226, 13.326091],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M061",
+      "position_m": [-8.145305, -2116.48886, 11.043592],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M062",
+      "position_m": [-1432.36853, -2296.480756, 11.230172],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "M063",
+      "position_m": [-3411.321581, -1633.18811, 5.934455],
+      "elements": "dish",
+      "dish_diameter_m": 13.5,
+      "sefd": "MEERKAT"
+    },
+    {
+      "name": "SKA001",
+      "position_m": [537.407471, -40.486412, 2.084539],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA008",
+      "position_m": [-81518.942906, 44530.38417, -814.66262],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA013",
+      "position_m": [12745.904291, 16854.671868, -94.135184],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA014",
+      "position_m": [11928.743437, 10040.228975, -10.021876],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA015",
+      "position_m": [-6672.048799, 8241.035316, -45.465766],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA016",
+      "position_m": [-11309.111913, 7666.85287, -60.177725],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA017",
+      "position_m": [-3592.52958, 7756.950498, -45.380923],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA018",
+      "position_m": [-1716.927407, 6548.930869, -36.891754],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA019",
+      "position_m": [-16003.320701, 5976.106699, -52.312961],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA020",
+      "position_m": [763.472851, 5944.236732, -31.722696],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA023",
+      "position_m": [1637.243809, 4264.047137, -20.766556],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA024",
+      "position_m": [1754.217079, 2912.49277, -13.975201],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA025",
+      "position_m": [-20404.642587, 2894.094012, -39.900673],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA026",
+      "position_m": [1938.045841, 2281.366049, -10.341322],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA027",
+      "position_m": [10284.647663, 1985.645611, 60.509591],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA028",
+      "position_m": [-1305.285452, 1348.814843, -13.763535],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA030",
+      "position_m": [-455.472738, 1171.915397, -10.611253],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA031",
+      "position_m": [-2131.259788, 1146.765701, -10.817086],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA032",
+      "position_m": [1991.445723, 1121.955934, -5.657632],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA033",
+      "position_m": [63.914413, 880.746136, -6.139302],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA034",
+      "position_m": [-2896.385842, 750.955083, -8.119149],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA035",
+      "position_m": [-269.541065, 710.536768, -6.27304],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA036",
+      "position_m": [143.531207, 566.169305, -3.774809],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA037",
+      "position_m": [1765.416018, 463.458581, -0.139312],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA038",
+      "position_m": [-307.742943, 444.859354, -4.670893],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA039",
+      "position_m": [-11.135908, 407.051909, -3.021243],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA040",
+      "position_m": [-835.783117, 435.988016, -7.047887],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA041",
+      "position_m": [-207.321523, 247.932567, -2.875958],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA042",
+      "position_m": [126.233036, 194.820791, -0.902658],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA043",
+      "position_m": [-451.465296, 182.614832, -3.657336],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA045",
+      "position_m": [812.151565, 132.584839, 0.887783],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA046",
+      "position_m": [53.323017, 121.97076, -0.980729],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA048",
+      "position_m": [-138.615819, 99.793001, -1.791403],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA049",
+      "position_m": [-21.865418, 90.701238, -1.030789],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA050",
+      "position_m": [60.824527, 81.165191, -0.649952],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA051",
+      "position_m": [10.938174, 79.61313, -0.869958],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA055",
+      "position_m": [-205.420541, 57.213227, -1.843114],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA060",
+      "position_m": [-3694.519847, 41.277475, -3.340082],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA061",
+      "position_m": [179.096504, 41.356657, 0.286198],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA063",
+      "position_m": [-820.024266, 30.682965, -4.523652],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA067",
+      "position_m": [125.933787, -1.775554, 0.216964],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA068",
+      "position_m": [-181.017728, -2.774573, -1.033961],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA070",
+      "position_m": [1397.872334, -7.438336, 3.244934],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA075",
+      "position_m": [12.758566, -44.687346, -0.084284],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA077",
+      "position_m": [-360.651753, -53.231034, -1.755058],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA079",
+      "position_m": [-19.863556, -56.440623, -0.095501],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA081",
+      "position_m": [77.579552, -75.180476, 0.481418],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA082",
+      "position_m": [23.689756, -82.055335, 0.351074],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA083",
+      "position_m": [-579.190552, -87.836064, -2.775598],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA089",
+      "position_m": [190.897242, -137.055119, 1.613263],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA091",
+      "position_m": [-24.039807, -205.468869, 1.112344],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA092",
+      "position_m": [352.640775, -216.673223, 2.698683],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA095",
+      "position_m": [-374.15089, -305.603543, -0.210238],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA096",
+      "position_m": [1124.31137, -312.530229, 5.359891],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA097",
+      "position_m": [13.054905, -343.962691, 1.896949],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA098",
+      "position_m": [-590.212526, -360.278839, -1.673574],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA099",
+      "position_m": [113.935177, -382.77272, 2.538334],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA100",
+      "position_m": [501.403123, -476.591108, 5.120588],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA101",
+      "position_m": [82.327644, -602.433335, 3.898376],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA102",
+      "position_m": [-713.4048, -644.70233, -1.094844],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA103",
+      "position_m": [-343.539218, -703.009551, 1.370457],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA104",
+      "position_m": [331.775486, -810.345538, 6.205181],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA105",
+      "position_m": [8477.516861, -1204.151938, 40.381362],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA106",
+      "position_m": [-1049.291091, -885.737313, -0.095724],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA107",
+      "position_m": [-4435.648832, -1054.424297, 3.482527],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA108",
+      "position_m": [-948.690179, -1358.777693, 3.375036],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA109",
+      "position_m": [-589.777136, -1839.582135, 7.004289],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA110",
+      "position_m": [6448.368101, -2426.475194, 33.740709],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA111",
+      "position_m": [-132.702951, -2364.715805, 13.318914],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA113",
+      "position_m": [-4989.735028, -2596.734901, 12.597565],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA114",
+      "position_m": [826.509554, -2975.540047, 22.953524],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA115",
+      "position_m": [4792.027068, -2663.072429, 30.618913],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA116",
+      "position_m": [1577.411214, -3225.856025, 29.301355],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA117",
+      "position_m": [2782.046181, -2638.298764, 23.28997],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA118",
+      "position_m": [-4704.733205, -4366.323865, 19.144482],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA119",
+      "position_m": [-4465.570939, -7277.918092, 39.369147],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA121",
+      "position_m": [-2975.18941, -9875.352582, 75.503716],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA123",
+      "position_m": [-1924.291706, -14266.835367, 95.215266],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA125",
+      "position_m": [1449.732364, -16895.446983, 115.470561],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    },
+    {
+      "name": "SKA126",
+      "position_m": [6233.082659, -18491.762102, 235.892063],
+      "elements": "dish",
+      "dish_diameter_m": 15.0,
+      "sefd": "MID"
+    }
+  ]
+}

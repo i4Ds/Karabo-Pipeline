@@ -8,9 +8,11 @@ import re
 import shutil
 from itertools import combinations
 from typing import (
+    Any,
     Dict,
     List,
     Literal,
+    Mapping,
     Optional,
     Tuple,
     Type,
@@ -25,7 +27,7 @@ import pandas as pd
 from astropy import constants as const
 from astropy import units as u
 from astropy.coordinates import EarthLocation
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 from oskar.telescope import Telescope as OskarTelescope
 from scipy.spatial.distance import pdist
 from ska_sdp_datamodels.configuration.config_create import create_named_configuration
@@ -34,6 +36,7 @@ from typing_extensions import assert_never
 
 import karabo.error
 from karabo.error import KaraboError
+from karabo.simulation import telescope_json
 from karabo.simulation.coordinate_helper import wgs84_to_cartesian
 from karabo.simulation.east_north_coordinate import EastNorthCoordinate
 from karabo.simulation.station import Station
@@ -58,7 +61,7 @@ from karabo.simulation.telescope_versions import (
     VLAVersions,
 )
 from karabo.simulator_backend import SimulatorBackend
-from karabo.util._types import DirPathType, NPFloatLike
+from karabo.util._types import DirPathType, FilePathType, NPFloatLike
 from karabo.util.data_util import get_module_absolute_path
 from karabo.util.file_handler import FileHandler, write_dir
 from karabo.util.math_util import long_lat_to_cartesian
@@ -208,6 +211,7 @@ class Telescope:
         self.centre_altitude = altitude
 
         self.stations: List[Station] = []
+        self.sefd_reference: Optional[Dict[str, Any]] = None
 
         self.backend: SimulatorBackend = SimulatorBackend.OSKAR
 
@@ -374,6 +378,8 @@ but was not provided. Please provide a value for the version field."
                 horizontal_x=coord[0],
                 horizontal_y=coord[1],
                 horizontal_z=coord[2],
+                name=str(config.names.data[i]),
+                dish_diameter_m=float(config.diameter.data[i]),
             )
 
             # SKA-SDP configurations contain stations but no antenna layouts.
@@ -435,6 +441,10 @@ but was not provided. Please provide a value for the version field."
         horizontal_x_coordinate_error: float = 0.0,
         horizontal_y_coordinate_error: float = 0.0,
         horizontal_z_coordinate_error: float = 0.0,
+        *,
+        name: Optional[str] = None,
+        dish_diameter_m: Optional[float] = None,
+        sefd: Optional[Mapping[str, ArrayLike]] = None,
     ) -> None:
         """
         Specify the stations as relative to the centre position
@@ -444,6 +454,9 @@ but was not provided. Please provide a value for the version field."
         :param horizontal_x_coordinate_error: east coordinate error
         :param horizontal_y_coordinate_error: north coordinate error
         :param horizontal_z_coordinate_error: up coordinate error
+        :param name: Station identifier
+        :param dish_diameter_m: Dish (or aperture-array station) diameter in metres
+        :param sefd: SEFD curves per receiver band, see `Station.sefd`
         """
         self.stations.append(
             Station(
@@ -458,6 +471,9 @@ but was not provided. Please provide a value for the version field."
                 self.centre_longitude,
                 self.centre_latitude,
                 self.centre_altitude,
+                name=name,
+                dish_diameter_m=dish_diameter_m,
+                sefd=sefd,
             )
         )
 
@@ -621,6 +637,41 @@ but was not provided. Please provide a value for the version field."
             )
         layout_file.close()
 
+    @classmethod
+    def from_json(cls, path: FilePathType) -> Telescope:
+        """Reads a Karabo telescope JSON file.
+
+        The JSON holds the geometry and the station metadata (names, diameters,
+        SEFDs). A geometry-only OSKAR .tm is written to the short-term cache and
+        set as `path`, so the telescope can be used with the OSKAR backend.
+
+        Args:
+            path: Path to the JSON file.
+
+        Returns:
+            Telescope with backend `SimulatorBackend.OSKAR`.
+
+        Raises:
+            KaraboError: If the file is malformed or has an unsupported version.
+        """
+        telescope = telescope_json.read(cls, path)
+        disk_cache = FileHandler().get_tmp_dir(
+            prefix="telescope-json-",
+            mkdir=False,
+        )
+        tm_path = os.path.join(disk_cache, "telescope.tm")
+        telescope.write_to_disk(tm_path)
+        telescope.path = tm_path
+        return telescope
+
+    def to_json(self, path: FilePathType) -> None:
+        """Writes the telescope, including station metadata, as JSON.
+
+        Args:
+            path: Path of the JSON file. An existing file is overwritten.
+        """
+        telescope_json.write(self, path)
+
     def get_cartesian_position(self) -> NDArray[np.float64]:
         return long_lat_to_cartesian(self.centre_latitude, self.centre_longitude)
 
@@ -708,6 +759,8 @@ but was not provided. Please provide a value for the version field."
                 f"station directories."
             )
 
+        # OSKAR associates station directories with layout rows alphabetically
+        abs_station_dir_paths.sort()
         for station_dir, station in zip(abs_station_dir_paths, telescope.stations):
             antenna_positions = cls.__read_layout_txt(
                 os.path.join(station_dir, "layout.txt")
