@@ -16,14 +16,13 @@ class EoRProfile:
     """
     EoR profile simulation.
 
-    Examples
-    --------
-    >>> rnd = np.random.rand(200)
-    >>> sum_rnd = np.cumsum(rnd)
-    >>> sum_rnd /= sum_rnd[-1]
-    >>> eor = EoRProfile.simulate(x_hi=sum_rnd)
-    >>> EoRProfile.plot(eor)
-    >>> plt.show()
+    Examples:
+        >>> rnd = np.random.rand(200)
+        >>> sum_rnd = np.cumsum(rnd)
+        >>> sum_rnd /= sum_rnd[-1]
+        >>> eor = EoRProfile.simulate(x_hi=sum_rnd)
+        >>> EoRProfile.plot(eor)
+        >>> plt.show()
     """
 
     t_s = 0.068
@@ -64,21 +63,19 @@ class EoRProfile:
 
         Implemented per https://arxiv.org/pdf/1602.02351.pdf, equation (1)
 
-        Parameters
-        ----------
-        x_hi : Annotated[npt.NDArray[np.float64], Literal["N"]]
-            Neutral hydrogen fraction.
-        dv_r_over_dr : float, optional
-            ???. By default 0
-        f_range : tuple[float, float], optional
-            Frequency range to plot in [Hz]. by default (2, 200e6)
+        Args:
+            x_hi (Annotated[npt.NDArray[np.float64], Literal["N"]]): Neutral hydrogen
+                fraction.
+            dv_r_over_dr (float, optional): Line-of-sight gradient of the peculiar
+                velocity, dv_r/dr, in [km/s/Mpc] (same units as `hubble_param`).
+                Defaults to 0.
+            f_range (tuple[float, float], optional): Frequency range to plot in [Hz].
+                Defaults to (1e6, 200e6).
 
-        Returns
-        -------
-        EoRProfileT
-            An array of the shape (floor((f_end - f_start) / step_size), 2), containing
-            the frequency in the first column and the corresponding EoR profile in the
-            second.
+        Returns:
+            EoRProfileT: An array of the shape
+                (floor((f_end - f_start) / step_size), 2), containing the frequency in
+                the first column and the corresponding EoR profile in the second.
         """
         freq_range = np.linspace(*f_range, num=len(x_hi))
         z_range = (EoRProfile.frequency_21cm / freq_range) - 1
@@ -107,18 +104,15 @@ class EoRProfile:
 
         Either the x_hi parameter needs to be given or the calculated profile.
 
-        Parameters
-        ----------
-        x_hi : Optional[Annotated[npt.NDArray[np.float64], Literal["N"]]], optional
-            Neutral hydrogen fraction, by default None.
-        profile : Optional[EoRProfileT], optional
-            An optional profile to be plotted. If not given, a default EoR profile will
-            be plotted. By default None.
+        Args:
+            x_hi (Optional[Annotated[npt.NDArray[np.float64], Literal["N"]]], optional):
+                Neutral hydrogen fraction. Defaults to None.
+            profile (Optional[EoRProfileT], optional): An optional profile to be
+                plotted. If not given, a default EoR profile will be plotted. Defaults
+                to None.
 
-        Returns
-        -------
-        Figure
-            The plotted figure of the 21cm signal.
+        Returns:
+            Figure: The plotted figure of the 21cm signal.
         """
         if profile is None:
             if x_hi is None:

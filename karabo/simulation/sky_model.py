@@ -571,20 +571,19 @@ class SkyModel:
         Initialize a SkyModel object.
 
         Args:
-            sources : {xarray.DataArray, np.ndarray}, optional
-                List of all point sources in the sky.
-                It can be provided as an `xarray.DataArray` or `np.ndarray`.
-                If provided as an `np.ndarray`, the values are converted to
-                `xarray.DataArray`.
-            wcs : WCS, optional
-                World Coordinate System (WCS) object representing the coordinate
-                transformation between pixel coordinates and celestial coordinates.
-            precision : np.dtype, optional
-                The precision of numerical values used in the SkyModel.
-                It should be a NumPy data type (e.g., np.float64).
-            h5_file_connection : h5py.File, optional
-                An open connection to an HDF5 (h5) file
-                that can be used to store or retrieve data related to the SkyModel.
+            sources ({xarray.DataArray, np.ndarray}, optional): List of all point
+                sources in the sky. It can be provided as an `xarray.DataArray` or
+                `np.ndarray`. If provided as an `np.ndarray`, the values are
+                converted to `xarray.DataArray`. Defaults to None.
+            wcs (WCS, optional): World Coordinate System (WCS) object representing
+                the coordinate transformation between pixel coordinates and
+                celestial coordinates. Defaults to None.
+            precision (np.dtype, optional): The precision of numerical values used
+                in the SkyModel. It should be a NumPy data type (e.g., np.float64).
+                Defaults to np.float64.
+            h5_file_connection (h5py.File, optional): An open connection to an
+                HDF5 (h5) file that can be used to store or retrieve data related
+                to the SkyModel. Defaults to None.
         """
         self.__sources_dim_sources = XARRAY_DIM_0_DEFAULT
         self.__sources_dim_data = XARRAY_DIM_1_DEFAULT
@@ -1134,26 +1133,25 @@ class SkyModel:
         neglected.
 
         Args:
-            inner_radius_deg : IntFloat
-                The inner radius of the annular search region, in degrees.
-            outer_radius_deg : IntFloat
-                The outer radius of the annular search region, in degrees.
-            ra0_deg : IntFloat
-                The right ascension of the search region's center, in degrees.
-            dec0_deg : IntFloat
-                The declination of the search region's center, in degrees.
-            indices : bool, optional
-                If True, returns the indices of the filtered sources in addition to the
-                SkyModel object. Defaults to False.
+            inner_radius_deg (IntFloat): The inner radius of the annular search
+                region, in degrees.
+            outer_radius_deg (IntFloat): The outer radius of the annular search
+                region, in degrees.
+            ra0_deg (IntFloat): The right ascension of the search region's center,
+                in degrees.
+            dec0_deg (IntFloat): The declination of the search region's center,
+                in degrees.
+            indices (bool, optional): If True, returns the indices of the filtered
+                sources in addition to the SkyModel object. Defaults to False.
 
         Returns:
-            SkyModel or tuple of (SkyModel, NDArray[np.int_]):
-                The filtered SkyModel object, and optionally the indices of the filtered
-                sources if `indices` is set to True.
+            SkyModel or tuple of (SkyModel, NDArray[np.int_]): The filtered SkyModel
+                object, and optionally the indices of the filtered sources if
+                `indices` is set to True.
 
         Raises:
             KaraboSkyModelError: If the `sources` attribute is not
-            populated in the SkyModel instance prior to invoking this function.
+                populated in the SkyModel instance prior to invoking this function.
 
         Note:
             Use this function for large sky models where a full spherical geometry
@@ -1695,26 +1693,30 @@ class SkyModel:
         chunksize: Union[int, Literal["auto"]] = "auto",
     ) -> _TSkyModel:
         """
-        Load a sky model dataset from an HDF5 file and
-        converts it to an xarray DataArray.
+        Load a sky model dataset from an HDF5 file into a SkyModel.
+
+        The HDF5 datasets are read lazily as Dask arrays and combined into a 2D
+        xarray DataArray, which becomes the sources of the returned SkyModel.
+        The SkyModel keeps the HDF5 file connection open.
 
         Args:
-            path : Path to the input HDF5 file.
-            prefix_mapping : Mapping column names to their
-                corresponding dataset paths in the HDF5 file.
+            path (str): Path to the input HDF5 file.
+            prefix_mapping (Optional[SkyPrefixMapping], optional): Mapping column
+                names to their corresponding dataset paths in the HDF5 file.
                 If the column is not present in the HDF5 file,
-                set its value to None.
-            load_as : Literal["numpy_array", "dask_array"], default="dask_array"
-                What type of array to load the data inside the xarray Data Array as.
-            chunksize : Union[int, str], default=auto
-                Chunk size for Dask arrays. This determines the size of chunks that
-                the data will be divided into when read from the file. Can be an
-                integer or 'auto'. If 'auto', Dask will choose an optimal chunk size.
+                set its value to None. Defaults to None.
+            load_as (Literal["numpy_array", "dask_array"], optional): What type of
+                array to load the data inside the xarray Data Array as.
+                Defaults to "dask_array".
+            chunksize (Union[int, str], optional): Chunk size for Dask arrays. This
+                determines the size of chunks that the data will be divided into
+                when read from the file. Can be an integer or 'auto'. If 'auto',
+                Dask will choose an optimal chunk size. Defaults to "auto".
 
         Returns:
-            xr.DataArray: A 2D xarray DataArray containing the sky model data.
-            Rows represent data points and columns represent
-            different data fields ('ra', 'dec', ...).
+            SkyModel: Sky model whose sources are a 2D xarray DataArray. Rows
+                represent data points and columns represent different data
+                fields ('ra', 'dec', ...).
         """
         f = h5py.File(path, "r")
         data_arrays: List[xr.DataArray] = []

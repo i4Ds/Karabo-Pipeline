@@ -12,8 +12,17 @@ class Station:
         parent_latitude: float = 0.0,
         parent_altitude: float = 0.0,
     ):
-        """
-        :param position: Position of station in relation to the telescope.png centre
+        """Initialize a station.
+
+        Args:
+            position (EastNorthCoordinate): Position of station in relation to the
+                telescope centre.
+            parent_longitude (float, optional): Longitude of the telescope centre
+                in degrees. Defaults to 0.0.
+            parent_latitude (float, optional): Latitude of the telescope centre in
+                degrees. Defaults to 0.0.
+            parent_altitude (float, optional): Altitude of the telescope centre in
+                meters. Defaults to 0.0.
         """
 
         self.position: EastNorthCoordinate = position

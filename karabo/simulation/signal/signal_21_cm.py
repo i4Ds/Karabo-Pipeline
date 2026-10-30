@@ -19,20 +19,19 @@ class Signal21cm(BaseSignal[Image3D]):
     """
     21cm Signal simulation wrapper.
 
-    Examples
-    --------
-    >>> from karabo.simulation.signal.plotting import SignalPlotting
-    >>> redshifts = Signal21cm.available_redshifts()
-    >>> z1 = Signal21cm.get_xfrac_dens_file(z=redshifts[0], box_dims=244 / 0.7)
-    >>> z2 = Signal21cm.get_xfrac_dens_file(z=redshifts[1], box_dims=244 / 0.7)
-    >>> sig = Signal21cm([z1, z2])
-    >>> signal_images = sig.simulate()
-    >>> fig = SignalPlotting.brightness_temperature(signal_images[0])
-    >>> fig.savefig("brightness_temperature.png")
+    Examples:
+        >>> from karabo.simulation.signal.plotting import SignalPlotting
+        >>> redshifts = Signal21cm.available_redshifts()
+        >>> z1 = Signal21cm.get_xfrac_dens_file(z=redshifts[0], box_dims=244 / 0.7)
+        >>> z2 = Signal21cm.get_xfrac_dens_file(z=redshifts[1], box_dims=244 / 0.7)
+        >>> sig = Signal21cm([z1, z2])
+        >>> signal_images = sig.simulate()
+        >>> fig = SignalPlotting.brightness_temperature(signal_images[0])
+        >>> fig.savefig("brightness_temperature.png")
 
-    >>> from karabo.simulation.signal.plotting import SignalPlotting
-    >>> z = Signal21cm.randomized_lightcones(200, 8)
-    >>> SignalPlotting.brightness_temperature(z, z_layer=100)
+        >>> from karabo.simulation.signal.plotting import SignalPlotting
+        >>> z = Signal21cm.randomized_lightcones(200, 8)
+        >>> SignalPlotting.brightness_temperature(z, z_layer=100)
     """
 
     astro_gmell_base_url = "https://ttt.astro.su.se/~gmell/244Mpc"
@@ -43,10 +42,9 @@ class Signal21cm(BaseSignal[Image3D]):
         """
         21cm Signal simulation.
 
-        Parameters
-        ----------
-        files : list[XFracDensFilePair]
-            The xfrac and dens files to be used in the
+        Args:
+            files (list[XFracDensFilePair]): The xfrac and dens files to be used in the
+                simulation.
         """
         self.files: Final[list[XFracDensFilePair]] = files
 
@@ -54,16 +52,13 @@ class Signal21cm(BaseSignal[Image3D]):
         """
         Simulate the 21cm signal as a 3D intensity cube.
 
-        Returns
-        -------
-        list[Image3D]
-            A list of 3D image cubes, based on the `self.files` list of provided xfrac
-            and dens files. The pixel values are in Kelvin.
+        Returns:
+            list[Image3D]: A list of 3D image cubes, based on the `self.files` list of
+                provided xfrac and dens files. The pixel values are in Kelvin.
 
-        Raises
-        ------
-        KaraboError
-            If a pair of xfrac and dens files do not have the same redshift values.
+        Raises:
+            KaraboError: If a pair of xfrac and dens files do not have the same
+                redshift values.
         """
         cubes: list[Image3D] = []
 
@@ -108,15 +103,11 @@ class Signal21cm(BaseSignal[Image3D]):
         """
         Light cone HII region size calculation function (default implementation).
 
-        Parameters
-        ----------
-        redshift : float
-            Redshift, to determine the radius for.
+        Args:
+            redshift (float): Redshift, to determine the radius for.
 
-        Returns
-        -------
-        float
-            Light cone radius.
+        Returns:
+            float: Light cone radius.
         """
         return cast(float, 30 * np.exp(-(redshift - 7.0) / 3))
 
@@ -131,25 +122,19 @@ class Signal21cm(BaseSignal[Image3D]):
         """
         Generate an image with randomized light cones.
 
-        Parameters
-        ----------
-        n_cells : int
-            The count of cells to produce.
-        z : float
-            The redshift value for this image.
-        r_hii : Callable[[float], float], optional
-            Radius function of the HII region. By default None, resulting in the
-            execution of `Signal21cm.default_r_hii`
+        Args:
+            n_cells (int): The count of cells to produce.
+            z (float): The redshift value for this image.
+            r_hii (Callable[[float], float], optional): Radius function of the HII
+                region. If None, `Signal21cm.default_r_hii` is executed. Defaults to
+                None.
 
-        Notes
-        -----
-        Implementation according to
-        https://tools21cm.readthedocs.io/examples/lightcone.html
+        Note:
+            Implementation according to
+            https://tools21cm.readthedocs.io/examples/lightcone.html
 
-        Returns
-        -------
-        Image3D
-            The generated cube with multiple light cones.
+        Returns:
+            Image3D: The generated cube with multiple light cones.
         """
         cube: NDArray[np.float64] = np.zeros(
             (n_cells, n_cells, n_cells),
@@ -210,17 +195,12 @@ class Signal21cm(BaseSignal[Image3D]):
 
         They are downloaded and cached on the first access.
 
-        Parameters
-        ----------
-        z : float
-            Redshift value.
-        box_dims : float
-            Box dimensions used for these files.
+        Args:
+            z (float): Redshift value.
+            box_dims (float): Box dimensions used for these files.
 
-        Returns
-        -------
-        XFracDensFilePair
-            A tuple of xfrac and dens files.
+        Returns:
+            XFracDensFilePair: A tuple of xfrac and dens files.
         """
 
         xfrac_name = f"xfrac3d_{z:.3f}.bin"
@@ -245,10 +225,8 @@ class Signal21cm(BaseSignal[Image3D]):
         """
         Get all available redshifts for xfrac files.
 
-        Returns
-        -------
-        list[float]
-            List of all available redshifts for xfrac files.
+        Returns:
+            list[float]: List of all available redshifts for xfrac files.
         """
         resp = requests.get(
             f"{Signal21cm.astro_gmell_base_url}/{Signal21cm.xfrac_url}",
@@ -265,10 +243,8 @@ class Signal21cm(BaseSignal[Image3D]):
         """
         Get all available redshifts for dens files.
 
-        Returns
-        -------
-        list[float]
-            List of all available redshifts for dens files.
+        Returns:
+            list[float]: List of all available redshifts for dens files.
         """
         resp = requests.get(
             f"{Signal21cm.astro_gmell_base_url}/{Signal21cm.dens_url}",
@@ -283,10 +259,8 @@ class Signal21cm(BaseSignal[Image3D]):
     def available_redshifts(cls) -> list[float]:
         """Get all available redshifts.
 
-        Returns
-        -------
-        list[float]
-            List of all available redshifts.
+        Returns:
+            list[float]: List of all available redshifts.
         """
         all_redshifts = set(cls.available_redshifts_dens()).intersection(
             set(cls.available_redshifts_xfrac())

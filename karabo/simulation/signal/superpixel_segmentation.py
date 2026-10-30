@@ -11,16 +11,15 @@ class SuperpixelSegmentation(BaseSegmentation):
     """
     Superpixel based segmentation.
 
-    Examples
-    --------
-    >>> from karabo.simulation.signal.plotting import SegmentationPlotting
-    >>> from karabo.simulation.signal.signal_21_cm import Signal21cm
-    >>> z1 = Signal21cm.get_xfrac_dens_file(z=7.059, box_dims=244 / 0.7)
-    >>> sig = Signal21cm([z1])
-    >>> seg = SuperpixelSegmentation(max_baseline=70.0,  max_iter=5, n_segments=1000)
-    >>> signal_images = sig.simulate()
-    >>> segmented = seg.segment(signal_images[0])
-    >>> SegmentationPlotting.superpixel_plotting(segmented, signal_images[0])
+    Examples:
+        >>> from karabo.simulation.signal.plotting import SegmentationPlotting
+        >>> from karabo.simulation.signal.signal_21_cm import Signal21cm
+        >>> z1 = Signal21cm.get_xfrac_dens_file(z=7.059, box_dims=244 / 0.7)
+        >>> sig = Signal21cm([z1])
+        >>> seg = SuperpixelSegmentation(max_baseline=70.0, max_iter=5, n_segments=1000)
+        >>> signal_images = sig.simulate()
+        >>> segmented = seg.segment(signal_images[0])
+        >>> SegmentationPlotting.superpixel_plotting(segmented, signal_images[0])
     """
 
     def __init__(
@@ -29,12 +28,13 @@ class SuperpixelSegmentation(BaseSegmentation):
         """
         Superpixel based segmentation.
 
-        Parameters
-        ----------
-        n_segments : int, optional
-            Number of segments for the t2c.slice_cube function, by default 1000
-        max_iter : int, optional
-            Max number of iterations of the t2c.slice_cube function, by default 5
+        Args:
+            max_baseline (float, optional): Maximum baseline of the telescope.
+                Defaults to 70.0.
+            n_segments (int, optional): Number of segments for the t2c.slice_cube
+                function. Defaults to 1000.
+            max_iter (int, optional): Max number of iterations of the t2c.slice_cube
+                function. Defaults to 5.
         """
         self.max_baseline = max_baseline
         self.n_segments = n_segments
@@ -44,15 +44,11 @@ class SuperpixelSegmentation(BaseSegmentation):
         """
         Superpixel based segmentation.
 
-        Parameters
-        ----------
-        image : Image3D
-            The constructed simulation
+        Args:
+            image (Image3D): The constructed simulation
 
-        Returns
-        -------
-        SegmentationOutput
-            Superpixel cube
+        Returns:
+            SegmentationOutput: Superpixel cube
         """
         dt2 = image.data
         redshift = image.redshift

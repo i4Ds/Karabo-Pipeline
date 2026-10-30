@@ -26,26 +26,19 @@ def filter_dataframe_radec(
     Expects the Center to be at (0°, 0°) with the RA axis having a range of (-180°,
     180°) and the DEC axis (-90°, 90°).
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The dataframe that is to be filtered.
-    centre : SkyCoord
-        The center position of the filter.
-    fov : Angle
-        Field of View in the (RA, DEC) axis.
-    ra_column : str
-        Name of the RA column in the dataframe.
-    dec_column : str
-        Name of the DEC column in the dataframe.
-    wrap_offset : bool
-        If we reach a wrap point, if all the coordinates should be wrapped back into the
-        positive space.
+    Args:
+        df (pd.DataFrame): The dataframe that is to be filtered.
+        centre (SkyCoord): The center position of the filter.
+        fov (Angle): Field of View in the (RA, DEC) axis.
+        ra_column (str): Name of the RA column in the dataframe.
+        dec_column (str): Name of the DEC column in the dataframe.
+        wrap_offset (bool, optional): If we reach a wrap point, if all the
+            coordinates should be wrapped back into the positive space.
+            Defaults to False.
 
-    Returns
-    -------
-    tuple[pd.DataFrame, Angle, Angle]
-        The filtered dataframe (copy), lower left corner, upper right corner.
+    Returns:
+        tuple[pd.DataFrame, Angle, Angle]: The filtered dataframe (copy), lower
+            left corner, upper right corner.
     """
     fov_ra: float = (fov.degree[0] / 2) * units.deg
     fov_dec: float = (fov.degree[1] / 2) * units.deg
@@ -85,18 +78,13 @@ def _wrap_data(
     """
     Wrap any data that was fetched from a "wrapped" dataset.
 
-    Parameters
-    ----------
-    data : pd.DataFrame
-        The data that may contain the "wrapped" data.
-    ra_column : str
-        Column name for the RA column
-    dec_column : str
-        Column name for the DEC column
-    bottom_left : Annotated[Angle, Literal[2]]
-        Bottom left corner Angle of the data
-    top_right : Annotated[Angle, Literal[2]]
-        Top right corner Angle of the data
+    Args:
+        data (pd.DataFrame): The data that may contain the "wrapped" data.
+        ra_column (str): Column name for the RA column
+        dec_column (str): Column name for the DEC column
+        bottom_left (Annotated[Angle, Literal[2]]): Bottom left corner Angle of the
+            data
+        top_right (Annotated[Angle, Literal[2]]): Top right corner Angle of the data
     """
     if (top_right.degree[0] % 180) < bottom_left.degree[0]:
         ra_offset = 180 - top_right.degree[0]
@@ -130,20 +118,16 @@ def _filter_series(
 
     70° to 90° plus -90° to -60°
 
-    Parameters
-    ----------
-    series : Annotated[pd.Series, Literal["N"]]
-        The series to be filtered.
-    angle : Annotated[Angle, Literal[2]]
-        The angle filter the coordinates between. Requires two angles to be present.
-    data_range : Annotated[Angle, Literal[2]]
-        At what angle data series starts / ends.
+    Args:
+        series (Annotated[pd.Series, Literal["N"]]): The series to be filtered.
+        angle (Annotated[Angle, Literal[2]]): The angle filter the coordinates
+            between. Requires two angles to be present.
+        data_range (Annotated[Angle, Literal[2]]): At what angle data series
+            starts / ends.
 
-    Returns
-    -------
-    Annotated[pd.Series, Literal["N"]]
-        Filter series for selecting only the requested angle. Only contains boolean
-        values.
+    Returns:
+        Annotated[pd.Series, Literal["N"]]: Filter series for selecting only the
+            requested angle. Only contains boolean values.
     """
     start = data_range.degree[0]
     end = data_range.degree[1]
@@ -186,26 +170,19 @@ def map_radec_datapoints_to_grid(
     For each pixel in the destination grid, the equivalent degree range in the
     source will be summed together and set in the destination grid.
 
-    Parameters
-    ----------
-    data : pd.DataFrame,
-        The data that is to be plotted onto the grid.
-    grid_size : tuple[Annotated[int, Literal["X"]], Annotated[int, Literal["Y"]]]
-        Size of the output grid.
-    ra_column : str
-        Name of the RA column in the dataframe.
-    dec_column : str
-        Name of the DEC column in the dataframe.
-    intensity_column : str
-        Name of the column to use for the intensities.
-    par_count : int, optional
-        How many processes to use to map the data points. By default 5.
+    Args:
+        data (pd.DataFrame): The data that is to be plotted onto the grid.
+        grid_size (tuple[Annotated[int, Literal["X"]], Annotated[int, Literal["Y"]]]):
+            Size of the output grid.
+        ra_column (str): Name of the RA column in the dataframe.
+        dec_column (str): Name of the DEC column in the dataframe.
+        intensity_column (str): Name of the column to use for the intensities.
+        par_count (int, optional): How many processes to use to map the data
+            points. Defaults to 5.
 
-    Returns
-    -------
-    Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]
-        A 2D numpy array representing an image with the dimensions of the grid_size
-        parameter.
+    Returns:
+        Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]: A 2D numpy array
+            representing an image with the dimensions of the grid_size parameter.
     """
     x_min, x_max = data[ra_column].agg(["min", "max"])
     y_min, y_max = data[dec_column].agg(["min", "max"])
@@ -295,19 +272,16 @@ def interpolate_image(
     """
     Interpolate an image from it's original size to `new_size`.
 
-    Parameters
-    ----------
-    image : Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]
-        The image that is to be interpolated.
-    new_size : tuple[int, int]
-        The desired output size of the image
-    mode : SciPyInterpolationModes, optional
-        The interpolation mode, by default "constant".
+    Args:
+        image (Annotated[npt.NDArray[np.float64], Literal["X", "Y"]]): The image
+            that is to be interpolated.
+        new_size (tuple[int, int]): The desired output size of the image
+        mode (SciPyInterpolationModes, optional): The interpolation mode.
+            Defaults to "constant".
 
-    Returns
-    -------
-    Annotated[npt.NDArray[np.float64], Literal["N", "M"]]
-        The interpolated input image with it's new dimensions.
+    Returns:
+        Annotated[npt.NDArray[np.float64], Literal["N", "M"]]: The interpolated
+            input image with it's new dimensions.
     """
     original_shape = image.shape
 

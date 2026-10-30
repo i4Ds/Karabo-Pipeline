@@ -55,11 +55,11 @@ def format_timedelta(td: timedelta) -> str:
     """
     Formats a datetime.timedelta object as a readable time difference string.
 
-    The output format is "[-]HH:MM:SS.sss", where the minus sign is included only
-    if the timedelta is negative. Hours, minutes, and seconds are zero-padded to two
-    digits, and seconds include three decimal places for milliseconds.
+    The output format is "[-]HH h MM m SS.sss s", where the minus sign is included
+    only if the timedelta is negative. Hours, minutes, and seconds are zero-padded to
+    two digits, and seconds include three decimal places for milliseconds.
 
-    Parameters:
+    Args:
         td (datetime.timedelta): The time difference to format.
 
     Returns:
@@ -529,7 +529,8 @@ class InterferometerSimulation:
         parameters (times/frequencies) should coincide with the planned observation.
         see https://github.com/timcornwell/ARatmospy
 
-        :param file_path: file path to fits file.
+        Args:
+            file_path (str): File path to fits file.
         """
         self.ionosphere_fits_path = file_path
 
