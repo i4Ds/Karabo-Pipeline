@@ -20,6 +20,7 @@ and a previous ``invert`` call on the same instance before ``restore``. See
 :doc:`imaging_backend_selection` for an example and weighting defaults.
 
 .. autoclass:: karabo.imaging.backends.wsclean_backend.WscleanBackendConfig
+   :no-index:
    :members:
    :undoc-members:
 
@@ -27,18 +28,21 @@ Direct classes
 --------------
 
 .. autoclass:: karabo.imaging.imager_wsclean.WscleanDirtyImager
+   :no-index:
    :members:
    :special-members: __init__
    :exclude-members: 
 
 
 .. autoclass:: karabo.imaging.imager_wsclean.WscleanImageCleanerConfig
+   :no-index:
    :members:
    :special-members: __init__
    :exclude-members:
 
 
 .. autoclass:: karabo.imaging.imager_wsclean.WscleanImageCleaner
+   :no-index:
    :members:
    :special-members: __init__
    :exclude-members:
@@ -48,3 +52,4 @@ Functions
 ---------
 
 .. autofunction:: karabo.imaging.imager_wsclean.create_image_custom_command
+   :no-index:

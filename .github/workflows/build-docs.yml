@@ -30,7 +30,7 @@ jobs:
           conda activate karabo_dev_env
           python doc/src/examples/combine_examples.py
           cp -a doc/src/ _build
-          sphinx-apidoc . -o _build
+          sphinx-apidoc -o _build karabo karabo/test karabo/performance_test
           make html
       - name: Archive doc build
         uses: actions/upload-artifact@v4

@@ -19,6 +19,7 @@ Configuration
 -------------
 
 .. autoclass:: karabo.imaging.backends.sdp_backend.SdpImagerConfig
+   :no-index:
    :members:
    :undoc-members:
 
@@ -26,4 +27,5 @@ Implementation reference
 ------------------------
 
 .. autoclass:: karabo.imaging.backends.sdp_backend.SdpImager
+   :no-index:
    :members: invert, restore
