@@ -1,10 +1,10 @@
 # Installation (User)
 
 ## System Requirements
-- Linux or Windows with WSL. For macOS we recommend you use [Docker](container.md), starting with version 0.18.1 of the image.
+- Linux or Windows with WSL. For macOS we recommend you use [Docker](container.md), starting with version 0.31.0 of the image.
 - 8GB RAM
 - 10GB disk space
-- GPU-acceleration requires proprietary nVidia drivers/CUDA >= 11
+- GPU-acceleration requires proprietary nVidia drivers/CUDA >= 12
 
 ## Install Karabo
 The following steps will install Karabo and its prerequisites (miniconda):
@@ -17,7 +17,7 @@ source ~/miniconda3/bin/activate
 conda init bash
 conda install -n base conda-libmamba-solver
 # setup virtual environment
-conda create -n karabo python=3.10
+conda create -n karabo python=3.12
 conda activate karabo
 conda config --env --set solver libmamba
 conda config --env --set channel_priority true
@@ -42,7 +42,7 @@ conda update -c nvidia/label/cuda-12.9.1 -c i4ds -c conda-forge karabo-pipeline
 ```
 
 ## Older versions of Karabo
-Karabo versions older than `v0.15.0` are deprecated and therefore installation will most likely fail. In addition, we do not support Karabo older than latest-minor version in case dependency resolving or online resources are outdated. Therefore, we strongly recommend using the latest version of Karabo. If an older version of Karabo is required, we recommend using a [container](container.md), as the environment is fixed in a container, or extract the environment dependencies using `conda env export --no-builds`. However, outdated online resources may still occur.
+Karabo versions older than `v0.31.0` are no longer supported. In addition, we do not support Karabo older than latest-minor version in case dependency resolving or online resources are outdated. Therefore, we strongly recommend using the latest version of Karabo. If an older version of Karabo is required, we recommend using a [container](container.md), as the environment is fixed in a container, or extract the environment dependencies using `conda env export --no-builds`. However, outdated online resources may still occur.
 
 
 ## Additional notes and troubleshooting
