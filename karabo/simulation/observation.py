@@ -138,26 +138,28 @@ class ObservationAbstract(ABC):
         the missing information is repeated to match the longest list.
 
         Args:
-        settings_tree : OskarSettingsTreeType
-            The OSKAR settings tree, with 'observation' key among others.
-        central_frequencies_hz : int or list of int
-            List of central frequencies in MHz for each observation.
-        channel_bandwidths_hz : int or list of int
-            List of channel bandwidths in MHz for each observation.
-        n_channels : int or list of int
-            List of numbers of channels for each observation.
+            settings_tree (OskarSettingsTreeType): The OSKAR settings tree, with
+                'observation' key among others.
+            central_frequencies_hz (int or list of int): List of frequencies in Hz
+                for each observation. Each value is written to
+                'start_frequency_hz', i.e. it is the centre of the first channel.
+                It equals the centre of the whole band only if the observation
+                has a single channel.
+            channel_bandwidths_hz (int or list of int): List of channel bandwidths
+                in Hz for each observation.
+            n_channels (int or list of int): List of numbers of channels for each
+                observation.
 
         Returns:
-        list of dict: List of OSKAR observations,
-        each as a dictionary with 'observation' key among others.
-
-        Raises:
-        ValueError: If the input lists are not of the same length.
+            list of dict: List of OSKAR observations, each as a dictionary with
+                'observation' key among others.
 
         Note:
-        The 'observation' key in each dictionary in the returned list has a value
-        which is itself a dictionary, with keys 'start_frequency_hz',
-        'num_channels', and 'frequency_inc_hz'.
+            The 'observation' key in each dictionary in the returned list has a
+            value which is itself a dictionary, with keys 'start_frequency_hz',
+            'num_channels', and 'frequency_inc_hz'.
+
+            Input lists shorter than the longest one are extended in place.
         """
         # If the input is int, convert it into list
         if not isinstance(central_frequencies_hz, List):
