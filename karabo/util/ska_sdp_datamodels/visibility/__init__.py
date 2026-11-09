@@ -5,6 +5,7 @@ does not yet provide the Measurement Set export API used here. Remove this
 vendored package and import ``ska_sdp_datamodels.visibility`` directly once a
 newer data-model release has been validated as a separate dependency upgrade.
 """
+
 import warnings
 from importlib.metadata import version
 
