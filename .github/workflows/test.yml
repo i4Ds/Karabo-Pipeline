@@ -72,7 +72,7 @@ jobs:
         run: |
           conda activate test_karabo
           flake8 .
-          black --check .
+          black --check --target-version py312 .
           isort --check .
           mypy .
 

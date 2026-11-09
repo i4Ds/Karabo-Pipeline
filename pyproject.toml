@@ -6,7 +6,7 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -14,8 +14,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -41,9 +39,13 @@ tag_prefix = "v"
 [tool.pytest.ini_options]
 testpaths = "karabo/test"
 
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
 [project.optional-dependencies]
     dev = [
-        'black[jupyter]==23.10.0',
+        'black[jupyter]==26.3.1',
         'flake8==6.1.0',
         'ipykernel',
         'isort==5.12.0',

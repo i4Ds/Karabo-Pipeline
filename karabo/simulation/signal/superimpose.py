@@ -19,17 +19,12 @@ class Superimpose:
         """
         Combine the data of two 2D images.
 
-        Parameters
-        ----------
-        first_image_data_2d : npt.NDArray[np.float64]
-            First image data to be combined
-        second_image_data_2d : npt.NDArray[np.float64]
-            Second image data to be combined
+        Args:
+            first_image_2d (Image2D): First image data to be combined
+            second_image_2d (Image2D): Second image data to be combined
 
-        Returns
-        -------
-        npt.NDArray[np.float64]
-            Combined image data
+        Returns:
+            Image2D: Combined image data
         """
         data = np.add(second_image_2d.data, first_image_2d.data)
         return Image2D(
@@ -49,17 +44,12 @@ class Superimpose:
         """
         Combine the data of a 3D and 2D images.
 
-        Parameters
-        ----------
-        image_data_3d : npt.NDArray[np.float64]
-            3D image data to be combined
-        image_data_2d : npt.NDArray[np.float64]
-            Image data to be combined
+        Args:
+            image_3d (Image3D): 3D image data to be combined
+            image_2d (Image2D): Image data to be combined
 
-        Returns
-        -------
-        npt.NDArray[np.float64]
-            Combined image data
+        Returns:
+            Image3D: Combined image data
         """
         data = np.add(image_3d.data, image_2d.data)
         return Image3D(
@@ -80,17 +70,12 @@ class Superimpose:
         """
         Combine the data of two 3D images.
 
-        Parameters
-        ----------
-        first_image_data_3d : npt.NDArray[np.float64]
-            3D image data to be combined
-        second_image_data_3d : npt.NDArray[np.float64]
-            3D image data to be combined
+        Args:
+            first_image_3d (Image3D): 3D image data to be combined
+            second_image_3d (Image3D): 3D image data to be combined
 
-        Returns
-        -------
-        npt.NDArray[np.float64]
-            Combined image data
+        Returns:
+            Image3D: Combined image data
         """
         data = np.add(first_image_3d.data, second_image_3d.data)
         return Image3D(
@@ -115,21 +100,15 @@ class Superimpose:
 
         If only one signal is passed, it gets returned without any further processing.
 
-        Parameters
-        ----------
-        signals : BaseImage
-            The signals that are to be combined.
+        Args:
+            *signals (BaseImage): The signals that are to be combined.
 
-        Returns
-        -------
-        BaseImage
-            If the input includes at least one Image3D, the return type is a Image3D,
-            else Image2D.
+        Returns:
+            BaseImage: If the input includes at least one Image3D, the return type is
+                a Image3D, else Image2D.
 
-        Raises
-        ------
-        KaraboError
-            When an empty signal list is passed in.
+        Raises:
+            KaraboError: When an empty signal list is passed in.
         """
         if (sig_count := len(signals)) == 1:
             return signals[0]

@@ -19,13 +19,17 @@ def east_north_to_long_lat(
     based on some reference location, using a rigorous ENU → ECEF → geodetic
     conversion on the WGS84 ellipsoid.
 
-    :param east_relative: east coordinate in meters
-    :param north_relative: north coordinate in meters
-    :param long: reference location longitude in degrees
-    :param lat: reference location latitude in degrees
-    :param alt: reference location altitude in meters (default 0.0)
-    :param up: up (vertical) offset in meters (default 0.0)
-    :return: Tuple of calculated (longitude, latitude) in degrees
+    Args:
+        east_relative (float): East coordinate in meters.
+        north_relative (float): North coordinate in meters.
+        long (float): Reference location longitude in degrees.
+        lat (float): Reference location latitude in degrees.
+        alt (float, optional): Reference location altitude in meters.
+            Defaults to 0.0.
+        up (float, optional): Up (vertical) offset in meters. Defaults to 0.0.
+
+    Returns:
+        Tuple[float, float]: Calculated (longitude, latitude) in degrees.
     """
     # 1. Reference point in ECEF
     ref = EarthLocation.from_geodetic(

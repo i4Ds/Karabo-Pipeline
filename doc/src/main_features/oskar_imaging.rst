@@ -16,12 +16,14 @@ Classes
 -------
 
 .. autoclass:: karabo.imaging.imager_oskar.OskarDirtyImagerConfig
+   :no-index:
    :members:
    :special-members: __init__
    :exclude-members: 
 
 
 .. autoclass:: karabo.imaging.imager_oskar.OskarDirtyImager
+   :no-index:
    :members:
    :special-members: __init__
    :exclude-members:

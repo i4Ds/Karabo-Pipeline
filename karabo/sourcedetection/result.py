@@ -57,16 +57,13 @@ class ISourceDetectionResult(ABC):
 
     @property
     @abstractmethod
-    def detected_sources(self) -> NDArray[np.float64]:
-        ...
+    def detected_sources(self) -> NDArray[np.float64]: ...
 
     @abstractmethod
-    def has_source_image(self) -> bool:
-        ...
+    def has_source_image(self) -> bool: ...
 
     @abstractmethod
-    def get_source_image(self) -> Optional[Image]:
-        ...
+    def get_source_image(self) -> Optional[Image]: ...
 
 
 class SourceDetectionResult(ISourceDetectionResult):

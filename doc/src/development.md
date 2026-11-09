@@ -5,8 +5,8 @@
 Make sure you have a working installation of Conda, with, e.g.:
 
 ```shell
-wget https://repo.anaconda.com/miniconda/Miniconda3-py39_23.5.2-0-Linux-x86_64.sh
-bash Miniconda3-py39_23.5.2-0-Linux-x86_64.sh -b
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh -b
 source ~/miniconda3/bin/activate
 ```
 

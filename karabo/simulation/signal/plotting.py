@@ -30,15 +30,11 @@ class SignalPlotting:
         """
         Plot the xfrac and dens files.
 
-        Parameters
-        ----------
-        data : XFracDensFilePair
-            The xfrac and dens file pair.
+        Args:
+            data (XFracDensFilePair): The xfrac and dens file pair.
 
-        Returns
-        -------
-        Figure
-            The figure that was plotted.
+        Returns:
+            Figure: The figure that was plotted.
         """
         loaded = data.load()
         x, y = loaded.xy_dims()
@@ -67,18 +63,13 @@ class SignalPlotting:
         """
         Plot the brightness temperature of a 2D image.
 
-        Parameters
-        ----------
-        data : BaseImage
-            The image to be plotted.
+        Args:
+            data (BaseImage): The image to be plotted.
+            z_layer (int, optional): The Z layer to be used, when a Image3D is used.
+                Defaults to 0.
 
-        z_layer : int, optional
-            The Z layer to be used, when a Image3D is used.
-
-        Returns
-        -------
-        Figure
-            Figure of the plotted image
+        Returns:
+            Figure: Figure of the plotted image
         """
         image_data = data.data
         x_label = data.x_label
@@ -103,17 +94,14 @@ class SignalPlotting:
         """
         Plot the power spectrum the 21cm signal using xfrac and dens-files.
 
-        Parameters
-        ----------
-        data : Union[XFracDensFilePair, list[XFracDensFilePair]]
-            The xfrac and dens file pair or a list thereof.
-        kbins : int, optional
-            Count of bins for the spectrum plot, by default 15
+        Args:
+            data (Union[XFracDensFilePair, list[XFracDensFilePair]]): The xfrac and
+                dens file pair or a list thereof.
+            kbins (int, optional): Count of bins for the spectrum plot. Defaults to
+                15.
 
-        Returns
-        -------
-        Figure
-            The generated plot figure.
+        Returns:
+            Figure: The generated plot figure.
         """
         if not isinstance(data, list):
             data = [data]
@@ -154,20 +142,16 @@ class SignalPlotting:
         """
         Plot the power spectrum the 21cm signal.
 
-        Parameters
-        ----------
-        data : Union[BaseImage, SegmentationOutput]
-            Either a BaseImage or a SegmentationOutput
-        kbins : int, optional
-            Count of bins for the spectrum plot, by default 15
-        z_layer : int
-            If an Image3D is passed, then this layer will be used to plot the image. By
-            default 0
+        Args:
+            data (Union[BaseImage, SegmentationOutput]): Either a BaseImage or a
+                SegmentationOutput
+            kbins (int, optional): Count of bins for the spectrum plot. Defaults to
+                15.
+            z_layer (int, optional): If an Image3D is passed, then this layer will be
+                used to plot the image. Defaults to 0.
 
-        Returns
-        -------
-        Figure
-            The generated plot figure.
+        Returns:
+            Figure: The generated plot figure.
         """
         if not isinstance(data, list):
             data = [data]
@@ -214,22 +198,17 @@ class SignalPlotting:
         """
         Plot the power spectrum by using an image and the original xfrac/dens file pair.
 
-        Parameters
-        ----------
-        image : Union[BaseImage, SegmentationOutput]
-            Either a BaseImage or a SegmentationOutput
-        xfrac_dens : XFracDensFilePair
-            The xfrac and dens file pair.
-        kbins : int, optional
-            Count of bins for the spectrum plot, by default 15
-        z_layer : int
-            If an Image3D is passed, then this layer will be used to plot the image. By
-            default 0
+        Args:
+            image (Union[BaseImage, SegmentationOutput]): Either a BaseImage or a
+                SegmentationOutput
+            xfrac_dens (XFracDensFilePair): The xfrac and dens file pair.
+            kbins (int, optional): Count of bins for the spectrum plot. Defaults to
+                15.
+            z_layer (int, optional): If an Image3D is passed, then this layer will be
+                used to plot the image. Defaults to 0.
 
-        Returns
-        -------
-        Figure
-            The generated plot figure.
+        Returns:
+            Figure: The generated plot figure.
         """
         fig, ax = plt.subplots(figsize=(16, 6))
         ax.set_xlabel(r"k (Mpc$^{-1}$)")
@@ -291,27 +270,22 @@ class SignalPlotting:
         """
         Plot a general image with a temperature.
 
-        Parameters
-        ----------
-        img : Image2D
-            The image to be plotted.
-        title : str
-            Title to be shown in the figure.
-        tick_count : int, optional
-            The count of ticks to show along each axis, by default 5
-        x_label : str, optional
-            Label to be plotted along the X-axis.
-        y_label : str, optional
-            Label to be plotted along the Y-axis.
-        bar_label: str, optional
-            Label for the color bar.
-        log_bar : bool, optional
-            If the color bar should have a symmetric log norm applied.
+        Args:
+            img (Image2D): The image to be plotted.
+            title (str): Title to be shown in the figure.
+            tick_count (int, optional): The count of ticks to show along each axis.
+                Defaults to 5.
+            x_label (str, optional): Label to be plotted along the X-axis.
+                Defaults to "RA [°]".
+            y_label (str, optional): Label to be plotted along the Y-axis.
+                Defaults to "DEC [°]".
+            bar_label (str, optional): Label for the color bar.
+                Defaults to "Temperature [K]".
+            log_bar (bool, optional): If the color bar should have a symmetric log
+                norm applied. Defaults to False.
 
-        Returns
-        -------
-        Figure
-            The resulting plot figure.
+        Returns:
+            Figure: The resulting plot figure.
         """
         fig, ax = plt.subplots(1, 1)
 
@@ -356,25 +330,21 @@ class SignalPlotting:
         """
         Plot a RA/DEC data in a polar plot with the intensity representing the color.
 
-        Parameters
-        ----------
-        ra_series : Annotated[npt.NDArray[np.float64], Literal["N"]]
-            RA coordinates in degrees.
-        dec_series : Annotated[npt.NDArray[np.float64], Literal["N"]]
-            DEC coordinates in degrees.
-        intensities_series : Annotated[npt.NDArray[np.float64], Literal["N"]]
-            Intensities in Kelvin.
-        title : str
-            Title to be shown in the figure.
-        bar_label: str, optional
-            Label for the color bar.
-        log_bar : bool, optional
-            If the color bar should have a symmetric log norm applied.
+        Args:
+            ra_series (Annotated[npt.NDArray[np.float64], Literal["N"]]): RA
+                coordinates in degrees.
+            dec_series (Annotated[npt.NDArray[np.float64], Literal["N"]]): DEC
+                coordinates in degrees.
+            intensities_series (Annotated[npt.NDArray[np.float64], Literal["N"]]):
+                Intensities in Kelvin.
+            title (str): Title to be shown in the figure.
+            bar_label (str, optional): Label for the color bar.
+                Defaults to "Temperature [K]".
+            log_bar (bool, optional): If the color bar should have a symmetric log
+                norm applied. Defaults to False.
 
-        Returns
-        -------
-        Figure
-            The resulting plot figure.
+        Returns:
+            Figure: The resulting plot figure.
         """
         add_kwargs: dict[str, Any] = {}
         if log_bar:
@@ -408,22 +378,16 @@ class SegmentationPlotting:
         """
         Plot the first slice of the segU-net cube.
 
-        Parameters
-        ----------
-        segmented : SegmentationOutput
-            Output of the segmentation
-        bin_count : int
-            The number output bins in the histogram plot
+        Args:
+            segmented (SegmentationOutput): Output of the segmentation
+            bin_count (int, optional): The number output bins in the histogram plot.
+                Defaults to 20.
 
-        Returns
-        -------
-        Figure
-            Plot of the SegU-Net segmentation
+        Returns:
+            Figure: Plot of the SegU-Net segmentation
 
-        Raises
-        ------
-        KaraboError
-            If the input 'xhi_seg_err' is None
+        Raises:
+            KaraboError: If the input 'xhi_seg_err' is None
         """
         xhi_seg = segmented.image.data
         boxsize = segmented.image.box_dims
@@ -501,24 +465,17 @@ class SegmentationPlotting:
         """
         Plot the first slice of the superpixel cube.
 
-        Parameters
-        ----------
-        segmented : SegmentationOutput
-            output of the segmentation
-        signal_image : Image3D
-            Image cube
-        log_sky : bool, optional
-            If the color bar of the sky plot should have a symmetric log norm applied.
+        Args:
+            segmented (SegmentationOutput): output of the segmentation
+            signal_image (Image3D): Image cube
+            log_sky (bool, optional): If the color bar of the sky plot should have a
+                symmetric log norm applied. Defaults to False.
 
-        Returns
-        -------
-        Figure
-            Plot of the Superpixel segmentation
+        Returns:
+            Figure: Plot of the Superpixel segmentation
 
-        Raises
-        ------
-        KaraboError
-            If the input 'xhii_stitch' is None
+        Raises:
+            KaraboError: If the input 'xhii_stitch' is None
         """
         dt2 = signal_image.data
         box_dims = signal_image.box_dims

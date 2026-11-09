@@ -320,14 +320,12 @@ class DaskHandlerSlurm(DaskHandlerBasic):
             cls._nodes_prepared = True
             slurm_job_nodelist = cls._get_job_nodelist()
             slurm_node_name = cls.get_node_name()
-            print(
-                f"""
+            print(f"""
                 Preparing SLURM nodes for dask...
                 First Node, containing the scheduler, is: {slurm_node_name}
                 With the help of dask, the following nodes will be used:
                 {slurm_job_nodelist}
-                """
-            )
+                """)
 
         elif not cls.is_first_node() and not cls._nodes_prepared:
             # TODO: Here setup_nannies_workers_for_slurm() could be called

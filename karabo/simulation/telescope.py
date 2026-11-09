@@ -170,21 +170,20 @@ OSKAR_TELESCOPE_TO_VERSIONS: Dict[OSKARTelescopesWithVersionType, Type[enum.Enum
 class Telescope:
     """Telescope
 
-    WGS84 longitude and latitude and altitude in metres centre of the telescope.png
+    WGS84 longitude and latitude and altitude in metres centre of the telescope
     centre. A telescope is described as follows:
 
     Each row represents one station, with the elements being the horizontal x (east),
     horizontal y (north), and horizontal z (up) coordinates,
-    followed by the errors in horizontal y (east), horizontal y (north),
+    followed by the errors in horizontal x (east), horizontal y (north),
     and horizontal z (up).
     Example: [[x, y, z, error_x, error_y, error_z], [...]]
 
-    centre_longitude : float
-        WGS84 longitude at the center of the telescope.
-    centre_latitude : float
-        WGS84 latitude at the center of the telescope.
-    centre_altitude : float
-        Altitude (in meters) at the center of the telescope.
+    Attributes:
+        centre_longitude (float): WGS84 longitude at the center of the telescope.
+        centre_latitude (float): WGS84 latitude at the center of the telescope.
+        centre_altitude (float): Altitude (in meters) at the center of the
+            telescope.
     """
 
     def __init__(
@@ -192,14 +191,11 @@ class Telescope:
     ) -> None:
         """__init__ method
 
-        Parameters
-        ----------
-        longitude : float
-            WGS84 longitude at the center of the telescope.
-        latitude : float
-            WGS84 latitude at the center of the telescope.
-        altitude : float, optional
-            Altitude (in meters) at the center of the telescope, default is 0.
+        Args:
+            longitude (float): WGS84 longitude at the center of the telescope.
+            latitude (float): WGS84 latitude at the center of the telescope.
+            altitude (float, optional): Altitude (in meters) at the center of the
+                telescope. Defaults to 0.0.
         """
         self.path: Optional[DirPathType] = None
         self._name: Optional[str] = None
@@ -220,8 +216,7 @@ class Telescope:
         name: OSKARTelescopesWithVersionType,
         version: enum.Enum,
         backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
-    ) -> Telescope:
-        ...
+    ) -> Telescope: ...
 
     @overload
     @classmethod
@@ -230,8 +225,7 @@ class Telescope:
         name: OSKARTelescopesWithoutVersionType,
         version: Literal[None] = None,
         backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
-    ) -> Telescope:
-        ...
+    ) -> Telescope: ...
 
     @overload
     @classmethod
@@ -240,8 +234,7 @@ class Telescope:
         name: SDPTelescopes,
         version: Literal[None] = None,
         backend: Literal[SimulatorBackend.SDP] = SimulatorBackend.SDP,
-    ) -> Telescope:
-        ...
+    ) -> Telescope: ...
 
     @classmethod
     def constructor(
@@ -255,21 +248,27 @@ class Telescope:
         backend: SimulatorBackend = SimulatorBackend.OSKAR,
     ) -> Telescope:
         """Main constructor to obtain a pre-configured telescope instance.
-        :param name: Name of the desired telescope configuration.
-            This name, together with the backend, is used as the key
-            to look up the correct telescope specification file.
-        :param version: Version details required for some
-            telescope configurations. Defaults to None.
-        :param backend: Underlying package to be used for the telescope configuration,
-            since each package stores the arrays in a different format.
-            Defaults to OSKAR.
-        :raise ValueError: If the combination of input parameters is invalid.
-            Specifically, if the requested telescope requires a version,
-            but an invalid version (or no version) is provided,
-            or if the requested telescope name is not
-            supported by the requested backend.
 
-        :return: Telescope instance
+        Args:
+            name (Union[SDPTelescopes, OSKARTelescopesWithVersionType,
+                OSKARTelescopesWithoutVersionType]): Name of the desired telescope
+                configuration. This name, together with the backend, is used as
+                the key to look up the correct telescope specification file.
+            version (Optional[enum.Enum], optional): Version details required for
+                some telescope configurations. Defaults to None.
+            backend (SimulatorBackend, optional): Underlying package to be used for
+                the telescope configuration, since each package stores the arrays
+                in a different format. Defaults to SimulatorBackend.OSKAR.
+
+        Returns:
+            Telescope: Telescope instance.
+
+        Raises:
+            ValueError: If the combination of input parameters is invalid.
+                Specifically, if the requested telescope requires a version,
+                but an invalid version (or no version) is provided,
+                or if the requested telescope name is not
+                supported by the requested backend.
         """
         if backend is SimulatorBackend.OSKAR:
             # Explicitly cast name depending on whether it requires a telescope version
@@ -292,27 +291,21 @@ but was not provided. Please provide a value for the version field."
             elif name in get_args(OSKARTelescopesWithoutVersionType):
                 name = cast(OSKARTelescopesWithoutVersionType, name)
                 data_path = OSKAR_TELESCOPE_TO_FILENAMES[name]
-                assert (
-                    version is None
-                ), f"""version is not a required field
+                assert version is None, f"""version is not a required field
                     for telescope {name}, but {version} was provided.
                     Please do not provide a value for the version field."""
             else:
-                raise TypeError(
-                    f"""
+                raise TypeError(f"""
                     {name=} is not an accepted telescope name for this backend.
-                """
-                )
+                """)
 
             path = os.path.join(get_module_absolute_path(), "data", data_path)
             return cls.read_OSKAR_tm_file(path)
         elif backend is SimulatorBackend.SDP:
             if version is not None:
-                logging.warning(
-                    f"""The version parameter is not supported
+                logging.warning(f"""The version parameter is not supported
     by the backend {backend}.
-    The version value {version} provided will be ignored."""
-                )
+    The version value {version} provided will be ignored.""")
             assert name in get_args(SDPTelescopes)
             try:
                 telescope = cls.__convert_sdp_configuration_to_telescope(name)
@@ -350,11 +343,14 @@ but was not provided. Please provide a value for the version field."
         This adapter populates Karabo stations so helpers such as max_baseline()
         and get_baseline_lengths() continue to work for SDP configurations.
 
-        :param instr_name: The name of the instrument to convert.
-        :raise ValueError: If instr_name is not a valid SKA-SDP telescope
-        :returns: An instance of Karabo Telescope.
-        :rtype: karabo.simulation.telescope.Telecope
+        Args:
+            instr_name (str): The name of the instrument to convert.
 
+        Returns:
+            Telescope: An instance of Karabo Telescope.
+
+        Raises:
+            ValueError: If instr_name is not a valid SKA-SDP telescope.
         """
         config = create_named_configuration(instr_name)
 
@@ -414,11 +410,9 @@ but was not provided. Please provide a value for the version field."
         if self.backend is SimulatorBackend.SDP:
             return self.SDP_configuration
 
-        raise ValueError(
-            f"""Unexpected: current backend is set to {self.backend},
+        raise ValueError(f"""Unexpected: current backend is set to {self.backend},
         but expected one of {SimulatorBackend}.
-        Verify the construction of this Telescope instance."""
-        )
+        Verify the construction of this Telescope instance.""")
 
     @property
     def SDP_configuration(self) -> Configuration:
@@ -437,13 +431,18 @@ but was not provided. Please provide a value for the version field."
         horizontal_z_coordinate_error: float = 0.0,
     ) -> None:
         """
-        Specify the stations as relative to the centre position
-        :param horizontal_x: east coordinate relative to centre
-        :param horizontal_y: north coordinate relative to centre
-        :param horizontal_z: up coordinate
-        :param horizontal_x_coordinate_error: east coordinate error
-        :param horizontal_y_coordinate_error: north coordinate error
-        :param horizontal_z_coordinate_error: up coordinate error
+        Specify the stations as relative to the centre position.
+
+        Args:
+            horizontal_x (float): East coordinate relative to centre.
+            horizontal_y (float): North coordinate relative to centre.
+            horizontal_z (float, optional): Up coordinate. Defaults to 0.0.
+            horizontal_x_coordinate_error (float, optional): East coordinate error.
+                Defaults to 0.0.
+            horizontal_y_coordinate_error (float, optional): North coordinate error.
+                Defaults to 0.0.
+            horizontal_z_coordinate_error (float, optional): Up coordinate error.
+                Defaults to 0.0.
         """
         self.stations.append(
             Station(
@@ -472,19 +471,21 @@ but was not provided. Please provide a value for the version field."
         horizontal_z_coordinate_error: float = 0,
     ) -> None:
         """
-        Add a new antenna to an existing station
+        Add a new antenna to an existing station.
 
-        :param station_index: Index of station to add antenna to
-        :param horizontal_x: east coordinate relative to the station center in metres
-        :param horizontal_y: north coordinate relative to the station center in metres
-        :param horizontal_z: altitude of antenna
-        :param horizontal_x_coordinate_error: east coordinate error
-            relative to the station center in metres
-        :param horizontal_y_coordinate_error: north coordinate error
-            relative to the station center in metres
-        :param horizontal_z_coordinate_error: altitude of antenna error
-
-        :return:
+        Args:
+            station_index (int): Index of station to add antenna to.
+            horizontal_x (float): East coordinate relative to the station center
+                in metres.
+            horizontal_y (float): North coordinate relative to the station center
+                in metres.
+            horizontal_z (float, optional): Altitude of antenna. Defaults to 0.
+            horizontal_x_coordinate_error (float, optional): East coordinate error
+                relative to the station center in metres. Defaults to 0.
+            horizontal_y_coordinate_error (float, optional): North coordinate error
+                relative to the station center in metres. Defaults to 0.
+            horizontal_z_coordinate_error (float, optional): Altitude of antenna
+                error. Defaults to 0.
         """
         if station_index >= 0 and station_index < len(self.stations):
             station = self.stations[station_index]
@@ -516,10 +517,8 @@ but was not provided. Please provide a value for the version field."
             # the SDP datamodel setup into an OSKAR setup when constructing it.
             self.plot_telescope_OSKAR(file)
         else:
-            logging.warning(
-                f"""Backend {self.backend} is not valid.
-            Proceeding without any further actions."""
-            )
+            logging.warning(f"""Backend {self.backend} is not valid.
+            Proceeding without any further actions.""")
             return
 
     def plot_telescope_OSKAR(
@@ -561,7 +560,8 @@ but was not provided. Please provide a value for the version field."
         """
         Retrieve the OSKAR Telescope object from the karabo.Telescope object.
 
-        :return: OSKAR Telescope object
+        Returns:
+            OskarTelescope: OSKAR Telescope object.
         """
         tmp_dir = FileHandler().get_tmp_dir(
             prefix="telescope-",
@@ -577,11 +577,17 @@ but was not provided. Please provide a value for the version field."
         return tel
 
     def write_to_disk(self, dir_name: DirPathType, *, overwrite: bool = False) -> None:
-        """Write `dir_path` to disk (must have .tm ending).
+        """Write the telescope configuration to `dir_name` (must have .tm ending).
 
-        :param dir: directory in which the configuration will be saved in.
-        :param overwrite: If True an existing directory is overwritten if exists. Be
-            careful to put the correct dir as input because the old one can get removed!
+        Args:
+            dir_name (DirPathType): Directory in which the configuration will be
+                saved in.
+            overwrite (bool, optional): If True an existing directory is
+                overwritten if exists. Be careful to put the correct dir as input
+                because the old one can get removed! Defaults to False.
+
+        Raises:
+            RuntimeError: If `dir_name` doesn't end with `.tm`.
         """
         if not str(dir_name).endswith(
             ".tm"
@@ -627,13 +633,18 @@ but was not provided. Please provide a value for the version field."
     @classmethod
     def read_OSKAR_tm_file(cls, path: DirPathType) -> Telescope:
         """Reads an OSKAR telescope model from disk and
-           returns an object of karabo.simulation.telescope.Telescope
+        returns an object of karabo.simulation.telescope.Telescope.
 
-        :param path: Path to a valid telescope model (extemsion * .tm)
-        :return: A karabo.simulation.telescope.Telescope object. Importantn:
-           The object has the backend set to SimulatorBackend.OSKAR.
-        :raises: A karabo.error.KaraboError if the path does not exit,
-           or the data in the file cannot be read.
+        Args:
+            path (DirPathType): Path to a valid telescope model (extension *.tm).
+
+        Returns:
+            Telescope: A karabo.simulation.telescope.Telescope object. Important:
+                The object has the backend set to SimulatorBackend.OSKAR.
+
+        Raises:
+            KaraboError: If the path does not exist, or the data in the file
+                cannot be read.
         """
         path_ = str(path)
         abs_station_dir_paths = []
@@ -809,16 +820,19 @@ but was not provided. Please provide a value for the version field."
     ) -> Tuple[DirPathType, Dict[str, str]]:
         """
         Returns a telescope model for telescope `tel` with baseline lengths
-            only between `lcut` and `hcut` metres.
+        only between `lcut` and `hcut` metres.
 
-        :param lcut: Lower cut
-        :param hcut: Higher cut
-        :param tel: Telescope to cut off
-        :param tm_path: .tm file-path to save the cut-telescope.
-            `tm_path` will get overwritten if it already exists.
+        Args:
+            lcut (NPFloatLike): Lower cut.
+            hcut (NPFloatLike): Higher cut.
+            tel (Telescope): Telescope to cut off.
+            tm_path (Optional[DirPathType], optional): .tm file-path to save the
+                cut-telescope. `tm_path` will get overwritten if it already exists.
+                Defaults to None.
 
-        :return: .tm file-path & station-name
-            conversion (e.g. station055 -> station009)
+        Returns:
+            Tuple[DirPathType, Dict[str, str]]: .tm file-path & station-name
+                conversion (e.g. station055 -> station009).
         """
         if tel.path is None:
             raise KaraboError(
