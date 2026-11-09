@@ -14,9 +14,10 @@ repos:
 #     -   id: pydocstyle
 
 -   repo: https://github.com/psf/black
-    rev: 23.10.0
+    rev: 26.3.1
     hooks:
     -   id: black-jupyter
+        args: [--target-version=py312]
 
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.1.0

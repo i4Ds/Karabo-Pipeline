@@ -220,8 +220,7 @@ class Telescope:
         name: OSKARTelescopesWithVersionType,
         version: enum.Enum,
         backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
-    ) -> Telescope:
-        ...
+    ) -> Telescope: ...
 
     @overload
     @classmethod
@@ -230,8 +229,7 @@ class Telescope:
         name: OSKARTelescopesWithoutVersionType,
         version: Literal[None] = None,
         backend: Literal[SimulatorBackend.OSKAR] = SimulatorBackend.OSKAR,
-    ) -> Telescope:
-        ...
+    ) -> Telescope: ...
 
     @overload
     @classmethod
@@ -240,8 +238,7 @@ class Telescope:
         name: SDPTelescopes,
         version: Literal[None] = None,
         backend: Literal[SimulatorBackend.SDP] = SimulatorBackend.SDP,
-    ) -> Telescope:
-        ...
+    ) -> Telescope: ...
 
     @classmethod
     def constructor(
@@ -292,27 +289,21 @@ but was not provided. Please provide a value for the version field."
             elif name in get_args(OSKARTelescopesWithoutVersionType):
                 name = cast(OSKARTelescopesWithoutVersionType, name)
                 data_path = OSKAR_TELESCOPE_TO_FILENAMES[name]
-                assert (
-                    version is None
-                ), f"""version is not a required field
+                assert version is None, f"""version is not a required field
                     for telescope {name}, but {version} was provided.
                     Please do not provide a value for the version field."""
             else:
-                raise TypeError(
-                    f"""
+                raise TypeError(f"""
                     {name=} is not an accepted telescope name for this backend.
-                """
-                )
+                """)
 
             path = os.path.join(get_module_absolute_path(), "data", data_path)
             return cls.read_OSKAR_tm_file(path)
         elif backend is SimulatorBackend.SDP:
             if version is not None:
-                logging.warning(
-                    f"""The version parameter is not supported
+                logging.warning(f"""The version parameter is not supported
     by the backend {backend}.
-    The version value {version} provided will be ignored."""
-                )
+    The version value {version} provided will be ignored.""")
             assert name in get_args(SDPTelescopes)
             try:
                 telescope = cls.__convert_sdp_configuration_to_telescope(name)
@@ -414,11 +405,9 @@ but was not provided. Please provide a value for the version field."
         if self.backend is SimulatorBackend.SDP:
             return self.SDP_configuration
 
-        raise ValueError(
-            f"""Unexpected: current backend is set to {self.backend},
+        raise ValueError(f"""Unexpected: current backend is set to {self.backend},
         but expected one of {SimulatorBackend}.
-        Verify the construction of this Telescope instance."""
-        )
+        Verify the construction of this Telescope instance.""")
 
     @property
     def SDP_configuration(self) -> Configuration:
@@ -516,10 +505,8 @@ but was not provided. Please provide a value for the version field."
             # the SDP datamodel setup into an OSKAR setup when constructing it.
             self.plot_telescope_OSKAR(file)
         else:
-            logging.warning(
-                f"""Backend {self.backend} is not valid.
-            Proceeding without any further actions."""
-            )
+            logging.warning(f"""Backend {self.backend} is not valid.
+            Proceeding without any further actions.""")
             return
 
     def plot_telescope_OSKAR(
