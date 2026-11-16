@@ -25,7 +25,7 @@ if "WSL" in platform.release() and (
         )
     # Restart Python Interpreter
     # https://stackoverflow.com/questions/6543847/setting-ld-library-path-from-inside-python
-    os.execv(sys.executable, ["python"] + sys.argv)
+    os.execv(sys.executable, [sys.executable, *sys.orig_argv[1:]])
 
 if "SLURM_JOB_ID" in os.environ:
     # if-statement is an ugly workaround to not import pkgs not available at
