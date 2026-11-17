@@ -57,4 +57,6 @@ RUN echo "$CONDA_PREFIX"/lib > /etc/ld.so.conf.d/conda.conf && \
 
 # Additional setup
 WORKDIR /workspace
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "karabo"]
+COPY docker-entrypoint.sh /usr/local/bin/karabo-entrypoint
+RUN chmod +x /usr/local/bin/karabo-entrypoint
+ENTRYPOINT ["/usr/local/bin/karabo-entrypoint"]
