@@ -31,6 +31,11 @@ RUN mkdir Karabo-Pipeline && \
     conda install -y --override-channels -c "nvidia/label/cuda-12.9.1" -c i4ds -c conda-forge karabo-pipeline="$KARABO_VERSION"; \
     elif [ "$BUILD" = "test" ] ; then \
     conda env update -f="environment.yaml"; \
+    if [ -n "$KARABO_VERSION" ] ; then \
+    python -c 'import os; from pathlib import Path; Path("karabo/_build_version.py").write_text("__version__ = " + repr(os.environ["KARABO_VERSION"]) + "\n")'; \
+    else \
+    python -c 'from pathlib import Path; import karabo; Path("karabo/_build_version.py").write_text("__version__ = " + repr(karabo.__version__) + "\n")'; \
+    fi; \
     python -m pip install --no-deps "."; \
     else \
     exit 1; \

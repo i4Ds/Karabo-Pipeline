@@ -7,10 +7,18 @@ import os
 import platform
 import sys
 
-from ._version import get_versions
+try:
+    # Conda builds generate this module from the recipe's KARABO_VERSION.  A
+    # packaged installation has no .git directory, so this is more reliable
+    # than asking Versioneer to rediscover the version at import time.
+    from ._build_version import __version__
+except ImportError:
+    # Source checkouts and regular pip development installs still derive their
+    # version from Versioneer.
+    from ._version import get_versions
 
-__version__ = get_versions()["version"]
-del get_versions
+    __version__ = get_versions()["version"]
+    del get_versions
 
 if "WSL" in platform.release() and (
     os.environ.get("LD_LIBRARY_PATH") is None
