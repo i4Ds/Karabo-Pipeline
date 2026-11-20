@@ -5,6 +5,7 @@ import zipfile
 from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -20,6 +21,8 @@ from karabo.simulation.sample_simulation import run_sample_simulation
 from karabo.simulation.visibility import Visibility
 from karabo.test import data_path
 from karabo.util.file_handler import FileHandler
+
+matplotlib.use("Agg")  # suppress display of images
 
 NNImageDiffCallable = Callable[[str, str], float]
 
