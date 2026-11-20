@@ -71,8 +71,7 @@ def test_file_handler():
 def test_object_bound_file_handler():
     """Test obj unique FileHandler creation."""
 
-    class MyClass:
-        ...
+    class MyClass: ...
 
     with tempfile.TemporaryDirectory() as tmpdir:
         FileHandler.root_stm = tmpdir

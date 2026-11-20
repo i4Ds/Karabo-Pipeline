@@ -38,10 +38,8 @@ class XFracDensLoaded(NamedTuple):
         """
         Get the x, y dimensions of the loaded.
 
-        Returns
-        -------
-        tuple[FloatArrayN, FloatArrayN]
-            A tuple containing the x and y labels.
+        Returns:
+            tuple[FloatArrayN, FloatArrayN]: A tuple containing the x and y labels.
         """
         dx, dy = (
             self.box_dims / self.x_frac.shape[1],
@@ -69,10 +67,8 @@ class XFracDensFilePair(NamedTuple):
         """
         Load the files into memory.
 
-        Returns
-        -------
-        XFracDensLoaded
-            The loaded files.
+        Returns:
+            XFracDensLoaded: The loaded files.
         """
         x_file = t2c.XfracFile(self.xfrac_path)
         d_file = t2c.DensityFile(self.dens_path)

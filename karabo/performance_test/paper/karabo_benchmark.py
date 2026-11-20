@@ -4,6 +4,7 @@ Karabo: A versatile SKA Observation Simulation Framework.
 
 Author of script: andreas.wassmer@fhnw.ch
 """
+
 import argparse
 import logging
 import os

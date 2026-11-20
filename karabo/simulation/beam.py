@@ -50,11 +50,12 @@ def generate_eidos_beam(
     saves the primary beams in same location as the code in which the function is
     called in
 
-    Parameters:
-    npixels: size of the image in pixels
-    image_width_degrees: width of the image in degrees
-    frequencies: frequency bins for which you want a primary beam
-    stoke: default 'I'
+    Args:
+        npixels (int): Size of the image in pixels.
+        image_width_degrees (float): Width of the image in degrees.
+        frequencies (NDArray[np.float64]): Frequency bins for which you want a
+            primary beam.
+        stokes (str, optional): Stokes parameter. Defaults to "I".
     """
 
     for freq in frequencies:
@@ -111,17 +112,12 @@ def airy_beam_fwhm_for_frequency(frequency_hz: float, dish_diameter_m: float) ->
     Compute the Airy beam FWHM in degrees for a given observing frequency and dish
     diameter.
 
-    Parameters:
-    -----------
-    frequency_hz : float
-        Observing frequency in Hz.
-    dish_diameter_m : float
-        Diameter of the telescope dish in meters.
+    Args:
+        frequency_hz (float): Observing frequency in Hz.
+        dish_diameter_m (float): Diameter of the telescope dish in meters.
 
     Returns:
-    --------
-    fwhm_degrees : float
-        FWHM of the Airy beam in degrees.
+        float: FWHM of the Airy beam in degrees.
     """
     c = 299792458.0  # Speed of light in m/s
     wavelength_m = c / frequency_hz

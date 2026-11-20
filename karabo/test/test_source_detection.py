@@ -67,9 +67,15 @@ def test_source_detection_plot(
         top_k=3,
     )
     # Compare the assignment
-    np.testing.assert_array_equal(
+    # We cannot expect the arrays to match perfectly due to rounding errors.
+    # Thus we compare the entries up to a certain tolerance.
+    # I think 1e-6 is good enough
+    # noqa see https://numpy.org/doc/stable/reference/generated/numpy.testing.assert_array_equal.html
+    np.testing.assert_allclose(
         assignments,
         np.load(tobject.gt_assignment),
+        rtol=1e-6,
+        atol=1e-6,
         err_msg="The assignment has changed!",
     )
     mapping = SourceDetectionEvaluation(

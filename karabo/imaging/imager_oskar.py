@@ -73,13 +73,11 @@ class OskarDirtyImager(DirtyImager):
             output_fits_path = os.path.join(tmp_dir, "dirty.fits")
 
         if self.config.combine_across_frequencies is False:
-            raise NotImplementedError(
-                """For the OSKAR backend, the dirty image will
+            raise NotImplementedError("""For the OSKAR backend, the dirty image will
                 always have intensities added across all frequency channels.
                 Therefore, combine_across_frequencies==False
                 is not currently supported.
-                """
-            )
+                """)
         imager = oskar.Imager()
 
         imager.set(

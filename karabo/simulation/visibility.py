@@ -102,7 +102,7 @@ class Visibility:
 
         # Loop over visibility files and read data
         for visibility in visibilities:
-            (header, handle) = oskar.VisHeader.read(str(visibility.path))
+            header, handle = oskar.VisHeader.read(str(visibility.path))
             block = oskar.VisBlock.create_from_header(header)
             for k in range(header.num_blocks):
                 block.read(header, handle, k)

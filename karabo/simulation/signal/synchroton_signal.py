@@ -22,26 +22,25 @@ class SignalSynchroton(BaseSignal[Image2D]):
     """
     Synchroton signal.
 
-    Examples
-    --------
-    >>> from karabo.simulation.signal.plotting import SignalPlotting
-    >>> from astropy import units
-    >>> cent = SkyCoord(ra=10 * units.degree, dec=10 * units.degree, frame="icrs")
-    >>> sync_sig = SignalSynchroton(
-    ...     centre=cent,
-    ...     fov=Angle([20, 20], unit=units.degree),
-    ...     grid_size=(100, 100),
-    ... )
-    >>> imgs = sync_sig.simulate()
-    >>> SignalPlotting.general_img(imgs[0], "Synchroton")
-    >>> # Map overview plot
-    >>> SignalPlotting.general_polar_plot(
-    ...     sync_sig.data["RA"],
-    ...     sync_sig.data["DEC"],
-    ...     sync_sig.data["intensity"],
-    ...     title="Synchroton map",
-    ...     log_bar=True,
-    ... )
+    Examples:
+        >>> from karabo.simulation.signal.plotting import SignalPlotting
+        >>> from astropy import units
+        >>> cent = SkyCoord(ra=10 * units.degree, dec=10 * units.degree, frame="icrs")
+        >>> sync_sig = SignalSynchroton(
+        ...     centre=cent,
+        ...     fov=Angle([20, 20], unit=units.degree),
+        ...     grid_size=(100, 100),
+        ... )
+        >>> imgs = sync_sig.simulate()
+        >>> SignalPlotting.general_img(imgs[0], "Synchroton")
+        >>> # Map overview plot
+        >>> SignalPlotting.general_polar_plot(
+        ...     sync_sig.data["RA"],
+        ...     sync_sig.data["DEC"],
+        ...     sync_sig.data["intensity"],
+        ...     title="Synchroton map",
+        ...     log_bar=True,
+        ... )
     """
 
     MAX_GRID_X = 190
@@ -58,26 +57,22 @@ class SignalSynchroton(BaseSignal[Image2D]):
         mask_table_id: int = 2,
     ) -> None:
         """
-        ...
+        Synchroton signal from a diffuse emission map.
 
-        Parameters
-        ----------
-        centre : SkyCoord
-            Center point. lon = right ascension, lat = declination
-        fov : Angle
-            Field of view for the right ascension in degrees. Must be between 0 < fov <=
-            180. lon = right ascension fov, lat = declination fov
-        grid_size : tuple[Annotated[int, Literal["X"]], Annotated[int, Literal["Y"]]]
-            Size of the simulated output image (X, Y).
-        diffuse_emission_path : Optional[Path], optional
-            Path to the diffuse emission .fits file in the mollweide projection. If
-            none, the `lambda_mollweide_haslam408_dsds.fits` will be downloaded, cached
-            and used as a data source. By default None.
-        data_table_id : int, optional
-            The table ID of the emisson data from the `diffuse_emission_path`s fits
-            file. By default 1.
-        mask_table_id : int, optional
-            The table ID of the masking data. By default 2.
+        Args:
+            centre (SkyCoord): Center point. lon = right ascension, lat = declination
+            fov (Angle): Field of view for the right ascension in degrees. Must be
+                between 0 < fov <= 180. lon = right ascension fov, lat = declination
+                fov
+            grid_size (tuple[int, int]): Size of the simulated output image (X, Y).
+            diffuse_emission_path (Optional[Path], optional): Path to the diffuse
+                emission .fits file in the mollweide projection. If none, the
+                `lambda_mollweide_haslam408_dsds.fits` will be downloaded, cached and
+                used as a data source. Defaults to None.
+            data_table_id (int, optional): The table ID of the emisson data from the
+                `diffuse_emission_path`s fits file. Defaults to 1.
+            mask_table_id (int, optional): The table ID of the masking data. Defaults
+                to 2.
         """
         if diffuse_emission_path is None:
             diffuse_emission_path = Path(DiffuseEmissionHaslam408DownloadObject().get())
@@ -127,10 +122,8 @@ class SignalSynchroton(BaseSignal[Image2D]):
         """
         Fetch the synchroton signal.
 
-        Returns
-        -------
-        list[Image2D]
-            The synchroton image.
+        Returns:
+            list[Image2D]: The synchroton image.
         """
         self._load_data()
         pos_df, bottom_left, top_right = helpers.filter_dataframe_radec(
@@ -192,20 +185,15 @@ class SignalSynchroton(BaseSignal[Image2D]):
 
         https://science.nrao.edu/facilities/vla/proposing/TBconv
 
-        Parameters
-        ----------
-        freq : npt.NDArray[np.float64]
-            The brightness to be converted. The array may be in any shape.
-        source_freq : float
-            Source frequency of the brightness
-        target_freq : float
-            Target frequency.
-        alpha : float
-            Alpha
+        Args:
+            freq (npt.NDArray[np.float64]): The brightness to be converted. The array
+                may be in any shape.
+            source_freq (float): Source frequency of the brightness
+            target_freq (float): Target frequency.
+            alpha (float): Alpha
 
-        Returns
-        -------
-        npt.NDArray[np.float64]
-            Converted array in the same shape as the input array.
+        Returns:
+            npt.NDArray[np.float64]: Converted array in the same shape as the input
+                array.
         """
         return np.power(freq * (target_freq / source_freq), alpha)

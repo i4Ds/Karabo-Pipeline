@@ -28,26 +28,30 @@ class FixedSegUNet(t2c.segmentation.segunet21cm):  # type: ignore[misc]
     def __init__(self, tta: _TtaType = 1, verbose: bool = False) -> None:
         """SegU-Net: segmentation of 21cm images with U-shape network.
 
-           - tta (int): default 0 (super-fast, no pixel-error map) implement the error
-             map with time-test augmented technique in the prediction process
-           - verbose (bool): default False, activate verbosity
+        tta = 0 : fast (~7 sec), it tends to be a few percent less accurate (<2%)
+        then the other two cases, no pixel-error map (no TTA manipulation).
+        tta = 1 : medium (~17 sec), accurate and preferable than tta=0, with
+        pixel-error map (3 samples).
+        tta = 2 : slow (~10 min), accurate, with pixel-error map (~100 samples).
 
-        Description:
-           tta = 0 : fast (~7 sec), it tends to be a few percent less accurate (<2%)
-           then the other two cases, no pixel-error map (no TTA manipulation) tta = 1 :
-           medium (~17 sec), accurate and preferable than tta=0, with pixel-error map (3
-           samples) tta = 2 : slow (~10 min), accurate, with pixel-error map (~100
-           samples)
+        Args:
+            tta (int, optional): Implement the error map with time-test augmented
+                technique in the prediction process (0 = super-fast, no pixel-error
+                map). Defaults to 1.
+            verbose (bool, optional): Activate verbosity. Defaults to False.
 
-        Returns:
-           - X_seg (ndarray) : recovered binary field (1 = neutral and 0 = ionized
-             regions)
-           - X_err (ndarray) : pixel-error map of the recovered binary field
+        Note:
+            The prediction of the loaded model returns:
+
+            - X_seg (ndarray) : recovered binary field (1 = neutral and 0 = ionized
+              regions)
+            - X_err (ndarray) : pixel-error map of the recovered binary field
 
         Example:
-         $ from tools21cm import segmentation $ seg = segmentation.segunet21cm(tta=1,
-         verbose=True)   # load model (need to be done once) $ Xseg, Xseg_err =
-         seg.prediction(x=dT3)
+            $ from tools21cm import segmentation
+            $ # load model (need to be done once)
+            $ seg = segmentation.segunet21cm(tta=1, verbose=True)
+            $ Xseg, Xseg_err = seg.prediction(x=dT3)
 
         Print of the Network's Configuration file:
          [TRAINING] BATCH_SIZE = 64 AUGMENT = NOISESMT IMG_SHAPE = 128, 128 CHAN_SIZE =
@@ -100,28 +104,24 @@ class SegUNetSegmentation(BaseSegmentation):
     """
     SegU-net based segmentation. Using its own init for t2c (Tools21cm).
 
-    Examples
-    --------
-    >>> from karabo.simulation.signal.plotting import SegmentationPlotting
-    >>> from karabo.simulation.signal.signal_21_cm import Signal21cm
-    >>> z = Signal21cm.get_xfrac_dens_file(z=7.059, box_dims=244 / 0.7)
-    >>> sig = Signal21cm([z])
-    >>> signal_images = sig.simulate()
-    >>> seg = SegUNetSegmentation(max_baseline=70.0, tta=2)
-    >>> segmented = seg.segment(signal_images[0])
-    >>> SegmentationPlotting.seg_u_net_plotting(segmented=segmented)
+    Examples:
+        >>> from karabo.simulation.signal.plotting import SegmentationPlotting
+        >>> from karabo.simulation.signal.signal_21_cm import Signal21cm
+        >>> z = Signal21cm.get_xfrac_dens_file(z=7.059, box_dims=244 / 0.7)
+        >>> sig = Signal21cm([z])
+        >>> signal_images = sig.simulate()
+        >>> seg = SegUNetSegmentation(max_baseline=70.0, tta=2)
+        >>> segmented = seg.segment(signal_images[0])
+        >>> SegmentationPlotting.seg_u_net_plotting(segmented=segmented)
     """
 
     def __init__(self, max_baseline: float = 70.0, tta: _TtaType = 2) -> None:
         """
         SegU.net based segmentation.
 
-        Parameters
-        ----------
-        max_baselines : float, optional
-            Max number of baselines , by default 70.0
-        tta : int, optional
-            0=super-fast, 1=fast, 2=super-slow, by default 2
+        Args:
+            max_baseline (float, optional): Max number of baselines. Defaults to 70.0.
+            tta (int, optional): 0=super-fast, 1=fast, 2=super-slow. Defaults to 2.
         """
         self.max_baseline = max_baseline
         self.tta: _TtaType = tta
@@ -130,15 +130,11 @@ class SegUNetSegmentation(BaseSegmentation):
         """
         SegU-net based segmentation. Using its own init for t2c (Tools21cm).
 
-        Parameters
-        ----------
-        image : Image3D
-            The constructed simulation
+        Args:
+            image (Image3D): The constructed simulation
 
-        Returns
-        -------
-        SegmentationOutput
-            SegU-net cube
+        Returns:
+            SegmentationOutput: SegU-net cube
         """
         dt2 = image.data
         redshift = image.redshift

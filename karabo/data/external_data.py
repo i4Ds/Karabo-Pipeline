@@ -83,13 +83,16 @@ class DownloadObject:
 
             desc = f"Downloading {url} to {local_file_path}"
             response.raw.decode_content = True
-            with tqdm.wrapattr(
-                response.raw,
-                "read",
-                total=file_size,
-                desc=desc,
-                disable=not verbose,
-            ) as r_raw, open(local_file_path, "wb") as f:
+            with (
+                tqdm.wrapattr(
+                    response.raw,
+                    "read",
+                    total=file_size,
+                    desc=desc,
+                    disable=not verbose,
+                ) as r_raw,
+                open(local_file_path, "wb") as f,
+            ):
                 shutil.copyfileobj(r_raw, f)
 
         except BaseException:  # cleanup if interrupted

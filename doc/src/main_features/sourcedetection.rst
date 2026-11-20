@@ -10,11 +10,13 @@ source detection.
 Classes
 -------
 .. autoclass:: karabo.sourcedetection.evaluation.SourceDetectionEvaluation
+   :no-index:
    :members:
    :special-members: __init__
    :exclude-members: __strfdelta
 
 .. autoclass:: karabo.sourcedetection.result.SourceDetectionResult
+   :no-index:
    :members:
    :special-members: __init__
    :exclude-members: __strfdelta

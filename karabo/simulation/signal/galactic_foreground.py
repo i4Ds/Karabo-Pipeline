@@ -21,33 +21,32 @@ class SignalGalacticForeground(BaseSignal[Image2D]):
     """
     Galactic Foreground signal catalogue wrapper.
 
-    Examples
-    --------
-    >>> from karabo.simulation.signal.plotting import SignalPlotting
-    >>> available_redshifts = SignalGalacticForeground.available_redshifts()
-    >>> cent = SkyCoord(ra=10 * units.degree, dec=20 * units.degree, frame="icrs")
-    >>> gf = SignalGalacticForeground(
-    ...    cent,
-    ...    redshifts=available_redshifts[:3],
-    ...    grid_size=(30, 30),
-    ...    fov=Angle([20, 20], unit=units.degree),
-    ... )
-    >>> imgs = gf.simulate()
-    >>> SignalPlotting.general_img(imgs[0], "Galactic foreground", log_bar=True)
-    >>> # Map plotting
-    >>> col = SignalGalacticForeground._flux_column(7.6)
-    >>> data = (
-    ...     gf.gleam_catalogue[gf.gleam_catalogue[col] >= 0]
-    ...         .to_pandas()
-    ...         .sort_values(SignalGalacticForeground.RA_COLUMN)
-    ... )
-    >>> SignalPlotting.general_polar_plot(
-    ...     data[SignalGalacticForeground.RA_COLUMN],
-    ...     data[SignalGalacticForeground.DEC_COLUMN],
-    ...     data[col],
-    ...     title="Galactic Foreground",
-    ...     log_bar=True,
-    ... )
+    Examples:
+        >>> from karabo.simulation.signal.plotting import SignalPlotting
+        >>> available_redshifts = SignalGalacticForeground.available_redshifts()
+        >>> cent = SkyCoord(ra=10 * units.degree, dec=20 * units.degree, frame="icrs")
+        >>> gf = SignalGalacticForeground(
+        ...    cent,
+        ...    redshifts=available_redshifts[:3],
+        ...    grid_size=(30, 30),
+        ...    fov=Angle([20, 20], unit=units.degree),
+        ... )
+        >>> imgs = gf.simulate()
+        >>> SignalPlotting.general_img(imgs[0], "Galactic foreground", log_bar=True)
+        >>> # Map plotting
+        >>> col = SignalGalacticForeground._flux_column(7.6)
+        >>> data = (
+        ...     gf.gleam_catalogue[gf.gleam_catalogue[col] >= 0]
+        ...         .to_pandas()
+        ...         .sort_values(SignalGalacticForeground.RA_COLUMN)
+        ... )
+        >>> SignalPlotting.general_polar_plot(
+        ...     data[SignalGalacticForeground.RA_COLUMN],
+        ...     data[SignalGalacticForeground.DEC_COLUMN],
+        ...     data[col],
+        ...     title="Galactic Foreground",
+        ...     log_bar=True,
+        ... )
     """
 
     RA_COLUMN: Final[str] = "RAJ2000"
@@ -65,20 +64,16 @@ class SignalGalacticForeground(BaseSignal[Image2D]):
         """
         Galactic Foreground signal catalogue wrapper.
 
-        Parameters
-        ----------
-        centre : Angle
-            Center point. lon = right ascension, lat = declination
-        fov : Angle
-            Field of view for the right ascension in degrees. Must be between 0 < fov <=
-            180. lon = right ascension fov, lat = declination fov
-        redshifts : list[float]
-            At what redshifts to observe the catalogue at.
-        grid_size : tuple[Annotated[int, Literal["X"]], Annotated[int, Literal["Y"]]]
-            Size of the simulated output image (X, Y).
-        gleam_file_path : Optional[Path], optional
-            Path to the gleam catalogue path to use, by default None. If None, the
-            default GLEAM Catalogue from Karabo is used.
+        Args:
+            centre (SkyCoord): Center point. lon = right ascension, lat = declination
+            fov (Angle): Field of view for the right ascension in degrees. Must be
+                between 0 < fov <= 180. lon = right ascension fov, lat = declination
+                fov
+            redshifts (list[float]): At what redshifts to observe the catalogue at.
+            grid_size (tuple[int, int]): Size of the simulated output image (X, Y).
+            gleam_file_path (Optional[Path], optional): Path to the gleam catalogue
+                path to use. If None, the default GLEAM Catalogue from Karabo is used.
+                Defaults to None.
         """
         self.centre = centre
         self.redshifts = redshifts
@@ -170,17 +165,14 @@ class SignalGalacticForeground(BaseSignal[Image2D]):
         If the gleam catalogue is given, it will take precedents over the path. Else, if
         no path is given, the default catalogue will bi used.
 
-        Parameters
-        ----------
-        gleam_file_path : Optional[Path], optional
-            Path to the gleam catalogue, by default None
-        gleam_catalogue : Optional[Table], optional
-            Gleam catalogue data, by default None
+        Args:
+            gleam_file_path (Optional[Path], optional): Path to the gleam catalogue.
+                Defaults to None.
+            gleam_catalogue (Optional[Table], optional): Gleam catalogue data.
+                Defaults to None.
 
-        Returns
-        -------
-        list[float]
-            List of available redshift values.
+        Returns:
+            list[float]: List of available redshift values.
         """
         re_intensity_col = re.compile("Fint([0-9]+)")
         redshifts: list[float] = []
@@ -200,14 +192,10 @@ class SignalGalacticForeground(BaseSignal[Image2D]):
         """
         Get the flux column name from the redshift value.
 
-        Parameters
-        ----------
-        redshift : float
-            The redshift value.
+        Args:
+            redshift (float): The redshift value.
 
-        Returns
-        -------
-        str
-            Flux column name.
+        Returns:
+            str: Flux column name.
         """
         return f"Fint{(redshift * 10):0>3.0f}"

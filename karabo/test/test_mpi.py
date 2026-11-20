@@ -1,4 +1,5 @@
 """MPI tests according to `https://mpi4py.readthedocs.io/en/stable/tutorial.html`."""
+
 import numpy as np
 import pytest
 from mpi4py import MPI
