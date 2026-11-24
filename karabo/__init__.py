@@ -35,6 +35,11 @@ if "SLURM_JOB_ID" in os.environ:
     # But because this is happening at build/install-time, the dependencies of Karabo
     # are not yet available in the venv, and therefore the installation of the
     # dependencies will fail.
-    from karabo.util.dask import DaskHandlerSlurm
+    try:
+        from karabo.util.dask import DaskHandlerSlurm
 
-    DaskHandlerSlurm._prepare_slurm_nodes_for_dask()
+        DaskHandlerSlurm._prepare_slurm_nodes_for_dask()
+    except ModuleNotFoundError:
+        # We're likely in a build/install step inside a SLURM allocation
+        # (e.g. `pip install .`); runtime deps are not available yet. Skip.
+        pass
